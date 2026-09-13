@@ -1,0 +1,26 @@
+# H747 CM7 裸机验证变体；另一个核存在，不能声明整机无并发风险。
+version: 1
+project:
+  chip: STM32H747
+  core: Cortex-M7
+  concurrency_model: dual_core
+  native_word_bits: 32
+analysis:
+  include_dirs: [src, include]
+  exclude_dirs: [deps, build, results, .ecra]
+  exclude_files: [src/peer.c]
+  cmake:
+    build_dir: build/cm7_bare
+    generator: Ninja
+    toolchain_file: cmake/arm-none-eabi.cmake
+    args: [-DVARIANT=cm7_bare]
+    build: true
+  auto_system_includes: true
+  expected_defines: [STM32H747xx, CORE_CM7, APP_RTOS=0]
+  output_dir: .ecra/portability-cm7-bare
+contexts:
+  - id: main
+    kind: MAIN
+    functions: [main]
+review:
+  enabled: false

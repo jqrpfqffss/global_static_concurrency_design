@@ -1,0 +1,23 @@
+version: 1
+project:
+  chip: STM32_demo
+  core: Cortex-M7
+  native_word_bits: 32
+  concurrency_model: single_core_preemptive
+analysis:
+  compile_database: compile_commands.json
+  exclude: ['build/*']
+  output_dir: .ecra
+  auto_contexts: true
+contexts:
+  - id: main
+    kind: MAIN
+    functions: [main]
+  # ECAT_Task 由 main 直接调用，继承 MAIN；名字含 Task 不代表独立任务。
+  # ControlTask 则通过 xTaskCreate 注册，由 auto_contexts 自动发现。
+api_patterns:
+  lock_enter: [taskENTER_CRITICAL]
+  lock_exit: [taskEXIT_CRITICAL]
+  dma_start: ['HAL_*_DMA']
+review:
+  enabled: false  # 示例和初始化模板均默认本地排查，不消耗模型费用。

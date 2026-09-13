@@ -1,0 +1,14 @@
+{
+  "task_name": "ECRA-STM32-Concurrency-20260906-032803",
+  "state": "Ready",
+  "timezone": "Asia/Shanghai",
+  "scheduled_local": "2026-09-06T03:28:28.0000000+08:00",
+  "user": "DESKTOP-LBGUUM3\\Administrator",
+  "logon_type": "Interactive",
+  "executable": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\pythonw.exe",
+  "arguments": "\"H:\\global_static_concurrency_design\\scheduled\\stm32-concurrency-20260906\\runner.py\"",
+  "working_directory": "H:\\global_static_concurrency_design",
+  "start_when_available": true,
+  "wake_to_run": true,
+  "execution_time_limit": "PT0S"
+}

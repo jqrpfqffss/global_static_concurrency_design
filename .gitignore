@@ -1,0 +1,41 @@
+# Python bytecode and package metadata
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Reproducible build products
+build/
+Debug/
+dist/
+*.o
+*.obj
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+compile_commands.json
+.cache/
+
+# ECRA generated state, reports, and browser-test artifacts
+.ecra/
+output/
+.playwright-cli/
+*.log
+
+# Locally installed JavaScript dependencies (restore with npm install)
+node_modules/
+
+# Historical scheduler execution state; task definitions remain tracked
+scheduled/**/__pycache__/
+scheduled/**/history/
+scheduled/**/logs/
+scheduled/**/runtime/
+
+# STM32 H747 validation outputs; source, configuration, and acceptance data remain tracked
+validation/
+
+# IDE and local-tool transient state
+mx.scratch/
+
+serial - continue/

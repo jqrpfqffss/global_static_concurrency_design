@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stm32-ecra"
+version = "0.1.0"
+description = "STM32 global/static inventory and concurrency evidence analyzer"
+requires-python = ">=3.10"
+dependencies = ["libclang==18.1.1", "PyYAML>=6.0.2,<7"]
+
+[project.scripts]
+ecra = "ecra.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ecra*"]

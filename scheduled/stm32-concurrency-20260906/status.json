@@ -1,0 +1,7 @@
+{
+  "state": "BLOCKED",
+  "updated": "2026-09-06T00:55:58.019948+00:00",
+  "round": 3,
+  "reason": "Codex 连续三次启动/输出失败；检查日志、登录、网络或额度",
+  "details": "codex exec 退出码 1"
+}

@@ -1,0 +1,49 @@
+# 当前 serial - continue 裸机工程；在工具根目录运行：
+# py -3.10 run_ecra.py --project "serial - continue"
+# 此文件由并发排查工具集中维护，不写入被排查固件目录。
+version: 1
+project:
+  chip: STM32F103C8
+  core: Cortex-M3
+  native_word_bits: 32
+analysis:
+  include_dirs:
+    - Core/Src
+    - Core/Inc
+  exclude_dirs:
+    - Drivers
+    - Middlewares
+    - ThirdParty
+  # ST/CubeIDE 提供的支撑文件实际位于 Core/Src，需要单独排除其变量。
+  # 它们仍参与编译与依赖分析，不影响固件构建或用户变量的调用链。
+  exclude_files:
+    - Core/Src/system_stm32f1xx.c
+    - Core/Src/syscalls.c
+    - Core/Src/sysmem.c
+  # 本仓库还保留 RTOS 注入样例；这两个文件不属于当前裸机构建。
+  exclude:
+    - Core/Src/service_tasks.c
+    - Core/Inc/FreeRTOSConfig.h
+  cmake:
+    build_dir: build/ecra-user
+    generator: Ninja
+    build_type: Debug
+    args:
+      - -DSERIAL_CONCURRENCY_RTOS=OFF
+    build: true
+  auto_system_includes: true
+  expected_defines: [STM32F103xB, USE_HAL_DRIVER]
+  output_dir: .ecra
+  open_report: false
+contexts:
+  - id: main
+    kind: MAIN
+    functions: [main]
+# 普通 IRQHandler 自动识别，HAL 回调从调用图继承中断上下文。
+# 无法从源码恢复的驱动回调可添加 entry_registrations；详见设计文档。
+review:
+  enabled: false  # 本地运行不需要模型；启用 OpenCode 时改为 true
+  command: [opencode]
+  timeout_seconds: 300
+  retries: 1
+  max_items: 0

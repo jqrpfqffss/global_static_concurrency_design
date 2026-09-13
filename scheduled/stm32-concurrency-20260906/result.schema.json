@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "status": {"type": "string", "enum": ["COMPLETE", "CONTINUE", "BLOCKED"]},
+    "summary": {"type": "string"},
+    "missing_variables": {"type": "integer"},
+    "missing_risk_cases": {"type": "integer"},
+    "unresolved_reviews": {"type": "integer"},
+    "blocker": {"type": "string"},
+    "next_step": {"type": "string"}
+  },
+  "required": ["status", "summary", "missing_variables", "missing_risk_cases", "unresolved_reviews", "blocker", "next_step"],
+  "additionalProperties": false
+}
