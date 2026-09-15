@@ -2,11 +2,13 @@
 import hashlib
 import json
 import os
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 from .common import digest, execute, read_json, write_json
 from .review import collect_evidence, parse_answer, resolve_command, verify_receipt
+from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION
 
 
 AUDIT_PROMPT = '''对刚才的结论做反证复核。先前答案仅是待证假设，不是事实或验收真值。
@@ -15,7 +17,7 @@ AUDIT_PROMPT = '''对刚才的结论做反证复核。先前答案仅是待证�
 1. 对安全结论，逐字段枚举所有写入函数，特别核对 Reset/Start/Stop/错误恢复/溢出处理；不能把初始化之后重置队列 head/tail 的函数漏掉，不能在 main 也写 head 时仍套用单生产者单消费者证明。标志的检查和清零之间也可能丢失新事件。
 2. 对确认结论，给出实际可成立的存储冲突和最短交错，业务影响另列。RMW 自身就是读取：没有额外业务消费者不能抹去 ++ 丢失更新、union/位域 RMW 覆盖另一字段写入等已经能证明的存储一致性问题；但只能说明实际丢失了什么，业务后果未证实就直说未证实。对齐字节的原子 store/store 或同级中断串行写入，不能仅因最后写入值随顺序不同而确认缺陷；必须另有源码支持的协议/完整更新约束。禁止虚构未来读者或跨字段约束，也禁止把“业务影响未知”直接等同于“已证明安全”。
 3. 指针对象与其指向缓冲区分开。有 symbol_id 的变量项，status 必须绑定该对象本体；若指针初始化后从未改写，不能因为指向对象有 RMW 缺陷而把指针本身判 CONFIRMED。下游目标的真实风险另列并保留，不能替代本项证据。无 symbol_id 的缺口项仅复核 uncertainties 中列出的具体访问。指针快照过时本身不等于缺陷；必须证明违反当前已有的读取/所有权约束。无消费者、无生命周期约定时不要臆测帧头、双缓冲所有权、业务协议或未来新增代码。
-4. main 不能抢占 ISR；IRQ 只有更高抢占优先级才能抢占正在运行的 ISR；同优先级不能相互抢占。DMA 硬件可独立运行。检查回调发生前后 HAL 状态变化，不能让 main 在 ISR 尚未返回时开始下一次调用。
+4. 先确认本项目架构、目标核和调度配置。对同一 Cortex-M 核，main 不能抢占 ISR；IRQ 只有更高抢占优先级才能抢占正在运行的 ISR；同优先级不能相互抢占。不同核及 DMA 硬件可独立运行；本核关中断不自动保护另一个核。其他平台必须依据其实际调度规则，不能照搬 Cortex-M 规则。检查回调实参、过滤条件及 HAL 状态变化，不能让 main 在同核 ISR 尚未返回时开始下一次调用，也不能把被实参分支排除的入口列为真实访问者。
 5. 修复建议必须覆盖忙状态和所有写点。例如不能仅把 memset 移到 DMA 启动之前，却在上一次 DMA 仍忙时再次 memset。若没有板上实验，不得写成已验证实测或“必然在某个时刻发生”。
 6. 不能由合法源码行号推导整段推理必然正确。每项 claim 必须说明该行具体支持什么；若还需要另一行才能证明 IRQ 使能，应引用使能行，不能把 SetPriority 说成 EnableIRQ。
 请自行读取被遗漏函数及调用者，明确修正或维持本项结论。当前证据足够时给 CONFIRMED / REVIEWED_SAFE / FALSE_POSITIVE；无法证明具体风险或安全时给 NEED_MORE_CONTEXT，写出具体缺失条件。不要为了二选一强行下结论。
@@ -35,13 +37,17 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
         if original.get('state') not in {'DONE','FAILED'}:
             return original
         fid = original['finding_id']
-        prompt = AUDIT_PROMPT + '\n本项 ID：' + fid
+        packet = folder/(fid+'.input.json')
+        expected_type = ('VARIABLE' if read_json(packet)['finding'].get('symbol_id') else 'EVIDENCE_GAP') if packet.is_file() else None
+        prompt = AUDIT_PROMPT + CONTRACT_PROMPT + '\n本项 ID：' + fid
+        if expected_type:
+            prompt += '\n本项 review_type 必须为 ' + expected_type
         if challenges and fid in challenges:
             prompt += '\n额外待核实问题（这是复核问题，不是事实或指定答案）：\n' + challenges[fid]
-        policy_digest = digest(prompt)
+        policy_digest = digest([prompt, Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8')])
         if original['state'] == 'DONE':
             verify_receipt(root, folder, original)
-        audit_key = digest([original.get('execution',{}).get('stdout_sha256'), original.get('cache_key'), prompt,
+        audit_key = digest([original.get('execution',{}).get('stdout_sha256'), original.get('cache_key'), policy_digest,
                             settings.get('model'), settings.get('command')])
         cache = audit_folder/(fid+'.result.json')
         if cache.is_file():
@@ -68,7 +74,6 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
                 continue
             if isinstance(event,dict) and event.get('sessionID'):
                 sessions.append(event['sessionID'])
-        packet = folder/(fid+'.input.json')
         argv = command + ['run', '--agent', 'ecra-review', '--format', 'json']
         if sessions:
             argv += ['--session', sessions[-1]]
@@ -102,11 +107,12 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
                 (folder/(name+'.stderr.txt')).write_text(proc.stderr,encoding='utf-8')
                 if proc.returncode:
                     raise ValueError(f'OpenCode audit exit={proc.returncode}: {proc.stderr[-500:]}')
-                answer = parse_answer(proc.stdout,fid,root,require_quotes=True)
+                answer = parse_answer(proc.stdout,fid,root,require_quotes=True,require_schema=True,expected_type=expected_type)
                 result.update(state='DONE',status=answer['status'],answer=answer,
                     source_evidence=collect_evidence(root,answer), audit_prompt_digest=policy_digest,
                     execution=dict(started=started,finished=datetime.now(timezone.utc).isoformat(),
                         command=argv, model=settings.get('model','OpenCode configured default'),exit_code=0,
+                        schema_version=SCHEMA_VERSION, review_type=answer['review_type'],
                         stdout_file=name+'.jsonl',stderr_file=name+'.stderr.txt',
                         prompt_file=name+'.prompt.txt',prompt_sha256=hashlib.sha256((folder/(name+'.prompt.txt')).read_bytes()).hexdigest(),
                         stdout_sha256=hashlib.sha256((folder/(name+'.jsonl')).read_bytes()).hexdigest(),

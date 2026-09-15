@@ -140,8 +140,8 @@ def generate(out, facts, report, reviews):
         if r.get("error"):
             review_md.append("- " + r["error"])
         if r.get('state') == 'DONE':
-            for k, v in r.get("answer", {}).items():
-                review_md.append(f"- {k}: {v}")
+            from .review_presentation import review_markdown
+            review_md += review_markdown(r.get('answer', {}))
         elif r.get('answer'):
             review_md.append('- 旧回答已失效，不作为本轮结论；原始收据保留在 review/queue.json。')
         review_md.append("")

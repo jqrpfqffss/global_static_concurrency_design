@@ -9,6 +9,7 @@ from threading import Lock
 from pathlib import Path
 
 from .common import digest, execute, read_json, write_json
+from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION, validate_explanation
 
 
 STATUSES = {"CONFIRMED", "LIKELY", "REVIEWED_SAFE", "FALSE_POSITIVE", "NEED_MORE_CONTEXT"}
@@ -28,7 +29,9 @@ def verify_receipt(root, folder, receipt):
         if (prompt_file.parent.resolve() != folder.resolve() or not prompt_file.is_file()
                 or hashlib.sha256(prompt_file.read_bytes()).hexdigest() != execution.get('prompt_sha256')):
             raise ValueError('OpenCode 实际复核提示词校验失败')
-    answer = parse_answer(data.decode('utf-8'), receipt['finding_id'], root, require_quotes=True)
+    answer = parse_answer(data.decode('utf-8'), receipt['finding_id'], root, require_quotes=True,
+                         require_schema=execution.get('schema_version') is not None,
+                         expected_type=execution.get('review_type'))
     if answer != receipt.get('answer') or answer['status'] != receipt.get('status'):
         raise ValueError('复核答案与原始 OpenCode 日志不一致')
     if collect_evidence(root, answer) != receipt.get('source_evidence'):
@@ -73,7 +76,7 @@ def resolve_command(command):
     return result
 
 
-def parse_answer(raw, finding_id, root, require_quotes=False):
+def parse_answer(raw, finding_id, root, require_quotes=False, require_schema=False, expected_type=None):
     texts = []
     for line in raw.splitlines():
         try:
@@ -142,6 +145,7 @@ def parse_answer(raw, finding_id, root, require_quotes=False):
             quote = e['quote']
             if not isinstance(quote, str) or not quote.strip() or quote.strip() not in lines[e['line']-1]:
                 raise ValueError(f"证据引用原文与源码不符: {e['file']}:{e['line']}")
+    validate_explanation(value, expected_type=expected_type, required=require_schema)
     return value
 
 
@@ -149,7 +153,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     settings = cfg["review"]
     if type(settings.get('audit_verdicts', False)) is not bool:
         raise ValueError('review.audit_verdicts 必须是布尔值 true/false')
-    implementation = digest(Path(__file__).read_text(encoding='utf-8'))
+    implementation = digest([Path(__file__).read_text(encoding='utf-8'),
+                             Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8')])
     verdict_settings = {k:v for k,v in settings.items() if k not in
                         {'enabled','max_items','timeout_seconds','retries','prepare_packets','workers','audit_verdicts'}}
     folder = out / "review"
@@ -252,7 +257,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 packet['access_source_context'].append(dict(file=file,lines=[dict(line=i,text=lines[i-1]) for i in sorted(wanted) if i<=len(lines)]))
         packet_path = folder / (fid + ".input.json")
         write_json(packet_path, packet)
-        prompt = f"""你是 STM32 全局/static 变量并发复核工程师。只读源码，不修改工程。
+        prompt = f"""你是当前嵌入式 C/C++ 工程的全局/static 变量并发复核工程师。只读源码，不修改工程。
 读取附件中的证据包，再读取真实定义、访问函数、调用链及相关 NVIC/RTOS/临界区/硬件配置。
 project_evidence_path 是共享构建证据。只依据源码和提取事实，不读取测试真值、验收结论或其他复核答案。
 允许 read 源码和本项证据包。共享证据 source_files 是源码目录；需要更多源码时按具体路径 read，可分段读取。
@@ -269,7 +274,7 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
 若缺关键调用者、硬件配置或业务约束而无法确定，给 NEED_MORE_CONTEXT；LIKELY 也须有当前源码支持的具体风险依据。
 若判定由锁保护，必须逐个写入点沿实际分支检查最近的取锁/解锁，检查提前 return、释放后清理及锁外检查。
 不能只用函数最前面的 take 与最后面的 give 将中间所有写入都判为受保护。说明优先级是否真正排除了交错，以及依据。
-最终只输出一个 JSON 对象，不用 Markdown。字段必须为:
+最终只输出一个 JSON 对象，不用 Markdown。基础字段如下，另须包含后附统一协议要求的结构化字段:
 {{"finding_id":"{fid}","status":"CONFIRMED|LIKELY|REVIEWED_SAFE|FALSE_POSITIVE|NEED_MORE_CONTEXT",
 "reason":"先明确回答本项有问题、无问题或证据不足，再解释适用范围","evidence":[{{"file":"工程相对路径","line":1,"quote":"该行连续的源码原文（不要加行号或省略号）","claim":"这条源码支持什么事实"}}],
 "interleaving":"最短交错时序或为何不会交错","protection":"真实保护范围及不足",
@@ -278,6 +283,9 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
 证据 quote 必须与指定行的实际原文一致，将被程序逐字校验；不要根据记忆猜行号。
 确认缺陷必须引用冲突双方及可抢占/调用入口证据；安全结论须解释本项所有候选规则为何不成立。
 """
+        prompt += CONTRACT_PROMPT
+        expected_type = 'VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
+        prompt += '\n本项 review_type 必须为 ' + expected_type + '；finding_id 必须为 ' + fid
         (folder / (fid + ".prompt.txt")).write_text(prompt, encoding="utf-8")
         cache_key = digest([fingerprint, packet, verdict_settings, prompt, implementation])
         cache = folder / (fid + ".result.json")
@@ -345,11 +353,13 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
                     (folder/(attempt_name+'.stderr.txt')).write_text(proc.stderr, encoding='utf-8')
                     if proc.returncode:
                         raise ValueError(f"OpenCode exit={proc.returncode}: {proc.stderr[-1000:]}")
-                    answer = parse_answer(proc.stdout, fid, root, require_quotes=True)
+                    answer = parse_answer(proc.stdout, fid, root, require_quotes=True,
+                                          require_schema=True, expected_type=expected_type)
                     result.update(state="DONE", answer=answer, status=answer["status"], source_evidence=collect_evidence(root, answer))
                     result['execution'] = dict(started=started, finished=datetime.now(timezone.utc).isoformat(),
                         command=attempt_argv[:-1], model=settings.get('model', 'OpenCode configured default'),
                         exit_code=proc.returncode, attempt=attempt,
+                        schema_version=SCHEMA_VERSION, review_type=expected_type,
                         stdout_file=attempt_name+'.jsonl', stderr_file=attempt_name+'.stderr.txt',
                         prompt_file=attempt_name+'.prompt.txt',
                         prompt_sha256=hashlib.sha256((folder/(attempt_name+'.prompt.txt')).read_bytes()).hexdigest(),

@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from ecra.html_report import final_conclusion
 from ecra.review import collect_evidence, parse_answer, review_all, verify_receipt
+from tests.review_fixtures import structured_fields
 
 
 class IntegrityTests(unittest.TestCase):
@@ -22,6 +23,7 @@ class IntegrityTests(unittest.TestCase):
         self.answer = dict(finding_id='F', status='CONFIRMED',
             evidence=[dict(file='app.c', line=2, quote='shared++;', claim='IRQ writes shared')],
             **{k:'protocol fixture only' for k in ('reason','interleaving','protection','impact','fix','verification')})
+        self.answer.update(structured_fields(review_type='EVIDENCE_GAP'))
 
     def event(self, answer):
         return json.dumps(dict(type='text', part=dict(text=json.dumps(answer))))
@@ -116,6 +118,7 @@ class IntegrityTests(unittest.TestCase):
             source_evidence=collect_evidence(self.root,self.answer),
             execution=dict(stdout_file=log.name,stdout_sha256=hashlib.sha256(log.read_bytes()).hexdigest()))
         revised=dict(self.answer,status='NEED_MORE_CONTEXT',reason='Need actual consumer or invariant')
+        revised.update(structured_fields('NEED_MORE_CONTEXT', 'EVIDENCE_GAP'))
         cfg=dict(review=dict(workers=2,retries=0))
         with patch('ecra.review_audit.resolve_command',return_value=['fake-protocol-test']), patch(
                 'ecra.review_audit.execute',return_value=CompletedProcess([],0,self.event(revised),'')) as execute:
@@ -133,6 +136,7 @@ class IntegrityTests(unittest.TestCase):
         report=dict(findings=[dict(finding_id='F',accesses=[])],coverage={},limitations=[])
         cfg=dict(review=dict(enabled=True,audit_verdicts=True,workers=2,retries=0),analysis={})
         final=dict(self.answer,status='FALSE_POSITIVE',reason='Protocol fixture correction')
+        final.update(structured_fields('FALSE_POSITIVE', 'EVIDENCE_GAP'))
         with patch('ecra.review.resolve_command',return_value=['fake-protocol-test']), patch(
                 'ecra.review_audit.resolve_command',return_value=['fake-protocol-test']), patch(
                 'ecra.review.execute',return_value=CompletedProcess([],0,self.event(self.answer),'')) as first, patch(
