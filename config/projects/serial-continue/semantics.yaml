@@ -25,7 +25,7 @@ analysis:
     - Core/Src/service_tasks.c
     - Core/Inc/FreeRTOSConfig.h
   cmake:
-    build_dir: build/ecra-user
+    build_dir: build/ecra-review
     generator: Ninja
     build_type: Debug
     args:
@@ -42,8 +42,10 @@ contexts:
 # 普通 IRQHandler 自动识别，HAL 回调从调用图继承中断上下文。
 # 无法从源码恢复的驱动回调可添加 entry_registrations；详见设计文档。
 review:
-  enabled: false  # 本地运行不需要模型；启用 OpenCode 时改为 true
+  enabled: true  # 已授权真实 OpenCode 复核；仅静态扫描可传 --no-review
   command: [opencode]
+  workers: 4  # 独立只读复核；主线程统一保存完整队列
+  audit_verdicts: true  # 首轮之后反证复核，保留两轮原始日志和修订记录
   timeout_seconds: 300
   retries: 1
   max_items: 0

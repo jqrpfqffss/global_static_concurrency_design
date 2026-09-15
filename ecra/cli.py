@@ -249,7 +249,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
             report["limitations"].append("复核期间源码或输入发生变化；本轮证据需重新生成。")
             for r in reviews:
                 r["state"] = "STALE"
-        pending = sum(r["state"] != "DONE" or r["status"] == "NEED_MORE_CONTEXT" for r in reviews)
+        pending = sum(r["state"] != "DONE" or r["status"] in {"NEED_MORE_CONTEXT", "LIKELY"} for r in reviews)
         report["review_summary"] = dict(total=len(reviews), unresolved=pending)
         review_by_id = {r["finding_id"]: r for r in reviews}
         for finding in report["findings"]:

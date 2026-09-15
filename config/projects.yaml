@@ -1,7 +1,7 @@
 version: 1
 projects:
 - id: serial-continue
-  root: ../serial - continue
+  root: H:/stm32_RAG/test/serial - continue
   semantics: projects/serial-continue/semantics.yaml
 - id: h747-bare
   root: ../validation/stm32_concurrency

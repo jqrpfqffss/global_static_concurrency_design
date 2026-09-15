@@ -229,7 +229,7 @@ p=Path(args[args.index('--file')+1])
 packet=json.loads(p.read_text(encoding='utf-8'))
 cfg=json.loads(os.environ['OPENCODE_CONFIG_CONTENT'])
 assert cfg['agent']['ecra-review']['permission']['*']=='deny'
-answer=dict(finding_id=packet['finding']['finding_id'],status='LIKELY',evidence=[dict(file='a.c',line=1)])
+answer=dict(finding_id=packet['finding']['finding_id'],status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=Path('a.c').read_text().splitlines()[0])])
 answer.update({k:'evidence checked' for k in ('reason','interleaving','protection','impact','fix','verification')})
 print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 ''', encoding="utf-8")
@@ -276,7 +276,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 from pathlib import Path
 p=Path(sys.argv[sys.argv.index('--file')+1])
 finding=json.loads(p.read_text(encoding='utf-8'))['finding']
-answer=dict(finding_id=finding['finding_id'],status='CONFIRMED',evidence=[dict(file='a.c',line=1)])
+answer=dict(finding_id=finding['finding_id'],status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=Path('a.c').read_text().splitlines()[0])])
 answer.update({k:'Checked source' for k in ('reason','interleaving','protection','impact','fix','verification')})
 print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 ''', encoding='utf-8')
@@ -353,7 +353,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         def respond(argv, **kwargs):
             packet=json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
             fid=packet['finding']['finding_id']; calls.append(fid)
-            answer=dict(finding_id=fid,status='CONFIRMED',evidence=[dict(file='a.c',line=1)],
+            answer=dict(finding_id=fid,status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=(self.root/'a.c').read_text().splitlines()[0])],
                 **{k:'Checked source evidence' for k in ('reason','interleaving','protection','impact','fix','verification')})
             return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
         with patch('ecra.cli.execute',side_effect=AssertionError('Resume must not reparse Clang')), patch('ecra.review.execute',side_effect=respond):

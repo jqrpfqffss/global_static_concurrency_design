@@ -391,6 +391,9 @@ def load_config(root, path=None):
     word = cfg["project"].get("native_word_bits", 32)
     if type(word) is not int or word <= 0 or word % 8:
         raise ValueError("project.native_word_bits 必须是正的 8 倍数")
+    workers = cfg['review'].get('workers', 1)
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError('review.workers 必须是 1 到 8 的整数')
     command = cfg["review"].get("command", ["opencode"])
     if not isinstance(command, list) or not command or any(not isinstance(x, str) for x in command):
         raise ValueError("review.command 必须是非空参数数组，不能是 shell 命令字符串")

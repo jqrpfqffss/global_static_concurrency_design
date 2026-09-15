@@ -38,7 +38,7 @@ def write_database(path, facts, report):
 
 
 def generate(out, facts, report, reviews):
-    from .html_report import category, review_records, write_html, risk_summary
+    from .html_report import category, review_records, write_html, risk_summary, final_conclusion
     from .scope import validate_selection
     validate_selection(facts, report)
     records = review_records(report, reviews)
@@ -57,7 +57,8 @@ def generate(out, facts, report, reviews):
                                    confirmed=counts['confirmed'], likely=counts['likely'],
                                    reviewed_safe_or_false_positive=counts['safe'])
     report['risk_summary'] = risk_summary(facts, report, records_by_id)
-    if counts['unresolved'] and report.get('run_status') == 'REVIEW_COMPLETE':
+    report['final_conclusion'] = final_conclusion(report, records)
+    if (counts['unresolved'] or counts['likely']) and report.get('run_status') == 'REVIEW_COMPLETE':
         report['run_status'] = 'INCOMPLETE'
     for folder in ("inventory", "reports"):
         (out / folder).mkdir(parents=True, exist_ok=True)
@@ -129,7 +130,10 @@ def generate(out, facts, report, reviews):
     for u in facts["unknowns"]:
         unknown.append(f"- {u['kind']} {location(u)}: {cell(u)}")
     (out / "reports/unknown_contexts.md").write_text("\n".join(unknown), encoding="utf-8")
-    review_md = ["# OpenCode 逐项复核结果", "", "状态统计：" + str(dict(Counter(r["state"] for r in reviews))), ""]
+    conclusion = report['final_conclusion']
+    review_md = ["# OpenCode 逐项复核结果", "", '**最终结论：' + conclusion['label'] + '**', '',
+                 conclusion['scope'], '', f"已返回回答 {conclusion['reviewed']}/{conclusion['total']}；仍未决 {len(conclusion['unresolved_findings'])} 项。", '',
+                 "状态统计：" + str(dict(Counter(r["state"] for r in reviews))), ""]
     patches = ["# 最小修复建议（未修改固件）", ""]
     for r in records:
         review_md += [f"## {r['finding_id']}", "", f"- {r['state']} / {r['status']}"]
