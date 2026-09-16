@@ -57,3 +57,9 @@
 四项均实际调用 OpenCode 完成首轮和反证轮，程序核对两轮提示词包含同一协议、最终答案与原始日志一致、源码引用仍匹配当前文件。70 处最终源码引用及页面链接通过核对。过程中的模型输出与重试日志保留，未手工改写结论或解释。它们是格式与流程的真实抽样，不是重新复核两个工程的全部变量，也不是板上复现。
 
 155 项自动化测试通过；后续 Markdown 展示和跨目录引用测试的针对性检查亦通过。浏览器已检查结构化步骤、操作前后状态、已排除参与者、源码链接和 390 像素手机布局。真实样例入口为 `output/opencode-format-v2/serial/opencode_review.html` 与 `output/opencode-format-v2/h747/opencode_review.html`，校验摘要为同目录上层的 `validation.json`。
+
+## 大型项目逐项核对扩展
+
+新生成的证据包包含 `investigation_requirements`。首轮和反证答案增加 `investigation` 数组：每个清单 ID 必须恰好出现一次，包含非空 `assessment` 和引用 `evidence` 的 1-based `evidence_refs`。确认风险、安全或误报的最终结论要求每项有源码引用；证据不足时说明具体缺失信息并保留 `NEED_MORE_CONTEXT`。
+
+清单涵盖全部访问、全部上游相关函数、候选规则和阻塞项。`source_context_manifest` 标注函数源码是否完整附带；未附带完整的函数必须按文件和行区间继续读取。逐条记录显示在 HTML 和 Markdown 中。收据绑定原始证据包 SHA-256，缓存恢复及报告刷新也会核对；此机制验证记录完整性，不自动证明模型推理正确。

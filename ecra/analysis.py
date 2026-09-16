@@ -182,6 +182,36 @@ def context_graph(facts, cfg):
 
 
 def analyze(facts, cfg, coverage, root=None):
+    from pathlib import Path
+    project_root = Path(root or coverage.get('project_root', Path.cwd()))
+    # Assembly startup/vector references are possible entries, not C callers.
+    # Match whole identifiers conservatively across every branch. Macro/include
+    # expansion is not implemented, so those sources retain an explicit gap.
+    symbols_by_name = defaultdict(list)
+    functions_by_name = defaultdict(list)
+    for v in facts['variables']:
+        if v.get('linkage') == 'EXTERNAL':
+            symbols_by_name[v['name']].append(v['symbol_id'])
+    for f in facts['functions']:
+        if f.get('linkage') == 'EXTERNAL':
+            functions_by_name[f['name']].append(f['function_id'])
+    for file in coverage.get('assembly_sources', []):
+        try:
+            source = (project_root / file).read_text(encoding='utf-8')
+        except (OSError, UnicodeError) as exc:
+            facts['unknowns'].append(dict(kind='ASSEMBLY_SOURCE_REVIEW', file=file, message=str(exc)))
+            continue
+        if re.search(r'^\s*(?:\.macro\b|#\s*include\b)|##', source, re.M):
+            facts['unknowns'].append(dict(kind='ASSEMBLY_SOURCE_REVIEW', file=file,
+                message='汇编宏或包含文件尚未展开，不能证明入口/变量访问完整'))
+        for line, text in enumerate(source.splitlines(), 1):
+            for name in sorted(set(re.findall(r'[A-Za-z_][A-Za-z_0-9]*', text))):
+                for sid in symbols_by_name.get(name, ()):
+                    facts['unknowns'].append(dict(kind='ASSEMBLY_SYMBOL_REFERENCE', symbol_id=sid,
+                        file=file, line=line, source_text=text))
+                for fid in functions_by_name.get(name, ()):
+                    facts['unknowns'].append(dict(kind='ASSEMBLY_FUNCTION_REFERENCE', target_function_id=fid,
+                        file=file, line=line, source_text=text))
     from .points_to import enrich
     enrich(facts, cfg)
     known = {f['function_id'] for f in facts['functions']}
@@ -197,15 +227,58 @@ def analyze(facts, cfg, coverage, root=None):
                 file=site[1], line=site[2], callee=site[3]))
             external_sites.add(site)
     contexts, paths = context_graph(facts, cfg)
+    entry_ids = {b['function_id'] for b in facts['context_bindings'] if b['call_depth'] == 0}
+    facts['assembly_references'] = [u for u in facts['unknowns'] if u['kind'] in
+                                   {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
+    facts['unknowns'] = [u for u in facts['unknowns'] if not (u['kind'] == 'ASSEMBLY_FUNCTION_REFERENCE'
+                         and u.get('target_function_id') in entry_ids)]
+    # Establish reachability before scope filtering: a dependency can supply an
+    # entry into a target function. Address-taken functions and attributed entry
+    # points are possible roots even when no ordinary caller is present.
+    graph = defaultdict(set)
+    for call in facts['calls']:
+        graph[call['caller_function_id']].add(call.get('callee_function_id'))
+    reachability_gaps = {u['kind'] for u in facts['unknowns'] if u['kind'] in {
+        'PARSE_FAILED', 'POINTS_TO_LIMIT', 'INLINE_ASSEMBLY', 'CPP_SEMANTICS_REVIEW',
+        'MULTIPLE_BUILD_VARIANTS', 'SOURCE_CHANGED_DURING_SCAN', 'HEADER_CHANGED_DURING_SCAN',
+        'UNMATCHED_CONTEXT', 'UNRESOLVED_CONFIG_CALL', 'UNRESOLVED_TASK_ENTRY',
+        'CMSIS_V1_TASK_ENTRY', 'UNRESOLVED_REGISTERED_ENTRY', 'UNMATCHED_ENTRY_REGISTRATION',
+        'ASSEMBLY_SOURCE_REVIEW'}}
+    if coverage.get('translation_units_failed') or coverage.get('unlisted_sources'):
+        reachability_gaps.add('BUILD_INCOMPLETE')
+    possible = set(paths)
+    possible.update(u['target_function_id'] for u in facts['unknowns'] if u.get('target_function_id'))
+    possible.update(f['function_id'] for f in facts['functions'] if f.get('entry_attributes'))
+    opaque_callers = {u.get('function_id') for u in facts['unknowns']
+                      if u['kind'] in {'EXTERNAL_CALLEE', 'INLINE_ASSEMBLY'}}
+    external_functions = {f['function_id'] for f in facts['functions'] if f.get('linkage') == 'EXTERNAL'}
+    external_promoted = False
+    queue = deque(possible)
+    while queue:
+        caller = queue.popleft()
+        if caller in opaque_callers and not external_promoted:
+            queue.extend(sorted(external_functions - possible))
+            possible.update(external_functions)
+            external_promoted = True
+        for callee in graph[caller]:
+            if callee and callee not in possible:
+                possible.add(callee)
+                queue.append(callee)
+    unreachable = {f['function_id'] for f in facts['functions'] if f['function_id'] not in possible
+                   and contexts and not reachability_gaps}
+    for f in facts['functions']:
+        f['reachability'] = ('REACHABLE' if f['function_id'] in paths else
+                             'PROVEN_UNREACHABLE' if f['function_id'] in unreachable else 'UNKNOWN_ENTRY')
     from .scope import AuditScope, select_facts
-    from pathlib import Path
-    scope = AuditScope(root or coverage.get('project_root', Path.cwd()), cfg['analysis'])
+    scope = AuditScope(project_root, cfg['analysis'])
     select_facts(facts, scope, coverage)
     by_var, events = defaultdict(list), defaultdict(list)
     for e in facts["protection_events"]:
         events[e["function_id"]].append(e)
     for a in facts["accesses"]:
         a["contexts"] = sorted(paths.get(a["function_id"], {}))
+        a['reachability'] = ('PROVEN_UNREACHABLE' if a['function_id'] in unreachable else
+                             'REACHABLE' if a['contexts'] else 'UNKNOWN_ENTRY')
         a["call_chains"] = paths.get(a["function_id"], {})
         a["protection_evidence"] = [e for e in events[a["function_id"]] if e["event_kind"] in {"lock_enter", "lock_exit"}]
         by_var[a["symbol_id"]].append(a)
@@ -235,10 +308,13 @@ def analyze(facts, cfg, coverage, root=None):
         if kind in {'PARSE_FAILED', 'POINTS_TO_LIMIT', 'MULTIPLE_BUILD_VARIANTS', 'SOURCE_CHANGED_DURING_SCAN',
                     'HEADER_CHANGED_DURING_SCAN', 'SOURCE_NOT_IN_DATABASE', 'HEADERS_NOT_INCLUDED',
                     'CPP_SEMANTICS_REVIEW', 'UNMATCHED_ENTRY_REGISTRATION', 'UNRESOLVED_REGISTERED_ENTRY',
-                    'AMBIGUOUS_ENTRY_REGISTRATION', 'REGISTERED_CONTEXT_KIND_CONFLICT'}:
+                    'AMBIGUOUS_ENTRY_REGISTRATION', 'REGISTERED_CONTEXT_KIND_CONFLICT',
+                    'ASSEMBLY_SOURCE_REVIEW', 'UNRESOLVED_CONFIG_CALL', 'UNMATCHED_CONTEXT'}:
             global_gaps.add(kind)
-        if kind in {'EXTERNAL_CALLEE', 'INLINE_ASSEMBLY', 'UNRESOLVED_POINTEE'}:
+        if kind in {'EXTERNAL_CALLEE', 'INLINE_ASSEMBLY', 'UNRESOLVED_POINTEE'} and u.get('function_id') not in unreachable:
             external_gaps.add(kind)
+        if kind == 'INLINE_ASSEMBLY' and u.get('function_id') not in unreachable:
+            global_gaps.add(kind)
         fid = u.get('target_function_id') or u.get('function_id')
         if fid:
             tainted[fid].add(kind)
@@ -261,14 +337,24 @@ def analyze(facts, cfg, coverage, root=None):
         # comparable to compiled-code analysis.
         if v.get("coverage_source") in ("supplemental", "inactive_branch"):
             v.update(accesses=[], readers=[], writers=[], contexts=[], protection_status="NONE",
-                     annotations=[], audit_status="SUPPLEMENTAL_INVENTORY")
+                     annotations=[], audit_status="SUPPLEMENTAL_INVENTORY",
+                     screening_reason=None, screening_blockers=['ACCESS_NOT_ANALYZED'])
+            site = next(iter(v.get('definitions', []) or v.get('declarations', [])), {})
+            findings.append(dict(finding_id='GS-' + digest([sid, 'GS-SUPPLEMENTAL-UNANALYZED'])[:16],
+                symbol_id=sid, variable_name=v['qualified_name'], rules=['GS-SUPPLEMENTAL-UNANALYZED'],
+                risk_level='MEDIUM', confidence='LOW', status='NEED_OPENCODE_REVIEW',
+                protection_status='UNKNOWN', accesses=[], uncertainties=[],
+                definition=dict(file=v.get('definition_file') or site.get('file'),
+                                line=v.get('definition_line') or site.get('line')),
+                screening_blockers=['ACCESS_NOT_ANALYZED']))
             continue
-        accesses = by_var[sid]
+        all_accesses = by_var[sid]
+        accesses = [a for a in all_accesses if a['function_id'] not in unreachable]
         readers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"READ", "RMW"}))
         writers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"WRITE", "RMW"}))
         all_contexts = set(itertools.chain.from_iterable(a["contexts"] for a in accesses))
         rules = {"GS-PARSE-INCOMPLETE"} if v.get("parse_status") == "FAILED" else set()
-        uncertain = by_symbol[sid]
+        uncertain = [u for u in by_symbol[sid] if u.get('function_id') not in unreachable]
         # Unknown edges above an access can introduce more contexts, even if one path is known.
         if any(not a["contexts"] for a in accesses):
             rules.add("GS-UNKNOWN-CONTEXT")
@@ -306,10 +392,20 @@ def analyze(facts, cfg, coverage, root=None):
         source_protection = any(a["protection_evidence"] for a in accesses)
         protection = "PARTIAL" if source_protection else ("DECLARED_ONLY" if declared else "UNKNOWN")
         blockers = set(global_gaps)
+        # Files outside the active build cannot name a non-escaped internal
+        # object. Keep their inventory gaps, without poisoning every static.
+        escaped = any(a['access_kind'] == 'ADDRESS_TAKEN' or a.get('via_alias') for a in accesses)
+        if v.get('linkage') != 'EXTERNAL' and not escaped:
+            blockers.difference_update({'SOURCE_NOT_IN_DATABASE', 'HEADERS_NOT_INCLUDED', 'PARSE_FAILED'})
+            if v.get('parse_status') == 'FAILED':
+                blockers.add('PARSE_FAILED')
         if v.get('linkage') == 'EXTERNAL':
             blockers.update(external_gaps)
         for a in accesses:
-            blockers.update(tainted[a['function_id']])
+            local_gaps = tainted[a['function_id']]
+            if v.get('linkage') != 'EXTERNAL' and not escaped:
+                local_gaps = local_gaps - {'EXTERNAL_CALLEE', 'UNRESOLVED_POINTEE', 'POINTER_DEREFERENCE'}
+            blockers.update(local_gaps)
         if not rules and blockers:
             rules.add('GS-COVERAGE-INCOMPLETE')
         # A variable can be conclusively removed from the *concurrency* queue
@@ -319,20 +415,34 @@ def analyze(facts, cfg, coverage, root=None):
         # create a rule above and therefore cannot enter this branch.
         site_keys = {(a.get('function_id'), a.get('file'), a.get('offset'), a.get('access_path', ''), a.get('access_kind'))
                      for a in accesses if a['access_kind'] in {'READ', 'WRITE', 'RMW'}}
-        opaque = (bool(rules) or bool(uncertain) or any(not a['contexts'] or a.get('via_alias') for a in accesses))
         screened_reason = None
-        if not opaque and accesses:
-            if not writers:
+        # Missing execution context is immaterial to read/read concurrency.
+        # Missing writes, escaped addresses, hardware and incomplete parsing
+        # remain blockers. A count of source sites alone is never a proof.
+        only_reads = bool(accesses) and all(a['access_kind'] == 'READ' for a in accesses)
+        effective_blockers = set(blockers)
+        if only_reads:
+            effective_blockers.difference_update({'FUNCTION_ADDRESS', 'INDIRECT_CALL'})
+        proof_rules = rules - {'GS-NO-ACCESS-EVIDENCE', 'GS-UNKNOWN-CONTEXT', 'GS-COVERAGE-INCOMPLETE'}
+        if not proof_rules and not uncertain and not escaped and not effective_blockers:
+            if not accesses:
+                screened_reason = 'UNREACHABLE_ACCESSORS' if all_accesses else 'NO_RUNTIME_ACCESSES'
+            elif only_reads:
                 screened_reason = 'ONLY_READS'
-            elif len(site_keys) == 1 and not reentrant:
+            elif len(site_keys) == 1 and len(all_contexts) == 1 and not reentrant and all(a['contexts'] for a in accesses):
                 screened_reason = 'SINGLE_ACCESS_SITE'
-            elif len(all_contexts) == 1 and not reentrant:
+            elif len(all_contexts) == 1 and not reentrant and all(a['contexts'] for a in accesses):
                 screened_reason = 'SINGLE_EXECUTION_CONTEXT'
-        audit_status = 'REVIEW_REQUIRED' if rules else ('CONST_INVENTORY' if v['is_const'] else
-                         ('SCREENED_NO_CONCURRENCY_RISK' if screened_reason else 'NO_CANDIDATE_IN_MODELED_PATHS'))
-        v.update(accesses=accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
+        if screened_reason:
+            rules.clear()
+            blockers = effective_blockers
+        elif not rules:
+            rules.add('GS-COVERAGE-INCOMPLETE')
+        audit_status = 'SCREENED_NO_CONCURRENCY_RISK' if screened_reason else 'REVIEW_REQUIRED'
+        v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
                  protection_status=protection, annotations=annotations, audit_status=audit_status,
-                 screening_reason=screened_reason, screening_blockers=sorted(blockers))
+                 screening_reason=screened_reason, screening_blockers=sorted(blockers),
+                 unreachable_access_count=len(all_accesses)-len(accesses))
         if not rules:
             continue
         high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT", "GS-OWNER-VIOLATION"}
@@ -342,7 +452,7 @@ def analyze(facts, cfg, coverage, root=None):
         finding = dict(finding_id="GS-" + digest([sid, sorted(rules), sorted(all_contexts)])[:16],
                        symbol_id=sid, variable_name=v["qualified_name"], rules=sorted(rules), risk_level=level,
                        confidence="MEDIUM" if shared else "LOW", status="NEED_OPENCODE_REVIEW",
-                       protection_status=protection, declared_protection=declared, accesses=accesses,
+                       protection_status=protection, declared_protection=declared, accesses=all_accesses,
                        definition=dict(file=v["definition_file"], line=v["definition_line"]),
                        context_pairs=[list(pair) for pair in itertools.combinations(sorted(all_contexts), 2)],
                        concurrency_reason="保守建模：不同任务/中断/未知回调可交错；优先级、启动阶段和锁覆盖待复核",
@@ -370,7 +480,16 @@ def analyze(facts, cfg, coverage, root=None):
             finding.update(scope_role='dependency_evidence',
                 concurrency_reason='目标变量的依赖证据缺口：该范围外代码只用于恢复访问与调用链，不排查其自身变量。')
         findings.append(finding)
-    unknown_accesses = sum(not a["contexts"] for a in facts["accesses"])
+    unknown_accesses = sum(not a["contexts"] and a['function_id'] not in unreachable for a in facts["accesses"])
+    coverage['unreachable_functions'] = len(unreachable)
+    coverage['unreachable_accesses'] = sum(a['function_id'] in unreachable for a in facts['accesses'])
+    queued = {f['symbol_id'] for f in findings if f.get('symbol_id')}
+    screened = {v['symbol_id'] for v in facts['variables'] if v.get('screening_reason')}
+    ids = {v['symbol_id'] for v in facts['variables']}
+    if queued & screened or queued | screened != ids or len(ids) != len(facts['variables']):
+        raise ValueError('变量排查覆盖校验失败：每个变量必须唯一进入安全清单或逐项复核队列')
+    coverage['variable_accountability'] = dict(total=len(ids), screened=len(screened),
+        queued=len(queued), missing=0, duplicate_ids=0)
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]
     covered_functions = sum(f['function_id'] in paths for f in functions)

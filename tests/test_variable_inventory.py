@@ -161,9 +161,8 @@ class TestNoRiskAndUnusedSymbols(InventoryFixture):
         facts, report = self.extract(cfg)
         self.assertTrue(any(v["name"] == "never_used" for v in facts["variables"]))
         unused = next(v for v in facts["variables"] if v["name"] == "never_used")
-        self.assertIn("GS-NO-ACCESS-EVIDENCE", [r for f in report["findings"]
-                                                if f.get("symbol_id") == unused["symbol_id"]
-                                                for r in f["rules"]])
+        self.assertEqual(unused['screening_reason'], 'NO_RUNTIME_ACCESSES')
+        self.assertFalse(any(f.get('symbol_id') == unused['symbol_id'] for f in report['findings']))
 
     def test_const_no_risk_symbol_in_inventory(self):
         """A const variable with no risk must appear in inventory."""
@@ -176,7 +175,7 @@ class TestNoRiskAndUnusedSymbols(InventoryFixture):
         facts, report = self.extract(cfg)
         self.assertTrue(any(v["name"] == "table" and v["is_const"] for v in facts["variables"]))
         table = next(v for v in facts["variables"] if v["name"] == "table")
-        self.assertEqual(table["audit_status"], "CONST_INVENTORY")
+        self.assertEqual(table["audit_status"], "SCREENED_NO_CONCURRENCY_RISK")
 
 
 class TestStaticIdentity(InventoryFixture):

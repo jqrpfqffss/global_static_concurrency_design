@@ -14,6 +14,34 @@ from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION, validate_explanati
 
 STATUSES = {"CONFIRMED", "LIKELY", "REVIEWED_SAFE", "FALSE_POSITIVE", "NEED_MORE_CONTEXT"}
 
+INVESTIGATION_PROMPT = '''
+证据包 investigation_requirements 是本项必须逐条核对的清单，不能抽样或只看最短调用链。
+答案增加 investigation 数组，每项为 {"id":"原样复制清单 ID","assessment":"本项核对结论与依据","evidence_refs":[1]}。
+必须覆盖清单的每个 ID 且不重复；evidence_refs 是 evidence 的 1-based 序号。
+证据不足也须逐项说明缺什么，并给 NEED_MORE_CONTEXT；最终确认/安全结论的每项核对必须引用源码证据。
+source_context_manifest 明确列出未完整附带的函数；按 file/line/end_line 分段 read，不得视为不存在。
+'''
+
+
+def validate_investigation(answer, requirements):
+    if not requirements:
+        return
+    rows = answer.get('investigation')
+    if not isinstance(rows, list) or any(not isinstance(r, dict) for r in rows):
+        raise ValueError('缺少逐项 investigation 核对清单')
+    ids = [r.get('id') for r in rows]
+    expected = {r['id'] for r in requirements}
+    if any(not isinstance(i, str) for i in ids) or len(ids) != len(set(ids)) or set(ids) != expected:
+        raise ValueError('investigation 必须逐项覆盖全部访问/规则/阻塞项 ID，不得遗漏、重复或新增')
+    for row in rows:
+        if not isinstance(row.get('assessment'), str) or not row['assessment'].strip():
+            raise ValueError('investigation.assessment 必须说明逐项核对结果')
+        refs = row.get('evidence_refs')
+        if not isinstance(refs, list) or any(type(i) is not int or not 1 <= i <= len(answer.get('evidence', [])) for i in refs):
+            raise ValueError('investigation.evidence_refs 引用序号无效')
+        if answer['status'] in {'CONFIRMED', 'REVIEWED_SAFE', 'FALSE_POSITIVE'} and not refs:
+            raise ValueError('最终结论的每项 investigation 必须有源码证据')
+
 
 def verify_receipt(root, folder, receipt):
     """Detect missing/changed transcripts and answers, not prove model reasoning."""
@@ -32,6 +60,12 @@ def verify_receipt(root, folder, receipt):
     answer = parse_answer(data.decode('utf-8'), receipt['finding_id'], root, require_quotes=True,
                          require_schema=execution.get('schema_version') is not None,
                          expected_type=execution.get('review_type'))
+    if execution.get('packet_file'):
+        packet = folder / execution['packet_file']
+        if (packet.parent.resolve() != folder.resolve() or not packet.is_file() or
+                hashlib.sha256(packet.read_bytes()).hexdigest() != execution.get('packet_sha256')):
+            raise ValueError('逐项复核证据包已变化或缺失')
+        validate_investigation(answer, read_json(packet).get('investigation_requirements', []))
     if answer != receipt.get('answer') or answer['status'] != receipt.get('status'):
         raise ValueError('复核答案与原始 OpenCode 日志不一致')
     if collect_evidence(root, answer) != receipt.get('source_evidence'):
@@ -210,7 +244,10 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         limitations=report['limitations'], compile_commands=commands, config=compact_config,
         source_files=sorted({f['file'] for f in facts['functions']})))
     calls_by_function = {}
+    incoming = {}
+    functions_by_id = {f['function_id']: f for f in facts['functions']}
     for call in facts['calls']:
+        incoming.setdefault(call['callee_function_id'], set()).add(call['caller_function_id'])
         for key in (call['caller_function_id'], call['callee_function_id']):
             calls_by_function.setdefault(key, []).append(call)
     def process(index, finding):
@@ -227,9 +264,25 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         for a in finding.get("accesses", []):
             for path in a.get("call_chains", {}).values():
                 related.update(path)
+        pending = list(related)
+        while pending:
+            for caller in incoming.get(pending.pop(), ()):
+                if caller not in related:
+                    related.add(caller)
+                    pending.append(caller)
+        requirements = [dict(id='access:' + a.get('access_id', digest(a)), kind='ACCESS',
+                             file=a.get('file'), line=a.get('line'), access_kind=a.get('access_kind'))
+                        for a in finding.get('accesses', [])]
+        requirements += [dict(id='rule:' + r, kind='RULE') for r in finding.get('rules', [])]
+        requirements += [dict(id='blocker:' + b, kind='BLOCKER') for b in finding.get('screening_blockers', [])]
+        requirements += [dict(id='function:' + fid, kind='FUNCTION',
+                             file=functions_by_id[fid]['file'], line=functions_by_id[fid].get('line'))
+                         for fid in sorted(related) if fid in functions_by_id]
+        requirements = list({r['id']: r for r in requirements}.values())
         packet = dict(finding=finding, variable=by_symbol.get(finding.get("symbol_id")),
+                      investigation_requirements=requirements,
                       project_evidence_path=str(shared_path), limitations=report["limitations"],
-                      functions=[f for f in facts["functions"] if f["function_id"] in related],
+                      functions=[functions_by_id[fid] for fid in sorted(related) if fid in functions_by_id],
                       call_edges=list({digest(c): c for key in sorted(related) for c in calls_by_function.get(key, [])}.values()),
                       project_root=str(root),
                       facts_path=str(facts_path), full_call_graph_path=str(facts_path))
@@ -255,6 +308,12 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             if source.is_file():
                 lines=source.read_text(encoding='utf-8',errors='replace').splitlines()
                 packet['access_source_context'].append(dict(file=file,lines=[dict(line=i,text=lines[i-1]) for i in sorted(wanted) if i<=len(lines)]))
+        supplied = {s['file']: {r['line'] for r in s['lines']} for s in packet['access_source_context']}
+        packet['source_context_manifest'] = [dict(function_id=f['function_id'], file=f['file'],
+            line=f.get('line', 1), end_line=f.get('end_line', f.get('line', 1)),
+            complete=all(i in supplied.get(f['file'], set()) for i in
+                         range(f.get('line', 1), f.get('end_line', f.get('line', 1))+1)))
+            for f in packet['functions']]
         packet_path = folder / (fid + ".input.json")
         write_json(packet_path, packet)
         prompt = f"""你是当前嵌入式 C/C++ 工程的全局/static 变量并发复核工程师。只读源码，不修改工程。
@@ -283,7 +342,7 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
 证据 quote 必须与指定行的实际原文一致，将被程序逐字校验；不要根据记忆猜行号。
 确认缺陷必须引用冲突双方及可抢占/调用入口证据；安全结论须解释本项所有候选规则为何不成立。
 """
-        prompt += CONTRACT_PROMPT
+        prompt += CONTRACT_PROMPT + INVESTIGATION_PROMPT
         expected_type = 'VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
         prompt += '\n本项 review_type 必须为 ' + expected_type + '；finding_id 必须为 ' + fid
         (folder / (fid + ".prompt.txt")).write_text(prompt, encoding="utf-8")
@@ -355,11 +414,14 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
                         raise ValueError(f"OpenCode exit={proc.returncode}: {proc.stderr[-1000:]}")
                     answer = parse_answer(proc.stdout, fid, root, require_quotes=True,
                                           require_schema=True, expected_type=expected_type)
+                    validate_investigation(answer, requirements)
                     result.update(state="DONE", answer=answer, status=answer["status"], source_evidence=collect_evidence(root, answer))
                     result['execution'] = dict(started=started, finished=datetime.now(timezone.utc).isoformat(),
                         command=attempt_argv[:-1], model=settings.get('model', 'OpenCode configured default'),
                         exit_code=proc.returncode, attempt=attempt,
                         schema_version=SCHEMA_VERSION, review_type=expected_type,
+                        packet_file=packet_path.name,
+                        packet_sha256=hashlib.sha256(packet_path.read_bytes()).hexdigest(),
                         stdout_file=attempt_name+'.jsonl', stderr_file=attempt_name+'.stderr.txt',
                         prompt_file=attempt_name+'.prompt.txt',
                         prompt_sha256=hashlib.sha256((folder/(attempt_name+'.prompt.txt')).read_bytes()).hexdigest(),
@@ -386,16 +448,24 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
         if on_result:
             on_result(results)
 
+    def process_safely(index, finding):
+        try:
+            return process(index, finding)
+        except Exception as exc:
+            # A single unreadable packet/source must not abandon all later IDs.
+            return dict(finding_id=finding['finding_id'], state='FAILED', status='NEED_MORE_CONTEXT',
+                        error=f'复核准备失败：{type(exc).__name__}: {str(exc)[:1000]}')
+
     workers = int(settings.get('workers', 1))
     if workers == 1:
         for index, finding in enumerate(report['findings']):
-            completed(process(index, finding))
+            completed(process_safely(index, finding))
     else:
         # Workers only write their own packet/transcript/receipt. The coordinator
         # alone writes the complete queue and renders checkpoints.
         executor = ThreadPoolExecutor(max_workers=workers)
         try:
-            futures = [executor.submit(process, i, f) for i, f in enumerate(report['findings'])]
+            futures = [executor.submit(process_safely, i, f) for i, f in enumerate(report['findings'])]
             for future in as_completed(futures):
                 completed(future.result())
         finally:

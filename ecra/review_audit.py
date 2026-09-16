@@ -7,7 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 from .common import digest, execute, read_json, write_json
-from .review import collect_evidence, parse_answer, resolve_command, verify_receipt
+from .review import (collect_evidence, parse_answer, resolve_command, verify_receipt,
+                     validate_investigation, INVESTIGATION_PROMPT)
 from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION
 
 
@@ -39,7 +40,8 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
         fid = original['finding_id']
         packet = folder/(fid+'.input.json')
         expected_type = ('VARIABLE' if read_json(packet)['finding'].get('symbol_id') else 'EVIDENCE_GAP') if packet.is_file() else None
-        prompt = AUDIT_PROMPT + CONTRACT_PROMPT + '\n本项 ID：' + fid
+        requirements = read_json(packet).get('investigation_requirements', []) if packet.is_file() else []
+        prompt = AUDIT_PROMPT + CONTRACT_PROMPT + INVESTIGATION_PROMPT + '\n本项 ID：' + fid
         if expected_type:
             prompt += '\n本项 review_type 必须为 ' + expected_type
         if challenges and fid in challenges:
@@ -108,11 +110,14 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
                 if proc.returncode:
                     raise ValueError(f'OpenCode audit exit={proc.returncode}: {proc.stderr[-500:]}')
                 answer = parse_answer(proc.stdout,fid,root,require_quotes=True,require_schema=True,expected_type=expected_type)
+                validate_investigation(answer, requirements)
                 result.update(state='DONE',status=answer['status'],answer=answer,
                     source_evidence=collect_evidence(root,answer), audit_prompt_digest=policy_digest,
                     execution=dict(started=started,finished=datetime.now(timezone.utc).isoformat(),
                         command=argv, model=settings.get('model','OpenCode configured default'),exit_code=0,
                         schema_version=SCHEMA_VERSION, review_type=answer['review_type'],
+                        packet_file=packet.name if packet.is_file() else None,
+                        packet_sha256=hashlib.sha256(packet.read_bytes()).hexdigest() if packet.is_file() else None,
                         stdout_file=name+'.jsonl',stderr_file=name+'.stderr.txt',
                         prompt_file=name+'.prompt.txt',prompt_sha256=hashlib.sha256((folder/(name+'.prompt.txt')).read_bytes()).hexdigest(),
                         stdout_sha256=hashlib.sha256((folder/(name+'.jsonl')).read_bytes()).hexdigest(),
@@ -130,9 +135,18 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
         return result
 
     results=[]
+    def process_safely(original):
+        try:
+            return process(original)
+        except Exception as exc:
+            result = dict(original, state='FAILED', status='NEED_MORE_CONTEXT',
+                          error=f'反证复核准备失败：{type(exc).__name__}: {str(exc)[:1000]}')
+            result.pop('answer', None)
+            result.pop('cached', None)
+            return result
     executor=ThreadPoolExecutor(max_workers=int(settings.get('workers',1)))
     try:
-        futures=[executor.submit(process,r) for r in reviews]
+        futures=[executor.submit(process_safely,r) for r in reviews]
         for future in as_completed(futures):
             results.append(future.result())
             if on_result:

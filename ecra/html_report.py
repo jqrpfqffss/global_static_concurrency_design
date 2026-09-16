@@ -191,7 +191,8 @@ def variable_decisions(facts, report, records):
     for v in facts['variables']:
         sid = v['symbol_id']
         if v.get('coverage_source') in ('supplemental', 'inactive_branch'):
-            result[sid] = 'supplemental'
+            resolved = [g for g in groups[sid] if g in {'confirmed', 'safe'}]
+            result[sid] = min(resolved, key=priority.index) if resolved and len(resolved) == len(groups[sid]) else 'supplemental'
         elif v.get('parse_status') == 'FAILED':
             result[sid] = 'unresolved'
         elif groups[sid]:
@@ -481,7 +482,8 @@ def write_html(out, facts, report, reviews):
                              + esc(' → '.join(function(fid) for fid in path)) + '</pre></details>'
                              for cid, path in a.get('call_chains', {}).items())
             rows.append(row([esc(KINDS.get(a['access_kind'], a['access_kind'])), esc(loc(a)) + '<pre>' + esc(a.get('source_text', '')) + '</pre>',
-                             esc(function(a['function_id'])), chains or '<strong>UNKNOWN-CONTEXT：尚不能确定任务或中断</strong>',
+                             esc(function(a['function_id'])), chains or ('<strong>当前构建入口不可达（保留访问证据）</strong>'
+                                if a.get('reachability') == 'PROVEN_UNREACHABLE' else '<strong>UNKNOWN-CONTEXT：尚不能确定任务或中断</strong>'),
                              raw({k: v for k, v in a.items() if k not in {'source_text', 'call_chains'}}, '字段 / 别名 / 宏 / 保护事件等')]))
         return table(['访问方式', '源码位置与表达式', '访问函数', '上下文 → 最短证据调用链', '访问属性'], rows)
 
@@ -505,6 +507,8 @@ def write_html(out, facts, report, reviews):
         status_text = DECISIONS[assessments[sid]][1]
         if assessments[sid] == 'screened_safe':
             status_text = {'ONLY_READS': '当前构建只有读取，没有运行期写入。',
+                           'NO_RUNTIME_ACCESSES': '当前构建没有运行期访问，且没有相关访问覆盖缺口。',
+                           'UNREACHABLE_ACCESSORS': '全部访问函数均无执行入口可达；已核对调用图、地址引用及入口缺口。',
                            'SINGLE_ACCESS_SITE': '唯一访问点仅属于一个不可重入执行上下文。',
                            'SINGLE_EXECUTION_CONTEXT': '全部读写属于同一个不可重入执行上下文。'}.get(v.get('screening_reason'), status_text)
         if v.get('screening_blockers'):
@@ -515,7 +519,7 @@ def write_html(out, facts, report, reviews):
             + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
             + esc(KINDS.get(v['kind'], v['kind'])) + ' · ' + esc(v.get('type')),
             context_brief(v.get('readers', []), '读') + context_brief(v.get('writers', []), '写'),
-            decision_tag(assessments[sid]) + '<p>' + esc(status_text) + '</p>' + (links if not is_supplemental else ''),
+            decision_tag(assessments[sid]) + '<p>' + esc(status_text) + '</p>' + links,
             detail],
             anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files))
 
@@ -734,8 +738,9 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     conclusion = final_conclusion(report, list(records.values()))
     counts_by_variable = Counter(assessments.values())
     content = '<div class="review-reading"><section class="review-verdict"><h2>最终结论：' + esc(conclusion['label']) + '</h2>'
-    content += '<p><strong>' + str(counts_by_variable['confirmed']) + ' 个变量确认有风险</strong> · ' + str(counts_by_variable['safe']) + ' 个变量复核安全 / 误报 · ' + str(counts_by_variable['likely'] + counts_by_variable['unresolved']) + ' 个变量仍需判断。</p>'
-    content += '<p class="muted">' + esc(conclusion['scope']) + ' 复核完成 ' + str(conclusion['reviewed']) + '/' + str(conclusion['total']) + ' 项（含独立证据缺口）。</p></section>'
+    remaining_variables = sum(counts_by_variable[k] for k in ('likely','unresolved','supplemental','inventory'))
+    content += '<p><strong>' + str(counts_by_variable['confirmed']) + ' 个变量确认有风险</strong> · ' + str(counts_by_variable['safe']) + ' 个变量复核安全 / 误报 · ' + str(remaining_variables) + ' 个变量仍需判断。</p>'
+    content += '<p class="muted">' + esc(conclusion['scope']) + ' 收到有效回答 ' + str(conclusion['reviewed']) + '/' + str(conclusion['total']) + ' 项（含独立证据缺口；证据不足的回答仍需继续排查）。</p></section>'
     structured_count = sum(r.get('state') == 'DONE' and r.get('answer', {}).get('schema_version') == 2 for r in records.values())
     content += '<p class="format-summary">并发结论与解释由 OpenCode 生成，工具负责候选提取、协议/引用校验和展示。统一协议 v2：' + str(structured_count) + '/' + str(conclusion['total']) + ' 项；旧版回答保留原样，重新执行 review 才会由 OpenCode 按新协议复核。</p>'
     content += '<nav class="tabs" aria-label="复核栏目">' + ''.join('<a href="#reviews' + ('-' + key if key != 'risks' else '') + '">' + label + ' ' + str(len(review_rows[key])) + '</a>'

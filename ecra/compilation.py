@@ -267,13 +267,15 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     entries = read_json(candidates[0])
     if not isinstance(entries, list) or not entries:
         raise ValueError("编译数据库必须是非空数组")
-    units, ignored = [], []
+    units, ignored, assembly_sources = [], [], []
     include_cache = {}
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
         unit = normalize(entry, root, a)
         unit["tu_id"] = f"TU-{i:05d}"
+        if Path(unit['source']).suffix.lower() == '.s' and not excluded(unit['source_file'], a.get('exclude', [])):
+            assembly_sources.append(unit['source_file'])
         if excluded(unit["source_file"], a.get("exclude", [])) or Path(unit['source']).suffix.lower() not in {'.c', '.cc', '.cpp', '.cxx'}:
             ignored.append(unit["source_file"])
         else:
@@ -309,5 +311,6 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     return units, dict(project_root=str(root), compile_database=str(candidates[0]), candidates=list(map(str, candidates)),
                        selection_reason='managed cmake' if 'cmake' in a else ("explicit" if configured != "auto" else "unique candidate"),
                        unlisted_sources=sorted(set(sources) - covered),
+                       assembly_sources=sorted(set(assembly_sources)),
                        excluded_sources=sorted(set(ignored + excluded_sources)), cmake_log=cmake_log, cmake_steps=cmake_steps,
                        dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'])

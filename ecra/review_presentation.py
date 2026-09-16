@@ -112,6 +112,11 @@ def structured_explanation(answer, citation_link=None):
         result += '<section class="notice"><h4>还缺哪些证据</h4><ul>' + ''.join('<li>' + escape(s) + '</li>' for s in story['missing_evidence']) + '</ul></section>'
     result += '<details class="story-reason"><summary>OpenCode 完整判定理由与文字时序</summary>' + prose(answer['reason']) + prose(answer['interleaving']) + '</details>'
     result += '<details class="story-verification"><summary>如何验证（OpenCode 建议，不代表已经实测）</summary>' + prose(answer['verification']) + '</details>'
+    if answer.get('investigation'):
+        result += '<details class="story-audit"><summary>逐项核对记录（' + str(len(answer['investigation'])) + ' 项）</summary><ul>'
+        for item in answer['investigation']:
+            result += '<li><code>' + escape(item['id']) + '</code>' + prose(item['assessment']) + references(item['evidence_refs']) + '</li>'
+        result += '</ul></details>'
     return result
 
 
@@ -144,6 +149,10 @@ def review_markdown(answer):
     for i, evidence in enumerate(answer['evidence'], 1):
         result += [f"{i}. {evidence['file']}:{evidence['line']} — {evidence['claim']}", '',
                    '```c', evidence.get('quote', ''), '```', '']
+    if answer.get('investigation'):
+        result += ['### 逐项核对记录', '']
+        for item in answer['investigation']:
+            result += ['- `' + item['id'] + '`：' + item['assessment'] + '（' + refs(item['evidence_refs']) + '）']
     return result
 
 

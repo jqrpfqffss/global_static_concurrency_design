@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from collections import Counter
+from collections import Counter, defaultdict
 
 from .common import write_json
 
@@ -56,6 +56,15 @@ def generate(out, facts, report, reviews):
     report['review_summary'] = dict(total=len(records), unresolved=counts['unresolved'],
                                    confirmed=counts['confirmed'], likely=counts['likely'],
                                    reviewed_safe_or_false_positive=counts['safe'])
+    by_symbol = defaultdict(list)
+    for f in report['findings']:
+        if f.get('symbol_id'):
+            by_symbol[f['symbol_id']].append(records_by_id[f['finding_id']])
+    terminal = sum(all(category(r) in {'confirmed', 'safe'} for r in group) for group in by_symbol.values())
+    report['review_summary']['variable_coverage'] = dict(
+        total=len(facts['variables']),
+        statically_screened=sum(v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK' for v in facts['variables']),
+        queued=len(by_symbol), terminal=terminal, remaining=len(by_symbol)-terminal)
     report['risk_summary'] = risk_summary(facts, report, records_by_id)
     report['final_conclusion'] = final_conclusion(report, records)
     if (counts['unresolved'] or counts['likely']) and report.get('run_status') == 'REVIEW_COMPLETE':
@@ -79,11 +88,15 @@ def generate(out, facts, report, reviews):
     for v in facts["variables"]:
         inventory += ["", f"## {v['qualified_name']}", "", f"- ID: `{v['symbol_id']}`", f"- 类型: `{v.get('type')}`；大小: {v.get('size_bytes')}；对齐: {v.get('alignment_bytes')}",
                       f"- const: {v.get('is_const')}；volatile: {v.get('is_volatile')}；翻译单元: {', '.join(v.get('translation_units', []))}", ""]
+        inventory += [f"- 安全筛除依据：{v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
+                      f"- 不可达函数中的访问：{v.get('unreachable_access_count', 0)} 处（保留原始证据）"]
         for a in v.get("accesses", []):
             inventory.append(f"- {a['access_kind']} {location(a)} `{a['source_text']}`")
             for cid, path in a.get("call_chains", {}).items():
                 inventory.append(f"  - {cid}: {chain(path)}")
-            if not a.get("contexts"):
+            if a.get('reachability') == 'PROVEN_UNREACHABLE':
+                inventory.append('  - PROVEN_UNREACHABLE：当前构建入口不可达')
+            elif not a.get("contexts"):
                 inventory.append("  - UNKNOWN-CONTEXT")
     (out / "inventory/global_static_inventory.md").write_text("\n".join(inventory), encoding="utf-8")
     cov = report["coverage"]

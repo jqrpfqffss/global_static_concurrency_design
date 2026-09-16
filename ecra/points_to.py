@@ -118,7 +118,10 @@ class Solver:
         for item in self.facts.get('indirect_accesses', []):
             targets = self.locations(item['location'])
             self.add_access(targets, item, item['mode'])
-            if not any(self.symbol(p) for p in targets):
+            # Known automatic/parameter storage is a resolved object too. It is
+            # intentionally absent from the global/static inventory; that must
+            # not become a project-wide unknown write to exported globals.
+            if not targets:
                 self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE',
                     function_id=item['function_id'], file=item['file'], line=item['line']))
         self.facts['pointer_targets'] = [dict(location=k, targets=sorted(v)) for k, v in sorted(self.points.items()) if v]

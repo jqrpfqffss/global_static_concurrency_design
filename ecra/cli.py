@@ -132,6 +132,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
         started_ns = time.time_ns()
         response_files = {p for u in units for p in u.get('response_files', [])}
         sources = [u['source'] for u in units]
+        sources.extend(str((root / p).resolve()) for p in compilation.get('assembly_sources', []))
         before = file_hashes(root, out, [config_file, compilation["compile_database"], *sources, *response_files], scope.includes)
         worker_dir = out / "workers"
         worker_dir.mkdir(exist_ok=True)

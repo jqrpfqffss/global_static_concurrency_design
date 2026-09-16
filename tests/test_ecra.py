@@ -122,7 +122,8 @@ int main(void){xTaskCreate(Job,"job",10,0,1,0);return 0;}
         cfg = self.project({"a.c": "int g; void Rec(void){g++; Rec();} void ISR(void){Rec();} void Task(void){} void Lost(void){g++;}"})
         facts, report = self.extract(cfg)
         self.assertTrue(facts["recursive_edges"])
-        self.assertGreater(report["coverage"]["unknown_accesses"], 0)
+        self.assertEqual(report["coverage"]["unknown_accesses"], 0)
+        self.assertEqual(report['coverage']['unreachable_accesses'], 1)
 
     def test_protection_does_not_suppress(self):
         cfg = self.project({"a.c": "int g; void enter(void); void leave(void); void ISR(void){g++;} void Task(void){enter();g++;leave();}"})
@@ -235,6 +236,7 @@ answer.update({k:'evidence checked' for k in ('reason','interleaving','protectio
 answer.update(__V2__)
 answer['review_type']='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='Protocol fixture claim'
+answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet['investigation_requirements']]
 print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 '''.replace('__V2__',repr(structured_fields())), encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=[sys.executable, str(fake)], retries=0)
@@ -279,12 +281,14 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         fake.write_text('''import sys,json
 from pathlib import Path
 p=Path(sys.argv[sys.argv.index('--file')+1])
-finding=json.loads(p.read_text(encoding='utf-8'))['finding']
+packet=json.loads(p.read_text(encoding='utf-8'))
+finding=packet['finding']
 answer=dict(finding_id=finding['finding_id'],status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=Path('a.c').read_text().splitlines()[0])])
 answer.update({k:'Checked source' for k in ('reason','interleaving','protection','impact','fix','verification')})
 answer.update(__V2__)
 answer['review_type']='VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='Protocol fixture claim'
+answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet['investigation_requirements']]
 print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 '''.replace('__V2__',repr(structured_fields())), encoding='utf-8')
         cfg, path = load_config(self.root)
@@ -365,6 +369,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                 **{k:'Checked source evidence' for k in ('reason','interleaving','protection','impact','fix','verification')})
             answer.update(structured_fields(review_type='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'))
             answer['evidence'][0]['claim']='Protocol fixture claim'
+            answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet['investigation_requirements']]
             return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
         with patch('ecra.cli.execute',side_effect=AssertionError('Resume must not reparse Clang')), patch('ecra.review.execute',side_effect=respond):
             self.assertEqual(saved_run(self.root),2)
