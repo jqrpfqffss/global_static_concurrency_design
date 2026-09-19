@@ -18,9 +18,11 @@ class OnboardingTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix='ecra onboarding ')
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name).resolve()
-        registry = patch('ecra.config.PROJECT_INDEX', self.root/'tool-config/projects.yaml')
-        registry.start()
-        self.addCleanup(registry.stop)
+        semantics = self.root/'tool-config/semantics.yaml'
+        for target in ('ecra.config.SEMANTICS_FILE', 'ecra.cli.SEMANTICS_FILE'):
+            mocked = patch(target, semantics)
+            mocked.start()
+            self.addCleanup(mocked.stop)
 
     def invoke(self, *args):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -48,17 +50,17 @@ class OnboardingTest(unittest.TestCase):
         self.assertEqual(self.invoke('init', '--config', 'invalid.yaml', '--model', 'invalid'), 3)
         self.assertFalse((self.root/'invalid.yaml').exists())
 
-    def test_default_init_keeps_semantics_in_tool_project_registry(self):
+    def test_default_init_creates_the_one_tool_side_semantics_file(self):
         tool = self.root / 'concurrency-tool'
-        with patch('ecra.config.TOOL_ROOT', tool), patch('ecra.config.PROJECT_INDEX', tool/'config/projects.yaml'), \
-             patch('ecra.cli.TOOL_ROOT', tool):
+        semantics = tool/'config/semantics.yaml'
+        with patch('ecra.config.TOOL_ROOT', tool), patch('ecra.config.SEMANTICS_FILE', semantics), \
+             patch('ecra.cli.TOOL_ROOT', tool), patch('ecra.cli.SEMANTICS_FILE', semantics):
             self.assertEqual(self.invoke('init'), 0)
-            cfg, path = load_config(self.root)
-        self.assertTrue(path.is_relative_to(tool/'config/projects'))
+            cfg, path = load_config(self.root, semantics)
+        self.assertEqual(path, semantics)
         self.assertEqual(cfg['version'], 1)
+        self.assertEqual(cfg['project']['root'], str(self.root))
         self.assertFalse((self.root/'.ecra/semantics.yaml').exists())
-        index = (tool/'config/projects.yaml').read_text(encoding='utf-8')
-        self.assertIn('semantics.yaml', index)
 
     def config(self):
         return {'analysis': {'compile_database': 'build/compile_commands.json',

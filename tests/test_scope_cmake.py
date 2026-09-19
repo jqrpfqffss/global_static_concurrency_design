@@ -23,9 +23,11 @@ class ScopeCMakeTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='ecra scoped project ')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
-        registry = patch('ecra.config.PROJECT_INDEX', self.root/'tool-config/projects.yaml')
-        registry.start()
-        self.addCleanup(registry.stop)
+        semantics = self.root/'tool-config/semantics.yaml'
+        for target in ('ecra.config.SEMANTICS_FILE', 'ecra.cli.SEMANTICS_FILE'):
+            mocked = patch(target, semantics)
+            mocked.start()
+            self.addCleanup(mocked.stop)
         original = Path.cwd()
         self.addCleanup(lambda: os.chdir(original))
 
@@ -263,6 +265,32 @@ class ScopeCMakeTest(unittest.TestCase):
                 self.assertEqual([s['stage'] for s in audit['cmake_steps']],['configure','build'])
             self.assertEqual(execute.call_count,4)
         self.assertTrue((self.root/'.ecra/cmake-build.log').is_file())
+
+    def test_managed_cmake_can_clean_only_its_configured_build_directory(self):
+        (self.root/'App').mkdir()
+        (self.root/'App/main.c').write_text('int main(void){return 0;}')
+        build = self.root/'build'; build.mkdir()
+        marker = build/'stale-cache.txt'; marker.write_text('stale')
+        cfg = self.managed()
+        cfg['analysis']['cmake']['clean_before_configure'] = True
+
+        def invoke(argv, **kwargs):
+            if '-S' in argv:
+                self.assertFalse(marker.exists())
+                build.mkdir(exist_ok=True)
+                (build/'compile_commands.json').write_text(json.dumps([
+                    dict(directory=str(self.root), file='App/main.c', arguments=['cc', '-c', 'App/main.c'])]))
+            return subprocess.CompletedProcess(argv, 0, 'ok', '')
+
+        with patch('ecra.compilation.execute', side_effect=invoke):
+            _, audit = prepare(self.root, cfg)
+        self.assertEqual([step['stage'] for step in audit['cmake_steps']], ['clean', 'configure', 'build'])
+
+    def test_cmake_build_directory_cannot_escape_firmware_root(self):
+        cfg = self.managed()
+        cfg['analysis']['cmake']['build_dir'] = '../outside'
+        with self.assertRaisesRegex(ValueError, '工程根目录下'):
+            prepare(self.root, cfg)
 
     def test_managed_failure_stops_before_old_database_is_scanned(self):
         with patch('ecra.compilation.execute',return_value=subprocess.CompletedProcess([],1,'compile error','')) as execute:

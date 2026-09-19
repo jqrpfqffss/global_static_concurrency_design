@@ -24,21 +24,19 @@ ECRA（Embedded Concurrency Risk Analyzer）面向 C/C++ STM32 固件，自动�
 ```text
 global_static_concurrency_design/
 ├─ config/
-│  ├─ projects.yaml                         # 固件目录 → 配置文件的索引
-│  └─ projects/
-│     └─ serial-continue/semantics.yaml     # 该固件的排查语义
+│  └─ semantics.yaml                        # 当前唯一待排查项目的配置
 ├─ ecra/                                    # 分析器实现
 ├─ docs/                                    # 本文档和操作文档
 └─ serial - continue/                       # 被排查的固件；不存放 semantics.yaml
 ```
 
-`config/projects.yaml` 以绝对路径或相对其所在 `config/` 目录的路径登记固件根目录及其 `semantics.yaml`。这样同一工具可以维护多个固件的独立 CMake 参数、排查范围、芯片宏、任务入口和驱动注册语义，不会污染客户工程或让 `.ecra` 的运行产物与团队配置混在一起。
+`config/semantics.yaml` 是唯一的工具侧配置。`project.root` 以绝对路径或相对该配置所在 `config/` 目录的路径指定当前固件根目录；切换项目时改写该项及其 CMake、范围、芯片宏、任务入口和驱动注册语义。这样不会污染客户工程，也不会在工具侧遗留多份过期项目配置。
 
 `<firmware>/.ecra/` 默认只存放扫描输出、可恢复状态、报告和缓存；建议加入固件 `.gitignore`，也可以指定 `analysis.output_dir`。早期版本创建的 `<firmware>/.ecra/semantics.yaml` 仍能被读取，但新配置一律放在工具侧。对旧工程执行 `init` 会原样迁移并登记，旧文件保留为备份；运行时已登记配置优先，不会混合两份设置。
 
-配置查找顺序为显式 `--config`、中央索引中的精确工程根目录、旧版配置。`--profile` 直接使用索引中的 ID/根目录/配置三元组，不允许再混用 `--project` 或 `--config`。未登记的同名目录不会借用另一工程配置。索引 ID、根目录和配置路径必须唯一；同名新工程通过路径摘要隔离。索引更新使用独占锁与同目录临时文件原子替换，避免并行初始化丢失条目。YAML 重复键、语法错误、入口类型冲突、错误正则、非法超时会在扫描前失败，不静默覆盖。
+默认查找 `config/semantics.yaml`；其中的 `project.root` 是唯一的当前目标。显式 `--config` 和 `--project` 仅保留给临时兼容/诊断使用，不会创建或登记更多配置。旧版固件目录 `.ecra/semantics.yaml` 可显式兼容读取，但新流程不会写入它。YAML 重复键、语法错误、入口类型冲突、错误正则、非法超时会在扫描前失败，不静默覆盖。
 
-`ECRA_CONFIG_HOME` 可在进程启动前指定独立可写配置目录（默认工具根目录的 `config`）。索引中的相对路径以该目录为基准；语义配置中的分析/输出路径仍以固件根目录为基准。迁移整个工具或固件后，应检查 `projects` 输出的实际绝对路径，不要只修改显示 ID。
+`ECRA_CONFIG_HOME` 可在进程启动前指定独立可写配置目录（默认工具根目录的 `config`）；该目录中仍只使用一份 `semantics.yaml`。`project.root` 相对配置文件解析；其余分析/输出路径仍以固件根目录为基准。
 
 ## 3. 使用模型：一条命令与可诊断分步命令
 
@@ -48,10 +46,10 @@ global_static_concurrency_design/
 py -3.10 H:/global_static_concurrency_design/run_ecra.py --project "D:/firmware/MyBoard"
 ```
 
-工具据项目路径从 `config/projects.yaml` 找到配置，刷新 CMake 编译数据库（如已配置）、增量构建、解析、建立上下文和指针关系、生成报告，并按 `review.enabled` 决定是否继续逐项复核。当前仓库的示例工程可直接执行：
+工具从 `config/semantics.yaml` 读取 `project.root` 及配置，刷新 CMake 编译数据库（如已配置）、构建、解析、建立上下文和指针关系、生成报告，并按 `review.enabled` 决定是否继续逐项复核。当前配置可直接执行：
 
 ```powershell
-py -3.10 run_ecra.py --profile serial-continue
+py -3.10 run_ecra.py
 ```
 
 首次接入只需执行一次 `init`；它在工具侧创建配置并登记索引，不会在固件目录写入语义配置：
@@ -69,9 +67,8 @@ py -3.10 H:/global_static_concurrency_design/run_ecra.py init --project "D:/firm
 | `review --project <目录>` | 只继续已保存扫描的复核队列，不重新解析。 |
 | `report --project <目录>` | 只刷新 HTML/Markdown/JSON，不调用模型。 |
 | `status --project <目录>` | 查看本轮覆盖、候选和恢复建议。 |
-| `projects` / `projects --json` | 列出中央登记的 ID、固件根目录及配置路径。 |
 
-以上运行/分步命令也可以用 `--profile <ID>`。初始化默认不启用模型；仅显式指定 `--model` 或设置 `review.enabled: true` 后，完整运行才调用复核工具。`review` 子命令本身表示显式要求复核。
+以上运行/分步命令都使用唯一配置中的 `project.root`。初始化默认不启用模型；仅显式指定 `--model` 或设置 `review.enabled: true` 后，完整运行才调用复核工具。`review` 子命令本身表示显式要求复核。
 
 `run` 前配置或构建失败时应先运行 `doctor`，再看 `<firmware>/.ecra/doctor.log`、`cmake-configure.log`、`cmake-build.log` 与 `run.log`。`review`/`report` 会校验配置、源码、编译参数和事实库指纹；任一分析输入变化都会要求重新执行完整 `run`，避免用旧证据刷新新结论。
 

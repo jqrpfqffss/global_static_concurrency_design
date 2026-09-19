@@ -29,7 +29,7 @@ build/ecra/                         # ECRA 专用 CMake 构建目录与 compile_
 .ecra/                              # 日志、JSON/SQLite 事实和 HTML 报告，不存新语义配置
 ```
 
-建议将 `build/ecra/` 和 `.ecra/` 写进固件工程的 `.gitignore`。`semantics.yaml` 不再放在固件目录：它由并发工具根目录的 `config/projects/<项目名>/semantics.yaml` 管理，`config/projects.yaml` 记录固件目录与配置的对应关系；固件 `.ecra/` 只保存运行产物。
+建议将 `build/ecra/` 和 `.ecra/` 写进固件工程的 `.gitignore`。`semantics.yaml` 不再放在固件目录：工具根目录只保留 `config/semantics.yaml`，其中的 `project.root` 指向本次要排查的工程；切换项目时修改这一份文件。固件 `.ecra/` 只保存运行产物。
 
 ## 1. 先确认 CMake 工程能独立编译
 
@@ -109,7 +109,7 @@ py -3.10 -m pip install -e "H:/global_static_concurrency_design"
 
 ## 3. 在新工程中生成配置
 
-下面的命令只创建配置，不会覆盖已有配置，也不会编译或扫描：
+下面的命令只创建唯一配置，不会覆盖已有配置，也不会编译或扫描：
 
 ```powershell
 py -3.10 "H:/global_static_concurrency_design/run_ecra.py" init `
@@ -119,23 +119,24 @@ py -3.10 "H:/global_static_concurrency_design/run_ecra.py" init `
 生成文件为：
 
 ```text
-H:/global_static_concurrency_design/config/projects/myboard/semantics.yaml
+H:/global_static_concurrency_design/config/semantics.yaml
 ```
 
 如果工程根目录有 `CMakeLists.txt`，`init` 会创建 CMake 模板，并尝试识别根目录及 `cmake/` 下唯一的 Arm GCC 工具链文件。非标准位置请在初始化命令加 `--toolchain-file cmake/custom.cmake`；多个候选不会替你猜选。两类模板均默认 `include_dirs: [.]`，排除 `Drivers/Middlewares/ThirdParty/build/.ecra`，避免漏掉 `BSP/User/Modules` 等自定义业务目录。仍需按实际归属检查排除规则：如果自己的代码放在 `Drivers`，应移除该目录级排除，改用精确第三方路径。
 
 没有 CMake 时，自动查找也支持 `Debug/Release` 和嵌套构建目录。发现多个 `compile_commands.json` 会要求在 `analysis.compile_database` 指定唯一变体，不能把两个变体的访问混成同一固件。标准头文件未找到时检查真实工具链，并设置 `analysis.auto_system_includes: true`。
 
-旧项目的 `.ecra/semantics.yaml` 可用同一条 `init` 命令迁移到工具侧，原内容不变，旧文件作为备份保留。已登记配置不会被覆盖。使用 `py -3.10 run_ecra.py projects` 查看实际配置 ID，之后直接 `py -3.10 run_ecra.py --profile myboard`。两个模板均默认不调用模型；显式 `init --model <模型>` 或配置 `review.enabled: true` 才启用自动复核。
+旧项目的 `.ecra/semantics.yaml` 仍可作为兼容输入读取，但新配置不会再创建它。唯一配置不会被 `init` 覆盖；需要切换工程时编辑 `project.root`。两个模板均默认不调用模型；显式 `init --model <模型>` 或配置 `review.enabled: true` 才启用自动复核。
 
 ## 4. 编辑工具侧 `semantics.yaml`：先做最小正确配置
 
-打开 `H:/global_static_concurrency_design/config/projects/myboard/semantics.yaml`（以 `init` 实际打印路径为准），按实际项目改成类似下面的配置。YAML 只能有一个 `analysis:` 和一个 `review:` 节；不要把同名节再复制一遍。
+打开 `H:/global_static_concurrency_design/config/semantics.yaml`，按实际项目改成类似下面的配置。YAML 只能有一个 `project:`、`analysis:` 和 `review:` 节；不要把同名节再复制一遍。
 
 ```yaml
 version: 1
 
 project:
+  root: D:/firmware/MyBoard # 唯一的当前排查目标；切换项目时改这里
   chip: STM32F103C8       # 换成实际芯片
   core: Cortex-M3         # 换成实际内核，如 Cortex-M4 / Cortex-M7
   native_word_bits: 32
@@ -154,12 +155,13 @@ analysis:
     - Core/Src/sysmem.c
 
   cmake:
-    build_dir: build/ecra
+    build_dir: build/manual
     generator: Ninja
     build_type: Debug
     # 若 CMakeLists.txt 没有自行加载交叉工具链，取消下一行注释：
     # toolchain_file: cmake/arm-none-eabi.cmake
     args: []
+    clean_before_configure: true # 等价于手工删除 build/manual 后再配置
     build: true
 
   # 使用实际 Arm GCC 自动查找标准头文件路径。
@@ -264,17 +266,17 @@ py -3.10 "H:/global_static_concurrency_design/run_ecra.py" `
 
 ### 已登记工程：一次性生成 `serial-opencode2` 结果
 
-本仓库已在 `config/projects.yaml` 登记 `serial-opencode2`，其配置在 `config/projects/serial-opencode2/semantics.yaml` 中，并已指定实际工具链 `cmake/arm-none-eabi.cmake`、专用构建目录 `build/ecra` 和 Ninja。直接在 ECRA 根目录执行下面这一条命令即可重新配置、增量构建、分析并写出结果：
+本仓库的唯一配置文件是 [`config/semantics.yaml`](../config/semantics.yaml)。先在其中确认 `project.root`、工具链、构建目录和 Ninja 设置；随后直接在 ECRA 根目录执行下面这一条命令即可清理指定构建目录、重新配置、构建、分析并写出结果：
 
 ```powershell
 Set-Location "H:/global_static_concurrency_design"
-py -3.10 .\run_ecra.py --profile serial-opencode2
+py -3.10 .\run_ecra.py
 ```
 
 当前该 profile 的 `review.enabled` 为 `false`，因此此命令只进行本地静态分析，不会调用 OpenCode。结果位于 `H:/stm32_RAG/code/serial - opencode2/.ecra/`，其中可直接打开 `index.html`；CMake 的专用编译数据库位于 `build/ecra/compile_commands.json`。若只想先检查环境而不做完整分析，使用：
 
 ```powershell
-py -3.10 .\run_ecra.py doctor --profile serial-opencode2
+py -3.10 .\run_ecra.py doctor
 ```
 
 该命令依次完成：
@@ -411,4 +413,4 @@ review:
 - 每次新增 ISR、DMA 回调、任务注册、共享缓冲区或临界区后运行一次完整扫描；修复后再扫描一次，确认候选和覆盖缺口的变化。
 - 对高优先级候选，结合源代码、临界区、真实中断优先级、DMA/cache 配置和目标板压力测试作最终判断。
 
-如果想先对照一个已经接入的裸机项目，可查看仓库中的 [`config/projects/serial-continue/semantics.yaml`](../config/projects/serial-continue/semantics.yaml)。其中包含该示例特有的 `SERIAL_CONCURRENCY_RTOS` CMake 参数和 RTOS 注入文件排除项，不能原样复制到新工程。关于复杂中断/回调注册和安全筛除规则，请阅读[工具设计文档](concurrency-tool-design.md)；关于如何针对具体变量判断“可能丢事件、读改写被打断或 DMA 竞争”，继续阅读[真实变量排查案例](variable-investigation-guide.md)。
+如果想先对照已经接入的裸机配置，可查看仓库中的 [`config/semantics.yaml`](../config/semantics.yaml)。其中的工程路径、工具链、目录排除与构建参数都只适用于当前项目；切换项目时应改写这一份文件，不能直接沿用。关于复杂中断/回调注册和安全筛除规则，请阅读[工具设计文档](concurrency-tool-design.md)；关于如何针对具体变量判断“可能丢事件、读改写被打断或 DMA 竞争”，继续阅读[真实变量排查案例](variable-investigation-guide.md)。

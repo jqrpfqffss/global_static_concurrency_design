@@ -21,10 +21,10 @@
 
 ## 裸机 CMake 工程：配置一次，日常一条命令
 
-当前工程已配置好工具侧的 `config/projects/serial-continue/semantics.yaml`，并由 `config/projects.yaml` 关联到固件目录；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
+工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
 
 ```powershell
-py -3.10 run_ecra.py --profile serial-continue
+py -3.10 run_ecra.py
 ```
 
 自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出 `.ecra/index.html` 和 `.ecra/opencode_review.html`。新工程默认本地静态排查；当前 `serial-continue` 配置已启用真实 OpenCode 复核，并指向 `H:/stm32_RAG/test/serial - continue`。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
@@ -48,9 +48,9 @@ py -3.10 -m pip install -r requirements.txt
 py -3.10 H:/global_static_concurrency_design/run_ecra.py init --project "D:/MyFirmware"
 ```
 
-把示例固件路径换成自己的。检测到 `CMakeLists.txt` 时，初始化会在工具根目录 `config/projects/<项目名>/semantics.yaml` 生成 CMake 裸机模板，并登记到 `config/projects.yaml`；主要编辑包含/排除目录和 CMake 参数。以后只需执行一条完整排查命令；`doctor`、`review`、`report`、`status` 保留用于分步定位问题。
+把示例固件路径换成自己的。检测到 `CMakeLists.txt` 时，初始化会创建唯一的 `config/semantics.yaml` CMake 模板；主要编辑 `project.root`、包含/排除目录和 CMake 参数。以后只需执行一条完整排查命令；`doctor`、`review`、`report`、`status` 保留用于分步定位问题。
 
-`py -3.10 run_ecra.py projects` 列出配置 ID、固件目录和配置路径。所有运行/分步命令均支持 `--profile <ID>`，也保留 `--project <目录>`；两者不混用。同名固件目录自动分配不同 ID。已安装工具目录不可写时，可在启动前设置 `$env:ECRA_CONFIG_HOME='D:/ecra-config'`，统一存放索引和语义配置。跨工程验证及已知边界见[移植验收记录](docs/portability-validation.md)。
+默认运行/分步命令均从 `project.root` 读取固件目录；`--project <目录>` 可仅用于临时覆盖。已安装工具目录不可写时，可在启动前设置 `$env:ECRA_CONFIG_HOME='D:/ecra-config'`，把唯一的 `semantics.yaml` 放到独立可写位置。跨工程验证及已知边界见[移植验收记录](docs/portability-validation.md)。
 
 初始化默认包含整个工程 `include_dirs: [.]`，排除常见第三方和产物目录，避免只识别 `Core` 导致遗漏 `BSP/User/Modules`。请按实际目录归属检查排除规则；第三方源码中的调用链仍作为依赖分析。CMake 初始化会识别根目录或 `cmake/` 下唯一的 Arm GCC 工具链文件；非标准位置可用 `init --toolchain-file <路径>` 指定。
 
@@ -60,11 +60,12 @@ analysis:
   exclude_dirs: [Drivers, Middlewares, ThirdParty]  # 排除优先
   exclude_files: [Core/Src/system_stm32f1xx.c, Core/Src/syscalls.c, Core/Src/sysmem.c]
   cmake:
-    build_dir: build/ecra
+    build_dir: build/manual
     generator: Ninja
     build_type: Debug
-    # toolchain_file: cmake/arm-none-eabi.cmake
+    toolchain_file: cmake/arm-none-eabi.cmake
     args: []
+    clean_before_configure: true  # 只删除上述构建目录，然后重新配置/构建
     build: true
   auto_system_includes: true
   output_dir: .ecra

@@ -13,8 +13,8 @@ def configure_cmake(root, analysis, progress, build_firmware):
     """Managed CMake mode refreshes the database on every run, even if present."""
     settings = analysis['cmake']
     build = (root / settings.get('build_dir', 'build/ecra')).resolve()
-    if build == root.resolve():
-        raise ValueError('analysis.cmake.build_dir 必须是独立构建目录，不可使用工程根目录')
+    if build == root.resolve() or not build.is_relative_to(root.resolve()):
+        raise ValueError('analysis.cmake.build_dir 必须是工程根目录下的独立构建目录')
     database = build / 'compile_commands.json'
     requested = analysis.get('compile_database', 'auto')
     if requested != 'auto' and (root/requested).resolve() != database:
@@ -30,6 +30,12 @@ def configure_cmake(root, analysis, progress, build_firmware):
         raise ValueError('cmake.args 不可覆盖源码/构建目录或生成器；请使用对应配置字段')
     command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
     records = []
+
+    if settings.get('clean_before_configure', False) and build_firmware and build.exists():
+        progress('清理 CMake 构建目录…')
+        shutil.rmtree(build)
+        records.append(dict(stage='clean', command=['remove-directory', str(build)], exit_code=0))
+
     def invoke(argv, name):
         progress('CMake ' + ('配置并刷新编译数据库…' if name == 'configure' else '增量构建固件…'))
         proc = execute(argv, cwd=root, timeout=settings.get('timeout_seconds', 600))

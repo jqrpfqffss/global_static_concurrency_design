@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import test_ecra
 from ecra.cli import main
-from ecra.config import load_config, project_profiles
+from ecra.config import load_config
 from ecra.html_report import variable_decisions
 from ecra.compilation import normalize, system_include_args
 
@@ -165,9 +165,11 @@ class ProjectPortabilityTests(unittest.TestCase):
         self.base = Path(self.tmp.name).resolve()
         original = Path.cwd()
         self.addCleanup(lambda: os.chdir(original))
-        registry = patch('ecra.config.PROJECT_INDEX', self.base/'tool/config/projects.yaml')
-        registry.start()
-        self.addCleanup(registry.stop)
+        semantics = self.base/'tool/config/semantics.yaml'
+        for target in ('ecra.config.SEMANTICS_FILE', 'ecra.cli.SEMANTICS_FILE'):
+            mocked = patch(target, semantics)
+            mocked.start()
+            self.addCleanup(mocked.stop)
 
     def invoke(self, *args):
         self.stdout, self.stderr = io.StringIO(), io.StringIO()
@@ -185,16 +187,26 @@ class ProjectPortabilityTests(unittest.TestCase):
             arguments=['arm-none-eabi-gcc','-mcpu='+cpu,'-mthumb','-c',str(source)])]),encoding='utf-8')
         return root
 
-    def test_four_cortex_profiles_full_pipeline_and_resume_without_model(self):
+    def select(self, root):
+        from ecra.config import SEMANTICS_FILE
+        SEMANTICS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SEMANTICS_FILE.write_text(json.dumps(dict(
+            version=1, project=dict(root=str(root)),
+            analysis=dict(compile_database='Debug/compile_commands.json', include_dirs=['.'],
+                          exclude_dirs=['build', '.ecra']),
+            contexts=[dict(id='main', kind='MAIN', functions=['main'])],
+            review=dict(enabled=False))), encoding='utf-8')
+
+    def test_four_cortex_projects_are_selected_one_at_a_time_by_one_config(self):
         for cpu in ('cortex-m0','cortex-m3','cortex-m4','cortex-m7'):
             with self.subTest(cpu=cpu):
                 root = self.board(cpu, cpu)
-                self.assertEqual(self.invoke('init','--project',str(root)),0,self.stderr.getvalue())
-                cfg,path=load_config(root)
+                self.select(root)
+                cfg,path=load_config()
                 self.assertFalse(cfg['review']['enabled'])
                 self.assertEqual(cfg['analysis']['include_dirs'],['.'])
                 self.assertFalse((root/'.ecra/semantics.yaml').exists())
-                self.assertEqual(self.invoke('--profile',cpu),2,self.stderr.getvalue())
+                self.assertEqual(self.invoke('--no-review'),2,self.stderr.getvalue())
                 out=root/'.ecra'
                 facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
                 variables={v['name']:v for v in facts['variables']}
@@ -202,19 +214,17 @@ class ProjectPortabilityTests(unittest.TestCase):
                 self.assertEqual(len(variables['count']['writers']),2)
                 html=(out/'index.html').read_text(encoding='utf-8')
                 self.assertIn('href="#inventory" data-decision-filter="screened_safe"',html)
-                self.assertEqual(self.invoke('status','--profile',cpu,'--json'),0)
+                self.assertEqual(self.invoke('status','--json'),0)
                 self.assertTrue(json.loads(self.stdout.getvalue())['resumable'])
-                self.assertEqual(self.invoke('report','--profile',cpu),2,self.stderr.getvalue())
-        self.assertEqual(self.invoke('projects','--json'),0)
-        self.assertEqual(len(json.loads(self.stdout.getvalue())),4)
+                self.assertEqual(self.invoke('report'),2,self.stderr.getvalue())
 
-    def test_same_named_projects_are_isolated(self):
+    def test_switching_project_reuses_the_same_semantics_file(self):
         roots=[self.board('customer-a/Board'),self.board('customer-b/Board')]
-        for root in roots:
-            self.assertEqual(self.invoke('init','--project',str(root)),0,self.stderr.getvalue())
-        profiles=project_profiles()
-        self.assertEqual(len({e['id'] for e in profiles}),2)
-        self.assertNotEqual(load_config(roots[0])[1],load_config(roots[1])[1])
+        self.select(roots[0])
+        first = load_config()[1]
+        self.select(roots[1])
+        self.assertEqual(load_config()[1], first)
+        self.assertEqual(load_config()[0]['project']['root'], str(roots[1]))
 
     def test_duplicate_yaml_keys_and_broken_yaml_are_actionable(self):
         root=self.board('board')
@@ -225,17 +235,16 @@ class ProjectPortabilityTests(unittest.TestCase):
             self.assertIn('YAML',self.stderr.getvalue())
             self.assertNotIn('Traceback',self.stderr.getvalue())
 
-    def test_legacy_init_preserves_custom_semantics(self):
+    def test_init_creates_one_config_without_modifying_legacy_semantics(self):
         root=self.board('legacy')
         (root/'.ecra').mkdir()
         legacy=root/'.ecra/semantics.yaml'
         legacy.write_text('version: 1\nanalysis:\n  compile_database: Debug/compile_commands.json\n  extra_args: [-DFEATURE=42]\nreview:\n  enabled: false\n',encoding='utf-8')
         original=legacy.read_bytes()
         self.assertEqual(self.invoke('init','--project',str(root)),0,self.stderr.getvalue())
-        cfg,path=load_config(root)
+        cfg,path=load_config()
         self.assertNotEqual(path,legacy)
-        self.assertEqual(cfg['analysis']['extra_args'],['-DFEATURE=42'])
-        self.assertEqual(path.read_bytes(),original)
+        self.assertEqual(cfg['project']['root'],str(root))
         self.assertEqual(legacy.read_bytes(),original)
 
     def test_multiple_debug_release_databases_require_selection(self):
@@ -243,7 +252,7 @@ class ProjectPortabilityTests(unittest.TestCase):
         (root/'Release').mkdir()
         (root/'Release/compile_commands.json').write_bytes((root/'Debug/compile_commands.json').read_bytes())
         self.assertEqual(self.invoke('init','--project',str(root)),0)
-        self.assertEqual(self.invoke('doctor','--profile','ambiguous'),3)
+        self.assertEqual(self.invoke('doctor'),3)
         self.assertIn('多个编译数据库',self.stdout.getvalue())
 
     def test_existing_findings_override_screened_label(self):
@@ -272,9 +281,9 @@ add_library(firmware OBJECT User/DriversCustom/app.c)
 target_compile_options(firmware PRIVATE -mcpu=cortex-m4 -mthumb)
 ''',encoding='utf-8')
         self.assertEqual(self.invoke('init','--project',str(root)),0,self.stderr.getvalue())
-        cfg,_=load_config(root)
+        cfg,_=load_config()
         self.assertEqual(cfg['analysis']['cmake']['toolchain_file'],'cmake/gcc-arm-none-eabi.cmake')
-        self.assertEqual(self.invoke('--profile','cmake-board'),2,self.stdout.getvalue()+self.stderr.getvalue())
+        self.assertEqual(self.invoke(),2,self.stdout.getvalue()+self.stderr.getvalue())
         report=json.loads((root/'.ecra/reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         self.assertEqual(report['coverage']['translation_units_failed'],0)
         objects=[p for p in (root/'build/ecra').rglob('app.c.*') if p.suffix in {'.o','.obj'}]
@@ -282,7 +291,7 @@ target_compile_options(firmware PRIVATE -mcpu=cortex-m4 -mthumb)
         header=objects[0].read_bytes()[:20]
         self.assertEqual(header[:4],b'\x7fELF')
         self.assertEqual(int.from_bytes(header[18:20],'little'),40)  # EM_ARM, not host x86
-        self.assertEqual(self.invoke('report','--profile','cmake-board'),2,self.stderr.getvalue())
+        self.assertEqual(self.invoke('report'),2,self.stderr.getvalue())
 
     def test_invalid_registration_context_kind_is_rejected_before_scan(self):
         root=self.board('bad-registration')
