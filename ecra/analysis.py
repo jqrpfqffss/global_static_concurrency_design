@@ -181,6 +181,79 @@ def context_graph(facts, cfg):
     return contexts, paths
 
 
+def _active_protection(events, offset):
+    """Return lexically active, balanced critical sections at one source point.
+
+    This is deliberately intraprocedural.  It never treats a call to an
+    unknown helper as a proven critical section, and an unmatched enter/exit
+    remains evidence rather than protection.
+    """
+    stacks = defaultdict(list)
+    for event in sorted(events, key=lambda e: (e.get('offset', -1), e.get('line', -1))):
+        if event.get('offset', -1) >= offset:
+            break
+        typ = event.get('protection_type')
+        if event.get('event_kind') == 'lock_enter' and typ:
+            stacks[typ].append(event)
+        elif event.get('event_kind') == 'lock_exit' and typ and stacks[typ]:
+            stacks[typ].pop()
+    return {typ: values[-1] for typ, values in stacks.items() if values}
+
+
+def protection_assessment(accesses, events_by_function, contexts):
+    """Assess protection evidence for one variable without over-claiming CFG proof.
+
+    ``EFFECTIVE`` is intentionally narrow: an ordinary MAIN/ISR conflict, with
+    every MAIN access in a balanced, straight-line PRIMASK/explicit irq-mask
+    region and no unmaskable/unknown participant.  BASEPRI values, wrapper
+    call effects and interprocedural regions remain unresolved in this version.
+    """
+    relevant = [a for a in accesses if a.get('access_kind') in {'READ', 'WRITE', 'RMW'}]
+    events = [e for a in relevant for e in events_by_function.get(a['function_id'], [])]
+    events = list({digest(e): e for e in events}.values())
+    per_access, active_types = [], set()
+    for access in relevant:
+        active = _active_protection(events_by_function.get(access['function_id'], []), access.get('offset', -1))
+        types = sorted(active)
+        active_types.update(types)
+        access['protection_evidence'] = [e for e in events_by_function.get(access['function_id'], [])
+                                         if e.get('event_kind') in {'lock_enter', 'lock_exit', 'primask_get',
+                                                                    'primask_set', 'basepri_get', 'basepri_set'}]
+        access['active_protection_types'] = types
+        access['_active_protection_events'] = active
+        per_access.append(dict(file=access.get('file'), line=access.get('line'), access_kind=access.get('access_kind'),
+                               active_types=types))
+    if not events:
+        return 'NOT_FOUND', per_access, '未发现与该变量访问函数相关的中断屏蔽或临界区操作。'
+    if any(e.get('protection_type') == 'basepri' for e in events):
+        return 'UNRESOLVED', per_access, '发现 BASEPRI 操作；尚未恢复阈值、IRQ 优先级和优先级分组，不能证明屏蔽有效。'
+    bounded = bool(active_types)
+    context_kinds = {cid: contexts.get(cid, {}).get('kind', 'UNKNOWN') for a in relevant for cid in a.get('contexts', [])}
+    isrs = {cid for cid, kind in context_kinds.items() if kind == 'ISR'}
+    mains = {cid for cid, kind in context_kinds.items() if kind == 'MAIN'}
+    unknown_or_async = {cid for cid, kind in context_kinds.items() if kind not in {'ISR', 'MAIN'} and kind != 'TASK'}
+    unmaskable = any(any(name in cid.lower() for name in ('hardfault', 'nmi')) for cid in isrs)
+    main_accesses = [a for a in relevant if any(context_kinds.get(cid) == 'MAIN' for cid in a.get('contexts', []))]
+    protected_main = bool(main_accesses) and all(
+        not a.get('conditional_ancestor') and any(
+            not event.get('conditional_ancestor')
+            for typ, event in a.get('_active_protection_events', {}).items()
+            if typ in {'primask', 'irq_mask'}) for a in main_accesses)
+    for access in relevant:
+        access.pop('_active_protection_events', None)
+    # TASK is kept out of the proof: an IRQ mask does not prove mutual
+    # exclusion between arbitrary scheduler tasks.
+    has_task = any(kind == 'TASK' for kind in context_kinds.values())
+    if (all(a.get('contexts') for a in relevant) and isrs and mains and protected_main
+            and not has_task and not unknown_or_async and not unmaskable):
+        return 'EFFECTIVE', per_access, '所有已解析 MAIN 访问位于平衡的 PRIMASK/已配置 irq_mask 区间；竞争方均为普通 ISR。'
+    if bounded:
+        return 'PARTIAL', per_access, '发现访问位于临界区，但并非所有冲突窗口都已静态证明被同一有效机制完整覆盖。'
+    if any(e.get('event_kind') == 'lock_enter' for e in events) and any(e.get('event_kind') == 'lock_exit' for e in events):
+        return 'PARTIAL', per_access, '发现成对的临界区 API，但宏展开、控制流或保护类型不足以证明完整覆盖。'
+    return 'DETECTED', per_access, '发现保护 API，但当前访问点不在可证明的平衡保护区间内。'
+
+
 def analyze(facts, cfg, coverage, root=None):
     from pathlib import Path
     project_root = Path(root or coverage.get('project_root', Path.cwd()))
@@ -216,7 +289,9 @@ def analyze(facts, cfg, coverage, root=None):
     enrich(facts, cfg)
     known = {f['function_id'] for f in facts['functions']}
     summarized = {'memcpy', 'memmove', 'memset', 'memcmp', 'xTaskCreate', 'xTaskCreateStatic',
-                  'osThreadNew', 'xTaskCreatePinnedToCore'}
+                  'osThreadNew', 'xTaskCreatePinnedToCore', '__disable_irq', '__enable_irq',
+                  '__get_PRIMASK', '__set_PRIMASK', '__get_BASEPRI', '__set_BASEPRI',
+                  '__set_BASEPRI_MAX', '__disable_fault_irq', '__enable_fault_irq'}
     external_sites = {(u.get('function_id'), u.get('file'), u.get('line'), u.get('callee'))
                       for u in facts['unknowns'] if u['kind'] == 'EXTERNAL_CALLEE'}
     for call in facts['calls']:
@@ -338,7 +413,10 @@ def analyze(facts, cfg, coverage, root=None):
         if v.get("coverage_source") in ("supplemental", "inactive_branch"):
             v.update(accesses=[], readers=[], writers=[], contexts=[], protection_status="NONE",
                      annotations=[], audit_status="SUPPLEMENTAL_INVENTORY",
-                     screening_reason=None, screening_blockers=['ACCESS_NOT_ANALYZED'])
+                     screening_reason=None, screening_blockers=['ACCESS_NOT_ANALYZED'],
+                     analysis_coverage='PARTIAL', coverage_reasons=['ACCESS_NOT_ANALYZED'],
+                     static_classification='UNKNOWN',
+                     classification_reason='该声明来自未编译源码或非活动条件分支，访问尚未按当前构建分析。')
             site = next(iter(v.get('definitions', []) or v.get('declarations', [])), {})
             findings.append(dict(finding_id='GS-' + digest([sid, 'GS-SUPPLEMENTAL-UNANALYZED'])[:16],
                 symbol_id=sid, variable_name=v['qualified_name'], rules=['GS-SUPPLEMENTAL-UNANALYZED'],
@@ -346,7 +424,7 @@ def analyze(facts, cfg, coverage, root=None):
                 protection_status='UNKNOWN', accesses=[], uncertainties=[],
                 definition=dict(file=v.get('definition_file') or site.get('file'),
                                 line=v.get('definition_line') or site.get('line')),
-                screening_blockers=['ACCESS_NOT_ANALYZED']))
+                screening_blockers=['ACCESS_NOT_ANALYZED'], static_classification='UNKNOWN'))
             continue
         all_accesses = by_var[sid]
         accesses = [a for a in all_accesses if a['function_id'] not in unreachable]
@@ -389,8 +467,10 @@ def analyze(facts, cfg, coverage, root=None):
         if any(r.get("owner_context") and writers - {r["owner_context"]} for r in annotations):
             rules.add("GS-OWNER-VIOLATION")
         declared = [p for p in cfg["protection"] if p.get("resource") in {sid, v["name"], v["qualified_name"]}]
-        source_protection = any(a["protection_evidence"] for a in accesses)
-        protection = "PARTIAL" if source_protection else ("DECLARED_ONLY" if declared else "UNKNOWN")
+        protection, protection_details, protection_note = protection_assessment(accesses, events, contexts)
+        if protection == 'NOT_FOUND' and declared:
+            protection = 'DETECTED'
+            protection_note = '配置中声明了保护措施，但当前源码未找到可关联的保护操作，不能证明其覆盖访问窗口。'
         blockers = set(global_gaps)
         # Files outside the active build cannot name a non-escaped internal
         # object. Keep their inventory gaps, without poisoning every static.
@@ -406,6 +486,13 @@ def analyze(facts, cfg, coverage, root=None):
             if v.get('linkage') != 'EXTERNAL' and not escaped:
                 local_gaps = local_gaps - {'EXTERNAL_CALLEE', 'UNRESOLVED_POINTEE', 'POINTER_DEREFERENCE'}
             blockers.update(local_gaps)
+        # A proven PRIMASK/explicit irq-mask region can remove only the
+        # MAIN↔ordinary-ISR conflict it covers.  It never hides alias, DMA,
+        # parse or task-scheduler uncertainty.
+        if protection == 'EFFECTIVE' and not uncertain and not escaped and not blockers:
+            rules.difference_update({'GS-MULTI-CONTEXT', 'GS-MULTI-WRITER', 'GS-RMW-INTERLEAVE',
+                                     'GS-STALE-SNAPSHOT', 'GS-LOCAL-STATIC-REENTRANT',
+                                     'GS-FILE-STATIC-SHARED', 'GS-TEAR-RISK', 'GS-STRUCT-INCONSISTENT'})
         if not rules and blockers:
             rules.add('GS-COVERAGE-INCOMPLETE')
         # A variable can be conclusively removed from the *concurrency* queue
@@ -433,16 +520,48 @@ def analyze(facts, cfg, coverage, root=None):
                 screened_reason = 'SINGLE_ACCESS_SITE'
             elif len(all_contexts) == 1 and not reentrant and all(a['contexts'] for a in accesses):
                 screened_reason = 'SINGLE_EXECUTION_CONTEXT'
+            elif protection == 'EFFECTIVE':
+                screened_reason = 'EFFECTIVE_IRQ_MASK'
         if screened_reason:
             rules.clear()
             blockers = effective_blockers
         elif not rules:
             rules.add('GS-COVERAGE-INCOMPLETE')
+        coverage_reasons = set(blockers)
+        coverage_reasons.update(u.get('kind', 'UNKNOWN_EVIDENCE') for u in uncertain)
+        if escaped:
+            coverage_reasons.add('ADDRESS_ESCAPE')
+        if v.get('parse_status') == 'FAILED':
+            coverage_reasons.add('PARSE_FAILED')
+        if not v.get('definition_file'):
+            coverage_reasons.add('DEFINITION_MISSING')
+        if any(not a.get('contexts') and a.get('access_kind') != 'READ' for a in accesses):
+            coverage_reasons.add('EXECUTION_CONTEXT_UNRESOLVED')
+        if protection == 'UNRESOLVED':
+            coverage_reasons.add('PROTECTION_UNRESOLVED')
+        coverage_status = 'COMPLETE' if not coverage_reasons else 'PARTIAL'
+        if coverage_status == 'PARTIAL':
+            static_classification = 'UNKNOWN'
+            classification_reason = '存在影响该变量结论的证据缺口：' + '、'.join(sorted(coverage_reasons))
+        elif screened_reason:
+            static_classification = 'SAFE'
+            classification_reason = {'ONLY_READS': '已解析访问均为 READ，且没有地址逃逸或外部写入证据。',
+                                     'NO_RUNTIME_ACCESSES': '未发现运行期访问，且扫描覆盖完整。',
+                                     'UNREACHABLE_ACCESSORS': '全部访问函数在当前入口模型中已证明不可达。',
+                                     'SINGLE_ACCESS_SITE': '唯一访问点属于单一不可重入执行上下文。',
+                                     'SINGLE_EXECUTION_CONTEXT': '全部已解析访问属于同一不可重入执行上下文。',
+                                     'EFFECTIVE_IRQ_MASK': protection_note}.get(screened_reason, '静态证据已足以排除目标并发风险。')
+        else:
+            static_classification = 'SUSPECT'
+            classification_reason = '存在可成立的共享访问候选，尚无充分静态证据将其排除。'
         audit_status = 'SCREENED_NO_CONCURRENCY_RISK' if screened_reason else 'REVIEW_REQUIRED'
         v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
                  protection_status=protection, annotations=annotations, audit_status=audit_status,
                  screening_reason=screened_reason, screening_blockers=sorted(blockers),
-                 unreachable_access_count=len(all_accesses)-len(accesses))
+                 unreachable_access_count=len(all_accesses)-len(accesses), protection_details=protection_details,
+                 protection_note=protection_note, analysis_coverage=coverage_status,
+                 coverage_reasons=sorted(coverage_reasons), static_classification=static_classification,
+                 classification_reason=classification_reason)
         if not rules:
             continue
         high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT", "GS-OWNER-VIOLATION"}
@@ -460,7 +579,8 @@ def analyze(facts, cfg, coverage, root=None):
                        screening_blockers=sorted(blockers),
                        configured_preemption=[p for p in cfg["preemption"] if {p["higher"], p["lower"]} <= all_contexts],
                        configured_concurrency=[p for p in cfg["concurrency"] if set(p["contexts"]) <= all_contexts],
-                       protection_note="PARTIAL 仅表示找到相关函数中的锁 API，未证明控制流覆盖或中断屏蔽范围。",
+                       protection_note=protection_note, protection_details=protection_details,
+                       static_classification=static_classification,
                        known_safe_annotations=[r for r in cfg["known_safe"] if r.get("resource") in {sid, v["name"], v["qualified_name"]}])
         findings.append(finding)
     # Non-variable blind spots also enter OpenCode, rather than only reviewing known shared objects.
@@ -490,6 +610,11 @@ def analyze(facts, cfg, coverage, root=None):
         raise ValueError('变量排查覆盖校验失败：每个变量必须唯一进入安全清单或逐项复核队列')
     coverage['variable_accountability'] = dict(total=len(ids), screened=len(screened),
         queued=len(queued), missing=0, duplicate_ids=0)
+    static_counts = Counter(v.get('static_classification', 'UNKNOWN') for v in facts['variables'])
+    if set(static_counts) - {'SAFE', 'SUSPECT', 'UNKNOWN'} or sum(static_counts.values()) != len(ids):
+        raise ValueError('变量静态分类归账失败：TOTAL 必须等于 SAFE + SUSPECT + UNKNOWN')
+    coverage['static_classification'] = dict(total=len(ids), safe=static_counts['SAFE'],
+        suspect=static_counts['SUSPECT'], unknown=static_counts['UNKNOWN'])
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]
     covered_functions = sum(f['function_id'] in paths for f in functions)

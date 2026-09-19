@@ -192,7 +192,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
         if len({u["source_file"] for u in units}) != len(units):
             facts["unknowns"].append(dict(kind="MULTIPLE_BUILD_VARIANTS", hint="为每个固件配置分别导出数据库并扫描"))
         known_functions = {f["function_id"] for f in facts["functions"]}
-        summarized = {"memcpy", "memmove", "memset", "memcmp", "xTaskCreate", "xTaskCreateStatic", "osThreadNew", "xTaskCreatePinnedToCore"}
+        summarized = {"memcpy", "memmove", "memset", "memcmp", "xTaskCreate", "xTaskCreateStatic", "osThreadNew", "xTaskCreatePinnedToCore",
+                      "__disable_irq", "__enable_irq", "__get_PRIMASK", "__set_PRIMASK", "__get_BASEPRI", "__set_BASEPRI",
+                      "__set_BASEPRI_MAX", "__disable_fault_irq", "__enable_fault_irq"}
         for call in facts["calls"]:
             if call["call_kind"] == "DIRECT" and call["callee_function_id"] not in known_functions and call["callee_name"] not in summarized:
                 facts["unknowns"].append(dict(kind="EXTERNAL_CALLEE", function_id=call["caller_function_id"],

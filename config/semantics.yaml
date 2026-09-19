@@ -22,7 +22,8 @@ project:
   # 当前要扫描的固件工程根目录。
   # 可用绝对路径；也可相对本文件的 config/ 目录，例如 ../firmware/MyBoard。
   # 切换到另一项目时，首先修改此项。
-  root: "H:/stm32_RAG/code/serial - opencode"
+  # root: "H:/stm32_RAG/code/serial - opencode"
+  root: "H:/stm32_RAG/test/serial - continue"
 
   # 以下只是报告说明，不会替你注入芯片宏或改变 CMake 编译参数。
   chip: STM32

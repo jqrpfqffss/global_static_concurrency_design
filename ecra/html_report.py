@@ -24,6 +24,9 @@ LABELS = {
     "is_const": "const", "is_volatile": "volatile", "is_array": "数组", "is_pointer": "指针",
     "is_struct": "结构体", "is_bitfield_container": "包含位域", "audit_status": "静态盘点状态",
     "protection_status": "保护证据状态", "annotations": "资源配置", "core_instances": "各核实例",
+    "analysis_coverage": "访问分析覆盖率", "coverage_reasons": "覆盖缺口原因",
+    "static_classification": "静态分类", "classification_reason": "静态分类依据",
+    "protection_details": "保护区间与访问点证据", "protection_note": "保护结论说明",
     "reason": "结论依据", "interleaving": "最短交错时序 / 不发生交错的条件",
     "protection": "保护范围及不足", "impact": "影响", "fix": "修复建议", "verification": "验证方法",
 }
@@ -505,6 +508,10 @@ def write_html(out, facts, report, reviews):
         detail += '<details><summary>完整变量属性、唯一 ID 与编译单元</summary>' + fields({k: value for k, value in v.items() if k not in {'accesses', 'readers', 'writers', 'contexts'}}) + '</details></details>'
         group = 'supplemental' if is_supplemental else ('candidate' if candidates[sid] else 'inventory')
         status_text = DECISIONS[assessments[sid]][1]
+        static_status = v.get('static_classification', 'UNKNOWN')
+        static_text = {'SAFE': 'SAFE（静态已判安全）', 'SUSPECT': 'SUSPECT（存在并发候选）',
+                       'UNKNOWN': 'UNKNOWN（关键证据不足）'}.get(static_status, static_status)
+        status_text = static_text + ' · 覆盖率 ' + str(v.get('analysis_coverage', 'PARTIAL')) + '。' + v.get('classification_reason', '') + ' ' + status_text
         if assessments[sid] == 'screened_safe':
             status_text = {'ONLY_READS': '当前构建只有读取，没有运行期写入。',
                            'NO_RUNTIME_ACCESSES': '当前构建没有运行期访问，且没有相关访问覆盖缺口。',
@@ -613,6 +620,10 @@ def write_html(out, facts, report, reviews):
                          ('入口已知的目标函数 / 总数', f'{cov.get("functions_with_context", "?")} / {cov.get("functions_total", "?")}'),
                          ('未知入口访问', cov.get('unknown_accesses', 0)),
                          ('补充解析变量', cov.get('supplemental_variables', 0))])
+    static = cov.get('static_classification', {})
+    if static:
+        coverage += '<h3>变量静态分类归账</h3>' + metrics([('变量总数', static.get('total', 0)),
+            ('SAFE', static.get('safe', 0)), ('SUSPECT', static.get('suspect', 0)), ('UNKNOWN', static.get('unknown', 0))])
     problems = [row(['未进入编译数据库的源码', esc(p)]) for p in cov.get('unlisted_sources', [])]
     problems += [row(['未纳入的头文件', esc(p)]) for p in cov.get('unlisted_headers', [])]
     problems += [row(['解析失败', esc(u.get('source_file')) + raw(u.get('diagnostics', []), '查看失败原因')])

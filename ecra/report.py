@@ -81,14 +81,18 @@ def generate(out, facts, report, reviews):
         return " → ".join(funcs[fid]["name"] + " (" + location(funcs[fid]) + ")" if fid in funcs else fid for fid in path)
 
     inventory = ["# 全局变量与 static 变量完整清单", "", "清单覆盖全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）及补充声明；普通局部变量、参数和结构体字段不作为共享对象盘点。完整性受报告覆盖门槛约束。", ""]
-    inventory += ["| 变量 | 类别 | 定义 | 读上下文 | 写上下文 | 状态 |", "|---|---|---|---|---|---|"]
+    inventory += ["| 变量 | 类别 | 定义 | 读上下文 | 写上下文 | 静态分类 / 覆盖率 |", "|---|---|---|---|---|---|"]
     for v in facts["variables"]:
         inventory.append("| " + " | ".join(map(cell, [v["qualified_name"], v["kind"], f"{v.get('definition_file')}:{v.get('definition_line')}",
-                         ", ".join(v.get("readers", [])), ", ".join(v.get("writers", [])), v.get("audit_status", "")])) + " |")
+                         ", ".join(v.get("readers", [])), ", ".join(v.get("writers", [])),
+                         f"{v.get('static_classification', 'UNKNOWN')} / {v.get('analysis_coverage', 'PARTIAL')}"])) + " |")
     for v in facts["variables"]:
         inventory += ["", f"## {v['qualified_name']}", "", f"- ID: `{v['symbol_id']}`", f"- 类型: `{v.get('type')}`；大小: {v.get('size_bytes')}；对齐: {v.get('alignment_bytes')}",
                       f"- const: {v.get('is_const')}；volatile: {v.get('is_volatile')}；翻译单元: {', '.join(v.get('translation_units', []))}", ""]
-        inventory += [f"- 安全筛除依据：{v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
+        inventory += [f"- 静态分类：{v.get('static_classification', 'UNKNOWN')}；依据：{v.get('classification_reason', '尚未证明')}",
+                      f"- 分析覆盖率：{v.get('analysis_coverage', 'PARTIAL')}；缺口：{', '.join(v.get('coverage_reasons', [])) or '无'}",
+                      f"- 保护：{v.get('protection_status', 'NOT_FOUND')}；说明：{v.get('protection_note', '无')}",
+                      f"- 安全筛除依据：{v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
                       f"- 不可达函数中的访问：{v.get('unreachable_access_count', 0)} 处（保留原始证据）"]
         for a in v.get("accesses", []):
             inventory.append(f"- {a['access_kind']} {location(a)} `{a['source_text']}`")
@@ -107,6 +111,9 @@ def generate(out, facts, report, reviews):
           f"- 工程版本：{report.get('git_commit', 'unknown')}；源码指纹：{report.get('fingerprint', 'unknown')}", "",
           "本报告是风险候选和覆盖证据，不是全工程无风险证明。OpenCode 结论仍需工程/硬件验证。", "",
           "[变量完整清单](../inventory/global_static_inventory.md) · [未知项](unknown_contexts.md) · [OpenCode 复核](opencode_global_static_review.md)", ""]
+    static = cov.get('static_classification', {})
+    if static:
+        md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE {static.get('safe', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
     summary = report['risk_summary']
     md[2:2] = ['## 与 HTML 一致的变量风险结论', '',
         '| 已确认风险 | 疑似并发风险 | 无法判断 | 已复核安全 / 误报 | 已排查不存在并发风险 | 未发现静态线索 | 补充声明 |',

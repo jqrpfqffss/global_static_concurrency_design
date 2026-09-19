@@ -145,6 +145,50 @@ void Task(void){taskENTER_CRITICAL();g++;taskEXIT_CRITICAL();}
         self.assertEqual(len([e for e in facts["protection_events"] if e.get("macro")]), 2)
         self.assertEqual(next(f for f in report["findings"] if f["variable_name"] == "g")["protection_status"], "PARTIAL")
 
+    def test_primask_complete_window_is_static_safe(self):
+        cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void);
+void ISR(void){ g++; }
+void main(void){ __disable_irq(); g++; __enable_irq(); }
+"""}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                  dict(id='isr', kind='ISR', functions=['ISR'])])
+        facts, report = self.extract(cfg)
+        g = next(v for v in facts["variables"] if v['name'] == 'g')
+        self.assertEqual(g['protection_status'], 'EFFECTIVE')
+        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(g['analysis_coverage'], 'COMPLETE')
+        self.assertEqual(report['coverage']['static_classification'], dict(total=1, safe=1, suspect=0, unknown=0))
+
+    def test_partial_primask_and_basepri_are_not_safe(self):
+        cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void); void __set_BASEPRI(unsigned);
+void ISR(void){ g++; }
+void main(void){ int old; __disable_irq(); old=g; __enable_irq(); g=old+1; }
+"""}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                  dict(id='isr', kind='ISR', functions=['ISR'])])
+        facts, report = self.extract(cfg)
+        g = next(v for v in facts['variables'] if v['name'] == 'g')
+        self.assertEqual(g['protection_status'], 'PARTIAL')
+        self.assertEqual(g['static_classification'], 'SUSPECT')
+        # BASEPRI is a separate unknown in an otherwise equivalent source.
+        cfg = self.project({"b.c": """int b; void __set_BASEPRI(unsigned);
+void ISR(void){ b++; } void main(void){ __set_BASEPRI(0x50); b++; }
+"""}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                  dict(id='isr', kind='ISR', functions=['ISR'])])
+        facts, _ = self.extract(cfg)
+        b = next(v for v in facts['variables'] if v['name'] == 'b')
+        self.assertEqual(b['protection_status'], 'UNRESOLVED')
+        self.assertEqual(b['static_classification'], 'UNKNOWN')
+
+    def test_conditional_irq_mask_never_becomes_effective(self):
+        cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void);
+void ISR(void){ g++; }
+void main(int ready){ if (ready) __disable_irq(); g++; __enable_irq(); }
+"""}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                  dict(id='isr', kind='ISR', functions=['ISR'])])
+        facts, _ = self.extract(cfg)
+        g = next(v for v in facts['variables'] if v['name'] == 'g')
+        self.assertNotEqual(g['protection_status'], 'EFFECTIVE')
+        self.assertEqual(g['static_classification'], 'SUSPECT')
+
     def test_pipeline_partial_parse_and_sqlite(self):
         self.project({"a.c": "int g; void ISR(void){g++;} void Task(void){g++;}", "bad.c": '#include "missing.h"\nint hidden;'})
         code = run(self.root, no_review=True)

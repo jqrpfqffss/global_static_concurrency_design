@@ -265,8 +265,9 @@ ORDER BY v.symbol_id, a.file, a.line;
 - 展示每个上下文到访问函数的一条最短证据链；第一个 HTML 可按变量展开所有相关调用边，包括不同调用位置、已恢复的间接边、配置补充边和递归边。用调用图表达多路径，不穷举递归及组合爆炸的所有路径；无法恢复的间接目标仍标为未知。
 - 指针采用不区分控制流的保守目标集合，支持跨 TU 参数/返回、初始化地址、结构成员指针、数组衰减、内存函数包装及部分函数指针。数组下标合并，目标仍可能过近似；未解析目标继续保留盲区。旧快照规则也是候选，未证明真实延迟。
 - 数组/结构体字段保留容器和访问路径。撕裂风险按容器大小/对齐保守提示，不代表每一次字段访问都发生撕裂。位域和多字段协议需复核。
-- 锁 API 出现在相关函数中时标记 `PARTIAL`，仅代表保护证据存在，**未证明路径被保护**；YAML 声明为 `DECLARED_ONLY`。第一版不输出 `VERIFIED`，不因 `volatile`、原子类型或 32 位访问自动消除竞态候选。
-- DMA/Cache、动态回调、RTOS 时序、双核共享内存和复杂 C++ 语义尚不能静态证明。真实中断优先级分组、BASEPRI、PRIMASK、调度时序与硬件复现属于最终工程验证。
+- 每个变量都有 `SAFE` / `SUSPECT` / `UNKNOWN` 静态分类，以及 `COMPLETE` / `PARTIAL` 访问覆盖率和具体缺口原因；报告强校验 `TOTAL = SAFE + SUSPECT + UNKNOWN`。只有完整证据才会进入 `SAFE`。
+- CMSIS `__disable_irq` / `__enable_irq`、PRIMASK、BASEPRI 与在 `critical_sections` 中显式声明的项目封装会作为保护事实保存。仅当同一函数直线控制流内的所有 MAIN 访问都被平衡的 PRIMASK/`irq_mask` 区间覆盖、竞争方均为普通 ISR 且没有其他证据缺口时，才标记 `EFFECTIVE` 并允许静态 `SAFE`；一般锁 API 仍只会得到 `DETECTED` 或 `PARTIAL`。BASEPRI 未恢复阈值、IRQ 优先级和分组时为 `UNRESOLVED`，不得判安全。
+- DMA/Cache、动态回调、RTOS 时序、双核共享内存和复杂 C++ 语义尚不能静态证明。真实中断优先级分组、复杂 BASEPRI、非直线临界区、调度时序与硬件复现仍属于最终工程验证。
 - 一键运行会产生最终的本轮报告；如信息不足，最终结果明确是“哪些项仍未完成”，不会承诺“所有变量无风险”。
 
 原设计中的 Codex 复核已改为 OpenCode；`variable_scan` 的过滤选项不再隐藏常量和头文件变量；`native_extractor`/`auto_build_native` 等旧字段不适用于本版 Python/libclang 实现。

@@ -223,6 +223,57 @@ class Extractor:
         self.accesses.append(dict(symbol_id=sid, function_id=fid, access_kind=mode,
                                   **self.loc(c), source_text=self.source(c), parse_confidence="exact", **extra))
 
+    def protection_event(self, name, fid, cursor, ancestors=()):
+        """Record the *kind* of a synchronization API without claiming it works.
+
+        CMSIS names are facts even when a project did not populate legacy
+        ``api_patterns``.  Project wrappers require an explicit
+        ``critical_sections`` declaration; a lock-looking name is never enough.
+        """
+        conditional = any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT', 'WHILE_STMT',
+                                               'DO_STMT', 'CONDITIONAL_OPERATOR'} for parent, _ in ancestors)
+        common = dict(conditional_ancestor=conditional)
+        builtin = {
+            '__disable_irq': ('lock_enter', 'primask'),
+            '__enable_irq': ('lock_exit', 'primask'),
+            '__get_PRIMASK': ('primask_get', 'primask'),
+            '__set_PRIMASK': ('primask_set', 'primask'),
+            '__get_BASEPRI': ('basepri_get', 'basepri'),
+            '__set_BASEPRI': ('basepri_set', 'basepri'),
+            '__set_BASEPRI_MAX': ('basepri_set', 'basepri'),
+            '__disable_fault_irq': ('lock_enter', 'faultmask'),
+            '__enable_fault_irq': ('lock_exit', 'faultmask'),
+        }.get(name)
+        if builtin:
+            event_kind, protection_type = builtin
+            self.events.append(dict(function_id=fid, event_kind=event_kind, api_name=name,
+                                    protection_type=protection_type, configured=False, **common, **self.loc(cursor)))
+            return
+        for section in self.cfg.get('critical_sections', []):
+            if name == section.get('enter'):
+                self.events.append(dict(function_id=fid, event_kind='lock_enter', api_name=name,
+                                        protection_type=section['type'], configured=True, **common, **self.loc(cursor)))
+                return
+            if name == section.get('exit'):
+                self.events.append(dict(function_id=fid, event_kind='lock_exit', api_name=name,
+                                        protection_type=section['type'], configured=True, **common, **self.loc(cursor)))
+                return
+            if name == section.get('save'):
+                self.events.append(dict(function_id=fid, event_kind='lock_enter', api_name=name,
+                                        protection_type=section['type'], save_restore=True,
+                                        configured=True, **common, **self.loc(cursor)))
+                return
+            if name == section.get('restore'):
+                self.events.append(dict(function_id=fid, event_kind='lock_exit', api_name=name,
+                                        protection_type=section['type'], save_restore=True,
+                                        configured=True, **common, **self.loc(cursor)))
+                return
+        for event_kind, pats in self.cfg.get("api_patterns", {}).items():
+            if any(fnmatch.fnmatchcase(name or "", p) for p in pats):
+                self.events.append(dict(function_id=fid, event_kind=event_kind, api_name=name,
+                                        protection_type='configured_api', configured=False, **common, **self.loc(cursor)))
+                return
+
     def function_body(self, fn):
         fid = self.fid(fn)
         aliases, snapshots = {}, {}
@@ -283,9 +334,7 @@ class Extractor:
                         self.issue("UNRESOLVED_TASK_ENTRY", c, fid, api=name)
                 if name == "osThreadCreate":
                     self.issue("CMSIS_V1_TASK_ENTRY", c, fid, hint="配置 osThreadDef 中的真实入口")
-                for event_kind, pats in self.cfg.get("api_patterns", {}).items():
-                    if any(fnmatch.fnmatchcase(name or "", p) for p in pats):
-                        self.events.append(dict(function_id=fid, event_kind=event_kind, api_name=name, **self.loc(c)))
+                self.protection_event(name, fid, c, ancestors)
                 # Explicit library argument semantics, with address escape retained separately.
                 semantics = {"memcpy": {0: "WRITE", 1: "READ"}, "memmove": {0: "WRITE", 1: "READ"},
                              "memset": {0: "WRITE"}, "memcmp": {0: "READ", 1: "READ"}}.get(name, {})
@@ -311,7 +360,10 @@ class Extractor:
                 sid = self.symbols.get(key)
                 if sid:
                     mode, path = self.access_mode(c, ancestors, self.variables[sid]["is_pointer"])
-                    self.add_access(sid, c, fid, mode, access_path=path)
+                    self.add_access(sid, c, fid, mode, access_path=path,
+                                    conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
+                                                                                   'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
+                                                               for parent, _ in ancestors))
                     if mode == "ADDRESS_TAKEN":
                         self.issue("ADDRESS_ESCAPE", c, fid, symbol_id=sid)
                 elif key in snapshots:
@@ -327,7 +379,10 @@ class Extractor:
                             mode, path = self.access_mode(c, above, False)
                             for original in aliases[key]:
                                 self.add_access(original, c, fid, mode, access_path=path, via_alias=c.spelling,
-                                                parse_confidence_override="conservative")
+                                                parse_confidence_override="conservative",
+                                                conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
+                                                                                               'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
+                                                                           for parent, _ in ancestors))
                         break
             if (k == "UNARY_OPERATOR" and operator(c) == "*") or (k == "MEMBER_REF_EXPR" and "->" in tokens(c)):
                 self.issue("POINTER_DEREFERENCE", c, fid)

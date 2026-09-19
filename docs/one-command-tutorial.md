@@ -322,7 +322,9 @@ Invoke-Item "D:/firmware/MyBoard/.ecra/index.html"
 | 未发现静态线索 | 当前建模路径中没有触发规则 | 不是“变量已证明线程安全” |
 | 已复核安全 / 误报 | 仅在明确列出的前提条件下成立 | 记录前提，代码或配置变化后重新扫描 |
 
-特别注意：`volatile` 不等于互斥；32 位 Cortex-M 上的单次对齐访问也不等于 `x++`、读取快照后回写、多个字段协议或 DMA 缓冲区安全。报告将保护 API 仅标为“存在保护证据”或“部分保护”，仍需检查临界区是否覆盖整条执行路径。
+每个变量还会显示静态 `SAFE` / `SUSPECT` / `UNKNOWN` 和分析覆盖率 `COMPLETE` / `PARTIAL`，并给出阻断安全结论的具体原因。只有 `COMPLETE` 且证据充分的项才会成为静态 `SAFE`。
+
+特别注意：`volatile` 不等于互斥；32 位 Cortex-M 上的单次对齐访问也不等于 `x++`、读取快照后回写、多个字段协议或 DMA 缓冲区安全。报告将保护 API 标为 `NOT_FOUND`、`DETECTED`、`PARTIAL`、`EFFECTIVE` 或 `UNRESOLVED`。`EFFECTIVE` 目前仅适用于同函数直线代码中、全部 MAIN 访问均被平衡 PRIMASK/显式 `irq_mask` 区间覆盖，且竞争方均为普通 ISR 的窄场景；BASEPRI 或复杂分支仍需人工复核。
 
 常用输出如下：
 

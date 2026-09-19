@@ -91,6 +91,15 @@ call_edges: []  # [{caller: IRQHandler, callee: Callback}]
 #     may_repeat: false
 resources: []   # [{symbol_id: '...', owner_context: control_task}]
 protection: []  # 声明不会消除风险，仍需核对真实路径。
+# 项目私有临界区语义。只有在此处明确声明的封装才会被当作 IRQ 屏蔽证据。
+# critical_sections:
+#   - enter: APP_EnterCritical
+#     exit: APP_ExitCritical
+#     type: irq_mask       # 或 primask；仅能证明屏蔽普通可配置中断
+#   - save: IntLock
+#     restore: IntUnlock
+#     type: irq_mask
+critical_sections: []
 known_safe: []  # 保留记录，永不自动隐藏候选。
 api_patterns:
   lock_enter: [taskENTER_CRITICAL, taskENTER_CRITICAL_FROM_ISR, __disable_irq, 'xSemaphoreTake*', 'osMutexAcquire*']
@@ -195,7 +204,7 @@ def load_config(root=None, path=None):
             raise ValueError(f"{key} 必须是映射")
     if 'root' in cfg['project'] and (not isinstance(cfg['project']['root'], str) or not cfg['project']['root'].strip()):
         raise ValueError('project.root 必须是非空路径字符串')
-    for key in ("contexts", "concurrency", "preemption", "call_edges", "entry_registrations", "resources", "protection", "known_safe"):
+    for key in ("contexts", "concurrency", "preemption", "call_edges", "entry_registrations", "resources", "protection", "critical_sections", "known_safe"):
         cfg.setdefault(key, [])
         if not isinstance(cfg[key], list) or any(not isinstance(x, dict) for x in cfg[key]):
             raise ValueError(f"{key} 必须是映射列表")
@@ -238,6 +247,18 @@ def load_config(root=None, path=None):
             raise ValueError("entry_registrations.context_id 必须是非空字符串")
         if "may_repeat" in entry and type(entry["may_repeat"]) is not bool:
             raise ValueError("entry_registrations.may_repeat 必须是 true/false")
+    for section in cfg['critical_sections']:
+        allowed = {'enter', 'exit', 'save', 'restore', 'type'}
+        if set(section) - allowed:
+            raise ValueError('critical_sections 存在未知字段')
+        paired = ((isinstance(section.get('enter'), str) and section['enter'].strip()
+                   and isinstance(section.get('exit'), str) and section['exit'].strip())
+                  or (isinstance(section.get('save'), str) and section['save'].strip()
+                      and isinstance(section.get('restore'), str) and section['restore'].strip()))
+        if not paired:
+            raise ValueError('critical_sections 每项必须提供 enter/exit 或 save/restore')
+        if section.get('type') not in {'primask', 'irq_mask', 'basepri'}:
+            raise ValueError('critical_sections.type 必须是 primask、irq_mask 或 basepri')
     kinds = {c['id']: c['kind'] for c in cfg['contexts']}
     for e in cfg['entry_registrations']:
         cid = e.get('context_id')
