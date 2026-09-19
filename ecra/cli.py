@@ -11,9 +11,9 @@ from . import __version__
 from .analysis import analyze, merge
 from .common import digest, execute, read_json, relative, write_json
 from .compilation import excluded, prepare
-from .config import (TEMPLATE, CMAKE_TEMPLATE, TOOL_ROOT, default_managed_config_path,
-                     load_config, register_managed_project, resolve_config_path,
-                     project_profiles, profile_target, discover_arm_toolchains)
+from .config import (TEMPLATE, CMAKE_TEMPLATE, TOOL_ROOT, SEMANTICS_FILE,
+                     configured_project_root, load_config, resolve_config_path,
+                     discover_arm_toolchains)
 from .report import generate
 from .html_report import REVIEW_PAGE, write_failure, write_html, review_records, category
 from .review import review_all, resolve_command
@@ -132,6 +132,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
         started_ns = time.time_ns()
         response_files = {p for u in units for p in u.get('response_files', [])}
         sources = [u['source'] for u in units]
+        sources.extend(str((root / p).resolve()) for p in compilation.get('assembly_sources', []))
         before = file_hashes(root, out, [config_file, compilation["compile_database"], *sources, *response_files], scope.includes)
         worker_dir = out / "workers"
         worker_dir.mkdir(exist_ok=True)
@@ -249,7 +250,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
             report["limitations"].append("复核期间源码或输入发生变化；本轮证据需重新生成。")
             for r in reviews:
                 r["state"] = "STALE"
-        pending = sum(r["state"] != "DONE" or r["status"] == "NEED_MORE_CONTEXT" for r in reviews)
+        pending = sum(r["state"] != "DONE" or r["status"] in {"NEED_MORE_CONTEXT", "LIKELY"} for r in reviews)
         report["review_summary"] = dict(total=len(reviews), unresolved=pending)
         review_by_id = {r["finding_id"]: r for r in reviews}
         for finding in report["findings"]:
@@ -301,49 +302,32 @@ def main(argv=None):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="STM32 全局/static 清单、读写调用链与 OpenCode 并发复核")
-    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "report", "status", "projects"], default="run",
+    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "report", "status"], default="run",
                         help='run 全流程；review 继续复核；report 刷新报告；status 查看进度；doctor 环境检查')
-    target = parser.add_mutually_exclusive_group()
-    target.add_argument("--project", type=Path, help="固件工程根目录，默认当前目录")
-    target.add_argument('--profile', help='工具侧项目 id；例如 serial-continue，无需再次填写固件路径')
-    parser.add_argument("--config", help="配置文件路径")
+    parser.add_argument("--project", type=Path, help="临时覆盖 semantics.yaml 中的 project.root")
+    parser.add_argument("--config", help="显式配置文件路径；正常使用唯一的 config/semantics.yaml")
     parser.add_argument("--compile-database", help="init 时写入真实编译数据库路径（相对工程根目录）")
     parser.add_argument("--model", help="init 时写入已配置的 OpenCode provider/model")
     parser.add_argument('--toolchain-file', help='init 时指定 CMake Arm 工具链文件（相对固件根目录）')
     parser.add_argument("--no-review", action="store_true", help="只生成静态报告与待复核清单，不调用 OpenCode")
     parser.add_argument("--json", action="store_true", help="status 输出可供脚本读取的 JSON")
     args = parser.parse_args(argv)
-    root = (args.project or Path.cwd()).resolve()
     try:
-        if args.command == 'projects':
-            if args.project or args.profile or args.config or args.compile_database or args.model or args.no_review or args.toolchain_file:
-                raise ValueError('projects 只接受 --json')
-            entries = project_profiles()
-            if args.json:
-                print(json.dumps(entries, ensure_ascii=False, indent=2))
-            else:
-                for entry in entries:
-                    print(f"{entry['id']}\n  固件：{entry['root']}\n  配置：{entry['semantics']}")
-                if not entries:
-                    print('尚未登记项目；运行 init --project <固件目录>')
-            return 0
-        if args.profile:
-            if args.config or args.command == 'init':
-                raise ValueError('--profile 用于已登记项目，不可与 init / --config 同用')
-            root, selected_config = profile_target(args.profile)
-            args.config = str(selected_config)
-        if not root.is_dir():
-            raise ValueError(f"工程目录不存在: {root}")
         if args.json and args.command != 'status':
             raise ValueError('--json 仅用于 status')
         if args.command != 'init' and (args.compile_database is not None or args.model is not None or args.toolchain_file is not None):
             raise ValueError('--compile-database / --model / --toolchain-file 仅用于 init；已有工程请编辑 semantics.yaml')
+        if args.command != 'init':
+            config_path = resolve_config_path(args.project, args.config)
+            root = args.project.resolve() if args.project else configured_project_root(config_path)
+            if not root.is_dir():
+                raise ValueError(f"工程目录不存在: {root}")
         if args.command in {'review', 'report', 'status'}:
             from .workflow import saved_run, status
             if args.no_review:
                 raise ValueError('--no-review 仅用于 run；仅刷新报告请使用 report')
             if args.command == 'status':
-                info=status(root,args.config)
+                info=status(root, str(config_path))
                 if args.json:
                     print(json.dumps(info, ensure_ascii=False, indent=2))
                 else:
@@ -354,33 +338,33 @@ def main(argv=None):
                     if 'inventory_html' in info:
                         print('变量报告：'+info['inventory_html']+'\n复核报告：'+info['review_html'])
                 return 0
-            return saved_run(root, args.config, render_only=args.command=='report')
+            return saved_run(root, str(config_path), render_only=args.command=='report')
         if args.command == "init":
             import yaml
-            # Configurations belong to the analyzer, not the firmware project.
-            # An explicit --config remains project-relative for backwards-compatible
-            # one-off use; the normal init path is centrally managed and indexed.
-            path = resolve_config_path(root, args.config) if args.config else default_managed_config_path(root)
+            if not args.project:
+                raise ValueError('init 需要 --project <固件目录>，它会创建唯一的 config/semantics.yaml')
+            root = args.project.resolve()
+            if not root.is_dir():
+                raise ValueError(f"工程目录不存在: {root}")
+            path = resolve_config_path(root, args.config) if args.config else SEMANTICS_FILE
             if path.exists():
-                raise ValueError(f"配置已存在，不覆盖: {path}")
+                raise ValueError(f"唯一配置已存在，不覆盖: {path}；请直接编辑 project.root 切换项目")
             managed_cmake = (root/'CMakeLists.txt').is_file() and args.compile_database is None
             content = CMAKE_TEMPLATE if managed_cmake else TEMPLATE
+            try:
+                root_text = str(root.relative_to(path.parent))
+            except ValueError:
+                root_text = str(root)
+            content = content.replace('root: ../firmware/MyBoard', 'root: ' + json.dumps(root_text, ensure_ascii=False), 1)
             # Keep custom BSP/User/Services directories. A shortlist of familiar
             # Cube folders silently excluded application code on other boards.
             if not managed_cmake:
                 content = content.replace('include_dirs: []', 'include_dirs: [.]', 1)
                 content = content.replace('exclude_dirs: []',
                     'exclude_dirs: [Drivers, Middlewares, ThirdParty, build, .ecra]', 1)
-            legacy = root / '.ecra/semantics.yaml'
-            migrating = args.config is None and legacy.is_file()
-            if migrating:
-                if args.compile_database or args.model or args.toolchain_file:
-                    raise ValueError('迁移旧配置时保留全部原值；请先 init，再编辑工具侧配置')
-                load_config(root, legacy)  # Reject malformed input before copying.
-                content = legacy.read_text(encoding='utf-8-sig')
             if args.toolchain_file and not managed_cmake:
                 raise ValueError('--toolchain-file 需要 CMake 工程，且不可与 --compile-database 同用')
-            if managed_cmake and not migrating:
+            if managed_cmake:
                 choices = [(root/args.toolchain_file).resolve()] if args.toolchain_file else discover_arm_toolchains(root)
                 if len(choices) == 1:
                     if not choices[0].is_file():
@@ -404,26 +388,16 @@ def main(argv=None):
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open('x', encoding='utf-8') as stream:
                 stream.write(content)
-            from .config import PROJECT_INDEX
-            if args.config is None or path.is_relative_to(PROJECT_INDEX.parent):
-                try:
-                    register_managed_project(root, path)
-                except Exception:
-                    path.unlink()  # Only the file created exclusively above; retry remains possible.
-                    raise
             print(f"已生成 {path}\n确认排查/排除目录、CMake 配置和复核设置后即可执行一键排查。")
-            if migrating:
-                print(f'已迁移旧配置，原文件保留为备份：{legacy}；后续默认使用工具侧配置。')
             launcher = f'"{sys.executable}" "{Path(__file__).resolve().parent.parent / "run_ecra.py"}"'
             if not (Path(__file__).resolve().parent.parent / 'run_ecra.py').is_file():
                 launcher = 'ecra'
             elif os.name == 'nt':
                 launcher = '& ' + launcher  # PowerShell quoted executable
-            common = f' --project "{root}" --config "{path}"'
-            print('环境检查：' + launcher + ' doctor' + common)
-            print('一键排查：' + launcher + common)
+            print('环境检查：' + launcher + ' doctor')
+            print('一键排查：' + launcher)
             return 0
-        return run(root, args.config, args.no_review, args.command == "doctor")
+        return run(root, str(config_path), args.no_review, args.command == "doctor")
     except (ValueError, OSError, ImportError) as exc:
         print(f"ECRA: {exc}", file=sys.stderr)
         return 3

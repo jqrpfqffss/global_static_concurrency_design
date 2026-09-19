@@ -158,7 +158,8 @@ class PointerExtractor:
                 expression=self.value(cs[0]) if cs else dict(op='empty'), name=ref.spelling if direct else node.spelling,
                 arguments=[self.value(arg) for arg in node.get_arguments()], result=self.result(node),
                 source_text=self.e.source(node), **self.e.loc(node)))
-        dynamic = (k == 'UNARY_OPERATOR' and operator(node) == '*')
+        dynamic = (k == 'UNARY_OPERATOR' and operator(node) == '*'
+                   and node.type.get_canonical().kind.name not in {'FUNCTIONPROTO', 'FUNCTIONNOPROTO'})
         if k in {'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'} and cs:
             dynamic |= self.unwrap(cs[0]).type.get_canonical().kind.name == 'POINTER'
         if dynamic and self.function:

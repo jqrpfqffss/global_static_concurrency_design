@@ -13,8 +13,8 @@ def configure_cmake(root, analysis, progress, build_firmware):
     """Managed CMake mode refreshes the database on every run, even if present."""
     settings = analysis['cmake']
     build = (root / settings.get('build_dir', 'build/ecra')).resolve()
-    if build == root.resolve():
-        raise ValueError('analysis.cmake.build_dir 必须是独立构建目录，不可使用工程根目录')
+    if build == root.resolve() or not build.is_relative_to(root.resolve()):
+        raise ValueError('analysis.cmake.build_dir 必须是工程根目录下的独立构建目录')
     database = build / 'compile_commands.json'
     requested = analysis.get('compile_database', 'auto')
     if requested != 'auto' and (root/requested).resolve() != database:
@@ -30,6 +30,12 @@ def configure_cmake(root, analysis, progress, build_firmware):
         raise ValueError('cmake.args 不可覆盖源码/构建目录或生成器；请使用对应配置字段')
     command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
     records = []
+
+    if settings.get('clean_before_configure', False) and build_firmware and build.exists():
+        progress('清理 CMake 构建目录…')
+        shutil.rmtree(build)
+        records.append(dict(stage='clean', command=['remove-directory', str(build)], exit_code=0))
+
     def invoke(argv, name):
         progress('CMake ' + ('配置并刷新编译数据库…' if name == 'configure' else '增量构建固件…'))
         proc = execute(argv, cwd=root, timeout=settings.get('timeout_seconds', 600))
@@ -267,13 +273,15 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     entries = read_json(candidates[0])
     if not isinstance(entries, list) or not entries:
         raise ValueError("编译数据库必须是非空数组")
-    units, ignored = [], []
+    units, ignored, assembly_sources = [], [], []
     include_cache = {}
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
         unit = normalize(entry, root, a)
         unit["tu_id"] = f"TU-{i:05d}"
+        if Path(unit['source']).suffix.lower() == '.s' and not excluded(unit['source_file'], a.get('exclude', [])):
+            assembly_sources.append(unit['source_file'])
         if excluded(unit["source_file"], a.get("exclude", [])) or Path(unit['source']).suffix.lower() not in {'.c', '.cc', '.cpp', '.cxx'}:
             ignored.append(unit["source_file"])
         else:
@@ -309,5 +317,6 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     return units, dict(project_root=str(root), compile_database=str(candidates[0]), candidates=list(map(str, candidates)),
                        selection_reason='managed cmake' if 'cmake' in a else ("explicit" if configured != "auto" else "unique candidate"),
                        unlisted_sources=sorted(set(sources) - covered),
+                       assembly_sources=sorted(set(assembly_sources)),
                        excluded_sources=sorted(set(ignored + excluded_sources)), cmake_log=cmake_log, cmake_steps=cmake_steps,
                        dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'])

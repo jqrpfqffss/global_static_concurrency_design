@@ -1,7 +1,5 @@
 import re
-import hashlib
 import os
-import tempfile
 import math
 from pathlib import Path
 
@@ -9,7 +7,8 @@ import yaml
 
 
 TOOL_ROOT = Path(__file__).resolve().parent.parent
-PROJECT_INDEX = Path(os.environ.get('ECRA_CONFIG_HOME', str(TOOL_ROOT / 'config'))).resolve() / 'projects.yaml'
+CONFIG_HOME = Path(os.environ.get('ECRA_CONFIG_HOME', str(TOOL_ROOT / 'config'))).resolve()
+SEMANTICS_FILE = CONFIG_HOME / 'semantics.yaml'
 
 
 class UniqueKeyLoader(yaml.SafeLoader):
@@ -34,22 +33,6 @@ def read_yaml(path):
         raise ValueError(f'YAML 格式错误 {path}: {exc}') from exc
 
 
-def index_path(value):
-    return (PROJECT_INDEX.parent / value).resolve()
-
-
-def project_profiles():
-    return [dict(id=e['id'], root=str(index_path(e['root'])),
-                 semantics=str(index_path(e['semantics']))) for e in _index_entries()]
-
-
-def profile_target(profile):
-    matches = [e for e in project_profiles() if e['id'] == profile]
-    if len(matches) != 1:
-        raise ValueError(f'未知项目配置 {profile}；运行 projects 查看可用项目')
-    return Path(matches[0]['root']), Path(matches[0]['semantics'])
-
-
 def discover_arm_toolchains(root):
     candidates = set(root.glob('*.cmake'))
     if (root/'cmake').is_dir():
@@ -61,6 +44,8 @@ def discover_arm_toolchains(root):
 TEMPLATE = """# 全局/static 变量无需手工填写。相对路径均相对工程根目录。
 version: 1
 project:
+  # 被排查固件工程的根目录；相对路径以本 semantics.yaml 所在目录为基准。
+  root: ../firmware/MyBoard
   chip: STM32
   core: Cortex-M
   concurrency_model: single_core_preemptive
@@ -126,6 +111,8 @@ CMAKE_TEMPLATE = """# 裸机 CMake 工程：编辑一次配置，之后只运行
 # 相对路径以固件根目录为基准。变量无需逐个填写。
 version: 1
 project:
+  # 被排查固件工程的根目录；相对路径以本 semantics.yaml 所在目录为基准。
+  root: ../firmware/MyBoard
   chip: STM32
   core: Cortex-M
   native_word_bits: 32
@@ -140,6 +127,8 @@ analysis:
     build_type: Debug
     # toolchain_file: cmake/arm-none-eabi.cmake
     args: []  # 原工程需要的 -D 选项；每项是一个参数
+    # true 时每次扫描先删除 build_dir，再重新配置和构建。
+    clean_before_configure: false
     build: true  # 每次先配置并增量构建，再扫描；不会烧录
   auto_system_includes: true  # 自动探测 Arm GCC 标准头文件目录
   output_dir: .ecra
@@ -160,133 +149,40 @@ review:
 """
 
 
-def _index_entries():
-    """Return centrally managed projects. A damaged index must never select a config silently."""
-    if not PROJECT_INDEX.is_file():
-        return []
-    data = read_yaml(PROJECT_INDEX)
-    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("projects", []), list):
-        raise ValueError(f"工具项目配置索引格式无效: {PROJECT_INDEX}")
-    entries = []
-    ids, roots, paths = set(), set(), set()
-    for item in data.get("projects", []):
-        if not isinstance(item, dict) or any(not isinstance(item.get(k), str) or not item[k].strip()
-                                              for k in ('id', 'root', 'semantics')):
-            raise ValueError(f"工具项目配置索引存在无效项目: {PROJECT_INDEX}")
-        root, path = index_path(item['root']), index_path(item['semantics'])
-        if item['id'] in ids or root in roots or path in paths:
-            raise ValueError(f'工具项目配置索引重复 id、工程目录或语义文件: {PROJECT_INDEX}')
-        ids.add(item['id']); roots.add(root); paths.add(path)
-        entries.append(item)
-    return entries
+def resolve_config_path(root=None, path=None):
+    """Return the one central config, with explicit and legacy paths supported.
 
-
-def managed_config_path(root):
-    """Find the central semantics file registered for *root*, if any."""
-    root = Path(root).resolve()
-    matches = []
-    for item in _index_entries():
-        project_root = Path(item["root"])
-        if not project_root.is_absolute():
-            project_root = (PROJECT_INDEX.parent / project_root).resolve()
-        if project_root == root:
-            semantics = Path(item["semantics"])
-            if not semantics.is_absolute():
-                semantics = (PROJECT_INDEX.parent / semantics).resolve()
-            matches.append(semantics)
-    if len(matches) > 1:
-        raise ValueError(f"工程在工具配置索引中重复登记: {root}")
-    return matches[0] if matches else None
-
-
-def default_managed_config_path(root):
-    """A deterministic, human-readable central location for a newly managed project."""
-    root = Path(root).resolve()
-    slug = re.sub(r"[^A-Za-z0-9]+", "-", root.name).strip("-").lower() or "firmware"
-    registered = managed_config_path(root)
-    if registered:
-        return registered
-    candidate = PROJECT_INDEX.parent / "projects" / slug / "semantics.yaml"
-    for item in _index_entries():
-        semantics = Path(item['semantics'])
-        if not semantics.is_absolute():
-            semantics = (PROJECT_INDEX.parent / semantics).resolve()
-        item_root = Path(item['root'])
-        if not item_root.is_absolute():
-            item_root = (PROJECT_INDEX.parent / item_root).resolve()
-        if semantics == candidate and item_root != root:
-            suffix = hashlib.sha256(str(root).encode('utf-8')).hexdigest()[:8]
-            return PROJECT_INDEX.parent / "projects" / f"{slug}-{suffix}" / "semantics.yaml"
-    return candidate
-
-
-def register_managed_project(root, semantics):
-    """Register a tool-side configuration without writing configuration into firmware sources."""
-    root, semantics = Path(root).resolve(), Path(semantics).resolve()
-    entries = _index_entries()
-    retained = []
-    for item in entries:
-        item_root = Path(item["root"])
-        if not item_root.is_absolute():
-            item_root = (PROJECT_INDEX.parent / item_root).resolve()
-        if item_root != root:
-            retained.append(item)
-    try:
-        root_text = str(root.relative_to(PROJECT_INDEX.parent))
-    except ValueError:
-        root_text = str(root)
-    try:
-        semantics_text = str(semantics.relative_to(PROJECT_INDEX.parent))
-    except ValueError:
-        semantics_text = str(semantics)
-    ident = semantics.parent.name
-    if ident in {e['id'] for e in retained}:
-        ident += '-' + hashlib.sha256(str(root).encode('utf-8')).hexdigest()[:8]
-    retained.append(dict(id=ident,
-                         root=root_text, semantics=semantics_text))
-    PROJECT_INDEX.parent.mkdir(parents=True, exist_ok=True)
-    # Serialize registration, and replace the index atomically. Preserve all
-    # existing entries; concurrent init must fail instead of losing a project.
-    lock = PROJECT_INDEX.with_suffix('.lock')
-    try:
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
-        raise ValueError(f'配置索引正在写入: {lock}；稍后重试 init') from exc
-    os.close(fd)
-    temp = None
-    try:
-        if _index_entries() != entries:
-            raise ValueError('配置索引已被另一进程更新，请重试 init')
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=PROJECT_INDEX.parent,
-                                         suffix='.tmp', delete=False) as stream:
-            temp = Path(stream.name)
-            yaml.safe_dump(dict(version=1, projects=retained), stream, allow_unicode=True, sort_keys=False)
-        temp.replace(PROJECT_INDEX)
-    finally:
-        if temp:
-            temp.unlink(missing_ok=True)
-        lock.unlink(missing_ok=True)
-
-
-def resolve_config_path(root, path=None):
-    """Use central config by default; explicit relative paths keep legacy project-relative behavior."""
-    root = Path(root).resolve()
+    The normal path is always ``config/semantics.yaml``.  A legacy project-local
+    file is only used when a caller explicitly supplies that project root; this
+    keeps historical automation readable without creating new per-project files.
+    """
     if path:
         requested = Path(path)
-        return requested.resolve() if requested.is_absolute() else (root / requested).resolve()
-    managed = managed_config_path(root)
-    if managed:
-        return managed
-    # Existing projects remain runnable while they migrate; init never writes this location anymore.
-    legacy = root / ".ecra" / "semantics.yaml"
-    if legacy.is_file():
-        return legacy
-    # Only registered configurations are implicit. Never adopt an unrelated
-    # same-named firmware's orphan config just because its filename matches.
-    raise ValueError(f'工程尚未登记工具侧配置: {root}；先运行 run_ecra.py init --project "{root}"')
+        if requested.is_absolute():
+            return requested.resolve()
+        return ((Path(root).resolve() if root else CONFIG_HOME) / requested).resolve()
+    if root:
+        legacy = Path(root).resolve() / '.ecra' / 'semantics.yaml'
+        if legacy.is_file():
+            return legacy
+    return SEMANTICS_FILE
 
 
-def load_config(root, path=None):
+def configured_project_root(path=None):
+    """Read the target firmware directory selected by the central semantics file."""
+    config_path = resolve_config_path(path=path)
+    if not config_path.is_file():
+        raise ValueError(f'缺少唯一项目配置 {config_path}；请先复制模板并填写 project.root')
+    cfg = read_yaml(config_path)
+    project = cfg.get('project', {}) if isinstance(cfg, dict) else {}
+    value = project.get('root') if isinstance(project, dict) else None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f'缺少 project.root: {config_path}；请填写待排查固件工程目录')
+    root = Path(value)
+    return (root if root.is_absolute() else config_path.parent / root).resolve()
+
+
+def load_config(root=None, path=None):
     path = resolve_config_path(root, path)
     if not path.is_file():
         raise ValueError(f"缺少工具侧项目配置 {path}；先运行 run_ecra.py init --project \"{root}\"")
@@ -297,6 +193,8 @@ def load_config(root, path=None):
         cfg.setdefault(key, {})
         if not isinstance(cfg[key], dict):
             raise ValueError(f"{key} 必须是映射")
+    if 'root' in cfg['project'] and (not isinstance(cfg['project']['root'], str) or not cfg['project']['root'].strip()):
+        raise ValueError('project.root 必须是非空路径字符串')
     for key in ("contexts", "concurrency", "preemption", "call_edges", "entry_registrations", "resources", "protection", "known_safe"):
         cfg.setdefault(key, [])
         if not isinstance(cfg[key], list) or any(not isinstance(x, dict) for x in cfg[key]):
@@ -358,7 +256,8 @@ def load_config(root, path=None):
         c = a['cmake']
         if not isinstance(c, dict):
             raise ValueError('analysis.cmake 必须是映射')
-        allowed = {'build_dir', 'generator', 'build_type', 'toolchain_file', 'args', 'build', 'build_args', 'timeout_seconds'}
+        allowed = {'build_dir', 'generator', 'build_type', 'toolchain_file', 'args', 'build', 'build_args',
+                   'clean_before_configure', 'timeout_seconds'}
         if set(c) - allowed:
             raise ValueError('analysis.cmake 未知配置项: ' + ', '.join(sorted(set(c)-allowed)))
         for key in ('args', 'build_args'):
@@ -369,6 +268,8 @@ def load_config(root, path=None):
                 raise ValueError(f'analysis.cmake.{key} 必须是非空字符串')
         if 'build' in c and type(c['build']) is not bool:
             raise ValueError('analysis.cmake.build 必须是 true/false')
+        if 'clean_before_configure' in c and type(c['clean_before_configure']) is not bool:
+            raise ValueError('analysis.cmake.clean_before_configure 必须是 true/false')
         if type(c.get('timeout_seconds', 600)) not in (int, float) or not math.isfinite(c.get('timeout_seconds', 600)) or c.get('timeout_seconds', 600) <= 0:
             raise ValueError('analysis.cmake.timeout_seconds 必须大于 0')
         if a.get('auto_configure_cmake') or any(k.startswith('cmake_') for k in a):
@@ -391,6 +292,9 @@ def load_config(root, path=None):
     word = cfg["project"].get("native_word_bits", 32)
     if type(word) is not int or word <= 0 or word % 8:
         raise ValueError("project.native_word_bits 必须是正的 8 倍数")
+    workers = cfg['review'].get('workers', 1)
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError('review.workers 必须是 1 到 8 的整数')
     command = cfg["review"].get("command", ["opencode"])
     if not isinstance(command, list) or not command or any(not isinstance(x, str) for x in command):
         raise ValueError("review.command 必须是非空参数数组，不能是 shell 命令字符串")

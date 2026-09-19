@@ -99,6 +99,8 @@ class Extractor:
             if c.is_definition():
                 f = dict(function_id=self.fid(c), name=c.spelling, qualified_name=c.displayname,
                          linkage=c.linkage.name, is_static=c.linkage.name == "INTERNAL",
+                         entry_attributes=[ch.kind.name for ch in c.get_children()
+                                           if ch.kind.name.endswith('_ATTR')],
                          parameter_count=sum(1 for _ in c.get_arguments()),
                          **self.loc(c), end_line=c.extent.end.line, end_offset=c.extent.end.offset)
                 self.functions[f["function_id"]] = f
@@ -299,7 +301,11 @@ class Extractor:
                                 self.add_access(sid, arg, fid, semantics[i], via_api=name, parse_confidence_override="conservative")
                     if name and "DMA" in name.upper() and found:
                         for sid in found:
-                            self.issue("DMA_SHARED_REVIEW", c, fid, symbol_id=sid, api=name)
+                            # Passing the pointer's value does not make its own
+                            # storage a DMA buffer. The solver models pointees,
+                            # including &pointer when that is the real buffer.
+                            if not self.variables[sid]['is_pointer']:
+                                self.issue("DMA_SHARED_REVIEW", c, fid, symbol_id=sid, api=name)
             if k == "DECL_REF_EXPR" and c.referenced:
                 key = self.key(c.referenced)
                 sid = self.symbols.get(key)

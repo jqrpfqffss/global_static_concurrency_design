@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 
 from .common import digest
+from .review_presentation import explanation as story_explanation
 
 
 REVIEW_PAGE = "opencode_review.html"
@@ -76,6 +77,7 @@ def review_label(record):
     if record.get('state') == 'DONE':
         return VERDICTS.get(record.get('status'), '证据不足，不能判定安全')
     return {'FAILED': '复核失败，不能判定安全', 'STALE': '旧结论已失效，需重新复核',
+            'AUDIT_PENDING': '首轮已返回，等待反证复核',
             'RUNNING': '正在复核，尚无有效结论'}.get(record.get('state'),
             '待人工核对（未启用模型）' if local_pending(record) else '待复核，不能判定安全')
 
@@ -137,6 +139,28 @@ def category(review):
     return {"CONFIRMED": "confirmed", "LIKELY": "likely", "REVIEWED_SAFE": "safe", "FALSE_POSITIVE": "safe"}.get(review.get("status"), "unresolved")
 
 
+def final_conclusion(report, reviews):
+    records = review_records(report, reviews)
+    mapping = {r['finding_id']: r for r in records}
+    confirmed = [f['finding_id'] for f in report['findings']
+                 if f.get('symbol_id') and category(mapping[f['finding_id']]) == 'confirmed']
+    unresolved = [r['finding_id'] for r in records if category(r) in {'unresolved', 'likely'}]
+    if not confirmed:
+        unresolved += [f['finding_id'] for f in report['findings'] if not f.get('symbol_id')
+                       and category(mapping[f['finding_id']]) == 'confirmed']
+    if confirmed:
+        verdict, label = 'HAS_ISSUES', '有问题：OpenCode 已确认存在并发缺陷'
+    elif unresolved or report.get('analysis_status') != 'MODELED_SCOPE_COMPLETE':
+        verdict, label = 'INCONCLUSIVE', '尚不能确定：不能据此宣称没有问题'
+    else:
+        verdict, label = 'NO_ISSUES_IN_SCOPE', '本次已覆盖的构建与候选范围内未确认并发问题'
+    return dict(verdict=verdict, label=label, confirmed_findings=confirmed,
+                unresolved_findings=unresolved, total=len(records),
+                reviewed=sum(r['state'] == 'DONE' for r in records),
+                static_coverage_complete=report.get('analysis_status') == 'MODELED_SCOPE_COMPLETE',
+                scope='仅适用于当前源码、构建配置和已覆盖路径；原文校验不等于硬件运行验证。')
+
+
 CONCURRENT_SIGNALS = {'GS-MULTI-CONTEXT', 'GS-MULTI-WRITER', 'GS-RMW-INTERLEAVE',
     'GS-STALE-SNAPSHOT', 'DMA_SHARED_REVIEW', 'GS-LOCAL-STATIC-REENTRANT', 'GS-OWNER-VIOLATION'}
 DECISIONS = {
@@ -167,7 +191,8 @@ def variable_decisions(facts, report, records):
     for v in facts['variables']:
         sid = v['symbol_id']
         if v.get('coverage_source') in ('supplemental', 'inactive_branch'):
-            result[sid] = 'supplemental'
+            resolved = [g for g in groups[sid] if g in {'confirmed', 'safe'}]
+            result[sid] = min(resolved, key=priority.index) if resolved and len(resolved) == len(groups[sid]) else 'supplemental'
         elif v.get('parse_status') == 'FAILED':
             result[sid] = 'unresolved'
         elif groups[sid]:
@@ -254,6 +279,16 @@ table.searchable{table-layout:fixed;min-width:0!important}table.searchable>thead
 @media print{.toolbar,.pager,.tabs,button{display:none!important}body{background:white}.table-scroll{overflow:visible}header{background:white;color:black}.print-context{display:block;border:1px solid #aaa;padding:8px}.panel{break-before:auto}.table-scroll>table{min-width:0!important}a{color:inherit}}
 .risk-overview{background:white;border:1px solid #d6e0eb;border-radius:8px;overflow:hidden;margin-bottom:14px}.verdict-head{padding:14px 20px;border-left:6px solid currentColor}.verdict-head>span{font-size:13px;font-weight:600}.verdict-head h2{font-size:29px;line-height:1.25;margin:3px 0 7px}.verdict-head p{margin:0;color:#34465c}.verdict-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 18px 0}.verdict-card{border-radius:6px;padding:9px 14px;text-decoration:none;border:1px solid transparent}.verdict-card:hover{border-color:currentColor}.verdict-card strong{display:block;font-size:25px;line-height:1.3}.verdict-card span{font-weight:600}.risk-overview>.scope-line,.risk-overview>.muted{margin:8px 18px;font-size:12px}.scope-check{padding:8px 18px;border-top:1px solid #d6e0eb;margin:8px 0 0}.decision{display:inline-block;border-radius:4px;padding:5px 9px;margin:0 0 8px;font-weight:700;font-size:15px;border-left:4px solid currentColor}.source-previews{display:flex;gap:8px;margin:8px 0}.source-preview{flex:1;min-width:0;padding:7px 9px;background:#f1f5fa;border-radius:4px;font-size:12px}.source-preview .location{margin:2px 0}.source-preview pre{font-size:12px}.source-preview strong{color:#234666}.review-brief{margin:5px 0}.source-previews:empty{display:none}
 @media(max-width:800px){.verdict-head{padding:12px}.verdict-head h2{font-size:23px}.verdict-cards{grid-template-columns:repeat(2,1fr);gap:7px;padding:10px}.verdict-card{padding:8px 10px}.risk-overview>.scope-line,.risk-overview>.muted{margin:8px 12px}.scope-check{padding:8px 12px}.source-previews{flex-direction:column}.decision{font-size:16px}}
+/* The review is a reading view, not a multi-column evidence spreadsheet. */
+.story-origin,.format-summary{font-size:12px;color:#596d80;margin:8px 0}.actor-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}.actor-card{background:#f0f5fb;padding:12px 16px;border-radius:6px;min-width:0}.actor-entry,.story-refs{font-size:12px;color:#526b86}.story-refs{display:block}.story-scheduling{margin:18px 0;background:#f6f9fc;padding:12px 16px;border-left:3px solid #799dbd}.model-scenario{margin:12px 0 24px;border:1px solid #dce5ef;border-radius:6px;padding:14px}.model-scenario h5{font-size:16px;margin:0 0 8px}.model-scenario>.tag{margin-bottom:8px}.model-steps{padding-left:25px}.model-steps>li{padding:4px 0 12px 8px;border-bottom:1px solid #e4ebf3;margin:8px 0}.model-steps>li::marker{font-weight:700;color:#27517e}.step-states{font-size:13px;grid-template-columns:55px minmax(0,1fr);background:#f5f8fb;padding:8px;gap:4px 10px}.scenario-result{background:#edf4fb;padding:10px;font-size:14px}.scenario-result p:last-child{margin:0}
+.reading-page>header{padding:12px 4vw;display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap}.reading-page>header h1{font-size:20px;margin:0}.reading-page>header p{order:2;flex-basis:100%;font-size:11px;margin:0}.reading-page>header nav{margin-left:auto;font-size:12px}.reading-page>main{padding-top:12px}.advanced-filters>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0}.review-reading .panel>h2,.review-reading .panel>p{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.review-reading .toolbar #visible{width:auto;margin-left:auto}.review-reading .toolbar button{padding:5px 8px}.review-reading .toolbar input{padding:5px 8px}.review-reading .toolbar{font-size:12px}.review-reading .story-jump{display:inline-flex;margin:4px 0;max-width:100%;font-size:12px}.review-reading .story-jump select{padding:4px 8px;max-width:100%}.review-reading .pager{display:inline-flex;float:right;margin:4px 0}.review-reading .table-scroll{clear:both}
+.review-reading{max-width:1320px;margin:auto}.review-verdict{border-left:5px solid #b13c35;background:white;padding:14px 20px;border-radius:6px}.review-verdict h2{margin:0 0 6px;font-size:23px}.review-verdict p{margin:4px 0}.review-verdict .muted{font-size:12px}
+.review-reading .toolbar{border:0;background:transparent;padding:4px 0;margin:10px 0}.review-reading .toolbar input{max-width:320px}.review-reading .panel>h2{font-size:18px}.review-reading .panel>p{color:#596d80;font-size:13px}.story-jump{display:flex;align-items:center;gap:12px;margin:12px 0}.story-jump select{max-width:80%;background:white}.review-reading .pager{font-size:12px}.review-reading .pager button{padding:3px 10px}
+.review-reading table.searchable{background:transparent}.review-reading table.searchable>thead{display:none}.review-reading table.searchable>tbody>tr{display:block;margin:0 0 24px;border:0;overflow:visible}.review-reading table.searchable>tbody>tr>td{display:block;width:100%;padding:0;border:0}.review-reading table.searchable>tbody>tr>td::before{display:none}
+.review-story{border:1px solid #cbd7e4;border-top:4px solid #a73b37;border-radius:9px;padding:22px 26px;background:white;color:#203247;font-size:15px;line-height:1.8;overflow-wrap:anywhere}.review-story.safe{border-top-color:#34835c}.review-story.likely{border-top-color:#b98823}.review-story.unresolved{border-top-color:#657589}.story-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid #e1e8ee;padding-bottom:10px}.story-heading h3{font:700 23px/1.4 Consolas,'Microsoft YaHei',monospace;margin:0}.story-heading .tag{flex-shrink:0;font-size:13px}.story-heading .location{font-size:13px;margin:4px 0 0}
+.review-story h4{font-size:16px;margin:0 0 8px;color:#182f4b}.review-story p{margin:0 0 10px}.story-impact{background:#f8f0ed;padding:12px 16px;margin:16px 0;border-radius:5px}.safe .story-impact{background:#eff8f2}.story-impact p:last-child{margin-bottom:0}.story-columns{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;margin:22px 0}.story-process,.story-remedy{min-width:0}.story-caption{color:#596d80;font-size:12px}.story-remedy{border-left:1px solid #dce5ef;padding-left:22px;font-size:14px}.story-remedy section+section{margin-top:22px}.process-step{display:grid;grid-template-columns:35px minmax(0,1fr);gap:10px;margin:12px 0}.step-number{background:#e7effa;color:#27517e;border-radius:50%;align-self:start;text-align:center;font-weight:700;font-size:13px;padding:5px 0}.process-step>div{padding:3px 0 8px;border-bottom:1px solid #e4ebf3}.process-step:last-child>div{border-bottom:0}.process-prose p{padding:8px 12px;border-left:3px solid #7ba4cd;background:#f4f8fc;margin:10px 0}.story-section{margin:18px 0}.story-audit,.story-citations,.story-reason,.story-verification{font-size:13px;border-top:1px solid #e0e7ef;padding-top:8px;margin-top:10px}.story-citations li{margin:8px 0}.story-audit .evidence table{min-width:0}.story-audit .evidence td:first-child{width:23%;min-width:0}.story-audit .evidence td:nth-child(2){width:7%;min-width:0}.review-scope{margin-top:24px}
+@media(max-width:900px){.story-columns{grid-template-columns:1fr;gap:18px}.story-remedy{border-left:0;border-top:1px solid #dce5ef;padding:18px 0 0}.review-story{padding:16px;font-size:15px}.story-heading{flex-wrap:wrap;gap:8px}.story-heading h3{font-size:21px}.review-verdict h2{font-size:20px}.story-jump{flex-wrap:wrap;gap:5px}.story-jump select{max-width:100%;width:100%}.review-reading .toolbar input{max-width:none}.review-reading .tabs a{font-size:13px}.story-audit .evidence table{font-size:12px}}
+@media print{.story-jump{display:none}.review-story{border:1px solid #aaa;color:black}.story-heading{break-after:avoid}.story-columns{display:block}.story-remedy{border:0;padding:0}.process-step,.story-impact{break-inside:avoid}.review-story details[open]{break-inside:auto}}
 """
 
 
@@ -263,18 +298,19 @@ const q=document.getElementById('q'), filter=document.getElementById('filter'), 
 const panels=[...document.querySelectorAll('.panel')], tabs=[...document.querySelectorAll('.tabs a')];
 let active=document.getElementById('inventory')||panels[0];
 const rows=[...document.querySelectorAll('table.searchable > tbody > tr[data-group]')];
-const searchText=new Map(rows.map(r=>[r,r.textContent.toLowerCase()]));
+const searchText=new Map(rows.map(r=>[r,(r.querySelector('.story-current')||r).textContent.toLowerCase()]));
 const pageSize=document.getElementById('page-size'), views=[...document.querySelectorAll('.pager')].map(p=>({pager:p,page:0,rows:rows.filter(r=>r.closest('table').id===p.dataset.table),matches:[]}));
 for(const v of views){const t=document.getElementById(v.pager.dataset.table),labels=[...t.tHead.rows[0].cells].map(c=>c.textContent);for(const r of v.rows)[...r.cells].forEach((c,i)=>c.dataset.label=labels[i]);}
 function matchesFilter(r){const [kind,value]=filter.value.split(':');return filter.value==='all'||(value?r.dataset[kind]===value:r.dataset.group===filter.value);}
-function search(reset=true){let n=0,shown=0;const size=Number(pageSize.value);for(const v of views){if(reset)v.page=0;v.matches=v.rows.filter(r=>searchText.get(r).includes(q.value.trim().toLowerCase())&&matchesFilter(r)&&(fileFilter.value==='all'||JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file])).includes(fileFilter.value)));const count=Math.max(1,Math.ceil(v.matches.length/size));v.page=Math.max(0,Math.min(v.page,count-1));const visible=new Set(v.matches.slice(v.page*size,(v.page+1)*size));for(const r of v.rows)r.hidden=!visible.has(r);if(v.pager.closest('.panel')===active){n+=v.matches.length;shown+=visible.size;}v.pager.querySelector('span').textContent=v.matches.length+' 条 · 第 '+(v.page+1)+' / '+count+' 页';v.pager.nextElementSibling.hidden=!!v.matches.length;v.pager.querySelector('[data-step="-1"]').disabled=v.page===0;v.pager.querySelector('[data-step="1"]').disabled=v.page+1>=count;}document.getElementById('visible').textContent='仅搜索当前栏目（含折叠证据）：'+n+' 条匹配，当前展示 '+shown+' 条';}
+function search(reset=true){let n=0,shown=0;const size=Number(pageSize.value);for(const v of views){if(reset)v.page=0;v.matches=v.rows.filter(r=>searchText.get(r).includes(q.value.trim().toLowerCase())&&matchesFilter(r)&&(fileFilter.value==='all'||JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file])).includes(fileFilter.value)));const count=Math.max(1,Math.ceil(v.matches.length/size));v.page=Math.max(0,Math.min(v.page,count-1));const visible=new Set(v.matches.slice(v.page*size,(v.page+1)*size));for(const r of v.rows)r.hidden=!visible.has(r);if(v.pager.closest('.panel')===active){n+=v.matches.length;shown+=visible.size;}v.pager.querySelector('span').textContent=v.matches.length+' 条 · 第 '+(v.page+1)+' / '+count+' 页';v.pager.nextElementSibling.hidden=!!v.matches.length;v.pager.querySelector('[data-step="-1"]').disabled=v.page===0;v.pager.querySelector('[data-step="1"]').disabled=v.page+1>=count;}document.getElementById('visible').textContent=(document.querySelector('.review-reading')?'搜索当前有效解释与引用（不含历史回答）：':'仅搜索当前栏目（含折叠证据）：')+n+' 条匹配，当前展示 '+shown+' 条';}
 function activate(panel,clear=false){active=panel;for(const p of panels)p.hidden=p!==panel;for(const a of tabs){if(a.hash==='#'+panel.id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}if(clear)q.value='';filter.replaceChildren(...JSON.parse(panel.dataset.options||'[]').map(([k,v])=>new Option(v,k)));const files=[...new Set(rows.filter(r=>r.closest('.panel')===panel).flatMap(r=>JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file]))).filter(Boolean))].sort();fileFilter.replaceChildren(new Option('全部文件','all'),...files.map(f=>new Option(f,f)));document.querySelector('.toolbar').hidden=!panel.querySelector('.searchable');search();}
 for(const v of views)for(const b of v.pager.querySelectorAll('button'))b.addEventListener('click',()=>{v.page+=Number(b.dataset.step);search(false);});
 q.addEventListener('input',()=>search());filter.addEventListener('change',()=>search());fileFilter.addEventListener('change',()=>search());pageSize.addEventListener('change',()=>search());
 document.getElementById('reset').addEventListener('click',()=>{q.value='';filter.value='all';fileFilter.value='all';search()});
-function reveal(){let id;try{id=decodeURIComponent(location.hash.slice(1));}catch{return;}const target=document.getElementById(id);if(!target)return;const panel=target.closest('.panel');if(!panel)return;activate(panel,target!==panel);for(const v of views){let i=v.matches.indexOf(target);if(i>=0)v.page=Math.floor(i/Number(pageSize.value));}search(false);target.hidden=false;if(target!==panel)(target.querySelector('.evidence')||target.querySelector('details'))?.setAttribute('open','');const scrollTarget=target===panel?(document.querySelector('.tabs')||target):target;requestAnimationFrame(()=>scrollTarget.scrollIntoView({block:'start'}));}
+function reveal(){let id;try{id=decodeURIComponent(location.hash.slice(1));}catch{return;}const target=document.getElementById(id);if(!target)return;const panel=target.closest('.panel');if(!panel)return;activate(panel,target!==panel);const targetRow=target.closest('tr[data-group]')||target;for(const v of views){let i=v.matches.indexOf(targetRow);if(i>=0)v.page=Math.floor(i/Number(pageSize.value));}search(false);targetRow.hidden=false;for(let p=target.parentElement;p&&p!==panel;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;if(target!==panel&&!target.querySelector('.review-story'))(target.querySelector('.evidence')||target.querySelector('details'))?.setAttribute('open','');const scrollTarget=target===panel?(document.querySelector('.tabs')||target):target;requestAnimationFrame(()=>scrollTarget.scrollIntoView({block:'start'}));}
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest('a');if(a&&a.getAttribute('href')===location.hash&&location.hash){e.preventDefault();reveal();}});
 window.addEventListener('hashchange',reveal);if(active)activate(active);reveal();
+for(const select of document.querySelectorAll('[data-story-jump]'))select.addEventListener('change',()=>{if(select.value){location.hash=select.value;reveal();}});
 for(const a of document.querySelectorAll('[data-decision-filter]'))a.addEventListener('click',e=>{e.preventDefault();const p=document.querySelector(a.getAttribute('href'));activate(p,true);filter.value='decision:'+a.dataset.decisionFilter;search();history.replaceState(null,'',a.getAttribute('href'));(document.querySelector('.tabs')||p).scrollIntoView({block:'start'});});
 let printRows=null;
 window.addEventListener('beforeprint',()=>{if(printRows)return;printRows=rows.map(r=>[r,r.hidden]);const v=views.find(v=>v.pager.closest('.panel')===active);if(v){const all=new Set(v.matches);for(const r of v.rows)r.hidden=!all.has(r);}document.querySelector('.print-context').textContent='打印栏目：'+(active?.getAttribute('aria-label')||'报告')+'；关键词：'+(q.value||'无')+'；筛选：'+(filter.selectedOptions[0]?.textContent||'无')+'；文件：'+(fileFilter.selectedOptions[0]?.textContent||'全部')+(v?'；包含全部 '+v.matches.length+' 条匹配记录（跨分页）。':'。');});
@@ -284,7 +320,7 @@ for(const b of document.querySelectorAll('[data-copy]'))b.addEventListener('clic
 """
 
 
-def page(title, content, report, options, script=""):
+def page(title, content, report, options, script="", reading=False):
     generated = report.get('generated_at', '未知')
     try:
         generated = datetime.fromisoformat(generated.replace('Z', '+00:00')).astimezone().strftime('%Y-%m-%d %H:%M:%S %z')
@@ -294,8 +330,13 @@ def page(title, content, report, options, script=""):
     project = root.replace('\\', '/').rstrip('/').rsplit('/', 1)[-1] or '当前工程'
     meta = f"{project} · 扫描时间：{generated}（重新生成页面不会刷新扫描时间）"
     controls = '<div class="toolbar"><label for="q">搜索</label><input id="q" type="search" placeholder="变量、函数、文件或证据"><label for="filter">筛选</label><select id="filter">' + "".join(f'<option value="{esc(k)}">{esc(v)}</option>' for k, v in options) + '</select><label for="file-filter">文件</label><select id="file-filter"><option value="all">全部文件</option></select><label for="page-size">每页</label><select id="page-size"><option value="25">25 条</option><option value="100">100 条</option><option value="1000000000">全部</option></select><button id="reset" type="button">清除筛选</button><span id="visible" aria-live="polite"></span></div>'
+    if reading:
+        controls = controls.replace('<label for="filter">', '<details class="advanced-filters"><summary>筛选与分页设置</summary><div><label for="filter">').replace('<button id="reset"', '</div></details><button id="reset"')
+        controls = controls.replace('变量、函数、文件或证据', '变量、函数或当前复核解释')
     content = content.replace('<!--controls-->', controls)
-    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换和分页；下面仍保留全部文字证据。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
+    if report.get('presentation_notice'):
+        content = '<p class="notice">' + esc(report['presentation_notice']) + '</p>' + content
+    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换和分页；下面仍保留全部文字证据。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
 
 
 def metrics(values):
@@ -441,7 +482,8 @@ def write_html(out, facts, report, reviews):
                              + esc(' → '.join(function(fid) for fid in path)) + '</pre></details>'
                              for cid, path in a.get('call_chains', {}).items())
             rows.append(row([esc(KINDS.get(a['access_kind'], a['access_kind'])), esc(loc(a)) + '<pre>' + esc(a.get('source_text', '')) + '</pre>',
-                             esc(function(a['function_id'])), chains or '<strong>UNKNOWN-CONTEXT：尚不能确定任务或中断</strong>',
+                             esc(function(a['function_id'])), chains or ('<strong>当前构建入口不可达（保留访问证据）</strong>'
+                                if a.get('reachability') == 'PROVEN_UNREACHABLE' else '<strong>UNKNOWN-CONTEXT：尚不能确定任务或中断</strong>'),
                              raw({k: v for k, v in a.items() if k not in {'source_text', 'call_chains'}}, '字段 / 别名 / 宏 / 保护事件等')]))
         return table(['访问方式', '源码位置与表达式', '访问函数', '上下文 → 最短证据调用链', '访问属性'], rows)
 
@@ -465,6 +507,8 @@ def write_html(out, facts, report, reviews):
         status_text = DECISIONS[assessments[sid]][1]
         if assessments[sid] == 'screened_safe':
             status_text = {'ONLY_READS': '当前构建只有读取，没有运行期写入。',
+                           'NO_RUNTIME_ACCESSES': '当前构建没有运行期访问，且没有相关访问覆盖缺口。',
+                           'UNREACHABLE_ACCESSORS': '全部访问函数均无执行入口可达；已核对调用图、地址引用及入口缺口。',
                            'SINGLE_ACCESS_SITE': '唯一访问点仅属于一个不可重入执行上下文。',
                            'SINGLE_EXECUTION_CONTEXT': '全部读写属于同一个不可重入执行上下文。'}.get(v.get('screening_reason'), status_text)
         if v.get('screening_blockers'):
@@ -475,7 +519,7 @@ def write_html(out, facts, report, reviews):
             + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
             + esc(KINDS.get(v['kind'], v['kind'])) + ' · ' + esc(v.get('type')),
             context_brief(v.get('readers', []), '读') + context_brief(v.get('writers', []), '写'),
-            decision_tag(assessments[sid]) + '<p>' + esc(status_text) + '</p>' + (links if not is_supplemental else ''),
+            decision_tag(assessments[sid]) + '<p>' + esc(status_text) + '</p>' + links,
             detail],
             anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files))
 
@@ -625,52 +669,95 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     inventory_page = page('并发变量排查报告', content, report, priority_options, graph_script)
 
     counts = Counter(category(r) for r in records.values())
-    review_rows = []
-    for f in report['findings']:
+    review_rows = defaultdict(list)
+    review_jumps = defaultdict(list)
+    review_priority = {'confirmed': 0, 'likely': 1, 'unresolved': 2, 'safe': 3}
+    ordered_findings = sorted(report['findings'], key=lambda f: review_priority[category(records[f['finding_id']])] if f.get('symbol_id') else 4)
+    for f in ordered_findings:
         r = records[f['finding_id']]
         # Failed/stale receipts may contain an old answer. Preserve it only in
         # the raw record, never as the current explanation or source evidence.
         answer = r.get('answer', {}) if r['state'] == 'DONE' else {}
         group = category(r)
         status = review_label(r)
+        if not f.get('symbol_id') and r['state'] == 'DONE':
+            status = {'CONFIRMED': '此证据疑点成立', 'LIKELY': '此证据疑点仍需验证',
+                      'REVIEWED_SAFE': '此证据项已解释（有适用条件）',
+                      'FALSE_POSITIVE': '此证据疑点为误报'}.get(r.get('status'), status)
         captured = {(e['file'], e['line']): e for e in r.get('source_evidence', [])}
         evidence_rows = []
-        for e in answer.get('evidence', []):
+        for evidence_index, e in enumerate(answer.get('evidence', []), 1):
             window = captured.get((e.get('file'), e.get('line')), {})
             excerpt = '\n'.join(f"{line['line']}: {line['text']}" for line in window.get('lines', []))
             evidence_rows.append(row([esc(e.get('file')), esc(e.get('line')),
-                '<pre>' + esc(excerpt or '此旧记录未保存源码片段；请按文件与行号核对原始源码。') + '</pre>' + raw(window or e)]))
+                '<p>' + esc(e.get('claim', '按下方源码核对结论依据')) + '</p>' +
+                '<pre>' + esc(excerpt or '此旧记录未保存源码片段；请按文件与行号核对原始源码。') + '</pre>' + raw(window or e)],
+                anchor('citation-', f['finding_id'] + ':' + str(evidence_index)) ))
         source_evidence = table(['文件', '行号', '引用处源码及邻近语句'], evidence_rows)
-        explanation = fields({k: answer[k] for k in ('reason', 'interleaving', 'protection', 'impact', 'fix', 'verification') if k in answer})
-        if answer:
-            brief = answer.get('reason', '')
-            explanation = '<p>' + esc(brief[:180] + ('…' if len(brief)>180 else '')) + '</p><details><summary>完整结论、交错过程与修复验证</summary>' + explanation + '</details>'
-        else:
-            explanation = '<p>尚无有效复核结论。可先依据静态证据人工核对。</p>'
+        explanation = story_explanation(answer, group, bool(f.get('symbol_id')),
+                                        lambda i: '#' + anchor('citation-', f['finding_id'] + ':' + str(i)))
         if r['state'] in {'STALE', 'FAILED'} and r.get('answer'):
             explanation += '<p>旧回答已失效，仅在原始记录中保留，不作为本轮结论或证据。</p>'
         error = '<details><summary>复核未完成的原因</summary><p>' + esc(r['error']) + '</p></details>' if r.get('error') and not local_pending(r) else ''
+        execution = r.get('execution', {})
+        if execution.get('stdout_file'):
+            error += '<p><a href="review/' + esc(execution['stdout_file']) + '">原始 OpenCode 执行日志</a></p>'
+            error += '<details><summary>执行时间、日志 SHA-256 与校验范围</summary>' + fields(execution) + '</details>'
+        if r.get('previous_reviews'):
+            error += '<p>已做反证复核；保留 ' + str(len(r['previous_reviews'])) + ' 次先前回答，当前状态：' + esc(r['status']) + '。</p>'
+            for attempt, previous in enumerate(r['previous_reviews'], 1):
+                error += '<details><summary>第 ' + str(attempt) + ' 轮历史回答（不作为当前结论）</summary>' + raw(previous)
+                if previous.get('execution',{}).get('stdout_file'):
+                    error += '<a href="review/' + esc(previous['execution']['stdout_file']) + '">该轮 OpenCode 日志</a>'
+                error += '</details>'
         source_link = f'index.html#{anchor("var-", f["symbol_id"])}' if f.get('symbol_id') else f'index.html#{anchor("risk-", f["finding_id"])}'
         name = f['variable_name'] if f.get('symbol_id') else (rule_summary(f)[0][1] if f.get('rules') else f['variable_name'])
-        review_rows.append(row(['<strong>' + esc(name) + '</strong><span class="location">' + esc(loc(f['definition'])) + '</span>'
-            + ('<span class="tag">依赖证据</span>' if f.get('scope_role') == 'dependency_evidence' else '')
-            + ('<p>风险分类：' + decision_tag(assessments[f['symbol_id']]) + '</p>' if f.get('symbol_id') in assessments else '')
-            + f'<p><a href="{source_link}">查看静态读写证据</a></p><a href="index.html#{anchor("risk-", f["finding_id"])}">查看候选依据与处理步骤</a>',
-            f'<span class="tag {group}">{esc(status)}</span>',
-            error + explanation,
-            '<details class="evidence"><summary>展开源码引用与静态调用链</summary><details><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details><details><summary>静态读写与上下文调用链</summary>' + accesses(f.get('accesses', [])) + '</details>' + raw(r, '原始复核记录（含失效回答 / 错误信息）') + '</details>'],
-            anchor('review-', f['finding_id']), group, file=f['definition'].get('file')))
+        bucket = 'gaps' if not f.get('symbol_id') else ('safe' if group == 'safe' else 'risks')
+        ident = anchor('review-', f['finding_id'])
+        variable = variables.get(f.get('symbol_id'), {})
+        instances = variable.get('translation_units', []) if str(f.get('symbol_id', '')).startswith('tu::') else []
+        instance = ' · 实例属于 ' + '、'.join(instances) if instances else ''
+        review_jumps[bucket].append((ident, name + ' · ' + loc(f['definition']) + instance))
+        # Quotes and claims stay linked to the exact receipt. They are not new
+        # model answers, execution observations, or guessed context pairs.
+        citations = '<details class="story-citations"><summary>核对这条解释的源码依据（' + str(len(evidence_rows)) + ' 处）</summary><ol>'
+        for evidence_index, e in enumerate(answer.get('evidence', []), 1):
+            citations += '<li><a href="#' + anchor('citation-', f['finding_id'] + ':' + str(evidence_index)) + '">' + esc(loc(e)) + '</a> — ' + esc(e.get('claim', '查看引用源码')) + '</li>'
+        citations += '</ol></details>'
+        current = ('<div class="story-current"><div class="story-heading"><div><h3>' + esc(name) + '</h3>'
+                   + '<span class="location">' + esc(loc(f['definition']) + instance) + '</span></div>'
+                   + f'<span class="tag {group}">{esc(status)}</span></div>' + explanation + citations + '</div>')
+        audit = ('<details class="story-audit"><summary>原始证据、执行日志与历史复核</summary>' + error
+                 + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
+                 + '<details class="evidence"><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details>'
+                 + '<details><summary>静态读写与上下文调用链</summary>' + accesses(f.get('accesses', [])) + '</details>'
+                 + raw(r, '原始复核记录（含失效回答 / 错误信息）') + '</details>')
+        review_rows[bucket].append(row(['<article class="review-story ' + group + '">' + current + audit + '</article>'],
+            ident, group, file=f['definition'].get('file')))
     review_options = [('all', '全部结论'), ('confirmed', '确认存在风险'), ('likely', '疑似，仍需验证'), ('safe', '条件安全 / 误报'), ('unresolved', '未完成 / 证据不足')]
-    content = overview(report, records.values(), [('模型确认风险', counts['confirmed']), ('模型判为疑似', counts['likely']),
-        ('模型判为条件安全 / 误报', counts['safe']), ('模型未完成 / 证据不足', counts['unresolved'])])
+    conclusion = final_conclusion(report, list(records.values()))
     counts_by_variable = Counter(assessments.values())
-    content += '<p class="notice">上方统计的是模型复核进度，包含独立证据缺口；不是静态风险变量数量。当前风险分类中有 '
-    content += str(counts_by_variable['likely']) + ' 个疑似变量、' + str(counts_by_variable['unresolved']) + ' 个无法判断的变量。未启用模型时，模型结论为 0 不表示没有静态风险。<a href="index.html">查看统一的变量风险结论</a>。</p>'
-    content += '<!--controls-->' + panel('reviews', '逐项复核：变量候选与证据缺口',
-        '仅有效完成的回答形成结论。失败、过期、跳过和证据不足不计为安全；未入队的变量也未被模型复核。',
-        table(['变量 / 复核项', '模型复核状态', '结论与后续动作', '证据与原始记录'], review_rows, 'review-table', True), review_options)
-    content += raw(cov, '本轮静态覆盖范围') + raw(report['limitations'], '结论适用范围与限制')
-    review_page = page('并发逐项复核结果', content, report, review_options)
+    content = '<div class="review-reading"><section class="review-verdict"><h2>最终结论：' + esc(conclusion['label']) + '</h2>'
+    remaining_variables = sum(counts_by_variable[k] for k in ('likely','unresolved','supplemental','inventory'))
+    content += '<p><strong>' + str(counts_by_variable['confirmed']) + ' 个变量确认有风险</strong> · ' + str(counts_by_variable['safe']) + ' 个变量复核安全 / 误报 · ' + str(remaining_variables) + ' 个变量仍需判断。</p>'
+    content += '<p class="muted">' + esc(conclusion['scope']) + ' 收到有效回答 ' + str(conclusion['reviewed']) + '/' + str(conclusion['total']) + ' 项（含独立证据缺口；证据不足的回答仍需继续排查）。</p></section>'
+    structured_count = sum(r.get('state') == 'DONE' and r.get('answer', {}).get('schema_version') == 2 for r in records.values())
+    content += '<p class="format-summary">并发结论与解释由 OpenCode 生成，工具负责候选提取、协议/引用校验和展示。统一协议 v2：' + str(structured_count) + '/' + str(conclusion['total']) + ' 项；旧版回答保留原样，重新执行 review 才会由 OpenCode 按新协议复核。</p>'
+    content += '<nav class="tabs" aria-label="复核栏目">' + ''.join('<a href="#reviews' + ('-' + key if key != 'risks' else '') + '">' + label + ' ' + str(len(review_rows[key])) + '</a>'
+        for key, label in [('risks', '风险变量'), ('safe', '安全 / 误报'), ('gaps', '独立证据缺口')]) + '</nav><!--controls-->'
+    for key, title, description in [
+        ('risks', '风险变量：先看它是怎样发生的', '每张卡直接展示执行过程、保护条件和结果；疑似或未完成项会明确标注。'),
+        ('safe', '安全 / 误报：为什么不构成冲突', '列出阻止交错的条件；仅适用于本条复核的构建与路径。'),
+        ('gaps', '独立证据缺口：与变量缺陷分开查看', '这些是调用、硬件或覆盖信息的复核项；确认一个证据缺口，不等于确认一个变量缺陷。')]:
+        jump = '<label class="story-jump">快速定位 <select data-story-jump><option value="">选择变量 / 复核项及定义位置</option>'
+        jump += ''.join('<option value="' + ident + '">' + esc(label) + '</option>' for ident, label in review_jumps[key]) + '</select></label>'
+        content += panel('reviews' + ('-' + key if key != 'risks' else ''), title, description,
+            jump + table(['复核说明'], review_rows[key], 'review-' + key + '-table', True), review_options)
+    content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'
+    content += '<p>主循环：CPU 正常轮询执行的代码。中断 / ISR：事件触发后，CPU 暂停当前代码并执行处理函数，返回后继续原来的位置。DMA：独立于 CPU 搬运数据的硬件。读改写 / RMW：读出旧值、计算、写回；中间若被另一写入者打断，可能覆盖对方的新值。</p>'
+    content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('尚未完成项', counts['unresolved'])])
+    content += raw(cov, '本轮静态覆盖范围') + raw(report['limitations'], '结论适用范围与限制') + '</details></div>'
+    review_page = page('并发复核：原因、过程与结论', content, report, review_options, reading=True)
     for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page)]:
         temporary = out / (name + '.tmp')
         temporary.write_text(contents, encoding='utf-8')

@@ -21,13 +21,25 @@
 
 ## 裸机 CMake 工程：配置一次，日常一条命令
 
-当前工程已配置好工具侧的 `config/projects/serial-continue/semantics.yaml`，并由 `config/projects.yaml` 关联到固件目录；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
+工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
 
 ```powershell
-py -3.10 run_ecra.py --profile serial-continue
+py -3.10 run_ecra.py
 ```
 
-自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出 `.ecra/index.html` 和 `.ecra/opencode_review.html`。默认本地静态排查，无需模型账户；在配置中启用 `review.enabled` 后，同一条命令会继续 OpenCode 逐项复核。`analysis.open_report: true` 可自动打开浏览器。
+自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出 `.ecra/index.html` 和 `.ecra/opencode_review.html`。新工程默认本地静态排查；当前 `serial-continue` 配置已启用真实 OpenCode 复核，并指向 `H:/stm32_RAG/test/serial - continue`。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
+
+OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围内未确认问题、或尚不能确定。确认存在一个变量缺陷即可回答“有问题”，但剩余疑似项、失败项和覆盖盲区仍保留，不能宣称全工程排查完成。`LIKELY` 不算最终定论，下次 `review` 会重新复核。
+
+所有项目的首轮与反证复核统一使用 [OpenCode 输出协议 v2](docs/opencode-review-format.md)。一句话结论、实际参与者、抢占条件、逐步动作、操作前后状态、预期与实际结果均由 OpenCode 直接生成；页面按固定栏目展示，工具不会代写缺失解释。缺字段、无效引用或使用已排除入口构造冲突会退回 OpenCode 重试。旧回答保留并标注旧版格式，运行 `review` 后由 OpenCode 按新协议重新复核；仅刷新 `report` 不会伪造格式升级。
+
+每项证据包含文件、行号、源码原文 `quote` 和事实说明 `claim`。新回答必须提供与该行一致的原文；程序保存引用处源码、文件 SHA-256、执行时间和原始 OpenCode JSONL 日志。缓存和 `report` 刷新会核对日志、答案与源码的一致性，缺日志或内容变化会失效。日志链接在每项结论中；这能检查记录完整性，但不代表模型推理已由硬件实验验证，也不是防恶意同时改写全部文件的签名。
+
+`review.workers` 可设置为 1–8（默认 1，当前示例为 4）。独立只读会话分别处理候选，主线程保存完整、有序的队列；`max_items` 是本轮实际发起复核的总限额。每项输入补充完整相关函数（最多 1600 行，超出部分按路径继续读取），用于核对中断入口、提前返回和真实保护范围。权限按 [OpenCode 官方说明](https://opencode.ai/docs/permissions/) 配置，禁止修改、shell 和继续委派。
+
+`review.audit_verdicts: true` 会对已返回的答案再做一次 OpenCode 反证复核，也会尝试恢复首轮执行失败的项。它重点查找安全证明遗漏的重置/错误恢复路径、无法成立的抢占、指针与缓冲区混淆、没有源码依据的业务读者，以及修复建议是否在 DMA 忙期间仍修改缓冲区。首轮答案和日志保留在 `previous_reviews`，新结论来自新日志；反证执行失败时保留未决，不能沿用首轮安全判断。两轮由同一 OpenCode 会话继续完成，属于模型自查，不是独立专家或板上实验。
+
+判定时分开报告存储一致性与业务影响：没有额外业务消费者，不能据此否认 `++` 或位域/union 的非原子读改写会丢失更新；反过来，原子字节 store/store 的最后写者生效，也不能凭空推导出不存在的业务协议被破坏。变量结论绑定自己的 `symbol_id`，指针指向对象的问题不能重复算成指针本身的问题。
 
 新工程先安装依赖，再生成一次**工具侧**配置：
 
@@ -36,9 +48,9 @@ py -3.10 -m pip install -r requirements.txt
 py -3.10 H:/global_static_concurrency_design/run_ecra.py init --project "D:/MyFirmware"
 ```
 
-把示例固件路径换成自己的。检测到 `CMakeLists.txt` 时，初始化会在工具根目录 `config/projects/<项目名>/semantics.yaml` 生成 CMake 裸机模板，并登记到 `config/projects.yaml`；主要编辑包含/排除目录和 CMake 参数。以后只需执行一条完整排查命令；`doctor`、`review`、`report`、`status` 保留用于分步定位问题。
+把示例固件路径换成自己的。检测到 `CMakeLists.txt` 时，初始化会创建唯一的 `config/semantics.yaml` CMake 模板；主要编辑 `project.root`、包含/排除目录和 CMake 参数。以后只需执行一条完整排查命令；`doctor`、`review`、`report`、`status` 保留用于分步定位问题。
 
-`py -3.10 run_ecra.py projects` 列出配置 ID、固件目录和配置路径。所有运行/分步命令均支持 `--profile <ID>`，也保留 `--project <目录>`；两者不混用。同名固件目录自动分配不同 ID。已安装工具目录不可写时，可在启动前设置 `$env:ECRA_CONFIG_HOME='D:/ecra-config'`，统一存放索引和语义配置。跨工程验证及已知边界见[移植验收记录](docs/portability-validation.md)。
+默认运行/分步命令均从 `project.root` 读取固件目录；`--project <目录>` 可仅用于临时覆盖。已安装工具目录不可写时，可在启动前设置 `$env:ECRA_CONFIG_HOME='D:/ecra-config'`，把唯一的 `semantics.yaml` 放到独立可写位置。跨工程验证及已知边界见[移植验收记录](docs/portability-validation.md)。
 
 初始化默认包含整个工程 `include_dirs: [.]`，排除常见第三方和产物目录，避免只识别 `Core` 导致遗漏 `BSP/User/Modules`。请按实际目录归属检查排除规则；第三方源码中的调用链仍作为依赖分析。CMake 初始化会识别根目录或 `cmake/` 下唯一的 Arm GCC 工具链文件；非标准位置可用 `init --toolchain-file <路径>` 指定。
 
@@ -48,11 +60,12 @@ analysis:
   exclude_dirs: [Drivers, Middlewares, ThirdParty]  # 排除优先
   exclude_files: [Core/Src/system_stm32f1xx.c, Core/Src/syscalls.c, Core/Src/sysmem.c]
   cmake:
-    build_dir: build/ecra
+    build_dir: build/manual
     generator: Ninja
     build_type: Debug
-    # toolchain_file: cmake/arm-none-eabi.cmake
+    toolchain_file: cmake/arm-none-eabi.cmake
     args: []
+    clean_before_configure: true  # 只删除上述构建目录，然后重新配置/构建
     build: true
   auto_system_includes: true
   output_dir: .ecra
@@ -65,6 +78,25 @@ analysis:
 **依赖仍可被解析**：HAL 调用用户回调、库函数通过指针写用户变量的证据不能因排除第三方自有变量而消失。无关第三方盲区不进入队列；影响目标调用链的缺口和依赖解析失败仍保留并说明原因。旧 `analysis.exclude` 跳过匹配的编译单元，并过滤匹配头文件的变量；需要保留依赖分析时使用 `exclude_dirs` / `exclude_files`。
 
 HTML 首页按变量给出“已确认风险 / 疑似并发风险 / 无法判断 / 已复核安全 / 已排查不存在并发风险”的数量，点击数字即可筛选；每行直接展示风险标签、关键读写和处理动作。最后一类是满足完整证据约束的本地静态筛除，与模型复核安全不同；仅仅未发现静态线索不代表已证明安全。
+
+### 大型项目：完整盘点、明确安全、逐项复核
+
+当前版本对每个变量执行归账检查：**安全筛除数量 + 逐变量复核数量 = 全部变量数量**。补充声明、缺少定义、没有足够安全证据的常量也有自己的复核项；独立覆盖缺口另外计数。每个文件的覆盖记录含 `symbol_ids`，方便核对头文件 static 实例和同名变量。
+
+无相关覆盖缺口、地址逃逸或硬件不确定性时，以下情况明确标记“已排查：不存在并发风险”：只有读取；没有运行期访问；全部访问函数被证明入口不可达；所有读写只属于一个不可重入上下文。不可达判断检查完整调用图（包括递归环）、函数地址、注册入口、函数属性、汇编引用及外部调用；原始访问证据仍保留。一个写入点被多个任务/中断共用，或任务可重入，仍不能据此筛除。
+
+无关库调用、未编译文件不会一概阻塞所有未逃逸 static；可能访问导出全局变量的外部代码、解析失败、DMA 和未恢复入口仍明确保留阻塞原因。指针本体与 DMA 指向缓冲区分开判定。
+
+OpenCode 每项证据包包含全部上游调用者和 `investigation_requirements` 核对清单。首轮和反证复核均须逐条回应访问点、相关函数、候选规则及阻塞项；遗漏、重复、引用无效会退回重试。超过源码附带上限的函数逐项标记，要求继续分段读取。单项准备失败不再中止后续变量；限额未处理项、失败项、`LIKELY` 和 `NEED_MORE_CONTEXT` 均保留待办。`review_summary.variable_coverage` 区分静态安全、入队、最终定论和剩余变量。
+
+更新后必须重新运行完整扫描，旧报告不能只刷新：
+
+```powershell
+python run_ecra.py --profile <你的项目ID> --no-review
+python run_ecra.py review --profile <你的项目ID>
+```
+
+大型回归的范围与证据边界见 [大型项目验收说明](docs/large-project-validation.md)。逐项校验保证核对记录不漏项，不能替代对模型推理和真实固件配置的验证。
 
 JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_summary` 单独统计模型复核进度。具备源码证据的快照候选可展开三步交错示例；打印会保留当前筛选并包含全部匹配分页。过期或失败的旧回答不进入当前结论和修复清单。
 
@@ -84,7 +116,7 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 
 恢复会验证源码、实际包含的外部头文件、嵌套 `@response` 文件、编译数据库、分析配置、分析实现和事实完整性。新增/删除源码、修改芯片宏或损坏事实会要求重新执行 `run`。修改复核设置无需重新解析；更换模型或命令会重新复核，调整数量限额、超时和重试次数会保留有效的已完成项。`review` 命令表示明确启用复核，即使配置中先前写了 `enabled: false`。
 
-旧版本扫描没有 `scan_state.json`，需要先重新运行一次。`Ctrl+C` 中断会结束工具启动的子进程并保留待办；若静态扫描尚未完成，应重跑 `run`。因强制结束进程或断电遗留的 `scan.lock` 仍需先确认进程已经退出，再移除过期锁。
+旧版本扫描没有 `scan_state.json`，需要先重新运行一次。`Ctrl+C` 中断保留待办；并行复核会取消尚未开始的任务，已运行的会话可能需要等到本次调用完成或超时，单项收据可在恢复时复用。若静态扫描尚未完成，应重跑 `run`。因强制结束进程或断电遗留的 `scan.lock` 仍需先确认进程已经退出，再移除过期锁。
 
 也可以安装命令入口：`python -m pip install .`，然后在固件目录执行 `ecra`。
 

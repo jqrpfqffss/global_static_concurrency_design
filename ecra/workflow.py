@@ -10,7 +10,7 @@ from .common import digest, read_json, relative, write_json
 from .config import load_config
 from .html_report import REVIEW_PAGE, category, review_records, write_html
 from .report import generate
-from .review import review_all, parse_answer
+from .review import review_all, parse_answer, verify_receipt
 
 
 def file_digest(path):
@@ -32,7 +32,7 @@ def analysis_config(cfg):
 
 def clean_report(report):
     result = copy.deepcopy(report)
-    for key in ('run_status', 'review_summary', 'matrix_review_summary', 'risk_summary'):
+    for key in ('run_status', 'review_summary', 'matrix_review_summary', 'risk_summary', 'final_conclusion'):
         result.pop(key, None)
     for f in result['findings']:
         f.pop('review', None)
@@ -101,7 +101,7 @@ def checked_reviews(root, out, reviews, fingerprint):
                 if (r.get('scan_fingerprint')!=fingerprint or cached.get('cache_key')!=r.get('cache_key')
                         or cached.get('answer')!=r.get('answer')):
                     raise ValueError('复核收据与当前扫描/缓存不匹配')
-                answer=parse_answer(json.dumps(dict(type='text',part=dict(text=json.dumps(r['answer'])))),r['finding_id'],root)
+                answer=verify_receipt(root, out/'review', r)
                 if answer['status']!=r.get('status'):
                     raise ValueError('复核状态与答案不一致')
             except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
@@ -195,7 +195,7 @@ def saved_run(root, config_path=None, render_only=False):
             report['analysis_status']='INCOMPLETE'
             report['limitations'].append('恢复期间输入发生变化；请重新扫描。')
         records = review_records(report, reviews)
-        report['run_status'] = 'INCOMPLETE' if report['analysis_status']=='INCOMPLETE' or any(category(r)=='unresolved' for r in records) else 'REVIEW_COMPLETE'
+        report['run_status'] = 'INCOMPLETE' if report['analysis_status']=='INCOMPLETE' or any(category(r) in {'unresolved', 'likely'} for r in records) else 'REVIEW_COMPLETE'
         mapping={r['finding_id']:r for r in records}
         for f in report['findings']:
             r=mapping[f['finding_id']]

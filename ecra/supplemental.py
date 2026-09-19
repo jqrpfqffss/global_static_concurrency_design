@@ -3,6 +3,7 @@ import copy
 import os
 import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 from .common import digest, execute, read_json, relative, write_json
@@ -23,6 +24,15 @@ def selected_files(root, scope, output):
                 if path.suffix.lower() in SOURCE_EXTENSIONS and scope.contains(path):
                     result.add(relative(path, root))
     return sorted(result)
+
+
+def units_by_file(units, root):
+    """Normalize each include once; shared headers otherwise cause F*T*H work."""
+    result = defaultdict(list)
+    for unit in units:
+        for file in {unit['source_file'], *(relative(p, root) for p in unit.get('includes', []))}:
+            result[file].append(unit)
+    return result
 
 
 def _run_extractor(root, unit, cfg, worker_dir, env, tool_root, timeout, coverage_source, source_overrides=None):
@@ -243,9 +253,9 @@ def supplement(root, out, facts, units, cfg, scope, worker_dir, env, tool_root, 
     timeout = float(cfg['analysis'].get('parse_timeout_seconds', 180))
     template = next((u for u in units if scope.contains(u['source_file'])), units[0])
     supplemental_units, failures, variables, includes = [], [], [], set()
+    indexed_units = units_by_file(units, root)
     for file in files:
-        contexts = [u for u in units if file == u['source_file'] or
-                    any(relative(p, root) == file for p in u.get('includes', []))]
+        contexts = indexed_units.get(file, [])
         if not contexts:
             progress('补充声明盘点：' + file)
             fallback = _synthetic_unit(root, file, template)
@@ -275,20 +285,30 @@ def supplement(root, out, facts, units, cfg, scope, worker_dir, env, tool_root, 
 
 def build_file_coverage(facts, units, supplemental_tus, scope, root, output_dir=None):
     rows = []
+    indexed_units = units_by_file(units, root)
+    fallbacks, variables, issues = defaultdict(list), defaultdict(list), defaultdict(list)
+    for u in supplemental_tus:
+        fallbacks[u['source_file']].append(u)
+    for v in facts['variables']:
+        if scope.variable(v):
+            for file in {d.get('file') for d in _locations(v)}:
+                variables[file].append(v)
+    for u in facts.get('unknowns', []):
+        if u.get('kind') in {'INACTIVE_BRANCH_PARSE_FAILED','SUPPLEMENTAL_PARSE_FAILED','INVENTORY_SOURCE_UNREADABLE'}:
+            issues[u.get('file')].append(u)
     for file in selected_files(root, scope, output_dir or root / '.ecra'):
-        contexts = [u for u in units if file == u['source_file'] or
-                    any(relative(p, root) == file for p in u.get('includes', []))]
-        fallback = [u for u in supplemental_tus if file == u['source_file']]
+        contexts = indexed_units.get(file, [])
+        fallback = fallbacks[file]
         related = contexts or fallback
         states = {u.get('parse_status', 'FAILED') for u in related}
-        gaps = [u for u in facts.get('unknowns', []) if u.get('file') == file and
-                u.get('kind') in {'INACTIVE_BRANCH_PARSE_FAILED','SUPPLEMENTAL_PARSE_FAILED','INVENTORY_SOURCE_UNREADABLE'}]
+        gaps = issues[file]
         status = ('NOT_COMPILED' if not related else 'PARSED' if states == {'PARSED'} else
                   'FAILED' if states == {'FAILED'} else 'PARTIAL')
         if gaps:
             status = 'PARTIAL'
-        owned = [v for v in facts['variables'] if scope.variable(v) and _owned(v, file)]
+        owned = variables[file]
         rows.append(dict(file=file, variable_count=len(owned), parse_status=status,
+                         symbol_ids=sorted(v['symbol_id'] for v in owned),
                          coverage_source='compile_database' if contexts else 'supplemental',
                          translation_units=[u['source_file'] for u in related],
                          diagnostics=[d for u in related for d in u.get('diagnostics', [])], gaps=gaps))
