@@ -194,9 +194,10 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     folder = out / "review"
     folder.mkdir(parents=True, exist_ok=True)
     by_symbol = {v["symbol_id"]: v for v in facts["variables"]}
+    targets = list(report['findings']) + list(report.get('review_safe_samples', []))
     results = []
     pending_queue = [dict(finding_id=f['finding_id'], state='PENDING', status='NEED_MORE_CONTEXT')
-                     for f in report['findings']]
+                     for f in targets]
 
     def save_queue():
         # Even a killed process leaves a complete ledger, including future items.
@@ -210,11 +211,11 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         # scan still preserves the complete findings, facts and pending queue.
         results = [dict(finding_id=f['finding_id'], cache_key=digest([fingerprint,f,settings]),
                         state='PENDING',status='NEED_MORE_CONTEXT',error='OpenCode 自动复核已关闭；证据保留在 facts.json 和报告中')
-                   for f in report['findings']]
+                   for f in targets]
         write_json(folder/'queue.json',results)
         return results
     command, command_error = None, None
-    if enabled and report["findings"]:
+    if enabled and targets:
         try:
             command = resolve_command(settings.get("command", ["opencode"]))
         except ValueError as exc:
@@ -262,8 +263,10 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             related.add(finding["function_id"])
         related.update(finding.get('function_ids',[]))
         for a in finding.get("accesses", []):
-            for path in a.get("call_chains", {}).values():
-                related.update(path)
+            complete = a.get('all_call_chains') or {cid: [path] for cid, path in a.get("call_chains", {}).items()}
+            for routes in complete.values():
+                for path in routes:
+                    related.update(path)
         pending = list(related)
         while pending:
             for caller in incoming.get(pending.pop(), ()):
@@ -286,6 +289,16 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                       call_edges=list({digest(c): c for key in sorted(related) for c in calls_by_function.get(key, [])}.values()),
                       project_root=str(root),
                       facts_path=str(facts_path), full_call_graph_path=str(facts_path))
+        packet.update(
+            contexts=facts.get('contexts', []),
+            preemption_relations=finding.get('concurrency_relations', []),
+            protection_events=[e for e in facts.get('protection_events', []) if e['function_id'] in related],
+            irq_priority_events=facts.get('irq_priority_events', []),
+            control_flow=[g for g in facts.get('control_flow', []) if g['function_id'] in related],
+            mask_windows=[w for w in facts.get('mask_windows', []) if w['symbol_id']==finding.get('symbol_id')],
+            recursive_edges=facts.get('recursive_edges', []),
+            unresolved_call_edges=[u for u in facts.get('unknowns', [])
+                if u.get('function_id') in related and u.get('kind') in {'INDIRECT_CALL','EXTERNAL_CALLEE','UNRESOLVED_REGISTERED_ENTRY'}])
         # Put the actual neighboring statements beside accesses. An isolated
         # assignment line hides conditional unlock/return paths from reviewers.
         windows = {}
@@ -371,7 +384,7 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
         elif not reserve_slot():
             result["error"] = "达到 max_items，本项尚未复核"
         else:
-            progress(f"OpenCode 复核 {index + 1}/{len(report['findings'])}: {fid}")
+            progress(f"OpenCode 复核 {index + 1}/{len(targets)}: {fid}")
             argv = command + ["run", "--agent", "ecra-review", "--format", "json", "--file", str(packet_path)]
             if settings.get("model"):
                 argv += ["--model", settings["model"]]
@@ -458,20 +471,20 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
 
     workers = int(settings.get('workers', 1))
     if workers == 1:
-        for index, finding in enumerate(report['findings']):
+        for index, finding in enumerate(targets):
             completed(process_safely(index, finding))
     else:
         # Workers only write their own packet/transcript/receipt. The coordinator
         # alone writes the complete queue and renders checkpoints.
         executor = ThreadPoolExecutor(max_workers=workers)
         try:
-            futures = [executor.submit(process_safely, i, f) for i, f in enumerate(report['findings'])]
+            futures = [executor.submit(process_safely, i, f) for i, f in enumerate(targets)]
             for future in as_completed(futures):
                 completed(future.result())
         finally:
             executor.shutdown(wait=True, cancel_futures=True)
     by_id = {r['finding_id']: r for r in results}
-    results = [by_id[f['finding_id']] for f in report['findings']]
+    results = [by_id[f['finding_id']] for f in targets]
     if enabled and results and not command_error and settings.get('audit_verdicts', False):
         from .review_audit import audit_reviews
         originals = results

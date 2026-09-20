@@ -6,7 +6,7 @@ project:
   concurrency_model: single_core_preemptive
 analysis:
   compile_database: compile_commands.json
-  exclude: ['build/*']
+  exclude: ['build/*', 'cases/*']  # D01-D20 是各自独立的固件，不能合并到旧 Demo。
   output_dir: .ecra
   auto_contexts: true
 contexts:

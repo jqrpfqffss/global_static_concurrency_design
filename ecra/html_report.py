@@ -481,14 +481,26 @@ def write_html(out, facts, report, reviews):
     def accesses(items):
         rows = []
         for a in items:
-            chains = ''.join('<details><summary>' + esc(context(cid)) + ' → 调用链</summary><pre>'
-                             + esc(' → '.join(function(fid) for fid in path)) + '</pre></details>'
-                             for cid, path in a.get('call_chains', {}).items())
+            complete = a.get('all_call_chains')
+            if complete is None:
+                complete = {cid: [path] for cid, path in a.get('call_chains', {}).items()}
+            chains = ''
+            for cid, routes in complete.items():
+                routes = routes or []
+                chains += '<details><summary>' + esc(context(cid)) + ' → 已解析调用链（' + str(len(routes)) + ' 条）</summary><pre>'
+                chains += esc('\n'.join(' → '.join(function(fid) for fid in path) for path in routes))
+                chains += '</pre></details>'
+            if a.get('call_chain_cycles'):
+                chains += raw(a['call_chain_cycles'], '递归 / cycle：保留循环边，不枚举无限路径')
+            if a.get('unresolved_call_edges'):
+                chains += raw(a['unresolved_call_edges'], 'unresolved_call_edge：尚未恢复的调用 / 入口')
+            if a.get('resolved_call_edges'):
+                chains += raw(a['resolved_call_edges'], '全部调用点及边的来源')
             rows.append(row([esc(KINDS.get(a['access_kind'], a['access_kind'])), esc(loc(a)) + '<pre>' + esc(a.get('source_text', '')) + '</pre>',
                              esc(function(a['function_id'])), chains or ('<strong>当前构建入口不可达（保留访问证据）</strong>'
                                 if a.get('reachability') == 'PROVEN_UNREACHABLE' else '<strong>UNKNOWN-CONTEXT：尚不能确定任务或中断</strong>'),
                              raw({k: v for k, v in a.items() if k not in {'source_text', 'call_chains'}}, '字段 / 别名 / 宏 / 保护事件等')]))
-        return table(['访问方式', '源码位置与表达式', '访问函数', '上下文 → 最短证据调用链', '访问属性'], rows)
+        return table(['访问方式', '源码位置与表达式', '访问函数', '上下文 → 全部已解析调用链', '访问属性'], rows)
 
     inventory_rows = []
     for v in facts['variables']:
@@ -504,6 +516,15 @@ def write_html(out, facts, report, reviews):
             detail += '<p class="notice">补充声明盘点：来自未编译文件或条件分支变体，不代表当前构建中已分析其并发访问。</p>'
         detail += '<h3>全部读写访问（' + str(len(v.get('accesses', []))) + ' 处）</h3>'
         detail += accesses(v.get('accesses', []))
+        detail += '<h3>并发 / 抢占关系</h3>' + (table(['上下文', '关系', '依据'], [
+            row([esc(' ↔ '.join(context(cid) for cid in relation.get('contexts', []))),
+                 esc(relation.get('relation')), esc(relation.get('reason'))])
+            for relation in v.get('concurrency_relations', [])]) if v.get('concurrency_relations')
+            else '<p>当前没有两个已解析执行上下文可比较。</p>')
+        detail += '<h3>保护与执行约束</h3><p>保护状态：<strong>' + esc(v.get('protection_status', 'NOT_FOUND')) + '</strong>。' + esc(v.get('protection_note', '无')) + '</p>'
+        detail += raw(v.get('safe_evidence') or dict(unknown_reason=v.get('unknown_reason', []),
+            blocking_evidence=v.get('blocking_evidence', []), required_context=v.get('required_context', [])), '静态证明 / 证据缺口')
+        detail += '<p>Execution Constraint / Ownership（不是互斥保护）：Single Writer=' + ('是' if len(v.get('writers', [])) == 1 else '否') + '；Single Context=' + ('是' if len(v.get('contexts', [])) == 1 else '否') + '；Address Escape=' + ('是' if 'ADDRESS_ESCAPE' in v.get('coverage_reasons', []) else '否') + '。</p>'
         detail += '<details class="graph" data-symbol="' + esc(sid) + '"><summary>展开所有相关调用边（含多路径、递归及边的来源）</summary><pre></pre></details>'
         detail += '<details><summary>完整变量属性、唯一 ID 与编译单元</summary>' + fields({k: value for k, value in v.items() if k not in {'accesses', 'readers', 'writers', 'contexts'}}) + '</details></details>'
         group = 'supplemental' if is_supplemental else ('candidate' if candidates[sid] else 'inventory')
@@ -512,7 +533,7 @@ def write_html(out, facts, report, reviews):
         static_text = {'SAFE': 'SAFE（静态已判安全）', 'SUSPECT': 'SUSPECT（存在并发候选）',
                        'UNKNOWN': 'UNKNOWN（关键证据不足）'}.get(static_status, static_status)
         status_text = static_text + ' · 覆盖率 ' + str(v.get('analysis_coverage', 'PARTIAL')) + '。' + v.get('classification_reason', '') + ' ' + status_text
-        if assessments[sid] == 'screened_safe':
+        if assessments[sid] == 'screened_safe' and not v.get('static_classification'):
             status_text = {'ONLY_READS': '当前构建只有读取，没有运行期写入。',
                            'NO_RUNTIME_ACCESSES': '当前构建没有运行期访问，且没有相关访问覆盖缺口。',
                            'UNREACHABLE_ACCESSORS': '全部访问函数均无执行入口可达；已核对调用图、地址引用及入口缺口。',
@@ -546,6 +567,7 @@ def write_html(out, facts, report, reviews):
         detail += '<details><summary>风险依据、并发关系与保护证据</summary><p>' + (pairs or '尚无已知并发入口对；见未知路径或重入证据。') + '</p>' + fields({
             '规则': f['rules'], '原因': f.get('concurrency_reason', '覆盖盲区，需要补充证据'),
             '保护状态': f.get('protection_status'), '保护说明': f.get('protection_note'),
+            '已解析并发 / 抢占关系': f.get('concurrency_relations', []),
             '已声明保护': f.get('declared_protection', []), '快照读回写': f.get('snapshots', []),
             '已配置抢占': f.get('configured_preemption', []), '已配置并发': f.get('configured_concurrency', []),
             '未知项': f.get('uncertainties', [])}) + '</details>' + raw(f)
@@ -764,6 +786,17 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         jump += ''.join('<option value="' + ident + '">' + esc(label) + '</option>' for ident, label in review_jumps[key]) + '</select></label>'
         content += panel('reviews' + ('-' + key if key != 'risks' else ''), title, description,
             jump + table(['复核说明'], review_rows[key], 'review-' + key + '-table', True), review_options)
+    samples = report.get('review_safe_samples', [])
+    if samples:
+        sample_records = {r['finding_id']:r for r in review_records(dict(findings=samples), reviews)}
+        sample_rows = []
+        for sample in samples:
+            receipt = sample_records[sample['finding_id']]
+            sample_rows.append(row([esc(sample['variable_name']), esc(review_label(receipt)),
+                '<a href="index.html#' + anchor('var-',sample['symbol_id']) + '">静态 SAFE 证明与全部访问</a>'
+                + raw(receipt, '抽样复核记录') + accesses(sample.get('accesses', []))],
+                anchor('review-',sample['finding_id'])))
+        content += '<section id="safe-samples"><h2>SAFE 独立抽样审计</h2><p>不计入风险队列，不改变静态分类；未执行不等于复核安全。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
     content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'
     content += '<p>主循环：CPU 正常轮询执行的代码。中断 / ISR：事件触发后，CPU 暂停当前代码并执行处理函数，返回后继续原来的位置。DMA：独立于 CPU 搬运数据的硬件。读改写 / RMW：读出旧值、计算、写回；中间若被另一写入者打断，可能覆盖对方的新值。</p>'
     content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('尚未完成项', counts['unresolved'])])

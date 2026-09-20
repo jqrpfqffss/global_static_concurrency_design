@@ -313,6 +313,9 @@ def load_config(root=None, path=None):
     word = cfg["project"].get("native_word_bits", 32)
     if type(word) is not int or word <= 0 or word % 8:
         raise ValueError("project.native_word_bits 必须是正的 8 倍数")
+    priority_bits = cfg['project'].get('nvic_priority_bits')
+    if priority_bits is not None and (type(priority_bits) is not int or not 1 <= priority_bits <= 8):
+        raise ValueError('project.nvic_priority_bits 必须是 1 到 8 的整数')
     workers = cfg['review'].get('workers', 1)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('review.workers 必须是 1 到 8 的整数')

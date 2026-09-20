@@ -21,6 +21,7 @@ def write_database(path, facts, report):
     conn = sqlite3.connect(temp)
     rows_by_table = {k: v for k, v in facts.items() if isinstance(v, list) and (not v or isinstance(v[0], dict))}
     rows_by_table["findings"] = report["findings"]
+    rows_by_table['review_safe_samples'] = report.get('review_safe_samples', [])
     with conn:
         for table, rows in rows_by_table.items():
             columns = sorted({key for row in rows for key in row}) or ["empty"]
@@ -43,6 +44,10 @@ def generate(out, facts, report, reviews):
     validate_selection(facts, report)
     records = review_records(report, reviews)
     records_by_id = {r['finding_id']: r for r in records}
+    sample_records = review_records(dict(findings=report.get('review_safe_samples', [])), reviews)
+    report['safe_sample_summary'] = dict(total=len(sample_records),
+        completed=sum(r['state']=='DONE' for r in sample_records),
+        unresolved=sum(category(r)=='unresolved' for r in sample_records))
     for finding in report['findings']:
         record = records_by_id[finding['finding_id']]
         finding['review_state'] = record['state']
@@ -96,8 +101,10 @@ def generate(out, facts, report, reviews):
                       f"- 不可达函数中的访问：{v.get('unreachable_access_count', 0)} 处（保留原始证据）"]
         for a in v.get("accesses", []):
             inventory.append(f"- {a['access_kind']} {location(a)} `{a['source_text']}`")
-            for cid, path in a.get("call_chains", {}).items():
-                inventory.append(f"  - {cid}: {chain(path)}")
+            complete = a.get('all_call_chains') or {cid: [path] for cid, path in a.get("call_chains", {}).items()}
+            for cid, routes in complete.items():
+                for path in routes:
+                    inventory.append(f"  - {cid}: {chain(path)}")
             if a.get('reachability') == 'PROVEN_UNREACHABLE':
                 inventory.append('  - PROVEN_UNREACHABLE：当前构建入口不可达')
             elif not a.get("contexts"):
@@ -137,8 +144,10 @@ def generate(out, facts, report, reviews):
                f"- 依据：{f.get('concurrency_reason', '分析盲区需要补充源码/配置证据')}", ""]
         for a in f["accesses"]:
             md.append(f"- **{a['access_kind']}** {location(a)} `{a['source_text']}`")
-            for cid, path in a["call_chains"].items():
-                md.append(f"  - {cid}: {chain(path)}")
+            complete = a.get('all_call_chains') or {cid: [path] for cid, path in a["call_chains"].items()}
+            for cid, routes in complete.items():
+                for path in routes:
+                    md.append(f"  - {cid}: {chain(path)}")
             if not a["contexts"]:
                 md.append("  - UNKNOWN-CONTEXT")
         md += ["", "复核动作：核对所有调用入口、真实抢占与临界区；构造最短交错时序，检查旧值覆盖、事件丢失、重入和 DMA 生命周期。修复建议与验证方法见复核报告。"]

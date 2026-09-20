@@ -262,11 +262,11 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 - 清单针对**配置排查目录内、实际解析到的当前编译配置**；范围外变量不作安全判断。数据库未列出的源文件和未包含的头文件单独报告；被 `#if` 关闭的声明、其他固件/核配置，不能声称已经完整提取。不同构建变体应分别扫描。
 - 文件级 static 包含翻译单元身份，因此头文件里每个独立实例不会错误合并。函数级 static 区分函数和同名局部作用域。`extern` 按 Clang USR 合并。
-- 展示每个上下文到访问函数的一条最短证据链；第一个 HTML 可按变量展开所有相关调用边，包括不同调用位置、已恢复的间接边、配置补充边和递归边。用调用图表达多路径，不穷举递归及组合爆炸的所有路径；无法恢复的间接目标仍标为未知。
+- 展示每个上下文到访问函数的全部已解析无环函数路径，以及各调用点、边来源、递归边和 unresolved_call_edge；最短链仅作为旧 JSON 字段兼容保留。不枚举递归的无限路径。`analysis.max_call_paths: 0` 默认不限制，显式上限超出时扫描失败，不输出截断的安全结论。
 - 指针采用不区分控制流的保守目标集合，支持跨 TU 参数/返回、初始化地址、结构成员指针、数组衰减、内存函数包装及部分函数指针。数组下标合并，目标仍可能过近似；未解析目标继续保留盲区。旧快照规则也是候选，未证明真实延迟。
 - 数组/结构体字段保留容器和访问路径。撕裂风险按容器大小/对齐保守提示，不代表每一次字段访问都发生撕裂。位域和多字段协议需复核。
 - 每个变量都有 `SAFE` / `SUSPECT` / `UNKNOWN` 静态分类，以及 `COMPLETE` / `PARTIAL` 访问覆盖率和具体缺口原因；报告强校验 `TOTAL = SAFE + SUSPECT + UNKNOWN`。只有完整证据才会进入 `SAFE`。
-- CMSIS `__disable_irq` / `__enable_irq`、PRIMASK、BASEPRI 与在 `critical_sections` 中显式声明的项目封装会作为保护事实保存。仅当同一函数直线控制流内的所有 MAIN 访问都被平衡的 PRIMASK/`irq_mask` 区间覆盖、竞争方均为普通 ISR 且没有其他证据缺口时，才标记 `EFFECTIVE` 并允许静态 `SAFE`；一般锁 API 仍只会得到 `DETECTED` 或 `PARTIAL`。BASEPRI 未恢复阈值、IRQ 优先级和分组时为 `UNRESOLVED`，不得判安全。
+- CMSIS 和配置的临界区先记录直接事实，再由 CFG 数据流检查整个访问窗口。PRIMASK 是一个状态位，不是嵌套计数器；分支汇合、循环、提前返回、保存/恢复值及被调函数都参与分析。只有完整证据才能判 `EFFECTIVE`。BASEPRI 还要求 `project.nvic_priority_bits`、无条件初始化的唯一 NVIC 分组/优先级，以及所有竞争 IRQ 均被阈值屏蔽。DMB/DSB/ISB 不提供互斥；不支持的控制流和不明硬件配置保留未知，不判安全。
 - DMA/Cache、动态回调、RTOS 时序、双核共享内存和复杂 C++ 语义尚不能静态证明。真实中断优先级分组、复杂 BASEPRI、非直线临界区、调度时序与硬件复现仍属于最终工程验证。
 - 一键运行会产生最终的本轮报告；如信息不足，最终结果明确是“哪些项仍未完成”，不会承诺“所有变量无风险”。
 
@@ -276,9 +276,12 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 ```powershell
 python -m unittest discover -s tests -v
+python scripts/verify_design.py --all
 ```
 
-测试覆盖真实 Clang AST、符号身份、读写/RMW/宏、数组/指针/sizeof、C++ 静态成员、调用传播/递归、任务注册、保护不抑制、旧快照、部分失败、SQLite 和 OpenCode 子进程协议/超时/缓存。OpenCode 协议测试使用可控的假 CLI；未假装完成真实模型复核或目标板验证。
+测试覆盖真实 Clang AST、符号身份、读写/RMW/宏、数组/指针/sizeof、C++ 静态成员、调用传播/递归、任务注册、保护六态与完整窗口、旧快照、部分失败、SQLite 和 OpenCode 子进程协议/超时/缓存。OpenCode 协议测试使用可控的假 CLI；未假装完成真实模型复核或目标板验证。
+
+第二条命令额外保留验收日志和 D01–D20 的全部报告，输出到 `output/design-acceptance/`。场景预期见 [Demo 验收矩阵](examples/stm32_demo/cases/README.md)，实现边界见 [设计追踪矩阵](docs/design_traceability.md) 与 [本轮开发报告](docs/final_implementation_report.md)。
 
 代码按 `config`、`compilation`、`extract`、`pointer_extract`、`points_to`、`analysis`、`multicore`、`review`、`report`、`html_report`、`cli` 分层。真实 STM32H747 三变体工程和可重复验收入口见 [验证工程说明](validation/stm32_concurrency/README.md)，当前进度见 [progress.md](validation/stm32_concurrency/progress.md)。已建立真实 ARM 构建和 GCC 独立变量台账，最终是否通过以 `acceptance.json` 为准；没有目标板烧录验证。逐项需求审核与本次修复见 [需求审核记录](docs/requirements-audit.md)。
 

@@ -123,6 +123,14 @@ int main(void){
         cov={c['file']:c for c in self.report['coverage']['file_coverage']}
         self.assertEqual(cov['h.h']['parse_status'],'PARTIAL')
 
+    def test_unrelated_parse_failure_does_not_pollute_variable_coverage(self):
+        vs = self.scan({'main.c': 'int g; int main(void){ g++; return 0; }',
+                        'broken.c': '#include "missing.h"\nint unrelated;'} )
+        g = next(v for v in vs if v['name'] == 'g')
+        self.assertEqual(g['analysis_coverage'], 'COMPLETE')
+        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(self.report['analysis_status'], 'INCOMPLETE')
+
     def test_vendor_prototype_cannot_hide_user_parameter(self):
         """Parameters are excluded; a vendor prototype must not add inventory rows."""
         vs=self.scan({'vendor/api.h':'void Fn(int count);',

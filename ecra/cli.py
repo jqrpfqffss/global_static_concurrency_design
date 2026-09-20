@@ -48,7 +48,29 @@ def file_hashes(root, out, extra=(), audit_roots=()):
     return result
 
 
-def run(root, config_path=None, no_review=False, doctor_only=False):
+def safe_review_samples(facts, count):
+    """Select deterministic SAFE samples without changing risk accounting."""
+    if not count:
+        return []
+    selected = [v for v in facts['variables'] if v.get('static_classification') == 'SAFE']
+    samples = []
+    for variable in sorted(selected, key=lambda v: v['symbol_id'])[:count]:
+        samples.append(dict(
+            finding_id='SAFE-SAMPLE-' + digest(variable['symbol_id'])[:16],
+            symbol_id=variable['symbol_id'], variable_name=variable['qualified_name'],
+            rules=['SAFE_SAMPLE'], risk_level='LOW', confidence='HIGH',
+            status='NEED_OPENCODE_REVIEW', review_safe_sample=True,
+            static_classification='SAFE', protection_status=variable.get('protection_status', 'NOT_FOUND'),
+            protection_note=variable.get('protection_note'), accesses=variable.get('accesses', []),
+            definition=dict(file=variable.get('definition_file'), line=variable.get('definition_line')),
+            context_pairs=[], concurrency_relations=variable.get('concurrency_relations', []),
+            screening_blockers=variable.get('screening_blockers', []),
+            uncertainties=[],
+            concurrency_reason='SAFE 抽样复核：核对静态安全依据是否覆盖全部已解析访问和调用链。'))
+    return samples
+
+
+def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     cfg, config_file = load_config(root, config_path)
@@ -195,6 +217,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
         summarized = {"memcpy", "memmove", "memset", "memcmp", "xTaskCreate", "xTaskCreateStatic", "osThreadNew", "xTaskCreatePinnedToCore",
                       "__disable_irq", "__enable_irq", "__get_PRIMASK", "__set_PRIMASK", "__get_BASEPRI", "__set_BASEPRI",
                       "__set_BASEPRI_MAX", "__disable_fault_irq", "__enable_fault_irq"}
+        from .protection import NEUTRAL
+        summarized.update(NEUTRAL)
+        summarized.update(s[k] for s in cfg.get('critical_sections', []) for k in ('enter','exit','save','restore') if k in s)
         for call in facts["calls"]:
             if call["call_kind"] == "DIRECT" and call["callee_function_id"] not in known_functions and call["callee_name"] not in summarized:
                 facts["unknowns"].append(dict(kind="EXTERNAL_CALLEE", function_id=call["caller_function_id"],
@@ -211,6 +236,13 @@ def run(root, config_path=None, no_review=False, doctor_only=False):
         # Build per-file coverage table for source-level accountability
         from .supplemental import build_file_coverage
         report = analyze(facts, cfg, cov, root=root)
+        samples = safe_review_samples(facts, review_safe_sample)
+        if samples:
+            # Samples are deliberately separate from report.findings: they do
+            # not turn a SAFE result into a risk candidate or alter TOTAL
+            # accounting.  Packets/queue records remain fully auditable.
+            report['review_safe_samples'] = samples
+            cfg['review']['prepare_packets'] = True
         cov['file_coverage'] = build_file_coverage(facts, units, all_supplemental_tus, scope, root, output_dir=out)
         # Local fixes to extraction/review code must invalidate prior conclusions
         # even before a packaged release changes the version number.
@@ -312,11 +344,17 @@ def main(argv=None):
     parser.add_argument("--model", help="init 时写入已配置的 OpenCode provider/model")
     parser.add_argument('--toolchain-file', help='init 时指定 CMake Arm 工具链文件（相对固件根目录）')
     parser.add_argument("--no-review", action="store_true", help="只生成静态报告与待复核清单，不调用 OpenCode")
+    parser.add_argument("--review-safe-sample", type=int, default=0, metavar='N',
+                        help='额外抽取 N 个静态 SAFE 项生成 OpenCode 质量复核证据包；不改变风险队列')
     parser.add_argument("--json", action="store_true", help="status 输出可供脚本读取的 JSON")
     args = parser.parse_args(argv)
     try:
         if args.json and args.command != 'status':
             raise ValueError('--json 仅用于 status')
+        if args.review_safe_sample < 0:
+            raise ValueError('--review-safe-sample 必须是非负整数')
+        if args.review_safe_sample and args.command != 'run':
+            raise ValueError('--review-safe-sample 仅用于 run')
         if args.command != 'init' and (args.compile_database is not None or args.model is not None or args.toolchain_file is not None):
             raise ValueError('--compile-database / --model / --toolchain-file 仅用于 init；已有工程请编辑 semantics.yaml')
         if args.command != 'init':
@@ -399,7 +437,7 @@ def main(argv=None):
             print('环境检查：' + launcher + ' doctor')
             print('一键排查：' + launcher)
             return 0
-        return run(root, str(config_path), args.no_review, args.command == "doctor")
+        return run(root, str(config_path), args.no_review, args.command == "doctor", args.review_safe_sample)
     except (ValueError, OSError, ImportError) as exc:
         print(f"ECRA: {exc}", file=sys.stderr)
         return 3

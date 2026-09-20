@@ -6,8 +6,8 @@ import sys
 import tempfile
 import unittest
 
-from ecra.analysis import analyze, merge
-from ecra.cli import run
+from ecra.analysis import analyze, merge, preemption_relations
+from ecra.cli import run, safe_review_samples
 from ecra.compilation import normalize, prepare
 from ecra.config import load_config
 from ecra.extract import Extractor
@@ -106,6 +106,58 @@ void Task(void){int old=g; F(); g=old;}
         self.assertEqual(set(s["contexts"]), {"isr", "task"})
         self.assertTrue(all(len(p) == 2 for a in s["accesses"] for p in a["call_chains"].values()))
 
+    def test_access_preserves_all_resolved_call_paths(self):
+        """A diamond must not collapse two valid routes into one shortest path."""
+        cfg = self.project({"a.c": """int g;
+void Use(void){ g++; }
+void Left(void){ Use(); }
+void Right(void){ Use(); }
+void main(void){ Left(); Right(); }
+"""}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        facts, _ = self.extract(cfg)
+        g = next(v for v in facts['variables'] if v['name'] == 'g')
+        access = next(a for a in g['accesses'] if a['function_id'].endswith('Use'))
+        self.assertEqual(len(access['all_call_chains']['main']), 2)
+        self.assertEqual({tuple(path) for path in access['all_call_chains']['main']}, {
+            (next(f['function_id'] for f in facts['functions'] if f['name'] == 'main'),
+             next(f['function_id'] for f in facts['functions'] if f['name'] == 'Left'),
+             next(f['function_id'] for f in facts['functions'] if f['name'] == 'Use')),
+            (next(f['function_id'] for f in facts['functions'] if f['name'] == 'main'),
+             next(f['function_id'] for f in facts['functions'] if f['name'] == 'Right'),
+             next(f['function_id'] for f in facts['functions'] if f['name'] == 'Use')),
+        })
+
+    def test_isr_preemption_requires_grouping_and_literal_priorities(self):
+        facts = dict(functions=[
+            dict(function_id='main', name='main'),
+            dict(function_id='tim', name='TIM4_IRQHandler'),
+            dict(function_id='uart', name='USART1_IRQHandler')],
+            accesses=[], calls=[],
+            context_bindings=[dict(context_id='main', function_id='main', call_depth=0),
+                              dict(context_id='tim', function_id='tim', call_depth=0),
+                              dict(context_id='uart', function_id='uart', call_depth=0)],
+            irq_priority_events=[
+                dict(function_id='main', api_name='HAL_NVIC_SetPriorityGrouping', arguments=['3']),
+                dict(function_id='main', api_name='HAL_NVIC_SetPriority', arguments=['TIM4_IRQn', '1', '0']),
+                dict(function_id='main', api_name='HAL_NVIC_SetPriority', arguments=['USART1_IRQn', '3', '0'])])
+        contexts = dict(tim=dict(id='tim', kind='ISR'), uart=dict(id='uart', kind='ISR'))
+        relation = preemption_relations(facts, contexts, dict(project=dict(nvic_priority_bits=4)))[0]
+        self.assertEqual(relation['relation'], 'CAN_PREEMPT')
+        self.assertEqual(relation['higher'], 'tim')
+        facts['irq_priority_events'] = facts['irq_priority_events'][1:]
+        self.assertEqual(preemption_relations(facts, contexts)[0]['relation'], 'UNKNOWN_PREEMPTION')
+
+    def test_safe_review_sample_is_separate_from_risk_findings(self):
+        facts = dict(variables=[dict(symbol_id='b', qualified_name='safe_b', static_classification='SAFE',
+                                     accesses=[], definition_file='b.c', definition_line=2),
+                                dict(symbol_id='a', qualified_name='safe_a', static_classification='SAFE',
+                                     accesses=[], definition_file='a.c', definition_line=1),
+                                dict(symbol_id='c', qualified_name='unknown', static_classification='UNKNOWN')])
+        samples = safe_review_samples(facts, 1)
+        self.assertEqual([s['variable_name'] for s in samples], ['safe_a'])
+        self.assertTrue(samples[0]['review_safe_sample'])
+        self.assertEqual(samples[0]['rules'], ['SAFE_SAMPLE'])
+
     def test_task_registration_is_not_direct_call(self):
         cfg = self.project({"a.c": """int g; int xTaskCreate(void (*f)(void*), const char*, int, void*, int, void*);
 void Job(void *p){g++;}
@@ -158,6 +210,17 @@ void main(void){ __disable_irq(); g++; __enable_irq(); }
         self.assertEqual(g['analysis_coverage'], 'COMPLETE')
         self.assertEqual(report['coverage']['static_classification'], dict(total=1, safe=1, suspect=0, unknown=0))
 
+    def test_primask_save_restore_keeps_complete_window_effective(self):
+        cfg = self.project({"a.c": """int g; typedef unsigned int uint32_t;
+uint32_t __get_PRIMASK(void); void __set_PRIMASK(uint32_t); void __disable_irq(void);
+void ISR(void){ g++; }
+void main(void){ uint32_t key=__get_PRIMASK(); __disable_irq(); g++; __set_PRIMASK(key); }
+"""}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                  dict(id='isr', kind='ISR', functions=['ISR'])])
+        facts, _ = self.extract(cfg)
+        g = next(v for v in facts['variables'] if v['name'] == 'g')
+        self.assertEqual(g['protection_status'], 'EFFECTIVE')
+
     def test_partial_primask_and_basepri_are_not_safe(self):
         cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void); void __set_BASEPRI(unsigned);
 void ISR(void){ g++; }
@@ -177,6 +240,20 @@ void ISR(void){ b++; } void main(void){ __set_BASEPRI(0x50); b++; }
         b = next(v for v in facts['variables'] if v['name'] == 'b')
         self.assertEqual(b['protection_status'], 'UNRESOLVED')
         self.assertEqual(b['static_classification'], 'UNKNOWN')
+
+    def test_basepri_literal_threshold_is_effective_only_with_complete_nvic_facts(self):
+        cfg = self.project({'a.c': '''enum { TIM4_IRQn = 30 };
+int g; void __set_BASEPRI(unsigned); void HAL_NVIC_SetPriorityGrouping(unsigned);
+void HAL_NVIC_SetPriority(unsigned, unsigned, unsigned);
+void TIM4_IRQHandler(void){ g++; }
+void main(void){ HAL_NVIC_SetPriorityGrouping(3); HAL_NVIC_SetPriority(TIM4_IRQn, 5, 0); __set_BASEPRI(0x50); g++; __set_BASEPRI(0); }
+'''}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                  dict(id='tim', kind='ISR', functions=['TIM4_IRQHandler'])])
+        cfg['project']['nvic_priority_bits'] = 4
+        facts, _ = self.extract(cfg)
+        g = next(v for v in facts['variables'] if v['name'] == 'g')
+        self.assertEqual(g['protection_status'], 'EFFECTIVE')
+        self.assertEqual(g['static_classification'], 'SAFE')
 
     def test_conditional_irq_mask_never_becomes_effective(self):
         cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void);

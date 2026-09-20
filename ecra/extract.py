@@ -28,6 +28,26 @@ def tokens(c):
     return [t.spelling for t in c.get_tokens()]
 
 
+def constant_value(cursor):
+    """Ask Clang to evaluate macros/enum arithmetic, never Python eval."""
+    lib = ci.conf.lib
+    evaluate = lib.clang_Cursor_Evaluate
+    evaluate.argtypes, evaluate.restype = [ci.Cursor], ctypes.c_void_p
+    kind = lib.clang_EvalResult_getKind
+    kind.argtypes, kind.restype = [ctypes.c_void_p], ctypes.c_int
+    integer = lib.clang_EvalResult_getAsLongLong
+    integer.argtypes, integer.restype = [ctypes.c_void_p], ctypes.c_longlong
+    dispose = lib.clang_EvalResult_dispose
+    dispose.argtypes, dispose.restype = [ctypes.c_void_p], None
+    result = evaluate(cursor)
+    if not result:
+        return None
+    try:
+        return integer(result) if kind(result) == 1 else None
+    finally:
+        dispose(result)
+
+
 def operator(c):
     # Read semantic operator kinds: macro expansion ranges do not reliably
     # provide the original operator token. These APIs exist in libclang 18+.
@@ -53,7 +73,8 @@ class Extractor:
         self.tu_name = self.unit["source_file"]
         self.variables, self.functions, self.symbols = {}, {}, {}
         self.accesses, self.calls, self.unknowns = [], [], []
-        self.events, self.registrations, self.snapshots = [], [], []
+        self.events, self.irq_priority_events, self.registrations, self.snapshots = [], [], [], []
+        self.control_flow = []
         self.source_cache = {}
         self.local_counts = {}
         self.task_reference_sites = set()
@@ -232,7 +253,8 @@ class Extractor:
         """
         conditional = any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT', 'WHILE_STMT',
                                                'DO_STMT', 'CONDITIONAL_OPERATOR'} for parent, _ in ancestors)
-        common = dict(conditional_ancestor=conditional)
+        common = dict(conditional_ancestor=conditional,
+                      arguments=[' '.join(tokens(arg)) for arg in cursor.get_arguments()])
         builtin = {
             '__disable_irq': ('lock_enter', 'primask'),
             '__enable_irq': ('lock_exit', 'primask'),
@@ -243,6 +265,9 @@ class Extractor:
             '__set_BASEPRI_MAX': ('basepri_set', 'basepri'),
             '__disable_fault_irq': ('lock_enter', 'faultmask'),
             '__enable_fault_irq': ('lock_exit', 'faultmask'),
+            '__DMB': ('barrier', 'barrier'),
+            '__DSB': ('barrier', 'barrier'),
+            '__ISB': ('barrier', 'barrier'),
         }.get(name)
         if builtin:
             event_kind, protection_type = builtin
@@ -335,6 +360,18 @@ class Extractor:
                 if name == "osThreadCreate":
                     self.issue("CMSIS_V1_TASK_ENTRY", c, fid, hint="配置 osThreadDef 中的真实入口")
                 self.protection_event(name, fid, c, ancestors)
+                # NVIC configuration is a direct source fact, not a guessed
+                # property of an IRQHandler name.  Preserve raw argument
+                # tokens so analysis can use literal, reproducible cases and
+                # report all other cases as unresolved.
+                if name in {'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_SetPriorityGrouping',
+                            'NVIC_SetPriorityGrouping'}:
+                    self.irq_priority_events.append(dict(function_id=fid, api_name=name,
+                        arguments=[' '.join(tokens(arg)) for arg in args],
+                        argument_values=[constant_value(arg) for arg in args],
+                        conditional_ancestor=any(p.kind.name in {'IF_STMT','WHILE_STMT','FOR_STMT','SWITCH_STMT','DO_STMT','CONDITIONAL_OPERATOR'}
+                            or (p.kind.name=='BINARY_OPERATOR' and operator(p) in {'&&','||'}) for p, _ in ancestors),
+                        **self.loc(c)))
                 # Explicit library argument semantics, with address escape retained separately.
                 semantics = {"memcpy": {0: "WRITE", 1: "READ"}, "memmove": {0: "WRITE", 1: "READ"},
                              "memset": {0: "WRITE"}, "memcmp": {0: "READ", 1: "READ"}}.get(name, {})
@@ -395,6 +432,8 @@ class Extractor:
             for i, ch in enumerate(c.get_children()):
                 visit(ch, ancestors + [(c, i)])
         visit(fn, [])
+        from .controlflow import build_cfg
+        self.control_flow.append(build_cfg(self, fn))
 
     def run(self):
         os.chdir(self.unit["directory"])
@@ -466,7 +505,9 @@ class Extractor:
         pointer_facts = PointerExtractor(self).run(tu.cursor)
         return dict(variables=list(self.variables.values()), functions=list(self.functions.values()),
                     accesses=self.accesses, calls=self.calls, unknowns=self.unknowns,
-                    protection_events=self.events, registrations=self.registrations, snapshots=self.snapshots,
+                    protection_events=self.events, irq_priority_events=self.irq_priority_events,
+                    control_flow=self.control_flow,
+                    registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
                     parse_status="FAILED" if any(d["severity"] >= 3 for d in diagnostics) else "PARSED")
 
