@@ -14,6 +14,7 @@
 - DMB/DSB/ISB 明确不提供互斥。Ownership/Single Writer 与保护状态分开，DMA 保持独立并发主体。
 - Evidence Packet 增加 CFG、掩码窗口、NVIC 配置、上下文、抢占和未知边。SAFE 抽样有独立 HTML 栏目/SQLite 表/计数，不混入默认风险队列。
 - 新增 20 个独立 Demo、跨层验收、控制流与优先级对抗测试，以及持久化验收脚本。
+- 复验发现 Windows 原子替换报告队列时偶发拒绝访问。JSON、SQLite 和 HTML 的原子替换对 WinError 5/32/33 最多尝试 5 次，总等待 0.75 秒；不删除旧文件、不降级非原子复制，持续权限错误仍抛出。新增瞬时/永久/非 Windows 错误测试。
 
 ## 验证
 
@@ -23,7 +24,7 @@
 python scripts/verify_design.py --all
 ```
 
-最终运行结果见 `output/design-acceptance/verification.json` 与 `verification.log`（开发环境生成物，不提交）。文末统计在最终进程退出后更新。
+最终运行结果见 [verification.json](../output/design-acceptance/verification.json) 与 [verification.log](../output/design-acceptance/verification.log)（开发环境生成物，不提交）。已确认最终进程退出码为 0。
 
 每个 D01–D20 都经过真实 libclang 抽取，验证 facts、分类/覆盖/保护、归账、访问/调用链、SQLite、两个 HTML、离线队列和 Packet。D20 逐个验证 32 个访问及两条 MAIN 调用路径。D10 另有 INEFFECTIVE、未调用初始化和条件初始化反例。完整场景预期见 [Demo 矩阵](../examples/stm32_demo/cases/README.md)。
 
@@ -57,4 +58,10 @@ python scripts/verify_design.py --all
 
 ## 最终统计
 
-等待最终验收进程完成后填写。
+- 全量：225 项，224 通过，1 跳过，0 失败、0 错误；耗时 139.654 秒。
+- 跳过项：`test_fresh_cmake_project_auto_toolchain_builds_real_arm_object`，当前环境缺少其要求的 CMake/Ninja/Arm GCC 工具链组合；没有声称真实 ARM 构建通过。
+- 定向：设计与原子输出 47 项全部通过，其中 D01–D20 全部通过。
+- 旧 Demo：`TOTAL 13 = SAFE 5 + SUSPECT 2 + UNKNOWN 6`，8 个变量复核项及 2 个独立证据缺口；离线状态为 INCOMPLETE，命令退出码 1 表示仍待复核，不是扫描崩溃。
+- `git diff --check` 通过；仅出现 Windows 行尾提示。
+
+可直接打开 [D20 全部访问清单](../output/design-acceptance/D20/.ecra/index.html)、[D20 离线复核页](../output/design-acceptance/D20/.ecra/opencode_review.html)；其他场景按 D01–D20 目录对应查看。

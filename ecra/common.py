@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 
@@ -14,7 +15,23 @@ def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(path.suffix + ".tmp")
     temp.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
-    temp.replace(path)
+    replace_file(temp, path)
+
+
+def replace_file(source, destination):
+    """Keep atomic replacement, tolerating brief Windows sharing violations.
+
+    Do not delete the old destination or fall back to a non-atomic copy.
+    Permanent access failures remain visible after a bounded 0.75 s retry.
+    """
+    for attempt in range(5):
+        try:
+            Path(source).replace(destination)
+            return
+        except PermissionError as exc:
+            if getattr(exc, 'winerror', None) not in {5, 32, 33} or attempt == 4:
+                raise
+            time.sleep(0.05 * (2 ** attempt))
 
 
 def read_json(path):

@@ -805,7 +805,8 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page)]:
         temporary = out / (name + '.tmp')
         temporary.write_text(contents, encoding='utf-8')
-        temporary.replace(out / name)
+        from .common import replace_file
+        replace_file(temporary, out / name)
 
 
 def write_failure(out):

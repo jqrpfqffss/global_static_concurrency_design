@@ -2,7 +2,7 @@ import json
 import sqlite3
 from collections import Counter, defaultdict
 
-from .common import write_json
+from .common import write_json, replace_file
 
 
 def cell(s):
@@ -35,7 +35,7 @@ def write_database(path, facts, report):
             conn.execute("CREATE INDEX access_symbol ON accesses(symbol_id)")
             conn.execute("CREATE INDEX access_function ON accesses(function_id)")
     conn.close()
-    temp.replace(path)
+    replace_file(temp, path)
 
 
 def generate(out, facts, report, reviews):
