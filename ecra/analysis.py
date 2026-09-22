@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict, deque
+import copy
 import fnmatch
 import itertools
 import re
@@ -237,6 +238,269 @@ def protection_assessment(accesses, events, contexts, facts, cfg):
     return assess(accesses, events, contexts, facts, cfg)
 
 
+def canonical_member_path(path):
+    """Normalize extractor and points-to field spellings to one dotted path."""
+    path = (path or '').strip().replace('\\', '/')
+    if not path:
+        return ''
+    pieces = []
+    for part in path.replace('/', '.').split('.'):
+        if not part:
+            continue
+        if part == '[]' and pieces:
+            pieces[-1] += '[]'
+        else:
+            pieces.append(part)
+    return '.'.join(pieces)
+
+
+def member_symbol_id(root_symbol_id, field_path):
+    return root_symbol_id + '::member::' + field_path
+
+
+def canonicalize_member_resources(facts):
+    """Promote record fields to independent concurrency-analysis resources.
+
+    Extraction intentionally records the declaration which owns the storage.
+    This pass turns a non-empty record ``access_path`` into a stable canonical
+    member resource, while retaining the root as a UI-only container.  A
+    whole-object access remains an explicit root fact and is copied as an
+    inherited effect to every concrete descendant, so it cannot disappear from
+    a member's risk analysis.
+    """
+    if facts.get('member_resources_canonicalized'):
+        return
+    roots = {v['symbol_id']: v for v in facts['variables']}
+    records = {sid: v for sid, v in roots.items() if v.get('is_struct')}
+    if not records:
+        facts['member_resources_canonicalized'] = True
+        return
+
+    children_by_root = defaultdict(list)
+    descendants = defaultdict(list)
+    member_by_key = {}
+    additions = []
+    for root_sid, root in records.items():
+        root['resource_kind'] = 'STRUCT_CONTAINER'
+        root['canonical_path'] = root['qualified_name']
+        definitions = {canonical_member_path(item.get('field_path')): item
+                       for item in root.get('member_definitions', [])
+                       if canonical_member_path(item.get('field_path'))}
+        for field_path, field in sorted(definitions.items()):
+            sid = member_symbol_id(root_sid, field_path)
+            resource = dict(root)
+            resource.update(symbol_id=sid, name=field.get('name') or field_path.rsplit('.', 1)[-1],
+                            qualified_name=root['qualified_name'] + '.' + field_path,
+                            kind='STRUCT_MEMBER', scope='member',
+                            root_symbol_id=root_sid, root_symbol=root['qualified_name'],
+                            field_path=field_path,
+                            canonical_path=root['qualified_name'] + '.' + field_path,
+                            resource_kind='STRUCT_MEMBER_CONTAINER' if field.get('is_struct') else 'STRUCT_MEMBER',
+                            type=field.get('type') or root.get('type'),
+                            size_bytes=field.get('size_bytes'), alignment_bytes=field.get('alignment_bytes'),
+                            is_const=bool(field.get('is_const')), is_volatile=bool(field.get('is_volatile')),
+                            is_struct=bool(field.get('is_struct')),
+                            is_bitfield_container=bool(field.get('is_bitfield')),
+                            member_definitions=[])
+            additions.append(resource)
+            member_by_key[(root_sid, field_path)] = resource
+            children_by_root[root_sid].append(sid)
+        for field_path, resource in [(p, member_by_key[(root_sid, p)]) for p in definitions]:
+            if resource['resource_kind'] == 'STRUCT_MEMBER':
+                descendants[(root_sid, field_path)] = [resource['symbol_id']]
+        for field_path in definitions:
+            descendants[(root_sid, field_path)] = [member_by_key[(root_sid, child)]['symbol_id']
+                                                   for child in definitions
+                                                   if child == field_path or child.startswith(field_path + '.')
+                                                   if member_by_key[(root_sid, child)]['resource_kind'] == 'STRUCT_MEMBER']
+        root['member_symbol_ids'] = children_by_root[root_sid]
+
+    generated = []
+    for access in facts['accesses']:
+        root = records.get(access['symbol_id'])
+        if root is None:
+            access.setdefault('root_symbol_id', access['symbol_id'])
+            access.setdefault('canonical_path', root_name(roots.get(access['symbol_id']), access['symbol_id']))
+            continue
+        original_sid = access['symbol_id']
+        field_path = canonical_member_path(access.get('access_path'))
+        access['root_symbol_id'] = original_sid
+        access['root_symbol'] = root['qualified_name']
+        if field_path and (original_sid, field_path) in member_by_key:
+            target = member_by_key[(original_sid, field_path)]
+            access.update(symbol_id=target['symbol_id'], field_path=field_path,
+                          canonical_path=target['canonical_path'])
+            if target['resource_kind'] == 'STRUCT_MEMBER_CONTAINER':
+                access['access_scope'] = 'WHOLE_MEMBER_OBJECT_ACCESS'
+                inherited_targets = descendants[(original_sid, field_path)]
+            else:
+                access['access_scope'] = 'MEMBER_ACCESS'
+                inherited_targets = []
+        else:
+            access.update(canonical_path=root['qualified_name'], access_scope='WHOLE_OBJECT_ACCESS')
+            inherited_targets = descendants[(original_sid, '')] = [sid for sid in children_by_root[original_sid]
+                if member_by_key[(original_sid, sid.rsplit('::member::', 1)[1])]['resource_kind'] == 'STRUCT_MEMBER']
+        if inherited_targets and access['access_kind'] in {'READ', 'WRITE', 'RMW'}:
+            for target_sid in inherited_targets:
+                target = next(v for v in additions if v['symbol_id'] == target_sid)
+                inherited = copy.deepcopy(access)
+                inherited.update(symbol_id=target_sid, root_symbol_id=original_sid,
+                                 root_symbol=root['qualified_name'], field_path=target['field_path'],
+                                 canonical_path=target['canonical_path'],
+                                 access_scope='INHERITED_WHOLE_OBJECT_ACCESS',
+                                 inherited_from_access_id=access.get('access_id'),
+                                 inherited_from_canonical_path=access['canonical_path'])
+                generated.append(inherited)
+
+    facts['variables'].extend(additions)
+    facts['variables'].sort(key=lambda row: row['symbol_id'])
+    facts['accesses'].extend(generated)
+    # A root-level uncertainty (address escape, missing source, DMA, ...) can
+    # affect each member.  Preserve the original fact and add member-scoped
+    # inherited evidence; this prevents a field from being marked safe merely
+    # because the uncertainty was attached before canonicalization.
+    inherited_unknowns = []
+    for issue in facts['unknowns']:
+        root_sid = issue.get('symbol_id')
+        if root_sid not in records:
+            continue
+        for target_sid in descendants.get((root_sid, ''), []):
+            target = next(v for v in additions if v['symbol_id'] == target_sid)
+            clone = dict(issue, symbol_id=target_sid, root_symbol_id=root_sid,
+                         canonical_path=target['canonical_path'], inherited_object_uncertainty=True)
+            inherited_unknowns.append(clone)
+    facts['unknowns'].extend(inherited_unknowns)
+    # Access identity must include target identity after one root fact becomes
+    # several member effects.  Do this only once all generated records exist.
+    for index, access in enumerate(facts['accesses']):
+        access['access_id'] = 'A-' + digest([index, access])[:20]
+    facts['struct_containers'] = [v for v in facts['variables'] if v.get('resource_kind') == 'STRUCT_CONTAINER']
+    facts['member_resources_canonicalized'] = True
+
+
+def root_name(variable, fallback):
+    return variable.get('qualified_name', fallback) if variable else fallback
+
+
+def all_resolved_routes(access):
+    complete = access.get('all_call_chains')
+    if complete is None:
+        complete = {cid: [path] for cid, path in access.get('call_chains', {}).items()}
+    for context_id, routes in complete.items():
+        for route in routes or []:
+            yield context_id, route
+
+
+def conflict_pairs(accesses, relations, contexts):
+    """Build member-level conflict groups without losing any full path.
+
+    A Cartesian product of every left/right route is only a presentation
+    expansion: it repeats the same complete routes thousands of times on a
+    large firmware.  One group therefore stores the two access/context
+    instances and *all* routes on both sides.  The UI expands both collections
+    and reports their product count, retaining every possible pair while
+    keeping facts and HTML proportional to the actual call graph.
+    """
+    relation_by_contexts = {tuple(sorted(row['contexts'])): row for row in relations}
+    instances = {}
+    for access in accesses:
+        if access.get('access_kind') not in {'READ', 'WRITE', 'RMW'}:
+            continue
+        for context_id, route in all_resolved_routes(access):
+            key = (access.get('access_id'), context_id)
+            instance = instances.setdefault(key, dict(instance_id='CI-' + digest(key)[:20],
+                context_id=context_id, access_id=access.get('access_id'), access_kind=access['access_kind'],
+                function_id=access['function_id'], file=access.get('file'), line=access.get('line'),
+                canonical_path=access.get('canonical_path'), call_path_count=0,
+                access_scope=access.get('access_scope', 'MEMBER_ACCESS'),
+                inherited_from_canonical_path=access.get('inherited_from_canonical_path')))
+            # Full routes stay once in access.all_call_chains.  A conflict
+            # participant references that evidence by access/context instead
+            # of duplicating every route for every competing counterpart.
+            instance['call_path_count'] += 1
+    pairs = []
+    instances = list(instances.values())
+    for index, left in enumerate(instances):
+        for right in instances[index + 1:]:
+            # The exact same source access on the exact same route is one
+            # access instance, not a self-conflict.  The same source point in
+            # another context deliberately remains a distinct instance.
+            if left['access_id'] == right['access_id'] and left['context_id'] == right['context_id']:
+                continue
+            if left['context_id'] == right['context_id']:
+                relation = dict(contexts=[left['context_id']],
+                                relation='MAY_REENTER' if contexts.get(left['context_id'], {}).get('reentrant') else 'SERIAL',
+                                reason='同一执行上下文默认串行；显式可重入上下文另作并发候选。')
+            else:
+                relation = relation_by_contexts.get(tuple(sorted((left['context_id'], right['context_id']))),
+                                                    dict(contexts=[left['context_id'], right['context_id']],
+                                                         relation='UNKNOWN_PREEMPTION',
+                                                         reason='未恢复两个执行上下文的关系。'))
+            possible = relation['relation'] not in {'SERIAL'}
+            has_write = left['access_kind'] in {'WRITE', 'RMW'} or right['access_kind'] in {'WRITE', 'RMW'}
+            state = ('需确认' if possible and has_write else
+                     '无写冲突' if possible else '忽略（同一串行上下文）')
+            pairs.append(dict(conflict_id='C-' + digest([left['instance_id'], right['instance_id']])[:16],
+                              participant_a=left, participant_b=right, relation=relation,
+                              may_concurrent=possible, has_write_conflict=has_write, status=state,
+                              path_combination_count=left['call_path_count'] * right['call_path_count']))
+    return sorted(pairs, key=lambda pair: (not pair['may_concurrent'], not pair['has_write_conflict'],
+                                           pair['participant_a']['context_id'], pair['participant_b']['context_id'],
+                                           pair['conflict_id']))
+
+
+def validate_member_fact_consistency(facts):
+    """Fail closed if member aggregates or complete-path counts were truncated."""
+    access_by_symbol = defaultdict(list)
+    for access in facts['accesses']:
+        access_by_symbol[access['symbol_id']].append(access)
+    for variable in facts['variables']:
+        if variable.get('resource_kind') != 'STRUCT_MEMBER':
+            continue
+        accesses = variable.get('accesses', [])
+        if {a['access_id'] for a in accesses} != {a['access_id'] for a in access_by_symbol[variable['symbol_id']]}:
+            raise ValueError('成员访问聚合校验失败：' + variable['qualified_name'])
+        expected_accesses = len(accesses)
+        expected_paths = sum(1 for access in accesses for _ in all_resolved_routes(access))
+        if variable.get('access_count') != expected_accesses or variable.get('resolved_call_path_count') != expected_paths:
+            raise ValueError('成员调用链计数校验失败：' + variable['qualified_name'])
+
+
+def compact_conflict_pair_storage(records):
+    """Losslessly compact legacy per-route conflict rows during report refresh.
+
+    Earlier facts may contain one pair for every route-product.  Merge those
+    rows by the stable access/context participants and retain only their route
+    counts.  The concrete routes remain in the referenced access facts, so the
+    HTML link can still expand all of them exactly once.
+    """
+    for record in records:
+        pairs = record.get('conflict_pairs', [])
+        if not any('call_paths' in pair.get('participant_a', {}) or 'call_paths' in pair.get('participant_b', {})
+                   for pair in pairs):
+            continue
+        grouped = {}
+        for pair in pairs:
+            left, right = pair['participant_a'], pair['participant_b']
+            key = (left.get('access_id'), left.get('context_id'), right.get('access_id'), right.get('context_id'))
+            target = grouped.setdefault(key, dict(pair, participant_a={key: value for key, value in left.items()
+                                                                        if key not in {'call_paths', 'call_path'}},
+                                                 participant_b={key: value for key, value in right.items()
+                                                                if key not in {'call_paths', 'call_path'}},
+                                                 _left_paths=set(), _right_paths=set()))
+            target['_left_paths'].update(tuple(path) for path in left.get('call_paths', [left.get('call_path', [])]))
+            target['_right_paths'].update(tuple(path) for path in right.get('call_paths', [right.get('call_path', [])]))
+        compacted = []
+        for pair in grouped.values():
+            left_count, right_count = len(pair.pop('_left_paths')), len(pair.pop('_right_paths'))
+            pair['participant_a']['call_path_count'] = left_count
+            pair['participant_b']['call_path_count'] = right_count
+            pair['path_combination_count'] = left_count * right_count
+            compacted.append(pair)
+        record['conflict_pairs'] = sorted(compacted, key=lambda pair: (
+            not pair.get('may_concurrent'), not pair.get('has_write_conflict'), pair['conflict_id']))
+
+
 def analyze(facts, cfg, coverage, root=None):
     from pathlib import Path
     project_root = Path(root or coverage.get('project_root', Path.cwd()))
@@ -292,6 +556,10 @@ def analyze(facts, cfg, coverage, root=None):
                     symbol_id=v['symbol_id'], file=file, relation='possible_source_reference',
                     line=next((i for i,s in enumerate(text.splitlines(),1) if re.search(r'\b'+re.escape(v['name'])+r'\b',s)),1),
                     hint='未完整分析的源码引用了该变量；补齐编译数据库/解析参数后恢复访问。'))
+    # Pointer solving and missing-source checks intentionally work with storage
+    # roots.  Only now promote record accesses to canonical member resources so
+    # no field is confused with a similarly named identifier in unparsed code.
+    canonicalize_member_resources(facts)
     known = {f['function_id'] for f in facts['functions']}
     summarized = {'memcpy', 'memmove', 'memset', 'memcmp', 'xTaskCreate', 'xTaskCreateStatic',
                   'osThreadNew', 'xTaskCreatePinnedToCore', '__disable_irq', '__enable_irq',
@@ -425,7 +693,9 @@ def analyze(facts, cfg, coverage, root=None):
     if cfg['project'].get('cm4_enabled') or cfg['project'].get('concurrency_model', 'single_core_preemptive') != 'single_core_preemptive':
         global_gaps.add('UNMODELED_CONCURRENCY')
     findings = []
-    for v in facts["variables"]:
+    analyzed_variables = [v for v in facts['variables']
+                          if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}]
+    for v in analyzed_variables:
         sid = v["symbol_id"]
         # Supplemental variables come from files outside the compile database
         # or inactive conditional branches. They are inventory-only; without
@@ -461,7 +731,7 @@ def analyze(facts, cfg, coverage, root=None):
             rules.add("GS-UNKNOWN-CONTEXT")
         if any(a["access_kind"] == "ADDRESS_TAKEN" or a.get("via_alias") for a in accesses) or uncertain:
             rules.add("GS-INDIRECT-ACCESS")
-        if not accesses and not v["is_const"]:
+        if not accesses and not v["is_const"] and v.get('resource_kind') != 'STRUCT_MEMBER':
             rules.add("GS-NO-ACCESS-EVIDENCE")
         if not v["definition_file"]:
             rules.add("GS-DEFINITION-MISSING")
@@ -582,13 +852,16 @@ def analyze(facts, cfg, coverage, root=None):
             static_classification = 'SUSPECT'
             classification_reason = '存在可成立的共享访问候选，尚无充分静态证据将其排除。'
         audit_status = 'SCREENED_NO_CONCURRENCY_RISK' if screened_reason else 'REVIEW_REQUIRED'
+        member_conflicts = conflict_pairs(all_accesses, variable_relations, contexts)
         v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
                  protection_status=protection, annotations=annotations, audit_status=audit_status,
                  screening_reason=screened_reason, screening_blockers=sorted(blockers),
                  unreachable_access_count=len(all_accesses)-len(accesses), protection_details=protection_details,
                  protection_note=protection_note, analysis_coverage=coverage_status,
-                 coverage_reasons=sorted(coverage_reasons), static_classification=static_classification,
-                 classification_reason=classification_reason, concurrency_relations=variable_relations)
+                  coverage_reasons=sorted(coverage_reasons), static_classification=static_classification,
+                  classification_reason=classification_reason, concurrency_relations=variable_relations,
+                  conflict_pairs=member_conflicts, access_count=len(all_accesses),
+                  resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
         if not rules:
             continue
         high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT", "GS-OWNER-VIOLATION"}
@@ -601,7 +874,7 @@ def analyze(facts, cfg, coverage, root=None):
                        protection_status=protection, declared_protection=declared, accesses=all_accesses,
                        definition=dict(file=v["definition_file"], line=v["definition_line"]),
                        context_pairs=[list(pair) for pair in itertools.combinations(sorted(all_contexts), 2)],
-                       concurrency_relations=variable_relations,
+                        concurrency_relations=variable_relations, conflict_pairs=member_conflicts,
                        concurrency_reason="保守建模：不同任务/中断/未知回调可交错；优先级、启动阶段和锁覆盖待复核",
                        snapshots=snapshots[sid], uncertainties=uncertain,
                        screening_blockers=sorted(blockers),
@@ -609,8 +882,25 @@ def analyze(facts, cfg, coverage, root=None):
                        configured_concurrency=[p for p in cfg["concurrency"] if set(p["contexts"]) <= all_contexts],
                        protection_note=protection_note, protection_details=protection_details,
                        static_classification=static_classification,
-                       known_safe_annotations=[r for r in cfg["known_safe"] if r.get("resource") in {sid, v["name"], v["qualified_name"]}])
+                        known_safe_annotations=[r for r in cfg["known_safe"] if r.get("resource") in {sid, v["name"], v["qualified_name"]}])
         findings.append(finding)
+    # Parent records do not receive a root-level risk verdict: they only
+    # summarize the independently analysed canonical members below them.
+    members_by_root = defaultdict(list)
+    for variable in analyzed_variables:
+        if variable.get('root_symbol_id'):
+            members_by_root[variable['root_symbol_id']].append(variable)
+    for container in [v for v in facts['variables'] if v.get('resource_kind') == 'STRUCT_CONTAINER']:
+        members = members_by_root.get(container['symbol_id'], [])
+        states = Counter(member.get('static_classification', 'UNKNOWN') for member in members)
+        container.update(accesses=by_var[container['symbol_id']],
+                         whole_object_accesses=by_var[container['symbol_id']],
+                         member_count=len(members), member_status_counts=dict(
+                             safe=states['SAFE'], suspect=states['SUSPECT'], unknown=states['UNKNOWN']),
+                         audit_status='STRUCT_CONTAINER', screening_reason=None,
+                         static_classification='CONTAINER', analysis_coverage='COMPLETE',
+                         classification_reason='结构体父节点只汇总成员；并发结论见各具体成员。')
+    validate_member_fact_consistency(facts)
     # Non-variable blind spots also enter OpenCode, rather than only reviewing known shared objects.
     gap_groups = defaultdict(list)
     for u in facts['unknowns']:
@@ -632,13 +922,13 @@ def analyze(facts, cfg, coverage, root=None):
     coverage['unreachable_functions'] = len(unreachable)
     coverage['unreachable_accesses'] = sum(a['function_id'] in unreachable for a in facts['accesses'])
     queued = {f['symbol_id'] for f in findings if f.get('symbol_id')}
-    screened = {v['symbol_id'] for v in facts['variables'] if v.get('screening_reason')}
-    ids = {v['symbol_id'] for v in facts['variables']}
-    if queued & screened or queued | screened != ids or len(ids) != len(facts['variables']):
+    screened = {v['symbol_id'] for v in analyzed_variables if v.get('screening_reason')}
+    ids = {v['symbol_id'] for v in analyzed_variables}
+    if queued & screened or queued | screened != ids or len(ids) != len(analyzed_variables):
         raise ValueError('变量排查覆盖校验失败：每个变量必须唯一进入安全清单或逐项复核队列')
     coverage['variable_accountability'] = dict(total=len(ids), screened=len(screened),
         queued=len(queued), missing=0, duplicate_ids=0)
-    for v in facts['variables']:
+    for v in analyzed_variables:
         status = v.get('static_classification')
         if status not in {'SAFE','SUSPECT','UNKNOWN'}:
             raise ValueError('变量缺少显式静态分类：' + v['symbol_id'])
@@ -668,11 +958,12 @@ def analyze(facts, cfg, coverage, root=None):
             '按关联阻塞证据补齐源码、调用目标或硬件配置并重新分析。')) for k in v['unknown_reason']]
         if status == 'SAFE' and (not v['safe_reason'] or not v.get('screening_reason') or v['analysis_coverage'] != 'COMPLETE'):
             raise ValueError('SAFE 缺少完整证明：' + v['symbol_id'])
-    static_counts = Counter(v['static_classification'] for v in facts['variables'])
+    static_counts = Counter(v['static_classification'] for v in analyzed_variables)
     if set(static_counts) - {'SAFE', 'SUSPECT', 'UNKNOWN'} or sum(static_counts.values()) != len(ids):
         raise ValueError('变量静态分类归账失败：TOTAL 必须等于 SAFE + SUSPECT + UNKNOWN')
     coverage['static_classification'] = dict(total=len(ids), safe=static_counts['SAFE'],
         suspect=static_counts['SUSPECT'], unknown=static_counts['UNKNOWN'])
+    coverage['struct_containers'] = sum(v.get('resource_kind') == 'STRUCT_CONTAINER' for v in facts['variables'])
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]
     covered_functions = sum(f['function_id'] in paths for f in functions)

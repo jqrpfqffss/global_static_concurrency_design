@@ -9,6 +9,130 @@ from .review_presentation import explanation as story_explanation
 
 
 REVIEW_PAGE = "opencode_review.html"
+HTML_CONFLICT_PAIR_SAMPLE_LIMIT = 12
+# Internal enum values deliberately remain unchanged in facts/report JSON.  This
+# is the single display boundary for the human-facing HTML: templates must use
+# this function instead of rendering a raw enum value.
+DISPLAY_TEXT = {
+    'UNKNOWN_PREEMPTION': '抢占关系无法确认', 'CAN_PREEMPT': '可以抢占',
+    'CANNOT_PREEMPT': '不可抢占', 'NO_PREEMPT': '不可抢占',
+    'UNRESOLVED': '尚未确认', 'NOT_FOUND': '未发现', 'NONE': '未发现',
+    'DETECTED': '已发现', 'EFFECTIVE': '保护有效', 'PARTIAL': '分析不完整 / 部分覆盖',
+    'INEFFECTIVE': '保护无效', 'SAFE': '未发现并发风险',
+    'SCREENED_SAFE': '已排查：未发现并发风险', 'LIKELY': '疑似并发风险',
+    'CONFIRMED': '已确认并发风险', 'UNKNOWN': '无法判断',
+    'NEED_MORE_CONTEXT': '信息不足，无法判断', 'NEED_OPENCODE_REVIEW': '待进一步复核',
+    'PENDING': '待复核', 'REVIEWED_SAFE': '已复核：未发现并发风险',
+    'FALSE_POSITIVE': '已确认误报', 'READ': '读取', 'WRITE': '写入',
+    'RMW': '读改写', 'MAIN': '主循环', 'ISR': '中断', 'TASK': '任务',
+    'CALLBACK': '回调', 'DMA': 'DMA 异步访问', 'DMA_ASYNC': 'DMA 异步访问',
+    'COMPLETE': '分析完整', 'HIGH': '优先排查', 'MEDIUM': '常规排查',
+    'LOW': '较低优先', 'CRITICAL': '最高优先', 'SUSPECT': '疑似并发风险',
+    'CONTAINER': '结构体容器（成员分别判定）', 'INCOMPLETE': '分析不完整',
+    'MODELED_SCOPE_COMPLETE': '已完成当前建模范围分析', 'PARSED': '解析成功',
+    'FAILED': '解析失败', 'DONE': '已完成', 'STALE': '结果已失效',
+    'ADDRESS_TAKEN': '取地址（不等于读写）',
+}
+PROTECTION_DISPLAY_TEXT = {
+    **DISPLAY_TEXT, 'PARTIAL': '仅部分保护', 'UNRESOLVED': '尚未确认',
+}
+
+
+def to_display_text(value, mapping=None):
+    """Translate an internal enum at the HTML boundary without mutating facts.
+
+    Unknown all-caps values intentionally do not leak into normal UI.  They
+    remain available in the nested raw JSON used for engineering/debug audit.
+    """
+    if value is None:
+        return '未提供'
+    mapping = mapping or DISPLAY_TEXT
+    if isinstance(value, str):
+        if value in mapping:
+            return mapping[value]
+        if value.isupper() and any(char.isalpha() for char in value):
+            return '未翻译的内部状态（请查看高级静态分析信息）'
+    return str(value)
+
+
+def complete_call_paths(access):
+    """Return every resolved path in a stable, duplicate-free representation."""
+    raw_paths = access.get('all_call_chains')
+    if raw_paths is None:
+        raw_paths = {cid: [path] for cid, path in access.get('call_chains', {}).items()}
+    result = {}
+    for context_id, paths in (raw_paths or {}).items():
+        if not paths:
+            result[context_id] = []
+            continue
+        # Legacy facts contain one path as a flat list; current facts contain
+        # a list of paths.  Normalize both without losing either form.
+        if isinstance(paths, (tuple, list)) and (not paths or isinstance(paths[0], str)):
+            paths = [paths]
+        unique = sorted({tuple(path) for path in paths if path})
+        result[context_id] = [list(path) for path in unique]
+    return result
+
+
+def source_access_views(accesses):
+    """Aggregate Access × Context facts into one real source access view.
+
+    Facts remain deliberately unmodified.  A view represents one canonical
+    variable access at one source expression and owns every reaching context
+    and every complete call path under that source point.
+    """
+    grouped = {}
+    for access in accesses:
+        key = (access.get('symbol_id'), access.get('canonical_path'), access.get('file'),
+               access.get('line'), access.get('source_text'), access.get('access_kind'))
+        view = grouped.setdefault(key, dict(
+            key=key, symbol_id=access.get('symbol_id'),
+            canonical_variable=access.get('canonical_path') or access.get('symbol_id'),
+            file=access.get('file'), line=access.get('line'),
+            source_text=access.get('source_text', ''), access_kind=access.get('access_kind'),
+            accesses=[], access_ids=[], context_ids=set(), function_ids=set(),
+            call_paths=defaultdict(set),
+        ))
+        view['accesses'].append(access)
+        if access.get('access_id') is not None:
+            view['access_ids'].append(access['access_id'])
+        if access.get('function_id'):
+            view['function_ids'].add(access['function_id'])
+        view['context_ids'].update(access.get('contexts', []))
+        for context_id, paths in complete_call_paths(access).items():
+            view['context_ids'].add(context_id)
+            view['call_paths'][context_id].update(tuple(path) for path in paths)
+    result = []
+    for view in grouped.values():
+        view['access_ids'].sort()
+        view['function_ids'] = sorted(view['function_ids'])
+        view['context_ids'] = sorted(view['context_ids'])
+        view['call_paths'] = {context_id: [list(path) for path in sorted(paths)]
+                              for context_id, paths in sorted(view['call_paths'].items())}
+        result.append(view)
+    order = {'RMW': 0, 'WRITE': 1, 'READ': 2, 'ADDRESS_TAKEN': 3}
+    return sorted(result, key=lambda view: (order.get(view['access_kind'], 4),
+                                             view.get('file') or '', view.get('line') or 0,
+                                             view.get('source_text') or ''))
+
+
+def verify_source_access_views(accesses, views, variable_name):
+    """Generation-time guard: de-duplication may not discard fact or path."""
+    def source_key(access):
+        return (access.get('symbol_id'), access.get('canonical_path'), access.get('file'),
+                access.get('line'), access.get('source_text'), access.get('access_kind'))
+    expected_sources = {source_key(access) for access in accesses}
+    actual_sources = {view['key'] for view in views}
+    if expected_sources != actual_sources:
+        raise ValueError('HTML 源码访问聚合校验失败：' + variable_name)
+    expected_paths = {(source_key(access), context_id, tuple(path))
+                      for access in accesses for context_id, paths in complete_call_paths(access).items()
+                      for path in paths}
+    actual_paths = {(view['key'], context_id, tuple(path))
+                    for view in views for context_id, paths in view['call_paths'].items()
+                    for path in paths}
+    if expected_paths != actual_paths:
+        raise ValueError('HTML 调用链聚合校验失败：' + variable_name)
 VERDICTS = {
     "CONFIRMED": "确认存在并发风险",
     "LIKELY": "疑似存在，尚需验证",
@@ -69,7 +193,7 @@ def rule_summary(finding):
     rules = finding.get('rules', [])
     known = [code for code in RULES if code in rules]
     ordered = known + [code for code in rules if code not in RULES]
-    return [(code, *RULES.get(code, (code, '查看完整证据并补充缺失信息。'))) for code in ordered]
+    return [(code, *RULES.get(code, ('其它静态分析线索', '查看高级静态分析信息并补充缺失证据。'))) for code in ordered]
 
 
 def local_pending(record):
@@ -102,7 +226,7 @@ def loc(row):
 
 
 def raw(value, title="完整原始证据字段"):
-    return f"<details><summary>{esc(title)}</summary><pre>{esc(value)}</pre></details>"
+    return f"<details class=\"raw-evidence\"><summary>高级调试：{esc(title)}</summary><pre>{esc(value)}</pre></details>"
 
 
 def fields(value):
@@ -117,14 +241,63 @@ def table(headers, rows, ident=None, searchable=False):
     return pager + empty + '<div class="table-scroll"><table' + attrs + '><thead><tr>' + "".join(f'<th scope="col">{esc(h)}</th>' for h in headers) + "</tr></thead><tbody>" + body + "</tbody></table></div>"
 
 
-def row(cells, ident=None, group=None, level=None, file=None, scope=None, decision=None, files=None):
+def row(cells, ident=None, group=None, level=None, file=None, scope=None, decision=None, files=None,
+        source_access_view=False, search_text=None):
     attrs = (f' id="{esc(ident)}"' if ident else "") + (f' data-group="{esc(group)}"' if group else "")
     for key, value in [('level', level), ('file', file), ('scope', scope), ('decision', decision)]:
         if value is not None:
             attrs += f' data-{key}="{esc(value)}"'
     if files is not None:
         attrs += ' data-files="' + esc(json.dumps(files)) + '"'
+    if source_access_view:
+        attrs += ' data-source-access-view="1"'
+    if search_text:
+        # Search must not force the browser to walk inactive detail templates.
+        # Keep a compact index on the visible row instead.
+        attrs += ' data-search="' + esc(search_text) + '"'
     return "<tr" + attrs + ">" + "".join("<td>" + c + "</td>" for c in cells) + "</tr>"
+
+
+def deferred_detail(summary, contents, classes="evidence"):
+    """Keep a heavy evidence tree out of the live DOM until it is opened.
+
+    Pagination only hides rows; it does not stop the browser from parsing and
+    laying out every nested table, preformatted JSON blob and call path.  A
+    template is inert, while keeping the report completely offline and its
+    evidence source-preserving for tool-based audit.
+    """
+    return ('<details class="' + esc(classes) + '" data-deferred-detail="1"><summary>'
+            + summary + '</summary><template data-detail-template="1">' + contents
+            + '</template></details>')
+
+
+def compact_debug_fields(value, omitted):
+    """Return the non-duplicated part of a fact for the HTML debug pane.
+
+    Source accesses, full call paths and conflict pairs are already rendered
+    in the user-facing evidence tables.  Repeating those recursive structures
+    as raw JSON was the main cause of multi-megabyte HTML reports.  The exact
+    original facts remain available in the neighbouring facts.json file.
+    """
+    return {key: item for key, item in value.items() if key not in omitted}
+
+
+def compact_evidence_summary(items, sample_limit=8):
+    """Summarize repetitive low-level evidence without dropping it from JSON."""
+    items = list(items or [])
+    by_kind = Counter()
+    samples = []
+    for item in items:
+        if isinstance(item, dict):
+            by_kind[item.get('kind') or item.get('event_kind') or item.get('status') or '其它'] += 1
+            if len(samples) < sample_limit:
+                samples.append({key: item[key] for key in ('kind', 'event_kind', 'status', 'file', 'line',
+                                                            'function_id', 'api') if item.get(key) is not None})
+        else:
+            by_kind[str(item)] += 1
+            if len(samples) < sample_limit:
+                samples.append(str(item))
+    return dict(total=len(items), by_kind=dict(sorted(by_kind.items())), samples=samples)
 
 
 def review_records(report, reviews):
@@ -167,12 +340,12 @@ def final_conclusion(report, reviews):
 CONCURRENT_SIGNALS = {'GS-MULTI-CONTEXT', 'GS-MULTI-WRITER', 'GS-RMW-INTERLEAVE',
     'GS-STALE-SNAPSHOT', 'DMA_SHARED_REVIEW', 'GS-LOCAL-STATIC-REENTRANT', 'GS-OWNER-VIOLATION'}
 DECISIONS = {
-    'confirmed': ('已确认风险', '存在风险；查看复核依据并修复。'),
+    'confirmed': ('已确认并发风险', '存在风险；查看复核依据并修复。'),
     'likely': ('疑似并发风险', '有并发风险线索，尚未证实为实际缺陷。'),
     'unresolved': ('无法判断', '缺少入口、访问或定义证据，不能判定安全。'),
-    'safe': ('已复核安全 / 误报', '仅在该项复核列出的条件下成立。'),
-    'screened_safe': ('已排查：不存在并发风险', '当前编译配置下没有可形成读写冲突的已知访问；不覆盖解析盲区、汇编或未建模硬件入口。'),
-    'inventory': ('未发现风险线索', '当前建模路径未发现候选，尚未证明安全。'),
+    'safe': ('已复核：未发现并发风险', '仅在该项复核列出的条件下成立。'),
+    'screened_safe': ('已排查：未发现并发风险', '当前编译配置下没有可形成读写冲突的已知访问；不覆盖解析盲区、汇编或未建模硬件入口。'),
+    'inventory': ('未发现并发风险', '当前建模路径未发现跨执行上下文读写线索；结论仅适用于已解析范围。'),
     'supplemental': ('补充声明（未分析访问）', '来自未编译文件或条件分支变体；仅盘点声明，并发访问尚未分析。'),
 }
 
@@ -200,7 +373,7 @@ def variable_decisions(facts, report, records):
             result[sid] = 'unresolved'
         elif groups[sid]:
             result[sid] = min(groups[sid], key=priority.index)
-        elif v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK':
+        elif v.get('static_classification') == 'SAFE' or v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK':
             result[sid] = 'screened_safe'
         else:
             result[sid] = 'inventory'
@@ -269,14 +442,14 @@ nav{display:flex;gap:18px;flex-wrap:wrap}a{color:#075b9c}h2{font-size:21px;margi
 .pager{display:flex;align-items:center;gap:12px;margin:12px 0}.pager button:disabled{opacity:.4;cursor:default}.next-actions{padding:16px;background:white;border:1px solid #d6e0eb}.next-actions h2{margin:0 0 8px;font-size:18px}.next-actions ul{margin:0;padding-left:24px}
 .toolbar{background:white;padding:14px;border:1px solid #d6e0eb;display:flex;gap:12px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:2}input,select,button{font:inherit;padding:8px;border:1px solid #aabccb;border-radius:4px}input{min-width:230px;flex:1}button,summary{cursor:pointer}summary{color:#075b9c}details{margin:6px 0}details[open]>summary{margin-bottom:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font:12px/1.65 Consolas,monospace}
 .table-scroll{overflow-x:auto;margin:12px 0}table{border-collapse:collapse;background:white;width:100%;font-size:13px}th,td{padding:10px 12px;border:1px solid #d6e0eb;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#e9f0f7}td{min-width:100px;max-width:620px}td:first-child{min-width:150px}td table td{min-width:80px}dl{display:grid;grid-template-columns:minmax(90px,25%) minmax(0,1fr);gap:6px 12px}dt{font-weight:600}dd{margin:0;min-width:0}.muted{color:#596d80}.tag{display:inline-block;border-radius:3px;padding:2px 6px;background:#e8eff6;font-weight:600}.confirmed{background:#ffe0df;color:#8b2220}.likely{background:#fff0d0;color:#785218}.safe{background:#ddf2e5;color:#235b38}.unresolved{background:#e8ebf0;color:#46546b}.supplemental{background:#f0e8f6;color:#52356b}tr:target{outline:3px solid #277cb7;scroll-margin-top:90px}[hidden]{display:none!important}footer{padding:24px 0;color:#596d80}
-#review-table{table-layout:fixed;min-width:1000px}#review-table>thead th:nth-child(1){width:15%}#review-table>thead th:nth-child(2){width:15%}#review-table>thead th:nth-child(3){width:34%}#review-table>thead th:nth-child(4){width:26%}#review-table>thead th:nth-child(5){width:10%}#inventory-table{min-width:1100px}
+#review-table{table-layout:fixed;min-width:1000px}#review-table>thead th:nth-child(1){width:15%}#review-table>thead th:nth-child(2){width:15%}#review-table>thead th:nth-child(3){width:34%}#review-table>thead th:nth-child(4){width:26%}#review-table>thead th:nth-child(5){width:10%}#inventory-table{min-width:900px}
 @media(max-width:700px){main{padding:14px}header{padding:20px}header h1{font-size:21px}.toolbar{position:static}td,th{padding:8px}dl{grid-template-columns:1fr}}
 header{padding:18px 4vw}header h1{font-size:24px}header p{margin:3px 0 8px}main{padding-top:18px;max-width:1600px}
 .overview{background:white;border:1px solid #d6e0eb;border-radius:8px;padding:14px 18px;margin-bottom:16px}.overview p{margin:4px 0}.overview h2{margin:0 0 5px;font-size:19px}.overview details{margin-bottom:0}.overview .notice{margin:8px 0;padding:6px 12px}
 .metrics{margin:12px 0;gap:10px}.metric{padding:8px 16px;flex:1;min-width:130px}.metric strong{font-size:23px}.tabs{gap:6px;margin:14px 0 0;border-bottom:2px solid #cfdae6}.tabs a{padding:10px 16px;text-decoration:none;border-radius:6px 6px 0 0;font-weight:600}.tabs a[aria-current="page"]{background:#075b9c;color:white}.panel h2{margin:18px 0 4px}.panel>p{margin:4px 0 10px}.toolbar{position:static;padding:10px;margin:12px 0;gap:8px}.toolbar input{min-width:150px}.toolbar select{max-width:260px}#visible{width:100%;font-size:12px;color:#596d80}.pager{margin:8px 0}.empty{padding:25px;background:white;border:1px dashed #aabccb}
-table.searchable{table-layout:fixed;min-width:0!important}table.searchable>thead th:first-child{width:24%}table.searchable>thead th:last-child{width:26%}table.searchable>tbody>tr>td{min-width:0;max-width:none}#inventory-table>thead th:first-child{width:24%}#review-table>thead th:nth-child(1){width:23%}#review-table>thead th:nth-child(2){width:21%}#review-table>thead th:nth-child(3){width:31%}#review-table>thead th:nth-child(4){width:25%}
-.item-name{font:600 16px/1.5 Consolas,monospace}.location{display:block;color:#596d80;font-size:12px;margin:5px 0}.signal{margin:4px 0}.signal-list{padding-left:18px;margin:6px 0}.priority-HIGH,.priority-CRITICAL{background:#fff0d0;color:#785218}.step{margin:8px 0 0}.tag{font-size:12px}.evidence{margin-top:9px}.evidence[open]{padding:10px;background:#f6f9fc;border:1px solid #d6e0eb}.evidence .table-scroll{max-width:100%}.evidence table{min-width:760px}.evidence>summary{font-weight:600}.context-count{font-weight:600}.legend{padding:8px 0;color:#46546b}button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #3180d8;outline-offset:2px}.copy-note{font-size:12px;display:block;margin-top:4px}tr:target{scroll-margin-top:12px}pre{tab-size:4}footer details{max-width:100%}
-@media(min-width:801px){table.searchable,table.searchable>thead,table.searchable>tbody{display:block}table.searchable>thead>tr,table.searchable>tbody>tr{display:grid;grid-template-columns:24% 50% 26%}#inventory-table>thead>tr,#inventory-table>tbody>tr{grid-template-columns:24% 25% 25% 26%}#review-table>thead>tr,#review-table>tbody>tr{grid-template-columns:23% 21% 31% 25%}table.searchable>thead th{width:auto!important;min-width:0}table.searchable>tbody>tr>td{min-width:0;width:auto}table.searchable>tbody>tr>td:has(>.evidence[open]){grid-column:1/-1;order:1}#risk-table>tbody>tr:has(.evidence[open])>td:last-child,#gap-table>tbody>tr:has(.evidence[open])>td:last-child{grid-column:2/-1}.next-actions{padding:8px 12px}}
+table.searchable{table-layout:fixed;min-width:0!important}table.searchable>thead th:first-child{width:24%}table.searchable>thead th:last-child{width:26%}table.searchable>tbody>tr>td{min-width:0;max-width:none}#inventory-table>thead th:first-child{width:28%}#review-table>thead th:nth-child(1){width:23%}#review-table>thead th:nth-child(2){width:21%}#review-table>thead th:nth-child(3){width:31%}#review-table>thead th:nth-child(4){width:25%}
+.item-name{font:600 16px/1.5 Consolas,monospace}.location{display:block;color:#596d80;font-size:12px;margin:5px 0}.signal{margin:4px 0}.signal-list{padding-left:18px;margin:6px 0}.priority-HIGH,.priority-CRITICAL{background:#fff0d0;color:#785218}.step{margin:8px 0 0}.tag{font-size:12px}.evidence{margin-top:9px}.evidence[open]{padding:10px;background:#f6f9fc;border:1px solid #d6e0eb}.evidence .table-scroll{max-width:100%}.evidence table{min-width:760px}.evidence>summary{font-weight:600}.context-count{font-weight:600}.audit-ids{display:block;color:#596d80;font:11px/1.4 Consolas,monospace;margin-top:5px}.legend{padding:8px 0;color:#46546b}button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #3180d8;outline-offset:2px}.copy-note{font-size:12px;display:block;margin-top:4px}tr:target{scroll-margin-top:12px}pre{tab-size:4}footer details{max-width:100%}
+@media(min-width:801px){table.searchable,table.searchable>thead,table.searchable>tbody{display:block}table.searchable>thead>tr,table.searchable>tbody>tr{display:grid;grid-template-columns:24% 50% 26%}#inventory-table>thead>tr,#inventory-table>tbody>tr{grid-template-columns:28% 45% 27%}#review-table>thead>tr,#review-table>tbody>tr{grid-template-columns:23% 21% 31% 25%}table.searchable>thead th{width:auto!important;min-width:0}table.searchable>tbody>tr>td{min-width:0;width:auto}table.searchable>tbody>tr>td:has(>.evidence[open]){grid-column:1/-1;order:1}#risk-table>tbody>tr:has(.evidence[open])>td:last-child,#gap-table>tbody>tr:has(.evidence[open])>td:last-child{grid-column:2/-1}.next-actions{padding:8px 12px}}
 @media(max-width:800px){header{padding:16px}main{padding:12px}.overview{padding:12px}.metrics{gap:6px}.metric{min-width:110px;padding:8px}.tabs{gap:0}.tabs a{padding:8px 10px;font-size:13px}.toolbar{align-items:stretch}.toolbar input{width:75%}.toolbar select{max-width:100%}table.searchable,table.searchable>tbody,table.searchable>tbody>tr,table.searchable>tbody>tr>td{display:block;width:100%}table.searchable>thead{display:none}table.searchable>tbody>tr{margin-bottom:12px;border:1px solid #c5d3e0;border-radius:6px;overflow:hidden}table.searchable>tbody>tr>td{border:0;border-bottom:1px solid #e4ebf3;padding:10px 12px}table.searchable>tbody>tr>td::before{content:attr(data-label);display:block;font-size:12px;color:#596d80;font-weight:600;margin-bottom:5px}.table-scroll{margin:8px 0}.panel h2{font-size:19px}dl{grid-template-columns:1fr}}
 .print-context{display:none}header button{padding:3px 9px;background:transparent;color:inherit;border-color:#7895ad}.scenario{padding:8px 10px;background:#fff8e8;border-left:3px solid #bc8629}.scenario li{margin:8px 0}.scenario p{font-size:13px}
 @media print{.toolbar,.pager,.tabs,button{display:none!important}body{background:white}.table-scroll{overflow:visible}header{background:white;color:black}.print-context{display:block;border:1px solid #aaa;padding:8px}.panel{break-before:auto}.table-scroll>table{min-width:0!important}a{color:inherit}}
@@ -296,12 +469,15 @@ table.searchable{table-layout:fixed;min-width:0!important}table.searchable>thead
 
 
 SCRIPT = """
-document.addEventListener('toggle',e=>{if(e.target.tagName!=='DETAILS'||!e.target.open)return;for(const p of e.target.querySelectorAll('pre')){if(p.dataset.formatted)continue;p.dataset.formatted='1';const text=p.textContent.trim();if(text.startsWith('{')||text.startsWith('[')){try{p.textContent=JSON.stringify(JSON.parse(text),null,2);}catch{}}}},true);
+document.addEventListener('toggle',e=>{if(e.target.tagName!=='DETAILS'||!e.target.open)return;
+const detail=e.target;
+if(detail.dataset.deferredDetail==='1'&&!detail.dataset.detailLoaded){const template=[...detail.children].find(child=>child.tagName==='TEMPLATE'&&child.dataset.detailTemplate==='1');if(template){detail.append(template.content);template.remove();}detail.dataset.detailLoaded='1';}
+for(const p of detail.querySelectorAll('pre')){if(p.dataset.formatted)continue;p.dataset.formatted='1';const text=p.textContent.trim();if(text.startsWith('{')||text.startsWith('[')){try{p.textContent=JSON.stringify(JSON.parse(text),null,2);}catch{}}}},true);
 const q=document.getElementById('q'), filter=document.getElementById('filter'), fileFilter=document.getElementById('file-filter');
 const panels=[...document.querySelectorAll('.panel')], tabs=[...document.querySelectorAll('.tabs a')];
 let active=document.getElementById('inventory')||panels[0];
 const rows=[...document.querySelectorAll('table.searchable > tbody > tr[data-group]')];
-const searchText=new Map(rows.map(r=>[r,(r.querySelector('.story-current')||r).textContent.toLowerCase()]));
+const searchText=new Map(rows.map(r=>[r,(r.dataset.search||(r.querySelector('.story-current')||r).textContent).toLowerCase()]));
 const pageSize=document.getElementById('page-size'), views=[...document.querySelectorAll('.pager')].map(p=>({pager:p,page:0,rows:rows.filter(r=>r.closest('table').id===p.dataset.table),matches:[]}));
 for(const v of views){const t=document.getElementById(v.pager.dataset.table),labels=[...t.tHead.rows[0].cells].map(c=>c.textContent);for(const r of v.rows)[...r.cells].forEach((c,i)=>c.dataset.label=labels[i]);}
 function matchesFilter(r){const [kind,value]=filter.value.split(':');return filter.value==='all'||(value?r.dataset[kind]===value:r.dataset.group===filter.value);}
@@ -339,7 +515,7 @@ def page(title, content, report, options, script="", reading=False):
     content = content.replace('<!--controls-->', controls)
     if report.get('presentation_notice'):
         content = '<p class="notice">' + esc(report['presentation_notice']) + '</p>' + content
-    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换和分页；下面仍保留全部文字证据。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
+    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
 
 
 def metrics(values):
@@ -431,7 +607,7 @@ def risk_overview(facts, report, records, assessments):
     return ('<section class="risk-overview"><div class="verdict-head ' + color + '"><span>并发风险结论</span><h2 id="risk-verdict">'
             + esc(state) + '</h2><p>' + esc(explanation) + '</p></div><div class="verdict-cards">' + cards + '</div>'
             + '<p class="scope-line">以上按变量去重统计。共 ' + str(len(facts['variables'])) + ' 个变量（' + esc(kind_line) + '）；另有 '
-            + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个已排查不存在并发风险</a>、'
+            + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个已排查：未发现并发风险</a>、'
             + f'<a href="#inventory" data-decision-filter="inventory">{counts["inventory"]} 个未发现静态线索</a>（不等于安全）'
             + (f'、<a href="#inventory" data-decision-filter="supplemental">{counts["supplemental"]} 个补充解析</a>' if counts.get('supplemental') else '')
             + f'。<a href="#gaps">{gap_count} 项覆盖 / 依赖缺口</a>单独保留，不计入风险变量。</p>'
@@ -454,10 +630,17 @@ def write_html(out, facts, report, reviews):
     for finding in report['findings']:
         if finding.get('symbol_id'):
             candidates[finding['symbol_id']].append(finding)
+    members_by_root = defaultdict(list)
+    for variable in facts['variables']:
+        if variable.get('root_symbol_id'):
+            members_by_root[variable['root_symbol_id']].append(variable)
 
     def function(fid):
         f = funcs.get(fid)
         return f"{f['name']} ({loc(f)})" if f else fid
+
+    def function_name(fid):
+        return funcs.get(fid, {}).get('name', fid)
 
     def context(cid):
         c = contexts.get(cid, {})
@@ -468,7 +651,7 @@ def write_html(out, facts, report, reviews):
         name = ', '.join(c.get('functions', [])) or funcs.get(target, {}).get('name')
         if not name:
             name = cid.split(':')[1] if cid.startswith('auto:') else cid
-        return {'MAIN': '主循环', 'ISR': '中断', 'TASK': '任务', 'UNKNOWN': '未知入口'}.get(kind, kind) + ' ' + name
+        return {'MAIN': '主循环', 'ISR': '中断', 'TASK': '任务', 'UNKNOWN': '未知入口'}.get(kind, to_display_text(kind)) + ' ' + name
 
     def context_list(ids):
         return '<br>'.join(esc(context(cid)) for cid in ids) or '无已知上下文'
@@ -478,29 +661,224 @@ def write_html(out, facts, report, reviews):
         return '<p class="signal"><span class="context-count">' + esc(label) + f'：{len(ids)} 个已知入口</span></p>' + (
             '<details><summary>查看入口名称</summary>' + context_list(ids) + '</details>' if ids else '')
 
-    def accesses(items):
+    def source_view_anchor(anchor_prefix, view_or_access):
+        key = view_or_access.get('key') if isinstance(view_or_access, dict) else None
+        if key is None:
+            key = (view_or_access.get('symbol_id'), view_or_access.get('canonical_path'),
+                   view_or_access.get('file'), view_or_access.get('line'),
+                   view_or_access.get('source_text'), view_or_access.get('access_kind'))
+        return anchor('source-access-' + anchor_prefix + '-', key)
+
+    def path_tree(path):
+        return '\n'.join(([function_name(path[0])] if path else [])
+                         + ['└─ ' + function_name(fid) for fid in path[1:]])
+
+    def accesses(items, anchor_prefix='', validate_member=None):
+        """Render the one-row-per-real-source-point user-facing access table."""
+        views = source_access_views(items)
+        if validate_member is not None:
+            verify_source_access_views(items, views, validate_member['qualified_name'])
         rows = []
-        for a in items:
-            complete = a.get('all_call_chains')
-            if complete is None:
-                complete = {cid: [path] for cid, path in a.get('call_chains', {}).items()}
+        for view in views:
+            path_count = sum(len(paths) for paths in view['call_paths'].values())
             chains = ''
-            for cid, routes in complete.items():
-                routes = routes or []
-                chains += '<details><summary>' + esc(context(cid)) + ' → 已解析调用链（' + str(len(routes)) + ' 条）</summary><pre>'
-                chains += esc('\n'.join(' → '.join(function(fid) for fid in path) for path in routes))
-                chains += '</pre></details>'
-            if a.get('call_chain_cycles'):
-                chains += raw(a['call_chain_cycles'], '递归 / cycle：保留循环边，不枚举无限路径')
-            if a.get('unresolved_call_edges'):
-                chains += raw(a['unresolved_call_edges'], 'unresolved_call_edge：尚未恢复的调用 / 入口')
-            if a.get('resolved_call_edges'):
-                chains += raw(a['resolved_call_edges'], '全部调用点及边的来源')
-            rows.append(row([esc(KINDS.get(a['access_kind'], a['access_kind'])), esc(loc(a)) + '<pre>' + esc(a.get('source_text', '')) + '</pre>',
-                             esc(function(a['function_id'])), chains or ('<strong>当前构建入口不可达（保留访问证据）</strong>'
-                                if a.get('reachability') == 'PROVEN_UNREACHABLE' else '<strong>UNKNOWN-CONTEXT：尚不能确定任务或中断</strong>'),
-                             raw({k: v for k, v in a.items() if k not in {'source_text', 'call_chains'}}, '字段 / 别名 / 宏 / 保护事件等')]))
-        return table(['访问方式', '源码位置与表达式', '访问函数', '上下文 → 全部已解析调用链', '访问属性'], rows)
+            if view['context_ids']:
+                chains += '<strong>' + str(len(view['context_ids'])) + ' 个入口</strong>'
+                chains += '<details><summary>展开全部调用链（' + str(path_count) + ' 条）</summary>'
+                for context_id in view['context_ids']:
+                    routes = view['call_paths'].get(context_id, [])
+                    chains += '<details><summary>' + esc(context(context_id)) + '：' + str(len(routes)) + ' 条调用链</summary><pre>'
+                    chains += '\n\n'.join('<span data-resolved-call-path="1">' + esc(path_tree(path)) + '</span>'
+                                         for path in routes)
+                    chains += '</pre></details>'
+                chains += '</details>'
+            else:
+                reachable = any(a.get('reachability') == 'PROVEN_UNREACHABLE' for a in view['accesses'])
+                chains = '<strong>' + ('当前构建入口不可达（保留访问证据）' if reachable
+                                       else '尚未确定执行上下文或调用链') + '</strong>'
+            functions = '<br>'.join(esc(function_name(fid)) for fid in view['function_ids']) or '未知函数'
+            mode_label = to_display_text(view['access_kind'])
+            if any(a.get('access_scope') == 'INHERITED_WHOLE_OBJECT_ACCESS' for a in view['accesses']):
+                mode_label += '（整对象继承影响）'
+            elif any(a.get('access_scope') in {'WHOLE_OBJECT_ACCESS', 'WHOLE_MEMBER_OBJECT_ACCESS'} for a in view['accesses']):
+                mode_label += '（整对象访问）'
+            audit_ids = '<span class="audit-ids">访问事实 ID：' + esc('、'.join(view['access_ids']) or '未提供') + '</span>'
+            rows.append(row([esc(mode_label), esc(str(view.get('file') or '未知') + ':' + str(view.get('line') or '?'))
+                             + '<pre>' + esc(view.get('source_text', '')) + '</pre>' + audit_ids, functions, chains],
+                            source_view_anchor(anchor_prefix, view), source_access_view=True))
+        rendered = table(['访问方式', '源码位置与表达式', '访问函数', '执行上下文 / 调用链'], rows)
+        if validate_member is not None:
+            actual_sources = rendered.count('data-source-access-view="1"')
+            actual_paths = rendered.count('data-resolved-call-path="1"')
+            expected_paths = len({(view['key'], cid, tuple(path)) for view in views
+                                  for cid, paths in view['call_paths'].items() for path in paths})
+            if actual_sources != len(views) or actual_paths != expected_paths:
+                raise ValueError('HTML 源码访问 / 调用链渲染计数校验失败：' + validate_member['qualified_name'])
+        return rendered
+
+    def rendered_path_count(items):
+        return sum(len(paths) for access in items for paths in complete_call_paths(access).values())
+
+    def verify_member_rendering(variable):
+        """The table below is the only HTML projection of member facts.
+
+        Guard it at report generation time: a future UI optimization may fold
+        rows visually, but it must never omit a fact or a resolved call path.
+        """
+        if variable.get('resource_kind') != 'STRUCT_MEMBER':
+            return
+        items = variable.get('accesses', [])
+        if variable.get('access_count') != len(items):
+            raise ValueError('HTML 成员访问计数校验失败：' + variable['qualified_name'])
+        if variable.get('resolved_call_path_count') != rendered_path_count(items):
+            raise ValueError('HTML 成员调用链计数校验失败：' + variable['qualified_name'])
+
+    def path_instance(instance, anchor_prefix):
+        """Link to the one canonical collection of full paths for this access."""
+        target = source_view_anchor(anchor_prefix, instance)
+        label = (context(instance.get('context_id')) + ' · '
+                 + to_display_text(instance.get('access_kind')) + ' · '
+                 + str(instance.get('file') or '未知') + ':' + str(instance.get('line') or '?'))
+        text = str(instance.get('canonical_path') or '') + '（完整路径 ' + str(instance.get('call_path_count', 0)) + ' 条）'
+        if instance.get('access_scope') == 'INHERITED_WHOLE_OBJECT_ACCESS':
+            text += '；继承：' + str(instance.get('inherited_from_canonical_path') or '整对象访问')
+        return '<a href="#' + target + '">' + esc(label) + '<br>' + esc(text) + '<br>展开该访问的全部调用链</a>'
+
+    def conflict_pair_table(pairs, protection, anchor_prefix):
+        if not pairs:
+            return '<p>未生成可比较的上下文访问实例。</p>'
+        shown_pairs = pairs[:HTML_CONFLICT_PAIR_SAMPLE_LIMIT]
+        rows = []
+        for pair in shown_pairs:
+            relation = pair.get('relation', {})
+            preemption = to_display_text(relation.get('relation', 'UNKNOWN'))
+            if relation.get('higher') and relation.get('lower'):
+                preemption += '：' + context(relation['higher']) + ' 可以抢占 ' + context(relation['lower'])
+            rows.append(row([esc(pair.get('conflict_id')), path_instance(pair['participant_a'], anchor_prefix),
+                             path_instance(pair['participant_b'], anchor_prefix),
+                             esc(preemption) + '<br><span class="muted">' + esc(relation.get('reason', '')) + '</span>',
+                             esc('未发现有效保护' if protection in {'NOT_FOUND', 'NONE'} else to_display_text(protection, PROTECTION_DISPLAY_TEXT)),
+                             '<strong>' + esc(to_display_text(pair.get('status'))) + '</strong><br><span class="muted">完整路径组合：'
+                             + esc(pair.get('path_combination_count', 1)) + '</span>']))
+        notice = ''
+        if len(shown_pairs) < len(pairs):
+            notice = ('<p class="notice">为保持变量详情可快速打开，此处只展示 ' + str(len(shown_pairs))
+                      + ' / ' + str(len(pairs)) + ' 组代表性组合。所有源码访问和完整调用链仍在本变量详情中；'
+                      + '完整组合清单保存在同目录的 <a href="facts.json">facts.json</a> 与 '
+                      + '<a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>。</p>')
+        return notice + table(['ID', '参与者 A：完整调用链', '参与者 B：完整调用链', '并发 / 抢占关系', '保护', '状态'], rows)
+
+    def context_sort_key(context_id):
+        kind = contexts.get(context_id, {}).get('kind')
+        return ({'MAIN': 0, 'ISR': 1, 'TASK': 2, 'CALLBACK': 3, 'DMA': 4}.get(kind, 5),
+                context(context_id))
+
+    def context_summary(views):
+        counts = defaultdict(Counter)
+        for view in views:
+            for context_id in view['context_ids']:
+                counts[context_id][view['access_kind']] += 1
+        rows = [row([esc(context(context_id)), str(counts[context_id]['READ']),
+                     str(counts[context_id]['WRITE']), str(counts[context_id]['RMW'])])
+                for context_id in sorted(counts, key=context_sort_key)]
+        return table(['执行上下文', '读取', '写入', '读改写'], rows)
+
+    def user_text(value):
+        """Translate enum tokens embedded in an analyst-authored explanation."""
+        text = str(value or '')
+        for internal, display in sorted(DISPLAY_TEXT.items(), key=lambda item: -len(item[0])):
+            text = text.replace(internal, display)
+        return text
+
+    def variable_explanation(variable, views, finding_list):
+        rules = {rule for finding in finding_list for rule in finding.get('rules', [])}
+        by_kind = defaultdict(set)
+        for view in views:
+            by_kind[view['access_kind']].update(view['context_ids'])
+        main_writers = [cid for cid in by_kind['WRITE'] | by_kind['RMW']
+                        if contexts.get(cid, {}).get('kind') == 'MAIN']
+        async_writers = [cid for cid in by_kind['WRITE'] | by_kind['RMW']
+                         if contexts.get(cid, {}).get('kind') in {'ISR', 'DMA', 'CALLBACK'}]
+        rmw_views = [view for view in views if view['access_kind'] == 'RMW']
+        if 'GS-STALE-SNAPSHOT' in rules and main_writers and async_writers:
+            return ('疑似并发风险',
+                    context(main_writers[0]) + '中存在“读取旧值 → 后续写回”的操作；'
+                    + context(async_writers[0]) + '也会写入该变量。',
+                    '重点确认：' + context(async_writers[0]) + '是否可能在主循环“读取”和“写回”之间执行。')
+        multi_entry_rmw = next((view for view in rmw_views if len(view['context_ids']) > 1), None)
+        if multi_entry_rmw:
+            function_names = [function_name(fid) for fid in multi_entry_rmw['function_ids']]
+            subject = '、'.join(function_names) or '该函数'
+            return ('疑似并发风险', subject + '可由 ' + str(len(multi_entry_rmw['context_ids']))
+                    + ' 个不同执行入口到达，且函数内会修改该变量。',
+                    '重点确认：这些入口是否允许相互抢占，从而造成 ' + subject + ' 重入。')
+        if async_writers and (main_writers or by_kind['READ']):
+            reader_contexts = sorted(by_kind['READ'], key=context_sort_key)
+            reader = context(reader_contexts[0]) if reader_contexts else '其它执行上下文'
+            return ('疑似并发风险', reader + '会读取该变量；' + context(async_writers[0]) + '会写入该变量。',
+                    '重点确认：写入者是否可能与读取或其它写入交错执行，以及保护是否覆盖完整访问。')
+        if variable.get('static_classification') == 'SAFE' or assessments.get(variable['symbol_id']) == 'screened_safe':
+            all_contexts = {cid for view in views for cid in view['context_ids']}
+            if all_contexts and all(contexts.get(cid, {}).get('kind') == 'MAIN' for cid in all_contexts):
+                reason = '当前解析到的访问均来自主循环同一串行执行上下文，未发现其它中断或异步执行入口修改该变量。'
+            else:
+                reason = '当前已解析的访问没有形成跨执行上下文的读写冲突。'
+            return ('未发现并发风险', reason, '')
+        if variable.get('static_classification') == 'UNKNOWN' or assessments.get(variable['symbol_id']) == 'unresolved':
+            return ('无法判断', '部分访问的执行入口、抢占关系或保护证据尚未确认，不能据此判定安全。',
+                    '重点确认：补齐缺失的入口、优先级或保护范围信息后重新判断。')
+        return ('未发现并发风险', '当前解析范围内未发现需要进一步排查的跨执行上下文读写。', '')
+
+    def protection_section(variable):
+        status = to_display_text(variable.get('protection_status', 'NOT_FOUND'), PROTECTION_DISPLAY_TEXT)
+        note = user_text(variable.get('protection_note') or '当前没有更多保护范围说明。')
+        return ('<details><summary>查看保护分析</summary><p>保护状态：<strong>' + esc(status)
+                + '</strong></p><p>' + esc(note) + '</p></details>')
+
+    def scenario_section(finding):
+        scenario = snapshot_scenario(finding, contexts) if finding else None
+        if not scenario:
+            return ''
+        labels = ['读取共享变量', '可能被其它执行上下文插入更新', '恢复执行并写回旧值']
+        body = ''
+        for label, (context_id, access) in zip(labels, scenario):
+            body += '<li><strong>' + esc(context(context_id)) + '：' + esc(label) + '</strong><br>'
+            body += '<span class="location">' + esc(loc(access)) + '</span><pre>' + esc(access.get('source_text', '')) + '</pre></li>'
+        return ('<details class="scenario"><summary>查看可能的并发时序</summary><p>这是需要在实际优先级、可达性和保护范围中确认的时序，不是已证明的运行轨迹。</p>'
+                + '<ol>' + body + '</ol><p>结果：其它执行上下文刚写入的新值可能被旧值覆盖。</p></details>')
+
+    def advanced_static_info(variable, finding_list, views, anchor_prefix):
+        pairs = [pair for finding in finding_list for pair in finding.get('conflict_pairs', [])]
+        relations = [relation for finding in finding_list for relation in finding.get('concurrency_relations', [])]
+        body = deferred_detail('查看全部底层并发组合（' + str(len(pairs)) + ' 组）',
+                               conflict_pair_table(pairs, variable.get('protection_status', 'NOT_FOUND'), anchor_prefix))
+        body += '<details><summary>查看抢占关系、保护明细与静态规则</summary>'
+        body += '<p>重复的保护 / 覆盖缺口明细仅保存在机器事实中，避免每个变量在 HTML 中重复数百次。'
+        body += '完整内容见 <a href="facts.json">facts.json</a>（变量 ID：<code>' + esc(variable['symbol_id']) + '</code>）。</p>'
+        body += raw(dict(抢占关系=relations,
+                         保护明细概览=compact_evidence_summary(variable.get('protection_details', [])),
+                         静态规则=[finding.get('rules', []) for finding in finding_list],
+                         证据缺口概览=compact_evidence_summary(variable.get('blocking_evidence', []))),
+                    '静态分析证据概览') + '</details>'
+        body += '<details><summary>查看调试字段与完整机器事实的位置</summary>'
+        body += '<p>源码访问、全部调用链和并发组合已在本变量详情中逐项展示。完整、不重复的机器事实保存在同目录 '
+        body += '<a href="facts.json">facts.json</a>，可按变量 ID 查找：<code>' + esc(variable['symbol_id']) + '</code>。</p>'
+        body += raw(dict(source_access_views=[dict(key=view['key'], access_ids=view['access_ids'],
+                                               contexts=view['context_ids'],
+                                               access_metadata=[dict(
+                                                   access_id=access.get('access_id'),
+                                                   protection_evidence=access.get('protection_evidence', []),
+                                                   resolved_call_edge_count=len(access.get('resolved_call_edges', [])),
+                                                   unresolved_call_edge_count=len(access.get('unresolved_call_edges', [])),
+                                                   mask_state_count=len(access.get('mask_states', [])),
+                                                   call_chain_cycle_count=len(access.get('call_chain_cycles', [])),
+                                               ) for access in view['accesses']])
+                                           for view in views],
+                    variable=compact_debug_fields(variable, {
+                        'accesses', 'whole_object_accesses', 'conflict_pairs',
+                        'concurrency_relations', 'protection_details', 'blocking_evidence',
+                    })), '调试 JSON（不重复嵌入访问事实）') + '</details>'
+        return deferred_detail('高级静态分析信息', body, 'advanced')
 
     inventory_rows = []
     for v in facts['variables']:
@@ -510,46 +888,57 @@ def write_html(out, facts, report, reviews):
         primary = dict(file=v.get('definition_file'), line=v.get('definition_line')) if v.get('definition_file') else next(iter(sites), {})
         files = sorted({d['file'] for d in sites if d.get('file')} | ({primary['file']} if primary.get('file') else set()))
         is_supplemental = v.get('coverage_source') in ('supplemental', 'inactive_branch')
-        detail = '<details class="evidence"><summary>变量属性、全部访问与调用链</summary>'
-        detail += '<p>类型：' + esc(v.get('type')) + ' · 大小：' + esc(v.get('size_bytes')) + ' 字节 · volatile：' + ('是' if v.get('is_volatile') else '否') + ' · const：' + ('是' if v.get('is_const') else '否') + '</p>'
+        is_container = v.get('resource_kind') == 'STRUCT_CONTAINER'
+        detail_body = '<p>类型：' + esc(v.get('type')) + ' · 大小：' + esc(v.get('size_bytes')) + ' 字节 · volatile：' + ('是' if v.get('is_volatile') else '否') + ' · const：' + ('是' if v.get('is_const') else '否') + '</p>'
         if is_supplemental:
-            detail += '<p class="notice">补充声明盘点：来自未编译文件或条件分支变体，不代表当前构建中已分析其并发访问。</p>'
-        detail += '<h3>全部读写访问（' + str(len(v.get('accesses', []))) + ' 处）</h3>'
-        detail += accesses(v.get('accesses', []))
-        detail += '<h3>并发 / 抢占关系</h3>' + (table(['上下文', '关系', '依据'], [
-            row([esc(' ↔ '.join(context(cid) for cid in relation.get('contexts', []))),
-                 esc(relation.get('relation')), esc(relation.get('reason'))])
-            for relation in v.get('concurrency_relations', [])]) if v.get('concurrency_relations')
-            else '<p>当前没有两个已解析执行上下文可比较。</p>')
-        detail += '<h3>保护与执行约束</h3><p>保护状态：<strong>' + esc(v.get('protection_status', 'NOT_FOUND')) + '</strong>。' + esc(v.get('protection_note', '无')) + '</p>'
-        detail += raw(v.get('safe_evidence') or dict(unknown_reason=v.get('unknown_reason', []),
-            blocking_evidence=v.get('blocking_evidence', []), required_context=v.get('required_context', [])), '静态证明 / 证据缺口')
-        detail += '<p>Execution Constraint / Ownership（不是互斥保护）：Single Writer=' + ('是' if len(v.get('writers', [])) == 1 else '否') + '；Single Context=' + ('是' if len(v.get('contexts', [])) == 1 else '否') + '；Address Escape=' + ('是' if 'ADDRESS_ESCAPE' in v.get('coverage_reasons', []) else '否') + '。</p>'
-        detail += '<details class="graph" data-symbol="' + esc(sid) + '"><summary>展开所有相关调用边（含多路径、递归及边的来源）</summary><pre></pre></details>'
-        detail += '<details><summary>完整变量属性、唯一 ID 与编译单元</summary>' + fields({k: value for k, value in v.items() if k not in {'accesses', 'readers', 'writers', 'contexts'}}) + '</details></details>'
+            detail_body += '<p class="notice">补充声明盘点：来自未编译文件或条件分支变体，不代表当前构建中已分析其并发访问。</p>'
+        if is_container:
+            members = sorted(members_by_root.get(sid, []), key=lambda member: member.get('field_path', ''))
+            counts = v.get('member_status_counts', {})
+            detail_body += '<h3>成员级结论</h3><p>成员：' + str(v.get('member_count', len(members))) + '；未发现并发风险：' + str(counts.get('safe', 0)) + '；疑似并发风险：' + str(counts.get('suspect', 0)) + '；无法判断：' + str(counts.get('unknown', 0)) + '。</p>'
+            member_rows = []
+            for member in members:
+                member_rows.append(row(['<a href="#' + anchor('var-', member['symbol_id']) + '">' + esc(member['qualified_name']) + '</a>',
+                                        esc(to_display_text(member.get('static_classification', 'UNKNOWN'))),
+                                        str(member.get('access_count', 0)), str(member.get('resolved_call_path_count', 0)),
+                                        str(len(member.get('conflict_pairs', [])))]))
+            detail_body += table(['具体成员', '结论', '访问事实', '完整调用链', '底层并发组合'], member_rows)
+            whole = v.get('whole_object_accesses', [])
+            detail_body += '<h3>整对象访问及对成员的继承影响（' + str(len(source_access_views(whole))) + ' 处源码访问）</h3>'
+            detail_body += accesses(whole, 'whole-' + sid)
+            detail_body += advanced_static_info(v, candidates[sid], source_access_views(whole), 'whole-' + sid)
+        else:
+            verify_member_rendering(v)
+            views = source_access_views(v.get('accesses', []))
+            conclusion, reason, focus = variable_explanation(v, views, candidates[sid])
+            detail_body += '<h3>一句话结论</h3><p><strong>' + esc(conclusion) + '</strong></p><p>' + esc(reason) + '</p>'
+            if focus:
+                detail_body += '<p class="notice"><strong>排查重点</strong><br>' + esc(focus) + '</p>'
+            detail_body += '<h3>执行上下文摘要</h3>' + context_summary(views)
+            detail_body += '<h3>全部源码访问与调用链（' + str(len(views)) + ' 处源码访问）</h3>'
+            detail_body += accesses(v.get('accesses', []), 'inventory-' + sid, validate_member=v)
+            detail_body += scenario_section(candidates[sid][0] if candidates[sid] else None)
+            detail_body += protection_section(v)
+            detail_body += advanced_static_info(v, candidates[sid], views, 'inventory-' + sid)
+        detail = deferred_detail('查看结构体成员汇总' if is_container else '查看变量详情、源码访问与调用链', detail_body)
         group = 'supplemental' if is_supplemental else ('candidate' if candidates[sid] else 'inventory')
-        status_text = DECISIONS[assessments[sid]][1]
-        static_status = v.get('static_classification', 'UNKNOWN')
-        static_text = {'SAFE': 'SAFE（静态已判安全）', 'SUSPECT': 'SUSPECT（存在并发候选）',
-                       'UNKNOWN': 'UNKNOWN（关键证据不足）'}.get(static_status, static_status)
-        status_text = static_text + ' · 覆盖率 ' + str(v.get('analysis_coverage', 'PARTIAL')) + '。' + v.get('classification_reason', '') + ' ' + status_text
-        if assessments[sid] == 'screened_safe' and not v.get('static_classification'):
-            status_text = {'ONLY_READS': '当前构建只有读取，没有运行期写入。',
-                           'NO_RUNTIME_ACCESSES': '当前构建没有运行期访问，且没有相关访问覆盖缺口。',
-                           'UNREACHABLE_ACCESSORS': '全部访问函数均无执行入口可达；已核对调用图、地址引用及入口缺口。',
-                           'SINGLE_ACCESS_SITE': '唯一访问点仅属于一个不可重入执行上下文。',
-                           'SINGLE_EXECUTION_CONTEXT': '全部读写属于同一个不可重入执行上下文。'}.get(v.get('screening_reason'), status_text)
-        if v.get('screening_blockers'):
-            status_text += ' 安全判定受阻：' + '、'.join(v['screening_blockers']) + '。'
+        list_views = source_access_views(v.get('accesses', []))
+        if is_container:
+            why = '结构体成员按具体字段分别分析；请进入成员项查看各字段的源码访问和调用链。'
+            conclusion = '查看成员级结论'
+        else:
+            conclusion, why, _ = variable_explanation(v, list_views, candidates[sid])
         if v.get('parse_status') == 'FAILED':
-            status_text = '解析不完整：只保留已恢复声明，可能仍有漏项，不能判定安全。'
-        inventory_rows.append(row(['<span class="item-name">' + esc(v['qualified_name']) + '</span><span class="location">'
-            + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
+            conclusion, why = '无法判断', '解析不完整：只保留已恢复声明，可能仍有漏项，不能判定安全。'
+        inventory_rows.append(row(['<a class="item-name" href="#' + anchor('var-', sid) + '">' + esc(v['qualified_name'])
+            + '</a><span class="location">' + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
             + esc(KINDS.get(v['kind'], v['kind'])) + ' · ' + esc(v.get('type')),
-            context_brief(v.get('readers', []), '读') + context_brief(v.get('writers', []), '写'),
-            decision_tag(assessments[sid]) + '<p>' + esc(status_text) + '</p>' + links,
-            detail],
-            anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files))
+            '<p>' + esc(why) + '</p>',
+            decision_tag(assessments[sid]) + '<p>' + esc(conclusion) + '</p>' + detail],
+            anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files,
+            search_text=' '.join([v.get('qualified_name', ''), v.get('name', ''), v.get('type', ''), *files,
+                                  *(function_name(a.get('function_id')) for a in v.get('accesses', [])),
+                                  *(str(a.get('source_text', '')) for a in v.get('accesses', []))])))
 
     risks, gaps = [], []
     ordering = {'confirmed': 0, 'likely': 1, 'unresolved': 2, 'safe': 3}
@@ -559,23 +948,34 @@ def write_html(out, facts, report, reviews):
         sid = f.get('symbol_id')
         ident = anchor('risk-', f['finding_id'])
         r = records[f['finding_id']]
-        pairs = '<br>'.join(esc(' ↔ '.join(context(c) for c in pair)) for pair in f.get('context_pairs', []))
         summary = rule_summary(f)
-        detail = '<details class="evidence"><summary>展开排查证据与处理步骤</summary><p><strong>静态规则线索；需核对实际交错与保护条件。</strong></p><ol>'
-        detail += ''.join('<li>' + esc(title) + '：' + esc(action) + ' <code>' + esc(code) + '</code></li>' for code, title, action in summary)
-        detail += '</ol><details><summary>读写明细与调用链（' + str(len(f.get('accesses', []))) + ' 处访问）</summary>' + accesses(f.get('accesses', [])) + '</details>'
-        detail += '<details><summary>风险依据、并发关系与保护证据</summary><p>' + (pairs or '尚无已知并发入口对；见未知路径或重入证据。') + '</p>' + fields({
-            '规则': f['rules'], '原因': f.get('concurrency_reason', '覆盖盲区，需要补充证据'),
-            '保护状态': f.get('protection_status'), '保护说明': f.get('protection_note'),
-            '已解析并发 / 抢占关系': f.get('concurrency_relations', []),
-            '已声明保护': f.get('declared_protection', []), '快照读回写': f.get('snapshots', []),
-            '已配置抢占': f.get('configured_preemption', []), '已配置并发': f.get('configured_concurrency', []),
-            '未知项': f.get('uncertainties', [])}) + '</details>' + raw(f)
+        detail_body = '<p><strong>静态线索需要结合实际交错与保护条件确认。</strong></p><ol>'
+        detail_body += ''.join('<li>' + esc(title) + '：' + esc(action) + '</li>' for _, title, action in summary)
+        pair_prefix = 'inventory-' + sid if sid else 'risk-' + f['finding_id']
+        detail_body += '</ol>'
+        if sid:
+            detail_body += '<p>源码访问、执行上下文和全部调用链只在变量详情中展示一次：'
+            detail_body += '<a href="#' + anchor('var-', sid) + '">打开 ' + esc(f['variable_name']) + ' 的变量详情</a>。</p>'
+        else:
+            detail_body += '<details><summary>相关源码访问与调用链</summary>' + accesses(f.get('accesses', []), pair_prefix) + '</details>'
+        detail_body += '<details class="advanced"><summary>高级静态分析信息</summary>'
+        if sid:
+            detail_body += '<p>该变量的全部底层并发组合、访问事实和调用链只在变量详情中保留一次：'
+            detail_body += '<a href="#' + anchor('var-', sid) + '">打开变量详情</a>。</p>'
+        else:
+            detail_body += deferred_detail('查看全部底层并发组合（' + str(len(f.get('conflict_pairs', []))) + ' 组）',
+                                            conflict_pair_table(f.get('conflict_pairs', []),
+                                                                f.get('protection_status', 'NOT_FOUND'), pair_prefix))
+        detail_body += '<p>完整、不重复的机器事实在同目录 <a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>；候选 ID：<code>' + esc(f['finding_id']) + '</code>。</p>'
+        detail_body += raw(compact_debug_fields(f, {
+            'accesses', 'conflict_pairs', 'concurrency_relations', 'context_pairs', 'review',
+        }), '候选调试 JSON（不重复嵌入访问事实）') + '</details>'
         note = '\n'.join([f"变量 / 项目：{f['variable_name']}", f"定义：{loc(f['definition'])}",
                           f"候选 ID：{f['finding_id']}", '静态线索：' + '；'.join(t for _, t, _ in summary),
                           '复核状态：' + review_label(r), '源码指纹：' + str(report.get('fingerprint', '未知')),
                           '人工核对结论：', '实际交错 / 保护条件：', '修复与验证：'])
-        detail += '<button type="button" data-copy="' + esc(note) + '">复制排查记录模板</button><span class="copy-note" role="status"></span></details>'
+        detail_body += '<button type="button" data-copy="' + esc(note) + '">复制排查记录模板</button><span class="copy-note" role="status"></span>'
+        detail = deferred_detail('查看排查建议', detail_body)
         scenario = snapshot_scenario(f, contexts)
         scenario_html = ''
         if scenario:
@@ -645,7 +1045,8 @@ def write_html(out, facts, report, reviews):
     static = cov.get('static_classification', {})
     if static:
         coverage += '<h3>变量静态分类归账</h3>' + metrics([('变量总数', static.get('total', 0)),
-            ('SAFE', static.get('safe', 0)), ('SUSPECT', static.get('suspect', 0)), ('UNKNOWN', static.get('unknown', 0))])
+            ('未发现并发风险', static.get('safe', 0)), ('疑似并发风险', static.get('suspect', 0)),
+            ('无法判断', static.get('unknown', 0))])
     problems = [row(['未进入编译数据库的源码', esc(p)]) for p in cov.get('unlisted_sources', [])]
     problems += [row(['未纳入的头文件', esc(p)]) for p in cov.get('unlisted_headers', [])]
     problems += [row(['解析失败', esc(u.get('source_file')) + raw(u.get('diagnostics', []), '查看失败原因')])
@@ -654,7 +1055,10 @@ def write_html(out, facts, report, reviews):
     file_cov = cov.get('file_coverage', [])
     if file_cov:
         coverage += '<h3>每个排查文件的变量数与解析状态</h3>' + table(['文件', '变量数', '解析状态', '来源'], [
-            row([esc(fc['file']), str(fc['variable_count']), esc(fc['parse_status']), esc(fc.get('coverage_source', '')) + raw(dict(diagnostics=fc.get('diagnostics', []), gaps=fc.get('gaps', [])), '覆盖诊断')])
+            row([esc(fc['file']), str(fc['variable_count']), esc(to_display_text(fc['parse_status'])),
+                 esc({'compile_database': '当前构建', 'supplemental': '补充解析',
+                      'inactive_branch': '非活动分支'}.get(fc.get('coverage_source'), '其它来源'))
+                 + raw(dict(diagnostics=fc.get('diagnostics', []), gaps=fc.get('gaps', [])), '覆盖诊断')])
             for fc in file_cov])
     steps = cov.get('cmake_steps', [])
     if steps:
@@ -676,8 +1080,8 @@ def write_html(out, facts, report, reviews):
     content += panel('risks', '变量风险结论与关键证据',
         '先看左侧结论，再看读写语句和下一步。确认风险在前，疑似风险其次；证据不足单独标识。',
         table(['风险结论 / 目标变量', '关键依据：哪里读写、为什么可疑', '下一步处理'], risks, 'risk-table', True), priority_options)
-    content += panel('inventory', '全部全局 / static 变量清单', '同名变量请按定义位置、编译单元和详情内唯一 ID 区分。清单覆盖全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）及补充声明；未筛出候选不等于已经证明安全。',
-        table(['变量 / 定义 / 类型', '谁在读写', '静态筛选状态', '完整证据'], inventory_rows, 'inventory-table', True),
+    content += panel('inventory', '全部全局 / static 变量清单', '先看变量为什么值得排查和结论；点击变量即可查看执行上下文、真实源码访问与完整调用链。相同源码访问点不会因多个入口重复成行。',
+        table(['变量', '为什么值得看', '结论'], inventory_rows, 'inventory-table', True),
         [('all', '全部变量'), ('candidate', '有静态候选'), ('inventory', '未筛出候选'), ('supplemental', '补充解析')] + decision_options)
     content += panel('gaps', '待补证据：影响判断的覆盖缺口',
         '这些记录不是已确认的变量风险。标有“依赖证据”的第三方路径与目标变量有关，补证据后才能缩小不确定性。',
@@ -685,7 +1089,7 @@ def write_html(out, facts, report, reviews):
         [('all', '全部缺口'), ('scope:target', '目标范围 / 全局缺口'), ('scope:dependency', '相关依赖证据')])
     content += panel('coverage', '覆盖范围与分析限制',
         '这里只覆盖本次构建实际解析到的代码；条件编译关闭的代码需使用对应构建变体另行扫描。', coverage, [])
-    content += '<details class="legend"><summary>新手术语：读、写、读改写、上下文和证据缺口</summary><p>上下文是代码从哪个主循环、中断或硬件入口执行。读（READ）读取值；写（WRITE）更新值；读改写（RMW）先读再计算再写回；取地址（ADDRESS_TAKEN）本身不代表读写。证据缺口表示工具还无法确定某段行为。volatile、static 或出现锁 API 都不能单独证明并发安全。</p></details>'
+    content += '<details class="legend"><summary>新手术语：读、写、读改写、上下文和证据缺口</summary><p>上下文是代码从哪个主循环、中断或硬件入口执行。读取是取值；写入是更新值；读改写是先读再计算再写回；取地址本身不代表读写。证据缺口表示工具还无法确定某段行为。volatile、static 或出现锁 API 都不能单独证明并发安全。</p></details>'
 
     # Preserve every relevant edge without enumerating infinitely many recursive
     # paths. The reverse traversal is lazy and includes alternate call sites.
@@ -763,7 +1167,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         audit = ('<details class="story-audit"><summary>原始证据、执行日志与历史复核</summary>' + error
                  + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
                  + '<details class="evidence"><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details>'
-                 + '<details><summary>静态读写与上下文调用链</summary>' + accesses(f.get('accesses', [])) + '</details>'
+                 + '<details><summary>静态读写与上下文调用链</summary>' + accesses(f.get('accesses', []), 'review-' + f['finding_id']) + '</details>'
                  + raw(r, '原始复核记录（含失效回答 / 错误信息）') + '</details>')
         review_rows[bucket].append(row(['<article class="review-story ' + group + '">' + current + audit + '</article>'],
             ident, group, file=f['definition'].get('file')))
@@ -794,7 +1198,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
             receipt = sample_records[sample['finding_id']]
             sample_rows.append(row([esc(sample['variable_name']), esc(review_label(receipt)),
                 '<a href="index.html#' + anchor('var-',sample['symbol_id']) + '">静态 SAFE 证明与全部访问</a>'
-                + raw(receipt, '抽样复核记录') + accesses(sample.get('accesses', []))],
+                + raw(receipt, '抽样复核记录') + accesses(sample.get('accesses', []), 'sample-' + sample['finding_id'])],
                 anchor('review-',sample['finding_id'])))
         content += '<section id="safe-samples"><h2>SAFE 独立抽样审计</h2><p>不计入风险队列，不改变静态分类；未执行不等于复核安全。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
     content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'

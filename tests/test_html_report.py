@@ -4,7 +4,8 @@ import unittest
 from html.parser import HTMLParser
 from pathlib import Path
 
-from ecra.html_report import REVIEW_PAGE, anchor, write_html, review_label, rule_summary, decision, variable_decisions, risk_overview, snapshot_scenario
+from ecra.html_report import (REVIEW_PAGE, anchor, write_html, review_label, rule_summary, decision,
+                              variable_decisions, risk_overview, snapshot_scenario, to_display_text)
 
 
 class Document(HTMLParser):
@@ -26,6 +27,20 @@ class Document(HTMLParser):
 
 
 class ReportTests(unittest.TestCase):
+    def test_status_display_mapping_never_leaks_known_internal_values(self):
+        expected = {
+            'UNKNOWN_PREEMPTION': '抢占关系无法确认', 'CAN_PREEMPT': '可以抢占',
+            'UNRESOLVED': '尚未确认', 'EFFECTIVE': '保护有效', 'PARTIAL': '分析不完整 / 部分覆盖',
+            'INEFFECTIVE': '保护无效', 'SAFE': '未发现并发风险', 'LIKELY': '疑似并发风险',
+            'CONFIRMED': '已确认并发风险', 'UNKNOWN': '无法判断', 'READ': '读取',
+            'WRITE': '写入', 'RMW': '读改写', 'MAIN': '主循环', 'ISR': '中断',
+            'DMA_ASYNC': 'DMA 异步访问', 'CRITICAL': '最高优先',
+        }
+        for internal, display in expected.items():
+            self.assertEqual(to_display_text(internal), display)
+            self.assertNotEqual(to_display_text(internal), internal)
+        self.assertEqual(to_display_text('UNMODELED_NEW_ENUM'), '未翻译的内部状态（请查看高级静态分析信息）')
+
     def test_snapshot_scenario_requires_matching_source_and_context_evidence(self):
         contexts = {'main': {'kind':'MAIN'}, 'irq': {'kind':'ISR'}}
         def access(kind, function, line, context, path=''):
@@ -84,7 +99,8 @@ class ReportTests(unittest.TestCase):
         access = dict(symbol_id='a::state', function_id='Use', access_kind='RMW', file='app.c', line=5,
                       source_text='state++; /* </script><script>BAD()</script> */', contexts=['task', 'irq'],
                       call_chains={'task': ['Task', 'Left', 'Use'], 'irq': ['ISR', 'Use']},
-                      protection_evidence=[dict(event_kind='lock_exit', line=4)])
+                      all_call_chains={'task': [['Task', 'Left', 'Use']], 'irq': [['ISR', 'Use']]},
+                      access_id='access-1', protection_evidence=[dict(event_kind='lock_exit', line=4)])
         variables = [dict(symbol_id=sid, name='state', qualified_name='state', kind='FILE_STATIC',
                           definition_file=file, definition_line=1, type='unsigned', size_bytes=4,
                           alignment_bytes=4, is_const=False, is_volatile=True, translation_units=[file],
@@ -125,6 +141,11 @@ class ReportTests(unittest.TestCase):
         self.assertIn('lost.c', first)
         self.assertIn('priority', first)
         self.assertIn('lock_exit', first)
+        self.assertIn('access-1', first)
+        self.assertIn('data-deferred-detail="1"', first)
+        self.assertIn('data-detail-template="1"', first)
+        self.assertIn('facts.json', first)
+        self.assertNotIn('all_call_chains', first)
         self.assertNotIn('<script>BAD()', first + second)
         self.assertEqual(len(inventory.scripts), 2)  # inert graph data + local UI
         self.assertTrue(all('src' not in s for s in inventory.scripts + review.scripts))
@@ -160,7 +181,7 @@ class ReportTests(unittest.TestCase):
                       analysis_status='INCOMPLETE', limitations=[])
         record = dict(finding_id='unknown', state='PENDING', status='NEED_MORE_CONTEXT',
                       error='OpenCode 自动复核已关闭；证据包已生成')
-        self.assertEqual(rule_summary(finding)[0][1], 'FUTURE_RULE')
+        self.assertEqual(rule_summary(finding)[0][1], '其它静态分析线索')
         self.assertIn('未启用模型', review_label(record))
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

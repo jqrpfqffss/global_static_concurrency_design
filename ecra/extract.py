@@ -167,6 +167,13 @@ class Extractor:
                                   declarations=[], definitions=[], translation_units=[self.tu_name],
                                   definition_file=None, definition_line=None, initializer=" ".join(tokens(c))[:500],
                                   coverage_source=self.coverage_source)
+                    if record['is_struct']:
+                        # The inventory owns storage at the root symbol, while
+                        # concurrency evidence must be attached to the concrete
+                        # field which is read or written.  Keep the declared
+                        # field layout here so analysis can also represent a
+                        # field affected only by a whole-object operation.
+                        record['member_definitions'] = self.record_members(typ)
                     self.variables[sid] = record
                 if decl not in record["declarations"]:
                     record["declarations"].append(decl)
@@ -182,6 +189,38 @@ class Extractor:
             if self.interesting(child):
                 self.declare(child, function)
 
+    def record_members(self, typ, prefix='', seen=()):
+        """Return declared field paths for a record, including nested records.
+
+        A record field which is itself a record is retained as a container and
+        its children are retained as concrete analysis targets.  The ``seen``
+        guard makes self-referential declarations finite; pointer fields are
+        leaves because their pointee is not inline storage.
+        """
+        canonical = typ.get_canonical()
+        declaration = canonical.get_declaration()
+        key = declaration.get_usr() or declaration.hash
+        if canonical.kind.name != 'RECORD' or key in seen:
+            return []
+        rows = []
+        for field in declaration.get_children():
+            if field.kind.name != 'FIELD_DECL':
+                continue
+            field_type = field.type.get_canonical()
+            path = prefix + field.spelling
+            size, align = field_type.get_size(), field_type.get_align()
+            is_record = field_type.kind.name == 'RECORD'
+            rows.append(dict(field_path=path, name=field.spelling, type=field.type.spelling,
+                             size_bytes=size if size >= 0 else None,
+                             alignment_bytes=align if align >= 0 else None,
+                             is_struct=is_record,
+                             is_const=field_type.is_const_qualified(),
+                             is_volatile=field_type.is_volatile_qualified(),
+                             is_bitfield=field.is_bitfield()))
+            if is_record:
+                rows.extend(self.record_members(field_type, path + '.', (*seen, key)))
+        return rows
+
     def refs(self, c):
         result = []
         for n in walk(c):
@@ -191,7 +230,31 @@ class Extractor:
                     result.append((sid, n))
         return result
 
-    def access_mode(self, ref, ancestors, pointer=False):
+    def reference_paths(self, c):
+        """Return root-symbol/member-path pairs below ``c``.
+
+        ``refs`` intentionally remains a small helper for alias discovery.
+        Assignment classification, however, has to distinguish
+        ``cfg.limit`` from ``cfg.period`` even though they share the same root
+        declaration.  This walker is deliberately local to the expression so
+        an outer assignment cannot change the read nature of a RHS reference.
+        """
+        result = []
+
+        def visit(node, ancestors):
+            if node.kind.name == 'DECL_REF_EXPR' and node.referenced:
+                sid = self.symbols.get(self.key(node.referenced))
+                if sid:
+                    _, path = self.access_mode(node, ancestors,
+                                                self.variables[sid]['is_pointer'])
+                    result.append((sid, path))
+            for index, child in enumerate(node.get_children()):
+                visit(child, ancestors + [(node, index)])
+
+        visit(c, [])
+        return result
+
+    def access_mode(self, ref, ancestors, pointer=False, pointee=False):
         mode, path = "READ", []
         decay = False
         for parent, index in reversed(ancestors):
@@ -201,7 +264,12 @@ class Extractor:
                     decay = True
                 continue
             if k == "MEMBER_REF_EXPR":
-                if pointer or "->" in tokens(parent):
+                # A direct reference to a pointer variable is an access to the
+                # pointer object, not proof of an access to its pointee.  When
+                # processing a resolved alias we deliberately pass
+                # ``pointer=False`` so both ``.`` and ``->`` preserve the
+                # pointee's concrete member path.
+                if pointer:
                     return "READ", ".".join(reversed(path))
                 path.append(parent.spelling)
                 continue
@@ -213,6 +281,10 @@ class Extractor:
                 continue
             if k == "UNARY_OPERATOR":
                 op = operator(parent)
+                if op == "*" and pointee:
+                    # For a resolved local alias, this star selects the
+                    # pointee; the write/read operator is one level above.
+                    continue
                 if op in {"++", "--"}:
                     mode = "RMW"
                 elif op == "&":
@@ -224,7 +296,12 @@ class Extractor:
                 op = operator(parent)
                 if index == 0 and op in {"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "<<=", ">>="}:
                     mode = "WRITE" if op == "=" else "RMW"
-                    if op == "=" and any(s == self.symbols.get(self.key(ref.referenced)) for s, _ in self.refs(children(parent)[1])):
+                    # RMW is a property of one canonical access path, not of a
+                    # storage root.  ``config.limit = config.period * 2`` is a
+                    # WRITE of limit plus a READ of period; only an RHS read of
+                    # the exact same member can make this left side RMW.
+                    if op == "=" and any(s == self.symbols.get(self.key(ref.referenced)) and rhs_path == ".".join(reversed(path))
+                                           for s, rhs_path in self.reference_paths(children(parent)[1])):
                         mode = "RMW"
                 break
             if k == "CALL_EXPR":
@@ -377,6 +454,9 @@ class Extractor:
                              "memset": {0: "WRITE"}, "memcmp": {0: "READ", 1: "READ"}}.get(name, {})
                 for i, arg in enumerate(args):
                     found = {s for s, _ in self.refs(arg)}
+                    paths_by_symbol = {}
+                    for target_sid, target_path in self.reference_paths(arg):
+                        paths_by_symbol.setdefault(target_sid, set()).add(target_path)
                     for x in walk(arg):
                         if x.kind.name == "DECL_REF_EXPR" and x.referenced:
                             found |= aliases.get(self.key(x.referenced), set())
@@ -384,7 +464,13 @@ class Extractor:
                         for sid in found:
                             # A pointer object is read; its pointee remains an alias uncertainty.
                             if not self.variables[sid]["is_pointer"]:
-                                self.add_access(sid, arg, fid, semantics[i], via_api=name, parse_confidence_override="conservative")
+                                # Library APIs inherit the exact field path in
+                                # their argument.  Only ``&config`` is a
+                                # WHOLE_OBJECT_ACCESS; ``&config.period`` must
+                                # remain a write/read of that one member.
+                                for target_path in paths_by_symbol.get(sid, {''}):
+                                    self.add_access(sid, arg, fid, semantics[i], access_path=target_path,
+                                                    via_api=name, parse_confidence_override="conservative")
                     if name and "DMA" in name.upper() and found:
                         for sid in found:
                             # Passing the pointer's value does not make its own
@@ -412,8 +498,13 @@ class Extractor:
                         if parent.kind.name in WRAPPERS:
                             continue
                         if (parent.kind.name == "UNARY_OPERATOR" and operator(parent) == "*") or parent.kind.name in {"ARRAY_SUBSCRIPT_EXPR", "MEMBER_REF_EXPR"}:
-                            above = ancestors[:ancestors.index((parent, index))]
-                            mode, path = self.access_mode(c, above, False)
+                            # ``c`` is an alias variable, not the pointee.  Use
+                            # its complete enclosing expression to retain
+                            # ``p->field`` / ``p->nested.field`` on the original
+                            # storage object.  Truncating at the first member
+                            # expression silently turned those into whole-object
+                            # reads and lost the write/RMW operator above it.
+                            mode, path = self.access_mode(c, ancestors, False, pointee=True)
                             for original in aliases[key]:
                                 self.add_access(original, c, fid, mode, access_path=path, via_alias=c.spelling,
                                                 parse_confidence_override="conservative",

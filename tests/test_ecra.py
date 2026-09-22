@@ -86,7 +86,8 @@ void Task(void){
         vs = {v["name"]: v for v in facts["variables"]}
         self.assertEqual([a["access_kind"] for a in vs["idx"]["accesses"]], ["READ"])
         self.assertIn("WRITE", [a["access_kind"] for a in vs["arr"]["accesses"]])
-        self.assertIn("WRITE", [a["access_kind"] for a in vs["s"]["accesses"]])
+        member = next(v for v in facts['variables'] if v['qualified_name'] == 's.field')
+        self.assertIn("WRITE", [a["access_kind"] for a in member["accesses"]])
         self.assertEqual([a["access_kind"] for a in vs["gp"]["accesses"]], ["READ"])
         self.assertTrue(any(a.get("via_alias") == "p" and a["access_kind"] == "WRITE" for a in vs["g"]["accesses"]))
         self.assertFalse(any(a["line"] == 10 for a in vs["g"]["accesses"]))
@@ -126,6 +127,153 @@ void main(void){ Left(); Right(); }
              next(f['function_id'] for f in facts['functions'] if f['name'] == 'Right'),
              next(f['function_id'] for f in facts['functions'] if f['name'] == 'Use')),
         })
+
+    def test_struct_members_are_canonical_resources_with_all_context_paths(self):
+        """Regression: fields never merge into the record root or each other."""
+        cfg = self.project({'a.c': '''
+typedef unsigned int uint32_t;
+void *memset(void *, int, unsigned long);
+struct Control { uint32_t mode; uint32_t timeout; };
+struct Config { uint32_t period; uint32_t limit; struct Control control; };
+static volatile struct Config active_config;
+void Service_Rx(void) { active_config.limit = 2U * active_config.period; }
+void Config_Update(void) { active_config.period = 7U; active_config.period++; }
+void Control_Check(void) { (void)active_config.period; }
+void Main_A(void) { Service_Rx(); }
+void Main_B(void) { Control_Check(); }
+void Clear_Config(void) { memset((void *)&active_config, 0, sizeof(active_config)); }
+void Clear_Period(void) { memset((void *)&active_config.period, 0, sizeof(active_config.period)); }
+void USART1_IRQHandler(void) { Service_Rx(); Config_Update(); }
+void TIM4_IRQHandler(void) { Control_Check(); }
+void main(void) { Main_A(); Main_B(); Clear_Config(); Clear_Period(); }
+'''}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                 dict(id='usart', kind='ISR', functions=['USART1_IRQHandler']),
+                 dict(id='tim4', kind='ISR', functions=['TIM4_IRQHandler'])])
+        facts, report = self.extract(cfg)
+        by_name = {v['qualified_name']: v for v in facts['variables']}
+        root = by_name['active_config']
+        period, limit = by_name['active_config.period'], by_name['active_config.limit']
+        self.assertEqual(root['resource_kind'], 'STRUCT_CONTAINER')
+        self.assertEqual(period['canonical_path'], 'active_config.period')
+        self.assertNotEqual(period['symbol_id'], root['symbol_id'])
+        self.assertEqual({a['access_kind'] for a in limit['accesses'] if a.get('access_scope') == 'MEMBER_ACCESS'}, {'WRITE'})
+        limit_write = next(a for a in limit['accesses'] if a['function_id'].endswith('Service_Rx')
+                           and a.get('access_scope') == 'MEMBER_ACCESS')
+        same_statement_period = [a for a in period['accesses'] if a['function_id'].endswith('Service_Rx')
+                                 and a['line'] == limit_write['line'] and a.get('access_scope') == 'MEMBER_ACCESS']
+        self.assertEqual([a['access_kind'] for a in same_statement_period], ['READ'])
+        self.assertIn('READ', {a['access_kind'] for a in period['accesses'] if a.get('access_scope') == 'MEMBER_ACCESS'})
+        self.assertIn('WRITE', {a['access_kind'] for a in period['accesses'] if a.get('access_scope') == 'MEMBER_ACCESS'})
+        self.assertIn('RMW', {a['access_kind'] for a in period['accesses'] if a.get('access_scope') == 'MEMBER_ACCESS'})
+        self.assertEqual(set(period['contexts']), {'main', 'usart', 'tim4'})
+        service_read = next(a for a in period['accesses'] if a['function_id'].endswith('Service_Rx')
+                            and a['access_kind'] == 'READ')
+        self.assertEqual({tuple(path) for path in service_read['all_call_chains']['main']}, {
+            tuple(next(f['function_id'] for f in facts['functions'] if f['name'] == name)
+                  for name in ('main', 'Main_A', 'Service_Rx'))})
+        self.assertEqual({tuple(path) for path in service_read['all_call_chains']['usart']}, {
+            tuple(next(f['function_id'] for f in facts['functions'] if f['name'] == name)
+                  for name in ('USART1_IRQHandler', 'Service_Rx'))})
+        self.assertTrue(any(a.get('access_scope') == 'INHERITED_WHOLE_OBJECT_ACCESS'
+                            and a['access_kind'] == 'WRITE' for a in period['accesses']))
+        self.assertTrue(any(a.get('via_api') == 'memset' and a.get('access_scope') == 'MEMBER_ACCESS'
+                            for a in period['accesses']))
+        self.assertEqual(period['access_count'], len(period['accesses']))
+        self.assertEqual(period['resolved_call_path_count'], sum(
+            len(paths) for a in period['accesses'] for paths in a['all_call_chains'].values()))
+        pair = next(pair for pair in period['conflict_pairs'] if pair['may_concurrent'] and pair['has_write_conflict']
+                    and {pair['participant_a']['context_id'], pair['participant_b']['context_id']} == {'main', 'usart'})
+        self.assertGreater(pair['participant_a']['call_path_count'], 0)
+        self.assertGreater(pair['participant_b']['call_path_count'], 0)
+        self.assertEqual(pair['path_combination_count'],
+                         pair['participant_a']['call_path_count'] * pair['participant_b']['call_path_count'])
+        self.assertTrue(any(f['symbol_id'] == period['symbol_id'] for f in report['findings']))
+        from ecra.html_report import write_html
+        write_html(self.root / '.ecra', facts, report, [])
+        page = (self.root / '.ecra' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('active_config.period', page)
+        self.assertIn('执行上下文摘要', page)
+        self.assertIn('全部源码访问与调用链', page)
+        self.assertIn('高级静态分析信息', page)
+        self.assertNotIn('优先排查：并发调用链组合', page)
+        self.assertIn('整对象访问及对成员的继承影响', page)
+        self.assertIn('主循环 main', page)
+        self.assertIn('中断 USART1_IRQHandler', page)
+        self.assertIn('展开全部调用链', page)
+
+    def test_html_source_access_view_groups_multi_irq_paths_without_losing_members(self):
+        """One source expression is rendered once even when four IRQs reach it."""
+        from copy import deepcopy
+        from ecra.html_report import anchor, source_access_views, write_html
+        cfg = self.project({'a.c': '''
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+struct Command { uint32_t sequence; };
+struct Config { uint32_t period; uint32_t limit; };
+static volatile struct Command command_image;
+static volatile struct Config active_config;
+static volatile uint16_t g_msgSp;
+void Service_Rx(void) {
+    command_image.sequence++;
+    command_image.sequence = 1U;
+    active_config.limit = 2U * active_config.period;
+}
+void TIM4_IRQHandler(void) { g_msgSp = 1800U; }
+void ECAT_Task(void) { uint16_t snapshot = g_msgSp; g_msgSp = snapshot; }
+void DMA1_Channel4_IRQHandler(void) { Service_Rx(); }
+void DMA1_Channel5_IRQHandler(void) { Service_Rx(); }
+void USART1_IRQHandler(void) { Service_Rx(); }
+void USART2_IRQHandler(void) { Service_Rx(); }
+void main(void) { ECAT_Task(); }
+'''}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                 dict(id='tim4', kind='ISR', functions=['TIM4_IRQHandler']),
+                 dict(id='dma4', kind='ISR', functions=['DMA1_Channel4_IRQHandler']),
+                 dict(id='dma5', kind='ISR', functions=['DMA1_Channel5_IRQHandler']),
+                 dict(id='usart1', kind='ISR', functions=['USART1_IRQHandler']),
+                 dict(id='usart2', kind='ISR', functions=['USART2_IRQHandler'])])
+        facts, report = self.extract(cfg)
+        by_name = {v['qualified_name']: v for v in facts['variables']}
+        sequence = by_name['command_image.sequence']
+        period, limit, message = (by_name['active_config.period'], by_name['active_config.limit'], by_name['g_msgSp'])
+        sequence_views = source_access_views(sequence['accesses'])
+        self.assertEqual([view['access_kind'] for view in sequence_views], ['RMW', 'WRITE'])
+        self.assertTrue(all(set(view['context_ids']) == {'dma4', 'dma5', 'usart1', 'usart2'}
+                            for view in sequence_views))
+        # Model an older Access × Context projection: the same source fact is
+        # duplicated, but no source row or resolved path may be duplicated.
+        duplicate = deepcopy(sequence['accesses'][0])
+        duplicate['access_id'] += ':context-copy'
+        sequence['accesses'].append(duplicate)
+        sequence['access_count'] += 1
+        sequence['resolved_call_path_count'] += sum(len(paths) for paths in duplicate['all_call_chains'].values())
+        sequence_views = source_access_views(sequence['accesses'])
+        self.assertEqual(len(sequence_views), 2)
+        self.assertEqual(sum(len(paths) for view in sequence_views for paths in view['call_paths'].values()), 8)
+        self.assertEqual({a['access_kind'] for a in limit['accesses'] if a.get('access_scope') == 'MEMBER_ACCESS'}, {'WRITE'})
+        same_line_period = [a for a in period['accesses'] if a.get('access_scope') == 'MEMBER_ACCESS'
+                            and a['line'] == next(a['line'] for a in limit['accesses']
+                                                  if a.get('access_scope') == 'MEMBER_ACCESS')]
+        self.assertEqual({a['access_kind'] for a in same_line_period}, {'READ'})
+        self.assertEqual([view['access_kind'] for view in source_access_views(message['accesses'])],
+                         ['WRITE', 'WRITE', 'READ'])
+        out = self.root / '.ecra'
+        write_html(out, facts, report, [])
+        page = (out / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('执行上下文摘要', page)
+        self.assertIn('全部源码访问与调用链', page)
+        self.assertIn('高级静态分析信息', page)
+        self.assertIn('4 个入口', page)
+        for view in sequence_views:
+            source_id = anchor('source-access-inventory-' + sequence['symbol_id'] + '-', view['key'])
+            self.assertEqual(page.count('id="' + source_id + '"'), 1)
+            start = page.index('id="' + source_id + '"')
+            source_row = page[start:page.index('</tr>', start)]
+            self.assertEqual(source_row.count('data-resolved-call-path="1"'), 4)
+            for paths in view['call_paths'].values():
+                for path in paths:
+                    for function_id in path:
+                        name = next(f['name'] for f in facts['functions'] if f['function_id'] == function_id)
+                        self.assertIn(name, source_row)
 
     def test_isr_preemption_requires_grouping_and_literal_priorities(self):
         facts = dict(functions=[

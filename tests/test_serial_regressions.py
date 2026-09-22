@@ -32,8 +32,10 @@ class SerialRegressionTests(unittest.TestCase):
             void ISR(void) { lifetime++; sample.value=0xababababU; }
         '''})
         facts,report=self.extract(cfg)
-        for name in ('lifetime','sample'):
-            var=next(v for v in facts['variables'] if v['name']==name)
+        # Struct fields are canonical resources.  The byte-wise alias points
+        # at sample.value, not at the whole sample record.
+        for name in ('lifetime','sample.value'):
+            var=next(v for v in facts['variables'] if v.get('qualified_name', v['name'])==name)
             self.assertIn('task',var['readers'])
             self.assertEqual(var['writers'],['isr'])
             self.assertTrue(any(a['access_kind']=='READ' and a.get('via_alias')=='interprocedural points-to' for a in var['accesses']))

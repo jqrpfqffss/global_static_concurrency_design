@@ -216,8 +216,8 @@ class TestSupplementalIsolation(Fixture):
 
 
 class TestFieldDecl(Fixture):
-    def test_struct_fields_are_excluded_from_inventory(self):
-        """Struct/union fields are part of their container, not separate objects."""
+    def test_struct_fields_become_member_resources_not_declarations(self):
+        """Fields remain non-declarations but are independent analysis targets."""
         cfg = self.project({"a.c": """
             struct Packet { int seq; unsigned flag:1; char data[8]; };
             struct Packet pkt;
@@ -226,7 +226,11 @@ class TestFieldDecl(Fixture):
         facts, _ = self.extract(cfg)
         fields = [v for v in facts["variables"] if v["kind"] == "FIELD"]
         self.assertEqual(fields, [])
-        self.assertFalse(any(v["name"] in {"seq", "flag", "data"} for v in facts["variables"]))
+        members = [v for v in facts['variables'] if v.get('resource_kind') == 'STRUCT_MEMBER']
+        self.assertEqual({v['qualified_name'] for v in members}, {'pkt.seq', 'pkt.flag', 'pkt.data'})
+        self.assertEqual({v['root_symbol'] for v in members}, {'pkt'})
+        seq = next(v for v in members if v['qualified_name'] == 'pkt.seq')
+        self.assertEqual({v['access_kind'] for v in seq['accesses']}, {'RMW'})
         self.assertIn("pkt", {v["name"] for v in facts["variables"]})
 
 

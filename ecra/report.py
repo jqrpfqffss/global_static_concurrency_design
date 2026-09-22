@@ -41,6 +41,9 @@ def write_database(path, facts, report):
 def generate(out, facts, report, reviews):
     from .html_report import category, review_records, write_html, risk_summary, final_conclusion
     from .scope import validate_selection
+    from .analysis import compact_conflict_pair_storage
+    compact_conflict_pair_storage(facts.get('variables', []))
+    compact_conflict_pair_storage(report.get('findings', []))
     validate_selection(facts, report)
     records = review_records(report, reviews)
     records_by_id = {r['finding_id']: r for r in records}
