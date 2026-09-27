@@ -32,6 +32,9 @@ class Fixture(unittest.TestCase):
         (self.root / ".ecra").mkdir()
 
     def setup_run(self, sources, contexts=None, **analysis):
+        # This suite explicitly exercises the optional repository inventory;
+        # these declarations never become active-target review candidates.
+        analysis.setdefault('build_closure_only', False)
         entries = []
         for name, text in sources.items():
             path = self.root / name
@@ -50,6 +53,9 @@ class Fixture(unittest.TestCase):
         run(self.root, no_review=True)
         facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
         report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+        outside = {v['symbol_id'] for v in facts['variables']
+                   if v.get('static_classification') == 'OUT_OF_BUILD'}
+        self.assertFalse(any(f.get('symbol_id') in outside for f in report['findings']))
         return facts, report
 
     def project(self, sources, contexts=None, **analysis):
@@ -136,7 +142,7 @@ class TestInactiveBranches(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json"),
+        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -157,7 +163,7 @@ class TestInactiveBranches(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-I.", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json"),
+        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -182,7 +188,7 @@ class TestSupplementalIsolation(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json"),
+        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -203,7 +209,7 @@ class TestSupplementalIsolation(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json"),
+        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))

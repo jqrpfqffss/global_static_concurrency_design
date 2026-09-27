@@ -191,15 +191,18 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         facts = merge(parts)
         facts['translation_units'] = units
         from .supplemental import supplement, selected_files, build_file_coverage
-        all_supplemental_tus, supplemental_includes = supplement(
-            root, out, facts, units, cfg, scope, worker_dir, env, tool_root, progress)
+        all_supplemental_tus, supplemental_includes = ([], set())
+        if not cfg['analysis'].get('build_closure_only', True):
+            all_supplemental_tus, supplemental_includes = supplement(
+                root, out, facts, units, cfg, scope, worker_dir, env, tool_root, progress)
         all_includes.update(supplemental_includes)
         facts['translation_units'] = units + all_supplemental_tus
         included_paths = {relative(p, root) for u in units for p in u.get('includes', [])}
         unlisted_headers = [p for p in selected_files(root, scope, out)
                             if Path(p).suffix.lower() in {'.h', '.hh', '.hpp', '.hxx', '.inc'} and p not in included_paths]
-        compilation['unlisted_headers'] = unlisted_headers
-        if unlisted_headers:
+        compilation['unlisted_headers'] = unlisted_headers if not cfg['analysis'].get('build_closure_only', True) else []
+        compilation['excluded_headers_from_build'] = unlisted_headers
+        if unlisted_headers and not cfg['analysis'].get('build_closure_only', True):
             facts['unknowns'].append(dict(kind='HEADERS_NOT_INCLUDED', files=unlisted_headers,
                 hint='已尝试补充声明盘点；这些头文件不属于当前构建的访问证据。'))
         after = file_hashes(root, out, [config_file, compilation['compile_database'],

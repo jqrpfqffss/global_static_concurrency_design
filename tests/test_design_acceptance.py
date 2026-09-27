@@ -19,9 +19,9 @@ EXPECTED = {
     'D05': ('value','SUSPECT','NOT_FOUND'), 'D06': ('value','SUSPECT','NOT_FOUND'),
     'D07': ('value','SUSPECT','NOT_FOUND'), 'D08': ('value','SAFE','EFFECTIVE'),
     'D09': ('value','SUSPECT','PARTIAL'), 'D10': ('value','SAFE','EFFECTIVE'),
-    'D11': ('value','UNKNOWN','UNRESOLVED'), 'D12': ('value','UNKNOWN','NOT_FOUND'),
+    'D11': ('value','SUSPECT','UNRESOLVED'), 'D12': ('value','SUSPECT','NOT_FOUND'),
     'D13': ('value','SAFE','NOT_FOUND'), 'D14': ('value','UNKNOWN','NOT_FOUND'),
-    'D15': ('value','UNKNOWN','NOT_FOUND'), 'D16': ('value','SAFE','EFFECTIVE'),
+    'D15': ('value[0]','SUSPECT','NOT_FOUND'), 'D16': ('value','SAFE','EFFECTIVE'),
     'D17': ('value','SUSPECT','NOT_FOUND'), 'D18': ('value','SUSPECT','INEFFECTIVE'),
     'D19': ('value','SUSPECT','NOT_FOUND'), 'D20': ('value','SUSPECT','NOT_FOUND'),
 }
@@ -50,7 +50,11 @@ class DesignCases(unittest.TestCase):
         target = next(v for v in facts['variables'] if v['name']==name)
         self.assertEqual(target['static_classification'],classification,target)
         self.assertEqual(target['protection_status'],protection,target)
-        self.assertEqual(target['analysis_coverage'], 'PARTIAL' if classification=='UNKNOWN' else 'COMPLETE')
+        # Known conflicts remain SUSPECT even when protection or DMA lifetime
+        # coverage is partial.  D12's unrelated indirect call is not a gap for
+        # value and therefore leaves that variable's coverage complete.
+        partial = classification == 'UNKNOWN' or case in {'D11', 'D15'}
+        self.assertEqual(target['analysis_coverage'], 'PARTIAL' if partial else 'COMPLETE')
         if classification == 'SAFE':
             self.assertTrue(target['safe_reason'])
             self.assertTrue(target['safe_evidence'])
@@ -83,7 +87,8 @@ class DesignCases(unittest.TestCase):
         reviews = review_all(self.root,out,cfg,facts,report,'design-fixture',progress=lambda _:None)
         generate(out,facts,report,reviews)
         queued = {f['symbol_id'] for f in report['findings'] if f.get('symbol_id')}
-        self.assertEqual(queued,{v['symbol_id'] for v in facts['variables'] if v['static_classification']!='SAFE'})
+        self.assertEqual(queued,{v['symbol_id'] for v in facts['variables']
+                                 if v['static_classification'] in {'SUSPECT', 'UNKNOWN'}})
         html = (out/'index.html').read_text(encoding='utf-8')
         review_html = (out/'opencode_review.html').read_text(encoding='utf-8')
         self.assertIn(anchor('var-',target['symbol_id']),html)
@@ -95,7 +100,7 @@ class DesignCases(unittest.TestCase):
             packet = json.loads((out/'review'/f"{f['finding_id']}.input.json").read_text(encoding='utf-8'))
             self.assertEqual(packet['finding']['accesses'],f['accesses'])
         with closing(sqlite3.connect(out/'facts.db')) as db:
-            self.assertEqual(db.execute('SELECT COUNT(*) FROM variables').fetchone()[0],counts['total'])
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM variables WHERE static_classification IN ('SAFE','SUSPECT','UNKNOWN')").fetchone()[0],counts['total'])
             self.assertEqual(db.execute('SELECT COUNT(*) FROM accesses').fetchone()[0],len(access_ids))
 
 
@@ -209,11 +214,11 @@ class PriorityAdversarial(unittest.TestCase):
 
     def test_uncalled_priority_setup_is_not_evidence(self):
         self.variant(lambda s:s.replace('int main(void)', 'int Configure(void)').replace('__set_BASEPRI(0x50);',
-            'return 0;} int main(void){__set_BASEPRI(0x50);'), 'UNKNOWN','UNRESOLVED')
+            'return 0;} int main(void){__set_BASEPRI(0x50);'), 'SUSPECT','UNRESOLVED')
 
     def test_conditional_priority_setup_is_not_evidence(self):
         self.variant(lambda s:s.replace('HAL_NVIC_SetPriority(TIM4_IRQn,PRIORITY,0);',
-            'if(value)HAL_NVIC_SetPriority(TIM4_IRQn,PRIORITY,0);'), 'UNKNOWN','UNRESOLVED')
+            'if(value)HAL_NVIC_SetPriority(TIM4_IRQn,PRIORITY,0);'), 'SUSPECT','UNRESOLVED')
 
 
 class SafeSampleIntegration(unittest.TestCase):

@@ -27,7 +27,9 @@ class CompleteInventoryTests(unittest.TestCase):
                         arguments=['clang', *(arguments or ['-I'+str(self.root)]), '-c', str(self.root / p)]) for p in compiled]
         (self.root/'compile_commands.json').write_text(json.dumps(entries))
         (self.root/'.ecra').mkdir(exist_ok=True)
-        cfg = dict(version=1, analysis=dict(compile_database='compile_commands.json', **(analysis or {})),
+        inventory_analysis = dict(analysis or {})
+        inventory_analysis.setdefault('build_closure_only', False)
+        cfg = dict(version=1, analysis=dict(compile_database='compile_commands.json', **inventory_analysis),
                    contexts=[dict(id='main',kind='MAIN',functions=['main'])], review=dict(enabled=False))
         (self.root/'.ecra/semantics.yaml').write_text(json.dumps(cfg))
         with contextlib.redirect_stdout(io.StringIO()):
@@ -36,6 +38,9 @@ class CompleteInventoryTests(unittest.TestCase):
         out = self.root/cfg['analysis'].get('output_dir','.ecra')
         self.facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
         self.report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+        outside = {v['symbol_id'] for v in self.facts['variables']
+                   if v.get('static_classification') == 'OUT_OF_BUILD'}
+        self.assertFalse(any(f.get('symbol_id') in outside for f in self.report['findings']))
         self.html=(out/'index.html').read_text(encoding='utf-8')
         return self.facts['variables']
 
@@ -76,8 +81,8 @@ int main(void){
         local=next(v for v in vs if v['name']=='local_hidden')
         self.assertEqual(local['kind'],'LOCAL_STATIC')
         self.assertEqual(local['coverage_source'],'inactive_branch')
-        decision=next(v for v in self.report['risk_summary']['variables'] if v['symbol_id']==local['symbol_id'])
-        self.assertEqual(decision['decision'],'supplemental')
+        self.assertEqual(local['static_classification'], 'OUT_OF_BUILD')
+        self.assertFalse(any(v['symbol_id']==local['symbol_id'] for v in self.report['risk_summary']['variables']))
 
     def test_header_real_tu_context_relative_includes(self):
         build=self.root/'build';build.mkdir()
@@ -123,12 +128,16 @@ int main(void){
         cov={c['file']:c for c in self.report['coverage']['file_coverage']}
         self.assertEqual(cov['h.h']['parse_status'],'PARTIAL')
 
-    def test_unrelated_parse_failure_does_not_pollute_variable_coverage(self):
+    def test_failed_active_tu_can_name_external_storage(self):
         vs = self.scan({'main.c': 'int g; int main(void){ g++; return 0; }',
                         'broken.c': '#include "missing.h"\nint unrelated;'} )
         g = next(v for v in vs if v['name'] == 'g')
-        self.assertEqual(g['analysis_coverage'], 'COMPLETE')
-        self.assertEqual(g['static_classification'], 'SAFE')
+        # The missing header belongs to the active target and may contain an
+        # extern reference to g. Unlike a non-escaped file-static, exported
+        # storage is not isolated from this genuinely missing active TU.
+        self.assertEqual(g['analysis_coverage'], 'PARTIAL')
+        self.assertEqual(g['static_classification'], 'UNKNOWN')
+        self.assertIn('UNKNOWN_RELEVANT_MISSING_TU', g['unknown_reason_codes'])
         self.assertEqual(self.report['analysis_status'], 'INCOMPLETE')
 
     def test_vendor_prototype_cannot_hide_user_parameter(self):

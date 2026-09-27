@@ -27,7 +27,7 @@ class ScreeningTests(unittest.TestCase):
         facts, report = self.extract(cfg)
         vars = {v['name']: v for v in facts['variables']}
         self.assertEqual(vars['dead']['screening_reason'], 'UNREACHABLE_ACCESSORS')
-        self.assertEqual(vars['readonly']['screening_reason'], 'ONLY_READS')
+        self.assertEqual(vars['readonly']['screening_reason'], 'UNREACHABLE_ACCESSORS')
         self.assertEqual(vars['unused']['screening_reason'], 'NO_RUNTIME_ACCESSES')
         self.assertEqual(vars['dead']['accesses'][0]['reachability'], 'PROVEN_UNREACHABLE')
         self.assertEqual(report['coverage']['unknown_accesses'], 0)
@@ -42,9 +42,11 @@ class ScreeningTests(unittest.TestCase):
         facts, _ = self.extract(cfg)
         vars = {v['name']: v for v in facts['variables']}
         self.assertEqual(vars['private_state']['screening_reason'], 'SINGLE_ACCESS_SITE')
-        self.assertEqual(vars['readonly']['screening_reason'], 'ONLY_READS')
-        self.assertIn('EXTERNAL_CALLEE', vars['exported']['screening_blockers'])
-        self.assertIsNone(vars['exported']['screening_reason'])
+        self.assertEqual(vars['readonly']['screening_reason'], 'UNREACHABLE_ACCESSORS')
+        self.assertNotIn('EXTERNAL_CALLEE', vars['exported']['screening_blockers'])
+        self.assertEqual(vars['exported']['static_classification'], 'SAFE')
+        self.assertEqual(vars['exported']['safe_reason_code'], 'SAFE_READ_ONLY')
+        self.assertTrue(any(u['kind'] == 'EXTERNAL_CALLEE' for u in facts['unknowns']))
 
     def test_escaped_and_attributed_functions_are_not_dead(self):
         cfg = self.project({'a.c': '''
@@ -84,18 +86,22 @@ class ScreeningTests(unittest.TestCase):
         self.assertEqual(variables['normal']['screening_reason'], 'SINGLE_ACCESS_SITE')
         self.assertEqual(report['coverage']['assembly_sources'], ['startup.s'])
 
-    def test_supplemental_and_missing_definition_have_variable_review_items(self):
-        self.project({'a.c': 'extern int missing; int main(void){return missing;}',
+    def test_supplemental_inventory_is_separate_from_missing_definition_queue(self):
+        cfg = self.project({'a.c': 'extern int missing; int main(void){return missing;}',
                       'orphan.h': 'static int orphan;'},
                      contexts=[dict(id='main',kind='MAIN',functions=['main'])])
+        cfg['analysis']['build_closure_only'] = False
+        (self.root/'.ecra/semantics.yaml').write_text(json.dumps(cfg), encoding='utf-8')
         with patch('builtins.print'):
             self.assertEqual(run(self.root,no_review=True),2)
         out = self.root/'.ecra'
         facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
         report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
-        self.assertEqual({f['symbol_id'] for f in report['findings'] if f.get('symbol_id')},
-                         {v['symbol_id'] for v in facts['variables']})
+        reviewed = {f['symbol_id'] for f in report['findings'] if f.get('symbol_id')}
+        self.assertEqual(reviewed, {v['symbol_id'] for v in facts['variables'] if v['name'] == 'missing'})
         self.assertEqual({v['name'] for v in facts['variables']},{'missing','orphan'})
+        orphan = next(v for v in facts['variables'] if v['name'] == 'orphan')
+        self.assertEqual(orphan['static_classification'], 'OUT_OF_BUILD')
 
     def test_local_pointees_and_function_dereferences_do_not_poison_globals(self):
         cfg = self.project({'a.c': '''

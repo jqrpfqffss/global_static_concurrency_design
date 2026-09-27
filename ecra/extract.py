@@ -2,6 +2,7 @@
 import fnmatch
 import ctypes
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -120,6 +121,10 @@ class Extractor:
             if c.is_definition():
                 f = dict(function_id=self.fid(c), name=c.spelling, qualified_name=c.displayname,
                          linkage=c.linkage.name, is_static=c.linkage.name == "INTERNAL",
+                         is_weak=any(ch.kind.name in {'WEAK_ATTR', 'WEAK_IMPORT_ATTR'}
+                                     or (ch.kind.name.endswith('_ATTR') and tokens(ch)[:1] == ['weak'])
+                                     for ch in c.get_children()),
+                         translation_unit=self.tu_name,
                          entry_attributes=[ch.kind.name for ch in c.get_children()
                                            if ch.kind.name.endswith('_ATTR')],
                          parameter_count=sum(1 for _ in c.get_arguments()),
@@ -162,11 +167,21 @@ class Extractor:
                                   alignment_bytes=align if align >= 0 else None,
                                   is_const=typ.is_const_qualified() or (is_array and typ.element_type.is_const_qualified()),
                                   is_volatile=typ.is_volatile_qualified(), is_array=is_array,
+                                  array_size=typ.element_count if typ.kind.name == 'CONSTANTARRAY' else None,
+                                  owner_function_id=self.fid(function) if local else None,
                                   is_pointer=typ.kind.name in {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"},
                                   is_struct=typ.kind.name == "RECORD", is_bitfield_container=bitfield,
+                                  is_union=type_decl.kind.name == 'UNION_DECL',
                                   declarations=[], definitions=[], translation_units=[self.tu_name],
                                   definition_file=None, definition_line=None, initializer=" ".join(tokens(c))[:500],
                                   coverage_source=self.coverage_source)
+                    sections = [token.strip('"') for attr in c.get_children()
+                                if attr.kind.name == 'SECTION_ATTR' or
+                                attr.kind.name.endswith('_ATTR') and tokens(attr)[:1] == ['section']
+                                for token in tokens(attr)
+                                if token.startswith('"')]
+                    if sections:
+                        record['linker_section'] = sections[0]
                     if record['is_struct']:
                         # The inventory owns storage at the root symbol, while
                         # concurrency evidence must be attached to the concrete
@@ -174,6 +189,14 @@ class Extractor:
                         # field layout here so analysis can also represent a
                         # field affected only by a whole-object operation.
                         record['member_definitions'] = self.record_members(typ)
+                    if is_array:
+                        element = typ.element_type.get_canonical()
+                        record.update(array_element_type=element.spelling,
+                                      array_element_size_bytes=max(0, element.get_size()),
+                                      array_element_is_struct=element.kind.name == 'RECORD',
+                                      array_element_is_union=element.get_declaration().kind.name == 'UNION_DECL')
+                        if element.kind.name == 'RECORD':
+                            record['member_definitions'] = self.record_members(element)
                     self.variables[sid] = record
                 if decl not in record["declarations"]:
                     record["declarations"].append(decl)
@@ -189,7 +212,7 @@ class Extractor:
             if self.interesting(child):
                 self.declare(child, function)
 
-    def record_members(self, typ, prefix='', seen=()):
+    def record_members(self, typ, prefix='', seen=(), base_offset_bits=0, union_groups=()):
         """Return declared field paths for a record, including nested records.
 
         A record field which is itself a record is retained as a container and
@@ -202,6 +225,8 @@ class Extractor:
         key = declaration.get_usr() or declaration.hash
         if canonical.kind.name != 'RECORD' or key in seen:
             return []
+        if declaration.kind.name == 'UNION_DECL':
+            union_groups = (*union_groups, prefix.rstrip('.') or '$root')
         rows = []
         for field in declaration.get_children():
             if field.kind.name != 'FIELD_DECL':
@@ -210,15 +235,31 @@ class Extractor:
             path = prefix + field.spelling
             size, align = field_type.get_size(), field_type.get_align()
             is_record = field_type.kind.name == 'RECORD'
+            offset_bits = field.get_field_offsetof()
+            absolute_offset = base_offset_bits + offset_bits if offset_bits >= 0 and base_offset_bits is not None else None
+            is_array = 'ARRAY' in field_type.kind.name
             rows.append(dict(field_path=path, name=field.spelling, type=field.type.spelling,
                              size_bytes=size if size >= 0 else None,
                              alignment_bytes=align if align >= 0 else None,
                              is_struct=is_record,
+                             is_union=field_type.get_declaration().kind.name == 'UNION_DECL',
+                             is_array=is_array,
+                             array_size=field_type.element_count if field_type.kind.name == 'CONSTANTARRAY' else None,
+                             offset_bits=absolute_offset,
+                             bit_width=field.get_bitfield_width() if field.is_bitfield() else None,
+                             union_groups=list(union_groups),
                              is_const=field_type.is_const_qualified(),
                              is_volatile=field_type.is_volatile_qualified(),
                              is_bitfield=field.is_bitfield()))
             if is_record:
-                rows.extend(self.record_members(field_type, path + '.', (*seen, key)))
+                rows.extend(self.record_members(field_type, path + '.', (*seen, key), absolute_offset, union_groups))
+            if is_array:
+                element = field_type.element_type.get_canonical()
+                rows[-1].update(array_element_type=element.spelling,
+                                array_element_size_bytes=max(0, element.get_size()),
+                                array_element_is_struct=element.kind.name == 'RECORD')
+                if element.kind.name == 'RECORD':
+                    rows.extend(self.record_members(element, path + '[*].', (*seen, key), absolute_offset, union_groups))
         return rows
 
     def refs(self, c):
@@ -270,14 +311,16 @@ class Extractor:
                 # ``pointer=False`` so both ``.`` and ``->`` preserve the
                 # pointee's concrete member path.
                 if pointer:
-                    return "READ", ".".join(reversed(path))
+                    return "READ", ".".join(path)
                 path.append(parent.spelling)
                 continue
             if k == "ARRAY_SUBSCRIPT_EXPR":
                 if index != 0 or pointer:
-                    return "READ", ".".join(reversed(path))
+                    return "READ", ".".join(path)
                 decay = False  # The decayed base is consumed by an element access.
-                path.append("[]")
+                indices = children(parent)
+                value = constant_value(indices[1]) if len(indices) > 1 else None
+                path.append('[' + (str(value) if value is not None else '*') + ']')
                 continue
             if k == "UNARY_OPERATOR":
                 op = operator(parent)
@@ -300,7 +343,7 @@ class Extractor:
                     # storage root.  ``config.limit = config.period * 2`` is a
                     # WRITE of limit plus a READ of period; only an RHS read of
                     # the exact same member can make this left side RMW.
-                    if op == "=" and any(s == self.symbols.get(self.key(ref.referenced)) and rhs_path == ".".join(reversed(path))
+                    if op == "=" and any(s == self.symbols.get(self.key(ref.referenced)) and rhs_path == ".".join(path)
                                            for s, rhs_path in self.reference_paths(children(parent)[1])):
                         mode = "RMW"
                 break
@@ -313,7 +356,7 @@ class Extractor:
             break
         if mode == "READ" and decay:
             mode = "ADDRESS_TAKEN"
-        return mode, ".".join(reversed(path))
+        return mode, ".".join(path)
 
     def add_access(self, sid, c, fid, mode, **extra):
         if mode is None:
@@ -442,7 +485,9 @@ class Extractor:
                 # tokens so analysis can use literal, reproducible cases and
                 # report all other cases as unresolved.
                 if name in {'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_SetPriorityGrouping',
-                            'NVIC_SetPriorityGrouping'}:
+                            'NVIC_SetPriorityGrouping', 'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ',
+                            'NVIC_DisableIRQ', 'HAL_NVIC_DisableIRQ', 'SysTick_Config',
+                            'HAL_SYSTICK_Config'}:
                     self.irq_priority_events.append(dict(function_id=fid, api_name=name,
                         arguments=[' '.join(tokens(arg)) for arg in args],
                         argument_values=[constant_value(arg) for arg in args],
@@ -471,13 +516,6 @@ class Extractor:
                                 for target_path in paths_by_symbol.get(sid, {''}):
                                     self.add_access(sid, arg, fid, semantics[i], access_path=target_path,
                                                     via_api=name, parse_confidence_override="conservative")
-                    if name and "DMA" in name.upper() and found:
-                        for sid in found:
-                            # Passing the pointer's value does not make its own
-                            # storage a DMA buffer. The solver models pointees,
-                            # including &pointer when that is the real buffer.
-                            if not self.variables[sid]['is_pointer']:
-                                self.issue("DMA_SHARED_REVIEW", c, fid, symbol_id=sid, api=name)
             if k == "DECL_REF_EXPR" and c.referenced:
                 key = self.key(c.referenced)
                 sid = self.symbols.get(key)
@@ -487,8 +525,8 @@ class Extractor:
                                     conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
                                                                                    'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
                                                                for parent, _ in ancestors))
-                    if mode == "ADDRESS_TAKEN":
-                        self.issue("ADDRESS_ESCAPE", c, fid, symbol_id=sid)
+                    # Taking an address is not itself an escape. The pointer
+                    # solver follows this value to actual opaque consumers.
                 elif key in snapshots:
                     for original in snapshots[key]:
                         self.snapshots.append(dict(symbol_id=original, function_id=fid, local_name=c.spelling,
@@ -520,6 +558,18 @@ class Extractor:
                     self.issue("POINTER_SUBSCRIPT", c, fid)
             if "ASM" in k:
                 self.issue("INLINE_ASSEMBLY", c, fid)
+                explicit = {sid for sid, _ in self.refs(c)}
+                literals = ' '.join(token for token in tokens(c) if token.startswith('"'))
+                identifiers = set(re.findall(r'\b[A-Za-z_]\w*\b', literals))
+                explicit.update(sid for sid, variable in self.variables.items()
+                                if variable['name'] in identifiers)
+                for sid in sorted(explicit):
+                    self.issue('INLINE_ASSEMBLY', c, fid, symbol_id=sid,
+                               reason='Inline assembly explicitly references this storage or operand')
+                for target, function in self.functions.items():
+                    if function['name'] in identifiers:
+                        self.issue('ASSEMBLY_FUNCTION_REFERENCE', c, fid, target_function_id=target,
+                                   reason='Inline assembly explicitly names this function')
             for i, ch in enumerate(c.get_children()):
                 visit(ch, ancestors + [(c, i)])
         visit(fn, [])
@@ -587,7 +637,10 @@ class Extractor:
                     # resolves this particular function-address use.
                     if (self.loc(c)["file"], c.location.offset, self.fid(c.referenced)) in self.task_reference_sites:
                         continue
-                    self.issue("FUNCTION_ADDRESS", c, target_function_id=self.fid(c.referenced))
+                    loc = self.loc(c)
+                    owner = next((f['function_id'] for f in self.functions.values()
+                                  if f['file'] == loc['file'] and f['offset'] <= loc['offset'] <= f['end_offset']), '')
+                    self.issue("FUNCTION_ADDRESS", c, owner, target_function_id=self.fid(c.referenced))
         includes = sorted({str(Path(i.include.name).resolve()) for i in tu.get_includes()})
         for a in self.accesses:
             a["parse_confidence"] = a.pop("parse_confidence_override", a["parse_confidence"])

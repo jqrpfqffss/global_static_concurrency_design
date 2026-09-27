@@ -102,8 +102,10 @@ class ScopeCMakeTest(unittest.TestCase):
         facts['unknowns'].extend([dict(kind='EXTERNAL_CALLEE',file='Vendor/hal.c',line=1,function_id=dispatch),
                                  dict(kind='PARSE_FAILED',file='Vendor/broken.c')])
         report = analyze(facts,cfg,dict(translation_units_failed=1, **audit))
-        self.assertTrue(any(f['variable_name']=='EXTERNAL_CALLEE' for f in report['findings']))
-        self.assertTrue(any(f['variable_name']=='PARSE_FAILED' for f in report['findings']))
+        self.assertTrue(any(u['kind']=='EXTERNAL_CALLEE' for u in report['coverage']['project_diagnostics']))
+        self.assertTrue(any(u['kind']=='PARSE_FAILED' for u in report['coverage']['project_diagnostics']))
+        self.assertTrue(all(f.get('symbol_id') for f in report['findings']))
+        self.assertEqual(facts['variables'][0]['unknown_reason_codes'], ['UNKNOWN_RELEVANT_MISSING_TU'])
         self.assertEqual(report['analysis_status'],'INCOMPLETE')
 
     def test_unlisted_user_code_retained_vendor_code_not_missing(self):
@@ -112,7 +114,8 @@ class ScopeCMakeTest(unittest.TestCase):
         (self.root/'Vendor').mkdir()
         (self.root/'Vendor/not_built.c').write_text('int library;')
         _,audit=prepare(self.root,cfg)
-        self.assertEqual(audit['unlisted_sources'],['App/forgotten.c'])
+        self.assertEqual(audit['unlisted_sources'], [])
+        self.assertEqual(audit['excluded_from_build'], ['App/forgotten.c'])
 
     def test_scope_validation_and_empty_selection_never_reports_complete(self):
         cfg=self.fixture({'App/main.c':'int count;int main(void){return count;}'},include_dirs=['Missing'])
@@ -122,7 +125,8 @@ class ScopeCMakeTest(unittest.TestCase):
         facts,report=self.extract(cfg)
         self.assertEqual(facts['variables'],[])
         self.assertEqual(report['analysis_status'],'INCOMPLETE')
-        self.assertTrue(any(f['variable_name']=='EMPTY_AUDIT_SCOPE' for f in report['findings']))
+        self.assertTrue(any(u['kind']=='EMPTY_AUDIT_SCOPE' for u in report['coverage']['project_diagnostics']))
+        self.assertEqual(report['findings'], [])
         for bad in ('App', ['App/*'], ['']):
             cfg['analysis']['include_dirs']=bad
             self.save(cfg)
@@ -221,7 +225,8 @@ class ScopeCMakeTest(unittest.TestCase):
         forgotten = external/'forgotten.c';forgotten.write_text('int shared;')
         cfg=self.fixture({'App/main.c':'int main(void){return 0;}'},include_dirs=['App',str(external)])
         _,audit=prepare(self.root,cfg)
-        self.assertIn(forgotten.as_posix(),audit['unlisted_sources'])
+        self.assertIn(forgotten.as_posix(),audit['excluded_from_build'])
+        self.assertEqual(audit['unlisted_sources'], [])
         hashes=file_hashes(self.root,self.root/'.ecra',audit_roots=AuditScope(self.root,cfg['analysis']).includes)
         self.assertIn(forgotten.as_posix(),hashes)
 

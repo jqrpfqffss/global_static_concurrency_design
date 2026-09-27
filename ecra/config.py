@@ -51,6 +51,8 @@ project:
   concurrency_model: single_core_preemptive
   native_word_bits: 32
 analysis:
+  build_closure_only: true  # 只分析当前固件；false 额外盘点未编译声明，但不将它们送入并发复核
+  max_unknown_fanout_debug: 50
   compile_database: auto  # 或 build/compile_commands.json
   auto_configure_cmake: false
   cmake_build_dir: build
@@ -126,6 +128,8 @@ project:
   core: Cortex-M
   native_word_bits: 32
 analysis:
+  build_closure_only: true
+  max_unknown_fanout_debug: 50
   # 只排查这些目录中定义的变量；多个目录取并集，递归包含子目录。
   include_dirs: [.]  # 例如 [Core/Src, Core/Inc, App]
   exclude_dirs: [Drivers, Middlewares, ThirdParty, build, .ecra]
@@ -213,7 +217,7 @@ def load_config(root=None, path=None):
         if not isinstance(c.get('id'), str) or not c['id'].strip() or c["id"] in ids:
             raise ValueError("context id 缺失或重复")
         ids.add(c["id"])
-        if c.get("kind") not in {"ISR", "TASK", "MAIN", "CALLBACK", "DMA", "CORE"}:
+        if c.get("kind") not in {"ISR", "TASK", "MAIN", "CALLBACK", "DMA", "CORE", "FOREGROUND", "IRQ", "EXTERNAL_ASYNC", "UNKNOWN_CONTEXT"}:
             raise ValueError(f"未知上下文类型 {c.get('kind')}")
         for field in ("functions", "patterns", "regex"):
             if field in c and (not isinstance(c[field], list) or any(not isinstance(x, str) for x in c[field])):
@@ -223,7 +227,7 @@ def load_config(root=None, path=None):
                 re.compile(pattern)
             except re.error as exc:
                 raise ValueError(f'contexts.regex 无效: {pattern}: {exc}') from exc
-        for flag in ('enabled', 'reentrant'):
+        for flag in ('enabled', 'reentrant', 'asynchronous'):
             if flag in c and type(c[flag]) is not bool:
                 raise ValueError(f'contexts.{flag} 必须是 true/false')
     for rel in cfg["concurrency"]:
@@ -273,6 +277,16 @@ def load_config(root=None, path=None):
         if key in {'include_dirs', 'exclude_dirs', 'exclude_files'} and any(not x.strip() or any(c in x for c in '*?[]') for x in value):
             raise ValueError(f'analysis.{key} 请填写非空目录路径，不使用通配符；目录自动递归匹配')
     a = cfg['analysis']
+    a.setdefault('build_closure_only', True)
+    closure = a.get('build_closure', {})
+    if not isinstance(closure, dict):
+        raise ValueError('analysis.build_closure 必须是映射')
+    for key in ('linked_sources', 'linked_objects', 'missing_objects'):
+        if key in closure and (not isinstance(closure[key], list) or any(not isinstance(p, str) or not p.strip() for p in closure[key])):
+            raise ValueError(f'analysis.build_closure.{key} 必须是非空路径字符串列表')
+    fanout = a.get('max_unknown_fanout_debug', 50)
+    if type(fanout) is not int or fanout < 1:
+        raise ValueError('analysis.max_unknown_fanout_debug 必须是正整数')
     if 'cmake' in a:
         c = a['cmake']
         if not isinstance(c, dict):
@@ -304,7 +318,8 @@ def load_config(root=None, path=None):
         if type(value) is not int or value < 0:
             raise ValueError(f"review.{name} 必须是非负整数")
     for section, key in (("analysis", "auto_contexts"), ("analysis", "auto_configure_cmake"),
-                         ('analysis', 'auto_system_includes'), ('analysis', 'open_report'), ("review", "enabled")):
+                         ('analysis', 'auto_system_includes'), ('analysis', 'open_report'),
+                         ('analysis', 'build_closure_only'), ("review", "enabled")):
         if key in cfg[section] and type(cfg[section][key]) is not bool:
             raise ValueError(f"{section}.{key} 必须是 true/false")
     for key, value in cfg["api_patterns"].items():

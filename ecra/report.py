@@ -70,7 +70,7 @@ def generate(out, facts, report, reviews):
             by_symbol[f['symbol_id']].append(records_by_id[f['finding_id']])
     terminal = sum(all(category(r) in {'confirmed', 'safe'} for r in group) for group in by_symbol.values())
     report['review_summary']['variable_coverage'] = dict(
-        total=len(facts['variables']),
+        total=report.get('coverage', {}).get('static_classification', {}).get('total', len(facts['variables'])),
         statically_screened=sum(v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK' for v in facts['variables']),
         queued=len(by_symbol), terminal=terminal, remaining=len(by_symbol)-terminal)
     report['risk_summary'] = risk_summary(facts, report, records_by_id)
@@ -100,7 +100,7 @@ def generate(out, facts, report, reviews):
         inventory += [f"- 静态分类：{v.get('static_classification', 'UNKNOWN')}；依据：{v.get('classification_reason', '尚未证明')}",
                       f"- 分析覆盖率：{v.get('analysis_coverage', 'PARTIAL')}；缺口：{', '.join(v.get('coverage_reasons', [])) or '无'}",
                       f"- 保护：{v.get('protection_status', 'NOT_FOUND')}；说明：{v.get('protection_note', '无')}",
-                      f"- 安全筛除依据：{v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
+                      f"- 安全筛除依据：{v.get('safe_reason_code') or v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
                       f"- 不可达函数中的访问：{v.get('unreachable_access_count', 0)} 处（保留原始证据）"]
         for a in v.get("accesses", []):
             inventory.append(f"- {a['access_kind']} {location(a)} `{a['source_text']}`")
@@ -124,6 +124,16 @@ def generate(out, facts, report, reviews):
     static = cov.get('static_classification', {})
     if static:
         md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE {static.get('safe', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
+    causes = ["# 变量相关 UNKNOWN 根因", "",
+              f"UNKNOWN 比例：{cov.get('unknown_percent', 0)}%；诊断阈值 10% 仅触发分析，不改变判定标准。", "",
+              "| 原因 | 变量数 |", "|---|---:|"]
+    causes += [f"| {cell(code)} | {count} |" for code, count in
+               sorted(cov.get('unknown_reason_distribution', {}).items(), key=lambda pair: (-pair[1], pair[0]))]
+    causes += ["", "## 阻塞项传播", "", "| blocker | 位置 | fanout | 诊断 |", "|---|---|---:|---|"]
+    causes += [f"| {cell(item['kind'])} | {cell(location(item))} | {item['blocker_fanout']} | {cell(item['diagnostic'])} |"
+               for item in cov.get('blocker_fanout', [])]
+    causes += ["", "完整变量、源码位置和相关性解释保存在 facts.json 的 variable_evidence_slice / blocking_evidence。"]
+    (out / 'reports/unknown_root_causes.md').write_text('\n'.join(causes), encoding='utf-8')
     summary = report['risk_summary']
     md[2:2] = ['## 与 HTML 一致的变量风险结论', '',
         '| 已确认风险 | 疑似并发风险 | 无法判断 | 已复核安全 / 误报 | 已排查不存在并发风险 | 未发现静态线索 | 补充声明 |',

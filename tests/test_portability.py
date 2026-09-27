@@ -101,7 +101,7 @@ class EntryAndSafetyTests(unittest.TestCase):
         self.assertTrue(next(c for c in facts['contexts'] if c['id']=='callbacks')['reentrant'])
         self.assertTrue(any('GS-MULTI-WRITER' in f['rules'] for f in report['findings']))
 
-    def test_bad_registration_is_visible_and_blocks_safety(self):
+    def test_unrelated_bad_registration_is_visible_without_tainting_private_variable(self):
         cfg = self.project({'a.c': '''
             void Install(void (*)(void)); static int count;
             void main(void){Install((void (*)(void))0x1000); count++;}
@@ -110,7 +110,10 @@ class EntryAndSafetyTests(unittest.TestCase):
                                       dict(api='TypoInstall',callback_arg=1,kind='ISR')]
         facts, _ = self.extract(cfg)
         self.assertTrue({'UNRESOLVED_REGISTERED_ENTRY','UNMATCHED_ENTRY_REGISTRATION'} <= {u['kind'] for u in facts['unknowns']})
-        self.assertNotEqual(next(v for v in facts['variables'] if v['name']=='count')['audit_status'], 'SCREENED_NO_CONCURRENCY_RISK')
+        count = next(v for v in facts['variables'] if v['name']=='count')
+        self.assertEqual(count['static_classification'], 'SAFE')
+        self.assertEqual(count['safe_reason_code'], 'SAFE_SINGLE_FOREGROUND')
+        self.assertEqual(count['screening_blockers'], [])
 
     def test_overlapping_registration_cannot_erase_reentrancy(self):
         cfg = self.project({'a.c': 'void Install(void (*)(void)); static int count; void A(void){count++;} void main(void){Install(A);}'},
@@ -121,14 +124,16 @@ class EntryAndSafetyTests(unittest.TestCase):
         self.assertTrue(next(c for c in facts['contexts'] if c['id']=='callbacks')['reentrant'])
         self.assertIn('AMBIGUOUS_ENTRY_REGISTRATION', {u['kind'] for u in facts['unknowns']})
 
-    def test_missing_compilation_unit_blocks_apparently_read_only_variable(self):
+    def test_unselected_translation_unit_does_not_add_a_runtime_writer(self):
         cfg = self.project({'a.c': 'int shared; int main(void){return shared;}'},
                            contexts=[dict(id='main',kind='MAIN',functions=['main'])])
         (self.root/'missing.c').write_text('extern int shared; void TIM2_IRQHandler(void){shared=1;}',encoding='utf-8')
         facts, _ = self.extract(cfg)
         shared = next(v for v in facts['variables'] if v['name']=='shared')
-        self.assertIn('SOURCE_NOT_IN_DATABASE', shared['screening_blockers'])
-        self.assertEqual(shared['audit_status'], 'REVIEW_REQUIRED')
+        self.assertNotIn('SOURCE_NOT_IN_DATABASE', shared['screening_blockers'])
+        self.assertEqual(shared['static_classification'], 'SAFE')
+        self.assertEqual(shared['safe_reason_code'], 'SAFE_READ_ONLY')
+        self.assertEqual(shared['writers'], [])
 
     def test_explicit_serial_context_with_multiple_roots_is_not_reentrant(self):
         cfg = self.project({'a.c':'static int count; void A(void){count++;} void B(void){count++;}'},

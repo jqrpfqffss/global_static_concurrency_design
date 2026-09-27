@@ -354,6 +354,8 @@ def decision(finding, record):
     reviewed = category(record)
     if reviewed != 'unresolved':
         return reviewed
+    if finding.get('static_classification') in {'SUSPECT', 'UNKNOWN'}:
+        return 'likely' if finding['static_classification'] == 'SUSPECT' else 'unresolved'
     return 'likely' if set(finding.get('rules', [])) & CONCURRENT_SIGNALS else 'unresolved'
 
 
@@ -369,7 +371,7 @@ def variable_decisions(facts, report, records):
         if v.get('coverage_source') in ('supplemental', 'inactive_branch'):
             resolved = [g for g in groups[sid] if g in {'confirmed', 'safe'}]
             result[sid] = min(resolved, key=priority.index) if resolved and len(resolved) == len(groups[sid]) else 'supplemental'
-        elif v.get('parse_status') == 'FAILED':
+        elif v.get('parse_status') == 'FAILED' and v.get('static_classification') != 'SUSPECT':
             result[sid] = 'unresolved'
         elif groups[sid]:
             result[sid] = min(groups[sid], key=priority.index)
@@ -383,8 +385,11 @@ def variable_decisions(facts, report, records):
 def risk_summary(facts, report, records):
     """One variable-level interpretation shared by HTML and machine exports."""
     decisions = variable_decisions(facts, report, records)
-    counts = Counter(decisions.values())
-    return dict(total_variables=len(decisions), counts={key: counts[key] for key in DECISIONS},
+    targets = [v for v in facts['variables'] if v.get('static_classification') not in {'CONTAINER', 'OUT_OF_BUILD'}
+               and v.get('resource_kind') not in {'STRUCT_MEMBER_CONTAINER'}]
+    counts = Counter(decisions[v['symbol_id']] for v in targets)
+    return dict(total_variables=len(targets), counts={key: counts[key] for key in DECISIONS},
+                inventory_rows=len(decisions),
                 labels={key: value[0] for key, value in DECISIONS.items()},
                 independent_gaps=sum(not f.get('symbol_id') for f in report['findings']),
                 basis='静态线索与有效复核共同分类；疑似不等于已确认，未发现线索不等于安全。',
@@ -392,7 +397,7 @@ def risk_summary(facts, report, records):
                     definition_file=v.get('definition_file'), definition_line=v.get('definition_line'),
                     kind=v.get('kind'), coverage_source=v.get('coverage_source', 'compile_database'),
                     decision=decisions[v['symbol_id']], label=DECISIONS[decisions[v['symbol_id']]][0])
-                    for v in facts['variables']])
+                    for v in targets])
 
 
 def snapshot_scenario(finding, contexts):
@@ -791,6 +796,15 @@ def write_html(out, facts, report, reviews):
         return text
 
     def variable_explanation(variable, views, finding_list):
+        if variable.get('static_classification') == 'SAFE':
+            return ('静态已判安全', variable.get('classification_reason', ''), '')
+        if variable.get('static_classification') == 'OUT_OF_BUILD':
+            return ('未参与当前固件构建', variable.get('classification_reason', ''), '')
+        if variable.get('static_classification') == 'UNKNOWN':
+            gaps = variable.get('blocking_evidence', [])
+            detail = '；'.join(str(g.get('file') or '?') + ':' + str(g.get('line') or '?')
+                + ' ' + g.get('relevance', '') for g in gaps[:5])
+            return ('无法判断', variable.get('classification_reason', ''), detail)
         rules = {rule for finding in finding_list for rule in finding.get('rules', [])}
         by_kind = defaultdict(set)
         for view in views:
@@ -888,7 +902,7 @@ def write_html(out, facts, report, reviews):
         primary = dict(file=v.get('definition_file'), line=v.get('definition_line')) if v.get('definition_file') else next(iter(sites), {})
         files = sorted({d['file'] for d in sites if d.get('file')} | ({primary['file']} if primary.get('file') else set()))
         is_supplemental = v.get('coverage_source') in ('supplemental', 'inactive_branch')
-        is_container = v.get('resource_kind') == 'STRUCT_CONTAINER'
+        is_container = v.get('resource_kind') in {'STRUCT_CONTAINER', 'ARRAY_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}
         detail_body = '<p>类型：' + esc(v.get('type')) + ' · 大小：' + esc(v.get('size_bytes')) + ' 字节 · volatile：' + ('是' if v.get('is_volatile') else '否') + ' · const：' + ('是' if v.get('is_const') else '否') + '</p>'
         if is_supplemental:
             detail_body += '<p class="notice">补充声明盘点：来自未编译文件或条件分支变体，不代表当前构建中已分析其并发访问。</p>'
@@ -912,6 +926,9 @@ def write_html(out, facts, report, reviews):
             views = source_access_views(v.get('accesses', []))
             conclusion, reason, focus = variable_explanation(v, views, candidates[sid])
             detail_body += '<h3>一句话结论</h3><p><strong>' + esc(conclusion) + '</strong></p><p>' + esc(reason) + '</p>'
+            if v.get('safe_reason_code'):
+                detail_body += '<p>静态证明：<code>' + esc(v['safe_reason_code']) + '</code></p>' + raw(v.get('safe_evidence'), '查看安全证明依据')
+            detail_body += '<p>变量证据覆盖：' + esc(v.get('analysis_coverage', 'PARTIAL')) + '</p>'
             if focus:
                 detail_body += '<p class="notice"><strong>排查重点</strong><br>' + esc(focus) + '</p>'
             detail_body += '<h3>执行上下文摘要</h3>' + context_summary(views)
@@ -928,7 +945,7 @@ def write_html(out, facts, report, reviews):
             conclusion = '查看成员级结论'
         else:
             conclusion, why, _ = variable_explanation(v, list_views, candidates[sid])
-        if v.get('parse_status') == 'FAILED':
+        if v.get('parse_status') == 'FAILED' and v.get('static_classification') != 'SUSPECT':
             conclusion, why = '无法判断', '解析不完整：只保留已恢复声明，可能仍有漏项，不能判定安全。'
         inventory_rows.append(row(['<a class="item-name" href="#' + anchor('var-', sid) + '">' + esc(v['qualified_name'])
             + '</a><span class="location">' + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
@@ -1047,6 +1064,9 @@ def write_html(out, facts, report, reviews):
         coverage += '<h3>变量静态分类归账</h3>' + metrics([('变量总数', static.get('total', 0)),
             ('未发现并发风险', static.get('safe', 0)), ('疑似并发风险', static.get('suspect', 0)),
             ('无法判断', static.get('unknown', 0))])
+        coverage += '<h3>UNKNOWN 传播诊断</h3>' + raw(cov.get('blocker_fanout', []), 'blocker_fanout 与逐变量相关性证明')
+        coverage += raw(cov.get('safe_reason_distribution', {}), 'SAFE 证明分布')
+        coverage += raw(cov.get('unknown_reason_distribution', {}), 'UNKNOWN 关键缺口分布')
     problems = [row(['未进入编译数据库的源码', esc(p)]) for p in cov.get('unlisted_sources', [])]
     problems += [row(['未纳入的头文件', esc(p)]) for p in cov.get('unlisted_headers', [])]
     problems += [row(['解析失败', esc(u.get('source_file')) + raw(u.get('diagnostics', []), '查看失败原因')])

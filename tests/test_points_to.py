@@ -47,7 +47,9 @@ class PointerTests(unittest.TestCase):
         '''})
         facts, report = self.extract(cfg)
         v = next(v for v in facts['variables'] if v['name'] == 'samples')
-        self.assertEqual(set(v['writers']), {'task', 'dma_rx'})
+        dma_contexts = {c['id'] for c in facts['hardware_contexts'] if c['direction'] == 'rx'}
+        self.assertEqual(len(dma_contexts), 1)
+        self.assertEqual(set(v['writers']), {'task'} | dma_contexts)
         self.assertTrue(any(a.get('via_api') == 'memset' and a['access_kind'] == 'WRITE' for a in v['accesses']))
         self.assertIn('DMA_SHARED_REVIEW', next(f for f in report['findings'] if f.get('symbol_id') == v['symbol_id'])['rules'])
 

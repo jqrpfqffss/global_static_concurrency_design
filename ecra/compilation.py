@@ -163,7 +163,10 @@ def normalize(entry, root, analysis):
         if arg in {"-o", "-MF", "-MT", "-MQ", "-MJ"}:
             removed.append(arg)
             skip_next = True
-        elif arg in {"-c", "-S", "-E", "-MD", "-MMD", "-MP", "-MG"}:
+        elif arg in {"-c", "-S", "-E", "-MD", "-MMD", "-MP", "-MG", "-Werror"} or arg.startswith('-Werror='):
+            # GCC/Clang have different warning catalogs. Warning promotion is
+            # a build policy, not C semantics; genuine parser errors remain
+            # errors. Record the removed flag with the original command.
             removed.append(arg)
         elif any(arg.startswith(p) and len(arg) > len(p) for p in ("-o", "-MF", "-MT", "-MQ", "-MJ")):
             removed.append(arg)
@@ -274,12 +277,29 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     if not isinstance(entries, list) or not entries:
         raise ValueError("编译数据库必须是非空数组")
     units, ignored, assembly_sources = [], [], []
+    closure = a.get('build_closure', {})
+    linked_sources = closure.get('linked_sources')
+    linked_objects = closure.get('linked_objects')
+    def absolute(value, directory=root):
+        return str((Path(directory) / value).resolve()).casefold()
+    source_filter = {absolute(p) for p in linked_sources} if linked_sources is not None else None
+    object_filter = {absolute(p) for p in linked_objects} if linked_objects is not None else None
     include_cache = {}
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
         unit = normalize(entry, root, a)
         unit["tu_id"] = f"TU-{i:05d}"
+        # A target's actual link inputs narrow a multi-target compile database.
+        # Paths come from build evidence, never name/path heuristics.
+        args = unit['original_arguments']
+        obj = entry.get('output')
+        if not obj and '-o' in args and args.index('-o') + 1 < len(args):
+            obj = args[args.index('-o') + 1]
+        if ((source_filter is not None and absolute(unit['source']) not in source_filter)
+                or (object_filter is not None and (not obj or absolute(obj, unit['directory']) not in object_filter))):
+            ignored.append(unit['source_file'])
+            continue
         if Path(unit['source']).suffix.lower() == '.s' and not excluded(unit['source_file'], a.get('exclude', [])):
             assembly_sources.append(unit['source_file'])
         if excluded(unit["source_file"], a.get("exclude", [])) or Path(unit['source']).suffix.lower() not in {'.c', '.cc', '.cpp', '.cxx'}:
@@ -316,7 +336,11 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     covered = {u["source_file"] for u in units}
     return units, dict(project_root=str(root), compile_database=str(candidates[0]), candidates=list(map(str, candidates)),
                        selection_reason='managed cmake' if 'cmake' in a else ("explicit" if configured != "auto" else "unique candidate"),
-                       unlisted_sources=sorted(set(sources) - covered),
+                       unlisted_sources=sorted(set(sources) - covered) if not a.get('build_closure_only', True) else [],
+                       excluded_from_build=sorted(set(sources) - covered),
+                       build_closure=dict(closure, source='linked_inputs' if source_filter is not None or object_filter is not None
+                           else 'compile_database', translation_units=sorted(covered),
+                           complete=not bool(closure.get('missing_objects')), missing_objects=closure.get('missing_objects', [])),
                        assembly_sources=sorted(set(assembly_sources)),
                        excluded_sources=sorted(set(ignored + excluded_sources)), cmake_log=cmake_log, cmake_steps=cmake_steps,
                        dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'])

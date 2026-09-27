@@ -1,5 +1,5 @@
 """Serialize Clang pointer expressions without retaining native AST objects."""
-from .extract import FUNCTIONS, WRAPPERS, children, operator, walk
+from .extract import FUNCTIONS, WRAPPERS, children, operator, walk, constant_value
 
 
 class PointerExtractor:
@@ -9,6 +9,11 @@ class PointerExtractor:
         self.function = ''
         self.parameters = {}
         self.atomic_macros = {}
+
+    def constraint(self, left, right, node):
+        self.constraints.append(dict(left=left, right=right, function_id=self.function,
+                                     aggregate=node.type.get_canonical().kind.name == 'RECORD',
+                                     **self.e.loc(node)))
 
     def key(self, decl):
         if decl.kind.name == 'PARM_DECL':
@@ -45,8 +50,9 @@ class PointerExtractor:
                 loc = self.lvalue(cs[0])
             return dict(op='field', base=loc, field=node.spelling)
         if k == 'ARRAY_SUBSCRIPT_EXPR' and cs:
-            # Arrays are index-insensitive; all elements retain the owning object.
-            return dict(op='deref', value=self.value(cs[0]))
+            index = constant_value(cs[1]) if len(cs) > 1 else None
+            return dict(op='index', base=dict(op='deref', value=self.value(cs[0])),
+                        index=str(index) if index is not None else '*')
         return dict(op='empty')
 
     def value(self, node):
@@ -72,8 +78,24 @@ class PointerExtractor:
             return loc
         if k in {'CONDITIONAL_OPERATOR', 'BINARY_CONDITIONAL_OPERATOR', 'INIT_LIST_EXPR'}:
             return dict(op='union', items=[self.value(c) for c in cs])
+        if k == 'BINARY_OPERATOR' and operator(node) in {'+', '-'} and len(cs) == 2:
+            pointer = next((i for i, child in enumerate(cs)
+                            if child.type.get_canonical().kind.name == 'POINTER'
+                            or 'ARRAY' in child.type.get_canonical().kind.name), None)
+            if pointer is not None:
+                amount = constant_value(cs[1 - pointer])
+                if operator(node) == '-' and amount is not None:
+                    amount = -amount
+                return dict(op='offset', value=self.value(cs[pointer]),
+                            index=str(amount) if amount is not None else '*')
         if k == 'BINARY_OPERATOR' and operator(node) in {'+', '-', ','}:
             return dict(op='union', items=[self.value(c) for c in cs])
+        if typ in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'}:
+            # Preserve incomplete provenance even when a second assignment
+            # supplies known may-targets for the same pointer.
+            if constant_value(node) == 0:
+                return dict(op='empty')
+            return dict(op='unknown', id=self.e.tu_name + ':' + str(node.location.offset))
         return dict(op='empty')
 
     def result(self, node):
@@ -112,10 +134,19 @@ class PointerExtractor:
                         position += 1
                 return
             if 'ARRAY' in canonical.kind.name:
+                position = 0
                 for init in cs:
-                    self.initializer(loc, canonical.element_type, init)
+                    parts = children(init)
+                    # Clang exposes designated [index] initializers as an
+                    # unexposed expression containing the index and value.
+                    if init.kind.name == 'UNEXPOSED_EXPR' and len(parts) > 1:
+                        designated = constant_value(parts[0])
+                        if designated is not None:
+                            position, init = designated, parts[-1]
+                    self.initializer(dict(op='index', base=loc, index=str(position)), canonical.element_type, init)
+                    position += 1
                 return
-        self.constraints.append(dict(left=loc, right=self.value(node)))
+        self.constraint(loc, self.value(node), node)
 
     def mode(self, ancestors):
         for parent, index in reversed(ancestors):
@@ -148,15 +179,33 @@ class PointerExtractor:
             if init:
                 self.initializer(dict(op='loc', id=self.key(node)), node.type, init)
         if k == 'BINARY_OPERATOR' and operator(node) == '=' and len(cs) == 2:
-            self.constraints.append(dict(left=self.lvalue(cs[0]), right=self.value(cs[1])))
+            right = self.value(cs[1])
+            if right.get('op') == 'offset' and self.lvalue(cs[0]) == right['value']:
+                # A flow-insensitive recurrence p=p+1 can visit an arbitrary
+                # number of elements. Widen once instead of silently stopping
+                # at a fixed propagation count or inventing an unbounded set.
+                right['index'] = '*'
+            self.constraint(self.lvalue(cs[0]), right, node)
+        if k == 'UNARY_OPERATOR' and operator(node) in {'++', '--'} and cs and cs[0].type.get_canonical().kind.name == 'POINTER':
+            self.constraint(self.lvalue(cs[0]), dict(op='offset', value=self.value(cs[0]), index='*'), node)
         if k == 'RETURN_STMT' and cs and self.function:
-            self.constraints.append(dict(left=dict(op='loc', id=self.function + ':return'), right=self.value(cs[0])))
+            self.constraint(dict(op='loc', id=self.function + ':return'), self.value(cs[0]), cs[0])
         if k == 'CALL_EXPR' and self.function:
             ref = node.referenced
             direct = ref is not None and ref.kind.name in FUNCTIONS
             self.calls.append(dict(function_id=self.function, target=self.e.fid(ref) if direct else None,
                 expression=self.value(cs[0]) if cs else dict(op='empty'), name=ref.spelling if direct else node.spelling,
                 arguments=[self.value(arg) for arg in node.get_arguments()], result=self.result(node),
+                argument_aggregates=[arg.type.get_canonical().kind.name == 'RECORD' for arg in node.get_arguments()],
+                returns_pointer=node.type.get_canonical().kind.name in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'},
+                returns_aggregate=node.type.get_canonical().kind.name == 'RECORD',
+                source_text=self.e.source(node), **self.e.loc(node)))
+        if 'ASM' in k and self.function:
+            expressions = [child for child in cs if child.kind.is_expression()]
+            self.calls.append(dict(function_id=self.function, target=None,
+                expression=dict(op='unknown', id='asm:' + str(node.location.offset)), name='<inline assembly>',
+                arguments=[self.value(expr) for expr in expressions],
+                result=self.result(node), returns_pointer=False, inline_assembly=True,
                 source_text=self.e.source(node), **self.e.loc(node)))
         dynamic = (k == 'UNARY_OPERATOR' and operator(node) == '*'
                    and node.type.get_canonical().kind.name not in {'FUNCTIONPROTO', 'FUNCTIONNOPROTO'})

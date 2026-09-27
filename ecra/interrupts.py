@@ -24,7 +24,7 @@ def priority_model(facts, cfg):
         args = e.get('arguments', [])
         if e['api_name'].endswith('PriorityGrouping'):
             groups.append(e)
-        elif args:
+        elif args and e['api_name'] in {'NVIC_SetPriority', 'HAL_NVIC_SetPriority'}:
             by_irq[irq_key(args[0])].append(e)
     if len(groups) != 1:
         return {}, 'NVIC 分组缺失或存在多次/动态配置。'

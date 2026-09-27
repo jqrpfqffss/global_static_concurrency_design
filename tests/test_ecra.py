@@ -379,7 +379,7 @@ void main(void){ int old; __disable_irq(); old=g; __enable_irq(); g=old+1; }
         g = next(v for v in facts['variables'] if v['name'] == 'g')
         self.assertEqual(g['protection_status'], 'PARTIAL')
         self.assertEqual(g['static_classification'], 'SUSPECT')
-        # BASEPRI is a separate unknown in an otherwise equivalent source.
+        # Unknown BASEPRI effectiveness cannot erase an already known conflict.
         cfg = self.project({"b.c": """int b; void __set_BASEPRI(unsigned);
 void ISR(void){ b++; } void main(void){ __set_BASEPRI(0x50); b++; }
 """}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
@@ -387,7 +387,8 @@ void ISR(void){ b++; } void main(void){ __set_BASEPRI(0x50); b++; }
         facts, _ = self.extract(cfg)
         b = next(v for v in facts['variables'] if v['name'] == 'b')
         self.assertEqual(b['protection_status'], 'UNRESOLVED')
-        self.assertEqual(b['static_classification'], 'UNKNOWN')
+        self.assertEqual(b['static_classification'], 'SUSPECT')
+        self.assertTrue(b['conflict_pairs'])
 
     def test_basepri_literal_threshold_is_effective_only_with_complete_nvic_facts(self):
         cfg = self.project({'a.c': '''enum { TIM4_IRQn = 30 };
@@ -441,7 +442,8 @@ void main(int ready){ if (ready) __disable_irq(); g++; __enable_irq(); }
         (self.root / "forgotten.c").write_text("int forgotten;", encoding="utf-8")
         cfg["analysis"]["expected_defines"] = ["STM32H747xx"]
         units, audit = prepare(self.root, cfg)
-        self.assertEqual(audit["unlisted_sources"], ["forgotten.c"])
+        self.assertEqual(audit["unlisted_sources"], [])
+        self.assertIn('forgotten.c', audit['excluded_from_build'])
         self.assertEqual(units[0]["missing_defines"], ["STM32H747xx"])
 
     def test_response_file_and_paths_with_spaces(self):
@@ -473,7 +475,7 @@ void Task(void){int *p=arr; p[0]=1;}
         vs = {v["name"]: v for v in facts["variables"]}
         self.assertTrue(any(a["access_kind"] == "RMW" for a in vs["g"]["accesses"]))
         self.assertTrue(any(a["access_kind"] == "ADDRESS_TAKEN" for a in vs["arr"]["accesses"]))
-        self.assertTrue(any(u["kind"] == "STATIC_INITIALIZER_REFERENCE" for u in facts["unknowns"]))
+        self.assertTrue(any(u["kind"] == "STATIC_INITIALIZER_REFERENCE" for u in facts["resolved_pointer_facts"]))
 
     def test_cpp_namespaces_and_static_members(self):
         cfg = self.project({"a.cpp": """namespace A {int state;} namespace B {int state;}
@@ -602,14 +604,15 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.assertEqual([v["symbol_id"] for v in facts1["variables"]], [v["symbol_id"] for v in facts2["variables"]])
         self.assertEqual([f["finding_id"] for f in report1["findings"]], [f["finding_id"] for f in report2["findings"]])
 
-    def test_clean_run_and_unincluded_header_gate(self):
+    def test_clean_run_excludes_headers_outside_current_build(self):
         self.project({"a.c": "const int table=3; int main(void){return table;}"},
                      contexts=[dict(id="main", kind="MAIN", functions=["main"])])
         self.assertEqual(run(self.root, no_review=True), 0)
         (self.root / "orphan.h").write_text("static int hidden;", encoding="utf-8")
-        self.assertEqual(run(self.root, no_review=True), 2)
+        self.assertEqual(run(self.root, no_review=True), 0)
         report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
-        self.assertEqual(report["coverage"]["unlisted_headers"], ["orphan.h"])
+        self.assertEqual(report["coverage"]["unlisted_headers"], [])
+        self.assertEqual(report['findings'], [])
         self.assertTrue(list((self.root / ".ecra/snapshots").iterdir()))
 
     def test_corrupt_review_cache_is_reprocessed(self):

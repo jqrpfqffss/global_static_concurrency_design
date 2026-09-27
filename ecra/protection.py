@@ -245,6 +245,7 @@ def assess(accesses, events, contexts, facts, cfg):
     funcs = {f['function_id']: f for f in facts['functions']}
     unmaskable = any(funcs.get(b['function_id'], {}).get('name') in {'NMI_Handler', 'HardFault_Handler'}
                      for b in facts['context_bindings'] if b['call_depth'] == 0 and b['context_id'] in isrs)
+    unmaskable |= any(contexts[c].get('unmaskable') for c in isrs)
     main_accesses = [a for a in relevant if set(a.get('contexts', [])) & mains]
     complete = all(a.get('contexts') for a in relevant) and all(
         any(s['context_id'] == c and s.get('complete') for s in a.get('mask_states', []))
