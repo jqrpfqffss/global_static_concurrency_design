@@ -5,6 +5,7 @@ nesting counter. Calls use their CFG and all return paths; recursion, missing
 bodies, unsupported control flow and unordered expressions invalidate proof.
 """
 from collections import defaultdict, deque
+from itertools import combinations
 
 
 NEUTRAL = {'__DMB', '__DSB', '__ISB', 'memcpy', 'memmove', 'memset', 'memcmp',
@@ -224,32 +225,70 @@ class MaskAnalysis:
             for (sid, cid), rows in self.windows.items() for row in rows]
 
 
-def assess(accesses, events, contexts, facts, cfg):
+# Route-ancestor index shared by analyze() for the per-variable assessment
+# loop. Derived data, deliberately kept out of facts so reports never
+# serialize this large per-function cache. The owner check keeps a stale
+# index from a previous/aborted analysis leaking into standalone assess()
+# calls that use different facts.
+_ROUTE_ANCESTORS = None
+_ROUTE_ANCESTORS_OWNER = None
+
+
+def set_route_ancestors(index, facts):
+    global _ROUTE_ANCESTORS, _ROUTE_ANCESTORS_OWNER
+    _ROUTE_ANCESTORS = index
+    _ROUTE_ANCESTORS_OWNER = facts
+
+
+def assess(accesses, events, contexts, facts, cfg, relation_index=None,
+           mask_windows_by_symbol=None, unmaskable_contexts=None):
     relevant = [a for a in accesses if a['access_kind'] in {'READ', 'WRITE', 'RMW'}]
     ids = {c for a in relevant for c in a.get('contexts', [])}
     mains = {c for c in ids if contexts[c]['kind'] == 'MAIN'}
     isrs = {c for c in ids if contexts[c]['kind'] == 'ISR'}
+    # analyze() precomputes the union of all route functions per access
+    # function; re-walking every route per variable is quadratic on large
+    # call graphs. Fall back to the route walk when the index is absent.
+    ancestors_by_function = _ROUTE_ANCESTORS if facts is _ROUTE_ANCESTORS_OWNER else None
+    ancestors_by_function = ancestors_by_function or {}
     related = {a['function_id'] for a in relevant}
     for a in relevant:
-        for paths in a.get('all_call_chains', {}).values():
-            related.update(f for path in paths for f in path)
-    detected = [e for fid in related for e in events.get(fid, [])]
+        ancestors = ancestors_by_function.get(a['function_id'])
+        if ancestors is not None:
+            related.update(ancestors)
+        else:
+            for paths in a.get('all_call_chains', {}).values():
+                related.update(f for path in paths for f in path)
+    # ``related`` can span most of the call graph while ``events`` only holds
+    # functions that actually contain protection operations; iterate the
+    # smaller table.
+    detected = [e for fid, evs in events.items() if fid in related for e in evs]
     details = [dict(access_id=a['access_id'], file=a['file'], line=a['line'],
                     states=a.get('mask_states', [])) for a in relevant]
     if not detected:
         return 'NOT_FOUND', details, '未发现关联路径上的同步或中断屏蔽操作。'
     if all(e.get('protection_type') == 'barrier' for e in detected):
         return 'INEFFECTIVE', details, 'DMB/DSB/ISB 只约束内存或指令顺序，不屏蔽中断，也不提供互斥。'
-    windows = [w for w in facts.get('mask_windows', []) if relevant and
-               w['symbol_id'] == relevant[0]['symbol_id'] and w['context_id'] in mains]
-    funcs = {f['function_id']: f for f in facts['functions']}
-    unmaskable = any(funcs.get(b['function_id'], {}).get('name') in {'NMI_Handler', 'HardFault_Handler'}
-                     for b in facts['context_bindings'] if b['call_depth'] == 0 and b['context_id'] in isrs)
+    window_rows = (mask_windows_by_symbol or {}).get(relevant[0]['symbol_id']) if relevant else None
+    if window_rows is None:
+        window_rows = [w for w in facts.get('mask_windows', []) if relevant and
+                       w['symbol_id'] == relevant[0]['symbol_id']]
+    windows = [w for w in window_rows if w['context_id'] in mains]
+    if unmaskable_contexts is None:
+        funcs = {f['function_id']: f for f in facts['functions']}
+        unmaskable_contexts = {b['context_id'] for b in facts['context_bindings']
+                               if b['call_depth'] == 0
+                               and funcs.get(b['function_id'], {}).get('name')
+                               in {'NMI_Handler', 'HardFault_Handler'}}
+    unmaskable = bool(isrs & set(unmaskable_contexts))
     main_accesses = [a for a in relevant if set(a.get('contexts', [])) & mains]
     complete = all(a.get('contexts') for a in relevant) and all(
         any(s['context_id'] == c and s.get('complete') for s in a.get('mask_states', []))
         for a in main_accesses for c in set(a['contexts']) & mains)
-    isr_pairs = [r for r in facts.get('preemption_relations', []) if set(r['contexts']) <= isrs]
+    if relation_index is not None:
+        isr_pairs = [relation_index[pair] for pair in combinations(sorted(isrs), 2)]
+    else:
+        isr_pairs = [r for r in facts.get('preemption_relations', []) if set(r['contexts']) <= isrs]
     participants = bool(mains and isrs) and ids == mains | isrs and not unmaskable
     participants &= all(r['relation'] == 'SERIAL' for r in isr_pairs)
     primask = bool(windows) and all(w['primask'] for w in windows)

@@ -538,9 +538,9 @@ class Extractor:
         tu = index.parse(self.unit["source"], args=self.unit["arguments"],
                          unsaved_files=unsaved,
                          options=ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
-        diagnostics = [dict(severity=d.severity, message=str(d)) for d in tu.diagnostics]
+        diagnostics = self._diagnostic_rows(tu)
         self.declare(tu.cursor)
-        parse_status = "FAILED" if any(d["severity"] >= 3 for d in diagnostics) else "PARSED"
+        parse_status = "FAILED" if self._has_source_errors(diagnostics) else "PARSED"
         for v in self.variables.values():
             v["parse_status"] = parse_status
         if self.declaration_only:
@@ -603,7 +603,40 @@ class Extractor:
                     control_flow=self.control_flow,
                     registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
-                    parse_status="FAILED" if any(d["severity"] >= 3 for d in diagnostics) else "PARSED")
+                    parse_status="FAILED" if self._has_source_errors(diagnostics) else "PARSED")
+
+    @staticmethod
+    def _diagnostic_rows(tu):
+        """Diagnostics with a source-level flag.
+
+        命令行/驱动层诊断（不支持的优化参数、未知警告选项等）没有源码位置，
+        不会影响 AST 恢复。工程用 -Werror 时这类诊断会以 error 严重度出现；
+        把它们当作解析失败会让整个编译单元的所有变量背上无关注入的
+        PARSE_FAILED 缺口。真实源码错误始终携带 file:line 位置。
+        """
+        rows = []
+        for d in tu.diagnostics:
+            location = d.location
+            rows.append(dict(severity=d.severity, message=str(d),
+                             source_level=bool(location and location.file)))
+        return rows
+
+    @staticmethod
+    def _has_source_errors(diagnostics):
+        """True when a diagnostic can actually impair fact recovery.
+
+        真正阻断/破坏恢复的错误不携带警告类别（如 expected ';'、
+        undeclared identifier、fatal error）。带 ``[-W...]`` 类别的 error
+        严重度诊断是 -Werror 把警告提升的结果：clang 已完整恢复 AST，
+        事实提取不受影响，诊断仍保留在结果中供人工核对。
+        """
+        for d in diagnostics:
+            if d["severity"] < 3 or not d.get("source_level", True):
+                continue
+            if " [-W" in d["message"]:
+                continue
+            return True
+        return False
 
 
 def main():

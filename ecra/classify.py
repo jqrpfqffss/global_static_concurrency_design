@@ -140,36 +140,43 @@ class ClassificationModel:
         self.summarized = self._summarized_apis()
         self.ranges_by_file = self._unresolved_call_ranges()
         self.opaque_code = self._opaque_code_exists()
+        # 名称可达性缺口：只有缺失编译单元 / 未展开汇编才可能按名称引用
+        # 外部链接对象。工程其它位置存在未解析间接调用不构成名称可达。
+        self.build_closure_incomplete = bool(
+            coverage.get('unlisted_sources') or coverage.get('translation_units_failed')
+            or any(u.get('kind') == 'ASSEMBLY_SOURCE_REVIEW' for u in facts['unknowns']))
         self.global_blockers = self._global_blockers()
         self.address_escape = {}       # sid -> evidence dict
         self.fn_address_escape = set() # function ids handed to opaque code
+        self.asm_symbol_refs = self._assembly_symbol_references()
         self._collect_pointer_escapes()
         self._collect_address_escapes()
+        self._propagate_table_function_escapes()
         self.entry_uncertain = self._entry_uncertain_functions()
         self.dead_functions = self._dead_functions()
-        self.asm_symbol_refs = self._assembly_symbol_references()
         self.points_to_limit = any(u.get('kind') == 'POINTS_TO_LIMIT' for u in facts['unknowns'])
         self.enable_events = self._async_enable_events()
 
     # -- 域间关系 ---------------------------------------------------------
 
     def _domain_relations(self, relations):
-        by_pair = {tuple(sorted(r['contexts'])): r for r in relations}
+        """Aggregate per-context relations into per-domain-pair relations.
+
+        大型工程的每个 IRQ vector 都是独立域，域对数量是上下文数的平方
+        量级；逐对枚举是组合爆炸。只有存在 relation 证据的域对需要显式
+        聚合，缺失的域对在 ``domains_may_interleave`` 中默认
+        MAY_INTERLEAVE，与逐对枚举的结果完全一致。
+        """
         result = {}
-        domains = sorted(set(self.domain.values()))
-        for i, a in enumerate(domains):
-            for b in domains[i + 1:]:
-                ctx_a = [c for c in self.domain if self.domain[c] == a]
-                ctx_b = [c for c in self.domain if self.domain[c] == b]
-                pair_relations = [by_pair[tuple(sorted((x, y)))]
-                                  for x in ctx_a for y in ctx_b if tuple(sorted((x, y))) in by_pair]
-                if pair_relations:
-                    names = {r['relation'] for r in pair_relations}
-                    relation = 'SERIAL' if names == {'SERIAL'} else 'MAY_INTERLEAVE'
-                else:
-                    relation = 'MAY_INTERLEAVE'
-                result[(a, b)] = relation
-        return result
+        for r in relations:
+            first, second = r['contexts']
+            a, b = self.domain.get(first, first), self.domain.get(second, second)
+            if a == b:
+                continue
+            key = (a, b) if a < b else (b, a)
+            result.setdefault(key, set()).add(r['relation'])
+        return {key: ('SERIAL' if names == {'SERIAL'} else 'MAY_INTERLEAVE')
+                for key, names in result.items()}
 
     def domains_may_interleave(self, first, second):
         if first == second:
@@ -192,11 +199,19 @@ class ClassificationModel:
 
     def _unresolved_call_ranges(self):
         """未解析调用的源码区间：参数中的地址 / 函数地址会进入不透明代码。"""
+        # 指针求解已恢复目标的间接调用点不再是不透明代码：其参数中的
+        # 地址只流向已知的被调函数，不构成逃逸。
+        resolved_sites = {(c.get('caller_function_id'), c.get('file'), c.get('offset'))
+                          for c in self.facts['calls']
+                          if c.get('call_kind') == 'INDIRECT_RESOLVED'}
         ranges = defaultdict(list)
         for call in self.facts['calls']:
             callee = call.get('callee_function_id')
             resolved = call.get('call_kind') in {'DIRECT', 'INDIRECT_RESOLVED', 'CONFIGURED'} and callee in self.funcs
             if resolved or call.get('callee_name') in self.summarized:
+                continue
+            if ((call.get('call_kind') == 'INDIRECT')
+                    and (call.get('caller_function_id'), call.get('file'), call.get('offset')) in resolved_sites):
                 continue
             start = call.get('offset')
             end = call.get('end_offset') or start
@@ -204,6 +219,8 @@ class ClassificationModel:
                 ranges[call.get('file')].append((start, end))
         for u in self.facts['unknowns']:
             if u.get('kind') == 'INDIRECT_CALL' and u.get('offset') is not None:
+                if (u.get('function_id'), u.get('file'), u.get('offset')) in resolved_sites:
+                    continue
                 ranges[u.get('file')].append((u['offset'], u.get('end_offset') or u['offset']))
         return ranges
 
@@ -235,9 +252,14 @@ class ClassificationModel:
             reason = None
             if root.startswith('obj:'):
                 owner = self.variables.get(root[4:])
-                # 外部链接全局可被未解析代码按名称访问；内部链接只能被已解析 TU 访问。
-                if owner is not None and owner.get('linkage') == 'EXTERNAL' and self.opaque_code:
-                    reason = "该地址存储于外部链接对象 " + owner.get('qualified_name', root[4:]) + "，不透明代码可获得它"
+                # 构建闭包不完整时，缺失编译单元可以按名称 extern 引用
+                # 外部链接对象。闭包完整时，地址必须实际流入不透明代码
+                # （参数、间接调用、汇编引用）才算逃逸；工程其它位置存在
+                # 未解析调用不会让存入外部全局的地址凭空逃逸。
+                if (owner is not None and owner.get('linkage') == 'EXTERNAL'
+                        and self.build_closure_incomplete):
+                    reason = ("该地址存储于外部链接对象 " + owner.get('qualified_name', root[4:])
+                              + "，缺失的编译单元可按名称获得它")
             elif ':param:' in root:
                 fid = root.rsplit(':param:', 1)[0]
                 if fid not in self.funcs:
@@ -251,6 +273,20 @@ class ClassificationModel:
                     self.address_escape.setdefault(target[4:], evidence)
                 elif target.startswith('fn:'):
                     self.fn_address_escape.add(target[3:])
+
+    def _propagate_table_function_escapes(self):
+        """地址已逃逸（或被汇编按名称引用）的对象中存放的函数指针。
+
+        不透明代码获得该对象后可以经它间接调用这些函数，因此它们可能
+        从未恢复的物理上下文进入执行。
+        """
+        for row in self.facts.get('pointer_targets', []):
+            root = row['location'].split('/', 1)[0]
+            if not root.startswith('obj:'):
+                continue
+            owner_sid = root[4:]
+            if owner_sid in self.address_escape or owner_sid in self.asm_symbol_refs:
+                self.fn_address_escape.update(t[3:] for t in row['targets'] if t.startswith('fn:'))
 
     def _collect_address_escapes(self):
         """取地址表达式落在未解析调用参数内 => 地址进入不透明代码。"""

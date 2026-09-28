@@ -102,12 +102,18 @@ def context_graph(facts, cfg):
             if not name.startswith('HAL_') and f.get("parameter_count", 0) == 0 and (name.endswith("IRQHandler") or name in {"SysTick_Handler", "PendSV_Handler", "SVC_Handler", "NMI_Handler", "HardFault_Handler", "MemManage_Handler", "BusFault_Handler", "UsageFault_Handler"}):
                 kind = "ISR"
             elif (not name.startswith('HAL_') and f.get("parameter_count", 0) == 0
-                  and fid not in called and re.fullmatch(r'[A-Za-z_]\w*_(isr|irq)', name, re.I)):
-                # 通用小写 handler 约定（如 libopencm3 的 usb_isr/tim2_isr，
-                # 经 C 向量表进入）：仅在没有任何已解析调用边时按 ISR 入口
-                # 建模。这只会增加（而非减少）执行上下文，方向保守。
+                  and fid not in called
+                  and (re.fullmatch(r'[A-Za-z_]\w*_(isr|irq)', name, re.I)
+                       or re.fullmatch(r'[a-z_][a-z0-9_]*_handler', name))):
+                # 通用小写 handler 约定（libopencm3 的 usb_isr/tim2_isr 与
+                # 全小写 sys_tick_handler，经 C 向量表进入）：仅在没有任何
+                # 已解析调用边时按 ISR 入口建模。这只会增加（而非减少）
+                # 执行上下文，方向保守。
                 kind = "ISR"
-            elif name == "main":
+            elif name in {"main", "ResetHandler", "Reset_Handler"}:
+                # ARM 裸机前台入口约定：没有 main 函数的固件（如 reset
+                # handler 直接进入调度器的工程）由 reset 链串行进入前台。
+                # reset 链本身与 main 一样是唯一的前台串行起点。
                 kind = "MAIN"
             if kind:
                 cid = "auto:" + name + ":" + digest(fid)[:8]
@@ -251,9 +257,14 @@ def context_graph(facts, cfg):
     return contexts, paths, facts["all_call_paths"]
 
 
-def protection_assessment(accesses, events, contexts, facts, cfg):
+def protection_assessment(accesses, events, contexts, facts, cfg,
+                          relation_index=None, mask_windows_by_symbol=None,
+                          unmaskable_contexts=None):
     from .protection import assess
-    return assess(accesses, events, contexts, facts, cfg)
+    return assess(accesses, events, contexts, facts, cfg,
+                  relation_index=relation_index,
+                  mask_windows_by_symbol=mask_windows_by_symbol,
+                  unmaskable_contexts=unmaskable_contexts)
 
 
 def canonical_member_path(path):
@@ -333,6 +344,7 @@ def canonicalize_member_resources(facts):
                                                    if member_by_key[(root_sid, child)]['resource_kind'] == 'STRUCT_MEMBER']
         root['member_symbol_ids'] = children_by_root[root_sid]
 
+    additions_by_sid = {v['symbol_id']: v for v in additions}
     generated = []
     for access in facts['accesses']:
         root = records.get(access['symbol_id'])
@@ -360,7 +372,7 @@ def canonicalize_member_resources(facts):
                 if member_by_key[(original_sid, sid.rsplit('::member::', 1)[1])]['resource_kind'] == 'STRUCT_MEMBER']
         if inherited_targets and access['access_kind'] in {'READ', 'WRITE', 'RMW'}:
             for target_sid in inherited_targets:
-                target = next(v for v in additions if v['symbol_id'] == target_sid)
+                target = additions_by_sid[target_sid]
                 inherited = copy.deepcopy(access)
                 inherited.update(symbol_id=target_sid, root_symbol_id=original_sid,
                                  root_symbol=root['qualified_name'], field_path=target['field_path'],
@@ -383,9 +395,9 @@ def canonicalize_member_resources(facts):
         if root_sid not in records:
             continue
         for target_sid in descendants.get((root_sid, ''), []):
-            target = next(v for v in additions if v['symbol_id'] == target_sid)
             clone = dict(issue, symbol_id=target_sid, root_symbol_id=root_sid,
-                         canonical_path=target['canonical_path'], inherited_object_uncertainty=True)
+                         canonical_path=additions_by_sid[target_sid]['canonical_path'],
+                         inherited_object_uncertainty=True)
             inherited_unknowns.append(clone)
     facts['unknowns'].extend(inherited_unknowns)
     # Access identity must include target identity after one root fact becomes
@@ -409,7 +421,7 @@ def all_resolved_routes(access):
             yield context_id, route
 
 
-def conflict_pairs(accesses, relations, contexts):
+def conflict_pairs(accesses, relations, contexts, analysis_cfg=None):
     """Build member-level conflict groups without losing any full path.
 
     A Cartesian product of every left/right route is only a presentation
@@ -418,13 +430,29 @@ def conflict_pairs(accesses, relations, contexts):
     instances and *all* routes on both sides.  The UI expands both collections
     and reports their product count, retaining every possible pair while
     keeping facts and HTML proportional to the actual call graph.
+
+    ``analysis_cfg['max_conflict_pairs']``（默认 2000，0 表示不限）限制单个
+    变量生成的展示组合数：超过上限时按"写冲突优先"的顺序保留前 N 组，并
+    返回截断诊断而不是静默丢失。分类不依赖该展示层枚举。
     """
+    cap = (analysis_cfg or {}).get('max_conflict_pairs', 2000)
+    if type(cap) is not int or cap < 0:
+        raise ValueError('analysis.max_conflict_pairs 必须为非负整数；0 表示不限制。')
     relation_by_contexts = {tuple(sorted(row['contexts'])): row for row in relations}
     instances = {}
     for access in accesses:
         if access.get('access_kind') not in {'READ', 'WRITE', 'RMW'}:
             continue
-        for context_id, route in all_resolved_routes(access):
+        # Route counting uses the per-context route lists directly; iterating
+        # every route only to count it is linear in the path explosion of hub
+        # functions.
+        complete = access.get('all_call_chains')
+        if complete is None:
+            complete = {cid: [path] for cid, path in access.get('call_chains', {}).items()}
+        for context_id, routes in complete.items():
+            route_count = len(routes or [])
+            if not route_count:
+                continue
             key = (access.get('access_id'), context_id)
             instance = instances.setdefault(key, dict(instance_id='CI-' + digest(key)[:20],
                 context_id=context_id, access_id=access.get('access_id'), access_kind=access['access_kind'],
@@ -435,11 +463,19 @@ def conflict_pairs(accesses, relations, contexts):
             # Full routes stay once in access.all_call_chains.  A conflict
             # participant references that evidence by access/context instead
             # of duplicating every route for every competing counterpart.
-            instance['call_path_count'] += 1
+            instance['call_path_count'] += route_count
     pairs = []
-    instances = list(instances.values())
-    for index, left in enumerate(instances):
-        for right in instances[index + 1:]:
+    ordered = list(instances.values())
+    # 写冲突实例优先配对，使截断保留的是最需要复核的组合。
+    ordered.sort(key=lambda i: i['access_kind'] == 'READ')
+    total_pairs = len(ordered) * (len(ordered) - 1) // 2
+    capped = cap and total_pairs > cap
+    for index, left in enumerate(ordered):
+        if capped and len(pairs) >= cap:
+            break
+        for right in ordered[index + 1:]:
+            if capped and len(pairs) >= cap:
+                break
             # The exact same source access on the exact same route is one
             # access instance, not a self-conflict.  The same source point in
             # another context deliberately remains a distinct instance.
@@ -462,9 +498,13 @@ def conflict_pairs(accesses, relations, contexts):
                               participant_a=left, participant_b=right, relation=relation,
                               may_concurrent=possible, has_write_conflict=has_write, status=state,
                               path_combination_count=left['call_path_count'] * right['call_path_count']))
+    diagnostic = None
+    if capped:
+        diagnostic = dict(kind='CONFLICT_PAIR_CAPPED', limit=cap, total_pair_count=total_pairs,
+                          hint='底层并发组合展示达到 max_conflict_pairs 上限；已按写冲突优先保留，组合总数为下界。分类不依赖该展示枚举。')
     return sorted(pairs, key=lambda pair: (not pair['may_concurrent'], not pair['has_write_conflict'],
                                            pair['participant_a']['context_id'], pair['participant_b']['context_id'],
-                                           pair['conflict_id']))
+                                           pair['conflict_id'])), diagnostic
 
 
 def validate_member_fact_consistency(facts):
@@ -479,7 +519,11 @@ def validate_member_fact_consistency(facts):
         if {a['access_id'] for a in accesses} != {a['access_id'] for a in access_by_symbol[variable['symbol_id']]}:
             raise ValueError('成员访问聚合校验失败：' + variable['qualified_name'])
         expected_accesses = len(accesses)
-        expected_paths = sum(1 for access in accesses for _ in all_resolved_routes(access))
+        # Per-access path counts are cached from all_call_chains in the
+        # per-access loop; recounting every route here is quadratic on hub
+        # functions and the cache already comes from the same source tables.
+        expected_paths = sum(a.get('resolved_call_path_count',
+                                   sum(1 for _ in all_resolved_routes(a))) for a in accesses)
         if variable.get('access_count') != expected_accesses or variable.get('resolved_call_path_count') != expected_paths:
             raise ValueError('成员调用链计数校验失败：' + variable['qualified_name'])
 
@@ -520,6 +564,17 @@ def compact_conflict_pair_storage(records):
 
 
 def analyze(facts, cfg, coverage, root=None):
+    import os as _os
+    import time as _time
+    _timing = []
+    _t0 = [_time.time()]
+
+    def _mark(name):
+        if _os.environ.get('ECRA_TIMING'):
+            _timing.append((name, round(_time.time() - _t0[0], 1)))
+            import sys as _sys
+            print('[TIMING]', name, round(_time.time() - _t0[0], 1), 's', file=_sys.stderr, flush=True)
+
     from pathlib import Path
     project_root = Path(root or coverage.get('project_root', Path.cwd()))
     # Assembly startup/vector references are possible entries, not C callers.
@@ -596,7 +651,14 @@ def analyze(facts, cfg, coverage, root=None):
                 file=site[1], line=site[2], callee=site[3]))
             external_sites.add(site)
     contexts, paths, all_call_paths = context_graph(facts, cfg)
+    _mark('context_graph')
     relations = preemption_relations(facts, contexts, cfg)
+    # The full relation matrix is quadratic in the context count (every IRQ
+    # vector is a context). Per-variable scans over it are the analysis-time
+    # bottleneck on large firmwares; index it once and materialize each
+    # variable's rows from its own (few) context pairs instead.
+    relation_by_pair = {tuple(sorted(r['contexts'])): r for r in relations}
+    _mark('preemption_relations')
     entry_ids = {b['function_id'] for b in facts['context_bindings'] if b['call_depth'] == 0}
     facts['assembly_references'] = [u for u in facts['unknowns'] if u['kind'] in
                                     {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
@@ -609,6 +671,7 @@ def analyze(facts, cfg, coverage, root=None):
     # inside the scope.
     from .classify import ClassificationModel
     model = ClassificationModel(facts, contexts, relations, paths, cfg, coverage)
+    _mark('classification_model')
     unreachable = model.dead_functions
     for f in facts['functions']:
         f['reachability'] = ('REACHABLE' if f['function_id'] in paths else
@@ -619,25 +682,92 @@ def analyze(facts, cfg, coverage, root=None):
     by_var, events = defaultdict(list), defaultdict(list)
     for e in facts["protection_events"]:
         events[e["function_id"]].append(e)
+    # Edge and cycle evidence depends only on the access's function. Index the
+    # global tables once and cache per function: a full scan per access is
+    # quadratic on large firmwares (30k accesses x 150k unknowns).
+    calls_by_caller = defaultdict(list)
+    for c in facts["calls"]:
+        if c.get("callee_function_id"):
+            calls_by_caller[c["caller_function_id"]].append(c)
+    unresolved_edge_kinds = {'INDIRECT_CALL', 'EXTERNAL_CALLEE', 'MISSING_SOURCE_CALLER',
+                             'UNRESOLVED_REGISTERED_ENTRY'}
+    unresolved_by_fid = defaultdict(list)
+    for u in facts['unknowns']:
+        if u.get('kind') not in unresolved_edge_kinds:
+            continue
+        indexed = set()
+        for fid in (u.get('function_id'), u.get('target_function_id')):
+            if fid and fid not in indexed:
+                indexed.add(fid)
+                unresolved_by_fid[fid].append(u)
+    cycles_by_node = defaultdict(list)
+    for edge in facts['recursive_edges']:
+        cycles_by_node[edge[0]].append(edge)
+    function_evidence = {}
+    route_ancestors_by_function = {}
+
+    def _function_evidence(fid):
+        evidence = function_evidence.get(fid)
+        if evidence is None:
+            chains = paths.get(fid, {})
+            all_chains = all_call_paths.get(fid, {})
+            ancestors = {f for routes in all_chains.values() for route in routes for f in route}
+            ancestors.add(fid)
+            resolved = [c for caller in sorted(ancestors) for c in calls_by_caller.get(caller, ())
+                        if c.get("callee_function_id") in ancestors]
+            unresolved, seen_rows = [], set()
+            for f in sorted(ancestors):
+                for u in unresolved_by_fid.get(f, ()):
+                    if id(u) not in seen_rows:
+                        seen_rows.add(id(u))
+                        unresolved.append(u)
+            cycles = [e for f in sorted(ancestors) for e in cycles_by_node.get(f, ())
+                      if e[1] in ancestors]
+            contexts = sorted(chains)
+            evidence = dict(contexts=contexts,
+                reachability=('PROVEN_UNREACHABLE' if fid in unreachable else
+                              'REACHABLE' if contexts else 'UNKNOWN_ENTRY'),
+                call_chains=chains, all_call_chains=all_chains,
+                resolved_call_path_count=sum(len(routes) for routes in all_chains.values()),
+                resolved_call_edges=resolved, unresolved_call_edges=unresolved,
+                call_chain_cycles=cycles,
+                protection_evidence=[e for e in events.get(fid, ())
+                                     if e["event_kind"] in {"lock_enter", "lock_exit"}])
+            function_evidence[fid] = evidence
+            # Protection assessment needs the same route-ancestor union per
+            # variable; re-walking every route per variable is quadratic on
+            # large call graphs. Derived data, deliberately kept out of facts
+            # so reports never serialize this cache.
+            route_ancestors_by_function[fid] = frozenset(ancestors)
+        return evidence
+
     for a in facts["accesses"]:
-        a["contexts"] = sorted(paths.get(a["function_id"], {}))
-        a['reachability'] = ('PROVEN_UNREACHABLE' if a['function_id'] in unreachable else
-                             'REACHABLE' if a['contexts'] else 'UNKNOWN_ENTRY')
-        a["call_chains"] = paths.get(a["function_id"], {})
-        a["all_call_chains"] = all_call_paths.get(a["function_id"], {})
-        ancestors = {fid for routes in a['all_call_chains'].values() for route in routes for fid in route}
-        ancestors.add(a['function_id'])
-        a['resolved_call_edges'] = [c for c in facts['calls'] if c.get('caller_function_id') in ancestors
-                                   and c.get('callee_function_id') in ancestors]
-        a['unresolved_call_edges'] = [u for u in facts['unknowns'] if
-            (u.get('function_id') in ancestors or u.get('target_function_id') in ancestors)
-            and u['kind'] in {'INDIRECT_CALL','EXTERNAL_CALLEE','MISSING_SOURCE_CALLER','UNRESOLVED_REGISTERED_ENTRY'}]
-        a['call_chain_cycles'] = [e for e in facts['recursive_edges'] if all(fid in ancestors for fid in e)]
-        a["protection_evidence"] = [e for e in events[a["function_id"]] if e["event_kind"] in {"lock_enter", "lock_exit"}]
+        evidence = _function_evidence(a["function_id"])
+        a["contexts"] = evidence['contexts']
+        a['reachability'] = evidence['reachability']
+        a["call_chains"] = evidence['call_chains']
+        a["all_call_chains"] = evidence['all_call_chains']
+        a['resolved_call_path_count'] = evidence['resolved_call_path_count']
+        a['resolved_call_edges'] = evidence['resolved_call_edges']
+        a['unresolved_call_edges'] = evidence['unresolved_call_edges']
+        a['call_chain_cycles'] = evidence['call_chain_cycles']
+        a["protection_evidence"] = evidence['protection_evidence']
         by_var[a["symbol_id"]].append(a)
+    _mark('per_access_edges')
     snapshots = defaultdict(list)
     from .protection import MaskAnalysis
     MaskAnalysis(facts, cfg).run()
+    _mark('mask_analysis')
+    # Per-variable assessment lookups, indexed once instead of rescanning the
+    # full windows / bindings tables for every variable.
+    mask_windows_by_symbol = defaultdict(list)
+    for w in facts.get('mask_windows', []):
+        mask_windows_by_symbol[w['symbol_id']].append(w)
+    _funcs_by_id = {f['function_id']: f for f in facts['functions']}
+    unmaskable_contexts = {b['context_id'] for b in facts['context_bindings']
+                           if b['call_depth'] == 0
+                           and _funcs_by_id.get(b['function_id'], {}).get('name')
+                           in {'NMI_Handler', 'HardFault_Handler'}}
     for s in facts["snapshots"]:
         snapshots[s["symbol_id"]].append(s)
     # Variable-bound uncertainties are indexed per symbol. Project-wide
@@ -652,7 +782,12 @@ def analyze(facts, cfg, coverage, root=None):
     findings = []
     analyzed_variables = [v for v in facts['variables']
                           if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}]
+    from .protection import set_route_ancestors
+    set_route_ancestors(route_ancestors_by_function, facts)
+    _phase_cost = defaultdict(float)
+    _var_done = [0]
     for v in analyzed_variables:
+        _vt = _time.time() if _timing else None
         sid = v["symbol_id"]
         # Supplemental variables come from files outside the compile database
         # or inactive conditional branches. They are inventory-only; without
@@ -680,15 +815,22 @@ def analyze(facts, cfg, coverage, root=None):
         readers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"READ", "RMW"}))
         writers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"WRITE", "RMW"}))
         all_contexts = set(itertools.chain.from_iterable(a["contexts"] for a in accesses))
-        variable_relations = [relation for relation in relations
-                              if set(relation['contexts']) <= all_contexts]
+        variable_relations = [relation_by_pair[pair] for pair in
+                              itertools.combinations(sorted(all_contexts), 2)]
         uncertain = [u for u in by_symbol[sid] if u.get('function_id') not in unreachable]
         reentrant = any(contexts[c].get("reentrant", False) for c in all_contexts)
         shared = len(all_contexts) >= 2 or reentrant
         annotations = [r for r in cfg["resources"] if r.get("symbol_id", r.get("name")) in {sid, v["name"], v["qualified_name"]}]
         owner_violation = any(r.get("owner_context") and writers - {r["owner_context"]} for r in annotations)
         declared = [p for p in cfg["protection"] if p.get("resource") in {sid, v["name"], v["qualified_name"]}]
-        protection, protection_details, protection_note = protection_assessment(accesses, events, contexts, facts, cfg)
+        _pt = _time.time() if _vt is not None else None
+        protection, protection_details, protection_note = protection_assessment(
+            accesses, events, contexts, facts, cfg,
+            relation_index=relation_by_pair,
+            mask_windows_by_symbol=mask_windows_by_symbol,
+            unmaskable_contexts=unmaskable_contexts)
+        if _pt is not None:
+            _phase_cost['protection_assess'] += _time.time() - _pt
         if protection == 'NOT_FOUND' and declared:
             protection = 'DETECTED'
             protection_note = '配置中声明了保护措施，但当前源码未找到可关联的保护操作，不能证明其覆盖访问窗口。'
@@ -727,10 +869,11 @@ def analyze(facts, cfg, coverage, root=None):
                     rules.add("GS-STRUCT-INCONSISTENT")
             if owner_violation:
                 rules.add("GS-OWNER-VIOLATION")
-        member_conflicts = conflict_pairs(all_accesses, variable_relations, contexts)
         if static_classification == 'SAFE':
             safe_code = result['safe_code']
             from .classify import SAFE_LABELS
+            # SAFE 变量没有需要复核的冲突组合：安全证明本身就是结论，
+            # 展示层笛卡尔组合对热点只读/单域变量是纯开销。
             v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
                      protection_status=protection, annotations=annotations,
                      audit_status='SCREENED_NO_CONCURRENCY_RISK',
@@ -739,10 +882,16 @@ def analyze(facts, cfg, coverage, root=None):
                      protection_note=protection_note, analysis_coverage=coverage_status,
                      coverage_reasons=[], static_classification='SAFE',
                      classification_reason=SAFE_LABELS[safe_code] + '（' + result['reason'] + '）',
-                     concurrency_relations=variable_relations, conflict_pairs=member_conflicts,
+                     concurrency_relations=variable_relations, conflict_pairs=[],
+                     conflict_pairs_capped=None,
                      access_count=len(all_accesses), gap_evidence=[],
-                     resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
+                     resolved_call_path_count=sum(a['resolved_call_path_count'] for a in all_accesses))
             continue
+        _ct = _time.time() if _vt is not None else None
+        member_conflicts, conflict_cap_info = conflict_pairs(all_accesses, variable_relations, contexts,
+                                                             cfg['analysis'])
+        if _ct is not None:
+            _phase_cost['conflict_pairs'] += _time.time() - _ct
         pending = []
         if static_classification == 'SUSPECT':
             if protection in {'DETECTED', 'PARTIAL', 'UNRESOLVED'}:
@@ -767,9 +916,10 @@ def analyze(facts, cfg, coverage, root=None):
                  protection_note=protection_note, analysis_coverage=coverage_status,
                  coverage_reasons=coverage_reasons, static_classification=static_classification,
                  classification_reason=classification_reason, concurrency_relations=variable_relations,
-                 conflict_pairs=member_conflicts, access_count=len(all_accesses),
+                 conflict_pairs=member_conflicts, conflict_pairs_capped=conflict_cap_info,
+                 access_count=len(all_accesses),
                  gap_evidence=result['gaps'], pending_confirmation=pending,
-                 resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
+                 resolved_call_path_count=sum(a['resolved_call_path_count'] for a in all_accesses))
         finding = dict(finding_id="GS-" + digest([sid, finding_rules, sorted(all_contexts)])[:16],
                        symbol_id=sid, variable_name=v["qualified_name"], rules=finding_rules, risk_level=risk_level,
                        confidence=confidence, status="NEED_OPENCODE_REVIEW",
@@ -777,7 +927,8 @@ def analyze(facts, cfg, coverage, root=None):
                        definition=dict(file=v["definition_file"], line=v["definition_line"]),
                        context_pairs=[list(pair) for pair in itertools.combinations(sorted(all_contexts), 2)],
                         concurrency_relations=variable_relations, conflict_pairs=member_conflicts,
-                       concurrency_reason=classification_reason,
+                        conflict_pairs_capped=conflict_cap_info,
+                        concurrency_reason=classification_reason,
                        snapshots=snapshots[sid], uncertainties=uncertain,
                        screening_blockers=gap_codes, pending_confirmation=pending,
                        configured_preemption=[p for p in cfg["preemption"] if {p["higher"], p["lower"]} <= all_contexts],
@@ -786,6 +937,17 @@ def analyze(facts, cfg, coverage, root=None):
                        static_classification=static_classification,
                         known_safe_annotations=[r for r in cfg["known_safe"] if r.get("resource") in {sid, v["name"], v["qualified_name"]}])
         findings.append(finding)
+        if _vt is not None:
+            _var_done[0] += 1
+            if _var_done[0] % 100 == 0:
+                import sys as _sys
+                print('[TIMING] variables done:', _var_done[0], 'elapsed',
+                      round(_time.time() - _t0[0], 1), 's', file=_sys.stderr, flush=True)
+    if _timing:
+        import sys as _sys
+        for name, seconds in sorted(_phase_cost.items(), key=lambda kv: -kv[1]):
+            print('[TIMING] phase cost:', name, round(seconds, 1), 's', file=_sys.stderr, flush=True)
+    _mark('per_variable_classify')
     # Parent records do not receive a root-level risk verdict: they only
     # summarize the independently analysed canonical members below them.
     members_by_root = defaultdict(list)
