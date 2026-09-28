@@ -190,6 +190,104 @@ class ResolutionTests(unittest.TestCase):
         '''})
         self.assertTrue(any(c['call_kind'] == 'INDIRECT_RESOLVED' and c['callee_name'] == 'Work' for c in facts['calls']))
 
+    def test_recursive_record_layout_stops_at_pointer_field(self):
+        facts, _ = self.facts({'a.c': '''
+            struct Link { struct Link *next; void (*callback)(void); };
+            static struct Link one, two;
+            int main(void) { two=one; return 0; }
+        '''})
+        copies = [c for c in facts['pointer_constraints'] if c.get('aggregate')]
+        self.assertTrue(copies)
+        self.assertTrue(all(c['aggregate_paths'] == ['/callback', '/next'] for c in copies))
+
+    def test_compound_literal_return_keeps_callback_target(self):
+        facts, _ = self.facts({'a.c': '''
+            typedef struct { void (*callback)(void); } Ops;
+            static void Work(void) {} static Ops ops;
+            static Ops Factory(void) { return (Ops){.callback=Work}; }
+            int main(void) { ops=Factory(); ops.callback(); return 0; }
+        '''})
+        self.assertTrue(any(c['call_kind'] == 'INDIRECT_RESOLVED' and c['callee_name'] == 'Work' for c in facts['calls']))
+
+    def test_byte_copy_arguments_recover_layout_before_void_cast(self):
+        facts, _ = self.facts({'a.c': '''
+            void *memcpy(void *, const void *, unsigned);
+            struct Item { unsigned tag; int *value; }; static struct Item src[2], dst[2];
+            int main(void) { memcpy((void *)dst,(const void *)src,sizeof(dst)); return 0; }
+        '''})
+        call = next(c for c in facts['semantic_calls'] if c['name'] == 'memcpy')
+        self.assertEqual(call['argument_pointee_paths'][:2], [['/[*]/tag', '/[*]/value']] * 2)
+        self.assertEqual(call['argument_pointee_sizes'][:2], [16, 16])
+        self.assertEqual(call['argument_values'][2], 16)
+
+    def test_cmsis_priority_width_keeps_translation_unit_provenance(self):
+        facts, _ = self.facts({'a.c': '#define __NVIC_PRIO_BITS (4U)\nint main(void){return 0;}',
+                              'b.c': '#define __NVIC_PRIO_BITS 3\nvoid Helper(void){}'})
+        widths = [e for e in facts['irq_priority_events'] if e['api_name'] == 'CMSIS_NVIC_PRIO_BITS']
+        self.assertEqual({(e['translation_unit'], e['argument_values'][0]) for e in widths}, {('a.c', 4), ('b.c', 3)})
+
+    def test_aggregate_copy_on_shared_allocator_stays_within_typed_layout(self):
+        facts, _ = self.facts({'a.c': '''
+            typedef struct { void (*callback)(void); } Pin;
+            typedef struct { Pin pin; unsigned tag; } Device;
+            static unsigned pool[16]; static void Work(void) {}
+            static void *Allocate(void) { return pool; }
+            int main(void) {
+                Pin *source=Allocate(); Device *device=Allocate();
+                source->callback=Work;
+                device->pin=*source;
+                device->pin.callback();
+                return 0;
+            }
+        '''})
+        self.assertTrue(any(c['call_kind'] == 'INDIRECT_RESOLVED' and c['callee_name'] == 'Work' for c in facts['calls']))
+        # Both typed views share one may-allocation. A copy may only select the
+        # Pin layout, never recursively copy Device.pin back into itself.
+        self.assertFalse(any('/pin/pin' in row['location'] for row in facts['pointer_targets']))
+        self.assertLess(len(facts['pointer_targets']), 30)
+
+    @staticmethod
+    def priority_source():
+        return '''
+            #define __NVIC_PRIO_BITS (4U)
+            enum { TIM2_IRQn=28, TIM3_IRQn=29 };
+            void NVIC_SetPriorityGrouping(unsigned); void NVIC_SetPriority(int,unsigned);
+            static int value;
+            void TIM2_IRQHandler(void) { value++; }
+            void TIM3_IRQHandler(void) { value++; }
+            int main(void) {
+                NVIC_SetPriorityGrouping(3);
+                NVIC_SetPriority(TIM2_IRQn,5); NVIC_SetPriority(TIM3_IRQn,5);
+                return 0;
+            }
+        '''
+
+    def test_cmsis_priority_width_automatically_proves_non_interleaving(self):
+        cfg = self.project({'a.c': self.priority_source()},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        facts, _ = fixtures.ProjectTest.extract(self, cfg)
+        value = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertEqual(value['static_classification'], 'SAFE')
+        self.assertEqual(value['safe_reason_code'], 'SAFE_NON_INTERLEAVING')
+
+    def test_conflicting_device_priority_widths_cannot_prove_safe(self):
+        cfg = self.project({'a.c': self.priority_source(),
+                            'b.c': '#define __NVIC_PRIO_BITS 3\nvoid Helper(void){}'},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        facts, _ = fixtures.ProjectTest.extract(self, cfg)
+        value = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertEqual(value['static_classification'], 'SUSPECT')
+        self.assertTrue(value['conflict_pairs'])
+
+    def test_priority_width_configuration_cannot_override_conflicting_header(self):
+        cfg = self.project({'a.c': self.priority_source()},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        cfg['project']['nvic_priority_bits'] = 3
+        facts, _ = fixtures.ProjectTest.extract(self, cfg)
+        value = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertEqual(value['static_classification'], 'SUSPECT')
+        self.assertTrue(value['conflict_pairs'])
+
 
 if __name__ == '__main__':
     unittest.main()

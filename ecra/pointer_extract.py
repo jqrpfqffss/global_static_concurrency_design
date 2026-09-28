@@ -9,10 +9,66 @@ class PointerExtractor:
         self.function = ''
         self.parameters = {}
         self.atomic_macros = {}
+        self.layout_cache = {}
+
+    def aggregate_paths(self, typ):
+        """Finite inline storage layout; pointer fields are terminal leaves.
+
+        A may-alias allocation can hold several C types. Copying every dynamic
+        points-to descendant would incorrectly embed all those types into each
+        other and generate paths such as pin/pin/pin indefinitely. The source
+        language only copies the fields of the declared aggregate value.
+        """
+        canonical = typ.get_canonical()
+        declaration_type = canonical
+        while 'ARRAY' in declaration_type.kind.name:
+            declaration_type = declaration_type.element_type.get_canonical()
+        declaration = declaration_type.get_declaration()
+        key = (canonical.kind.name, canonical.spelling, declaration.get_usr() or declaration.hash)
+        if key in self.layout_cache:
+            return self.layout_cache[key]
+
+        def fields(current, prefix='', seen=()):
+            current = current.get_canonical()
+            if 'ARRAY' in current.kind.name:
+                return fields(current.element_type, prefix + '/[*]', seen)
+            if current.kind.name != 'RECORD':
+                return [prefix] if prefix else []
+            declaration = current.get_declaration()
+            identity = declaration.get_usr() or declaration.hash
+            if identity in seen:
+                return []
+            result = []
+            for field in declaration.get_children():
+                if field.kind.name != 'FIELD_DECL':
+                    continue
+                path = prefix + '/' + field.spelling
+                result.append(path)
+                result.extend(fields(field.type, path, (*seen, identity)))
+            return result
+
+        result = sorted(set(fields(canonical)))
+        self.layout_cache[key] = result
+        return result
+
+    def pointee_layout(self, node):
+        """Recover an argument's typed extent before a C void-pointer cast."""
+        original = self.unwrap(node)
+        typ = original.type.get_canonical()
+        if 'ARRAY' not in typ.kind.name:
+            if typ.kind.name not in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'}:
+                return None, None
+            typ = typ.get_pointee().get_canonical()
+        if typ.kind.name in {'VOID', 'FUNCTIONPROTO', 'FUNCTIONNOPROTO', 'INVALID'}:
+            return None, None
+        size = typ.get_size()
+        return self.aggregate_paths(typ), size if size >= 0 else None
 
     def constraint(self, left, right, node):
         self.constraints.append(dict(left=left, right=right, function_id=self.function,
                                      aggregate=node.type.get_canonical().kind.name == 'RECORD',
+                                     aggregate_paths=self.aggregate_paths(node.type)
+                                         if node.type.get_canonical().kind.name == 'RECORD' else [],
                                      **self.e.loc(node)))
 
     def key(self, decl):
@@ -71,6 +127,13 @@ class PointerExtractor:
                 return self.value(cs[0])
         if k == 'CALL_EXPR':
             return self.result(node)
+        if k in {'COMPOUND_LITERAL_EXPR', 'CXX_TEMPORARY_OBJECT_EXPR'}:
+            initializer = next((child for child in cs if child.kind.name == 'INIT_LIST_EXPR'), None)
+            if initializer is not None:
+                loc = self.e.loc(node)
+                storage = dict(op='loc', id='literal:' + self.e.tu_name + ':' + loc['file'] + ':' + str(loc['offset']))
+                self.initializer(storage, node.type, initializer)
+                return storage
         if k in {'DECL_REF_EXPR', 'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR', 'UNARY_OPERATOR'}:
             loc = self.lvalue(node)
             if 'ARRAY' in node.type.get_canonical().kind.name:
@@ -193,12 +256,21 @@ class PointerExtractor:
         if k == 'CALL_EXPR' and self.function:
             ref = node.referenced
             direct = ref is not None and ref.kind.name in FUNCTIONS
+            arguments = list(node.get_arguments())
+            pointee_layouts = [self.pointee_layout(arg) for arg in arguments]
             self.calls.append(dict(function_id=self.function, target=self.e.fid(ref) if direct else None,
                 expression=self.value(cs[0]) if cs else dict(op='empty'), name=ref.spelling if direct else node.spelling,
-                arguments=[self.value(arg) for arg in node.get_arguments()], result=self.result(node),
-                argument_aggregates=[arg.type.get_canonical().kind.name == 'RECORD' for arg in node.get_arguments()],
+                arguments=[self.value(arg) for arg in arguments], result=self.result(node),
+                argument_values=[constant_value(arg) for arg in arguments],
+                argument_pointee_paths=[layout[0] for layout in pointee_layouts],
+                argument_pointee_sizes=[layout[1] for layout in pointee_layouts],
+                argument_aggregates=[arg.type.get_canonical().kind.name == 'RECORD' for arg in arguments],
+                argument_aggregate_paths=[self.aggregate_paths(arg.type)
+                    if arg.type.get_canonical().kind.name == 'RECORD' else [] for arg in arguments],
                 returns_pointer=node.type.get_canonical().kind.name in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'},
                 returns_aggregate=node.type.get_canonical().kind.name == 'RECORD',
+                return_aggregate_paths=self.aggregate_paths(node.type)
+                    if node.type.get_canonical().kind.name == 'RECORD' else [],
                 source_text=self.e.source(node), **self.e.loc(node)))
         if 'ASM' in k and self.function:
             expressions = [child for child in cs if child.kind.is_expression()]

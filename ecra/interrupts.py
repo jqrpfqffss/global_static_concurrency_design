@@ -14,9 +14,17 @@ def irq_key(name):
 
 def priority_model(facts, cfg):
     bits = cfg.get('project', {}).get('nvic_priority_bits')
+    events = facts.get('irq_priority_events', [])
+    widths = [(e.get('argument_values') or [None])[0] for e in events
+              if e.get('api_name') == 'CMSIS_NVIC_PRIO_BITS']
+    if widths:
+        if any(type(w) is not int or not 1 <= w <= 8 for w in widths) or len(set(widths)) != 1:
+            return {}, 'CMSIS __NVIC_PRIO_BITS 无法恢复或构建内存在冲突定义。'
+        if bits is not None and bits != widths[0]:
+            return {}, '配置 nvic_priority_bits 与当前 CMSIS 定义冲突。'
+        bits = widths[0]
     if type(bits) is not int or not 1 <= bits <= 8:
         return {}, '缺少有效 nvic_priority_bits。'
-    events = facts.get('irq_priority_events', [])
     funcs = {f['function_id']: f for f in facts['functions']}
     roots = {b['function_id'] for b in facts.get('context_bindings', []) if b['call_depth'] == 0}
     by_irq, groups = defaultdict(list), []

@@ -32,13 +32,20 @@ def expand_member_arrays(facts):
             definitions[:] = [d for d in definitions if d not in templates]
             field['is_struct'] = True  # container, never a standalone verdict
             for index in sorted(indices):
+                element_size = field.get('array_element_size_bytes', field.get('size_bytes'))
+                delta_bits = int(index[1:-1]) * element_size * 8 if index != '[*]' and element_size else None
+                element_offset = (field['offset_bits'] + delta_bits
+                                  if field.get('offset_bits') is not None and delta_bits is not None else None)
                 element = dict(field, field_path=prefix + index, name=field['name'] + index,
                     is_array=False, is_struct=bool(field.get('array_element_is_struct')),
                     type=field.get('array_element_type', field['type']),
-                    size_bytes=field.get('array_element_size_bytes', field.get('size_bytes')))
+                    size_bytes=element_size, offset_bits=element_offset)
                 definitions.append(element)
                 for template in templates:
-                    definitions.append(dict(template, field_path=template['field_path'].replace(prefix+'[*]', prefix+index, 1)))
+                    offset = (template['offset_bits'] + delta_bits
+                              if template.get('offset_bits') is not None and delta_bits is not None else None)
+                    definitions.append(dict(template, field_path=template['field_path'].replace(prefix+'[*]', prefix+index, 1),
+                                            offset_bits=offset))
             generated = []
             for access in by_symbol[root['symbol_id']]:
                 path = access.get('access_path', '').replace('/', '.').lstrip('.').replace('.[', '[')
@@ -176,3 +183,73 @@ def path_may_cover(source, target):
     """Unknown index/whole-object effects cover only descendants of that path."""
     expression = re.escape(source).replace(r'\[\*\]', r'\[(?:\d+|\*)\]')
     return bool(re.match('^' + expression + r'(?:$|\.|\[)', target))
+
+
+def add_disjoint_storage_proofs(facts):
+    """Add auditable spatial proofs to variables already independently SAFE.
+
+    Canonicalization separates storage before conflict analysis. Preserve why
+    other contexts accessing the same containing object were excluded, without
+    using this supplementary proof to erase any conflict or evidence gap.
+    """
+    variables = {variable['symbol_id']: variable for variable in facts['variables']}
+    runtime_kinds = {'READ', 'WRITE', 'RMW', 'WHOLE_OBJECT_READ', 'WHOLE_OBJECT_WRITE', 'DMA_READ', 'DMA_WRITE'}
+    writes = {'WRITE', 'RMW', 'WHOLE_OBJECT_WRITE', 'DMA_WRITE'}
+
+    def extent(variable):
+        if variable.get('is_bitfield_container') or '[*]' in variable.get('canonical_path', ''):
+            return None
+        size = variable.get('size_bytes')
+        if not isinstance(size, int) or size <= 0:
+            return None
+        sid = variable['symbol_id']
+        if variable.get('resource_kind') == 'STRUCT_MEMBER':
+            parent = variables.get(variable.get('root_symbol_id'))
+            base = extent(parent) if parent else None
+            offset = variable.get('offset_bits')
+            if base is None or offset is None or offset < 0:
+                return None
+            return base[0], base[1] + offset, base[1] + offset + size * 8
+        if variable.get('array_root_symbol_id'):
+            parent = variables.get(variable['array_root_symbol_id'])
+            index = re.fullmatch(r'\[(\d+)\]', variable.get('array_index', ''))
+            if not parent or not index or not parent.get('array_size') or not parent.get('size_bytes'):
+                return None
+            ordinal = int(index[1])
+            if ordinal >= parent['array_size']:
+                return None
+            width = parent['size_bytes'] * 8 // parent['array_size']
+            return parent['symbol_id'], ordinal * width, (ordinal + 1) * width
+        return sid, 0, size * 8
+
+    families = defaultdict(list)
+    for variable in variables.values():
+        if variable.get('static_classification') not in {'SAFE', 'SUSPECT', 'UNKNOWN'}:
+            continue
+        accesses = [access for access in variable.get('accesses', [])
+                    if access['access_kind'] in runtime_kinds and access.get('reachability') != 'PROVEN_UNREACHABLE']
+        span = extent(variable)
+        if not accesses or not span:
+            continue
+        physical = set(variable.get('variable_evidence_slice', {}).get('physical_contexts', []))
+        families[span[0]].append((variable, accesses, span, physical))
+    for family in families.values():
+        for variable, accesses, span, physical in family:
+            if variable['static_classification'] != 'SAFE' or not physical:
+                continue
+            witnesses = []
+            for other, other_accesses, other_span, other_physical in family:
+                if other['symbol_id'] == variable['symbol_id'] or not other_physical - physical:
+                    continue
+                if not any(access['access_kind'] in writes for access in accesses + other_accesses):
+                    continue
+                if span[2] <= other_span[1] or other_span[2] <= span[1]:
+                    witnesses.append(dict(symbol_id=other['symbol_id'], canonical_path=other.get('canonical_path'),
+                        range_bits=[other_span[1], other_span[2]], physical_contexts=sorted(other_physical),
+                        access_ids=[access['access_id'] for access in other_accesses]))
+            variable['safe_reason_codes'] = [variable['safe_reason_code']]
+            if witnesses:
+                variable['safe_reason_codes'].append('SAFE_DISJOINT_STORAGE')
+                variable['safe_evidence']['disjoint_storage'] = dict(proof='SAFE_DISJOINT_STORAGE',
+                    root_symbol_id=span[0], range_bits=[span[1], span[2]], nonoverlapping_resources=witnesses,
+                    basis='Clang object layout and constant array indices; half-open bit ranges')

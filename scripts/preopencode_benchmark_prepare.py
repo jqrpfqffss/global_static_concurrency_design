@@ -98,8 +98,16 @@ def main():
         analysis=dict(compile_database=str(db),auto_contexts=True,auto_system_includes=True,build_closure_only=True,
             build_closure={k:metadata[k] for k in ("target","commit","elf","map","linked_sources","linked_objects")},
             remove_args=["-fno-fat-lto-objects","-fsingle-precision-constant","-fno-tree-loop-distribute-patterns","-fno-use-linker-plugin","-fuse-linker-plugin","-fwhole-program"],
-            extra_args=["-Wno-unknown-warning-option","-Wno-error=deprecated-non-prototype","-Wno-error=invalid-utf8"],output_dir=".ecra-preopencode"),
+            # Compiler warnings do not imply a missing AST. Clang/GCC differ
+            # in warnings; retain warning diagnostics without inheriting GCC's
+            # -Werror policy. Actual Clang errors still fail parse coverage.
+            extra_args=["-Wno-error","-Wno-unknown-warning-option","-Wno-error=deprecated-non-prototype","-Wno-error=invalid-utf8"],output_dir=".ecra-preopencode"),
         contexts=[dict(id="main",kind="MAIN",functions=["main"])],review=dict(enabled=False))
+    if name == "betaflight":
+        # Upstream atomic.h deliberately provides a Clang Blocks spelling of
+        # the GCC nested-function cleanup barrier. Do not suppress __clang__
+        # or replace source; enable that published parser compatibility path.
+        cfg["analysis"]["extra_args"].append("-fblocks")
     (folder/"semantics.yaml").write_text(yaml.safe_dump(cfg,sort_keys=False),encoding="utf-8")
     print(json.dumps({k:v for k,v in metadata.items() if k not in {"linked_sources","linked_objects"}},indent=2))
 

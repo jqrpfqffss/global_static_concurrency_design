@@ -171,7 +171,10 @@ def prove_initialization(variable, accesses, facts, contexts, cfg):
     # Direct memory-mapped peripheral stores can enable sources without an
     # NVIC API.  Unresolved indirect stores in the prefix invalidate proof.
     for access in facts.get('indirect_accesses', []):
-        if access.get('function_id') == main_id and access.get('access_kind') in WRITES:
+        # Pointer extraction calls this field ``mode``; canonical direct
+        # accesses use ``access_kind``. Accept either fact schema explicitly.
+        mode = access.get('mode', access.get('access_kind'))
+        if access.get('function_id') == main_id and mode in WRITES:
             ident = _node_for(access, nodes)
             if ident is None or ident in prefix:
                 return None

@@ -550,23 +550,11 @@ def analyze(facts, cfg, coverage, root=None):
         if re.search(r'^\s*(?:\.macro\b|#\s*include\b)|##', source, re.M):
             facts['unknowns'].append(dict(kind='ASSEMBLY_SOURCE_REVIEW', file=file,
                 message='汇编宏或包含文件尚未展开，不能证明入口/变量访问完整'))
-        vector_slot = None
+        from .vectors import recover_assembly_vectors
+        vector_entries, vector_gaps = recover_assembly_vectors(source, file, functions_by_name)
+        facts.setdefault('assembly_vector_entries', []).extend(vector_entries)
+        facts['unknowns'].extend(vector_gaps)
         for line, text in enumerate(source.splitlines(), 1):
-            section = re.search(r'\.section\s+"?([.\w]+)', text)
-            if section:
-                from .vectors import SECTIONS
-                vector_slot = 0 if section[1] in SECTIONS else None
-            words = re.search(r'^\s*\.(?:word|long)\s+([^@;]+)', text)
-            if vector_slot is not None and words:
-                for word in words[1].split(','):
-                    name = word.strip()
-                    for fid in functions_by_name.get(name, []):
-                        if vector_slot:
-                            facts.setdefault('assembly_vector_entries', []).append(dict(function_id=fid,
-                                slot=vector_slot, kind='MAIN' if vector_slot == 1 else 'ISR',
-                                vector='slot:' + str(vector_slot), unmaskable=vector_slot in {2, 3},
-                                file=file, line=line, discovery='Cortex-M assembly vector section and ABI slot'))
-                    vector_slot += 1
             for name in sorted(set(re.findall(r'[A-Za-z_][A-Za-z_0-9]*', text))):
                 for sid in symbols_by_name.get(name, ()):
                     facts['unknowns'].append(dict(kind='ASSEMBLY_SYMBOL_REFERENCE', symbol_id=sid,
@@ -575,6 +563,7 @@ def analyze(facts, cfg, coverage, root=None):
                     facts['unknowns'].append(dict(kind='ASSEMBLY_FUNCTION_REFERENCE', target_function_id=fid,
                         file=file, line=line, source_text=text))
     from .points_to import enrich
+    facts['build_closure'] = coverage.get('build_closure', {})
     enrich(facts, cfg)
     if any(u['kind'] == 'POINTS_TO_LIMIT' for u in facts['unknowns']):
         raise ValueError('POINTS_TO_LIMIT：别名求解未收敛，扫描失败；不对截断的访问集合生成安全结论。')
@@ -864,6 +853,10 @@ def analyze(facts, cfg, coverage, root=None):
             action=g['relevance']) for g in v.get('blocking_evidence', [])] if status == 'UNKNOWN' else []
         if status == 'SAFE' and (not v['safe_reason'] or not v.get('safe_reason_code') or not v.get('screening_reason')):
             raise ValueError('SAFE 缺少完整证明：' + v['symbol_id'])
+    from .storage import add_disjoint_storage_proofs
+    add_disjoint_storage_proofs(facts)
+    coverage['safe_proof_distribution'] = dict(Counter(code for v in analyzed_variables
+        for code in v.get('safe_reason_codes', [v['safe_reason_code']] if v.get('safe_reason_code') else [])))
     coverage['blocker_fanout'] = fanout_diagnostics(analyzed_variables,
         cfg['analysis'].get('max_unknown_fanout_debug', 50))
     coverage['safe_reason_distribution'] = dict(Counter(v['safe_reason_code'] for v in analyzed_variables if v.get('safe_reason_code')))

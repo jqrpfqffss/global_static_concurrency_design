@@ -27,7 +27,7 @@ class ScreeningTests(unittest.TestCase):
         facts, report = self.extract(cfg)
         vars = {v['name']: v for v in facts['variables']}
         self.assertEqual(vars['dead']['screening_reason'], 'UNREACHABLE_ACCESSORS')
-        self.assertEqual(vars['readonly']['screening_reason'], 'UNREACHABLE_ACCESSORS')
+        self.assertEqual(vars['readonly']['screening_reason'], 'ONLY_READS')
         self.assertEqual(vars['unused']['screening_reason'], 'NO_RUNTIME_ACCESSES')
         self.assertEqual(vars['dead']['accesses'][0]['reachability'], 'PROVEN_UNREACHABLE')
         self.assertEqual(report['coverage']['unknown_accesses'], 0)

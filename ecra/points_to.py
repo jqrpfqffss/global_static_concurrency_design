@@ -51,6 +51,7 @@ class Solver:
         self.points = defaultdict(set)
         self.slots_by_shape = defaultdict(set)
         self.descendant_slots = defaultdict(set)
+        self.unknown_points = defaultdict(set)
         self.readers = defaultdict(set)
         self.current_task = None
         self.pending = deque()
@@ -87,6 +88,7 @@ class Solver:
                 self.schedule('descendants:' + ancestor)
         previous = len(self.points[location])
         self.points[location].update(values)
+        self.unknown_points[location].update(v for v in values if v.startswith('unknown:'))
         self.changed |= len(self.points[location]) != previous
         if len(self.points[location]) != previous:
             self.schedule(location)
@@ -189,7 +191,7 @@ class Solver:
                 while '/' in ancestor:
                     ancestor = ancestor.rpartition('/')[0]
                     self.watch(ancestor)
-                    result.update(v for v in self.points.get(ancestor, ()) if v.startswith('unknown:'))
+                    result.update(self.unknown_points.get(ancestor, ()))
                 if '/[' in loc:
                     self.watch('shape:' + self.shape(loc))
                     for other in tuple(self.slots_by_shape.get(self.shape(loc), ())):
@@ -199,16 +201,21 @@ class Solver:
             return result
         return set()
 
-    def update(self, left, right, aggregate=False):
+    def update(self, left, right, aggregate=False, aggregate_paths=None):
         vals = self.value(right)
         for loc in self.locations(left):
             self.add_points(loc, vals)
             if aggregate:
+                if aggregate_paths is None:
+                    # Old extraction schemas have no finite record layout.
+                    # Never infer one from an allocator's evolving descendants.
+                    self.add_points(loc, {'unknown:aggregate-layout:' + loc})
+                    continue
                 for source in self.locations(right):
-                    self.watch('descendants:' + source)
-                    for slot in tuple(self.descendant_slots.get(source, ())):
-                        self.watch(slot)
-                        self.add_points(loc + slot[len(source):], self.points[slot])
+                    for suffix in aggregate_paths:
+                        slot = source if source.startswith('unknown:') else source + suffix
+                        destination = loc if loc.startswith('unknown:') else loc + suffix
+                        self.add_points(destination, self.value(dict(op='loc', id=slot)))
 
     def targets(self, call):
         direct = call.get('target')
@@ -217,14 +224,16 @@ class Solver:
     def copy_memory(self, call):
         destinations = self.value(call['arguments'][0])
         sources = self.value(call['arguments'][1])
-        # A byte-copy with opaque or overlapping storage does not supply a
-        # typed aggregate layout. Havoc pointer contents at its actual
-        # may-destinations, retain source escapes, and avoid inventing an
-        # unbounded family of nested fields through recursive copy equations.
-        opaque = (len(destinations) != 1 or len(sources) != 1 or
-                  any(p.startswith('unknown:') for p in destinations | sources) or
-                  any(d.startswith(s + '/') for d in destinations for s in sources))
-        if opaque:
+        layouts = call.get('argument_pointee_paths', [])
+        sizes = call.get('argument_pointee_sizes', [])
+        constants = call.get('argument_values', [])
+        layout = layouts[1] if len(layouts) > 1 else None
+        extent = sizes[1] if len(sizes) > 1 else None
+        count = constants[2] if len(constants) > 2 else None
+        # Only a whole, typed copy supplies a finite layout. Byte slices and
+        # cast buffers retain a variable-local provenance gap; their evolving
+        # descendants must never be treated as a recursive record definition.
+        if layout is None or extent is None or count != extent:
             for destination in destinations:
                 if not destination.startswith('unknown:'):
                     self.add_points(destination, {'unknown:byte-copy:' + call['result']['id']})
@@ -238,10 +247,8 @@ class Solver:
             if source.startswith('unknown:'):
                 direct.add(source)
                 continue
-            self.watch('descendants:' + source)
-            for slot in self.descendant_slots.get(source, ()):
-                self.watch(slot)
-                fields[slot[len(source):]].update(self.points[slot])
+            for suffix in layout:
+                fields[suffix].update(self.value(dict(op='loc', id=source + suffix)))
         # Union source summaries once, rather than constructing every
         # destination x source x field tuple on each solver iteration.
         for destination in destinations:
@@ -292,7 +299,7 @@ class Solver:
             kind, item = tasks[task]
             if kind == 'constraint':
                 c = item
-                self.update(c['left'], c['right'], c.get('aggregate', False))
+                self.update(c['left'], c['right'], c.get('aggregate', False), c.get('aggregate_paths'))
             else:
                 call = item
                 targets = self.targets(call)
@@ -301,9 +308,11 @@ class Solver:
                 for target in targets:
                     for i, arg in enumerate(call['arguments']):
                         aggregates = call.get('argument_aggregates', [])
+                        layouts = call.get('argument_aggregate_paths', [])
                         self.update(dict(op='loc', id=target + ':param:' + str(i)), arg,
-                                    i < len(aggregates) and aggregates[i])
-                    self.update(call['result'], dict(op='loc', id=target + ':return'), call.get('returns_aggregate', False))
+                                    i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
+                    self.update(call['result'], dict(op='loc', id=target + ':return'),
+                                call.get('returns_aggregate', False), call.get('return_aggregate_paths'))
                 if call.get('name') in {'memcpy', 'memmove'} and len(call['arguments']) >= 2:
                     self.copy_memory(call)
             evaluations += 1
@@ -389,6 +398,16 @@ class Solver:
                     pending.extend(values - result)
         return result
 
+    def copied_pointer_values(self, sources):
+        """Values copied out of storage, excluding its uncopied address."""
+        values = set()
+        for source in sources:
+            candidates = {source} | self.descendant_slots.get(source, set()) | self.slots_by_shape.get(self.shape(source), set())
+            for slot in candidates:
+                if slot == source or slot.startswith(source + '/') or self.overlaps(slot, source):
+                    values.update(self.points.get(slot, ()))
+        return self.reachable_pointer_values(values)
+
     def resolve_evidence(self, calls):
         """Retain gaps only at actual opaque consumers, with exact targets.
 
@@ -438,9 +457,11 @@ class Solver:
             if call['name'] in {'memcpy', 'memmove'} and len(call['arguments']) >= 2:
                 destinations = self.value(call['arguments'][0])
                 if not destinations or any(p.startswith('unknown:') for p in destinations):
-                    escape(self.value(call['arguments'][1]), call, 'Aggregate copied to an unresolved destination')
+                    escape(self.copied_pointer_values(self.value(call['arguments'][1])), call,
+                           'Pointer contents copied to an unresolved destination')
                 if call in self.unresolved_copies:
-                    escape(self.value(call['arguments'][1]), call, 'Untyped aggregate copy has unresolved pointer contents')
+                    escape(self.copied_pointer_values(self.value(call['arguments'][1])), call,
+                           'Untyped aggregate copy has unresolved pointer contents')
             if not contracted and (call.get('target_coverage') == 'PARTIAL' or any(t not in self.functions for t in targets)):
                 values = set().union(*(self.value(arg) for arg in call['arguments']))
                 escape(values, call, 'Pointer argument reaches code without an analyzable implementation')
@@ -449,16 +470,18 @@ class Solver:
             if constraint['left'].get('op') in {'deref', 'field', 'index'} and (
                     not locations or any(p.startswith('unknown:') for p in locations)):
                 escape(self.value(constraint['right']), constraint, 'Pointer value stored through an unresolved destination')
-        for location, values in list(self.points.items()):
+        incomplete_build = (bool(self.facts.get('build_closure', {}).get('missing_objects'))
+                            or any(u['kind'] == 'PARSE_FAILED' for u in self.facts['unknowns'])
+                            or any(u.get('parse_status') == 'FAILED' for u in self.facts.get('translation_units', [])))
+        for location, values in list(self.points.items()) if incomplete_build else ():
             sid = self.symbol(location)
             if sid and self.variables[sid].get('linkage') == 'EXTERNAL':
-                # Exported callback slots can provide entries beyond ordinary
-                # direct callers. Data pointees do not escape merely because
-                # their containing pointer has external linkage.
-                function_values = {v for v in self.reachable_pointer_values(values) if v.startswith('fn:')}
+                # Missing linked code can name an exported pointer slot and
+                # obtain its pointees/callbacks. With a complete closure,
+                # visibility alone is not an extra asynchronous consumer.
                 variable = self.variables[sid]
-                escape(function_values, dict(file=variable.get('definition_file'),
-                    line=variable.get('definition_line')), 'Callback stored in externally visible storage')
+                escape(values, dict(file=variable.get('definition_file'),
+                    line=variable.get('definition_line')), 'Missing linked code may consume an exported pointer slot')
 
         self.facts['address_escapes'] = list({digest(e): e for e in escapes}.values())
         resolved, remaining = [], []

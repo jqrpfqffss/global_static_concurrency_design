@@ -20,6 +20,11 @@ class StorageEvidenceTests(unittest.TestCase):
             int main(void){state.slots[0]++;state.other++;return 0;}''')
         for name in ('state.slots[0]', 'state.slots[1]', 'state.other'):
             self.assertEqual(rows[name]['static_classification'], 'SAFE', rows[name])
+            self.assertIn('SAFE_DISJOINT_STORAGE', rows[name].get('safe_reason_codes', []), rows[name])
+            proof = rows[name]['safe_evidence']['disjoint_storage']
+            start, end = proof['range_bits']
+            self.assertTrue(all(end <= item['range_bits'][0] or item['range_bits'][1] <= start
+                                for item in proof['nonoverlapping_resources']))
 
     def test_nested_array_dynamic_index_only_overlaps_that_field(self):
         rows = self.scan('''static struct { unsigned slots[2]; unsigned other; } state;
@@ -27,6 +32,7 @@ class StorageEvidenceTests(unittest.TestCase):
             int main(int i){state.slots[i]++;state.other++;return 0;}''')
         for name in ('state.slots[0]', 'state.slots[*]'):
             self.assertEqual(rows[name]['static_classification'], 'SUSPECT', rows[name])
+            self.assertNotIn('SAFE_DISJOINT_STORAGE', rows[name].get('safe_reason_codes', []))
         self.assertEqual(rows['state.other']['static_classification'], 'SAFE')
 
     def test_escaped_union_member_affects_overlapping_member(self):
@@ -58,6 +64,22 @@ class StorageEvidenceTests(unittest.TestCase):
             int main(void){state.a=1;return 0;}''')
         self.assertEqual(rows['state.a']['static_classification'], 'SUSPECT')
         self.assertEqual(rows['state.b']['static_classification'], 'SUSPECT')
+
+    def test_struct_members_have_explicit_disjoint_layout_evidence(self):
+        rows = self.scan('''static struct { unsigned foreground, irq; } state;
+            void TIM4_IRQHandler(void){state.irq++;}
+            int main(void){state.foreground++;return 0;}''')
+        for name in ('state.foreground', 'state.irq'):
+            self.assertEqual(rows[name]['static_classification'], 'SAFE')
+            self.assertIn('SAFE_DISJOINT_STORAGE', rows[name]['safe_reason_codes'])
+
+    def test_union_members_cannot_gain_disjoint_proof(self):
+        rows = self.scan('''static union { unsigned a, b; } state;
+            void TIM4_IRQHandler(void){state.b++;}
+            int main(void){state.a++;return 0;}''')
+        for name in ('state.a', 'state.b'):
+            self.assertEqual(rows[name]['static_classification'], 'SUSPECT')
+            self.assertNotIn('SAFE_DISJOINT_STORAGE', rows[name].get('safe_reason_codes', []))
 
 
 if __name__ == '__main__':

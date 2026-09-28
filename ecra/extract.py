@@ -627,6 +627,35 @@ class Extractor:
                     for f in owners:
                         self.events.append(dict(function_id=f["function_id"], event_kind=event_kind,
                                                 api_name=c.spelling, macro=True, **loc))
+        macro_definitions = {c.spelling: tokens(c)[1:] for c in tu.cursor.get_children()
+                             if c.kind.name == 'MACRO_DEFINITION'}
+
+        def macro_integer(name, seen=(), definition=None):
+            if name in seen:
+                return None
+            values = [value for value in (macro_definitions.get(name, []) if definition is None else definition)
+                      if value not in {'(', ')'}]
+            if len(values) != 1:
+                return None
+            token = values[0]
+            if re.fullmatch(r'(?:0[xX][0-9a-fA-F]+|[0-9]+)[uUlL]*', token):
+                digits = re.sub(r'[uUlL]+$', '', token)
+                try:
+                    return int(digits, 16 if digits.lower().startswith('0x') else 8 if len(digits) > 1 and digits.startswith('0') else 10)
+                except ValueError:
+                    return None
+            return macro_integer(token, (*seen, name))
+
+        # This CMSIS device-header constant describes the selected MCU. It is
+        # extracted per actual translation unit, so analysis can reject
+        # conflicting device headers instead of guessing a global default.
+        for c in tu.cursor.get_children():
+            if c.kind.name == 'MACRO_DEFINITION' and c.spelling == '__NVIC_PRIO_BITS':
+                raw = tokens(c)[1:]
+                value = macro_integer(c.spelling, definition=raw)
+                self.irq_priority_events.append(dict(function_id='', api_name='CMSIS_NVIC_PRIO_BITS',
+                    arguments=[' '.join(raw)], argument_values=[value],
+                    translation_unit=self.tu_name, conditional_ancestor=False, **self.loc(c)))
         # Function addresses outside call expressions can hide callbacks and vectors.
         direct_sites = {(call["file"], call["offset"], call["callee_function_id"]) for call in self.calls}
         for c in walk(tu.cursor):
