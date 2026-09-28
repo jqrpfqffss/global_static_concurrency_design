@@ -161,7 +161,7 @@ class TestNoRiskAndUnusedSymbols(InventoryFixture):
         facts, report = self.extract(cfg)
         self.assertTrue(any(v["name"] == "never_used" for v in facts["variables"]))
         unused = next(v for v in facts["variables"] if v["name"] == "never_used")
-        self.assertEqual(unused['screening_reason'], 'NO_RUNTIME_ACCESSES')
+        self.assertEqual(unused['screening_reason'], 'SAFE_NO_RUNTIME_ACCESS')
         self.assertFalse(any(f.get('symbol_id') == unused['symbol_id'] for f in report['findings']))
 
     def test_const_no_risk_symbol_in_inventory(self):

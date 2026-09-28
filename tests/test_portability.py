@@ -75,7 +75,9 @@ class EntryAndSafetyTests(unittest.TestCase):
         count = next(v for v in facts['variables'] if v['name']=='count')
         self.assertEqual(count['writers'], ['main'])
         self.assertEqual(count['audit_status'], 'REVIEW_REQUIRED')
-        self.assertIn('FUNCTION_ADDRESS', count['screening_blockers'])
+        # Callback 地址交给未解析注册方 => 入口上下文不确定 => 变量级
+        # UNKNOWN_EXECUTION_CONTEXT（比旧的 FUNCTION_ADDRESS 泛化阻塞更精准）。
+        self.assertIn('UNKNOWN_EXECUTION_CONTEXT', count['screening_blockers'])
 
     def test_one_write_site_shared_by_two_irqs_still_conflicts(self):
         cfg = self.project({'a.c': '''
@@ -127,7 +129,7 @@ class EntryAndSafetyTests(unittest.TestCase):
         (self.root/'missing.c').write_text('extern int shared; void TIM2_IRQHandler(void){shared=1;}',encoding='utf-8')
         facts, _ = self.extract(cfg)
         shared = next(v for v in facts['variables'] if v['name']=='shared')
-        self.assertIn('SOURCE_NOT_IN_DATABASE', shared['screening_blockers'])
+        self.assertIn('UNKNOWN_RELEVANT_MISSING_TU', shared['screening_blockers'])
         self.assertEqual(shared['audit_status'], 'REVIEW_REQUIRED')
 
     def test_explicit_serial_context_with_multiple_roots_is_not_reentrant(self):

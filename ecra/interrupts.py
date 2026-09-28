@@ -90,7 +90,11 @@ def relations(facts, contexts, cfg):
     for a, b in combinations(sorted(contexts), 2):
         kinds = (contexts[a]['kind'], contexts[b]['kind'])
         row = dict(contexts=[a,b], relation='MAY_INTERLEAVE', reason='按异步执行模型保留交错候选。')
-        if set(kinds) == {'MAIN','ISR'}:
+        if set(kinds) == {'MAIN'}:
+            # 多个 MAIN 上下文属于同一前台调度域：裸机 main/while(1) 串行
+            # 派发的任务不会互相并发。
+            row.update(relation='SERIAL', reason='多个 MAIN 入口属于同一前台串行调度域。')
+        elif set(kinds) == {'MAIN','ISR'}:
             row.update(relation='CAN_PREEMPT', higher=a if kinds[0]=='ISR' else b,
                        lower=b if kinds[0]=='ISR' else a, reason='ISR 可抢占未屏蔽的 MAIN。')
         elif kinds == ('ISR','ISR'):

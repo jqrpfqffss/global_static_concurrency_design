@@ -49,7 +49,7 @@ class PointerTests(unittest.TestCase):
         v = next(v for v in facts['variables'] if v['name'] == 'samples')
         self.assertEqual(set(v['writers']), {'task', 'dma_rx'})
         self.assertTrue(any(a.get('via_api') == 'memset' and a['access_kind'] == 'WRITE' for a in v['accesses']))
-        self.assertIn('DMA_SHARED_REVIEW', next(f for f in report['findings'] if f.get('symbol_id') == v['symbol_id'])['rules'])
+        self.assertIn('UNKNOWN_DMA_LIFETIME', next(f for f in report['findings'] if f.get('symbol_id') == v['symbol_id'])['rules'])
 
     def test_wrapped_task_registration_and_atomic_modes(self):
         cfg = self.project({'a.c': '''

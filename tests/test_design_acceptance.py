@@ -18,8 +18,10 @@ EXPECTED = {
     'D03': ('value','SAFE','NOT_FOUND'), 'D04': ('value','SUSPECT','NOT_FOUND'),
     'D05': ('value','SUSPECT','NOT_FOUND'), 'D06': ('value','SUSPECT','NOT_FOUND'),
     'D07': ('value','SUSPECT','NOT_FOUND'), 'D08': ('value','SAFE','EFFECTIVE'),
-    'D09': ('value','SUSPECT','PARTIAL'), 'D10': ('value','SAFE','EFFECTIVE'),
-    'D11': ('value','UNKNOWN','UNRESOLVED'), 'D12': ('value','UNKNOWN','NOT_FOUND'),
+    'D09': ('value','SUSPECT','PARTIAL'),     'D10': ('value','SAFE','EFFECTIVE'),
+    # D11/D12: 已知 MAIN↔ISR 写冲突 + BASEPRI/间接调用未解析 => SUSPECT（T15：
+    # 优先级/保护缺口不能把已知冲突降级为 UNKNOWN）。
+    'D11': ('value','SUSPECT','UNRESOLVED'), 'D12': ('value','SUSPECT','NOT_FOUND'),
     'D13': ('value','SAFE','NOT_FOUND'), 'D14': ('value','UNKNOWN','NOT_FOUND'),
     'D15': ('value','UNKNOWN','NOT_FOUND'), 'D16': ('value','SAFE','EFFECTIVE'),
     'D17': ('value','SUSPECT','NOT_FOUND'), 'D18': ('value','SUSPECT','INEFFECTIVE'),
@@ -209,11 +211,11 @@ class PriorityAdversarial(unittest.TestCase):
 
     def test_uncalled_priority_setup_is_not_evidence(self):
         self.variant(lambda s:s.replace('int main(void)', 'int Configure(void)').replace('__set_BASEPRI(0x50);',
-            'return 0;} int main(void){__set_BASEPRI(0x50);'), 'UNKNOWN','UNRESOLVED')
+            'return 0;} int main(void){__set_BASEPRI(0x50);'), 'SUSPECT','UNRESOLVED')
 
     def test_conditional_priority_setup_is_not_evidence(self):
         self.variant(lambda s:s.replace('HAL_NVIC_SetPriority(TIM4_IRQn,PRIORITY,0);',
-            'if(value)HAL_NVIC_SetPriority(TIM4_IRQn,PRIORITY,0);'), 'UNKNOWN','UNRESOLVED')
+            'if(value)HAL_NVIC_SetPriority(TIM4_IRQn,PRIORITY,0);'), 'SUSPECT','UNRESOLVED')
 
 
 class SafeSampleIntegration(unittest.TestCase):

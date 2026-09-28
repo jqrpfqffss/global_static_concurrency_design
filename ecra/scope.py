@@ -12,6 +12,11 @@ class AuditScope:
         self.exclude_dirs = analysis.get('exclude_dirs', [])
         self.exclude_files = analysis.get('exclude_files', [])
         self.legacy_exclude = analysis.get('exclude', [])
+        # build_closure: 以编译数据库实际参与的 TU 为排查闭包（Section 13）。
+        # 未参与当前 target 构建的源码只作为调用链依赖，不进入盘点，也不构
+        # 成任何变量的覆盖缺口。
+        self.build_closure = analysis.get('audit_mode') == 'build_closure'
+        self.closure_sources = set()
         self.includes = [self.path(p) for p in self.include_dirs]
         self.excludes = [self.path(p) for p in self.exclude_dirs]
         self.files = [self.path(p) for p in self.exclude_files]
@@ -28,6 +33,15 @@ class AuditScope:
 
     def path(self, path):
         return (self.root / str(path).replace('\\', '/')).resolve()
+
+    def set_closure_sources(self, sources):
+        self.closure_sources = {str(s).replace('\\', '/') for s in sources}
+
+    def file_selected(self, relative_path):
+        """File-level audit selection for discovery/supplemental walks."""
+        if not self.build_closure:
+            return True
+        return str(relative_path).replace('\\', '/') in self.closure_sources
 
     def contains(self, path):
         if not path:

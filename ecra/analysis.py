@@ -89,6 +89,7 @@ def context_graph(facts, cfg):
             roots[c["id"]].add(f["function_id"])
             matched.add(f["function_id"])
     if cfg["analysis"].get("auto_contexts", True):
+        called = {call.get("callee_function_id") for call in facts["calls"] if call.get("callee_function_id")}
         for f in funcs.values():
             fid, name = f["function_id"], f["name"]
             if fid in matched or fid in disabled:
@@ -99,6 +100,12 @@ def context_graph(facts, cfg):
             # actual callers; inventing
             # roots here creates false IRQ contexts even for task-only calls.
             if not name.startswith('HAL_') and f.get("parameter_count", 0) == 0 and (name.endswith("IRQHandler") or name in {"SysTick_Handler", "PendSV_Handler", "SVC_Handler", "NMI_Handler", "HardFault_Handler", "MemManage_Handler", "BusFault_Handler", "UsageFault_Handler"}):
+                kind = "ISR"
+            elif (not name.startswith('HAL_') and f.get("parameter_count", 0) == 0
+                  and fid not in called and re.fullmatch(r'[A-Za-z_]\w*_(isr|irq)', name, re.I)):
+                # 通用小写 handler 约定（如 libopencm3 的 usb_isr/tim2_isr，
+                # 经 C 向量表进入）：仅在没有任何已解析调用边时按 ISR 入口
+                # 建模。这只会增加（而非减少）执行上下文，方向保守。
                 kind = "ISR"
             elif name == "main":
                 kind = "MAIN"
@@ -170,17 +177,25 @@ def context_graph(facts, cfg):
     # ``recursive_edges`` below rather than attempting to enumerate an
     # infinite family of paths.
     all_paths = defaultdict(lambda: defaultdict(list))
-    path_limit = cfg.get('analysis', {}).get('max_call_paths', 0)
+    # 大型工程的调用图存在枢纽节点：无环路径枚举是组合爆炸的。默认上限
+    # 保护内存；达到上限时记录显式 CALL_PATH_CAPPED 事实：展示链与组合
+    # 计数退化为下界。分类本身不依赖该枚举（上下文与入口不确定性使用
+    # 最短见证与函数级事实），因此不因截断而放大 false-safe。
+    path_limit = cfg.get('analysis', {}).get('max_call_paths', 2_000_000)
     if type(path_limit) is not int or path_limit < 0:
         raise ValueError('analysis.max_call_paths 必须为非负整数；0 表示不限制。')
+    capped_roots = set()
+    produced = 0
     for cid, entries in roots.items():
-        produced = 0
-        stopped = False
+        if path_limit and produced >= path_limit:
+            capped_roots.add(cid)
+            continue
         for entry in sorted(entries):
             stack = [(entry, [entry], iter(sorted(graph[entry])))]
             all_paths[entry][cid].append([entry])
             produced += 1
-            while stack and not stopped:
+            capped = False
+            while stack:
                 node, route, successors = stack[-1]
                 child = next(successors, None)
                 if child is None:
@@ -192,16 +207,19 @@ def context_graph(facts, cfg):
                 if child in route:
                     continue
                 if path_limit and produced >= path_limit:
-                    # An explicit resource limit fails the scan. Returning a
-                    # partial graph can otherwise leave unvisited sibling
-                    # branches incorrectly labeled COMPLETE.
-                    raise ValueError('CALL_PATH_LIMIT：已解析调用链超过显式上限，扫描失败；提高 max_call_paths 或使用 0。')
+                    capped = True
+                    break
                 child_route = route + [child]
                 all_paths[child][cid].append(child_route)
                 produced += 1
                 stack.append((child, child_route, iter(sorted(graph[child]))))
-            if stopped:
+            if capped:
+                capped_roots.add(cid)
                 break
+    if capped_roots:
+        issues.append(dict(kind='CALL_PATH_CAPPED', limit=path_limit,
+                           context_ids=sorted(capped_roots),
+                           hint='调用链枚举达到 max_call_paths 上限；展示链与组合计数为下界。分类使用入口级证据，不受该截断影响。'))
     for fid, per_context in all_paths.items():
         for cid, routes in per_context.items():
             # Stable de-duplication is useful when multiple configured entries
@@ -581,43 +599,17 @@ def analyze(facts, cfg, coverage, root=None):
     relations = preemption_relations(facts, contexts, cfg)
     entry_ids = {b['function_id'] for b in facts['context_bindings'] if b['call_depth'] == 0}
     facts['assembly_references'] = [u for u in facts['unknowns'] if u['kind'] in
-                                   {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
+                                    {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
     facts['unknowns'] = [u for u in facts['unknowns'] if not (u['kind'] == 'ASSEMBLY_FUNCTION_REFERENCE'
                          and u.get('target_function_id') in entry_ids)]
-    # Establish reachability before scope filtering: a dependency can supply an
-    # entry into a target function. Address-taken functions and attributed entry
-    # points are possible roots even when no ordinary caller is present.
-    graph = defaultdict(set)
-    for call in facts['calls']:
-        graph[call['caller_function_id']].add(call.get('callee_function_id'))
-    reachability_gaps = {u['kind'] for u in facts['unknowns'] if u['kind'] in {
-        'PARSE_FAILED', 'POINTS_TO_LIMIT', 'INLINE_ASSEMBLY', 'CPP_SEMANTICS_REVIEW',
-        'MULTIPLE_BUILD_VARIANTS', 'SOURCE_CHANGED_DURING_SCAN', 'HEADER_CHANGED_DURING_SCAN',
-        'UNMATCHED_CONTEXT', 'UNRESOLVED_CONFIG_CALL', 'UNRESOLVED_TASK_ENTRY',
-        'CMSIS_V1_TASK_ENTRY', 'UNRESOLVED_REGISTERED_ENTRY', 'UNMATCHED_ENTRY_REGISTRATION',
-        'ASSEMBLY_SOURCE_REVIEW'}}
-    if coverage.get('translation_units_failed') or coverage.get('unlisted_sources'):
-        reachability_gaps.add('BUILD_INCOMPLETE')
-    possible = set(paths)
-    possible.update(u['target_function_id'] for u in facts['unknowns'] if u.get('target_function_id'))
-    possible.update(f['function_id'] for f in facts['functions'] if f.get('entry_attributes'))
-    opaque_callers = {u.get('function_id') for u in facts['unknowns']
-                      if u['kind'] in {'EXTERNAL_CALLEE', 'INLINE_ASSEMBLY'}}
-    external_functions = {f['function_id'] for f in facts['functions'] if f.get('linkage') == 'EXTERNAL'}
-    external_promoted = False
-    queue = deque(possible)
-    while queue:
-        caller = queue.popleft()
-        if caller in opaque_callers and not external_promoted:
-            queue.extend(sorted(external_functions - possible))
-            possible.update(external_functions)
-            external_promoted = True
-        for callee in graph[caller]:
-            if callee and callee not in possible:
-                possible.add(callee)
-                queue.append(callee)
-    unreachable = {f['function_id'] for f in facts['functions'] if f['function_id'] not in possible
-                   and contexts and not reachability_gaps}
+    # Conflict-based classification model. Physical execution domains,
+    # variable-local escape evidence, entry uncertainty and per-function
+    # deadness are established BEFORE scope filtering: dependencies outside
+    # the audit scope still contribute call-graph reachability for variables
+    # inside the scope.
+    from .classify import ClassificationModel
+    model = ClassificationModel(facts, contexts, relations, paths, cfg, coverage)
+    unreachable = model.dead_functions
     for f in facts['functions']:
         f['reachability'] = ('REACHABLE' if f['function_id'] in paths else
                              'PROVEN_UNREACHABLE' if f['function_id'] in unreachable else 'UNKNOWN_ENTRY')
@@ -648,50 +640,15 @@ def analyze(facts, cfg, coverage, root=None):
     MaskAnalysis(facts, cfg).run()
     for s in facts["snapshots"]:
         snapshots[s["symbol_id"]].append(s)
-    # Pre-index uncertainties; avoid rescanning the entire gap list per variable
-    # in large projects. Propagate upstream missing-entry evidence along ALL
-    # graph edges, not only the shortest displayed witness.
-    by_symbol, tainted = defaultdict(list), defaultdict(set)
-    graph = defaultdict(set)
-    for call in facts['calls']:
-        if call.get('callee_function_id'):
-            graph[call['caller_function_id']].add(call['callee_function_id'])
-    # A failed/unlisted translation unit is an engineering-level coverage gap,
-    # but is not evidence that it accesses every externally linked object.
-    # Only a symbol reference, address escape, alias, or known call/context
-    # relation may make that gap block an individual variable conclusion.
-    global_gaps = set()
+    # Variable-bound uncertainties are indexed per symbol. Project-wide
+    # unknowns (function pointers, unresolved callees, parse gaps elsewhere)
+    # no longer taint every variable: the ClassificationModel decides, per
+    # variable, whether such a fact actually enters that variable's evidence
+    # slice (address escape, alias reachability, entry uncertainty).
+    by_symbol = defaultdict(list)
     for u in facts['unknowns']:
         if u.get('symbol_id'):
             by_symbol[u['symbol_id']].append(u)
-            continue
-        kind = u['kind']
-        if kind in {'SOURCE_CHANGED_DURING_SCAN', 'HEADER_CHANGED_DURING_SCAN'}:
-            global_gaps.add(kind)
-        fid = u.get('target_function_id') or u.get('function_id')
-        if fid:
-            tainted[fid].add(kind)
-    # Unknown callee effects can affect its caller's accesses as well. Entry
-    # uncertainty still propagates only forward; do not flood unrelated code.
-    changed = True
-    while changed:
-        changed = False
-        for caller, callees in graph.items():
-            for callee in callees:
-                extra = tainted[callee] & {'EXTERNAL_CALLEE','INLINE_ASSEMBLY','UNRESOLVED_POINTEE','INDIRECT_CALL'} - tainted[caller]
-                if extra:
-                    tainted[caller].update(extra)
-                    changed = True
-    queue = deque(tainted)
-    while queue:
-        fid = queue.popleft()
-        for callee in graph[fid]:
-            extra = tainted[fid] - tainted[callee]
-            if extra:
-                tainted[callee].update(extra)
-                queue.append(callee)
-    if cfg['project'].get('cm4_enabled') or cfg['project'].get('concurrency_model', 'single_core_preemptive') != 'single_core_preemptive':
-        global_gaps.add('UNMODELED_CONCURRENCY')
     findings = []
     analyzed_variables = [v for v in facts['variables']
                           if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}]
@@ -704,9 +661,10 @@ def analyze(facts, cfg, coverage, root=None):
         if v.get("coverage_source") in ("supplemental", "inactive_branch"):
             v.update(accesses=[], readers=[], writers=[], contexts=[], protection_status="NONE",
                      annotations=[], audit_status="SUPPLEMENTAL_INVENTORY",
-                     screening_reason=None, screening_blockers=['ACCESS_NOT_ANALYZED'],
+                     screening_reason=None, safe_reason_code=None, screening_blockers=['ACCESS_NOT_ANALYZED'],
                      analysis_coverage='PARTIAL', coverage_reasons=['ACCESS_NOT_ANALYZED'],
-                     static_classification='UNKNOWN',
+                     static_classification='UNKNOWN', gap_evidence=[], pending_confirmation=[],
+                     access_count=0, resolved_call_path_count=0, unreachable_access_count=0,
                      classification_reason='该声明来自未编译源码或非活动条件分支，访问尚未按当前构建分析。')
             site = next(iter(v.get('definitions', []) or v.get('declarations', [])), {})
             findings.append(dict(finding_id='GS-' + digest([sid, 'GS-SUPPLEMENTAL-UNANALYZED'])[:16],
@@ -724,160 +682,104 @@ def analyze(facts, cfg, coverage, root=None):
         all_contexts = set(itertools.chain.from_iterable(a["contexts"] for a in accesses))
         variable_relations = [relation for relation in relations
                               if set(relation['contexts']) <= all_contexts]
-        rules = {"GS-PARSE-INCOMPLETE"} if v.get("parse_status") == "FAILED" else set()
         uncertain = [u for u in by_symbol[sid] if u.get('function_id') not in unreachable]
-        # Unknown edges above an access can introduce more contexts, even if one path is known.
-        if any(not a["contexts"] for a in accesses):
-            rules.add("GS-UNKNOWN-CONTEXT")
-        if any(a["access_kind"] == "ADDRESS_TAKEN" or a.get("via_alias") for a in accesses) or uncertain:
-            rules.add("GS-INDIRECT-ACCESS")
-        if not accesses and not v["is_const"] and v.get('resource_kind') != 'STRUCT_MEMBER':
-            rules.add("GS-NO-ACCESS-EVIDENCE")
-        if not v["definition_file"]:
-            rules.add("GS-DEFINITION-MISSING")
-        if any(u["kind"] == "DMA_SHARED_REVIEW" for u in uncertain):
-            rules.add("DMA_SHARED_REVIEW")
         reentrant = any(contexts[c].get("reentrant", False) for c in all_contexts)
         shared = len(all_contexts) >= 2 or reentrant
-        if shared and writers:
-            rules.add("GS-MULTI-CONTEXT")
-            if len(writers) >= 2 or (reentrant and writers):
-                rules.add("GS-MULTI-WRITER")
-            if any(a["access_kind"] == "RMW" for a in accesses):
-                rules.add("GS-RMW-INTERLEAVE")
-            if snapshots[sid]:
-                rules.add("GS-STALE-SNAPSHOT")
-            if v["kind"] == "LOCAL_STATIC":
-                rules.add("GS-LOCAL-STATIC-REENTRANT")
-            if v["kind"] == "FILE_STATIC":
-                rules.add("GS-FILE-STATIC-SHARED")
-            word = cfg["project"].get("native_word_bits", 32) // 8
-            if v["size_bytes"] is None or v["size_bytes"] > word or v["alignment_bytes"] is None or v["alignment_bytes"] < min(v["size_bytes"], word):
-                rules.add("GS-TEAR-RISK")
-            if v["is_struct"] or v["is_bitfield_container"]:
-                rules.add("GS-STRUCT-INCONSISTENT")
         annotations = [r for r in cfg["resources"] if r.get("symbol_id", r.get("name")) in {sid, v["name"], v["qualified_name"]}]
-        if any(r.get("owner_context") and writers - {r["owner_context"]} for r in annotations):
-            rules.add("GS-OWNER-VIOLATION")
+        owner_violation = any(r.get("owner_context") and writers - {r["owner_context"]} for r in annotations)
         declared = [p for p in cfg["protection"] if p.get("resource") in {sid, v["name"], v["qualified_name"]}]
         protection, protection_details, protection_note = protection_assessment(accesses, events, contexts, facts, cfg)
         if protection == 'NOT_FOUND' and declared:
             protection = 'DETECTED'
             protection_note = '配置中声明了保护措施，但当前源码未找到可关联的保护操作，不能证明其覆盖访问窗口。'
-        blockers = set(global_gaps)
-        # Files outside the active build cannot name a non-escaped internal
-        # object. Keep their inventory gaps, without poisoning every static.
-        escaped = any(a['access_kind'] == 'ADDRESS_TAKEN' or a.get('via_alias') for a in accesses)
-        if v.get('linkage') != 'EXTERNAL' and not escaped:
-            blockers.difference_update({'SOURCE_NOT_IN_DATABASE', 'HEADERS_NOT_INCLUDED', 'PARSE_FAILED'})
-            if v.get('parse_status') == 'FAILED':
-                blockers.add('PARSE_FAILED')
-        blockers.update(u['kind'] for u in uncertain)
-        for a in accesses:
-            local_gaps = tainted[a['function_id']]
-            if v.get('linkage') != 'EXTERNAL' and not escaped:
-                local_gaps = local_gaps - {'EXTERNAL_CALLEE', 'UNRESOLVED_POINTEE', 'POINTER_DEREFERENCE'}
-            blockers.update(local_gaps)
-        # A proven PRIMASK/explicit irq-mask region can remove only the
-        # MAIN↔ordinary-ISR conflict it covers.  It never hides alias, DMA,
-        # parse or task-scheduler uncertainty.
-        if protection == 'EFFECTIVE' and not uncertain and not escaped and not blockers:
-            rules.difference_update({'GS-MULTI-CONTEXT', 'GS-MULTI-WRITER', 'GS-RMW-INTERLEAVE',
-                                     'GS-STALE-SNAPSHOT', 'GS-LOCAL-STATIC-REENTRANT',
-                                     'GS-FILE-STATIC-SHARED', 'GS-TEAR-RISK', 'GS-STRUCT-INCONSISTENT'})
-        if not rules and blockers:
-            rules.add('GS-COVERAGE-INCOMPLETE')
-        # A variable can be conclusively removed from the *concurrency* queue
-        # when all observed accesses were parsed, rooted and non-aliased, and
-        # no conflicting pair exists. This is deliberately narrower than a
-        # general "safe" claim: uncovered assembly/DMA/dynamic callbacks still
-        # create a rule above and therefore cannot enter this branch.
-        site_keys = {(a.get('function_id'), a.get('file'), a.get('offset'), a.get('access_path', ''), a.get('access_kind'))
-                     for a in accesses if a['access_kind'] in {'READ', 'WRITE', 'RMW'}}
-        screened_reason = None
-        # Missing execution context is immaterial to read/read concurrency.
-        # Missing writes, escaped addresses, hardware and incomplete parsing
-        # remain blockers. A count of source sites alone is never a proof.
-        only_reads = bool(accesses) and all(a['access_kind'] == 'READ' for a in accesses)
-        effective_blockers = set(blockers)
-        if only_reads:
-            effective_blockers.difference_update({'FUNCTION_ADDRESS', 'INDIRECT_CALL'})
-        proof_rules = rules - {'GS-NO-ACCESS-EVIDENCE', 'GS-UNKNOWN-CONTEXT', 'GS-COVERAGE-INCOMPLETE'}
-        if not proof_rules and not uncertain and not escaped and not effective_blockers:
-            if not accesses:
-                screened_reason = 'UNREACHABLE_ACCESSORS' if all_accesses else 'NO_RUNTIME_ACCESSES'
-            elif only_reads:
-                screened_reason = 'ONLY_READS'
-            elif len(site_keys) == 1 and len(all_contexts) == 1 and not reentrant and all(a['contexts'] for a in accesses):
-                screened_reason = 'SINGLE_ACCESS_SITE'
-            elif len(all_contexts) == 1 and not reentrant and all(a['contexts'] for a in accesses):
-                screened_reason = 'SINGLE_EXECUTION_CONTEXT'
-            elif protection == 'EFFECTIVE':
-                screened_reason = 'EFFECTIVE_IRQ_MASK'
-        if screened_reason:
-            rules.clear()
-            blockers = effective_blockers
-        elif not rules:
-            rules.add('GS-COVERAGE-INCOMPLETE')
-        coverage_reasons = set(blockers)
-        coverage_reasons.update(u.get('kind', 'UNKNOWN_EVIDENCE') for u in uncertain)
-        if escaped:
-            coverage_reasons.add('ADDRESS_ESCAPE')
-        if v.get('parse_status') == 'FAILED':
-            coverage_reasons.add('PARSE_FAILED')
-        if not v.get('definition_file'):
-            coverage_reasons.add('DEFINITION_MISSING')
-        if any(not a.get('contexts') and a.get('access_kind') != 'READ' for a in accesses):
-            coverage_reasons.add('EXECUTION_CONTEXT_UNRESOLVED')
-        if protection == 'UNRESOLVED':
-            coverage_reasons.add('PROTECTION_UNRESOLVED')
-        if (writers and all(contexts[c].get('kind') == 'ISR' for c in all_contexts) and
-                any(r['relation'] == 'UNKNOWN_PREEMPTION' for r in variable_relations)):
-            coverage_reasons.add('IRQ_PREEMPTION_UNRESOLVED')
-        coverage_status = 'COMPLETE' if not coverage_reasons else 'PARTIAL'
-        if coverage_status == 'PARTIAL':
-            screened_reason = None
-            rules.add('GS-COVERAGE-INCOMPLETE')
-            static_classification = 'UNKNOWN'
-            classification_reason = '存在影响该变量结论的证据缺口：' + '、'.join(sorted(coverage_reasons))
-        elif screened_reason:
-            static_classification = 'SAFE'
-            classification_reason = {'ONLY_READS': '已解析访问均为 READ，且没有地址逃逸或外部写入证据。',
-                                     'NO_RUNTIME_ACCESSES': '未发现运行期访问，且扫描覆盖完整。',
-                                     'UNREACHABLE_ACCESSORS': '全部访问函数在当前入口模型中已证明不可达。',
-                                     'SINGLE_ACCESS_SITE': '唯一访问点属于单一不可重入执行上下文。',
-                                     'SINGLE_EXECUTION_CONTEXT': '全部已解析访问属于同一不可重入执行上下文。',
-                                     'EFFECTIVE_IRQ_MASK': protection_note}.get(screened_reason, '静态证据已足以排除目标并发风险。')
-        else:
+        # ---- Conflict-based classification (see ecra.classify) ----
+        # KNOWN CONFLICT => SUSPECT (even with unresolved priority/protection);
+        # NO CONFLICT + RELEVANT SLICE GAP => UNKNOWN; otherwise SAFE with proof.
+        result = model.classify(v, accesses, uncertain, protection)
+        static_classification = result['classification']
+        if owner_violation and static_classification == 'SAFE':
             static_classification = 'SUSPECT'
-            classification_reason = '存在可成立的共享访问候选，尚无充分静态证据将其排除。'
-        audit_status = 'SCREENED_NO_CONCURRENCY_RISK' if screened_reason else 'REVIEW_REQUIRED'
+            result = dict(result, classification='SUSPECT',
+                          reason='违反配置声明的上下文所有权：存在声明所有者之外的写入上下文。')
+        gap_codes = sorted({g['code'] for g in result['gaps']})
+        coverage_reasons = list(gap_codes)
+        coverage_status = 'COMPLETE' if not coverage_reasons else 'PARTIAL'
+        # Conflict-shape rules only describe SUSPECT findings (risk ranking);
+        # they never decide SAFE/UNKNOWN by themselves.
+        rules = set()
+        if static_classification == 'SUSPECT':
+            if shared and writers:
+                rules.add("GS-MULTI-CONTEXT")
+                if len(writers) >= 2 or (reentrant and writers):
+                    rules.add("GS-MULTI-WRITER")
+                if any(a["access_kind"] == "RMW" for a in accesses):
+                    rules.add("GS-RMW-INTERLEAVE")
+                if snapshots[sid]:
+                    rules.add("GS-STALE-SNAPSHOT")
+                if v["kind"] == "LOCAL_STATIC":
+                    rules.add("GS-LOCAL-STATIC-REENTRANT")
+                if v["kind"] == "FILE_STATIC":
+                    rules.add("GS-FILE-STATIC-SHARED")
+                word = cfg["project"].get("native_word_bits", 32) // 8
+                if v["size_bytes"] is None or v["size_bytes"] > word or v["alignment_bytes"] is None or v["alignment_bytes"] < min(v["size_bytes"], word):
+                    rules.add("GS-TEAR-RISK")
+                if v["is_struct"] or v["is_bitfield_container"]:
+                    rules.add("GS-STRUCT-INCONSISTENT")
+            if owner_violation:
+                rules.add("GS-OWNER-VIOLATION")
         member_conflicts = conflict_pairs(all_accesses, variable_relations, contexts)
+        if static_classification == 'SAFE':
+            safe_code = result['safe_code']
+            from .classify import SAFE_LABELS
+            v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
+                     protection_status=protection, annotations=annotations,
+                     audit_status='SCREENED_NO_CONCURRENCY_RISK',
+                     screening_reason=safe_code, safe_reason_code=safe_code, screening_blockers=[],
+                     unreachable_access_count=len(all_accesses)-len(accesses), protection_details=protection_details,
+                     protection_note=protection_note, analysis_coverage=coverage_status,
+                     coverage_reasons=[], static_classification='SAFE',
+                     classification_reason=SAFE_LABELS[safe_code] + '（' + result['reason'] + '）',
+                     concurrency_relations=variable_relations, conflict_pairs=member_conflicts,
+                     access_count=len(all_accesses), gap_evidence=[],
+                     resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
+            continue
+        pending = []
+        if static_classification == 'SUSPECT':
+            if protection in {'DETECTED', 'PARTIAL', 'UNRESOLVED'}:
+                pending.append('保护有效性待确认')
+            if any(r['relation'] == 'UNKNOWN_PREEMPTION' for r in variable_relations):
+                pending.append('抢占优先级待确认')
+        classification_reason = result['reason'] + (('；' + '；'.join(pending)) if pending else '')
+        if static_classification == 'UNKNOWN':
+            finding_rules = sorted(set(['GS-COVERAGE-INCOMPLETE'] + gap_codes))
+            risk_level, confidence = 'MEDIUM', 'LOW'
+        else:
+            finding_rules = sorted(rules) or ['GS-MULTI-CONTEXT']
+            high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT", "GS-OWNER-VIOLATION"}
+            risk_level = "HIGH" if rules & high else "MEDIUM"
+            if risk_level == "HIGH" and any(r.get("business_critical") for r in annotations):
+                risk_level = "CRITICAL"
+            confidence = "MEDIUM" if shared else "LOW"
         v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
-                 protection_status=protection, annotations=annotations, audit_status=audit_status,
-                 screening_reason=screened_reason, screening_blockers=sorted(blockers),
+                 protection_status=protection, annotations=annotations, audit_status='REVIEW_REQUIRED',
+                 screening_reason=None, safe_reason_code=None, screening_blockers=gap_codes,
                  unreachable_access_count=len(all_accesses)-len(accesses), protection_details=protection_details,
                  protection_note=protection_note, analysis_coverage=coverage_status,
-                  coverage_reasons=sorted(coverage_reasons), static_classification=static_classification,
-                  classification_reason=classification_reason, concurrency_relations=variable_relations,
-                  conflict_pairs=member_conflicts, access_count=len(all_accesses),
-                  resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
-        if not rules:
-            continue
-        high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT", "GS-OWNER-VIOLATION"}
-        level = "HIGH" if rules & high else "MEDIUM"
-        if level == "HIGH" and any(r.get("business_critical") for r in annotations):
-            level = "CRITICAL"
-        finding = dict(finding_id="GS-" + digest([sid, sorted(rules), sorted(all_contexts)])[:16],
-                       symbol_id=sid, variable_name=v["qualified_name"], rules=sorted(rules), risk_level=level,
-                       confidence="MEDIUM" if shared else "LOW", status="NEED_OPENCODE_REVIEW",
+                 coverage_reasons=coverage_reasons, static_classification=static_classification,
+                 classification_reason=classification_reason, concurrency_relations=variable_relations,
+                 conflict_pairs=member_conflicts, access_count=len(all_accesses),
+                 gap_evidence=result['gaps'], pending_confirmation=pending,
+                 resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
+        finding = dict(finding_id="GS-" + digest([sid, finding_rules, sorted(all_contexts)])[:16],
+                       symbol_id=sid, variable_name=v["qualified_name"], rules=finding_rules, risk_level=risk_level,
+                       confidence=confidence, status="NEED_OPENCODE_REVIEW",
                        protection_status=protection, declared_protection=declared, accesses=all_accesses,
                        definition=dict(file=v["definition_file"], line=v["definition_line"]),
                        context_pairs=[list(pair) for pair in itertools.combinations(sorted(all_contexts), 2)],
                         concurrency_relations=variable_relations, conflict_pairs=member_conflicts,
-                       concurrency_reason="保守建模：不同任务/中断/未知回调可交错；优先级、启动阶段和锁覆盖待复核",
+                       concurrency_reason=classification_reason,
                        snapshots=snapshots[sid], uncertainties=uncertain,
-                       screening_blockers=sorted(blockers),
+                       screening_blockers=gap_codes, pending_confirmation=pending,
                        configured_preemption=[p for p in cfg["preemption"] if {p["higher"], p["lower"]} <= all_contexts],
                        configured_concurrency=[p for p in cfg["concurrency"] if set(p["contexts"]) <= all_contexts],
                        protection_note=protection_note, protection_details=protection_details,
@@ -933,28 +835,15 @@ def analyze(facts, cfg, coverage, root=None):
         if status not in {'SAFE','SUSPECT','UNKNOWN'}:
             raise ValueError('变量缺少显式静态分类：' + v['symbol_id'])
         v['safe_reason'] = v.get('classification_reason') if status == 'SAFE' else None
-        v['safe_evidence'] = (dict(proof=v.get('screening_reason'),
+        v['safe_evidence'] = (dict(proof=v.get('screening_reason'), proof_code=v.get('safe_reason_code'),
             access_ids=[a['access_id'] for a in v.get('accesses', [])],
             contexts=v.get('contexts', []), protection_status=v.get('protection_status'),
             coverage=v.get('analysis_coverage')) if status == 'SAFE' else None)
         v['unknown_reason'] = v.get('coverage_reasons', []) if status == 'UNKNOWN' else []
-        v['blocking_evidence'] = ([u for u in facts['unknowns'] if u.get('symbol_id') == v['symbol_id']
-            or u.get('function_id') in {a['function_id'] for a in v.get('accesses', [])}]
-            if status == 'UNKNOWN' else [])
-        for reason in v['unknown_reason']:
-            if not any(e.get('kind') == reason for e in v['blocking_evidence']):
-                v['blocking_evidence'].append(dict(kind=reason, evidence_layer='static_derivation',
-                    access_ids=[a['access_id'] for a in v.get('accesses', [])],
-                    explanation=v.get('protection_note') if reason=='PROTECTION_UNRESOLVED'
-                                else v.get('classification_reason')))
-        recovery = {
-            'PROTECTION_UNRESOLVED': '补齐 CFG 路径/被调函数效果、NVIC 位数与全部竞争 IRQ 的初始化优先级，核对保护说明。',
-            'IRQ_PREEMPTION_UNRESOLVED': '提供 NVIC 分组、优先级位数和全部竞争 IRQ 的实际初始化与重配路径。',
-            'DMA_SHARED_REVIEW': '提供 DMA 启停、完成回调、缓冲区所有权和 Cache 一致性协议。',
-            'ADDRESS_ESCAPE': '补齐取得该地址的调用目标、别名对象及其读写副作用。',
-            'ACCESS_NOT_ANALYZED': '补齐该源码/构建变体的真实编译命令后重新分析访问。',
-        }
-        v['required_context'] = [dict(kind=k, action=recovery.get(k,
+        v['blocking_evidence'] = ([dict(g['evidence'], reason_code=g['code'])
+                                   for g in v.get('gap_evidence', [])] if status == 'UNKNOWN' else [])
+        from .classify import RECOVERY_ACTIONS
+        v['required_context'] = [dict(kind=k, action=RECOVERY_ACTIONS.get(k,
             '按关联阻塞证据补齐源码、调用目标或硬件配置并重新分析。')) for k in v['unknown_reason']]
         if status == 'SAFE' and (not v['safe_reason'] or not v.get('screening_reason') or v['analysis_coverage'] != 'COMPLETE'):
             raise ValueError('SAFE 缺少完整证明：' + v['symbol_id'])
@@ -963,6 +852,19 @@ def analyze(facts, cfg, coverage, root=None):
         raise ValueError('变量静态分类归账失败：TOTAL 必须等于 SAFE + SUSPECT + UNKNOWN')
     coverage['static_classification'] = dict(total=len(ids), safe=static_counts['SAFE'],
         suspect=static_counts['SUSPECT'], unknown=static_counts['UNKNOWN'])
+    # Reason distributions + UNKNOWN fanout diagnostics (Section 19/26):
+    # 诊断目标而非通过标准；超过阈值的 fanout 标记为疑似过度传播。
+    from .classify import unknown_fanout_report
+    fanout_debug = cfg['analysis'].get('max_unknown_fanout_debug', 0)
+    if type(fanout_debug) is not int or fanout_debug < 0:
+        raise ValueError('analysis.max_unknown_fanout_debug 必须是非负整数')
+    fanout_threshold = fanout_debug or max(1, round(0.1 * len(analyzed_variables)))
+    coverage['blocker_fanout'] = unknown_fanout_report(analyzed_variables, fanout_threshold)
+    coverage['unknown_reason_distribution'] = {row['reason']: row['variables']
+                                               for row in coverage['blocker_fanout']}
+    coverage['safe_reason_distribution'] = dict(Counter(
+        v.get('safe_reason_code') for v in analyzed_variables
+        if v.get('static_classification') == 'SAFE' and v.get('safe_reason_code')))
     coverage['struct_containers'] = sum(v.get('resource_kind') == 'STRUCT_CONTAINER' for v in facts['variables'])
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]

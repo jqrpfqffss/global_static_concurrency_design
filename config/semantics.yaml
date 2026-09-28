@@ -1,177 +1,24 @@
-# =============================================================================
-# ECRA 唯一项目配置文件
-# =============================================================================
-#
-# 日常运行：在本工具根目录执行 `py -3.10 run_ecra.py`。
-# 工具会按本文件完成：定位 project.root → （可选）清理构建目录 → CMake 配置和
-# 构建 → 扫描全局/static 变量 → 在 <固件>/.ecra/ 生成 HTML、JSON、Markdown、SQLite。
-#
-# 扫描新项目时，不创建新的 semantics.yaml：
-#   A. 修改 project.root 为新固件根目录；
-#   B. 修改 include_dirs / exclude_dirs / exclude_files，只纳入自有代码；
-#   C. 按新工程真实构建方式填写 cmake；
-#   D. 按实际任务、中断、回调补充 contexts / entry_registrations；
-#   E. 保存后直接执行 `py -3.10 run_ecra.py`。
-#
-# 除 project.root 外，本文件中所有相对路径均相对“固件工程根目录”解释。
-# YAML 缩进必须使用空格；同名键（例如两个 analysis:）会被拒绝，不能重复。
-
 version: 1
-
 project:
-  # 当前要扫描的固件工程根目录。
-  # 可用绝对路径；也可相对本文件的 config/ 目录，例如 ../firmware/MyBoard。
-  # 切换到另一项目时，首先修改此项。
-  # root: "H:/stm32_RAG/code/serial - opencode"
-  root: "H:/stm32_RAG/test/serial - continue"
-
-  # 以下只是报告说明，不会替你注入芯片宏或改变 CMake 编译参数。
-  chip: STM32
-  core: Cortex-M
-  native_word_bits: 32       # STM32 通常为 32；必须是 8 的正整数倍。
-
+  root: "H:\\global_static_concurrency_design2\\global_static_concurrency_design\\examples\\stm32_demo"
+  chip: STM32_demo
+  core: Cortex-M7
+  native_word_bits: 32
+  concurrency_model: single_core_preemptive
 analysis:
-  # ---------------------------------------------------------------------------
-  # 变量排查范围
-  # ---------------------------------------------------------------------------
-  # 只将“定义在这些目录中”的全局/static 变量计入清单和风险结论。
-  # 多个目录取并集并递归包含子目录。[] 表示整个工程都纳入。
-  # 新项目例如：[Core/Src, Core/Inc, App, BSP]。
-  include_dirs: [Core/Src, Core/Inc]
-
-  # 这些目录中定义的变量不进入排查结果；目录会递归排除。
-  # 范围外源码仍可恢复调用链，例如 HAL 调用用户回调、库函数经指针写用户变量。
-  # 不要排除自己实际放置业务代码的 Drivers/BSP 目录。
-  exclude_dirs: [Drivers, Middlewares, ThirdParty, build, .ecra]
-
-  # 对混在业务目录中的第三方/启动支撑文件做精确排除。
-  # 文件仍参与真实构建与调用链分析，只是不将其变量算作本项目变量。
-  # CubeMX 常见项如下；没有对应文件时删除该行即可。
-  exclude_files:
-    - Core/Src/system_stm32f1xx.c
-    - Core/Src/syscalls.c
-    - Core/Src/sysmem.c
-
-  # 可选：跳过匹配的编译单元/头文件。通常优先使用 exclude_dirs / exclude_files，
-  # 因为它们保留范围外实现对用户变量的调用链证据。
-  # exclude: [Core/Src/legacy_unused.c]
-
-  # 可选：验证真实编译命令是否含这些宏，防止 Debug/Release、裸机/RTOS 或 CM7/CM4
-  # 变体混用。只检查，不会自动注入宏。
-  # expected_defines: [STM32F103xB, USE_HAL_DRIVER, APP_RTOS=0]
-
-  # 每个翻译单元交给 Clang 解析的最长时间；大型工程可适当增大。
-  parse_timeout_seconds: 180
-
-  # 排查输出目录，相对固件根目录。必须是根目录下的独立子目录。
-  # 它包含报告、日志、缓存和扫描状态；建议加入固件工程 .gitignore。
+  compile_database: compile_commands.json
+  exclude: ['build/*', 'cases/*']  # D01-D20 是各自独立的固件，不能合并到旧 Demo。
   output_dir: .ecra
-
-  # 自动从真实 Arm GCC 编译命令探测标准头文件目录。STM32 + Arm GCC 通常保持 true。
-  auto_system_includes: true
-
-  # 完成后自动在默认浏览器打开 .ecra/index.html；CI 或无 GUI 环境保持 false。
-  open_report: false
-
-  # ---------------------------------------------------------------------------
-  # CMake：把原先手工 Set-Location / Remove-Item / cmake / cmake --build
-  # 全部转成声明式配置。仅适用于 CMake 工程。
-  # ---------------------------------------------------------------------------
-  cmake:
-    # 专供 ECRA 使用的构建目录，相对固件根目录。
-    # 必须是工程根目录下的子目录；不要填 IDE 正在使用的正式构建目录。
-    # 对应原 PowerShell 中的 $manualBuild = ... "build\\manual"。
-    build_dir: build/manual
-
-    # 必须与该固件真实构建方式一致；常见值为 Ninja、Unix Makefiles、MinGW Makefiles。
-    generator: Ninja
-
-    # 对应 -DCMAKE_BUILD_TYPE。按实际扫描变体填写 Debug 或 Release。
-    build_type: Debug
-
-    # 相对固件根目录的 Arm 交叉编译工具链文件。
-    # 对应原命令中的 -DCMAKE_TOOLCHAIN_FILE=$toolchainFile；工具会转为绝对路径。
-    # 若工程在 CMakeLists.txt/Preset 中已正确设置工具链，可删除本项。
-    toolchain_file: cmake/arm-none-eabi-toolchain.cmake
-
-    # 原 CMake 命令中额外的 -D 参数，每一项必须是一个完整参数。
-    # 示例：[-DAPP_RTOS=OFF, -DBOARD=MY_BOARD]。
-    # 不可放 -S、-B、-G、--build 或 --preset；这些由专用字段控制。
-    args: []
-
-    # true：每次扫描前删除且只删除本项 build_dir，避免旧 CMakeCache、工具链或生成器
-    # 残留；等价于原先的 Remove-Item $manualBuild -Recurse -Force。
-    # false：保留构建目录，CMake 仍会重新 configure，适合增量调试。
-    clean_before_configure: true
-
-    # true：配置完成后执行 cmake --build；不烧录、不修改固件源码。
-    # false：只刷新 compile_commands.json，适用于无需构建即可导出数据库的工程。
-    build: true
-
-    # 可选：传给 cmake --build 的额外参数，每项一个参数。
-    # build_args: [--target, firmware]
-
-    # 可选：configure/build 的最长秒数；默认 600。
-    # timeout_seconds: 600
-
-# -----------------------------------------------------------------------------
-# 并发执行上下文
-# -----------------------------------------------------------------------------
-# 常规无参数 *IRQHandler 会自动识别为 ISR；FreeRTOS/CMSIS 任务创建、常见软件
-# 定时器和部分回调也会自动推断。这里只补充无法从源码可靠恢复的真实入口。
-#
-# kind 可为 MAIN、TASK、ISR、CALLBACK、DMA、CORE。
-# 同一物理 IRQ 内串行执行的多个入口应使用同一个 id；不同 IRQ、不同任务实例必须
-# 使用不同 id，否则会降低并发判断准确性。
+  auto_contexts: true
 contexts:
   - id: main
     kind: MAIN
     functions: [main]
-
-  # 新项目示例：任务入口无法自动恢复时取消注释并填写真实函数名。
-  # - id: control_task
-  #   kind: TASK
-  #   functions: [ControlTask]
-
-  # 新项目示例：动态向量/非标准中断入口。
-  # - id: adc_irq
-  #   kind: ISR
-  #   functions: [AdcCustomIrq]
-
-# 自定义“回调注册 API”语义。仅在工具无法从源码知道某个 API 参数是异步入口时填写。
-# callback_arg 从 0 开始；kind 必须是 ISR、TASK 或 CALLBACK。
-# 不会伪造同步调用边，真实调用链/函数指针关系仍由源码提取恢复。
-# entry_registrations:
-#   - api: BSP_RegisterAdcCallback
-#     callback_arg: 1
-#     kind: ISR
-#     context_id: adc_irq       # 同一硬件 IRQ 的多个回调应共用此 id
-#     may_repeat: false         # 是否可在前一次结束前再次进入
-
-# 仅补充“已确认但 Clang 无法恢复”的真实直接调用边；不要把注册 API 写成同步调用。
-# call_edges: [{caller: BoardDispatch, callee: UserCallback}]
-
-# 可记录已知上下文关系，供报告/复核引用；当前不会仅凭这些声明隐藏风险。
-# concurrency: [{contexts: [control_task, adc_irq], relation: may_interleave}]
-# preemption: [{higher: adc_irq, lower: control_task}]
-
-# 可记录资源归属、保护措施和已知安全说明；它们不会自动删除候选风险。
-# resources: [{symbol_id: '变量的报告 symbol_id', owner_context: control_task}]
-# protection: []
-# known_safe: []
-
+  # ECAT_Task 由 main 直接调用，继承 MAIN；名字含 Task 不代表独立任务。
+  # ControlTask 则通过 xTaskCreate 注册，由 auto_contexts 自动发现。
+api_patterns:
+  lock_enter: [taskENTER_CRITICAL]
+  lock_exit: [taskEXIT_CRITICAL]
+  dma_start: ['HAL_*_DMA']
 review:
-  # false：只做本地静态排查，生成待复核清单；推荐新项目首次接入时保持 false。
-  # true：在静态扫描后调用下方 command，对每个候选执行 OpenCode 复核。
-  enabled: true
-
-  # 复核命令必须是参数数组，而不是带空格的一整条 shell 字符串。
-  command: [opencode]
-
-  # 启用复核时，可指定已登录的 provider/model；不需要则保持注释。
-  # model: provider/model
-  timeout_seconds: 300
-  retries: 1
-
-  # 单次最多提交多少项复核。0 表示不限制；首次模型复核可先设置较小数字试运行。
-  max_items: 0
+  enabled: false  # 示例和初始化模板均默认本地排查，不消耗模型费用。

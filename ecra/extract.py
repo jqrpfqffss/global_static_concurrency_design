@@ -416,9 +416,12 @@ class Extractor:
                 callee = self.fid(ref) if direct else None
                 name = ref.spelling if direct else c.spelling
                 self.calls.append(dict(caller_function_id=fid, callee_function_id=callee,
-                                       callee_name=name, call_kind="DIRECT" if direct else "INDIRECT", **self.loc(c)))
+                                       callee_name=name, call_kind="DIRECT" if direct else "INDIRECT",
+                                       end_offset=c.extent.end.offset, **self.loc(c)))
                 if not direct:
-                    self.issue("INDIRECT_CALL", c, fid)
+                    # The full call extent lets the classifier decide whether a
+                    # variable/function address escapes into this unresolved call.
+                    self.issue("INDIRECT_CALL", c, fid, end_offset=c.extent.end.offset)
                 args = list(c.get_arguments())
                 task_arg = {"xTaskCreate": 0, "xTaskCreateStatic": 0, "osThreadNew": 0,
                             "xTaskCreatePinnedToCore": 0}.get(name)

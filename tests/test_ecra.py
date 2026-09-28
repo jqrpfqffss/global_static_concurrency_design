@@ -387,7 +387,10 @@ void ISR(void){ b++; } void main(void){ __set_BASEPRI(0x50); b++; }
         facts, _ = self.extract(cfg)
         b = next(v for v in facts['variables'] if v['name'] == 'b')
         self.assertEqual(b['protection_status'], 'UNRESOLVED')
-        self.assertEqual(b['static_classification'], 'UNKNOWN')
+        # 已知 MAIN/ISR 写冲突 + BASEPRI 未解析 => SUSPECT（保护有效性待确认），
+        # 不再降级为 UNKNOWN（优先级/保护缺口不能掩盖已知冲突）。
+        self.assertEqual(b['static_classification'], 'SUSPECT')
+        self.assertIn('保护有效性待确认', b['classification_reason'])
 
     def test_basepri_literal_threshold_is_effective_only_with_complete_nvic_facts(self):
         cfg = self.project({'a.c': '''enum { TIM4_IRQn = 30 };

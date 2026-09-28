@@ -133,6 +133,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress('排查目录：' + (', '.join(scope.include_dirs) or '全部') + '；排除目录：' + (', '.join(scope.exclude_dirs) or '无'))
             progress('范围外编译依赖只用于恢复调用链和目标变量的访问，不生成第三方变量候选。')
         units, compilation = prepare(root, cfg, progress=progress, build_firmware=not doctor_only)
+        # build_closure 模式：文件级排查选择以编译数据库为准。
+        scope.set_closure_sources(u["source_file"] for u in units)
         doctor.update(compilation, compile_database_found=True, translation_units_total=len(units), ready_for_scan=True)
         doctor['review_enabled'] = cfg['review'].get('enabled', True)
         if doctor['review_enabled']:

@@ -96,6 +96,26 @@ class Solver:
             self.facts['unknowns'].append(dict(kind='POINTS_TO_LIMIT', iterations=1000))
         for call in calls:
             targets = self.targets(call)
+            if not call.get('target') and not targets:
+                # The callee is unresolvable: any object/function address in
+                # the arguments escapes into code we cannot analyze. This is
+                # the transitive escape path (resolved wrapper -> opaque call)
+                # that call-site range checks cannot see.
+                for arg in call['arguments']:
+                    for target in self.value(arg):
+                        if target.startswith('obj:'):
+                            sid = self.symbol(target[4:])
+                            if sid:
+                                self.facts['unknowns'].append(dict(
+                                    kind='UNRESOLVED_CALL_ESCAPE', symbol_id=sid,
+                                    function_id=call['function_id'], file=call['file'],
+                                    line=call['line'], api=call.get('name', ''),
+                                    hint='该变量地址作为参数流入了目标无法解析的间接调用'))
+                        elif target.startswith('fn:'):
+                            self.facts['unknowns'].append(dict(
+                                kind='UNRESOLVED_CALL_TARGET_FN', target_function_id=target[3:],
+                                function_id=call['function_id'], file=call['file'], line=call['line'],
+                                api=call.get('name', ''), hint='该函数地址作为参数流入了目标无法解析的间接调用'))
             if not call.get('target'):
                 for target in sorted(targets):
                     self.facts['calls'].append(dict(caller_function_id=call['function_id'],

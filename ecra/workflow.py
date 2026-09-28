@@ -23,7 +23,7 @@ def file_digest(path):
 
 def engine_digest():
     return digest({name: file_digest(Path(__file__).with_name(name+'.py')) for name in
-                   ('analysis', 'cli', 'compilation', 'config', 'extract', 'controlflow', 'protection', 'interrupts', 'pointer_extract', 'points_to', 'scope', 'common', 'supplemental')})
+                   ('analysis', 'classify', 'cli', 'compilation', 'config', 'extract', 'controlflow', 'protection', 'interrupts', 'pointer_extract', 'points_to', 'scope', 'common', 'supplemental')})
 
 
 def analysis_config(cfg):

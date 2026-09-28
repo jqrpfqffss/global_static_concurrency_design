@@ -124,6 +124,14 @@ def generate(out, facts, report, reviews):
     static = cov.get('static_classification', {})
     if static:
         md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE {static.get('safe', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
+        safe_dist = cov.get('safe_reason_distribution', {})
+        unknown_dist = cov.get('unknown_reason_distribution', {})
+        if safe_dist:
+            md[2:2] = ["- SAFE 证明规则分布：" + "；".join(f"{code}={count}" for code, count in
+                       sorted(safe_dist.items(), key=lambda item: -item[1])), ""]
+        if unknown_dist:
+            md[2:2] = ["- UNKNOWN 根因分布：" + "；".join(f"{code}={count}" for code, count in
+                       sorted(unknown_dist.items(), key=lambda item: -item[1])), ""]
     summary = report['risk_summary']
     md[2:2] = ['## 与 HTML 一致的变量风险结论', '',
         '| 已确认风险 | 疑似并发风险 | 无法判断 | 已复核安全 / 误报 | 已排查不存在并发风险 | 未发现静态线索 | 补充声明 |',

@@ -181,6 +181,17 @@ RULES = {
     'UNRESOLVED_POINTEE': ('尚未确定指针目标', '追踪指针赋值和函数参数，确认实际访问了哪个对象。'),
     'PARSE_FAILED': ('源码解析失败', '先修复编译参数或缺失头文件，再重新扫描。'),
     'EMPTY_AUDIT_SCOPE': ('排查范围没有匹配变量', '检查包含和排除目录，以及当前 CMake 构建目标。'),
+    # 变量级精准 UNKNOWN 原因（冲突优先分类模型）
+    'UNKNOWN_ADDRESS_ESCAPE': ('变量地址逃逸到无法分析的代码', '补齐取得该地址的函数实现或注册关系，恢复其写副作用分析。'),
+    'UNKNOWN_RELEVANT_ALIAS': ('指针别名指向无法收敛', '提供指针赋值来源或受限指针证据，使 points-to 收敛。'),
+    'UNKNOWN_RELEVANT_INDIRECT_CALL': ('间接访问可能指向该变量', '补齐该间接调用的目标（赋值 / 表注册）后重新扫描。'),
+    'UNKNOWN_RELEVANT_MISSING_TU': ('缺失编译单元可能访问该变量', '补齐引用该变量的编译单元或解析参数后重新扫描。'),
+    'UNKNOWN_EXECUTION_CONTEXT': ('访问函数的执行上下文无法确定', '补齐该函数的调用 / 注册关系，恢复其物理执行上下文。'),
+    'UNKNOWN_DMA_LIFETIME': ('DMA 所有权 / 生命周期无法确认', '提供 DMA 启停、完成回调、缓冲区所有权和 Cache 一致性协议。'),
+    'UNKNOWN_INLINE_ASM': ('汇编访问无法恢复', '提供该汇编的等效 C 语义或改写为可解析内建函数。'),
+    'UNKNOWN_SCAN_INVALID': ('扫描期间源码变化，扫描失效', '保持工程只读并重新扫描。'),
+    'UNKNOWN_UNMODELED_CONCURRENCY': ('多核 / 未建模并发模型', '人工复核共享内存、HSEM、Cache 和屏障。'),
+    'ACCESS_NOT_ANALYZED': ('声明未按当前构建分析', '补齐该源码 / 构建变体的真实编译命令后重新分析。'),
 }
 PRIORITIES = {'CRITICAL': '最高优先', 'HIGH': '优先排查', 'MEDIUM': '常规排查', 'LOW': '较低优先'}
 KINDS = {'FILE_STATIC': '文件 static', 'LOCAL_STATIC': '函数内 static', 'GLOBAL': '全局变量',
@@ -818,15 +829,23 @@ def write_html(out, facts, report, reviews):
             return ('疑似并发风险', reader + '会读取该变量；' + context(async_writers[0]) + '会写入该变量。',
                     '重点确认：写入者是否可能与读取或其它写入交错执行，以及保护是否覆盖完整访问。')
         if variable.get('static_classification') == 'SAFE' or assessments.get(variable['symbol_id']) == 'screened_safe':
-            all_contexts = {cid for view in views for cid in view['context_ids']}
-            if all_contexts and all(contexts.get(cid, {}).get('kind') == 'MAIN' for cid in all_contexts):
-                reason = '当前解析到的访问均来自主循环同一串行执行上下文，未发现其它中断或异步执行入口修改该变量。'
-            else:
-                reason = '当前已解析的访问没有形成跨执行上下文的读写冲突。'
-            return ('未发现并发风险', reason, '')
+            # 优先展示静态证明 reason code 及其中文说明（safe_reason_code /
+            # classification_reason 由分类引擎给出，可被审计）。
+            reason = variable.get('classification_reason') or '当前已解析的访问没有形成跨执行上下文的读写冲突。'
+            return ('未发现并发风险', user_text(reason), '')
         if variable.get('static_classification') == 'UNKNOWN' or assessments.get(variable['symbol_id']) == 'unresolved':
-            return ('无法判断', '部分访问的执行入口、抢占关系或保护证据尚未确认，不能据此判定安全。',
-                    '重点确认：补齐缺失的入口、优先级或保护范围信息后重新判断。')
+            reason = variable.get('classification_reason') or '部分访问的执行入口、抢占关系或保护证据尚未确认，不能据此判定安全。'
+            actions = [item['action'] for item in variable.get('required_context', []) if item.get('action')]
+            focus = '重点确认：' + '；'.join(actions[:3]) if actions else '重点确认：补齐缺失的入口、优先级或保护范围信息后重新判断。'
+            return ('无法判断', user_text(reason), focus)
+        if variable.get('static_classification') == 'SUSPECT':
+            pending = variable.get('pending_confirmation') or []
+            focus = '重点确认：这些执行上下文能否交错，以及保护是否覆盖完整访问窗口。'
+            if pending:
+                focus = '重点确认：' + '；'.join(pending) + '。'
+            return ('疑似并发风险',
+                    user_text(variable.get('classification_reason') or '存在跨执行上下文的读写冲突候选。'),
+                    focus)
         return ('未发现并发风险', '当前解析范围内未发现需要进一步排查的跨执行上下文读写。', '')
 
     def protection_section(variable):
@@ -1047,6 +1066,19 @@ def write_html(out, facts, report, reviews):
         coverage += '<h3>变量静态分类归账</h3>' + metrics([('变量总数', static.get('total', 0)),
             ('未发现并发风险', static.get('safe', 0)), ('疑似并发风险', static.get('suspect', 0)),
             ('无法判断', static.get('unknown', 0))])
+    safe_dist = cov.get('safe_reason_distribution', {})
+    if safe_dist:
+        coverage += ('<h3>SAFE 证明规则分布</h3>' + table(['证明规则', '变量数'],
+                     [row([esc(code), str(count)]) for code, count in
+                      sorted(safe_dist.items(), key=lambda item: -item[1])]))
+    fanout = cov.get('blocker_fanout', [])
+    if fanout:
+        coverage += ('<h3>UNKNOWN 根因聚类（blocker_fanout）</h3>'
+                     + '<p>超过阈值的根因会被标记为“疑似 UNKNOWN 过度传播”，应优先检查对应解析缺口；这是诊断目标，不是通过标准。</p>'
+                     + table(['原因', '影响变量数', '占比 %', '疑似过度传播'],
+                             [row([esc(reason), str(item['variables']), str(item['share']),
+                                   '是' if item.get('over_propagation_suspected') else '否'])
+                              for item in fanout for reason in [item['reason']]]))
     problems = [row(['未进入编译数据库的源码', esc(p)]) for p in cov.get('unlisted_sources', [])]
     problems += [row(['未纳入的头文件', esc(p)]) for p in cov.get('unlisted_headers', [])]
     problems += [row(['解析失败', esc(u.get('source_file')) + raw(u.get('diagnostics', []), '查看失败原因')])

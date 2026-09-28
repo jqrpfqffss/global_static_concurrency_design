@@ -124,8 +124,8 @@ class SerialRegressionTests(unittest.TestCase):
         for name in ('only_read', 'only_write', 'local_state'):
             self.assertEqual(variables[name]['audit_status'], 'SCREENED_NO_CONCURRENCY_RISK')
             self.assertFalse(any(f.get('symbol_id') == variables[name]['symbol_id'] for f in report['findings']))
-        self.assertEqual(variables['only_read']['screening_reason'], 'ONLY_READS')
-        self.assertEqual(variables['only_write']['screening_reason'], 'SINGLE_ACCESS_SITE')
+        self.assertEqual(variables['only_read']['screening_reason'], 'SAFE_READ_ONLY')
+        self.assertEqual(variables['only_write']['screening_reason'], 'SAFE_SINGLE_CONTEXT')
 
     def test_configured_irq_callback_registration_creates_real_isr_context(self):
         cfg = self.project({'a.c': '''

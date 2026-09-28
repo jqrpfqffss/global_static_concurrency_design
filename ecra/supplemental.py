@@ -21,7 +21,7 @@ def selected_files(root, scope, output):
                        and not (Path(base) / d).resolve().is_relative_to(output)]
             for name in names:
                 path = Path(base) / name
-                if path.suffix.lower() in SOURCE_EXTENSIONS and scope.contains(path):
+                if path.suffix.lower() in SOURCE_EXTENSIONS and scope.contains(path) and scope.file_selected(relative(path, root)):
                     result.add(relative(path, root))
     return sorted(result)
 

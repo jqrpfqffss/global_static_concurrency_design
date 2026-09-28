@@ -226,6 +226,8 @@ def load_config(root=None, path=None):
         for flag in ('enabled', 'reentrant'):
             if flag in c and type(c[flag]) is not bool:
                 raise ValueError(f'contexts.{flag} 必须是 true/false')
+        if 'execution_domain' in c and (not isinstance(c['execution_domain'], str) or not c['execution_domain'].strip()):
+            raise ValueError('contexts.execution_domain 必须是非空字符串（如 FOREGROUND，用于把协作调度任务并入同一物理执行域）')
     for rel in cfg["concurrency"]:
         if len(rel.get("contexts", [])) != 2 or any(x not in ids for x in rel["contexts"]):
             raise ValueError("concurrency 必须引用两个已配置的 context id")
@@ -307,6 +309,13 @@ def load_config(root=None, path=None):
                          ('analysis', 'auto_system_includes'), ('analysis', 'open_report'), ("review", "enabled")):
         if key in cfg[section] and type(cfg[section][key]) is not bool:
             raise ValueError(f"{section}.{key} 必须是 true/false")
+    fanout = cfg['analysis'].get('max_unknown_fanout_debug')
+    if fanout is not None and (type(fanout) is not int or fanout < 0):
+        raise ValueError('analysis.max_unknown_fanout_debug 必须是非负整数；0 表示自动按 10% 阈值诊断')
+    mode = cfg['analysis'].get('audit_mode', 'directories')
+    if mode not in {'directories', 'build_closure'}:
+        raise ValueError("analysis.audit_mode 必须是 directories 或 build_closure；"
+                         "build_closure 表示只排查当前编译数据库真实参与的 TU（不把范围目录内未构建源码当缺口）")
     for key, value in cfg["api_patterns"].items():
         if not isinstance(value, list) or any(not isinstance(x, str) for x in value):
             raise ValueError(f"api_patterns.{key} 必须是字符串列表")

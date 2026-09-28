@@ -314,9 +314,16 @@ def prepare(root, cfg, progress=None, build_firmware=True):
                 # Unbuilt/out-of-scope vendor files are not missing user code.
                 (excluded_sources if excluded(rel, a.get("exclude", [])) or not scope.contains(p) else sources).append(rel)
     covered = {u["source_file"] for u in units}
+    if a.get("audit_mode") == "build_closure":
+        # Section 13：以 Build Closure 为基准。范围目录内未参与当前 target
+        # 构建的源码不是覆盖缺口，只作为依赖（若被编译单元包含）保留。
+        out_of_target = [s for s in sources if s not in covered]
+        sources = [s for s in sources if s in covered]
+    else:
+        out_of_target = []
     return units, dict(project_root=str(root), compile_database=str(candidates[0]), candidates=list(map(str, candidates)),
                        selection_reason='managed cmake' if 'cmake' in a else ("explicit" if configured != "auto" else "unique candidate"),
                        unlisted_sources=sorted(set(sources) - covered),
                        assembly_sources=sorted(set(assembly_sources)),
-                       excluded_sources=sorted(set(ignored + excluded_sources)), cmake_log=cmake_log, cmake_steps=cmake_steps,
+                       excluded_sources=sorted(set(ignored + excluded_sources + out_of_target)), cmake_log=cmake_log, cmake_steps=cmake_steps,
                        dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'])

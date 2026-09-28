@@ -26,9 +26,9 @@ class ScreeningTests(unittest.TestCase):
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, report = self.extract(cfg)
         vars = {v['name']: v for v in facts['variables']}
-        self.assertEqual(vars['dead']['screening_reason'], 'UNREACHABLE_ACCESSORS')
-        self.assertEqual(vars['readonly']['screening_reason'], 'ONLY_READS')
-        self.assertEqual(vars['unused']['screening_reason'], 'NO_RUNTIME_ACCESSES')
+        self.assertEqual(vars['dead']['screening_reason'], 'SAFE_NO_RUNTIME_ACCESS')
+        self.assertEqual(vars['readonly']['screening_reason'], 'SAFE_READ_ONLY')
+        self.assertEqual(vars['unused']['screening_reason'], 'SAFE_NO_RUNTIME_ACCESS')
         self.assertEqual(vars['dead']['accesses'][0]['reachability'], 'PROVEN_UNREACHABLE')
         self.assertEqual(report['coverage']['unknown_accesses'], 0)
 
@@ -41,10 +41,12 @@ class ScreeningTests(unittest.TestCase):
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, _ = self.extract(cfg)
         vars = {v['name']: v for v in facts['variables']}
-        self.assertEqual(vars['private_state']['screening_reason'], 'SINGLE_ACCESS_SITE')
-        self.assertEqual(vars['readonly']['screening_reason'], 'ONLY_READS')
-        self.assertIn('EXTERNAL_CALLEE', vars['exported']['screening_blockers'])
-        self.assertIsNone(vars['exported']['screening_reason'])
+        self.assertEqual(vars['private_state']['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
+        self.assertEqual(vars['readonly']['screening_reason'], 'SAFE_READ_ONLY')
+        # 未解析外部调用是同步执行：不取地址就无法访问该变量，也不会产生新的
+        # 执行上下文。exported 仅被 main 读取 => SAFE_READ_ONLY（不再被
+        # EXTERNAL_CALLEE 全局污染）。
+        self.assertEqual(vars['exported']['screening_reason'], 'SAFE_READ_ONLY')
 
     def test_escaped_and_attributed_functions_are_not_dead(self):
         cfg = self.project({'a.c': '''
@@ -81,7 +83,7 @@ class ScreeningTests(unittest.TestCase):
         variables = {v['name']: v for v in facts['variables']}
         self.assertIsNone(variables['startup_state']['screening_reason'])
         self.assertIsNone(variables['assembly_state']['screening_reason'])
-        self.assertEqual(variables['normal']['screening_reason'], 'SINGLE_ACCESS_SITE')
+        self.assertEqual(variables['normal']['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
         self.assertEqual(report['coverage']['assembly_sources'], ['startup.s'])
 
     def test_supplemental_and_missing_definition_have_variable_review_items(self):
@@ -105,7 +107,7 @@ class ScreeningTests(unittest.TestCase):
         '''}, contexts=[dict(id='main',kind='MAIN',functions=['main'])])
         facts, _ = self.extract(cfg)
         self.assertFalse(any(u['kind']=='UNRESOLVED_POINTEE' for u in facts['unknowns']))
-        self.assertEqual(facts['variables'][0]['screening_reason'],'ONLY_READS')
+        self.assertEqual(facts['variables'][0]['screening_reason'],'SAFE_READ_ONLY')
 
     def test_dma_buffer_risk_does_not_become_pointer_storage_risk(self):
         cfg = self.project({'a.c': '''
@@ -115,7 +117,7 @@ class ScreeningTests(unittest.TestCase):
         '''}, contexts=[dict(id='main',kind='MAIN',functions=['main'])])
         facts, _ = self.extract(cfg)
         variables = {v['name']:v for v in facts['variables']}
-        self.assertEqual(variables['pointer']['screening_reason'],'ONLY_READS')
+        self.assertEqual(variables['pointer']['screening_reason'],'SAFE_READ_ONLY')
         self.assertIsNone(variables['buffer']['screening_reason'])
 
     def test_250_files_1001_variables_full_pipeline(self):
