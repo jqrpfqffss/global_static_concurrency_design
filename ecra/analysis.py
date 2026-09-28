@@ -170,6 +170,8 @@ def context_graph(facts, cfg):
             roots[cid].add(fid)
     from .physical import normalize_contexts
     contexts, roots = normalize_contexts(contexts, roots, graph, funcs, cfg, facts)
+    from .call_graph import edge_context_graph, represent_paths
+    context_graphs = edge_context_graph(graph, facts['calls'], contexts)
     bindings, paths = [], defaultdict(dict)
     for cid, entries in roots.items():
         queue = deque((entry, [entry]) for entry in sorted(entries))
@@ -180,52 +182,12 @@ def context_graph(facts, cfg):
             paths[fid][cid] = path
             bindings.append(dict(function_id=fid, context_id=cid, binding_source=contexts[cid]["discovery"],
                                  path=path, call_depth=len(path) - 1))
-            for callee in sorted(graph[fid]):
+            for callee in sorted(context_graphs[cid].get(fid, ())):
                 queue.append((callee, path + [callee]))
-    # ``paths`` deliberately remains the shortest witness map consumed by
-    # older JSON clients.  A shortest witness is not, however, a complete
-    # calling-chain record.  Preserve every resolved *acyclic* route in a
-    # separate map for each access/report.  Recursive edges are represented by
-    # ``recursive_edges`` below rather than attempting to enumerate an
-    # infinite family of paths.
-    all_paths = defaultdict(lambda: defaultdict(list))
-    path_limit = cfg.get('analysis', {}).get('max_call_paths', 0)
-    if type(path_limit) is not int or path_limit < 0:
-        raise ValueError('analysis.max_call_paths 必须为非负整数；0 表示不限制。')
-    for cid, entries in roots.items():
-        produced = 0
-        stopped = False
-        for entry in sorted(entries):
-            stack = [(entry, [entry], iter(sorted(graph[entry])))]
-            all_paths[entry][cid].append([entry])
-            produced += 1
-            while stack and not stopped:
-                node, route, successors = stack[-1]
-                child = next(successors, None)
-                if child is None:
-                    stack.pop()
-                    continue
-                # A repeated node is a real recursive/cyclic route, but it
-                # cannot form another finite resolved call chain.  The edge is
-                # retained in facts["recursive_edges"] for presentation.
-                if child in route:
-                    continue
-                if path_limit and produced >= path_limit:
-                    # An explicit resource limit fails the scan. Returning a
-                    # partial graph can otherwise leave unvisited sibling
-                    # branches incorrectly labeled COMPLETE.
-                    raise ValueError('CALL_PATH_LIMIT：已解析调用链超过显式上限，扫描失败；提高 max_call_paths 或使用 0。')
-                child_route = route + [child]
-                all_paths[child][cid].append(child_route)
-                produced += 1
-                stack.append((child, child_route, iter(sorted(graph[child]))))
-            if stopped:
-                break
-    for fid, per_context in all_paths.items():
-        for cid, routes in per_context.items():
-            # Stable de-duplication is useful when multiple configured entries
-            # share an initial function.
-            all_paths[fid][cid] = list({tuple(route): route for route in routes}.values())
+    # Complete edge/root storage is linear in the graph. Small graphs keep
+    # their historical explicit paths; large graphs mark those lists as
+    # shortest witnesses, while every edge remains available for proof/review.
+    all_paths, graph_evidence = represent_paths(context_graphs, roots, paths, cfg)
     # Iterative DFS exposes cycles without infinite context propagation or Python stack limits.
     colors, cycles = {}, set()
     for start in funcs:
@@ -247,7 +209,8 @@ def context_graph(facts, cfg):
     facts["context_bindings"] = bindings
     facts["contexts"] = list(contexts.values())
     facts["recursive_edges"] = [list(e) for e in sorted(cycles)]
-    facts["all_call_paths"] = {fid: dict(per_context) for fid, per_context in all_paths.items()}
+    facts["all_call_paths"] = all_paths
+    facts['context_call_graph'] = graph_evidence
     facts["unknowns"].extend(issues)
     return contexts, paths, facts["all_call_paths"]
 
@@ -439,14 +402,24 @@ def conflict_pairs(accesses, relations, contexts):
                 canonical_path=access.get('canonical_path'), call_path_count=0,
                 access_scope=access.get('access_scope', 'MEMBER_ACCESS'),
                 inherited_from_canonical_path=access.get('inherited_from_canonical_path')))
+            instance['call_path_count_kind'] = ('EXACT_PATH_COUNT' if access.get('call_path_lists_complete', True)
+                                                else 'WITNESS_COUNT')
             # Full routes stay once in access.all_call_chains.  A conflict
             # participant references that evidence by access/context instead
             # of duplicating every route for every competing counterpart.
             instance['call_path_count'] += 1
     pairs = []
-    instances = list(instances.values())
-    for index, left in enumerate(instances):
-        for right in instances[index if contexts.get(left['context_id'], {}).get('reentrant') else index + 1:]:
+    by_context = defaultdict(list)
+    for instance in instances.values():
+        by_context[instance['context_id']].append(instance)
+    for left_cid, right_cid in itertools.combinations_with_replacement(sorted(by_context), 2):
+        if left_cid == right_cid and not contexts.get(left_cid, {}).get('reentrant'):
+            continue
+        candidates = (itertools.combinations_with_replacement(by_context[left_cid], 2)
+                      if left_cid == right_cid else itertools.product(by_context[left_cid], by_context[right_cid]))
+        for left, right in candidates:
+            if left['access_kind'] == right['access_kind'] == 'READ':
+                continue
             # The exact same source access on the exact same route is one
             # access instance, not a self-conflict.  The same source point in
             # another context deliberately remains a distinct instance.
@@ -469,7 +442,10 @@ def conflict_pairs(accesses, relations, contexts):
             pairs.append(dict(conflict_id='C-' + digest([left['instance_id'], right['instance_id']])[:16],
                               participant_a=left, participant_b=right, relation=relation,
                               may_concurrent=possible, has_write_conflict=has_write, status=state,
-                              path_combination_count=left['call_path_count'] * right['call_path_count']))
+                              path_combination_count=left['call_path_count'] * right['call_path_count'],
+                              path_combination_count_kind=('EXACT_PATH_PRODUCT'
+                                  if left['call_path_count_kind'] == right['call_path_count_kind'] == 'EXACT_PATH_COUNT'
+                                  else 'WITNESS_PRODUCT')))
     return sorted(pairs, key=lambda pair: (not pair['may_concurrent'], not pair['has_write_conflict'],
                                            pair['participant_a']['context_id'], pair['participant_b']['context_id'],
                                            pair['conflict_id']))
@@ -591,6 +567,12 @@ def analyze(facts, cfg, coverage, root=None):
                     symbol_id=v['symbol_id'], file=file, relation='possible_source_reference',
                     line=next((i for i,s in enumerate(text.splitlines(),1) if re.search(r'\b'+re.escape(v['name'])+r'\b',s)),1),
                     hint='未完整分析的源码引用了该变量；补齐编译数据库/解析参数后恢复访问。'))
+    # Refine invocation-local pointer state by physical execution domain while
+    # storage is still canonical at the root level. Global/static locations
+    # remain shared, including foreground registration consumed by an IRQ.
+    from .context_points import refine as refine_context_pointers
+    seed_contexts, seed_paths, _ = context_graph(facts, cfg)
+    refine_context_pointers(facts, cfg, seed_contexts, seed_paths)
     # Pointer solving and missing-source checks intentionally work with storage
     # roots.  Only now promote record accesses to canonical member resources so
     # no field is confused with a similarly named identifier in unparsed code.
@@ -617,6 +599,11 @@ def analyze(facts, cfg, coverage, root=None):
                 file=site[1], line=site[2], callee=site[3]))
             external_sites.add(site)
     contexts, paths, all_call_paths = context_graph(facts, cfg)
+    coverage['call_graph_representation'] = dict(
+        representation=facts['context_call_graph']['representation'], complete=True,
+        path_lists_complete=facts['context_call_graph']['path_lists_complete'],
+        evidence='facts.json: context_call_graph, call_graph_slices, calls',
+        note=facts['context_call_graph']['note'])
     relations = preemption_relations(facts, contexts, cfg)
     entry_ids = {b['function_id'] for b in facts['context_bindings'] if b['call_depth'] == 0}
     facts['assembly_references'] = [u for u in facts['unknowns'] if u['kind'] in
@@ -658,22 +645,37 @@ def analyze(facts, cfg, coverage, root=None):
     by_var, events = defaultdict(list), defaultdict(list)
     for e in facts["protection_events"]:
         events[e["function_id"]].append(e)
+    from .call_graph import AccessGraphSlices
+    access_graph = AccessGraphSlices(facts, paths)
+    compact_paths = not facts['context_call_graph']['path_lists_complete']
     for a in facts["accesses"]:
-        a["contexts"] = sorted(paths.get(a["function_id"], {}))
+        allowed = a.get('allowed_contexts')
+        access_paths = {cid: route for cid, route in paths.get(a['function_id'], {}).items()
+                        if allowed is None or cid in allowed}
+        a["contexts"] = sorted(access_paths)
         a['reachability'] = ('PROVEN_UNREACHABLE' if a['function_id'] in unreachable else
                              'REACHABLE' if a['contexts'] else 'UNKNOWN_ENTRY')
-        a["call_chains"] = paths.get(a["function_id"], {})
-        a["all_call_chains"] = all_call_paths.get(a["function_id"], {})
-        ancestors = {fid for routes in a['all_call_chains'].values() for route in routes for fid in route}
-        ancestors.add(a['function_id'])
-        a['resolved_call_edges'] = [c for c in facts['calls'] if c.get('caller_function_id') in ancestors
-                                   and c.get('callee_function_id') in ancestors]
-        a['unresolved_call_edges'] = [u for u in facts['unknowns'] if
-            (u.get('function_id') in ancestors or u.get('target_function_id') in ancestors)
-            and u['kind'] in {'INDIRECT_CALL','EXTERNAL_CALLEE','MISSING_SOURCE_CALLER','UNRESOLVED_REGISTERED_ENTRY'}]
-        a['call_chain_cycles'] = [e for e in facts['recursive_edges'] if all(fid in ancestors for fid in e)]
+        a["call_chains"] = access_paths
+        a["all_call_chains"] = {cid: routes for cid, routes in all_call_paths.get(a["function_id"], {}).items()
+                                if cid in access_paths}
+        graph_slice = access_graph.for_function(a['function_id'])
+        a['call_graph_slice'] = a['function_id']
+        a['call_chain_representation'] = facts['context_call_graph']['representation']
+        a['call_path_lists_complete'] = not compact_paths
+        a['resolved_call_edge_count'] = len(graph_slice['call_edge_indices'])
+        a['unresolved_call_edge_count'] = len(graph_slice['unresolved_issue_indices'])
+        if not compact_paths:
+            a['resolved_call_edges'] = [facts['calls'][i] for i in graph_slice['call_edge_indices']]
+            a['unresolved_call_edges'] = [facts['unknowns'][i] for i in graph_slice['unresolved_issue_indices']]
+        else:
+            # Complete slices live once per accessor in facts.call_graph_slices;
+            # duplicating a large graph on every access recreates the OOM.
+            a.pop('resolved_call_edges', None)
+            a.pop('unresolved_call_edges', None)
+        a['call_chain_cycles'] = graph_slice['recursive_edges']
         a["protection_evidence"] = [e for e in events[a["function_id"]] if e["event_kind"] in {"lock_enter", "lock_exit"}]
         by_var[a["symbol_id"]].append(a)
+    facts['call_graph_slices'] = access_graph.cache
     snapshots = defaultdict(list)
     from .protection import MaskAnalysis
     MaskAnalysis(facts, cfg).run()
@@ -885,7 +887,7 @@ def analyze(facts, cfg, coverage, root=None):
     coverage["inventory_by_kind"] = dict(inventory_kinds)
     coverage["supplemental_variables"] = sum(1 for v in facts["variables"] if v.get("coverage_source") in ("supplemental", "inactive_branch"))
     limitations = ["并发访问证据只来自当前编译配置；其他条件分支通过变体补充声明盘点，不作为实际构建访问。",
-                   "调用链展示全部已解析无环函数路径；各调用点与递归边保存在调用图。显式路径上限超出时扫描失败，不返回截断结论。",
+                   "调用证据保留全部入口、调用边和递归边；小图列出全部无环路径，大图只展示标记为见证的最短路径。图证据及安全证明均不截断；显式 max_call_paths 超限仍失败。",
                    "保护事件 DETECTED 不等于 EFFECTIVE；只有 CFG 全路径和竞争者模型均完整才可排除冲突。Ownership 与屏障本身不等于互斥。",
                    "指针与回调采用跨函数、字段及常量数组元素区分的保守目标集合；动态下标仅与同数组可能重叠元素合并。DMA 方向来自 HAL API 契约；生命周期和 Cache 协议仍须复核。",
                    "清单只包含全局变量、文件 static 和函数 static（含头文件实例与 C++ 静态成员）；普通局部变量、参数和结构体字段不作为共享对象盘点，但指针/别名指向它们的共享访问仍按目标对象分析。",

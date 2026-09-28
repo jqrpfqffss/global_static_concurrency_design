@@ -3,7 +3,7 @@ import copy
 import unittest
 
 from ecra.points_to import Solver
-from tests.test_preopencode_resolution import ResolutionTests
+from tests import test_preopencode_resolution as fixtures
 
 
 def loc(name):
@@ -60,11 +60,25 @@ class PointerWorklistTests(unittest.TestCase):
         self.assertEqual(result.points['pool/pin/callback'], {'fn:Work'})
         self.assertFalse(any('/pin/pin' in p for p in result.points))
 
+    def test_incompatible_record_views_have_finite_variable_local_overlap(self):
+        facts = dict(variables=[dict(symbol_id='object', name='object', is_struct=True,
+                       member_definitions=[dict(field_path='next')])], functions=[],
+                     accesses=[], calls=[], unknowns=[], pointer_constraints=[
+            dict(left=loc('p'), right=addr('obj:object')),
+            dict(left=loc('p'), right=dict(op='addr', value=dict(op='field',
+                 base=dict(op='deref', value=loc('p')), field='other'))),
+        ])
+        solver = Solver(facts)
+        solver.solve()
+        self.assertEqual(solver.points['p'], {'obj:object', 'obj:object/$overlap'})
+        self.assertIn('unknown:overlap:object', solver.value(loc('obj:object/$overlap')))
+        self.assertLess(facts['points_to_stats']['evaluations'], 10)
+
 
 class CopyEscapeTests(unittest.TestCase):
-    setUp = ResolutionTests.setUp
-    project = ResolutionTests.project
-    facts = ResolutionTests.facts
+    setUp = fixtures.ResolutionTests.setUp
+    project = fixtures.ResolutionTests.project
+    facts = fixtures.ResolutionTests.facts
 
     def test_copying_scalar_bytes_does_not_export_source_address(self):
         facts, _ = self.facts({'a.c': '''
@@ -90,6 +104,29 @@ class CopyEscapeTests(unittest.TestCase):
             int main(void) { callback(); return 0; }
         '''})
         self.assertFalse(facts['address_escapes'])
+
+    def test_nested_field_write_does_not_write_its_inline_parent(self):
+        facts, _ = self.facts({'a.c': '''
+            struct Inner {int first, second;}; struct Outer {struct Inner inner;} object;
+            void Set(struct Outer *p) { p->inner.first=7; }
+            int main(void) { Set(&object); return 0; }
+        '''})
+        writes = [a['access_path'] for a in facts['accesses']
+                  if a['access_kind'] in {'WRITE','RMW'} and a.get('via_alias') == 'interprocedural points-to']
+        self.assertEqual(writes, ['/inner/first'])
+
+    def test_write_through_pointer_member_reads_the_pointer_slot(self):
+        facts, _ = self.facts({'a.c': '''
+            struct Regs {int data;}; static struct Regs registers;
+            struct Handle {struct Regs *instance;} handle={&registers};
+            void Set(struct Handle *p) { p->instance->data=7; }
+            int main(void) { Set(&handle); handle.instance->data=9; return 0; }
+        '''})
+        handle = next(v for v in facts['variables'] if v['name']=='handle')
+        writes = [a for a in facts['accesses'] if a['symbol_id']==handle['symbol_id']
+                  and a['access_kind'] in {'WRITE','RMW'}]
+        self.assertEqual(writes, [])
+        self.assertTrue(any(a['access_path']=='/data' and a['access_kind']=='WRITE' for a in facts['accesses']))
 
 
 if __name__ == '__main__':

@@ -313,6 +313,7 @@ class Extractor:
                 if pointer:
                     return "READ", ".".join(path)
                 path.append(parent.spelling)
+                pointer = parent.type.get_canonical().kind.name == 'POINTER'
                 continue
             if k == "ARRAY_SUBSCRIPT_EXPR":
                 if index != 0 or pointer:
@@ -321,6 +322,7 @@ class Extractor:
                 indices = children(parent)
                 value = constant_value(indices[1]) if len(indices) > 1 else None
                 path.append('[' + (str(value) if value is not None else '*') + ']')
+                pointer = parent.type.get_canonical().kind.name == 'POINTER'
                 continue
             if k == "UNARY_OPERATOR":
                 op = operator(parent)

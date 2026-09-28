@@ -48,18 +48,38 @@ class MaskAnalysis:
                     self.api[section[field]] = ('irq', action, value)
         for access in facts['accesses']:
             self.by_function[access['function_id']].append(access)
-        self.touched = {fid: {a['symbol_id'] for a in accesses if a['access_kind'] in {'READ','WRITE','RMW'}}
-                        for fid, accesses in self.by_function.items()}
-        changed = True
-        while changed:
-            changed = False
-            for fid, graph in self.graphs.items():
-                targets = self.touched.setdefault(fid, set())
-                old = len(targets)
-                for n in graph['nodes']:
-                    if n['op'] == 'call':
-                        targets.update(self.touched.get(n.get('callee'), set()))
-                changed |= len(targets) != old
+        # A generic helper can touch different storage in different physical
+        # contexts. Propagate touched objects separately for (function,context)
+        # so an IRQ B invocation cannot create windows for IRQ A's pointee.
+        self.touched = defaultdict(set)
+        for fid, accesses in self.by_function.items():
+            for access in accesses:
+                if access['access_kind'] not in {'READ','WRITE','RMW'}:
+                    continue
+                for cid in access.get('contexts', []):
+                    if 'allowed_contexts' not in access or cid in access['allowed_contexts']:
+                        self.touched[(fid,cid)].add(access['symbol_id'])
+        incoming = defaultdict(set)
+        for fid, graph in self.graphs.items():
+            for n in graph['nodes']:
+                if n['op'] == 'call':
+                    incoming[n.get('callee')].add(fid)
+        permitted = {cid: {tuple(edge) for edge in edges}
+                     for cid,edges in facts.get('context_call_graph', {}).get('edges', {}).items()}
+        pending, queued = deque(self.touched), set(self.touched)
+        while pending:
+            callee,cid = pending.popleft()
+            queued.discard((callee,cid))
+            for caller in incoming.get(callee, ()):
+                if cid in permitted and (caller,callee) not in permitted[cid]:
+                    continue
+                key = (caller,cid)
+                additions = self.touched[(callee,cid)] - self.touched[key]
+                if additions:
+                    self.touched[key].update(additions)
+                    if key not in queued:
+                        pending.append(key)
+                        queued.add(key)
 
     def value(self, expression, state):
         if 'constant' in expression:
@@ -146,6 +166,8 @@ class MaskAnalysis:
                 break
         by_symbol = defaultdict(set)
         for access in self.by_function[fid]:
+            if 'allowed_contexts' in access and cid not in access['allowed_contexts']:
+                continue
             candidates = [n for n in nodes if n['op'] not in {'entry', 'exit', 'join', 'branch'}
                           and n['file'] == access['file']
                           and n['offset'] <= access.get('offset', -1) < n['end_offset']]
@@ -167,7 +189,7 @@ class MaskAnalysis:
         child_sites = defaultdict(set)
         for n in nodes:
             if n['op'] == 'call' and n['id'] in incoming:
-                for sid in self.touched.get(n.get('callee'), set()):
+                for sid in self.touched.get((n.get('callee'),cid), set()):
                     child_sites[sid].add(n['id'])
         for sid, sites in child_sites.items():
             if self.context_kinds[(sid,cid)] == {'RMW'}:
@@ -231,8 +253,12 @@ def assess(accesses, events, contexts, facts, cfg):
     isrs = {c for c in ids if contexts[c]['kind'] == 'ISR'}
     related = {a['function_id'] for a in relevant}
     for a in relevant:
-        for paths in a.get('all_call_chains', {}).values():
-            related.update(f for path in paths for f in path)
+        graph_slice = facts.get('call_graph_slices', {}).get(a.get('call_graph_slice'))
+        if graph_slice is not None:
+            related.update(graph_slice['function_ids'])
+        else:
+            for paths in a.get('all_call_chains', {}).values():
+                related.update(f for path in paths for f in path)
     detected = [e for fid in related for e in events.get(fid, [])]
     details = [dict(access_id=a['access_id'], file=a['file'], line=a['line'],
                     states=a.get('mask_states', [])) for a in relevant]

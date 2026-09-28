@@ -95,6 +95,7 @@ def canonicalize_arrays(facts):
             targets[(sid, index)] = child
             additions.append(child)
         root['element_symbol_ids'] = [targets[(sid, i)]['symbol_id'] for i in sorted(indices)]
+        root['static_classification'] = 'CONTAINER'
     rows = []
     for access in facts['accesses']:
         sid = access['symbol_id']

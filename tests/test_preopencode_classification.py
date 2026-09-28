@@ -187,6 +187,16 @@ class PreOpenCodeClassificationTests(unittest.TestCase):
             int main(void) { HAL_UART_Receive_DMA(0, buffer, 16); return 0; }''')
         self.assert_classified('buffer', 'UNKNOWN', 'UNKNOWN_DMA_LIFETIME')
 
+    def test_cpu_and_dma_only_read_do_not_require_exclusive_ownership(self):
+        self.scan('''static const unsigned char buffer[16]={1};
+            int HAL_UART_Transmit_DMA(void *, const unsigned char *, unsigned);
+            int main(void) { HAL_UART_Transmit_DMA(0, buffer, 16); return buffer[0]; }''')
+        leaves = [v for v in self.facts['variables'] if v.get('static_classification') != 'CONTAINER']
+        self.assertTrue(leaves)
+        for leaf in leaves:
+            self.assertEqual(leaf['static_classification'], 'SAFE', leaf)
+            self.assertIn(leaf['safe_reason_code'], {'SAFE_READ_ONLY', 'SAFE_MULTI_CONTEXT_READ_ONLY'})
+
     def test_t17_member_assignment_has_separate_read_and_write(self):
         self.scan('''static struct Config { unsigned limit, period; } active_config;
             int main(void) { active_config.limit = active_config.period * 2; return 0; }''')

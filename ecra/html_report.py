@@ -386,7 +386,7 @@ def risk_summary(facts, report, records):
     """One variable-level interpretation shared by HTML and machine exports."""
     decisions = variable_decisions(facts, report, records)
     targets = [v for v in facts['variables'] if v.get('static_classification') not in {'CONTAINER', 'OUT_OF_BUILD'}
-               and v.get('resource_kind') not in {'STRUCT_MEMBER_CONTAINER'}]
+               and v.get('resource_kind') not in {'STRUCT_MEMBER_CONTAINER', 'STRUCT_CONTAINER', 'ARRAY_CONTAINER'}]
     counts = Counter(decisions[v['symbol_id']] for v in targets)
     return dict(total_variables=len(targets), counts={key: counts[key] for key in DECISIONS},
                 inventory_rows=len(decisions),
@@ -686,13 +686,19 @@ def write_html(out, facts, report, reviews):
         rows = []
         for view in views:
             path_count = sum(len(paths) for paths in view['call_paths'].values())
+            witness_only = any(not a.get('call_path_lists_complete', True) for a in view['accesses'])
+            path_label = '见证路径' if witness_only else '全部调用链'
             chains = ''
             if view['context_ids']:
                 chains += '<strong>' + str(len(view['context_ids'])) + ' 个入口</strong>'
-                chains += '<details><summary>展开全部调用链（' + str(path_count) + ' 条）</summary>'
+                if witness_only:
+                    chains += '<p>此处列出最短见证；完整调用证据由全部入口和调用边表示。'
+                    chains += '<a href="facts.json">查看完整图证据（context_call_graph / call_graph_slices / calls）</a>；'
+                    chains += '见证数量不是全部路径数量，安全证明仍使用完整图。</p>'
+                chains += '<details><summary>展开' + path_label + '（' + str(path_count) + ' 条）</summary>'
                 for context_id in view['context_ids']:
                     routes = view['call_paths'].get(context_id, [])
-                    chains += '<details><summary>' + esc(context(context_id)) + '：' + str(len(routes)) + ' 条调用链</summary><pre>'
+                    chains += '<details><summary>' + esc(context(context_id)) + '：' + str(len(routes)) + ' 条' + ('见证路径' if witness_only else '调用链') + '</summary><pre>'
                     chains += '\n\n'.join('<span data-resolved-call-path="1">' + esc(path_tree(path)) + '</span>'
                                          for path in routes)
                     chains += '</pre></details>'
@@ -744,10 +750,11 @@ def write_html(out, facts, report, reviews):
         label = (context(instance.get('context_id')) + ' · '
                  + to_display_text(instance.get('access_kind')) + ' · '
                  + str(instance.get('file') or '未知') + ':' + str(instance.get('line') or '?'))
-        text = str(instance.get('canonical_path') or '') + '（完整路径 ' + str(instance.get('call_path_count', 0)) + ' 条）'
+        witness_only = instance.get('call_path_count_kind') == 'WITNESS_COUNT'
+        text = str(instance.get('canonical_path') or '') + ('（见证路径 ' if witness_only else '（完整路径 ') + str(instance.get('call_path_count', 0)) + ' 条）'
         if instance.get('access_scope') == 'INHERITED_WHOLE_OBJECT_ACCESS':
             text += '；继承：' + str(instance.get('inherited_from_canonical_path') or '整对象访问')
-        return '<a href="#' + target + '">' + esc(label) + '<br>' + esc(text) + '<br>展开该访问的全部调用链</a>'
+        return '<a href="#' + target + '">' + esc(label) + '<br>' + esc(text) + '<br>展开该访问的' + ('图证据与见证路径' if witness_only else '全部调用链') + '</a>'
 
     def conflict_pair_table(pairs, protection, anchor_prefix):
         if not pairs:
@@ -875,15 +882,15 @@ def write_html(out, facts, report, reviews):
                          证据缺口概览=compact_evidence_summary(variable.get('blocking_evidence', []))),
                     '静态分析证据概览') + '</details>'
         body += '<details><summary>查看调试字段与完整机器事实的位置</summary>'
-        body += '<p>源码访问、全部调用链和并发组合已在本变量详情中逐项展示。完整、不重复的机器事实保存在同目录 '
+        body += '<p>源码访问、调用证据和并发组合已在本变量详情中展示。大图展示见证路径，全部入口和调用边保存在图证据中。完整机器事实保存在同目录 '
         body += '<a href="facts.json">facts.json</a>，可按变量 ID 查找：<code>' + esc(variable['symbol_id']) + '</code>。</p>'
         body += raw(dict(source_access_views=[dict(key=view['key'], access_ids=view['access_ids'],
                                                contexts=view['context_ids'],
                                                access_metadata=[dict(
                                                    access_id=access.get('access_id'),
                                                    protection_evidence=access.get('protection_evidence', []),
-                                                   resolved_call_edge_count=len(access.get('resolved_call_edges', [])),
-                                                   unresolved_call_edge_count=len(access.get('unresolved_call_edges', [])),
+                                                   resolved_call_edge_count=access.get('resolved_call_edge_count',len(access.get('resolved_call_edges', []))),
+                                                   unresolved_call_edge_count=access.get('unresolved_call_edge_count',len(access.get('unresolved_call_edges', []))),
                                                    mask_state_count=len(access.get('mask_states', [])),
                                                    call_chain_cycle_count=len(access.get('call_chain_cycles', [])),
                                                ) for access in view['accesses']])

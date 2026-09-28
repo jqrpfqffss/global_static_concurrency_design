@@ -114,13 +114,68 @@ def build_cfg(extractor, function):
         return [current]
 
     returns = []
+    scopes = []
+
+    def cleanup_declarations(cursor):
+        declarations = ([cursor] if cursor.kind.name == 'VAR_DECL' else
+                        [child for child in children(cursor) if child.kind.name == 'VAR_DECL'])
+        return [declaration for declaration in declarations if any(
+            child.kind.name.endswith('_ATTR') and ('CLEANUP' in child.kind.name or 'cleanup' in tokens(child))
+            for child in children(declaration)) or
+            ('__attribute__' in tokens(declaration) and 'cleanup' in tokens(declaration))]
+
+    def clean_scopes(incoming, selected):
+        # GNU cleanup may restore PRIMASK/BASEPRI or call opaque code. Until
+        # its exact effects are interpreted, invalidate only the state AFTER
+        # this scope exit. Earlier and subsequently re-established masks are
+        # still independently provable. Reverse declaration order is the
+        # actual cleanup execution order.
+        for scope in reversed(selected):
+            for declaration in reversed(scope):
+                cleanup = node(declaration, 'unknown', reason='CLEANUP_ATTRIBUTE',
+                               cleanup_variable=extractor.key(declaration))
+                link(incoming, cleanup)
+                incoming = [cleanup]
+        return incoming
+
+    def for_parts(cursor, cs):
+        # libclang omits empty for-header children. Recover only presence of
+        # the three slots from balanced tokens, then bind the ordered AST
+        # children. This also works for macro expansions whose child source
+        # offsets all coincide at the invocation. Ambiguous headers fail
+        # closed rather than mistaking an increment for the condition.
+        stream = list(cursor.get_tokens())
+        begin = next((i for i, token in enumerate(stream) if token.spelling == 'for'), None)
+        if begin is None or begin + 1 >= len(stream) or stream[begin + 1].spelling != '(':
+            return None
+        depth, groups = 1, [[]]
+        for token in stream[begin + 2:]:
+            spelling = token.spelling
+            if spelling == '(':
+                depth += 1
+            elif spelling == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            if spelling == ';' and depth == 1:
+                groups.append([])
+            elif token.kind.name != 'COMMENT':
+                groups[-1].append(spelling)
+        if depth or len(groups) != 3 or not cs or len(cs) != 1 + sum(bool(group) for group in groups):
+            return None
+        ordered = iter(cs[:-1])
+        return [next(ordered) if group else None for group in groups] + [cs[-1]]
 
     def stmt(cursor, incoming, loop=None):
         kind, cs = cursor.kind.name, children(cursor)
         if kind == 'COMPOUND_STMT':
+            scopes.append([])
             for child in cs:
                 incoming = stmt(child, incoming, loop)
+            incoming = clean_scopes(incoming, [scopes.pop()])
             return incoming
+        if kind in {'DECL_STMT', 'VAR_DECL'} and scopes:
+            scopes[-1].extend(cleanup_declarations(cursor))
         if kind == 'IF_STMT' and len(cs) in {2, 3}:
             branch = node(cs[0], 'branch')
             link(expr(cs[0], incoming), branch)
@@ -132,23 +187,49 @@ def build_cfg(extractor, function):
             if kind == 'WHILE_STMT':
                 link(incoming, head)
                 link(expr(condition, [head]), branch)
-                link(stmt(body, [branch], (tail, head)), head)
+                link(stmt(body, [branch], (tail, head, len(scopes))), head)
             else:
                 body_head = node(body, 'join')
                 link(incoming, body_head)
-                link(stmt(body, [body_head], (tail, head)), head)
+                link(stmt(body, [body_head], (tail, head, len(scopes))), head)
                 link(expr(condition, [head]), branch)
                 link([branch], body_head)
             link([branch], tail)
             return [tail]
+        if kind == 'FOR_STMT':
+            parts = for_parts(cursor, cs)
+            if parts is not None:
+                initializer, condition, increment, body = parts
+                # A for-init declaration lives through all iterations and is
+                # destroyed on false-condition, break, or function return.
+                scopes.append([])
+                if initializer is not None:
+                    incoming = stmt(initializer, incoming, loop)
+                head, tail = node(cursor, 'join'), node(cursor, 'join')
+                increment_head = node(cursor, 'join')
+                link(incoming, head)
+                if condition is not None:
+                    branch = node(condition, 'branch')
+                    link(expr(condition, [head]), branch)
+                    body_entry = [branch]
+                    link([branch], tail)
+                else:
+                    # for(;;) has no fall-through edge. Only an actual break
+                    # may reach tail; continue must still execute increment.
+                    body_entry = [head]
+                link(stmt(body, body_entry, (tail, increment_head, len(scopes))), increment_head)
+                loop_back = expr(increment, [increment_head]) if increment is not None else [increment_head]
+                link(loop_back, head)
+                return clean_scopes([tail], [scopes.pop()])
         if kind == 'RETURN_STMT':
             exits = incoming
             for child in cs:
                 exits = expr(child, exits)
-            returns.extend(exits)
+            returns.extend(clean_scopes(exits, scopes))
             return []
         if kind in {'BREAK_STMT', 'CONTINUE_STMT'} and loop:
-            link(incoming, loop[0 if kind == 'BREAK_STMT' else 1])
+            exits = clean_scopes(incoming, scopes[loop[2]:])
+            link(exits, loop[0 if kind == 'BREAK_STMT' else 1])
             return []
         if kind in {'GOTO_STMT', 'INDIRECT_GOTO_STMT', 'SWITCH_STMT', 'FOR_STMT',
                     'CXX_TRY_STMT', 'CXX_THROW_EXPR'} or 'ASM' in kind:

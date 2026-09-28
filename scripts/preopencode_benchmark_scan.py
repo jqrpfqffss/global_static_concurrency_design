@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--reuse-workers", action="store_true")
+    parser.add_argument("--extract-only", action="store_true", help="Persist raw merged evidence, without classification")
     parser.add_argument("--classify-raw", help="Debug/reclassify a saved merged extraction without reparsing")
     args = parser.parse_args()
     faulthandler.dump_traceback_later(60, repeat=True)
@@ -89,13 +90,32 @@ def main():
                     translation_units_failed=len(units)-parsed,
                     parse_coverage_percent=round(100*parsed/max(1,len(units)),2), **compilation)
     write(output / "raw-facts.json", facts)
+    if args.extract_only:
+        write(output / 'extraction-summary.json', dict(coverage=coverage,
+            engine=str(engine),engine_hash=digest([p.read_text(encoding='utf-8') for p in sorted((engine/'ecra').glob('*.py'))]),
+            functions=len(facts['functions']),calls=len(facts['calls']),variables=len(facts['variables']),
+            accesses=len(facts['accesses']),duration_seconds=round(time.monotonic()-started,2)))
+        faulthandler.cancel_dump_traceback_later()
+        print('Extraction complete; classification deliberately not run',flush=True)
+        return
     print("Classifying merged target evidence", flush=True)
     report = analyze(facts, cfg, coverage, root=root)
     write(output / "facts.json", facts)
     write(output / "report.json", report)
-    variables = [v for v in facts["variables"] if v.get("static_classification") not in {"CONTAINER", "OUT_OF_BUILD"}]
-    counts = Counter(v.get("static_classification", "UNKNOWN") for v in variables)
-    summary = dict(total=len(variables), classifications=dict(counts),
+    variables = [v for v in facts["variables"] if v.get("static_classification") in {"SAFE", "SUSPECT", "UNKNOWN"}]
+    counts = Counter(v["static_classification"] for v in variables)
+    expected = coverage.get('static_classification', {})
+    if expected:
+        assert expected['total'] == len(variables), 'benchmark classification denominator differs from production accounting'
+        assert all(expected.get(state.lower(),0) == counts[state] for state in ('SAFE','SUSPECT','UNKNOWN'))
+    roots = {}
+    for variable in variables:
+        ident = variable.get('array_root_symbol_id') or variable.get('root_symbol_id') or variable['symbol_id']
+        ident = ident.split('::element::',1)[0]
+        state = variable['static_classification']
+        roots[ident] = max(roots.get(ident,'SAFE'),state,key={'SAFE':0,'UNKNOWN':1,'SUSPECT':2}.get)
+    summary = dict(total=len(variables), inventory_total=len(facts['variables']), classifications=dict(counts),
+        root_storage_total=len(roots),root_classifications=dict(Counter(roots.values())),
         percentages={k: round(100*counts[k]/max(1,len(variables)),2) for k in ("SAFE","SUSPECT","UNKNOWN")},
         by_kind=dict(Counter(v.get("kind") for v in variables)),
         safe_reasons=dict(Counter(v.get("safe_reason_code",v.get("screening_reason")) for v in variables if v.get("static_classification")=="SAFE")),

@@ -12,3 +12,13 @@
 8. **数组抽象过宽**：全部下标合并；无法对已知常量元素给出独立存储证明。结构体成员已有基础区分，但 whole-object 和重叠存储必须继续传播真实影响。
 
 重构原则：先构造带原始位置和相关性解释的 VariableEvidenceSlice；用 PhysicalExecutionContext 比较实际执行者；先判已知未受有效保护的冲突为 SUSPECT，再判可能隐藏额外冲突的变量级缺口为 UNKNOWN，最后以明确 proof code 判 SAFE。覆盖状态独立保存。未进入当前目标构建的声明保留为盘点资料，不进入当前 firmware 的分类和复核分母。
+
+## SUSPECT 数量不能代替误报分析
+
+冲突优先使原先被覆盖缺口压成 UNKNOWN 的已知冲突归入 SUSPECT，这是分类纠正，不代表新发现了同样数量的真实缺陷。另一方面，减少 UNKNOWN 不能成为将剩余候选全部交给人工的终点。应继续分别审计访问事实、物理入口、存储重叠与有效保护，修复可确定排除的候选。
+
+当前 serial 源码抽查同时发现两类情况：`pending_events` 快照后清零、`tx_frame` 启动 DMA 后立即覆写等有具体成立的交错；`command_image.sequence` 和 `reply_bank` 的单一 USART2 路径却被共享 HAL 回调的其他 IRQ 污染，属于需要通用参数/条件路径分析消除的候选。`guarded_total` 的完整 PRIMASK 保护，还受到同一函数其他 `for` 循环使整个 CFG 不完整的影响。逐项源码依据见 [serial_static_classification_audit.md](serial_static_classification_audit.md)。这些结论没有写入任何变量名排除表。
+
+初始化也必须区分“代码看起来在启动时执行”与“已经证明异步源不能访问”。当前严格证明要求真实 NVIC Disable 支配全部写点、全部写点支配相关 Enable。serial 的 `huart2.Init.*` 写入在 `MX_USART2_UART_Init`，但唯一 USART2 Disable 位于未调用的 DeInit 路径；仅扩展跨函数调用图仍缺启动时禁用证据。不能为了消除这类 SUSPECT 猜测 main 之前的 NVIC 状态。后续应恢复明确 reset/bootloader 契约与跨 helper 初始化控制流，或在证据不足时保留候选。
+
+`SAFE_DISJOINT_STORAGE` 作为附加静态证明记录到 `safe_reason_codes` 和 `safe_evidence.disjoint_storage`：依据 Clang 布局和常量下标保存同一容器下互不重叠的半开 bit 区间及另一执行域的访问。它只附加到已由独立规则证明 SAFE 的变量，不删除现有冲突或相关缺口。动态下标、union 重叠和 bitfield 共用存储不能使用这个证明。

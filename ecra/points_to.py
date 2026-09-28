@@ -60,6 +60,14 @@ class Solver:
         self.functions = {f['function_id']: f for f in facts['functions']}
         self.variables = {v['symbol_id']: v for v in facts['variables']}
         self.objects = {'obj:' + s: s for s in self.variables}
+        self.storage_paths = {}
+        for base, sid in self.objects.items():
+            variable = self.variables[sid]
+            paths = {''}
+            for member in variable.get('member_definitions', []):
+                path = member['field_path'].replace('.', '/')
+                paths.add(path)
+            self.storage_paths[base] = paths
         self.section_starts = {}
         for sid, variable in self.variables.items():
             if variable['name'].startswith('__start_'):
@@ -110,6 +118,31 @@ class Solver:
         return len(a) == len(b) and all(x == y or x == '[*]' and y.startswith('[')
                                        or y == '[*]' and x.startswith('[') for x, y in zip(a, b))
 
+    @lru_cache(maxsize=65536)
+    def storage_location(self, location):
+        """Keep named storage within its finite declared subobject layout.
+
+        Casts/container arithmetic can create an overlapping view for which
+        no field offset is proven. Represent that view by one may-overlap
+        location, retaining the original object and an explicit alias gap.
+        """
+        sid = self.symbol(location)
+        if sid is None:
+            return location
+        base = 'obj:' + sid
+        suffix = location[len(base):]
+        if '/$overlap' in suffix:
+            return base + '/$overlap'
+        fields = re.sub(r'/\[(?:-?\d+|\*)\]', '', suffix).strip('/')
+        if fields not in self.storage_paths[base] or suffix.count('/[') > 1 + len(fields.split('/')):
+            return base + '/$overlap'
+        size = self.variables[sid].get('array_size')
+        if size and suffix.startswith('/['):
+            match = re.match(r'/\[(-?\d+)\]', suffix)
+            if match and not 0 <= int(match[1]) < size:
+                return base + '/$overlap'
+        return location
+
     def locations(self, e):
         op = e.get('op')
         if op == 'loc':
@@ -117,8 +150,8 @@ class Solver:
         if op == 'deref':
             return {p for p in self.value(e['value']) if not p.startswith('fn:')}
         if op == 'field':
-            return {p if p.startswith('unknown:') else p + ('/[0]' if p in self.objects and self.variables[self.objects[p]].get('array_element_is_struct')
-                         else '') + '/' + e['field'] for p in self.locations(e['base'])}
+            return {p if p.startswith('unknown:') else self.storage_location(p + ('/[0]' if p in self.objects and self.variables[self.objects[p]].get('array_element_is_struct')
+                         else '') + '/' + e['field']) for p in self.locations(e['base'])}
         if op == 'index':
             result = set()
             for base in self.locations(e['base']):
@@ -141,7 +174,7 @@ class Solver:
                 if match and e['base'].get('op') == 'deref':
                     index = str(int(match[1]) + int(index)) if '*' not in {match[1], index} else '*'
                     base = base[:match.start()]
-                result.add(base + '/[' + index + ']')
+                result.add(self.storage_location(base + '/[' + index + ']'))
             return result
         if op == 'union':
             return set().union(*(self.locations(x) for x in e['items']))
@@ -165,7 +198,7 @@ class Solver:
                 sid = self.objects.get(base)
                 if match:
                     index = str(int(match[1]) + int(e['index'])) if '*' not in {match[1], e['index']} else '*'
-                    result.add(base[:match.start()] + '/[' + index + ']')
+                    result.add(self.storage_location(base[:match.start()] + '/[' + index + ']'))
                 elif sid and self.variables[sid].get('is_array'):
                     result.add(base + '/[' + e['index'] + ']')
                 elif sid and self.variables[sid].get('linker_section'):
@@ -183,6 +216,17 @@ class Solver:
                 self.watch(loc)
                 if loc.startswith('unknown:'):
                     result.add(loc)
+                sid = self.symbol(loc)
+                if sid:
+                    summary = 'obj:' + sid + '/$overlap'
+                    self.watch(summary)
+                    result.update(self.points.get(summary, ()))
+                    if loc == summary:
+                        result.add('unknown:overlap:' + sid)
+                        self.watch('descendants:obj:' + sid)
+                        for child in self.descendant_slots.get('obj:' + sid, ()):
+                            self.watch(child)
+                            result.update(self.points[child])
                 if e['op'] == 'deref' and loc in self.objects and self.variables[self.objects[loc]].get('is_array'):
                     loc += '/[0]'
                     self.watch(loc)
@@ -213,13 +257,19 @@ class Solver:
                     continue
                 for source in self.locations(right):
                     for suffix in aggregate_paths:
-                        slot = source if source.startswith('unknown:') else source + suffix
-                        destination = loc if loc.startswith('unknown:') else loc + suffix
+                        slot = source if source.startswith('unknown:') else self.storage_location(source + suffix)
+                        destination = loc if loc.startswith('unknown:') else self.storage_location(loc + suffix)
                         self.add_points(destination, self.value(dict(op='loc', id=slot)))
 
     def targets(self, call):
         direct = call.get('target')
         return {direct} if direct else {p[3:] for p in self.value(call['expression']) if p.startswith('fn:')}
+
+    def parameter_location(self, target, index, call):
+        return target + ':param:' + str(index)
+
+    def return_location(self, target, call):
+        return target + ':return'
 
     def copy_memory(self, call):
         destinations = self.value(call['arguments'][0])
@@ -248,7 +298,7 @@ class Solver:
                 direct.add(source)
                 continue
             for suffix in layout:
-                fields[suffix].update(self.value(dict(op='loc', id=source + suffix)))
+                fields[suffix].update(self.value(dict(op='loc', id=self.storage_location(source + suffix))))
         # Union source summaries once, rather than constructing every
         # destination x source x field tuple on each solver iteration.
         for destination in destinations:
@@ -258,7 +308,7 @@ class Solver:
                     self.add_points(destination, values | {destination})
             else:
                 for suffix, values in fields.items():
-                    self.add_points(destination + suffix, values)
+                    self.add_points(self.storage_location(destination + suffix), values)
 
     @lru_cache(maxsize=65536)
     def symbol(self, location):
@@ -277,7 +327,7 @@ class Solver:
             row = dict(symbol_id=sid, function_id=record['function_id'],
                        file=record['file'], line=record['line'], column=record.get('column', 0),
                        offset=record.get('offset', 0), source_text=record.get('source_text', ''),
-                       access_kind=mode, access_path=loc[len('obj:' + sid):],
+                       access_kind=mode, access_path='' if loc.endswith('/$overlap') else loc[len('obj:' + sid):],
                        parse_confidence='conservative', via_alias='interprocedural points-to', **extra)
             row['access_id'] = 'A-' + digest(row)[:20]
             self.facts['accesses'].append(row)
@@ -309,9 +359,9 @@ class Solver:
                     for i, arg in enumerate(call['arguments']):
                         aggregates = call.get('argument_aggregates', [])
                         layouts = call.get('argument_aggregate_paths', [])
-                        self.update(dict(op='loc', id=target + ':param:' + str(i)), arg,
+                        self.update(dict(op='loc', id=self.parameter_location(target, i, call)), arg,
                                     i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
-                    self.update(call['result'], dict(op='loc', id=target + ':return'),
+                    self.update(call['result'], dict(op='loc', id=self.return_location(target, call)),
                                 call.get('returns_aggregate', False), call.get('return_aggregate_paths'))
                 if call.get('name') in {'memcpy', 'memmove'} and len(call['arguments']) >= 2:
                     self.copy_memory(call)
@@ -356,7 +406,7 @@ class Solver:
             # Known automatic/parameter storage is a resolved object too. It is
             # intentionally absent from the global/static inventory; that must
             # not become a project-wide unknown write to exported globals.
-            if not targets or any(p.startswith('unknown:') for p in targets):
+            if not targets or any(p.startswith('unknown:') or p.endswith('/$overlap') for p in targets):
                 self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE',
                     function_id=item['function_id'], file=item['file'], line=item['line'],
                     offset=item.get('offset'), may_target_symbol_ids=sorted({self.symbol(p) for p in targets if self.symbol(p)})))
@@ -364,7 +414,7 @@ class Solver:
                     sid = self.symbol(target)
                     if sid:
                         self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE', symbol_id=sid,
-                            access_path=target[len('obj:' + sid):], function_id=item['function_id'],
+                            access_path='' if target.endswith('/$overlap') else target[len('obj:' + sid):], function_id=item['function_id'],
                             file=item['file'], line=item['line'], offset=item.get('offset'),
                             reason='Known may-target shares pointer provenance with an opaque target'))
         self.resolve_evidence(calls)
@@ -443,7 +493,7 @@ class Solver:
                 sid = self.symbol(value)
                 if sid:
                     escapes.append(dict(kind='INLINE_ASSEMBLY' if site.get('inline_assembly') else 'ADDRESS_ESCAPE', symbol_id=sid,
-                        access_path=value[len('obj:' + sid):], function_id=site.get('function_id', ''),
+                        access_path='' if value.endswith('/$overlap') else value[len('obj:' + sid):], function_id=site.get('function_id', ''),
                         file=site.get('file'), line=site.get('line'), offset=site.get('offset'),
                         reason=reason, actual_escape=True))
 

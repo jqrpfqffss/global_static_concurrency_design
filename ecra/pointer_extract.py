@@ -10,6 +10,57 @@ class PointerExtractor:
         self.parameters = {}
         self.atomic_macros = {}
         self.layout_cache = {}
+        self.stable_pointer_parameters = {}
+        self.path_conditions = []
+        self.guard_sites = {}
+
+    def stable_parameters(self, function):
+        parameters = {self.key(p) for p in function.get_arguments()
+                      if p.type.get_canonical().kind.name == 'POINTER'}
+        for node in walk(function):
+            cs = children(node)
+            if 'ASM' in node.kind.name:
+                return set()
+            if node.kind.name == 'BINARY_OPERATOR' and operator(node) == '=' and cs:
+                target = self.unwrap(cs[0])
+                if target.kind.name == 'DECL_REF_EXPR' and target.referenced:
+                    parameters.discard(self.key(target.referenced))
+            if node.kind.name in {'UNARY_OPERATOR', 'COMPOUND_ASSIGNMENT_OPERATOR'} and cs:
+                if node.kind.name == 'COMPOUND_ASSIGNMENT_OPERATOR' or operator(node) in {'&', '++', '--'}:
+                    target = self.unwrap(cs[0])
+                    if target.kind.name == 'DECL_REF_EXPR' and target.referenced:
+                        parameters.discard(self.key(target.referenced))
+        return parameters
+
+    def conditions(self, ancestors):
+        result = []
+        for parent, index in ancestors:
+            cs = children(parent)
+            if parent.kind.name != 'IF_STMT' or len(cs) not in {2, 3} or index not in {1, 2}:
+                continue
+            condition = self.unwrap(cs[0])
+            if condition.kind.name != 'BINARY_OPERATOR' or operator(condition) not in {'==', '!='}:
+                continue
+            operands = children(condition)
+            if len(operands) != 2:
+                continue
+            left, right = map(self.value, operands)
+            if right.get('op') == 'loc' and right.get('id') in self.stable_pointer_parameters.get(self.function, set()):
+                left, right = right, left
+            if (left.get('op') != 'loc' or left.get('id') not in self.stable_pointer_parameters.get(self.function, set())
+                    or right.get('op') != 'addr'):
+                continue
+            location = right.get('value', {})
+            # A direct static object/member address is invariant. Mutable
+            # pointer values, arbitrary pointer arithmetic and null tests do
+            # not supply a disjoint-address proof here.
+            while location.get('op') in {'field', 'index'}:
+                location = location['base']
+            if location.get('op') != 'loc' or not location.get('id', '').startswith('obj:'):
+                continue
+            result.append(dict(parameter=left, target=right,
+                equals=(operator(condition) == '==') == (index == 1), **self.e.loc(condition)))
+        return result
 
     def aggregate_paths(self, typ):
         """Finite inline storage layout; pointer fields are terminal leaves.
@@ -66,6 +117,7 @@ class PointerExtractor:
 
     def constraint(self, left, right, node):
         self.constraints.append(dict(left=left, right=right, function_id=self.function,
+                                     path_conditions=list(self.path_conditions),
                                      aggregate=node.type.get_canonical().kind.name == 'RECORD',
                                      aggregate_paths=self.aggregate_paths(node.type)
                                          if node.type.get_canonical().kind.name == 'RECORD' else [],
@@ -214,8 +266,14 @@ class PointerExtractor:
     def mode(self, ancestors):
         for parent, index in reversed(ancestors):
             k = parent.kind.name
-            if k in WRAPPERS or k == 'MEMBER_REF_EXPR' or k == 'ARRAY_SUBSCRIPT_EXPR' and index == 0:
+            if k in WRAPPERS:
                 continue
+            if k in {'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'} and index == 0:
+                # Inline members/elements are one storage path, emitted by
+                # the outer expression. Crossing a pointer consumes its value
+                # without modifying the pointer object itself.
+                base = self.unwrap(children(parent)[0])
+                return 'READ' if base.type.get_canonical().kind.name == 'POINTER' else None
             if k == 'UNARY_OPERATOR':
                 op = operator(parent)
                 return 'ADDRESS_TAKEN' if op == '&' else ('RMW' if op in {'++', '--'} else 'READ')
@@ -233,10 +291,16 @@ class PointerExtractor:
     def visit(self, node, ancestors=()):
         k, cs = node.kind.name, children(node)
         previous = self.function
+        previous_conditions = self.path_conditions
         if k in FUNCTIONS:
             if not node.is_definition():
                 return
             self.function = self.e.fid(node)
+            self.stable_pointer_parameters[self.function] = self.stable_parameters(node)
+        self.path_conditions = self.conditions(ancestors) if self.function else []
+        if self.path_conditions:
+            loc = self.e.loc(node)
+            self.guard_sites[(self.function, loc['file'], loc['offset'])] = list(self.path_conditions)
         if k == 'VAR_DECL' and cs:
             init = next((c for c in reversed(cs) if c.kind.is_expression()), None)
             if init:
@@ -259,6 +323,7 @@ class PointerExtractor:
             arguments = list(node.get_arguments())
             pointee_layouts = [self.pointee_layout(arg) for arg in arguments]
             self.calls.append(dict(function_id=self.function, target=self.e.fid(ref) if direct else None,
+                path_conditions=list(self.path_conditions),
                 expression=self.value(cs[0]) if cs else dict(op='empty'), name=ref.spelling if direct else node.spelling,
                 arguments=[self.value(arg) for arg in arguments], result=self.result(node),
                 argument_values=[constant_value(arg) for arg in arguments],
@@ -279,14 +344,18 @@ class PointerExtractor:
                 arguments=[self.value(expr) for expr in expressions],
                 result=self.result(node), returns_pointer=False, inline_assembly=True,
                 source_text=self.e.source(node), **self.e.loc(node)))
-        dynamic = (k == 'UNARY_OPERATOR' and operator(node) == '*'
-                   and node.type.get_canonical().kind.name not in {'FUNCTIONPROTO', 'FUNCTIONNOPROTO'})
-        if k in {'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'} and cs:
-            dynamic |= self.unwrap(cs[0]).type.get_canonical().kind.name == 'POINTER'
+        def has_dereference(expression):
+            return (expression.get('op') == 'deref'
+                    or any(has_dereference(v) for v in expression.values() if isinstance(v, dict)))
+        dynamic = (k in {'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'}
+                   or k == 'UNARY_OPERATOR' and operator(node) == '*')
+        dynamic = (dynamic and node.type.get_canonical().kind.name not in {'FUNCTIONPROTO', 'FUNCTIONNOPROTO'}
+                   and has_dereference(self.lvalue(node)))
         if dynamic and self.function:
             mode = self.mode(ancestors)
             if mode:
                 self.accesses.append(dict(location=self.lvalue(node), mode=mode, function_id=self.function,
+                    path_conditions=list(self.path_conditions),
                     source_text=self.e.source(node), **self.e.loc(node)))
         # Clang ATOMIC_EXPR has operation in tokens, not a callee reference.
         atomic_tokens = [t.spelling for t in node.get_tokens()] if k == 'UNEXPOSED_EXPR' and len(cs) > 1 else []
@@ -308,6 +377,7 @@ class PointerExtractor:
             if self.e.interesting(child):
                 self.visit(child, (*ancestors, (node, i)))
         self.function = previous
+        self.path_conditions = previous_conditions
 
     def run(self, cursor):
         for node in cursor.get_children():
@@ -315,4 +385,9 @@ class PointerExtractor:
                 loc = self.e.loc(node)
                 self.atomic_macros[(loc['file'], loc['offset'])] = node.spelling
         self.visit(cursor)
+        for row in self.e.accesses + self.e.calls:
+            owner = row.get('function_id', row.get('caller_function_id'))
+            key = (owner, row.get('file'), row.get('offset'))
+            if key in self.guard_sites:
+                row['path_conditions'] = self.guard_sites[key]
         return dict(pointer_constraints=self.constraints, semantic_calls=self.calls, indirect_accesses=self.accesses)

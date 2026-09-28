@@ -126,6 +126,11 @@ class EvidenceIndex:
             if issue.get('function_id') in self.unreachable:
                 continue
             kind = issue['kind']
+            if kind == 'DMA_SHARED_REVIEW' and not writers:
+                # Proven DMA reads and CPU reads cannot conflict merely
+                # because their lifetimes overlap. Unresolved direction,
+                # buffers, escapes and actual DMA writes remain blockers.
+                continue
             gap(issue, SYMBOL_CODES.get(kind, 'UNKNOWN_RELEVANT_ALIAS'),
                 '该事实直接绑定目标存储，可能引入尚未恢复的访问。')
             if kind == 'ADDRESS_ESCAPE':
