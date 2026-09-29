@@ -182,6 +182,8 @@ class Solver:
 
     def value(self, e):
         op = e.get('op')
+        if op == 'va_arg':
+            return self.variadic_values(e['value'])
         if op == 'addr':
             return self.locations(e['value'])
         if op == 'function':
@@ -267,6 +269,14 @@ class Solver:
 
     def parameter_location(self, target, index, call):
         return target + ':param:' + str(index)
+
+    def variadic_values(self, expression):
+        # A va_list is an ABI record on ARM and an array on some hosts. Array
+        # decay supplies its address; record copies already carry its values.
+        if expression.get('op') == 'addr':
+            return set().union(*(self.value(dict(op='loc', id=location))
+                                 for location in self.locations(expression['value'])))
+        return self.value(expression)
 
     def return_location(self, target, call):
         return target + ':return'
@@ -356,15 +366,28 @@ class Solver:
                 if (call.get('returns_pointer') or call.get('returns_aggregate')) and (not targets or any(t not in self.functions for t in targets)):
                     self.update(call['result'], dict(op='unknown', id=call['result']['id']))
                 for target in targets:
+                    function = self.functions.get(target, {})
                     for i, arg in enumerate(call['arguments']):
                         aggregates = call.get('argument_aggregates', [])
                         layouts = call.get('argument_aggregate_paths', [])
                         self.update(dict(op='loc', id=self.parameter_location(target, i, call)), arg,
                                     i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
+                        if function.get('is_variadic') and i >= function['parameter_count']:
+                            self.update(dict(op='loc', id=self.parameter_location(target, 'varargs', call)), arg,
+                                        i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
                     self.update(call['result'], dict(op='loc', id=self.return_location(target, call)),
                                 call.get('returns_aggregate', False), call.get('return_aggregate_paths'))
                 if call.get('name') in {'memcpy', 'memmove'} and len(call['arguments']) >= 2:
                     self.copy_memory(call)
+                if call.get('name') in {'__builtin_va_start', '__builtin_stdarg_start', '__builtin_va_copy'} and call['arguments']:
+                    if call['name'] == '__builtin_va_copy' and len(call['arguments']) > 1:
+                        values = self.variadic_values(call['arguments'][1])
+                    else:
+                        values = self.value(dict(op='loc', id=self.parameter_location(call['function_id'], 'varargs', call)))
+                    argument = call['arguments'][0]
+                    destinations = self.locations(argument['value']) if argument.get('op') == 'addr' else self.locations(argument)
+                    for destination in destinations:
+                        self.add_points(destination, values)
             evaluations += 1
             if os.environ.get('ECRA_SOLVER_TRACE') and evaluations % 10000 == 0:
                 print('points-to evaluations', evaluations, 'pending', len(self.pending), 'slots', len(self.points),
@@ -468,6 +491,7 @@ class Solver:
         """
         escapes, escaped_functions = [], set()
         safe_apis = {'memcpy', 'memmove', 'memset', 'memcmp', '__disable_irq', '__enable_irq',
+                     '__builtin_va_start', '__builtin_stdarg_start', '__builtin_va_copy', '__builtin_va_end',
                      '__get_PRIMASK', '__set_PRIMASK', '__get_BASEPRI', '__set_BASEPRI',
                      '__set_BASEPRI_MAX', '__disable_fault_irq', '__enable_fault_irq',
                      'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_EnableIRQ', 'NVIC_EnableIRQ',

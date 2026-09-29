@@ -53,8 +53,9 @@ class ScreeningTests(unittest.TestCase):
             static int callback_state, startup_state;
             static void Callback(void){callback_state++;}
             void (*hook)(void)=Callback;
+            void Register(void (*callback)(void));
             static void __attribute__((constructor)) Startup(void){startup_state++;}
-            int main(void){return 0;}
+            int main(void){Register(hook); return 0;}
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, _ = self.extract(cfg)
         for v in facts['variables']:

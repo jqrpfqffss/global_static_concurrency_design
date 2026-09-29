@@ -653,7 +653,7 @@ def analyze(facts, cfg, coverage, root=None):
         access_paths = {cid: route for cid, route in paths.get(a['function_id'], {}).items()
                         if allowed is None or cid in allowed}
         a["contexts"] = sorted(access_paths)
-        a['reachability'] = ('PROVEN_UNREACHABLE' if a['function_id'] in unreachable else
+        a['reachability'] = ('PROVEN_UNREACHABLE' if a['function_id'] in unreachable or a.get('context_proven_unreachable') else
                              'REACHABLE' if a['contexts'] else 'UNKNOWN_ENTRY')
         a["call_chains"] = access_paths
         a["all_call_chains"] = {cid: routes for cid, routes in all_call_paths.get(a["function_id"], {}).items()
@@ -691,7 +691,7 @@ def analyze(facts, cfg, coverage, root=None):
     for v in analyzed_variables:
         sid = v["symbol_id"]
         all_accesses = by_var[sid]
-        accesses = [a for a in all_accesses if a['function_id'] not in unreachable]
+        accesses = [a for a in all_accesses if a.get('reachability') != 'PROVEN_UNREACHABLE']
         readers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"READ", "RMW"}))
         writers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"WRITE", "RMW"}))
         all_contexts = set(itertools.chain.from_iterable(a["contexts"] for a in accesses))
@@ -829,9 +829,9 @@ def analyze(facts, cfg, coverage, root=None):
             v.update(static_classification='OUT_OF_BUILD', audit_status='SUPPLEMENTAL_INVENTORY',
                      analysis_coverage='NOT_APPLICABLE', coverage='NOT_APPLICABLE', accesses=[],
                      classification_reason='未参与当前固件构建，仅保留声明盘点，不进入并发复核队列。')
-    unknown_accesses = sum(not a["contexts"] and a['function_id'] not in unreachable for a in facts["accesses"])
+    unknown_accesses = sum(not a["contexts"] and a.get('reachability') != 'PROVEN_UNREACHABLE' for a in facts["accesses"])
     coverage['unreachable_functions'] = len(unreachable)
-    coverage['unreachable_accesses'] = sum(a['function_id'] in unreachable for a in facts['accesses'])
+    coverage['unreachable_accesses'] = sum(a.get('reachability') == 'PROVEN_UNREACHABLE' for a in facts['accesses'])
     queued = {f['symbol_id'] for f in findings if f.get('symbol_id')}
     screened = {v['symbol_id'] for v in analyzed_variables if v.get('screening_reason')}
     ids = {v['symbol_id'] for v in analyzed_variables}
@@ -849,6 +849,7 @@ def analyze(facts, cfg, coverage, root=None):
             physical_contexts=v.get('variable_evidence_slice', {}).get('physical_contexts', []),
             contexts=v.get('contexts', []), protection_status=v.get('protection_status'),
             coverage=v.get('analysis_coverage'), initialization=v.get('initialization_proof'),
+            context_exclusions=[proof for a in v.get('accesses', []) for proof in a.get('context_exclusions', [])],
             evidence_slice_symbol_id=v['symbol_id']) if status == 'SAFE' else None)
         v['unknown_reason'] = v.get('unknown_reason_codes', []) if status == 'UNKNOWN' else []
         v['required_context'] = [dict(kind=g['reason_code'], file=g.get('file'), line=g.get('line'),

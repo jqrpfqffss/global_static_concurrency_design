@@ -28,6 +28,40 @@ class MaskAnalysis:
         self.windows = defaultdict(list)
         self.effects = {}
         self.memo = {}
+        # Caller stack affects recursive summaries. Every function able to
+        # reach a recursive SCC retains the stack in its cache key; acyclic
+        # descendants can reuse their exact (context,input-state) summary.
+        # Otherwise a diamond call graph re-evaluates the same CFG along an
+        # exponential number of identical caller paths.
+        call_graph = {fid: {node.get('callee') for node in graph['nodes']
+                           if node['op'] == 'call' and node.get('callee') in self.graphs}
+                      for fid,graph in self.graphs.items()}
+        reverse, colors, cycle_entries = defaultdict(set), {}, set()
+        for caller, callees in call_graph.items():
+            for callee in callees:
+                reverse[callee].add(caller)
+        for start in call_graph:
+            if colors.get(start):
+                continue
+            colors[start] = 1
+            stack = [(start,iter(call_graph[start]))]
+            while stack:
+                fid,children = stack[-1]
+                child = next(children,None)
+                if child is None:
+                    colors[fid] = 2
+                    stack.pop()
+                elif colors.get(child) == 1:
+                    cycle_entries.add(child)
+                elif not colors.get(child):
+                    colors[child] = 1
+                    stack.append((child,iter(call_graph[child])))
+        self.stack_sensitive = set(cycle_entries)
+        pending = list(cycle_entries)
+        while pending:
+            for caller in reverse[pending.pop()] - self.stack_sensitive:
+                self.stack_sensitive.add(caller)
+                pending.append(caller)
         self.context_kinds = defaultdict(set)
         for access in facts['accesses']:
             if access['access_kind'] in {'READ','WRITE','RMW'}:
@@ -135,7 +169,7 @@ class MaskAnalysis:
         return state, interruption
 
     def evaluate(self, fid, initial, cid, stack=()):
-        key = (fid, cid, tuple(sorted(initial.items())), stack)
+        key = (fid, cid, tuple(sorted(initial.items())), stack if fid in self.stack_sensitive else ())
         if key in self.memo:
             return self.memo[key]
         graph = self.graphs[fid]

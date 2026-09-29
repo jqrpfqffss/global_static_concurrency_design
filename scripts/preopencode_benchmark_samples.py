@@ -11,15 +11,19 @@ def compact(variable):
     keys = ("symbol_id", "root_symbol_id", "array_root_symbol_id", "name", "qualified_name", "kind",
             "definition_file", "definition_line", "type", "linkage", "storage_class", "field_path",
             "static_classification", "safe_reason_code", "safe_evidence", "screening_reason", "coverage",
-            "coverage_reasons", "analysis_coverage", "evidence_slice", "address_taken", "address_escape")
+            "coverage_reasons", "analysis_coverage", "translation_units", "canonical_path",
+            "address_taken", "address_escape", "initialization_proof", "safe_reason_codes")
     result = {k:variable[k] for k in keys if k in variable}
     accesses = variable.get("accesses", [])
     access_keys = ("access_id", "file", "line", "column", "access_kind", "function_id", "function_name",
                    "field_path", "contexts", "context_ids", "context_paths", "physical_contexts", "phase",
-                   "alias_resolution", "source_text", "protection", "address_taken")
+                   "alias_resolution", "source_text", "protection", "address_taken", "via_alias", "access_path",
+                   "call_chains", "call_graph_slice", "allowed_contexts", "mask_states", "inherited_from_access_id")
     result["access_count"] = len(accesses)
     result["accesses"] = [{k:a[k] for k in access_keys if k in a} for a in accesses]
     result["audit_status"] = "PENDING_INDEPENDENT_SOURCE_REVIEW"
+    result['full_evidence_reference'] = dict(file='facts.json',symbol_id=variable['symbol_id'],
+        fields=['variable_evidence_slice','call_graph_slices','functions','calls','control_flow','pointer_constraints'])
     result["audit_questions"] = [
         "Do source references and resolved aliases account for all runtime accesses?",
         "Are main, IRQ, callback and DMA execution entries mapped correctly?",

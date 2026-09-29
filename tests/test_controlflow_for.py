@@ -82,6 +82,10 @@ void TIM4_IRQHandler(void) { value++; }
         self.check('__disable_irq(); { unsigned saved __attribute__((cleanup(Restore)))=0; } value++;',
                    'SUSPECT', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
 
+    def test_gnu_alternate_cleanup_spelling_invalidates_mask(self):
+        self.check('__disable_irq(); { unsigned saved __attribute__((__cleanup__(Restore)))=0; } value++;',
+                   'SUSPECT', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+
     def test_cleanup_does_not_invalidate_earlier_protected_access(self):
         self.check('__disable_irq(); { unsigned saved __attribute__((cleanup(Restore)))=0; value++; }',
                    'SAFE', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
@@ -119,6 +123,116 @@ void TIM4_IRQHandler(void) { value++; }
                    helpers='void Restore(unsigned *saved) { __enable_irq(); }\n',
                    declarations='#define ATOMIC_BLOCK() for (unsigned saved __attribute__((cleanup(Restore)))=1; '
                                 'saved; saved=0)\n')
+
+    @staticmethod
+    def reachable(graph):
+        reached, pending = set(), [graph['entry']]
+        while pending:
+            ident = pending.pop()
+            if ident not in reached:
+                reached.add(ident)
+                pending.extend(graph['nodes'][ident]['successors'])
+        return reached
+
+    def test_constant_true_loops_have_no_false_exit(self):
+        for loop in ['while (1) { value++; }', 'do { value++; } while (1);',
+                     'for (; 1;) { value++; }', 'while (2 - 1) { value++; }']:
+            with self.subTest(loop=loop):
+                _, _, graph = self.check('__disable_irq(); ' + loop + ' __enable_irq();', 'SAFE')
+                reached = self.reachable(graph)
+                self.assertNotIn(graph['exit'], reached)
+                self.assertTrue(all(node['id'] not in reached for node in graph['nodes']
+                                    if node.get('name') == '__enable_irq'))
+
+    def test_const_volatile_condition_is_not_folded(self):
+        _, _, graph = self.check('__disable_irq(); while (enabled) { value++; } __enable_irq();', 'SAFE',
+                                 declarations='const volatile int enabled = 1;\n')
+        self.assertIn(graph['exit'], self.reachable(graph))
+
+    def test_constant_false_while_and_for_do_not_execute_body(self):
+        for loop in ['while (0) { __enable_irq(); }', 'for (; 0;) { __enable_irq(); }']:
+            with self.subTest(loop=loop):
+                _, _, graph = self.check('__disable_irq(); ' + loop + ' value++;', 'SAFE')
+                reached = self.reachable(graph)
+                self.assertIn(graph['exit'], reached)
+                self.assertTrue(all(node['id'] not in reached for node in graph['nodes']
+                                    if node.get('name') == '__enable_irq'))
+
+    def test_do_false_executes_body_once(self):
+        self.check('__disable_irq(); do { __enable_irq(); } while (0); value++;', 'SUSPECT')
+
+    def test_while_and_do_break_exit_infinite_loop(self):
+        for loop in ['while (1) { __enable_irq(); break; }',
+                     'do { __enable_irq(); break; } while (1);']:
+            with self.subTest(loop=loop):
+                self.check('__disable_irq(); ' + loop + ' value++;', 'SUSPECT')
+
+    def test_while_and_do_continue_execute_condition(self):
+        for loop in ['while (Enable()) { continue; }', 'do { continue; } while (Enable());']:
+            with self.subTest(loop=loop):
+                self.check('__disable_irq(); ' + loop + ' value++;', 'SUSPECT',
+                           helpers='int Enable(void) { __enable_irq(); return 0; }\n')
+
+    def test_for_init_cleanup_does_not_run_on_continue(self):
+        self.check('__disable_irq(); for (unsigned saved __attribute__((cleanup(Restore)))=flag; saved; saved=0) '
+                   '{ value++; continue; }', 'SAFE', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+
+    def test_inner_break_does_not_cleanup_outer_loop_init(self):
+        self.check('__disable_irq(); for (unsigned saved __attribute__((cleanup(Restore)))=flag; saved; saved=0) '
+                   '{ for (;;) { break; } value++; }', 'SAFE',
+                   helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+
+    def test_cleanup_continue_then_increment_can_reestablish_mask(self):
+        self.check('__disable_irq(); for (;flag;__disable_irq()) { '
+                   'unsigned saved __attribute__((cleanup(Restore)))=0; value++; continue; }', 'SAFE',
+                   helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+
+    def test_nested_cleanup_on_return_reaches_each_live_scope(self):
+        facts, _, _ = self.check('__disable_irq(); Helper(); value++;', 'SUSPECT',
+                    helpers='void Restore(unsigned *saved) { __enable_irq(); }\n'
+                            'void Helper(void) { unsigned outer __attribute__((cleanup(Restore)))=0; '
+                            'for (unsigned inner __attribute__((cleanup(Restore)))=0;;) { return; } }\n')
+        helper = next(f['function_id'] for f in facts['functions'] if f['name'] == 'Helper')
+        graph = next(g for g in facts['control_flow'] if g['function_id'] == helper)
+        reached = self.reachable(graph)
+        cleanups = [n for n in graph['nodes'] if n['id'] in reached and n.get('reason') == 'CLEANUP_ATTRIBUTE']
+        self.assertEqual(len(cleanups), 2)
+        self.assertIn('inner', cleanups[0]['cleanup_variable'])
+        self.assertIn('outer', cleanups[1]['cleanup_variable'])
+
+    def test_nested_cleanup_break_preserves_scope_exit_order(self):
+        _, _, graph = self.check('__disable_irq(); for (unsigned outer __attribute__((cleanup(Restore)))=1;;) '
+                                 '{ unsigned inner __attribute__((cleanup(Restore)))=0; break; } value++;',
+                                 'SUSPECT', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+        reached = self.reachable(graph)
+        cleanups = [n for n in graph['nodes'] if n['id'] in reached and n.get('reason') == 'CLEANUP_ATTRIBUTE']
+        self.assertEqual(len(cleanups), 2)
+        self.assertIn('inner', cleanups[0]['cleanup_variable'])
+        self.assertIn('outer', cleanups[1]['cleanup_variable'])
+
+    def test_implicit_cleanup_access_inherits_caller_context(self):
+        facts, value, _ = self.check('int local __attribute__((cleanup(Cleanup)))=0;', 'SUSPECT',
+                                     helpers='static void Cleanup(int *p) { value++; }\n')
+        cleanup = next(f['function_id'] for f in facts['functions'] if f['name'] == 'Cleanup')
+        accesses = [a for a in value['accesses'] if a['function_id'] == cleanup]
+        self.assertTrue(accesses)
+        self.assertTrue(all('main' in a['contexts'] for a in accesses), accesses)
+
+    def test_implicit_cleanup_receives_address_of_local_pointer(self):
+        facts, value, _ = self.check('int *local __attribute__((cleanup(Cleanup)))=&value;', 'SUSPECT',
+                                     helpers='static void Cleanup(int **p) { **p=1; }\n')
+        cleanup = next(f['function_id'] for f in facts['functions'] if f['name'] == 'Cleanup')
+        self.assertTrue(any(a['function_id'] == cleanup and a['access_kind'] == 'WRITE'
+                            and 'main' in a['contexts'] for a in value['accesses']), value['accesses'])
+
+    def test_opaque_cleanup_can_escape_pointer_to_target(self):
+        cfg = self.project({'a.c': 'static int value; void Cleanup(int **p);\n'
+                                 'int main(void) { int *local __attribute__((cleanup(Cleanup)))=&value; return 0; }\n'},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        facts, _ = self.extract(cfg)
+        value = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertEqual(value['static_classification'], 'UNKNOWN', value)
+        self.assertIn('UNKNOWN_ADDRESS_ESCAPE', value['unknown_reason_codes'])
 
 
 if __name__ == '__main__':

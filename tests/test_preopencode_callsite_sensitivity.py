@@ -145,6 +145,63 @@ class CallsiteSensitivityTests(unittest.TestCase):
         variable = next(v for v in facts['variables'] if v['name'] == 'completed')
         self.assertEqual(variable['static_classification'], 'SUSPECT', variable)
 
+    def test_all_guarded_accesses_disproven_are_no_runtime_access(self):
+        facts, report = self.scan('''
+            typedef struct { unsigned state; } Device;
+            static Device first, second; static unsigned unreachable_value;
+            static void Complete(Device *device) { if (device == &second) unreachable_value++; }
+            void USART1_IRQHandler(void) { Complete(&first); }
+            int main(void) { return 0; }
+        ''')
+        variable = next(v for v in facts['variables'] if v['name'] == 'unreachable_value')
+        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['safe_reason_code'], 'SAFE_NO_RUNTIME_ACCESS')
+        self.assertTrue(variable['safe_evidence']['context_exclusions'])
+        self.assertTrue(all(a['reachability'] == 'PROVEN_UNREACHABLE' for a in variable['accesses']))
+        self.assertEqual(report['coverage']['unknown_accesses'], 0)
+
+    def test_disproven_registration_does_not_leave_a_callback_entry_gap(self):
+        facts, _ = self.scan('''
+            typedef struct { unsigned state; } Device;
+            static Device first, second; static unsigned value;
+            static void Work(void) { value++; }
+            void Register(void (*callback)(void));
+            static void Complete(Device *device) { if (device == &second) Register(Work); }
+            void USART1_IRQHandler(void) { Complete(&first); }
+            int main(void) { return 0; }
+        ''')
+        variable = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['safe_reason_code'], 'SAFE_NO_RUNTIME_ACCESS')
+        self.assertTrue(any(row['kind'] == 'FUNCTION_ADDRESS'
+                            for row in facts['context_pruned_uncertainties']))
+
+    def test_opaque_callback_inputs_disable_disjoint_guard_proof(self):
+        facts, _ = self.scan('''
+            typedef struct { unsigned state; } Device;
+            static Device first, second; static unsigned value;
+            static void Complete(Device *device) { if (device == &second) value++; }
+            void Register(void (*callback)(Device *));
+            void USART1_IRQHandler(void) { Complete(&first); }
+            int main(void) { Register(Complete); return 0; }
+        ''')
+        variable = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertNotEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertIn('UNKNOWN_EXECUTION_CONTEXT', variable['unknown_reason_codes'])
+
+    def test_unknown_callback_input_reaches_downstream_guard(self):
+        facts, _ = self.scan('''
+            typedef struct { unsigned state; } Device;
+            static Device first, second; static unsigned value;
+            static void Inner(Device *device) { if (device == &second) value++; }
+            static void Complete(Device *device) { Inner(device); }
+            void Register(void (*callback)(Device *));
+            void USART1_IRQHandler(void) { Complete(&first); }
+            int main(void) { Register(Complete); return 0; }
+        ''')
+        variable = next(v for v in facts['variables'] if v['name'] == 'value')
+        self.assertNotEqual(variable['static_classification'], 'SAFE', variable)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -67,6 +67,37 @@ class CallGraphRepresentationTests(unittest.TestCase):
         self.assertIn(['b','a'],facts['context_call_graph']['edges']['main'])
         self.assertTrue(facts['recursive_edges'])
 
+    def test_mask_summary_reuses_acyclic_diamond_but_preserves_recursive_ancestors(self):
+        from ecra.protection import MaskAnalysis
+        edges = []
+        for i in range(20):
+            current = 'entry' if i==0 else f'm{i-1}'
+            edges.extend([(current,f'l{i}'),(current,f'r{i}'),(f'l{i}',f'm{i}'),(f'r{i}',f'm{i}')])
+        edges.extend([('recursive_parent','recursive_child'),('recursive_child','recursive_child')])
+        children={name:[] for pair in edges for name in pair}
+        for caller,callee in edges:
+            children[caller].append(callee)
+        graphs=[]
+        for fid,callees in children.items():
+            nodes=[dict(id=0,op='entry',successors=[1])]
+            for i,callee in enumerate(callees,1):
+                nodes.append(dict(id=i,op='call',name=callee,callee=callee,arguments=[],
+                    file='x.c',offset=i,end_offset=i+1,successors=[i+1]))
+            if not callees:
+                nodes.append(dict(id=1,op='step',file='x.c',offset=10,end_offset=11,successors=[2]))
+            nodes.append(dict(id=len(nodes),op='exit',successors=[]))
+            graphs.append(dict(function_id=fid,cfg_id=fid,nodes=nodes,parameters=[],complete=True,entry=0,exit=len(nodes)-1))
+        access=dict(access_id='leaf',symbol_id='g',function_id='m19',file='x.c',line=1,offset=10,
+                    access_kind='RMW',contexts=['main'])
+        facts=dict(control_flow=graphs,accesses=[access],context_bindings=[])
+        masks=MaskAnalysis(facts,dict(critical_sections=[]))
+        result,_=masks.evaluate('entry',dict(irq=1,base=0),'main')
+        self.assertEqual(result['irq'],1)
+        self.assertEqual(len(masks.memo),61)
+        self.assertEqual(len(masks.observations['leaf']),1)
+        self.assertEqual(masks.observations['leaf'][0]['irq_state'],'DISABLED')
+        self.assertEqual(masks.stack_sensitive,{'recursive_parent','recursive_child'})
+
 
 class CallGraphProtectionTests(unittest.TestCase):
     setUp=project_fixtures.ProjectTest.setUp

@@ -117,12 +117,13 @@ def build_cfg(extractor, function):
     scopes = []
 
     def cleanup_declarations(cursor):
+        cleanup_names = {'cleanup', '__cleanup__'}
         declarations = ([cursor] if cursor.kind.name == 'VAR_DECL' else
                         [child for child in children(cursor) if child.kind.name == 'VAR_DECL'])
         return [declaration for declaration in declarations if any(
-            child.kind.name.endswith('_ATTR') and ('CLEANUP' in child.kind.name or 'cleanup' in tokens(child))
+            child.kind.name.endswith('_ATTR') and ('CLEANUP' in child.kind.name or cleanup_names.intersection(tokens(child)))
             for child in children(declaration)) or
-            ('__attribute__' in tokens(declaration) and 'cleanup' in tokens(declaration))]
+            ('__attribute__' in tokens(declaration) and cleanup_names.intersection(tokens(declaration)))]
 
     def clean_scopes(incoming, selected):
         # GNU cleanup may restore PRIMASK/BASEPRI or call opaque code. Until
@@ -144,7 +145,7 @@ def build_cfg(extractor, function):
         # children. This also works for macro expansions whose child source
         # offsets all coincide at the invocation. Ambiguous headers fail
         # closed rather than mistaking an increment for the condition.
-        stream = list(cursor.get_tokens())
+        stream = [token for token in cursor.get_tokens() if token.kind.name != 'COMMENT']
         begin = next((i for i, token in enumerate(stream) if token.spelling == 'for'), None)
         if begin is None or begin + 1 >= len(stream) or stream[begin + 1].spelling != '(':
             return None
@@ -166,6 +167,22 @@ def build_cfg(extractor, function):
         ordered = iter(cs[:-1])
         return [next(ordered) if group else None for group in groups] + [cs[-1]]
 
+    def constant_condition(cursor):
+        # Only fold side-effect-free integer constant expressions. Clang can
+        # also evaluate initialized const objects; their value is deliberately
+        # not a basis for removing an execution edge (e.g. volatile MMIO).
+        for child in walk(cursor):
+            kind = child.kind.name
+            if kind == 'CALL_EXPR' or (kind == 'DECL_REF_EXPR' and
+                    (not child.referenced or child.referenced.kind.name != 'ENUM_CONSTANT_DECL')):
+                return None
+            if kind in {'COMPOUND_ASSIGNMENT_OPERATOR', 'UNARY_OPERATOR', 'BINARY_OPERATOR'} and (
+                    operator(child) in {'++', '--', '=', '+=', '-=', '*=', '/=', '%=',
+                                        '<<=', '>>=', '&=', '^=', '|='}):
+                return None
+        number = constant_value(cursor)
+        return None if number is None else bool(number)
+
     def stmt(cursor, incoming, loop=None):
         kind, cs = cursor.kind.name, children(cursor)
         if kind == 'COMPOUND_STMT':
@@ -182,19 +199,23 @@ def build_cfg(extractor, function):
             return stmt(cs[1], [branch], loop) + (stmt(cs[2], [branch], loop) if len(cs) == 3 else [branch])
         if kind in {'WHILE_STMT', 'DO_STMT'} and len(cs) == 2:
             condition, body = (cs[0], cs[1]) if kind == 'WHILE_STMT' else (cs[1], cs[0])
+            constant = constant_condition(condition)
             head, tail = node(cursor, 'join'), node(cursor, 'join')
             branch = node(condition, 'branch')
             if kind == 'WHILE_STMT':
                 link(incoming, head)
                 link(expr(condition, [head]), branch)
-                link(stmt(body, [branch], (tail, head, len(scopes))), head)
+                link(stmt(body, [] if constant is False else [branch],
+                          (tail, head, len(scopes))), head)
             else:
                 body_head = node(body, 'join')
                 link(incoming, body_head)
                 link(stmt(body, [body_head], (tail, head, len(scopes))), head)
                 link(expr(condition, [head]), branch)
-                link([branch], body_head)
-            link([branch], tail)
+                if constant is not False:
+                    link([branch], body_head)
+            if constant is not True:
+                link([branch], tail)
             return [tail]
         if kind == 'FOR_STMT':
             parts = for_parts(cursor, cs)
@@ -211,8 +232,10 @@ def build_cfg(extractor, function):
                 if condition is not None:
                     branch = node(condition, 'branch')
                     link(expr(condition, [head]), branch)
-                    body_entry = [branch]
-                    link([branch], tail)
+                    constant = constant_condition(condition)
+                    body_entry = [] if constant is False else [branch]
+                    if constant is not True:
+                        link([branch], tail)
                 else:
                     # for(;;) has no fall-through edge. Only an actual break
                     # may reach tail; continue must still execute increment.

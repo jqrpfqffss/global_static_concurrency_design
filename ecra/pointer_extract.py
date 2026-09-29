@@ -179,6 +179,10 @@ class PointerExtractor:
                 return self.value(cs[0])
         if k == 'CALL_EXPR':
             return self.result(node)
+        if k == 'VA_ARG_EXPR' and cs:
+            if node.type.get_canonical().kind.name in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'}:
+                return dict(op='va_arg', value=self.value(cs[0]))
+            return dict(op='empty')
         if k in {'COMPOUND_LITERAL_EXPR', 'CXX_TEMPORARY_OBJECT_EXPR'}:
             initializer = next((child for child in cs if child.kind.name == 'INIT_LIST_EXPR'), None)
             if initializer is not None:
@@ -385,7 +389,7 @@ class PointerExtractor:
                 loc = self.e.loc(node)
                 self.atomic_macros[(loc['file'], loc['offset'])] = node.spelling
         self.visit(cursor)
-        for row in self.e.accesses + self.e.calls:
+        for row in self.e.accesses + self.e.calls + self.e.unknowns:
             owner = row.get('function_id', row.get('caller_function_id'))
             key = (owner, row.get('file'), row.get('offset'))
             if key in self.guard_sites:

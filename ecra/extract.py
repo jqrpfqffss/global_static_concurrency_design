@@ -128,6 +128,7 @@ class Extractor:
                          entry_attributes=[ch.kind.name for ch in c.get_children()
                                            if ch.kind.name.endswith('_ATTR')],
                          parameter_count=sum(1 for _ in c.get_arguments()),
+                         is_variadic=c.type.is_function_variadic(),
                          **self.loc(c), end_line=c.extent.end.line, end_offset=c.extent.end.offset)
                 self.functions[f["function_id"]] = f
                 if k != "FUNCTION_DECL":

@@ -53,6 +53,12 @@ class ContextSolver(Solver):
         super().add_access(locations, record, mode, **extra)
 
     def guard_impossible(self, record):
+        return bool(self.guard_evidence(record))
+
+    def guard_evidence(self, record):
+        if record.get('function_id') in self.facts.get('guard_unknown_entries', set()):
+            return []
+        proofs = []
         for condition in record.get('path_conditions', []):
             # NULL is intentionally absent from the base may-points lattice.
             # A singleton address is therefore not a must-equal proof. Only
@@ -66,8 +72,10 @@ class ContextSolver(Solver):
                 continue
             a, b = {self.symbol(value) for value in possible}, {self.symbol(value) for value in expected}
             if None not in a | b and a.isdisjoint(b):
-                return True
-        return False
+                proofs.append(dict(context_id=record.get('_context_id'), file=condition.get('file'),
+                    line=condition.get('line'), reason='Immutable pointer parameter targets disjoint storage objects',
+                    possible_targets=sorted(possible), compared_targets=sorted(expected)))
+        return proofs
 
     def reachable_pointer_values(self, initial):
         result = super().reachable_pointer_values(initial)
@@ -145,12 +153,19 @@ def reachable_domains(roots, calls):
 
 
 def _pass(facts, cfg, domains):
+    from .evidence import ENTRY_GAPS
+    unknown_entries = {row['target_function_id'] for row in facts['unknowns']
+                       if row.get('target_function_id') and row['kind'] in ENTRY_GAPS}
+    # Unknown callback inputs cannot be bounded by the arguments from known
+    # callers. Keep every guard arm in that callback and its callees.
+    unknown_reachable = reachable_domains({'unknown-entry': unknown_entries}, facts['calls'])
     temporary = {key: [] for key in ('accesses', 'calls', 'unknowns', 'registrations',
                                     'pointer_constraints', 'semantic_calls', 'indirect_accesses')}
     temporary['variables'] = facts['variables']
     temporary['functions'] = list(facts['functions'])
     temporary['build_closure'] = facts.get('build_closure', {})
     temporary['translation_units'] = facts.get('translation_units', [])
+    temporary['guard_unknown_entries'] = set(unknown_reachable)
     expressions = {'pointer_constraints': ('left', 'right', 'path_conditions'),
                    'semantic_calls': ('expression', 'arguments', 'result', 'path_conditions'),
                    'indirect_accesses': ('location', 'path_conditions')}
@@ -173,6 +188,7 @@ def _pass(facts, cfg, domains):
             break
         temporary = dict(variables=facts['variables'], functions=list(facts['functions']),
                          build_closure=facts.get('build_closure', {}), translation_units=facts.get('translation_units', []),
+                         guard_unknown_entries=set(unknown_reachable),
                          accesses=[], calls=[], unknowns=[], registrations=[], **filtered)
     else:
         return None
@@ -210,14 +226,31 @@ def _pass(facts, cfg, domains):
         if row.get('via_alias') != 'interprocedural points-to':
             contexts = domains.get(row.get('function_id'))
             if contexts:
-                allowed = [context for context in sorted(contexts)
-                           if not solver.guard_impossible(clone_record(row, context, ('path_conditions',)))]
+                allowed, excluded = [], []
+                for context in sorted(contexts):
+                    proof = solver.guard_evidence(clone_record(row, context, ('path_conditions',)))
+                    if proof:
+                        excluded.extend(proof)
+                    else:
+                        allowed.append(context)
                 direct.append(dict(row, allowed_contexts=allowed,
-                                   context_proven_unreachable=not bool(allowed)))
+                                   context_proven_unreachable=not bool(allowed), context_exclusions=excluded))
             else:
                 direct.append(dict(row))
     accesses = union_rows(direct + temporary['accesses'], access=True)
     calls = union_rows(calls)
+    pruned = []
+    for row in facts['unknowns']:
+        contexts = domains.get(row.get('function_id'))
+        if not row.get('path_conditions') or not contexts:
+            continue
+        proofs = [solver.guard_evidence(clone_record(row, context, ('path_conditions',)))
+                  for context in sorted(contexts)]
+        if all(proofs):
+            pruned.append(dict(row, context_proven_unreachable=True,
+                               context_exclusions=[item for proof in proofs for item in proof],
+                               original_issue_digest=digest(row)))
+    temporary['context_pruned_uncertainties'] = pruned
     return temporary, accesses, calls
 
 
@@ -279,11 +312,14 @@ def refine(facts, cfg, contexts, paths):
         # real gaps; keep them in addition to first-pass coverage evidence.
         recomputed = {site(row) for table in ('indirect_accesses', 'semantic_calls', 'pointer_constraints')
                       for row in facts.get(table, [])}
+        pruned = temporary.get('context_pruned_uncertainties', [])
+        pruned_ids = {row['original_issue_digest'] for row in pruned}
         retained = [issue for issue in facts['unknowns']
-                    if not (site(issue) in recomputed and
+                    if digest(issue) not in pruned_ids and not (site(issue) in recomputed and
                             (issue['kind'] == 'UNRESOLVED_POINTEE'
                              or issue.get('actual_escape') and issue['kind'] in {'ADDRESS_ESCAPE', 'FUNCTION_ADDRESS'}))]
         facts['unknowns'] = union_rows(retained + temporary['unknowns'])
+        facts['context_pruned_uncertainties'] = pruned
         facts['address_escapes'] = [issue for issue in facts['unknowns'] if issue.get('actual_escape')]
         facts['context_points_to_stats'] = dict(temporary['points_to_stats'], complete=True,
             iterations=iteration, context_bindings=sum(map(len, domains.values())))

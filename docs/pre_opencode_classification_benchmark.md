@@ -24,7 +24,11 @@ Clang 解析统一保留真实架构、宏、include 与 ABI 参数；移除不�
 
 baseline 在本次修改开始时冻结于 `output/preopencode-benchmark/baseline/ecra/`，仓库 HEAD 为 `6e998c788b8651fcff3cdebe1c3c1c40c3b1a9c3`。使用同一实际构建闭包，只比较生产提取器、points-to、调用图与分类器的差异；不把 off-target 补充盘点计入任何一侧的运行变量。canonical member/array 拆分可能改变分类项分母，因此另报告相同根 storage 的汇总比较。
 
-旧 Betaflight 首轮 416 个 C TU 全部因 warning-as-error 失败，其结果无效，不计入基准；已在统一策略下重新执行 `before-verified`。
+旧 Betaflight 首轮 416 个 C TU 全部因 warning-as-error 失败，其结果无效，不计入基准。调整 warning 策略后的 `before-verified` 在冻结引擎 `context_graph()` 中枚举所有无环路径时发生 `MemoryError`，没有产生有效分类；不修改 baseline 或将失败误报为 100% UNKNOWN，UNKNOWN/队列降幅不能量化。
+
+Betaflight 的 upstream `atomic.h` 显式提供 `__clang__` 分支，使用 Blocks 实现 cleanup memory barrier，而 GCC 分支使用 nested function；最终解析 profile 追加 `-fblocks` 以解析该上游兼容分支，没有替换宏或修改源码。两者都是编译器 memory barrier，不是 IRQ 屏蔽证明；Blocks/cleanup 的控制流覆盖需独立核对，解析成功不等于有效保护。
+
+最终 after 使用冻结源码快照 `engine-after-99b3d6121a2c`，完整 SHA-256 为 `99b3d6121a2c3b4d63631b514b406d4fb451df35ca6e6101214e03511c6b6ecf`，逐文件 hash 在 `output/preopencode-benchmark/active-after-engine.json`。后续修复必须使用新快照重跑，不能在运行过程中混用不同实现。Blackmagic 与 Klipper 已启动全新提取，各 2 workers。
 
 ## 已确认的 baseline 现象
 
@@ -32,7 +36,7 @@ baseline 在本次修改开始时冻结于 `output/preopencode-benchmark/baselin
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Klipper | 686 | 21 | 221 | 93 | 351 | 341 | 0 | 345 | 50.29% | 345 |
 | Blackmagic native | 682 | 107 | 86 | 13 | 476 | 8 | 0 | 674 | 98.83% | 674 |
-| Betaflight | 待有效重跑 | — | — | — | — | — | — | — | — | — |
+| Betaflight | baseline 调用路径枚举 OOM，无有效统计 | — | — | — | — | — | — | — | — | — |
 
 Klipper baseline SAFE 为 `NO_RUNTIME_ACCESSES` 340、`ONLY_READS` 1；Blackmagic 为 `NO_RUNTIME_ACCESSES` 1、`ONLY_READS` 7。它们是旧引擎输出，不等同于完成 SAFE 源码审计。基准只以有明确证据的最终新规则判断 false-safe。
 
@@ -40,6 +44,12 @@ Blackmagic 中 `FUNCTION_ADDRESS` 影响 481 项、`INDIRECT_CALL` 469 项、`PO
 
 ## 最终结果与独立审计
 
-新分类器结果、前后 UNKNOWN/队列变化、SAFE proof 分布、UNKNOWN Top 原因及每工程 30 项源码审计待最终扫描完成后更新。抽样脚本只生成分层候选，所有条目初始为 `PENDING_INDEPENDENT_SOURCE_REVIEW`，不会把自动检查输出冒充人工或独立源码审计。
+新分类器结果、前后 UNKNOWN/队列变化、SAFE proof 分布、UNKNOWN Top 原因及每工程 30 项源码审计待最终扫描完成后更新。抽样脚本只生成分层候选，所有条目初始为 `PENDING_INDEPENDENT_SOURCE_REVIEW`，不会把自动检查输出冒充人工或独立源码审计。Betaflight 的 baseline 失败意味着只能给出 after 的绝对数量及完成扫描的改进，不能报告虚构的百分比下降。
+
+## 大型调用图的有限存储
+
+旧算法显式枚举所有无环路径，30 层 diamond 图即有超过十亿条 root-to-leaf 路径。新算法保存完整 context roots、reachability、调用边和递归边；小图继续列出全部路径，大图以明确标记的最短见证作展示。`facts.context_call_graph` 与 `facts.call_graph_slices` 是完整证据，`all_call_chains` 在图模式下是见证视图，见证计数不冒充全部路径数量。
+
+保护证明仍遍历完整 CFG/被调函数，相关保护事件从完整逆向调用图切片取得。回归已验证：最短调用链受 PRIMASK 保护但更长路径未保护时仍为 SUSPECT；两条路径都完整屏蔽时才可 SAFE。另覆盖 30 层 diamond 全边保留、显式 `max_call_paths` 超限仍失败、递归边保留、`allowed_contexts` 约束以及两个 IRQ 的不同 pointee 不混入对方 mask window。
 
 当前尚不能宣称：三个工程已满足最终验收、UNKNOWN 已主要来自真正静态边界、SAFE 没有错误扩大，或 OpenCode 队列已经显著缩减。
