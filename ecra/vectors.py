@@ -9,6 +9,48 @@ import re
 SECTIONS = {'.isr_vector', '.vectors', '.vector_table', '.interrupt_vector'}
 
 
+def recover_assembly_functions(source, file, functions):
+    """Recover literal no-argument calls in explicitly delimited ARM functions.
+
+    A verified vector slot supplies the execution context of an assembly
+    wrapper. Its instructions do not supply a mask/initialization proof.
+    Preprocessor/macro bodies, opaque operands and unbounded labels stay gaps.
+    """
+    clean = re.sub(r'/\*.*?\*/', lambda m: '\n' * m[0].count('\n'), source, flags=re.S)
+    if re.search(r'^\s*(?:#|\.macro\b|\.include\b)', clean, re.M):
+        return [], []
+    lines = [re.split(r'//|\s@', line, maxsplit=1)[0].strip() for line in clean.splitlines()]
+    typed = {match[1] for line in lines
+             if (match := re.fullmatch(r'\.type\s+([A-Za-z_]\w*)\s*,\s*%function', line))}
+    existing = {f['name']: f for f in functions}
+    definitions, ranges = [], []
+    for name in sorted(typed - existing.keys()):
+        starts = [i for i, line in enumerate(lines) if line == name + ':']
+        ends = [i for i, line in enumerate(lines) if re.fullmatch(r'\.size\s+' + re.escape(name) + r'\s*,.+', line)]
+        if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
+            continue
+        first, last = starts[0], ends[0]
+        if any(line.startswith('.section') for line in lines[first+1:last]):
+            continue
+        fid = 'assembly:' + file + ':' + name
+        definitions.append(dict(function_id=fid, name=name, qualified_name=name+'()', linkage='EXTERNAL',
+            parameter_count=0, return_type_kind='VOID', file=file, line=first+1, end_line=last+1,
+            assembly_definition=True, entry_attributes=[]))
+        ranges.append((fid, first, last))
+    calls = []
+    for fid, first, last in ranges:
+        for index in range(first+1, last):
+            match = re.fullmatch(r'(?:b|bl)(?:\.w)?\s+([A-Za-z_]\w*)', lines[index])
+            callee = existing.get(match[1]) if match else None
+            if (not callee or callee.get('parameter_count') != 0
+                    or callee.get('return_type_kind') != 'VOID' and callee['name'] != 'main'):
+                continue
+            calls.append(dict(caller_function_id=fid, callee_function_id=callee['function_id'],
+                callee_name=callee['name'], call_kind='ASSEMBLY_LITERAL_CALL', file=file, line=index+1,
+                source_text=source.splitlines()[index], resolution='DELIMITED_ARM_FUNCTION_CALL'))
+    return definitions, calls
+
+
 def recover_assembly_vectors(source, file, functions_by_name):
     """Recover slots only when assembler directives preserve known layout.
 
@@ -75,6 +117,7 @@ def recover_assembly_vectors(source, file, functions_by_name):
 
 
 def recover_vector_entries(facts):
+    from .target_set import point_targets
     variables = {v['symbol_id']: v for v in facts['variables'] if v.get('linker_section') in SECTIONS}
     entries = list(facts.get('assembly_vector_entries', []))
     for point in facts.get('pointer_targets', []):
@@ -94,7 +137,7 @@ def recover_vector_entries(facts):
                 if field and field.get('offset_bits') is not None and field['offset_bits'] % 32 == 0:
                     slot = field['offset_bits'] // 32 + int(match[2] or 0)
             if slot is None:
-                for target in point['targets']:
+                for target in point_targets(facts, point):
                     if target.startswith('fn:'):
                         facts['unknowns'].append(dict(kind='UNRESOLVED_VECTOR_ENTRY',
                             target_function_id=target[3:], file=variable.get('definition_file'),
@@ -103,7 +146,7 @@ def recover_vector_entries(facts):
                 continue
             if slot == 0:
                 continue
-            for target in point['targets']:
+            for target in point_targets(facts, point):
                 if target.startswith('fn:'):
                     entries.append(dict(function_id=target[3:], slot=slot,
                         kind='MAIN' if slot == 1 else 'ISR', vector='slot:' + str(slot),
@@ -121,3 +164,40 @@ def recover_vector_entries(facts):
             (u.get('target_function_id'), u.get('file'), u.get('line')) in recovered and
             u.get('reason') == 'Callback stored in externally visible storage'))]
     return entries
+
+
+def resolve_assembly_references(facts):
+    """Discharge exact vector slots and symbol declarations before refinement.
+
+    An IRQ function can still be called or exported by other assembly code.
+    Recognizing its vector therefore cannot clear every reference to its name.
+    """
+    vector_sites = {(entry['function_id'], entry['file'], entry['line'])
+                    for entry in facts.get('assembly_vector_entries', [])}
+    functions = {f['function_id']: f for f in facts['functions']}
+    calls = {(call['callee_function_id'], call['file'], call['line'])
+             for call in facts['calls'] if call.get('call_kind') == 'ASSEMBLY_LITERAL_CALL'}
+    resolved, remaining = [], []
+    for issue in facts['unknowns']:
+        if issue['kind'] != 'ASSEMBLY_FUNCTION_REFERENCE':
+            remaining.append(issue)
+            continue
+        target = issue.get('target_function_id')
+        name = functions.get(target, {}).get('name', '')
+        text = issue.get('source_text', '').strip()
+        declaration = re.fullmatch(r'\.(?:weak|global|globl|extern|type|size)\s+'
+                                  + re.escape(name) + r'(?:\s*,[^\n]*)?\s*', text) if name else None
+        alias_definition = re.fullmatch(r'\.(?:thumb_set|set)\s+' + re.escape(name)
+                                       + r'\s*,\s*[A-Za-z_]\w*\s*', text) if name else None
+        vector = (target, issue.get('file'), issue.get('line')) in vector_sites
+        call = (target, issue.get('file'), issue.get('line')) in calls
+        definition = functions.get(target, {})
+        label = definition.get('assembly_definition') and text == name + ':'
+        section = re.fullmatch(r'\.section\s+[^\s,]+(?:\s*,.*)?', text)
+        if vector or declaration or alias_definition or call or label or section:
+            resolved.append(dict(issue, resolution=('VERIFIED_VECTOR_SLOT' if vector else
+                'DELIMITED_ARM_FUNCTION_CALL' if call else 'SYMBOL_DECLARATION')))
+        else:
+            remaining.append(issue)
+    facts.setdefault('resolved_assembly_references', []).extend(resolved)
+    facts['unknowns'] = remaining

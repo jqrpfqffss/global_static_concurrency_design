@@ -22,8 +22,8 @@ project:
   # 当前要扫描的固件工程根目录。
   # 可用绝对路径；也可相对本文件的 config/ 目录，例如 ../firmware/MyBoard。
   # 切换到另一项目时，首先修改此项。
-  # root: "H:/stm32_RAG/code/serial - opencode"
-  root: "H:/stm32_RAG/test/serial - continue"
+  root: "H:/stm32_RAG/code/serial - opencode"
+  # root: "H:/stm32_RAG/test/serial - continue"
 
   # 以下只是报告说明，不会替你注入芯片宏或改变 CMake 编译参数。
   chip: STM32
@@ -163,7 +163,7 @@ contexts:
 review:
   # false：只做本地静态排查，生成待复核清单；推荐新项目首次接入时保持 false。
   # true：在静态扫描后调用下方 command，对每个候选执行 OpenCode 复核。
-  enabled: true
+  enabled: false
 
   # 复核命令必须是参数数组，而不是带空格的一整条 shell 字符串。
   command: [opencode]

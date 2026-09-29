@@ -66,6 +66,32 @@ class PreOpenCodeClassificationTests(unittest.TestCase):
         ''')
         self.assert_classified('value', 'SAFE', 'SAFE_SINGLE_FOREGROUND')
 
+    def test_unordered_earlier_expression_does_not_poison_later_primask_window(self):
+        self.scan('''static unsigned value; void __disable_irq(void); void __enable_irq(void);
+            int First(void); void Second(int);
+            void USART1_IRQHandler(void) { value++; }
+            int main(void) { Second(First()); __disable_irq(); value++; __enable_irq(); return 0; }
+        ''')
+        self.assert_classified('value','SAFE','SAFE_EFFECTIVE_PROTECTION')
+
+    def test_unordered_expression_cannot_supply_mask_to_its_own_access(self):
+        self.scan('''static unsigned value; void __disable_irq(void);
+            int Disable(void) { __disable_irq(); return 1; }
+            void Consume(int left, int right) { (void)left; (void)right; }
+            void USART1_IRQHandler(void) { value++; }
+            int main(void) { Consume(Disable(), value++); return 0; }
+        ''')
+        self.assert_classified('value','SUSPECT')
+
+    def test_unordered_gap_between_snapshot_accesses_still_conflicts(self):
+        self.scan('''static unsigned value; void __disable_irq(void); void __enable_irq(void);
+            int First(void); void Second(int);
+            void USART1_IRQHandler(void) { value++; }
+            int main(void) { __disable_irq(); unsigned old=value; Second(First());
+                __disable_irq(); value=old+1; __enable_irq(); return 0; }
+        ''')
+        self.assert_classified('value','SUSPECT')
+
     def test_t02_multiple_irqs_all_read(self):
         self.scan('''
             static unsigned value = 7;
@@ -93,6 +119,43 @@ class PreOpenCodeClassificationTests(unittest.TestCase):
             void TIM4_IRQHandler(void) { value = 1; }
             int main(void) { return value; }''')
         self.assert_classified('value', 'SUSPECT')
+
+    def test_registration_statement_expression_cannot_hide_a_writer(self):
+        self.scan('''
+            static unsigned value;
+            static unsigned *Get(void) { return &value; }
+            #define LOOKUP() ({ static const char descriptor[]="entry"; Get(); })
+            int main(void) { *LOOKUP()=1; return 0; }
+            void TIM4_IRQHandler(void) { (void)value; }
+        ''')
+        self.assert_classified('value', 'SUSPECT')
+
+    def test_assignment_expression_keeps_the_returned_pointer(self):
+        self.scan('''
+            static unsigned value;
+            int main(void) { unsigned *p; *(p=&value)=1; return 0; }
+            void TIM4_IRQHandler(void) { (void)value; }
+        ''')
+        self.assert_classified('value', 'SUSPECT')
+
+    def test_pointer_inside_addressed_compound_literal_escapes(self):
+        self.scan('''
+            static unsigned value;
+            struct Ref { unsigned *pointer; };
+            void Opaque(const struct Ref *);
+            int main(void) { Opaque(&(struct Ref){.pointer=&value}); return 0; }
+        ''')
+        self.assert_classified('value', 'UNKNOWN', 'UNKNOWN_ADDRESS_ESCAPE')
+
+    def test_comma_result_does_not_alias_the_discarded_operand(self):
+        self.scan('''
+            static unsigned first, second;
+            static unsigned *First(void) { return &first; }
+            int main(void) { *(First(), &second)=1; return 0; }
+            void TIM4_IRQHandler(void) { first++; }
+        ''')
+        self.assert_classified('first', 'SAFE', 'SAFE_SINGLE_IRQ')
+        self.assert_classified('second', 'SAFE', 'SAFE_SINGLE_FOREGROUND')
 
     def test_t05_two_irqs_unknown_priority_write_read_is_suspect(self):
         self.scan('''static unsigned value;

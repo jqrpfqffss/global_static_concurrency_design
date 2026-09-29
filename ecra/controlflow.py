@@ -3,7 +3,7 @@ from .common import digest
 
 
 def build_cfg(extractor, function):
-    from .extract import children, operator, tokens, walk, constant_value, FUNCTIONS, WRAPPERS
+    from .extract import children, operator, tokens, walk, constant_value, constant_condition, has_entry_label, FUNCTIONS, WRAPPERS
     fid = extractor.fid(function)
     nodes = []
     unsupported = []
@@ -167,22 +167,6 @@ def build_cfg(extractor, function):
         ordered = iter(cs[:-1])
         return [next(ordered) if group else None for group in groups] + [cs[-1]]
 
-    def constant_condition(cursor):
-        # Only fold side-effect-free integer constant expressions. Clang can
-        # also evaluate initialized const objects; their value is deliberately
-        # not a basis for removing an execution edge (e.g. volatile MMIO).
-        for child in walk(cursor):
-            kind = child.kind.name
-            if kind == 'CALL_EXPR' or (kind == 'DECL_REF_EXPR' and
-                    (not child.referenced or child.referenced.kind.name != 'ENUM_CONSTANT_DECL')):
-                return None
-            if kind in {'COMPOUND_ASSIGNMENT_OPERATOR', 'UNARY_OPERATOR', 'BINARY_OPERATOR'} and (
-                    operator(child) in {'++', '--', '=', '+=', '-=', '*=', '/=', '%=',
-                                        '<<=', '>>=', '&=', '^=', '|='}):
-                return None
-        number = constant_value(cursor)
-        return None if number is None else bool(number)
-
     def stmt(cursor, incoming, loop=None):
         kind, cs = cursor.kind.name, children(cursor)
         if kind == 'COMPOUND_STMT':
@@ -196,7 +180,12 @@ def build_cfg(extractor, function):
         if kind == 'IF_STMT' and len(cs) in {2, 3}:
             branch = node(cs[0], 'branch')
             link(expr(cs[0], incoming), branch)
-            return stmt(cs[1], [branch], loop) + (stmt(cs[2], [branch], loop) if len(cs) == 3 else [branch])
+            constant = constant_condition(cs[0])
+            if any(has_entry_label(child) for child in cs[1:]):
+                constant = None
+            yes = stmt(cs[1], [] if constant is False else [branch], loop)
+            no = [] if constant is True else [branch]
+            return yes + (stmt(cs[2], no, loop) if len(cs) == 3 else no)
         if kind in {'WHILE_STMT', 'DO_STMT'} and len(cs) == 2:
             condition, body = (cs[0], cs[1]) if kind == 'WHILE_STMT' else (cs[1], cs[0])
             constant = constant_condition(condition)
@@ -269,6 +258,15 @@ def build_cfg(extractor, function):
     ends = stmt(bodies[0], [entry]) if bodies else [entry]
     exit_node = node(function, 'exit')
     link(ends + returns, exit_node)
+    reached, pending = set(), [entry]
+    while pending:
+        ident = pending.pop()
+        if ident not in reached:
+            reached.add(ident)
+            pending.extend(nodes[ident]['successors'])
+    unsupported = [issue for issue in unsupported if any(
+        ident in reached and n['op'] == 'unknown' and n.get('reason') == issue['kind']
+        and n.get('offset') == issue.get('offset') for ident, n in enumerate(nodes))]
     return dict(function_id=fid, entry=entry, exit=exit_node, nodes=nodes,
                 complete=bool(bodies) and not unsupported, unsupported=unsupported,
                 parameters=[extractor.key(a) for a in function.get_arguments()],

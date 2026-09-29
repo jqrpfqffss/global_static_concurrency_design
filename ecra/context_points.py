@@ -35,6 +35,11 @@ def scoped_expression(expression, context):
 
 
 class ContextSolver(Solver):
+    def __init__(self, facts, cfg=None):
+        super().__init__(facts, cfg)
+        self.escape_contexts = {row.get('_context_id') for table in ('semantic_calls', 'pointer_constraints')
+                                for row in facts.get(table, [])}
+
     def parameter_location(self, target, index, call):
         return scoped_location(super().parameter_location(target, index, call), call.get('_context_id'))
 
@@ -77,22 +82,12 @@ class ContextSolver(Solver):
                     possible_targets=sorted(possible), compared_targets=sorted(expected)))
         return proofs
 
-    def reachable_pointer_values(self, initial):
-        result = super().reachable_pointer_values(initial)
-        contexts = {row.get('_context_id') for row in self.facts.get('semantic_calls', [])}
-        contexts.update(row.get('_context_id') for row in self.facts.get('pointer_constraints', []))
-        while True:
-            returned = set()
-            for value in result:
-                if value.startswith('fn:'):
-                    for context in contexts:
-                        slot = scoped_location(value[3:] + ':return', context)
-                        for source in {slot} | self.descendant_slots.get(slot, set()):
-                            returned.update(self.points.get(source, ()))
-            expanded = super().reachable_pointer_values(returned) - result
-            if not expanded:
-                return result
-            result.update(expanded)
+    def escaped_return_slots(self, function):
+        result = super().escaped_return_slots(function)
+        for context in self.escape_contexts:
+            slot = scoped_location(function + ':return', context)
+            result.update({slot} | self.descendant_slots.get(slot, set()))
+        return result
 
 
 def site(row, caller=False):
@@ -166,6 +161,9 @@ def _pass(facts, cfg, domains):
     temporary['build_closure'] = facts.get('build_closure', {})
     temporary['translation_units'] = facts.get('translation_units', [])
     temporary['guard_unknown_entries'] = set(unknown_reachable)
+    temporary['pointer_storage'] = [dict(row, location=scoped_location(row['location'], context))
+        for row in facts.get('pointer_storage', [])
+        for context in sorted(domains.get(row.get('function_id'), ())) or [None]]
     expressions = {'pointer_constraints': ('left', 'right', 'path_conditions'),
                    'semantic_calls': ('expression', 'arguments', 'result', 'path_conditions'),
                    'indirect_accesses': ('location', 'path_conditions')}
@@ -187,6 +185,7 @@ def _pass(facts, cfg, domains):
         if all(len(filtered[table]) == len(temporary[table]) for table in expressions):
             break
         temporary = dict(variables=facts['variables'], functions=list(facts['functions']),
+                         pointer_storage=temporary['pointer_storage'],
                          build_closure=facts.get('build_closure', {}), translation_units=facts.get('translation_units', []),
                          guard_unknown_entries=set(unknown_reachable),
                          accesses=[], calls=[], unknowns=[], registrations=[], **filtered)

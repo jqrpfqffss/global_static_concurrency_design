@@ -4,7 +4,7 @@ Diagnostics are not taints. Every blocking gap retains its source and the
 specific storage/entry relation that can hide another conflicting access.
 """
 from collections import Counter, defaultdict, deque
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, fields
 
 from .common import digest
 
@@ -62,7 +62,8 @@ class VariableEvidenceSlice:
     address_escapes: list = field(default_factory=list)
     function_ids: list = field(default_factory=list)
     physical_contexts: list = field(default_factory=list)
-    call_edges: list = field(default_factory=list)
+    call_edge_indices: list = field(default_factory=list)
+    call_edges_reference: str = 'facts.json:calls'
     unresolved_edges: list = field(default_factory=list)
     protection: list = field(default_factory=list)
     whole_object_effects: list = field(default_factory=list)
@@ -111,8 +112,8 @@ class EvidenceIndex:
             address_taken=[a for a in accesses if a['access_kind'] == 'ADDRESS_TAKEN'],
             function_ids=sorted(ancestors),
             physical_contexts=sorted({contexts[c]['physical_id'] for a in runtime for c in a['contexts']}),
-            call_edges=[c for c in self.facts['calls'] if c['caller_function_id'] in ancestors
-                        and c.get('callee_function_id') in ancestors],
+            call_edge_indices=[index for index, c in enumerate(self.facts['calls'])
+                               if c['caller_function_id'] in ancestors and c.get('callee_function_id') in ancestors],
             protection=protection,
             whole_object_effects=[a['access_id'] for a in runtime if a.get('inherited_from_access_id')])
 
@@ -221,7 +222,11 @@ def classify(evidence, accesses, contexts, pairs, protection, protection_note, i
         safe_reason_code=code, unknown_reason_codes=sorted({g['reason_code'] for g in evidence.critical_gaps}) if state == 'UNKNOWN' else [],
         coverage='PARTIAL' if reasons else 'COMPLETE', analysis_coverage='PARTIAL' if reasons else 'COMPLETE',
         coverage_reasons=sorted(reasons), screening_blockers=sorted({g['kind'] for g in evidence.critical_gaps}),
-        variable_evidence_slice=asdict(evidence), blocking_evidence=evidence.critical_gaps,
+        # Evidence rows are immutable after classification. Preserve their
+        # shared identity instead of recursively cloning complete call edges,
+        # alias target lists and protection traces for every member.
+        variable_evidence_slice={item.name: getattr(evidence, item.name) for item in fields(evidence)},
+        blocking_evidence=evidence.critical_gaps,
         initialization_proof=init_proof)
 
 

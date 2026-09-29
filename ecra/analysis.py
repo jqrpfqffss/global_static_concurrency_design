@@ -8,7 +8,8 @@ from .common import digest
 
 
 TABLES = ("variables", "functions", "accesses", "calls", "unknowns", "protection_events", "registrations", "snapshots",
-          "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow")
+          "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow", "pointer_storage",
+          "constant_regions")
 
 
 def merge(parts):
@@ -30,6 +31,10 @@ def merge(parts):
                 variables[sid] = v
             else:
                 old = variables[sid]
+                previous_type = old['type']
+                compatible_array_declaration = (old.get('is_array') and v.get('is_array')
+                    and old.get('array_element_type') == v.get('array_element_type')
+                    and (old.get('array_size') is None or v.get('array_size') is None))
                 if v.get("parse_status") == "FAILED":
                     old["parse_status"] = "FAILED"
                 for field in ("declarations", "definitions", "translation_units"):
@@ -37,10 +42,11 @@ def merge(parts):
                         if item not in old[field]:
                             old[field].append(item)
                 if not old["definition_file"] and v["definition_file"]:
-                    for field in ("definition_file", "definition_line", "initializer", "size_bytes", "alignment_bytes"):
-                        old[field] = v[field]
-                if old["type"] != v["type"]:
-                    facts["unknowns"].append(dict(kind="TYPE_VARIANT", symbol_id=sid, types=[old["type"], v["type"]]))
+                    for field, value in v.items():
+                        if field not in {'declarations', 'definitions', 'translation_units', 'parse_status'}:
+                            old[field] = value
+                if previous_type != v["type"] and not compatible_array_declaration:
+                    facts["unknowns"].append(dict(kind="TYPE_VARIANT", symbol_id=sid, types=[previous_type, v["type"]]))
         for f in part.get("functions", []):
             functions[f["function_id"]] = f
         for t in TABLES[2:]:
@@ -49,6 +55,22 @@ def merge(parts):
     facts["functions"] = sorted(functions.values(), key=lambda x: x["function_id"])
     for t in TABLES[2:]:
         facts[t] = list({digest(row): row for row in facts[t]}.values())
+    regions = defaultdict(list)
+    for row in facts['constant_regions']:
+        regions[(row['function_id'], row['file'])].append(row)
+    facts['constant_pruned_evidence'] = []
+    for table in ('accesses', 'calls', 'unknowns', 'protection_events', 'registrations',
+                  'pointer_constraints', 'semantic_calls', 'indirect_accesses', 'irq_priority_events'):
+        kept = []
+        for row in facts[table]:
+            owner = row.get('function_id') or row.get('caller_function_id') or row.get('registered_by')
+            proof = next((r for r in regions.get((owner, row.get('file')), ())
+                          if r['offset'] <= row.get('offset', -1) < r['end_offset']), None)
+            if proof is None:
+                kept.append(row)
+            else:
+                facts['constant_pruned_evidence'].append(dict(table=table, evidence=row, proof=proof))
+        facts[table] = kept
     return facts
 
 
@@ -526,11 +548,20 @@ def analyze(facts, cfg, coverage, root=None):
         if re.search(r'^\s*(?:\.macro\b|#\s*include\b)|##', source, re.M):
             facts['unknowns'].append(dict(kind='ASSEMBLY_SOURCE_REVIEW', file=file,
                 message='汇编宏或包含文件尚未展开，不能证明入口/变量访问完整'))
-        from .vectors import recover_assembly_vectors
+        from .vectors import recover_assembly_vectors, recover_assembly_functions
+        assembly_functions, assembly_calls = recover_assembly_functions(source, file, facts['functions'])
+        facts['functions'].extend(assembly_functions)
+        facts['calls'].extend(assembly_calls)
+        for function in assembly_functions:
+            functions_by_name[function['name']].append(function['function_id'])
         vector_entries, vector_gaps = recover_assembly_vectors(source, file, functions_by_name)
         facts.setdefault('assembly_vector_entries', []).extend(vector_entries)
         facts['unknowns'].extend(vector_gaps)
-        for line, text in enumerate(source.splitlines(), 1):
+        # Comments describe startup behavior; they are not assembly references
+        # or callers. Preserve line numbers while removing block/line comments.
+        reference_source = re.sub(r'/\*.*?\*/', lambda m: '\n' * m[0].count('\n'), source, flags=re.S)
+        for line, text in enumerate(reference_source.splitlines(), 1):
+            text = re.split(r'//|\s@', text, maxsplit=1)[0]
             for name in sorted(set(re.findall(r'[A-Za-z_][A-Za-z_0-9]*', text))):
                 for sid in symbols_by_name.get(name, ()):
                     facts['unknowns'].append(dict(kind='ASSEMBLY_SYMBOL_REFERENCE', symbol_id=sid,
@@ -543,8 +574,9 @@ def analyze(facts, cfg, coverage, root=None):
     enrich(facts, cfg)
     if any(u['kind'] == 'POINTS_TO_LIMIT' for u in facts['unknowns']):
         raise ValueError('POINTS_TO_LIMIT：别名求解未收敛，扫描失败；不对截断的访问集合生成安全结论。')
-    from .vectors import recover_vector_entries
+    from .vectors import recover_vector_entries, resolve_assembly_references
     recover_vector_entries(facts)
+    resolve_assembly_references(facts)
     # Missing-source lexical references are candidates, never definite READ/
     # WRITE facts. Keep their file/line and bind them only to named variables.
     missing_files = set()
@@ -605,11 +637,9 @@ def analyze(facts, cfg, coverage, root=None):
         evidence='facts.json: context_call_graph, call_graph_slices, calls',
         note=facts['context_call_graph']['note'])
     relations = preemption_relations(facts, contexts, cfg)
-    entry_ids = {b['function_id'] for b in facts['context_bindings'] if b['call_depth'] == 0}
-    facts['assembly_references'] = [u for u in facts['unknowns'] if u['kind'] in
-                                   {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
-    facts['unknowns'] = [u for u in facts['unknowns'] if not (u['kind'] == 'ASSEMBLY_FUNCTION_REFERENCE'
-                         and u.get('target_function_id') in entry_ids)]
+    facts['assembly_references'] = facts.get('resolved_assembly_references', []) + [
+        u for u in facts['unknowns'] if u['kind'] in
+        {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
     # Establish reachability before scope filtering: a dependency can supply an
     # entry into a target function. Address-taken functions and attributed entry
     # points are possible roots even when no ordinary caller is present.
@@ -664,14 +694,11 @@ def analyze(facts, cfg, coverage, root=None):
         a['call_path_lists_complete'] = not compact_paths
         a['resolved_call_edge_count'] = len(graph_slice['call_edge_indices'])
         a['unresolved_call_edge_count'] = len(graph_slice['unresolved_issue_indices'])
-        if not compact_paths:
-            a['resolved_call_edges'] = [facts['calls'][i] for i in graph_slice['call_edge_indices']]
-            a['unresolved_call_edges'] = [facts['unknowns'][i] for i in graph_slice['unresolved_issue_indices']]
-        else:
-            # Complete slices live once per accessor in facts.call_graph_slices;
-            # duplicating a large graph on every access recreates the OOM.
-            a.pop('resolved_call_edges', None)
-            a.pop('unresolved_call_edges', None)
+        # Even a small path graph can have thousands of aliased access sites.
+        # Share its full edge evidence once per accessor in both display modes;
+        # the path lists above and every original call/issue remain available.
+        a.pop('resolved_call_edges', None)
+        a.pop('unresolved_call_edges', None)
         a['call_chain_cycles'] = graph_slice['recursive_edges']
         a["protection_evidence"] = [e for e in events[a["function_id"]] if e["event_kind"] in {"lock_enter", "lock_exit"}]
         by_var[a["symbol_id"]].append(a)

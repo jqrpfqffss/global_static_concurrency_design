@@ -174,7 +174,21 @@ class MaskAnalysis:
             return self.memo[key]
         graph = self.graphs[fid]
         nodes = graph['nodes']
-        if not graph['complete']:
+        # Unknown operand order is local to the full expression. It cannot
+        # bypass a later explicit disable. Unsupported jumps/assembly retain
+        # their whole-function control-flow gap; only these bounded expression
+        # regions permit re-establishing a subsequent mask proof.
+        region_ends = {(node.get('file'), node.get('offset'), node.get('reason')): node.get('end_offset')
+                       for node in nodes if node['op'] == 'unknown'}
+        regions = [dict(row, end_offset=row.get('end_offset', region_ends.get(
+            (row.get('file'), row.get('offset'), row.get('kind'))))) for row in graph.get('unsupported', [])]
+        complete_flow = graph['complete'] or bool(regions) and all(
+            row['kind'] == 'UNSEQUENCED_EXPRESSION' and row.get('end_offset') is not None for row in regions)
+        unordered = {node['id'] for node in nodes if any(
+            node.get('file') == region.get('file') and
+            region.get('offset', -1) <= node.get('offset', -2) < region.get('end_offset', -1)
+            for region in regions)} if complete_flow and not graph['complete'] else set()
+        if not complete_flow:
             initial = dict(initial, irq=None, base=None)
         incoming, outgoing, interruptible = {}, {}, {}
         incoming[graph['entry']] = initial
@@ -182,8 +196,12 @@ class MaskAnalysis:
         steps = 0
         while pending:
             ident = pending.popleft()
-            after, broken = self.transfer(nodes[ident], incoming[ident], cid, stack + (fid,))
-            if not graph['complete']:
+            before = incoming[ident]
+            if ident in unordered:
+                before = {name: None for name in before}
+                before.update(irq=None, base=None)
+            after, broken = self.transfer(nodes[ident], before, cid, stack + (fid,))
+            if not complete_flow or ident in unordered:
                 after.update(irq=None, base=None)
                 broken = True
             outgoing[ident] = after
@@ -211,9 +229,11 @@ class MaskAnalysis:
                 chosen = min(candidates, key=lambda n: (n['end_offset'] - n['offset'], n['id']))
                 ident = chosen['id']
                 state = incoming.get(ident, {})
+                if ident in unordered:
+                    state = dict(state, irq=None, base=None)
                 observation = dict(context_id=cid, irq_state={0:'ENABLED', 1:'DISABLED'}.get(state.get('irq'), 'UNKNOWN'),
                                    basepri=state.get('base'), cfg_id=graph['cfg_id'], node_id=ident,
-                                   reachable=ident in incoming, complete=graph['complete'])
+                                   reachable=ident in incoming, complete=bool(complete_flow and ident not in unordered))
                 if access['access_kind'] in {'READ', 'WRITE', 'RMW'} and ident in incoming:
                     by_symbol[access['symbol_id']].add(ident)
             self.observations[access['access_id']].append(observation)
@@ -257,12 +277,13 @@ class MaskAnalysis:
                         between.add(successor)
                         todo.append(successor)
             mask_states = [incoming.get(i, {}) for i in between]
+            complete_window = bool(complete_flow and not (between & unordered))
             self.windows[(sid, cid)].append(dict(function_id=fid, cfg_id=graph['cfg_id'],
-                node_ids=sorted(between), complete=graph['complete'],
-                primask=graph['complete'] and all(s.get('irq') == 1 for s in mask_states)
+                node_ids=sorted(between), complete=complete_window,
+                primask=complete_window and all(s.get('irq') == 1 for s in mask_states)
                         and not any(interruptible.get(i, False) for i in between),
                 basepri_values=sorted({s['base'] for s in mask_states if s.get('base') is not None}),
-                basepri_known=graph['complete'] and all(s.get('base') is not None for s in mask_states)
+                basepri_known=complete_window and all(s.get('base') is not None for s in mask_states)
                               and not any(interruptible.get(i, False) for i in between)))
         final = outgoing.get(graph['exit'], dict(irq=None, base=None))
         broken = any(interruptible.values()) or any(state.get('irq') != 1 for state in incoming.values())

@@ -13,6 +13,7 @@ import os
 import sys
 
 from .common import digest
+from .target_set import TargetPool, TargetSet
 
 
 def resolve_linkage(parts):
@@ -35,7 +36,8 @@ def resolve_linkage(parts):
         part = copy.deepcopy(source)
         part['functions'] = [f for f in part.get('functions', []) if f['function_id'] not in overridden]
         for table in ('accesses', 'unknowns', 'protection_events', 'irq_priority_events',
-                      'snapshots', 'control_flow', 'pointer_constraints', 'semantic_calls', 'indirect_accesses'):
+                      'snapshots', 'control_flow', 'pointer_constraints', 'semantic_calls', 'indirect_accesses', 'pointer_storage',
+                      'constant_regions'):
             part[table] = [r for r in part.get(table, []) if r.get('function_id') not in overridden]
         part['calls'] = [r for r in part.get('calls', []) if r.get('caller_function_id') not in overridden]
         part['registrations'] = [r for r in part.get('registrations', []) if r.get('registered_by') not in overridden]
@@ -48,11 +50,14 @@ class Solver:
     def __init__(self, facts, cfg=None):
         self.facts = facts
         self.cfg = cfg or {}
-        self.points = defaultdict(set)
+        self.target_pool = TargetPool()
+        self.points = defaultdict(self.target_pool.make)
         self.slots_by_shape = defaultdict(set)
         self.descendant_slots = defaultdict(set)
-        self.unknown_points = defaultdict(set)
+        self.unknown_points = defaultdict(self.target_pool.make)
         self.readers = defaultdict(set)
+        self.load_cache = {}
+        self.load_dependencies = defaultdict(set)
         self.current_task = None
         self.pending = deque()
         self.enqueued = set()
@@ -60,15 +65,41 @@ class Solver:
         self.functions = {f['function_id']: f for f in facts['functions']}
         self.variables = {v['symbol_id']: v for v in facts['variables']}
         self.objects = {'obj:' + s: s for s in self.variables}
+        self.storage_definitions = {}
+        for row in facts.get('pointer_storage', []):
+            location = row['location']
+            if location not in self.storage_definitions:
+                self.storage_definitions[location] = dict(row, paths=set(row['paths']),
+                    array_extents=dict(row.get('array_extents', {})))
+            else:
+                # An incomplete extern declaration must not erase the actual
+                # definition's layout, regardless of worker completion order.
+                definition = self.storage_definitions[location]
+                definition['paths'].update(row['paths'])
+                for prefix, size in row.get('array_extents', {}).items():
+                    if size is not None or prefix not in definition['array_extents']:
+                        definition['array_extents'][prefix] = size
+                if row.get('array_size') is not None:
+                    definition['array_size'] = row['array_size']
+        self.storage_definitions = {location: dict(row, paths={path[:end] for path in row['paths']
+            for end in [len(path)] + [i for i, char in enumerate(path) if char == '/' and i]})
+            for location, row in self.storage_definitions.items()}
         self.storage_paths = {}
         for base, sid in self.objects.items():
             variable = self.variables[sid]
             paths = {''}
             for member in variable.get('member_definitions', []):
-                path = member['field_path'].replace('.', '/')
+                path = re.sub(r'\[\*\]', '', member['field_path']).replace('.', '/')
                 paths.add(path)
             self.storage_paths[base] = paths
         self.section_starts = {}
+        # Instance caches must die with a solution. A class-level lru_cache
+        # retains old Solver instances (and their complete facts/points sets)
+        # across context-refinement passes.
+        self.storage_base = lru_cache(maxsize=65536)(self.storage_base)
+        self.storage_location = lru_cache(maxsize=65536)(self.storage_location)
+        self.symbol = lru_cache(maxsize=65536)(self.symbol)
+        self.escape_closures = {}
         for sid, variable in self.variables.items():
             if variable['name'].startswith('__start_'):
                 section = variable['name'][len('__start_'):]
@@ -93,14 +124,26 @@ class Solver:
             while '/' in ancestor:
                 ancestor = ancestor.rpartition('/')[0]
                 self.descendant_slots[ancestor].add(location)
-                self.schedule('descendants:' + ancestor)
+                self.notify_change('descendants:' + ancestor)
         previous = len(self.points[location])
         self.points[location].update(values)
-        self.unknown_points[location].update(v for v in values if v.startswith('unknown:'))
+        self.unknown_points[location].bits = self.points[location].bits & self.target_pool.unknown_mask
         self.changed |= len(self.points[location]) != previous
         if len(self.points[location]) != previous:
-            self.schedule(location)
-            self.schedule('shape:' + self.shape(location))
+            self.escape_closures.clear()
+            self.notify_change(location)
+            self.notify_change('shape:' + self.shape(location))
+
+    def notify_change(self, location):
+        # A cached load depends on points, overlap summaries, ancestor opaque
+        # values, and newly created wildcard/descendant slots. Invalidate all
+        # those dependencies before waking equations, including new locations.
+        for key in tuple(self.load_dependencies.get(location, ())):
+            _, dependencies = self.load_cache.pop(key)
+            for dependency in dependencies:
+                self.load_dependencies[dependency].discard(key)
+            self.schedule(key)
+        self.schedule(location)
 
     def watch(self, location):
         if self.current_task is not None:
@@ -118,7 +161,13 @@ class Solver:
         return len(a) == len(b) and all(x == y or x == '[*]' and y.startswith('[')
                                        or y == '[*]' and x.startswith('[') for x, y in zip(a, b))
 
-    @lru_cache(maxsize=65536)
+    def storage_base(self, location):
+        while location:
+            if location in self.objects or location in self.storage_definitions:
+                return location
+            location = location.rpartition('/')[0]
+        return None
+
     def storage_location(self, location):
         """Keep named storage within its finite declared subobject layout.
 
@@ -126,13 +175,28 @@ class Solver:
         no field offset is proven. Represent that view by one may-overlap
         location, retaining the original object and an explicit alias gap.
         """
-        sid = self.symbol(location)
-        if sid is None:
+        base = self.storage_base(location)
+        if base is None:
             return location
-        base = 'obj:' + sid
         suffix = location[len(base):]
         if '/$overlap' in suffix:
             return base + '/$overlap'
+        if base in self.storage_definitions:
+            definition = self.storage_definitions[base]
+            if suffix and self.shape(suffix) not in definition['paths']:
+                return base + '/$overlap'
+            extents = dict(definition.get('array_extents', {}))
+            extents.setdefault('', definition.get('array_size'))
+            for match in reversed(list(re.finditer(r'/\[(-?\d+)\]', suffix))):
+                size = extents.get(self.shape(suffix[:match.start()]))
+                if size is not None and not 0 <= int(match[1]) < size:
+                    return base + '/$overlap'
+                if size is None:
+                    # Every unknown dimension gets a finite summary, not an
+                    # unbounded sequence of offsets or a whole-object cast.
+                    suffix = suffix[:match.start()] + '/[*]' + suffix[match.end():]
+            return base + suffix
+        sid = self.objects[base]
         fields = re.sub(r'/\[(?:-?\d+|\*)\]', '', suffix).strip('/')
         if fields not in self.storage_paths[base] or suffix.count('/[') > 1 + len(fields.split('/')):
             return base + '/$overlap'
@@ -146,12 +210,19 @@ class Solver:
     def locations(self, e):
         op = e.get('op')
         if op == 'loc':
-            return self.section_starts.get(e['id'], {e['id']})
+            return self.section_starts.get(e['id'], {self.storage_location(e['id'])})
         if op == 'deref':
             return {p for p in self.value(e['value']) if not p.startswith('fn:')}
         if op == 'field':
-            return {p if p.startswith('unknown:') else self.storage_location(p + ('/[0]' if p in self.objects and self.variables[self.objects[p]].get('array_element_is_struct')
-                         else '') + '/' + e['field']) for p in self.locations(e['base'])}
+            result = set()
+            for base in self.locations(e['base']):
+                if base.startswith('unknown:'):
+                    result.add(base)
+                    continue
+                array = (base in self.objects and self.variables[self.objects[base]].get('array_element_is_struct')
+                         or '/[*]' in self.storage_definitions.get(base, {}).get('paths', ()))
+                result.add(self.storage_location(base + ('/[0]' if array else '') + '/' + e['field']))
+            return result
         if op == 'index':
             result = set()
             for base in self.locations(e['base']):
@@ -185,13 +256,13 @@ class Solver:
         if op == 'va_arg':
             return self.variadic_values(e['value'])
         if op == 'addr':
-            return self.locations(e['value'])
+            return self.target_pool.make(self.locations(e['value']))
         if op == 'function':
-            return {'fn:' + e['id']}
+            return self.target_pool.make({'fn:' + e['id']})
         if op == 'unknown':
-            return {'unknown:' + e['id']}
+            return self.target_pool.make({'unknown:' + e['id']})
         if op == 'offset':
-            result = set()
+            result = self.target_pool.make()
             for base in self.value(e['value']):
                 if base.startswith('unknown:') or e['index'] == '0':
                     result.add(base)
@@ -211,41 +282,58 @@ class Solver:
                     result.update({base, 'unknown:offset:' + base})
             return result
         if op == 'union':
-            return set().union(*(self.value(x) for x in e['items']))
-        if op in {'loc', 'deref', 'field', 'index'}:
-            result = set()
-            for loc in self.locations(e):
-                self.watch(loc)
-                if loc.startswith('unknown:'):
-                    result.add(loc)
-                sid = self.symbol(loc)
-                if sid:
-                    summary = 'obj:' + sid + '/$overlap'
-                    self.watch(summary)
-                    result.update(self.points.get(summary, ()))
-                    if loc == summary:
-                        result.add('unknown:overlap:' + sid)
-                        self.watch('descendants:obj:' + sid)
-                        for child in self.descendant_slots.get('obj:' + sid, ()):
-                            self.watch(child)
-                            result.update(self.points[child])
-                if e['op'] == 'deref' and loc in self.objects and self.variables[self.objects[loc]].get('is_array'):
-                    loc += '/[0]'
-                    self.watch(loc)
-                result.update(self.points.get(loc, ()))
-                ancestor = loc
-                while '/' in ancestor:
-                    ancestor = ancestor.rpartition('/')[0]
-                    self.watch(ancestor)
-                    result.update(self.unknown_points.get(ancestor, ()))
-                if '/[' in loc:
-                    self.watch('shape:' + self.shape(loc))
-                    for other in tuple(self.slots_by_shape.get(self.shape(loc), ())):
-                        values = self.points[other]
-                        if other != loc and self.overlaps(loc, other):
-                            result.update(values)
+            result = self.target_pool.make()
+            for item in e['items']:
+                result.update(self.value(item))
             return result
-        return set()
+        if op in {'loc', 'deref', 'field', 'index'}:
+            result = self.target_pool.make()
+            for loc in self.locations(e):
+                result.update(self.load_location(loc, e['op'] == 'deref'))
+            return result
+        return self.target_pool.make()
+
+    def load_location(self, location, decay=False):
+        key = ('load', location, decay)
+        self.watch(key)
+        if key not in self.load_cache:
+            result, dependencies = self.compute_load(location, decay)
+            self.load_cache[key] = result, dependencies
+            for dependency in dependencies:
+                self.load_dependencies[dependency].add(key)
+        return self.load_cache[key][0]
+
+    def compute_load(self, location, decay=False):
+        result = self.target_pool.make()
+        dependencies = {location}
+        if location.startswith('unknown:'):
+            result.add(location)
+        base = self.storage_base(location)
+        if base:
+            summary = base + '/$overlap'
+            dependencies.add(summary)
+            result.update(self.points.get(summary, ()))
+            if location == summary:
+                result.add('unknown:overlap:' + self.objects.get(base, base))
+                dependencies.add('descendants:' + base)
+                for child in self.descendant_slots.get(base, ()):
+                    dependencies.add(child)
+                    result.update(self.points[child])
+        if decay and location in self.objects and self.variables[self.objects[location]].get('is_array'):
+            location += '/[0]'
+            dependencies.add(location)
+        result.update(self.points.get(location, ()))
+        ancestor = location
+        while '/' in ancestor:
+            ancestor = ancestor.rpartition('/')[0]
+            dependencies.add(ancestor)
+            result.update(self.unknown_points.get(ancestor, ()))
+        if '/[' in location:
+            dependencies.add('shape:' + self.shape(location))
+            for other in self.slots_by_shape.get(self.shape(location), ()):
+                if other != location and self.overlaps(location, other):
+                    result.update(self.points[other])
+        return result, dependencies
 
     def update(self, left, right, aggregate=False, aggregate_paths=None):
         vals = self.value(right)
@@ -274,8 +362,10 @@ class Solver:
         # A va_list is an ABI record on ARM and an array on some hosts. Array
         # decay supplies its address; record copies already carry its values.
         if expression.get('op') == 'addr':
-            return set().union(*(self.value(dict(op='loc', id=location))
-                                 for location in self.locations(expression['value'])))
+            result = self.target_pool.make()
+            for location in self.locations(expression['value']):
+                result.update(self.value(dict(op='loc', id=location)))
+            return result
         return self.value(expression)
 
     def return_location(self, target, call):
@@ -300,7 +390,7 @@ class Solver:
             if call not in self.unresolved_copies:
                 self.unresolved_copies.append(call)
             return
-        direct, fields = set(), defaultdict(set)
+        direct, fields = self.target_pool.make(), defaultdict(self.target_pool.make)
         for source in sources:
             self.watch(source)
             direct.update(self.points.get(source, ()))
@@ -320,7 +410,6 @@ class Solver:
                 for suffix, values in fields.items():
                     self.add_points(self.storage_location(destination + suffix), values)
 
-    @lru_cache(maxsize=65536)
     def symbol(self, location):
         # Field paths use '/', USRs can themselves contain slashes in filenames.
         while location:
@@ -373,8 +462,14 @@ class Solver:
                         self.update(dict(op='loc', id=self.parameter_location(target, i, call)), arg,
                                     i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
                         if function.get('is_variadic') and i >= function['parameter_count']:
-                            self.update(dict(op='loc', id=self.parameter_location(target, 'varargs', call)), arg,
+                            variadic_slot = self.parameter_location(target, 'varargs', call)
+                            self.update(dict(op='loc', id=variadic_slot), arg,
                                         i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
+                            if i < len(aggregates) and aggregates[i] and i < len(layouts):
+                                for source in self.locations(arg):
+                                    for suffix in layouts[i]:
+                                        field = source if source.startswith('unknown:') else self.storage_location(source + suffix)
+                                        self.add_points(variadic_slot, self.value(dict(op='loc', id=field)))
                     self.update(call['result'], dict(op='loc', id=self.return_location(target, call)),
                                 call.get('returns_aggregate', False), call.get('return_aggregate_paths'))
                 if call.get('name') in {'memcpy', 'memmove'} and len(call['arguments']) >= 2:
@@ -441,39 +536,63 @@ class Solver:
                             file=item['file'], line=item['line'], offset=item.get('offset'),
                             reason='Known may-target shares pointer provenance with an opaque target'))
         self.resolve_evidence(calls)
-        self.facts['pointer_targets'] = [dict(location=k, targets=sorted(v)) for k, v in sorted(self.points.items()) if v]
+        rows, sets, identifiers = [], {}, {}
+        compressed = self.facts['points_to_stats']['targets'] > 100000
+        for location, values in sorted(self.points.items()):
+            if not values:
+                continue
+            if not compressed or len(values) <= 32:
+                rows.append(dict(location=location, targets=sorted(values)))
+                continue
+            if values.bits not in identifiers:
+                encoded = format(values.bits, 'x')
+                ident = 'PTS-' + digest(encoded)[:20]
+                identifiers[values.bits] = ident
+                sets[ident] = encoded
+            rows.append(dict(location=location, target_set_id=identifiers[values.bits], target_count=len(values)))
+        self.facts['pointer_targets'] = rows
+        if sets:
+            self.facts.update(pointer_target_encoding='INTERNED_BITMAP_V1',
+                              pointer_target_atoms=self.target_pool.values, pointer_target_sets=sets)
         # Exact direct calls are retained; resolved edges augment their evidence.
         self.facts['accesses'] = list({a['access_id']: a for a in self.facts['accesses']}.values())
 
+    def escaped_return_slots(self, function):
+        returned = function + ':return'
+        return {returned} | self.descendant_slots.get(returned, set())
+
     def reachable_pointer_values(self, initial):
         """Follow pointers/aggregate fields that an opaque consumer can read."""
-        result, pending = set(), list(initial)
+        pending = self.target_pool.make(initial)
+        key = pending.bits
+        if key in self.escape_closures:
+            return self.escape_closures[key].copy()
+        result = self.target_pool.make()
         while pending:
-            loc = pending.pop()
-            if loc in result:
-                continue
-            result.add(loc)
-            if loc.startswith('fn:'):
-                # An opaque callback consumer can call a getter and obtain
-                # every address returned by that function. Escaping the entry
-                # therefore also escapes its resolved return pointees.
-                returned = loc[3:] + ':return'
-                for slot, values in self.points.items():
-                    if slot == returned or slot.startswith(returned + '/'):
-                        pending.extend(values - result)
-                continue
-            if loc.startswith('unknown:'):
-                continue
-            candidates = {loc} | self.descendant_slots.get(loc, set()) | self.slots_by_shape.get(self.shape(loc), set())
-            for slot in candidates:
-                values = self.points.get(slot, set())
-                if slot == loc or slot.startswith(loc + '/') or self.overlaps(slot, loc):
-                    pending.extend(values - result)
+            frontier, pending = pending, self.target_pool.make()
+            result.update(frontier)
+            for loc in frontier:
+                if loc.startswith('fn:'):
+                    # Opaque consumers can call a getter and obtain its return
+                    # pointees, including context-specific return slots.
+                    for slot in self.escaped_return_slots(loc[3:]):
+                        pending.update(self.points.get(slot, ()))
+                    continue
+                if loc.startswith('unknown:'):
+                    continue
+                candidates = {loc} | self.descendant_slots.get(loc, set()) | self.slots_by_shape.get(self.shape(loc), set())
+                for slot in candidates:
+                    if slot == loc or slot.startswith(loc + '/') or self.overlaps(slot, loc):
+                        pending.update(self.points.get(slot, ()))
+            pending.bits &= ~result.bits
+        if len(self.escape_closures) >= 64:
+            self.escape_closures.clear()
+        self.escape_closures[key] = result.copy()
         return result
 
     def copied_pointer_values(self, sources):
         """Values copied out of storage, excluding its uncopied address."""
-        values = set()
+        values = self.target_pool.make()
         for source in sources:
             candidates = {source} | self.descendant_slots.get(source, set()) | self.slots_by_shape.get(self.shape(source), set())
             for slot in candidates:
@@ -559,7 +678,11 @@ class Solver:
 
         self.facts['address_escapes'] = list({digest(e): e for e in escapes}.values())
         resolved, remaining = [], []
-        represented_functions = {value[3:] for values in self.points.values() for value in values if value.startswith('fn:')}
+        stored = self.target_pool.make()
+        for values in self.points.values():
+            stored.update(values)
+        stored.bits &= self.target_pool.function_mask
+        represented_functions = {value[3:] for value in stored}
         represented_functions.update(target for call in calls for target in self.targets(call))
         represented_functions.update(reg['function_id'] for reg in self.facts.get('registrations', []))
         dynamic_sites = {(item['function_id'], item['file'], item.get('offset')): self.locations(item['location'])

@@ -4,6 +4,7 @@ import ctypes
 import os
 import re
 import sys
+from itertools import islice
 from pathlib import Path
 
 from clang import cindex as ci
@@ -25,8 +26,9 @@ def walk(c):
         yield from walk(child)
 
 
-def tokens(c):
-    return [t.spelling for t in c.get_tokens()]
+def tokens(c, limit=None):
+    stream = c.get_tokens()
+    return [t.spelling for t in (stream if limit is None else islice(stream, limit))]
 
 
 def constant_value(cursor):
@@ -66,6 +68,40 @@ def operator(c):
     return ""
 
 
+def constant_condition(cursor):
+    """Fold only side-effect-free integer expressions, never mutable objects."""
+    cs = children(cursor)
+    if len(cs) == 1 and (cursor.kind.name == 'PAREN_EXPR' or
+            cursor.kind.name == 'UNEXPOSED_EXPR' and cursor.type.get_canonical() == cs[0].type.get_canonical()):
+        return constant_condition(cs[0])
+    operation = operator(cursor)
+    if cursor.kind.name == 'BINARY_OPERATOR' and operation in {'&&', '||'} and len(cs) == 2:
+        left, right = constant_condition(cs[0]), constant_condition(cs[1])
+        if operation == '&&':
+            return False if False in (left, right) else True if left is True and right is True else None
+        return True if True in (left, right) else False if left is False and right is False else None
+    if cursor.kind.name == 'UNARY_OPERATOR' and operation == '!' and len(cs) == 1:
+        value = constant_condition(cs[0])
+        return None if value is None else not value
+    # Logical folding above establishes only the branch outcome. The CFG and
+    # facts still retain evaluation of the condition, including side effects.
+    for child in walk(cursor):
+        kind = child.kind.name
+        if kind == 'CALL_EXPR' or (kind == 'DECL_REF_EXPR' and
+                (not child.referenced or child.referenced.kind.name != 'ENUM_CONSTANT_DECL')):
+            return None
+        if kind in {'COMPOUND_ASSIGNMENT_OPERATOR', 'UNARY_OPERATOR', 'BINARY_OPERATOR'} and (
+                operator(child) in {'++', '--', '=', '+=', '-=', '*=', '/=', '%=',
+                                    '<<=', '>>=', '&=', '^=', '|='}):
+            return None
+    number = constant_value(cursor)
+    return None if number is None else bool(number)
+
+
+def has_entry_label(cursor):
+    return any(child.kind.name in {'LABEL_STMT', 'CASE_STMT', 'DEFAULT_STMT'} for child in walk(cursor))
+
+
 class Extractor:
     def __init__(self, request):
         self.root = Path(request["root"]).resolve()
@@ -77,6 +113,7 @@ class Extractor:
         self.events, self.irq_priority_events, self.registrations, self.snapshots = [], [], [], []
         self.control_flow = []
         self.source_cache = {}
+        self.relative_paths = {}
         self.local_counts = {}
         self.task_reference_sites = set()
         self.coverage_source = request.get("coverage_source", "compile_database")
@@ -85,7 +122,10 @@ class Extractor:
 
     def loc(self, c):
         loc = c.location
-        return dict(file=relative(loc.file.name, self.root) if loc.file else self.tu_name,
+        filename = loc.file.name if loc.file else None
+        if filename is not None and filename not in self.relative_paths:
+            self.relative_paths[filename] = relative(filename, self.root)
+        return dict(file=self.relative_paths[filename] if filename is not None else self.tu_name,
                     line=loc.line, column=loc.column, offset=loc.offset)
 
     def source(self, c):
@@ -122,13 +162,14 @@ class Extractor:
                 f = dict(function_id=self.fid(c), name=c.spelling, qualified_name=c.displayname,
                          linkage=c.linkage.name, is_static=c.linkage.name == "INTERNAL",
                          is_weak=any(ch.kind.name in {'WEAK_ATTR', 'WEAK_IMPORT_ATTR'}
-                                     or (ch.kind.name.endswith('_ATTR') and tokens(ch)[:1] == ['weak'])
+                                     or (ch.kind.name.endswith('_ATTR') and tokens(ch, 1) == ['weak'])
                                      for ch in c.get_children()),
                          translation_unit=self.tu_name,
                          entry_attributes=[ch.kind.name for ch in c.get_children()
                                            if ch.kind.name.endswith('_ATTR')],
                          parameter_count=sum(1 for _ in c.get_arguments()),
-                         is_variadic=c.type.is_function_variadic(),
+                         return_type_kind=c.result_type.get_canonical().kind.name,
+                         is_variadic=c.type.kind.name == 'FUNCTIONPROTO' and c.type.is_function_variadic(),
                          **self.loc(c), end_line=c.extent.end.line, end_offset=c.extent.end.offset)
                 self.functions[f["function_id"]] = f
                 if k != "FUNCTION_DECL":
@@ -176,13 +217,6 @@ class Extractor:
                                   declarations=[], definitions=[], translation_units=[self.tu_name],
                                   definition_file=None, definition_line=None, initializer=" ".join(tokens(c))[:500],
                                   coverage_source=self.coverage_source)
-                    sections = [token.strip('"') for attr in c.get_children()
-                                if attr.kind.name == 'SECTION_ATTR' or
-                                attr.kind.name.endswith('_ATTR') and tokens(attr)[:1] == ['section']
-                                for token in tokens(attr)
-                                if token.startswith('"')]
-                    if sections:
-                        record['linker_section'] = sections[0]
                     if record['is_struct']:
                         # The inventory owns storage at the root symbol, while
                         # concurrency evidence must be attached to the concrete
@@ -199,6 +233,23 @@ class Extractor:
                         if element.kind.name == 'RECORD':
                             record['member_definitions'] = self.record_members(element)
                     self.variables[sid] = record
+                if defining:
+                    size, align = typ.get_size(), typ.get_align()
+                    record.update(type=c.type.spelling, initializer=' '.join(tokens(c))[:500],
+                                  size_bytes=size if size >= 0 else None,
+                                  alignment_bytes=align if align >= 0 else None)
+                    if 'ARRAY' in typ.kind.name:
+                        record['array_size'] = typ.element_count if typ.kind.name == 'CONSTANTARRAY' else None
+                    if any(attr.kind.name.endswith('_ATTR') for attr in c.get_children()):
+                        # Macro attribute cursors can have empty token ranges.
+                        # Use Clang's expanded declaration, excluding initializer
+                        # strings and large table contents. A prior extern may
+                        # have created the inventory row without these attributes.
+                        policy = ci.PrintingPolicy.create(c)
+                        policy.set_property(ci.PrintingPolicyProperty.SuppressInitializers, 1)
+                        sections = re.findall(r'\bsection\s*\(\s*"([^"\\]*)"\s*\)', c.pretty_printed(policy))
+                        if sections:
+                            record['linker_section'] = sections[0]
                 if decl not in record["declarations"]:
                     record["declarations"].append(decl)
                 if defining and decl not in record["definitions"]:

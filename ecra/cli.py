@@ -189,6 +189,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             all_includes.update(part.get("includes", []))
             parts.append(part)
         facts = merge(parts)
+        parts.clear()
         facts['translation_units'] = units
         from .supplemental import supplement, selected_files, build_file_coverage
         all_supplemental_tus, supplemental_includes = ([], set())

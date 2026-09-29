@@ -1,5 +1,7 @@
 """Serialize Clang pointer expressions without retaining native AST objects."""
-from .extract import FUNCTIONS, WRAPPERS, children, operator, walk, constant_value
+import ast
+import re
+from .extract import FUNCTIONS, WRAPPERS, children, operator, walk, constant_value, tokens, constant_condition, has_entry_label
 
 
 class PointerExtractor:
@@ -10,13 +12,54 @@ class PointerExtractor:
         self.parameters = {}
         self.atomic_macros = {}
         self.layout_cache = {}
+        self.extent_cache = {}
         self.stable_pointer_parameters = {}
         self.path_conditions = []
         self.guard_sites = {}
+        self.condition_cache = {}
+        self.storage = {}
+        self.variadic_expression_cache = {}
+        self.constant_regions = []
+
+    def is_variadic_expression(self, node):
+        if node.kind.name == 'VA_ARG_EXPR':
+            return True
+        if node.kind.name != 'UNEXPOSED_EXPR':
+            return False
+        if node not in self.variadic_expression_cache:
+            self.variadic_expression_cache[node] = tokens(node, 1) == ['__builtin_va_arg']
+        return self.variadic_expression_cache[node]
+
+    def storage_definition(self, location, typ):
+        canonical = typ.get_canonical()
+        declaration = canonical.get_declaration()
+        key = (canonical.kind.name, canonical.spelling, declaration.get_usr() or declaration.hash)
+        extents = self.extent_cache.get(key, {})
+        def arrays(current, prefix='', seen=()):
+            current = current.get_canonical()
+            if 'ARRAY' in current.kind.name:
+                extents[prefix] = current.element_count if current.kind.name == 'CONSTANTARRAY' else None
+                arrays(current.element_type, prefix + '/[*]', seen)
+            elif current.kind.name == 'RECORD':
+                declaration = current.get_declaration()
+                key = declaration.get_usr() or declaration.hash
+                if key not in seen:
+                    for field in declaration.get_children():
+                        if field.kind.name == 'FIELD_DECL':
+                            arrays(field.type, prefix + '/' + field.spelling, (*seen, key))
+        if key not in self.extent_cache:
+            arrays(typ)
+            self.extent_cache[key] = extents
+        self.storage[location] = dict(location=location, function_id=self.function,
+            paths=self.aggregate_paths(typ),
+            array_extents=extents,
+            array_size=canonical.element_count if canonical.kind.name == 'CONSTANTARRAY' else None)
 
     def stable_parameters(self, function):
         parameters = {self.key(p) for p in function.get_arguments()
                       if p.type.get_canonical().kind.name == 'POINTER'}
+        if not parameters:
+            return parameters
         for node in walk(function):
             cs = children(node)
             if 'ASM' in node.kind.name:
@@ -34,9 +77,18 @@ class PointerExtractor:
 
     def conditions(self, ancestors):
         result = []
+        if not self.stable_pointer_parameters.get(self.function):
+            return result
         for parent, index in ancestors:
+            if parent.kind.name != 'IF_STMT' or index not in {1, 2}:
+                continue
+            key = (self.function, parent, index)
+            if key in self.condition_cache:
+                result.extend(self.condition_cache[key])
+                continue
+            self.condition_cache[key] = []
             cs = children(parent)
-            if parent.kind.name != 'IF_STMT' or len(cs) not in {2, 3} or index not in {1, 2}:
+            if len(cs) not in {2, 3}:
                 continue
             condition = self.unwrap(cs[0])
             if condition.kind.name != 'BINARY_OPERATOR' or operator(condition) not in {'==', '!='}:
@@ -58,8 +110,10 @@ class PointerExtractor:
                 location = location['base']
             if location.get('op') != 'loc' or not location.get('id', '').startswith('obj:'):
                 continue
-            result.append(dict(parameter=left, target=right,
-                equals=(operator(condition) == '==') == (index == 1), **self.e.loc(condition)))
+            row = dict(parameter=left, target=right,
+                equals=(operator(condition) == '==') == (index == 1), **self.e.loc(condition))
+            self.condition_cache[key] = [row]
+            result.append(row)
         return result
 
     def aggregate_paths(self, typ):
@@ -82,7 +136,8 @@ class PointerExtractor:
         def fields(current, prefix='', seen=()):
             current = current.get_canonical()
             if 'ARRAY' in current.kind.name:
-                return fields(current.element_type, prefix + '/[*]', seen)
+                element = prefix + '/[*]'
+                return [element] + fields(current.element_type, element, seen)
             if current.kind.name != 'RECORD':
                 return [prefix] if prefix else []
             declaration = current.get_declaration()
@@ -123,6 +178,75 @@ class PointerExtractor:
                                          if node.type.get_canonical().kind.name == 'RECORD' else [],
                                      **self.e.loc(node)))
 
+    def cleanup_call(self, declaration):
+        """Represent GNU's implicit scope-exit call using ordinary C linkage."""
+        names = set()
+        for attribute in children(declaration):
+            if not attribute.kind.name.endswith('_ATTR'):
+                continue
+            spelling = tokens(attribute)
+            for index, token in enumerate(spelling[:-2]):
+                if token.strip('_') == 'cleanup' and spelling[index + 1] == '(':
+                    names.add(spelling[index + 2])
+        for name in sorted(names):
+            candidates = [f for f in self.e.functions.values() if f['name'] == name]
+            if not candidates:
+                candidates = [dict(function_id='unresolved-cleanup:' + name, name=name)]
+            for callee in candidates:
+                location = self.e.loc(declaration)
+                self.calls.append(dict(function_id=self.function, target=callee['function_id'],
+                    expression=dict(op='function', id=callee['function_id']), name=name,
+                    arguments=[dict(op='addr', value=dict(op='loc', id=self.key(declaration)))],
+                    argument_values=[None], argument_aggregates=[False], argument_aggregate_paths=[[]],
+                    result=dict(op='loc', id='cleanup:' + self.e.tu_name + ':' + str(location['offset'])),
+                    returns_pointer=False, returns_aggregate=False, return_aggregate_paths=[],
+                    path_conditions=list(self.path_conditions), implicit_call='GNU_CLEANUP',
+                    source_text=self.e.source(declaration), **location))
+                self.e.calls.append(dict(caller_function_id=self.function, callee_function_id=callee['function_id'],
+                    callee_name=name, call_kind='IMPLICIT_CLEANUP', **location))
+
+    def assembly_branches(self, node, expressions):
+        """Resolve literal ARM branches to exact void(void) function operands.
+
+        Other operands, register-indirect transfers, returned values and data
+        uses remain opaque. The CFG still treats assembly as an unknown mask
+        operation; a recovered call edge is not a protection proof.
+        """
+        template = []
+        for token in tokens(node):
+            if token == ':':
+                break
+            if token.startswith('"'):
+                try:
+                    template.append(ast.literal_eval(token))
+                except (ValueError, SyntaxError):
+                    return set()
+        assembly = ''.join(template)
+        uses = re.findall(r'(?<!%)%(?:[A-Za-z])?(\d+)', assembly)
+        branches = []
+        for instruction in re.split(r'[;\n]', assembly):
+            match = re.fullmatch(r'\s*(?:b|bx|bl|blx)\s+%(\d+)\s*(?:@[^\n]*)?', instruction)
+            if match:
+                branches.append(match[1])
+        resolved = set()
+        for index, expression in enumerate(expressions):
+            operand = str(index)
+            value = self.value(expression)
+            callee = self.e.functions.get(value.get('id')) if value.get('op') == 'function' else None
+            if (not callee or callee.get('parameter_count') != 0 or callee.get('return_type_kind') != 'VOID'
+                    or not uses.count(operand) or uses.count(operand) != branches.count(operand)):
+                continue
+            location = self.e.loc(node)
+            self.calls.append(dict(function_id=self.function, target=callee['function_id'],
+                expression=value, name=callee['name'], arguments=[],
+                result=dict(op='loc', id='asm-branch:' + self.e.tu_name + ':' + str(location['offset']) + ':' + operand),
+                returns_pointer=False, returns_aggregate=False, implicit_call='ARM_LITERAL_BRANCH',
+                path_conditions=list(self.path_conditions), source_text=self.e.source(node), **location))
+            self.e.calls.append(dict(caller_function_id=self.function, callee_function_id=callee['function_id'],
+                callee_name=callee['name'], call_kind='IMPLICIT_ASM_BRANCH', **location))
+            resolved.add(index)
+        return resolved
+
     def key(self, decl):
         if decl.kind.name == 'PARM_DECL':
             parent = decl.semantic_parent
@@ -134,6 +258,8 @@ class PointerExtractor:
 
     def unwrap(self, node):
         while node.kind.name in WRAPPERS:
+            if self.is_variadic_expression(node):
+                break
             # A cast to a typedef can contain TYPE_REF children before its
             # operand. Count expression children, not all AST children, or
             # `(WireByte *)&object` loses the pointee entirely.
@@ -148,6 +274,8 @@ class PointerExtractor:
         k, cs = node.kind.name, children(node)
         if k == 'DECL_REF_EXPR' and node.referenced:
             return dict(op='loc', id=self.key(node.referenced))
+        if k in {'COMPOUND_LITERAL_EXPR', 'CXX_TEMPORARY_OBJECT_EXPR'}:
+            return self.value(node)
         if k == 'UNARY_OPERATOR' and operator(node) == '*' and cs:
             return dict(op='deref', value=self.value(cs[0]))
         if k == 'MEMBER_REF_EXPR' and cs:
@@ -179,15 +307,35 @@ class PointerExtractor:
                 return self.value(cs[0])
         if k == 'CALL_EXPR':
             return self.result(node)
-        if k == 'VA_ARG_EXPR' and cs:
-            if node.type.get_canonical().kind.name in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'}:
-                return dict(op='va_arg', value=self.value(cs[0]))
-            return dict(op='empty')
+        if k == 'StmtExpr' or k == 'STMT_EXPR':
+            # GNU statement expressions take the value of the final
+            # expression statement, including calls inside registration
+            # macros. Earlier statements still emit normal constraints.
+            body = children(cs[-1]) if cs and cs[-1].kind.name == 'COMPOUND_STMT' else []
+            if body and body[-1].kind.is_expression():
+                return self.value(body[-1])
+        if self.is_variadic_expression(node) and cs:
+            operand = next((child for child in cs if child.kind.is_expression()), None)
+            payload = dict(op='va_arg', value=self.value(operand) if operand is not None else dict(op='empty'))
+            if node.type.get_canonical().kind.name == 'RECORD':
+                storage = self.result(node)
+                self.storage_definition(storage['id'], node.type)
+                for path in self.aggregate_paths(node.type):
+                    # The unordered variadic may-set contains pointer payloads
+                    # from every argument. Keep those in every record field
+                    # until argument position/type refinement is available.
+                    self.constraints.append(dict(left=dict(op='loc', id=storage['id'] + path),
+                        right=payload, function_id=self.function, path_conditions=list(self.path_conditions),
+                        **self.e.loc(node)))
+                return storage
+            # Addresses may travel through uintptr_t before a later cast.
+            return payload
         if k in {'COMPOUND_LITERAL_EXPR', 'CXX_TEMPORARY_OBJECT_EXPR'}:
             initializer = next((child for child in cs if child.kind.name == 'INIT_LIST_EXPR'), None)
             if initializer is not None:
                 loc = self.e.loc(node)
                 storage = dict(op='loc', id='literal:' + self.e.tu_name + ':' + loc['file'] + ':' + str(loc['offset']))
+                self.storage_definition(storage['id'], node.type)
                 self.initializer(storage, node.type, initializer)
                 return storage
         if k in {'DECL_REF_EXPR', 'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR', 'UNARY_OPERATOR'}:
@@ -207,8 +355,12 @@ class PointerExtractor:
                     amount = -amount
                 return dict(op='offset', value=self.value(cs[pointer]),
                             index=str(amount) if amount is not None else '*')
-        if k == 'BINARY_OPERATOR' and operator(node) in {'+', '-', ','}:
+        if k == 'BINARY_OPERATOR' and operator(node) == ',' and len(cs) == 2:
+            return self.value(cs[1])
+        if k == 'BINARY_OPERATOR' and operator(node) in {'+', '-'}:
             return dict(op='union', items=[self.value(c) for c in cs])
+        if k == 'BINARY_OPERATOR' and operator(node) == '=' and len(cs) == 2:
+            return self.value(cs[1])
         if typ in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'}:
             # Preserve incomplete provenance even when a second assignment
             # supplies known may-targets for the same pointer.
@@ -301,11 +453,27 @@ class PointerExtractor:
                 return
             self.function = self.e.fid(node)
             self.stable_pointer_parameters[self.function] = self.stable_parameters(node)
+            self.storage_definition(self.function + ':return', node.result_type)
         self.path_conditions = self.conditions(ancestors) if self.function else []
         if self.path_conditions:
             loc = self.e.loc(node)
             self.guard_sites[(self.function, loc['file'], loc['offset'])] = list(self.path_conditions)
+        if k in {'VAR_DECL', 'PARM_DECL'}:
+            self.storage_definition(self.key(node), node.type)
+        if k == 'IF_STMT' and len(cs) in {2, 3} and self.function:
+            truth = constant_condition(cs[0])
+            discarded = cs[1] if truth is False else cs[2] if truth is True and len(cs) == 3 else None
+            if discarded is not None and not has_entry_label(discarded):
+                start, end = discarded.extent.start, discarded.extent.end
+                # Macro expansion ranges can collapse onto the same token.
+                # Never use such a range to discard neighboring live facts.
+                if start.offset >= cs[0].extent.end.offset and end.offset > start.offset:
+                    self.constant_regions.append(dict(self.e.loc(discarded), function_id=self.function,
+                        offset=start.offset, end_offset=end.offset,
+                        condition=self.e.loc(cs[0]), value=truth, proof='CONSTANT_DISCARDED_BRANCH'))
         if k == 'VAR_DECL' and cs:
+            if self.function:
+                self.cleanup_call(node)
             init = next((c for c in reversed(cs) if c.kind.is_expression()), None)
             if init:
                 self.initializer(dict(op='loc', id=self.key(node)), node.type, init)
@@ -322,6 +490,7 @@ class PointerExtractor:
         if k == 'RETURN_STMT' and cs and self.function:
             self.constraint(dict(op='loc', id=self.function + ':return'), self.value(cs[0]), cs[0])
         if k == 'CALL_EXPR' and self.function:
+            self.storage_definition(self.result(node)['id'], node.type)
             ref = node.referenced
             direct = ref is not None and ref.kind.name in FUNCTIONS
             arguments = list(node.get_arguments())
@@ -343,9 +512,10 @@ class PointerExtractor:
                 source_text=self.e.source(node), **self.e.loc(node)))
         if 'ASM' in k and self.function:
             expressions = [child for child in cs if child.kind.is_expression()]
+            branches = self.assembly_branches(node, expressions)
             self.calls.append(dict(function_id=self.function, target=None,
                 expression=dict(op='unknown', id='asm:' + str(node.location.offset)), name='<inline assembly>',
-                arguments=[self.value(expr) for expr in expressions],
+                arguments=[self.value(expr) for index, expr in enumerate(expressions) if index not in branches],
                 result=self.result(node), returns_pointer=False, inline_assembly=True,
                 source_text=self.e.source(node), **self.e.loc(node)))
         def has_dereference(expression):
@@ -394,4 +564,5 @@ class PointerExtractor:
             key = (owner, row.get('file'), row.get('offset'))
             if key in self.guard_sites:
                 row['path_conditions'] = self.guard_sites[key]
-        return dict(pointer_constraints=self.constraints, semantic_calls=self.calls, indirect_accesses=self.accesses)
+        return dict(pointer_constraints=self.constraints, semantic_calls=self.calls, indirect_accesses=self.accesses,
+                    pointer_storage=list(self.storage.values()), constant_regions=self.constant_regions)

@@ -48,6 +48,44 @@ class ResolutionTests(unittest.TestCase):
         '''})
         self.assertEqual([c['callee_name'] for c in facts['calls'] if c['call_kind'] == 'INDIRECT_RESOLVED'], ['A'])
 
+    def test_statement_expression_macro_preserves_returned_pointer(self):
+        facts, _ = self.facts({'a.c': '''
+            static int value;
+            static int *Get(void) { return &value; }
+            #define SELECT() ({ static const char tag[]="registration"; Get(); })
+            int main(void) { *SELECT()=7; return 0; }
+            void USART1_IRQHandler(void) { (void)value; }
+        '''})
+        value = next(v for v in facts['variables'] if v['name']=='value')
+        self.assertTrue(any(a['symbol_id']==value['symbol_id'] and a['access_kind']=='WRITE'
+                            for a in facts['accesses']), facts['indirect_accesses'])
+
+    def test_local_record_array_elements_keep_separate_callback_targets(self):
+        facts, _ = self.facts({'a.c': '''
+            typedef struct { void (*callback)(void); int *value; } Entry;
+            static int first, second;
+            static void A(void) { first++; } static void B(void) { second++; }
+            int main(void) {
+                Entry table[]={{A,&first},{B,&second}};
+                table[0].callback();
+                return 0;
+            }
+        '''})
+        calls = [c['callee_name'] for c in facts['calls'] if c['call_kind']=='INDIRECT_RESOLVED']
+        self.assertEqual(calls, ['A'])
+        self.assertFalse(any('/$overlap' in v for p in facts['pointer_targets'] for v in p['targets']))
+
+    def test_local_record_array_decay_and_explicit_index_agree(self):
+        facts, _ = self.facts({'a.c': '''
+            typedef struct { int *value; } Entry;
+            static int first, second;
+            static void Store(Entry *p) { *p->value=7; }
+            int main(void) { Entry table[]={{&first},{&second}}; Store(table); return 0; }
+        '''})
+        names = {v['symbol_id']:v['name'] for v in facts['variables']}
+        writes = {names[a['symbol_id']] for a in facts['accesses'] if a['access_kind']=='WRITE'}
+        self.assertEqual(writes, {'first'})
+
     def test_callback_registration_wrappers_preserve_irq_caller(self):
         facts, cfg = self.facts({'a.c': '''
             typedef void (*CB)(void); void Install(CB); void Dispatch(void);
@@ -216,7 +254,7 @@ class ResolutionTests(unittest.TestCase):
             int main(void) { memcpy((void *)dst,(const void *)src,sizeof(dst)); return 0; }
         '''})
         call = next(c for c in facts['semantic_calls'] if c['name'] == 'memcpy')
-        self.assertEqual(call['argument_pointee_paths'][:2], [['/[*]/tag', '/[*]/value']] * 2)
+        self.assertEqual(call['argument_pointee_paths'][:2], [['/[*]', '/[*]/tag', '/[*]/value']] * 2)
         self.assertEqual(call['argument_pointee_sizes'][:2], [16, 16])
         self.assertEqual(call['argument_values'][2], 16)
 

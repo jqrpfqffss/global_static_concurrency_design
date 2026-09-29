@@ -84,7 +84,9 @@ class ScreeningTests(unittest.TestCase):
         variables = {v['name']: v for v in facts['variables']}
         self.assertIsNone(variables['startup_state']['screening_reason'])
         self.assertIsNone(variables['assembly_state']['screening_reason'])
-        self.assertEqual(variables['normal']['screening_reason'], 'SINGLE_ACCESS_SITE')
+        # A bare assembly call with no function/vector provenance may be
+        # asynchronous even when its destination is already named main.
+        self.assertEqual(variables['normal']['static_classification'], 'UNKNOWN')
         self.assertEqual(report['coverage']['assembly_sources'], ['startup.s'])
 
     def test_supplemental_inventory_is_separate_from_missing_definition_queue(self):
