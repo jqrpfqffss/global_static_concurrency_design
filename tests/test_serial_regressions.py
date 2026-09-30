@@ -34,12 +34,18 @@ class SerialRegressionTests(unittest.TestCase):
         facts,report=self.extract(cfg)
         # Struct fields are canonical resources.  The byte-wise alias points
         # at sample.value, not at the whole sample record.
-        for name in ('lifetime','sample.value'):
-            var=next(v for v in facts['variables'] if v.get('qualified_name', v['name'])==name)
+        lifetime=next(v for v in facts['variables'] if v.get('qualified_name', v['name'])=='lifetime')
+        value=next(v for v in facts['variables'] if v.get('qualified_name', v['name'])=='sample.value')
+        for var in (lifetime, value):
             self.assertIn('task',var['readers'])
             self.assertEqual(var['writers'],['isr'])
             self.assertTrue(any(a['access_kind']=='READ' and a.get('via_alias')=='interprocedural points-to' for a in var['accesses']))
-            self.assertIn('GS-MULTI-CONTEXT',next(f for f in report['findings'] if f.get('symbol_id')==var['symbol_id'])['rules'])
+        # uint64 在 32 位目标上无法单指令原子读取：单一写者也保持 SUSPECT。
+        self.assertEqual(lifetime['static_classification'], 'SUSPECT')
+        self.assertIn('GS-MULTI-CONTEXT',next(f for f in report['findings'] if f.get('symbol_id')==lifetime['symbol_id'])['rules'])
+        # 4 字节对齐标量：唯一写者 + 只读者 => 共享无需复核，不生成 finding。
+        self.assertEqual(value['static_classification'], 'SHARED_NO_REVIEW')
+        self.assertFalse(any(f.get('symbol_id')==value['symbol_id'] for f in report['findings']))
 
     def test_typedef_function_pointer_cast_preserves_callback_target(self):
         cfg=self.project({'a.c': '''

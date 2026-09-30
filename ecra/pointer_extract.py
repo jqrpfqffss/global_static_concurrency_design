@@ -1,5 +1,5 @@
 """Serialize Clang pointer expressions without retaining native AST objects."""
-from .extract import FUNCTIONS, WRAPPERS, children, operator, walk
+from .extract import FUNCTIONS, WRAPPERS, children, operator, tokens as safe_tokens, walk
 
 
 class PointerExtractor:
@@ -82,6 +82,14 @@ class PointerExtractor:
 
     def initializer(self, loc, typ, node):
         node = self.unwrap(node)
+        if node.kind.name == 'UNEXPOSED_EXPR':
+            # 数组下标 designator 元素（``[idx] = value``）呈现为
+            # UNEXPOSED_EXPR（下标字面量 + 值）。数组元素共享抽象位置，
+            # 忽略下标、保留值；不剥掉这一层会让整个元素的值变成 empty，
+            # 函数指针任务表（[TASK_X] = DEFINE_TASK(...)）全部丢失。
+            exprs = [c for c in children(node) if c.kind.is_expression()]
+            if exprs:
+                node = self.unwrap(exprs[-1])
         if node.kind.name == 'INIT_LIST_EXPR':
             cs = children(node)
             canonical = typ.get_canonical()
@@ -168,7 +176,7 @@ class PointerExtractor:
                 self.accesses.append(dict(location=self.lvalue(node), mode=mode, function_id=self.function,
                     source_text=self.e.source(node), **self.e.loc(node)))
         # Clang ATOMIC_EXPR has operation in tokens, not a callee reference.
-        atomic_tokens = [t.spelling for t in node.get_tokens()] if k == 'UNEXPOSED_EXPR' and len(cs) > 1 else []
+        atomic_tokens = safe_tokens(node) if k == 'UNEXPOSED_EXPR' and len(cs) > 1 else []
         atomic_name = atomic_tokens[0] if atomic_tokens else ''
         atomic_shape = (k == 'UNEXPOSED_EXPR' and len(cs) >= 2 and
                         cs[0].type.get_canonical().kind.name == 'POINTER' and
@@ -177,7 +185,7 @@ class PointerExtractor:
             node_loc = self.e.loc(node)
             macro_name = self.atomic_macros.get((node_loc['file'], node_loc['offset']), '')
             spelling = self.e.source(node)
-            toks = [t.spelling for t in node.get_tokens()]
+            toks = safe_tokens(node)
             names = [s for s in toks if 'atomic_' in s]
             name = names[0] if names else macro_name
             mode = 'READ' if 'load' in name or len(cs) == 2 else ('WRITE' if 'store' in name or node.type.kind.name == 'VOID' else 'RMW')

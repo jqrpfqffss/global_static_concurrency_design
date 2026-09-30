@@ -23,7 +23,7 @@ project:
   # 可用绝对路径；也可相对本文件的 config/ 目录，例如 ../firmware/MyBoard。
   # 切换到另一项目时，首先修改此项。
   # root: "H:/stm32_RAG/code/serial - opencode"
-  root: "H:/stm32_RAG/test/serial - continue"
+  root: "H:/stm32_RAG/code/serial - opencode"
 
   # 以下只是报告说明，不会替你注入芯片宏或改变 CMake 编译参数。
   chip: STM32
@@ -62,6 +62,16 @@ analysis:
 
   # 每个翻译单元交给 Clang 解析的最长时间；大型工程可适当增大。
   parse_timeout_seconds: 180
+
+  # 可选：单个变量“底层并发组合”展示上限（默认 2000，0 表示不限）。
+  # 大型枢纽函数的组合数是访问实例数的平方量级；超限后按写冲突优先保留，
+  # 并在 HTML/facts 中显式记录 CONFLICT_PAIR_CAPPED。分类不依赖该展示枚举。
+  # max_conflict_paths: 2000
+
+  # 可选：全工程已解析无环调用链枚举上限（默认 2000000，0 表示不限）。
+  # 达到上限时记录 CALL_PATH_CAPPED，展示链与组合计数退化为下界；
+  # 分类使用入口级证据，不受该截断影响。
+  # max_call_paths: 2000000
 
   # 排查输出目录，相对固件根目录。必须是根目录下的独立子目录。
   # 它包含报告、日志、缓存和扫描状态；建议加入固件工程 .gitignore。
@@ -163,7 +173,7 @@ contexts:
 review:
   # false：只做本地静态排查，生成待复核清单；推荐新项目首次接入时保持 false。
   # true：在静态扫描后调用下方 command，对每个候选执行 OpenCode 复核。
-  enabled: true
+  enabled: false
 
   # 复核命令必须是参数数组，而不是带空格的一整条 shell 字符串。
   command: [opencode]

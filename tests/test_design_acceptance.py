@@ -14,18 +14,18 @@ from ecra.html_report import anchor
 
 
 EXPECTED = {
-    'D01': ('unused','SAFE','NOT_FOUND'), 'D02': ('value','SAFE','NOT_FOUND'),
-    'D03': ('value','SAFE','NOT_FOUND'), 'D04': ('value','SUSPECT','NOT_FOUND'),
+    'D01': ('unused','SAFE_PROVEN','NOT_FOUND'), 'D02': ('value','SAFE_PROVEN','NOT_FOUND'),
+    'D03': ('value','SAFE_PROVEN','NOT_FOUND'), 'D04': ('value','SHARED_NO_REVIEW','NOT_FOUND'),
     'D05': ('value','SUSPECT','NOT_FOUND'), 'D06': ('value','SUSPECT','NOT_FOUND'),
-    'D07': ('value','SUSPECT','NOT_FOUND'), 'D08': ('value','SAFE','EFFECTIVE'),
-    'D09': ('value','SUSPECT','PARTIAL'),     'D10': ('value','SAFE','EFFECTIVE'),
+    'D07': ('value','SUSPECT','NOT_FOUND'), 'D08': ('value','SAFE_PROVEN','EFFECTIVE'),
+    'D09': ('value','SUSPECT','PARTIAL'),     'D10': ('value','SAFE_PROVEN','EFFECTIVE'),
     # D11/D12: 已知 MAIN↔ISR 写冲突 + BASEPRI/间接调用未解析 => SUSPECT（T15：
     # 优先级/保护缺口不能把已知冲突降级为 UNKNOWN）。
     'D11': ('value','SUSPECT','UNRESOLVED'), 'D12': ('value','SUSPECT','NOT_FOUND'),
-    'D13': ('value','SAFE','NOT_FOUND'), 'D14': ('value','UNKNOWN','NOT_FOUND'),
-    'D15': ('value','UNKNOWN','NOT_FOUND'), 'D16': ('value','SAFE','EFFECTIVE'),
+    'D13': ('value','SAFE_PROVEN','NOT_FOUND'), 'D14': ('value','UNKNOWN','NOT_FOUND'),
+    'D15': ('value','SUSPECT','NOT_FOUND'), 'D16': ('value','SAFE_PROVEN','EFFECTIVE'),
     'D17': ('value','SUSPECT','NOT_FOUND'), 'D18': ('value','SUSPECT','INEFFECTIVE'),
-    'D19': ('value','SUSPECT','NOT_FOUND'), 'D20': ('value','SUSPECT','NOT_FOUND'),
+    'D19': ('value','SHARED_NO_REVIEW','NOT_FOUND'), 'D20': ('value','SUSPECT','NOT_FOUND'),
 }
 
 
@@ -52,8 +52,8 @@ class DesignCases(unittest.TestCase):
         target = next(v for v in facts['variables'] if v['name']==name)
         self.assertEqual(target['static_classification'],classification,target)
         self.assertEqual(target['protection_status'],protection,target)
-        self.assertEqual(target['analysis_coverage'], 'PARTIAL' if classification=='UNKNOWN' else 'COMPLETE')
-        if classification == 'SAFE':
+        self.assertEqual(target['analysis_coverage'], 'PARTIAL' if target.get('coverage_reasons') else 'COMPLETE')
+        if classification == 'SAFE_PROVEN':
             self.assertTrue(target['safe_reason'])
             self.assertTrue(target['safe_evidence'])
         if classification == 'UNKNOWN':
@@ -61,7 +61,7 @@ class DesignCases(unittest.TestCase):
             self.assertTrue(target['blocking_evidence'])
             self.assertTrue(target['required_context'])
         counts = report['coverage']['static_classification']
-        self.assertEqual(counts['total'],sum(counts[k] for k in ('safe','suspect','unknown')))
+        self.assertEqual(counts['total'],sum(counts[k] for k in ('proven','no_review','suspect','unknown')))
         access_ids = {a['access_id'] for a in facts['accesses']}
         self.assertEqual(access_ids,{a['access_id'] for v in facts['variables'] for a in v['accesses']})
         if case not in {'D01'}:
@@ -85,7 +85,8 @@ class DesignCases(unittest.TestCase):
         reviews = review_all(self.root,out,cfg,facts,report,'design-fixture',progress=lambda _:None)
         generate(out,facts,report,reviews)
         queued = {f['symbol_id'] for f in report['findings'] if f.get('symbol_id')}
-        self.assertEqual(queued,{v['symbol_id'] for v in facts['variables'] if v['static_classification']!='SAFE'})
+        self.assertEqual(queued,{v['symbol_id'] for v in facts['variables']
+                                 if v['static_classification'] not in {'SAFE_PROVEN', 'SHARED_NO_REVIEW'}})
         html = (out/'index.html').read_text(encoding='utf-8')
         review_html = (out/'opencode_review.html').read_text(encoding='utf-8')
         self.assertIn(anchor('var-',target['symbol_id']),html)
@@ -124,7 +125,7 @@ void TIM4_IRQHandler(void){value++;}
             contexts=[dict(id='main',kind='MAIN',functions=['main'])])
         facts,_ = self.extract(cfg)
         value = next(v for v in facts['variables'] if v['name']=='value')
-        self.assertEqual(value['static_classification']=='SAFE',safe,value)
+        self.assertEqual(value['static_classification']=='SAFE_PROVEN',safe,value)
         return value
 
     def test_nested_disable_is_not_a_nesting_lock(self):

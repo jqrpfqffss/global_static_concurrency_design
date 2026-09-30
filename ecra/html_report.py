@@ -19,6 +19,7 @@ DISPLAY_TEXT = {
     'UNRESOLVED': '尚未确认', 'NOT_FOUND': '未发现', 'NONE': '未发现',
     'DETECTED': '已发现', 'EFFECTIVE': '保护有效', 'PARTIAL': '分析不完整 / 部分覆盖',
     'INEFFECTIVE': '保护无效', 'SAFE': '未发现并发风险',
+    'SAFE_PROVEN': '静态已判安全', 'SHARED_NO_REVIEW': '共享访问，无需复核',
     'SCREENED_SAFE': '已排查：未发现并发风险', 'LIKELY': '疑似并发风险',
     'CONFIRMED': '已确认并发风险', 'UNKNOWN': '无法判断',
     'NEED_MORE_CONTEXT': '信息不足，无法判断', 'NEED_OPENCODE_REVIEW': '待进一步复核',
@@ -355,7 +356,8 @@ DECISIONS = {
     'likely': ('疑似并发风险', '有并发风险线索，尚未证实为实际缺陷。'),
     'unresolved': ('无法判断', '缺少入口、访问或定义证据，不能判定安全。'),
     'safe': ('已复核：未发现并发风险', '仅在该项复核列出的条件下成立。'),
-    'screened_safe': ('已排查：未发现并发风险', '当前编译配置下没有可形成读写冲突的已知访问；不覆盖解析盲区、汇编或未建模硬件入口。'),
+    'screened_safe': ('静态已判安全', '存在具体静态安全证明（只读 / 单一串行域 / 初始化期写入 / 有效保护等）；不覆盖解析盲区、汇编或未建模硬件入口。'),
+    'no_review': ('共享访问，无需复核', '唯一写者 + 其余上下文只读 + 可证明的原子访问宽度；这是无需逐项复核的共享模式，不是无风险证明。'),
     'inventory': ('未发现并发风险', '当前建模路径未发现跨执行上下文读写线索；结论仅适用于已解析范围。'),
     'supplemental': ('补充声明（未分析访问）', '来自未编译文件或条件分支变体；仅盘点声明，并发访问尚未分析。'),
 }
@@ -384,7 +386,9 @@ def variable_decisions(facts, report, records):
             result[sid] = 'unresolved'
         elif groups[sid]:
             result[sid] = min(groups[sid], key=priority.index)
-        elif v.get('static_classification') == 'SAFE' or v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK':
+        elif v.get('static_classification') == 'SHARED_NO_REVIEW':
+            result[sid] = 'no_review'
+        elif v.get('static_classification') in ('SAFE', 'SAFE_PROVEN') or v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK':
             result[sid] = 'screened_safe'
         else:
             result[sid] = 'inventory'
@@ -609,7 +613,7 @@ def risk_overview(facts, report, records, assessments):
         state, color = '当前未发现未解决的并发风险线索', 'unresolved'
         explanation = '这不是全工程无风险证明。已复核结论只适用于所列条件，未发现线索的变量尚未证明安全。'
     cards = ''.join(f'<a class="verdict-card {key}" href="#{"inventory" if key == "screened_safe" else "risks"}" data-decision-filter="{key}"><strong>{counts[key]}</strong><span>{esc(DECISIONS[key][0])}</span></a>'
-                    for key in ['confirmed', 'likely', 'unresolved', 'safe', 'screened_safe'])
+                    for key in ['confirmed', 'likely', 'unresolved', 'safe', 'no_review', 'screened_safe'])
     cov = report['coverage']
     gap_count = sum(not f.get('symbol_id') for f in report['findings'])
     inventory_by_kind = cov.get('inventory_by_kind', {})
@@ -618,7 +622,8 @@ def risk_overview(facts, report, records, assessments):
     return ('<section class="risk-overview"><div class="verdict-head ' + color + '"><span>并发风险结论</span><h2 id="risk-verdict">'
             + esc(state) + '</h2><p>' + esc(explanation) + '</p></div><div class="verdict-cards">' + cards + '</div>'
             + '<p class="scope-line">以上按变量去重统计。共 ' + str(len(facts['variables'])) + ' 个变量（' + esc(kind_line) + '）；另有 '
-            + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个已排查：未发现并发风险</a>、'
+            + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个静态已判安全</a>、'
+            + f'<a href="#inventory" data-decision-filter="no_review">{counts["no_review"]} 个共享访问，无需复核</a>、'
             + f'<a href="#inventory" data-decision-filter="inventory">{counts["inventory"]} 个未发现静态线索</a>（不等于安全）'
             + (f'、<a href="#inventory" data-decision-filter="supplemental">{counts["supplemental"]} 个补充解析</a>' if counts.get('supplemental') else '')
             + f'。<a href="#gaps">{gap_count} 项覆盖 / 依赖缺口</a>单独保留，不计入风险变量。</p>'
@@ -755,7 +760,7 @@ def write_html(out, facts, report, reviews):
             text += '；继承：' + str(instance.get('inherited_from_canonical_path') or '整对象访问')
         return '<a href="#' + target + '">' + esc(label) + '<br>' + esc(text) + '<br>展开该访问的全部调用链</a>'
 
-    def conflict_pair_table(pairs, protection, anchor_prefix):
+    def conflict_pair_table(pairs, protection, anchor_prefix, cap_info=None):
         if not pairs:
             return '<p>未生成可比较的上下文访问实例。</p>'
         shown_pairs = pairs[:HTML_CONFLICT_PAIR_SAMPLE_LIMIT]
@@ -772,8 +777,13 @@ def write_html(out, facts, report, reviews):
                              '<strong>' + esc(to_display_text(pair.get('status'))) + '</strong><br><span class="muted">完整路径组合：'
                              + esc(pair.get('path_combination_count', 1)) + '</span>']))
         notice = ''
+        if cap_info:
+            notice = ('<p class="notice">底层并发组合达到展示上限（' + esc(cap_info.get('limit'))
+                      + '，按写冲突优先保留）；完整组合数为 '
+                      + esc(cap_info.get('total_pair_count')) + ' 或更多。分类不依赖该展示枚举，'
+                      '可在 analysis.max_conflict_pairs 调整上限。</p>')
         if len(shown_pairs) < len(pairs):
-            notice = ('<p class="notice">为保持变量详情可快速打开，此处只展示 ' + str(len(shown_pairs))
+            notice += ('<p class="notice">为保持变量详情可快速打开，此处只展示 ' + str(len(shown_pairs))
                       + ' / ' + str(len(pairs)) + ' 组代表性组合。所有源码访问和完整调用链仍在本变量详情中；'
                       + '完整组合清单保存在同目录的 <a href="facts.json">facts.json</a> 与 '
                       + '<a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>。</p>')
@@ -828,7 +838,7 @@ def write_html(out, facts, report, reviews):
             reader = context(reader_contexts[0]) if reader_contexts else '其它执行上下文'
             return ('疑似并发风险', reader + '会读取该变量；' + context(async_writers[0]) + '会写入该变量。',
                     '重点确认：写入者是否可能与读取或其它写入交错执行，以及保护是否覆盖完整访问。')
-        if variable.get('static_classification') == 'SAFE' or assessments.get(variable['symbol_id']) == 'screened_safe':
+        if variable.get('static_classification') in ('SAFE', 'SAFE_PROVEN', 'SHARED_NO_REVIEW') or assessments.get(variable['symbol_id']) == 'screened_safe':
             # 优先展示静态证明 reason code 及其中文说明（safe_reason_code /
             # classification_reason 由分类引擎给出，可被审计）。
             reason = variable.get('classification_reason') or '当前已解析的访问没有形成跨执行上下文的读写冲突。'
@@ -869,8 +879,10 @@ def write_html(out, facts, report, reviews):
     def advanced_static_info(variable, finding_list, views, anchor_prefix):
         pairs = [pair for finding in finding_list for pair in finding.get('conflict_pairs', [])]
         relations = [relation for finding in finding_list for relation in finding.get('concurrency_relations', [])]
+        cap_infos = [finding.get('conflict_pairs_capped') for finding in finding_list if finding.get('conflict_pairs_capped')]
         body = deferred_detail('查看全部底层并发组合（' + str(len(pairs)) + ' 组）',
-                               conflict_pair_table(pairs, variable.get('protection_status', 'NOT_FOUND'), anchor_prefix))
+                               conflict_pair_table(pairs, variable.get('protection_status', 'NOT_FOUND'), anchor_prefix,
+                                                   cap_infos[0] if cap_infos else None))
         body += '<details><summary>查看抢占关系、保护明细与静态规则</summary>'
         body += '<p>重复的保护 / 覆盖缺口明细仅保存在机器事实中，避免每个变量在 HTML 中重复数百次。'
         body += '完整内容见 <a href="facts.json">facts.json</a>（变量 ID：<code>' + esc(variable['symbol_id']) + '</code>）。</p>'
@@ -984,7 +996,8 @@ def write_html(out, facts, report, reviews):
         else:
             detail_body += deferred_detail('查看全部底层并发组合（' + str(len(f.get('conflict_pairs', []))) + ' 组）',
                                             conflict_pair_table(f.get('conflict_pairs', []),
-                                                                f.get('protection_status', 'NOT_FOUND'), pair_prefix))
+                                                                f.get('protection_status', 'NOT_FOUND'), pair_prefix,
+                                                                f.get('conflict_pairs_capped')))
         detail_body += '<p>完整、不重复的机器事实在同目录 <a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>；候选 ID：<code>' + esc(f['finding_id']) + '</code>。</p>'
         detail_body += raw(compact_debug_fields(f, {
             'accesses', 'conflict_pairs', 'concurrency_relations', 'context_pairs', 'review',

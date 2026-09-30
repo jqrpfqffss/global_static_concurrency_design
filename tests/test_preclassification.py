@@ -66,7 +66,7 @@ class PreClassificationTests(unittest.TestCase):
             int main(void){while(1){Step();} return 0;}
         '''})
         v = self.variable(facts, 'g')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
         self.assertIn('静态已判安全', v['classification_reason'])
         self.assertFalse(any(f.get('symbol_id') == v['symbol_id'] for f in report['findings']))
@@ -81,7 +81,7 @@ class PreClassificationTests(unittest.TestCase):
             int main(void){return cfg_value;}
         '''})
         v = self.variable(facts, 'cfg_value')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_MULTI_CONTEXT_READ_ONLY')
         self.assertGreaterEqual(len(v['contexts']), 3)
 
@@ -92,29 +92,32 @@ class PreClassificationTests(unittest.TestCase):
             void TIM4_IRQHandler(void){Bump(); counter = counter + 1; int x = counter; (void)x;}
         '''})
         v = self.variable(facts, 'counter')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_IRQ')
 
-    def test_T04_main_read_isr_write_is_suspect(self):
+    def test_T04_main_read_isr_write_is_shared_no_review(self):
         facts, report = self.analyze({'a.c': '''
             int value;
             void TIM4_IRQHandler(void){value = 2;}
             int main(void){return value;}
         '''})
         v = self.variable(facts, 'value')
-        self.assertEqual(v['static_classification'], 'SUSPECT')
-        self.assertTrue(any(f.get('symbol_id') == v['symbol_id'] for f in report['findings']))
+        # 唯一写者（TIM4 IRQ）+ 其余只读 + int 单指令原子 => 共享访问无需复核；
+        # 不是 SAFE_PROVEN（共享未证明），也不进入 OpenCode 队列。
+        self.assertEqual(v['static_classification'], 'SHARED_NO_REVIEW')
+        self.assertEqual(v['screening_reason'], 'SHARED_NO_REVIEW')
+        self.assertFalse(any(f.get('symbol_id') == v['symbol_id'] for f in report['findings']))
 
-    def test_T05_isr_write_plus_isr_read_priority_unknown_is_suspect_not_unknown(self):
+    def test_T05_isr_write_plus_isr_read_priority_unknown_is_shared_no_review(self):
         facts, _ = self.analyze({'a.c': '''
             int value;
             void TIM2_IRQHandler(void){value = 1;}
             void TIM3_IRQHandler(void){int x = value; (void)x;}
         '''})
         v = self.variable(facts, 'value')
-        self.assertEqual(v['static_classification'], 'SUSPECT')
-        # 已知跨 ISR 冲突：priority unknown => MAY_INTERLEAVE => SUSPECT。
-        self.assertIn('抢占优先级待确认', v.get('classification_reason', '') + str(v.get('pending_confirmation')))
+        # 单一写者 + 其余只读：不存在写-写/RMW 交叉，抢占优先级未知也不产生
+        # 破坏性冲突 => SHARED_NO_REVIEW（不是 UNKNOWN，也不是 SUSPECT）。
+        self.assertEqual(v['static_classification'], 'SHARED_NO_REVIEW')
 
     def test_T06_isr_write_plus_isr_write_priority_unknown_is_suspect_not_unknown(self):
         facts, _ = self.analyze({'a.c': '''
@@ -135,7 +138,7 @@ class PreClassificationTests(unittest.TestCase):
             int main(void){g_counter++; Dispatch(); return 0;}
         '''})
         v = self.variable(facts, 'g_counter')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
         self.assertEqual(v['screening_blockers'], [])
 
@@ -159,7 +162,7 @@ class PreClassificationTests(unittest.TestCase):
              'broken.c': 'this is not valid C source code @#$%',
              }, allow_fail=('broken.c',))
         v = self.variable(facts, 'value')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
         self.assertEqual(v['screening_blockers'], [])
 
@@ -171,7 +174,7 @@ class PreClassificationTests(unittest.TestCase):
             void Worker(void){static int budget; budget--;}
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         v = self.variable(facts, 'budget')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
 
     def test_T11_function_static_from_main_and_isr_is_suspect(self):
@@ -199,7 +202,7 @@ class PreClassificationTests(unittest.TestCase):
             int main(void){RegisterA(PollA); RegisterB(PollB); return status;}
         '''}, configure=configure)
         v = self.variable(facts, 'status')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertIn(v['screening_reason'], {'SAFE_MULTI_CONTEXT_READ_ONLY', 'SAFE_READ_ONLY'})
 
     def test_T13_primask_covering_whole_conflict_window_is_effective_protection(self):
@@ -211,7 +214,7 @@ class PreClassificationTests(unittest.TestCase):
         '''})
         v = self.variable(facts, 'value')
         self.assertEqual(v['protection_status'], 'EFFECTIVE')
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_EFFECTIVE_PROTECTION')
 
     def test_T14_primask_covering_only_part_of_rmw_is_suspect(self):
@@ -237,16 +240,16 @@ class PreClassificationTests(unittest.TestCase):
         self.assertEqual(v['protection_status'], 'UNRESOLVED')
         self.assertEqual(v['static_classification'], 'SUSPECT')
 
-    def test_T16_dma_ownership_unresolved_is_unknown_dma_lifetime(self):
+    def test_T16_dma_ownership_unresolved_with_cpu_write_is_suspect(self):
         facts, _ = self.analyze({'a.c': '''
             unsigned char value[16];
             void HAL_UART_Receive_DMA(void *, unsigned char *, unsigned);
             int main(void){HAL_UART_Receive_DMA(0, value, 16); value[0] = 1; return 0;}
         '''})
         v = self.variable(facts, 'value')
-        self.assertEqual(v['static_classification'], 'UNKNOWN')
-        self.assertIn('UNKNOWN_DMA_LIFETIME', v['unknown_reason'])
-        self.assertTrue(any(r['kind'] == 'UNKNOWN_DMA_LIFETIME' for r in v['required_context']))
+        # DMA 与 CPU 访问重叠且至少一方写 => 破坏性冲突 => SUSPECT（守门规则 6）。
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+        self.assertIn('CPU↔DMA', v['classification_reason'])
 
     def test_T17_field_sensitive_member_access_kinds(self):
         facts, _ = self.analyze({'a.c': '''
@@ -263,7 +266,7 @@ class PreClassificationTests(unittest.TestCase):
         service = next(f['function_id'] for f in facts['functions'] if f['name'] == 'Service_Rx')
         self.assertEqual(sorted({a['access_kind'] for a in limit['accesses'] if a['function_id'] == service}), ['WRITE'])
         self.assertEqual(sorted({a['access_kind'] for a in period['accesses'] if a['function_id'] == service}), ['READ'])
-        self.assertEqual(limit['static_classification'], 'SUSPECT')
+        self.assertEqual(limit['static_classification'], 'SHARED_NO_REVIEW')
 
     def test_T18_dynamic_array_index_pollutes_only_the_array_object(self):
         facts, _ = self.analyze({'a.c': '''
@@ -278,9 +281,9 @@ class PreClassificationTests(unittest.TestCase):
         idx = self.variable(facts, 'idx')
         # 动态下标 arr[i] 只影响 array[*]（arr 整体对象）；idx 确实跨上下文
         # 访问（MAIN 写 + ISR 读）=> SUSPECT 是正确结论；无关变量不受污染。
-        self.assertEqual(arr['static_classification'], 'SUSPECT')
-        self.assertEqual(idx['static_classification'], 'SUSPECT')
-        self.assertEqual(unrelated['static_classification'], 'SAFE')
+        self.assertEqual(arr['static_classification'], 'SHARED_NO_REVIEW')
+        self.assertEqual(idx['static_classification'], 'SHARED_NO_REVIEW')
+        self.assertEqual(unrelated['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(unrelated['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
         self.assertEqual(unrelated['screening_blockers'], [])
 
@@ -299,7 +302,7 @@ class PreClassificationTests(unittest.TestCase):
         '''})
         for name in ('ticks_a', 'ticks_b'):
             v = self.variable(facts, name)
-            self.assertEqual(v['static_classification'], 'SAFE', name)
+            self.assertEqual(v['static_classification'], 'SAFE_PROVEN', name)
             self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_FOREGROUND', name)
             self.assertEqual(v['contexts'], ['main'])
 
@@ -326,7 +329,7 @@ class PreClassificationTests(unittest.TestCase):
         '''})
         v = self.variable(facts, 'counter')
         # 同一 IRQ 向量内的多条调用路径仍是单一物理执行上下文。
-        self.assertEqual(v['static_classification'], 'SAFE')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_IRQ')
 
     # ---- UNKNOWN 精准 reason code / 不传播 -------------------------------
@@ -341,7 +344,7 @@ class PreClassificationTests(unittest.TestCase):
         plain = self.variable(facts, 'plain')
         self.assertEqual(escaped['static_classification'], 'UNKNOWN')
         self.assertEqual(escaped['unknown_reason'], ['UNKNOWN_ADDRESS_ESCAPE'])
-        self.assertEqual(plain['static_classification'], 'SAFE')
+        self.assertEqual(plain['static_classification'], 'SAFE_PROVEN')
         self.assertTrue(escaped['blocking_evidence'])
         self.assertTrue(all(r['action'] for r in escaped['required_context']))
 
@@ -359,6 +362,138 @@ class PreClassificationTests(unittest.TestCase):
         self.assertIn('unknown_reason_distribution', coverage)
         self.assertIn('safe_reason_distribution', coverage)
 
+
+    # ---- 守门规则（Section 15）：以下模式永远不得降噪为 SAFE/NO_REVIEW ----
+
+    def guard(self, sources, name, configure=None, path=None):
+        facts, _ = self.analyze(sources, configure=configure)
+        return self.variable(facts, name, path)
+
+    def test_G1_main_write_isr_write_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            int flag;
+            void TIM4_IRQHandler(void){flag = 1;}
+            int main(void){flag = 0; return flag;}
+        '''}, 'flag')
+        self.assertEqual(v['static_classification'], 'SUSPECT', v['classification_reason'])
+
+    def test_G2_isr_rmw_plus_isr_write_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            int state;
+            void TIM2_IRQHandler(void){state++;}
+            void TIM3_IRQHandler(void){state = 5;}
+        '''}, 'state')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_G3_stale_snapshot_read_then_writeback_stays_suspect(self):
+        # MAIN 读旧值 -> ISR 写 -> MAIN 写回旧值：两写者 => SUSPECT。
+        v = self.guard({'a.c': '''
+            int value;
+            void TIM4_IRQHandler(void){value = 99;}
+            int main(void){int local = value; for(volatile int i=0;i<4;i++){} value = local + 1; return 0;}
+        '''}, 'value')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_G4_flag_isr_set_main_clear_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            unsigned event;
+            void USART1_IRQHandler(void){event |= 1u;}
+            int main(void){if (event) {event = 0;} return (int)event;}
+        '''}, 'event')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_G5_partial_primask_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            int value;
+            void __disable_irq(void); void __enable_irq(void);
+            void TIM4_IRQHandler(void){value = 7;}
+            int main(void){value = 1; __disable_irq(); value = 2; __enable_irq(); return 0;}
+        '''}, 'value')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_G6_dma_cpu_write_conflict_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            unsigned char buf[32];
+            void HAL_SPI_Receive_DMA(void *, unsigned char *, unsigned);
+            int main(void){HAL_SPI_Receive_DMA(0, buf, 32); buf[1] = 2; return 0;}
+        '''}, 'buf')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_G7_bitfield_sharing_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            struct Flags {unsigned a : 1; unsigned b : 1;};
+            struct Flags f;
+            void TIM4_IRQHandler(void){f.a = 1;}
+            int main(void){f.b = 1; return f.a;}
+        '''}, 'f', path='f.a')
+        self.assertEqual(v['static_classification'], 'SUSPECT', v['classification_reason'])
+        w = self.guard({'a.c': '''
+            struct Flags {unsigned a : 1; unsigned b : 1;};
+            struct Flags f;
+            void TIM4_IRQHandler(void){f.a = 1;}
+            int main(void){f.b = 1; return f.a;}
+        '''}, 'f', path='f.b')
+        self.assertEqual(w['static_classification'], 'SUSPECT', w['classification_reason'])
+
+    def test_G8_whole_struct_write_vs_member_read_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            struct Pair {int x; int y;};
+            struct Pair p;
+            void fill(void){struct Pair local = {1, 2}; p = local;}
+            void TIM4_IRQHandler(void){fill();}
+            int main(void){return p.x + p.y;}
+        '''}, 'p', path='p.x')
+        self.assertEqual(v['static_classification'], 'SUSPECT', v['classification_reason'])
+
+    def test_G9_multi_field_coherence_stays_suspect(self):
+        # ISR 写 value + valid 两个字段；MAIN 在同一函数内成对读取。
+        v = self.guard({'a.c': '''
+            struct Sample {int value; int valid;};
+            struct Sample s;
+            void TIM4_IRQHandler(void){s.value = 42; s.valid = 1;}
+            int main(void){if (s.valid) {return s.value;} return 0;}
+        '''}, 's', path='s.value')
+        self.assertEqual(v['static_classification'], 'SUSPECT',
+                         'value/valid 成对读取必须保持 SUSPECT')
+
+    def test_G10_function_static_main_isr_reentrancy_stays_suspect(self):
+        v = self.guard({'a.c': '''
+            void Worker(void);
+            void TIM4_IRQHandler(void){Worker();}
+            int main(void){Worker(); return 0;}
+        ''', 'b.c': '''
+            void Worker(void){static int budget; budget--;}
+        '''}, 'budget')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_G11_64bit_shared_single_writer_not_no_review(self):
+        # uint64 在 32 位目标上无法单指令原子读写 => 不得 SHARED_NO_REVIEW。
+        v = self.guard({'a.c': '''
+            unsigned long long stamp;
+            void TIM4_IRQHandler(void){stamp = 12345ull;}
+            int main(void){return (int)stamp;}
+        '''}, 'stamp')
+        self.assertEqual(v['static_classification'], 'SUSPECT')
+
+    def test_shared_no_review_happy_path_atomic_single_writer(self):
+        # 原子宽度（uint32）+ 唯一写者 + 其余只读 => SHARED_NO_REVIEW。
+        v = self.guard({'a.c': '''
+            unsigned counter;
+            void TIM4_IRQHandler(void){counter = 7u;}
+            int main(void){return (int)counter;}
+        '''}, 'counter')
+        self.assertEqual(v['static_classification'], 'SHARED_NO_REVIEW')
+        self.assertEqual(v['screening_reason'], 'SHARED_NO_REVIEW')
+
+    def test_shared_no_review_requires_real_sharing(self):
+        # 单一 FOREGROUND 域内的读改写不属于共享：SAFE_SINGLE_FOREGROUND。
+        v = self.guard({'a.c': '''
+            static int local_counter;
+            void Helper(void){local_counter++;}
+            int main(void){Helper(); Helper(); return local_counter;}
+        '''}, 'local_counter')
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
+        self.assertEqual(v['screening_reason'], 'SAFE_SINGLE_FOREGROUND')
 
 if __name__ == '__main__':
     unittest.main()

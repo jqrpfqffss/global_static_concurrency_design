@@ -52,7 +52,8 @@ def safe_review_samples(facts, count):
     """Select deterministic SAFE samples without changing risk accounting."""
     if not count:
         return []
-    selected = [v for v in facts['variables'] if v.get('static_classification') == 'SAFE']
+    selected = [v for v in facts['variables']
+                if v.get('static_classification') in {'SAFE', 'SAFE_PROVEN', 'SHARED_NO_REVIEW'}]
     samples = []
     for variable in sorted(selected, key=lambda v: v['symbol_id'])[:count]:
         samples.append(dict(
@@ -60,13 +61,14 @@ def safe_review_samples(facts, count):
             symbol_id=variable['symbol_id'], variable_name=variable['qualified_name'],
             rules=['SAFE_SAMPLE'], risk_level='LOW', confidence='HIGH',
             status='NEED_OPENCODE_REVIEW', review_safe_sample=True,
-            static_classification='SAFE', protection_status=variable.get('protection_status', 'NOT_FOUND'),
+            static_classification=variable.get('static_classification'),
+            protection_status=variable.get('protection_status', 'NOT_FOUND'),
             protection_note=variable.get('protection_note'), accesses=variable.get('accesses', []),
             definition=dict(file=variable.get('definition_file'), line=variable.get('definition_line')),
             context_pairs=[], concurrency_relations=variable.get('concurrency_relations', []),
             screening_blockers=variable.get('screening_blockers', []),
             uncertainties=[],
-            concurrency_reason='SAFE 抽样复核：核对静态安全依据是否覆盖全部已解析访问和调用链。'))
+            concurrency_reason='静态已判安全 / 共享无需复核 抽样：核对证明依据是否覆盖全部已解析访问和调用链。'))
     return samples
 
 

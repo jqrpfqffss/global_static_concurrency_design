@@ -1,16 +1,20 @@
 """Conflict-based pre-OpenCode classification with variable-local evidence slices.
 
-分类最高层公式（本模块唯一裁决逻辑）::
+四类分类最高层公式（本模块唯一裁决逻辑）::
 
-    已知冲突候选（同一存储对象 + 至少一方 WRITE/RMW + 不同物理执行域
-                   或可重入 + 可能交错 + 未被已证明有效的保护阻断）
+    破坏性冲突（双写 / RMW 交叉 / DMA 与 CPU 至少一方写 / 位域并发写 /
+                   多字段一致性 / 可重入写者，且 MHP != NO）+ 未证明有效保护
         => SUSPECT（即使抢占优先级或保护细节尚未恢复）
 
-    无已知冲突 + 该变量证据切片内存在可能隐藏冲突的关键缺口
+    单一写者域 + 其余域只读 + 写者无独立读站点 + 可证明单指令原子宽度
+    + 无 DMA / 地址逃逸 / 未知写者 / 多字段一致性关联
+        => SHARED_NO_REVIEW（共享访问，无需复核；不进入 OpenCode，也不是安全证明）
+
+    无冲突 + 该变量证据切片内存在可能隐藏冲突的关键缺口
         => UNKNOWN（精准 reason code，禁止宽泛兜底）
 
-    无已知冲突 + 变量相关证据足够证明不存在其它冲突
-        => SAFE（必须携带 safe_reason_code + safe_evidence）
+    无冲突 + 变量相关证据足够证明不存在其它冲突
+        => SAFE_PROVEN（必须携带 safe_reason_code + safe_evidence）
 
 工程中其它位置的函数指针、未知 alias、缺失 caller、解析失败，
 只要不进入该变量的 Evidence Slice，一律不影响该变量分类。
@@ -53,6 +57,7 @@ SAFE_LABELS = {
     'SAFE_NON_INTERLEAVING': '静态已判安全：多上下文已证明无法交错',
     'SAFE_EFFECTIVE_PROTECTION': '静态已判安全：完整临界区保护',
     'SAFE_INIT_ONLY_WRITE': '静态已判安全：初始化阶段写入，运行期只读',
+    'SHARED_NO_REVIEW': '共享访问，无需复核：唯一写者 + 其余只读 + 原子宽度',
 }
 
 UNKNOWN_LABELS = {
@@ -112,9 +117,23 @@ SYMBOL_UNKNOWN_CODES = {
     'UNRESOLVED_CALL_ESCAPE': 'UNKNOWN_ADDRESS_ESCAPE',
 }
 
-# 异步源启用 API：初始化阶段证明（SAFE_INIT_ONLY_WRITE）使用。
+# 异步源启用 API：初始化阶段证明（SAFE_INIT_ONLY_WRITE）使用。覆盖 NVIC、
+# SysTick、HAL 外设 IT/DMA 启动与 RTOS 调度入口；发生即视为异步执行已可用。
 ASYNC_ENABLE_APIS = {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ', '__enable_irq',
-                     'SysTick_Config', 'HAL_SYSTICK_Config', 'HAL_SYSTICK_CLKSourceConfig'}
+                     'SysTick_Config', 'HAL_SYSTICK_Config', 'HAL_SYSTICK_CLKSourceConfig',
+                     'HAL_TIM_Base_Start_IT', 'HAL_TIM_OC_Start_IT', 'HAL_TIM_PWM_Start_IT',
+                     'HAL_TIM_IC_Start_IT', 'HAL_TIM_Encoder_Start_IT',
+                     'HAL_TIM_Base_Start_DMA', 'HAL_TIM_OC_Start_DMA', 'HAL_TIM_PWM_Start_DMA',
+                     'HAL_UART_Receive_IT', 'HAL_UART_Transmit_IT',
+                     'HAL_UART_Receive_DMA', 'HAL_UART_Transmit_DMA',
+                     'HAL_SPI_Receive_IT', 'HAL_SPI_Transmit_IT',
+                     'HAL_SPI_Receive_DMA', 'HAL_SPI_Transmit_DMA',
+                     'HAL_I2C_Receive_IT', 'HAL_I2C_Slave_Receive_IT',
+                     'HAL_I2C_Receive_DMA', 'HAL_I2C_Slave_Receive_DMA',
+                     'HAL_ADC_Start_IT', 'HAL_ADC_Start_DMA',
+                     'HAL_DAC_Start_IT', 'HAL_DAC_Start_DMA',
+                     'HAL_LPTIM_Counter_Start_IT', 'HAL_RTC_SetAlarm_IT',
+                     'osKernelStart', 'osKernelInitialize', 'vTaskStartScheduler'}
 
 INTERLEAVING_RELATIONS = {'CAN_PREEMPT', 'MAY_INTERLEAVE', 'MAY_REENTER', 'UNKNOWN_PREEMPTION'}
 
@@ -156,6 +175,9 @@ class ClassificationModel:
         self.dead_functions = self._dead_functions()
         self.points_to_limit = any(u.get('kind') == 'POINTS_TO_LIMIT' for u in facts['unknowns'])
         self.enable_events = self._async_enable_events()
+        self.word_bytes = max(1, (cfg.get('project', {}).get('native_word_bits', 32) or 32) // 8)
+        # 多字段一致性 flagged 成员（analysis 在访问聚合后填充）。
+        self.coherent_members = set()
 
     # -- 域间关系 ---------------------------------------------------------
 
@@ -207,7 +229,9 @@ class ClassificationModel:
         ranges = defaultdict(list)
         for call in self.facts['calls']:
             callee = call.get('callee_function_id')
-            resolved = call.get('call_kind') in {'DIRECT', 'INDIRECT_RESOLVED', 'CONFIGURED'} and callee in self.funcs
+            # ASSEMBLY edges connect inline-asm operands to their target
+            # functions; they are resolved reachability, not opaque calls.
+            resolved = call.get('call_kind') in {'DIRECT', 'INDIRECT_RESOLVED', 'CONFIGURED', 'ASSEMBLY'} and callee in self.funcs
             if resolved or call.get('callee_name') in self.summarized:
                 continue
             if ((call.get('call_kind') == 'INDIRECT')
@@ -471,15 +495,66 @@ class ClassificationModel:
 
     # -- 单变量分类 -----------------------------------------------------------
 
+    # C 标量类型名 → 字节宽度（用于单写者共享的原子宽度证明）。
+    _SCALAR_WIDTHS = (
+        ('uint64_t', 8), ('int64_t', 8), ('long long', 8), ('unsigned long long', 8),
+        ('double', 8), ('uint32_t', 4), ('int32_t', 4), ('unsigned int', 4), ('int', 4),
+        ('unsigned long', 4), ('long', 4), ('unsigned', 4), ('float', 4), ('size_t', 4),
+        ('ssize_t', 4), ('intptr_t', 4), ('uintptr_t', 4), ('ptrdiff_t', 4),
+        ('uint16_t', 2), ('int16_t', 2), ('unsigned short', 2), ('short', 2),
+        ('uint8_t', 1), ('int8_t', 1), ('unsigned char', 1), ('signed char', 1),
+        ('char', 1), ('bool', 1), ('_Bool', 1),
+    )
+
+    def _element_width(self, variable):
+        """声明类型解析出的元素宽度（字节）；无法识别返回 None。
+
+        指针类型按目标机字宽处理；数组取元素类型（访问按元素粒度记录）。
+        """
+        if variable.get('is_struct') or variable.get('is_bitfield_container'):
+            return None
+        type_text = (variable.get('type') or '').strip()
+        base = type_text.split('[')[0].strip().rstrip('*').strip()
+        if '*' in (variable.get('type') or ''):
+            return max(1, self.word_bytes)
+        for name, width in self._SCALAR_WIDTHS:
+            if base == name or base.endswith(' ' + name) or base.endswith('unsigned ' + name):
+                return width
+        if not base:
+            return None
+        return None
+
     def classify(self, variable, accesses, symbol_unknowns, protection):
-        """按冲突优先公式给出 SAFE / SUSPECT / UNKNOWN 及证明或缺口。"""
+        """四类裁决：SUSPECT / SHARED_NO_REVIEW / UNKNOWN / SAFE_PROVEN。
+
+        最高层逻辑（destructive conflict 优先）::
+
+            破坏性冲突（双写 / RMW 交叉 / DMA 与 CPU 至少一方写 / 位域并发写
+                       / 多字段一致性 / 可重入写者，且 MHP != NO）+ 未证明有效保护
+                => SUSPECT
+
+            单一写者域 + 其余域只读 + 写者无独立读站点 + 原子宽度可证明
+            + 无 DMA/逃逸/未知写者/一致性关联
+                => SHARED_NO_REVIEW（共享访问，无需复核；不是 SAFE_PROVEN）
+
+            与该变量直接相关的关键未知
+                => UNKNOWN
+
+            其余（只读 / 单一串行域 / 初始化期写入 / 有效保护……）
+                => SAFE_PROVEN
+        """
         sid = variable['symbol_id']
         runtime = [a for a in accesses if a.get('access_kind') in {'READ', 'WRITE', 'RMW'}]
         writes = [a for a in runtime if a['access_kind'] in {'WRITE', 'RMW'}]
         domain_kinds = defaultdict(set)
+        domain_of_context = self.domain
+        dma_domains = set()
         for a in runtime:
             for cid in a.get('contexts', ()):
-                domain_kinds[self.domain[cid]].add(a['access_kind'])
+                domain = domain_of_context[cid]
+                domain_kinds[domain].add(a['access_kind'])
+                if self.contexts.get(cid, {}).get('kind') == 'DMA':
+                    dma_domains.add(domain)
         unresolved_context = [a for a in runtime
                               if not a.get('contexts') or a.get('function_id') in self.entry_uncertain]
 
@@ -507,85 +582,157 @@ class ClassificationModel:
         if not variable.get('definition_file'):
             add_gap('UNKNOWN_RELEVANT_MISSING_TU', dict(kind='DEFINITION_MISSING',
                     symbol_id=sid, explanation='当前构建闭包内没有该变量的定义'))
-        if unresolved_context and (writes or any(a['access_kind'] in {'WRITE', 'RMW'} for a in unresolved_context)):
-            witness = unresolved_context[0]
+        # 执行上下文未知的"写入"才构成未知写者；未知上下文的纯 READ 不与
+        # 任何读发生冲突，也不隐藏其它写入（该函数体的全部访问都已提取）。
+        unresolved_writes = [a for a in unresolved_context
+                             if a['access_kind'] in {'WRITE', 'RMW'}]
+        if unresolved_writes:
+            witness = unresolved_writes[0]
             add_gap('UNKNOWN_EXECUTION_CONTEXT', dict(
                 kind='EXECUTION_CONTEXT_UNRESOLVED', file=witness.get('file'), line=witness.get('line'),
                 function_id=witness.get('function_id'),
-                explanation='该访问所在函数的物理执行上下文无法恢复（可能从 MAIN、ISR 或未解析入口进入）'))
+                explanation='该写入所在函数的物理执行上下文无法恢复（可能从 MAIN、ISR 或未解析入口进入）'))
         if sid in self.asm_symbol_refs:
             add_gap('UNKNOWN_INLINE_ASM', self.asm_symbol_refs[sid])
 
-        # --- 已知冲突候选（仅在已解析物理域之间） ---
-        conflicts = []
+        scan_invalid = any(g['code'] in {'UNKNOWN_SCAN_INVALID', 'UNKNOWN_UNMODELED_CONCURRENCY'}
+                           for g in gaps)
+        if scan_invalid:
+            return dict(classification='UNKNOWN', safe_code=None,
+                        reason='扫描完整性或并发模型缺口：不能据此判定安全。',
+                        gaps=gaps, conflicts=[], domains=sorted(domain_kinds),
+                        unresolved_context_access_count=len(unresolved_context))
+
+        # --- 破坏性冲突模式（destructive conflict） ---
         domains = sorted(domain_kinds)
+        writer_domains = [d for d in domains if domain_kinds[d] & {'WRITE', 'RMW'}]
+        conflicts = []
+        destructive_reasons = []
         for i, first in enumerate(domains):
             for second in domains[i + 1:]:
                 if not self.domains_may_interleave(first, second):
                     continue
-                if {'WRITE', 'RMW'} & (domain_kinds[first] | domain_kinds[second]):
+                if ({'WRITE', 'RMW'} & domain_kinds[first]
+                        and {'WRITE', 'RMW'} & domain_kinds[second]):
                     conflicts.append((first, second))
         for domain in domains:
             if domain in self.reentrant_domains and {'WRITE', 'RMW'} & domain_kinds[domain]:
                 conflicts.append((domain, domain))
-        if conflicts and protection == 'EFFECTIVE':
-            conflicts = []
-
-        dma_gap = any(g['code'] == 'UNKNOWN_DMA_LIFETIME' for g in gaps)
-        scan_invalid = any(g['code'] in {'UNKNOWN_SCAN_INVALID', 'UNKNOWN_UNMODELED_CONCURRENCY'} for g in gaps)
-
-        # --- 裁决：冲突优先于缺口；DMA / 扫描失效优先于冲突 ---
-        if scan_invalid:
-            classification = 'UNKNOWN'
-            reason = '扫描完整性或并发模型缺口：不能据此判定安全。'
-        elif dma_gap:
-            classification = 'UNKNOWN'
-            reason = 'UNKNOWN_DMA_LIFETIME：变量已传入 DMA，所有权 / 生命周期 / Cache 协议无法静态确认。'
-        elif conflicts:
-            classification = 'SUSPECT'
-            reason = ('存在跨物理执行上下文的读写冲突候选（' + '、'.join(
-                f'{a} ↔ {b}' for a, b in conflicts[:4]) +
-                ('…' if len(conflicts) > 4 else '') + '）；'
-                + ('保护有效性待确认。' if protection in {'DETECTED', 'PARTIAL', 'UNRESOLVED'}
-                   else '尚未发现能排除该冲突的有效保护。'))
-        elif gaps:
-            classification = 'UNKNOWN'
-            reason = '；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps)
-        else:
-            classification, reason, code = self._safe_rule(variable, runtime, writes,
-                                                           domain_kinds, domains, protection)
-            return dict(classification=classification, reason=reason, safe_code=code,
-                        gaps=[], conflicts=[], domains=domains,
+        # CPU ↔ DMA：只要该变量同时被 DMA 和 CPU 访问且至少一方写。
+        if dma_domains and writer_domains:
+            dma_kinds = set().union(*(domain_kinds[d] for d in dma_domains))
+            cpu_write = any(domain_kinds[d] & {'WRITE', 'RMW'} for d in domains if d not in dma_domains)
+            if (dma_kinds & {'WRITE', 'RMW'} and cpu_write) or (dma_kinds & {'WRITE', 'RMW'}) or cpu_write:
+                destructive_reasons.append('CPU↔DMA 访问重叠且至少一方写（DMA 传输可与 CPU 访问任意交错）')
+        if variable.get('is_bitfield_container') and writes:
+            destructive_reasons.append('位域容器跨上下文并发修改（读改写非原子且共享宿主字）')
+        if (sid in self.coherent_members and len(domains) >= 2 and writes):
+            destructive_reasons.append('多字段一致性：同一 root 的多个关联字段被一个上下文修改、'
+                                       '另一上下文成对读取，可能观察到撕裂的字段组合')
+        if conflicts or destructive_reasons:
+            if protection == 'EFFECTIVE':
+                return dict(classification='SAFE_PROVEN', safe_code='SAFE_EFFECTIVE_PROTECTION',
+                            reason='跨上下文冲突访问的完整窗口已被证明处于有效临界区保护内。',
+                            gaps=[], conflicts=conflicts, domains=domains,
+                            unresolved_context_access_count=len(unresolved_context))
+            reason_parts = ['、'.join(f'{a} ↔ {b}' for a, b in conflicts[:4])
+                            + ('…' if len(conflicts) > 4 else '')] if conflicts else []
+            reason = '存在破坏性并发冲突模式（' + '；'.join(
+                [p for p in reason_parts if p] + destructive_reasons) + '）；' + (
+                '保护有效性待确认。' if protection in {'DETECTED', 'PARTIAL', 'UNRESOLVED'}
+                else '尚未发现能排除该冲突的有效保护。')
+            return dict(classification='SUSPECT', safe_code=None, reason=reason,
+                        gaps=gaps, conflicts=conflicts, domains=domains,
+                        destructive=destructive_reasons,
                         unresolved_context_access_count=len(unresolved_context))
-        return dict(classification=classification, reason=reason, safe_code=None,
-                    gaps=gaps, conflicts=conflicts, domains=domains,
+
+        # 执行上下文未知的写入：在已解析域之间未建立破坏性冲突时，未知写者
+        # 本身就是关键缺口（无法证明写者集合完整）=> UNKNOWN。
+        if unresolved_writes:
+            return dict(classification='UNKNOWN', safe_code=None,
+                        reason='；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps),
+                        gaps=gaps, conflicts=[], domains=domains,
+                        unresolved_context_access_count=len(unresolved_context))
+
+        # --- 单一写者域 + 其余只读 → SHARED_NO_REVIEW 候选 ---
+        # 必须存在真实共享（≥2 个物理域）：单域变量由 SAFE 规则直接证明。
+        if len(writer_domains) == 1 and len(domains) >= 2:
+            writer_domain = writer_domains[0]
+            writer_kinds = domain_kinds[writer_domain]
+            gate_failures = []
+            # 写者域内允许对同一变量存在独立读取站点：本分支已证明它是唯一
+            # 写者域，先读后写不会丢失更新（stale snapshot 需要第二个写者，
+            # 守门测试 G3 的双写者模式仍由 MULTI_WRITER 拦截）。RMW 是单
+            # 站点事务，同样不受限。
+            width = self._element_width(variable)
+            if width is None:
+                gate_failures.append('无法证明访问宽度为标量（结构体 / 位域 / 未知类型）')
+            elif width > self.word_bytes:
+                gate_failures.append(f'访问宽度 {width} 字节超过 {self.word_bytes} 字节单指令原子宽度')
+            else:
+                alignment = variable.get('alignment_bytes')
+                if alignment is None:
+                    gate_failures.append('对齐信息缺失，无法证明单指令原子访问')
+                elif alignment < width:
+                    gate_failures.append(f'对齐 {alignment} 字节小于访问宽度 {width} 字节')
+            if gate_failures:
+                if any(g['code'] != 'ACCESS_NOT_ANALYZED' for g in gaps):
+                    return dict(classification='UNKNOWN', safe_code=None,
+                                reason='；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps),
+                                gaps=gaps, conflicts=[], domains=domains,
+                                unresolved_context_access_count=len(unresolved_context))
+                return dict(classification='SUSPECT', safe_code=None,
+                            reason='单一写者共享变量未通过无复核门槛：' + '；'.join(gate_failures) + '。',
+                            gaps=[], conflicts=[], domains=domains,
+                            unresolved_context_access_count=len(unresolved_context))
+            evidence = dict(writer_domain=writer_domain, writer_kinds=sorted(writer_kinds),
+                            reader_domains=sorted(d for d in domains if d != writer_domain),
+                            element_width=width, alignment_bytes=variable.get('alignment_bytes'))
+            return dict(classification='SHARED_NO_REVIEW', safe_code='SHARED_NO_REVIEW',
+                        reason=('唯一写者（' + writer_domain + '）+ 其余上下文只读；访问宽度 '
+                                + str(width) + ' 字节、对齐 ' + str(variable.get('alignment_bytes'))
+                                + ' 字节满足单指令原子访问；无 DMA、地址逃逸或多字段一致性关联。'),
+                        gaps=[], conflicts=[], domains=domains, shared_evidence=evidence,
+                        unresolved_context_access_count=len(unresolved_context))
+
+        if gaps:
+            return dict(classification='UNKNOWN', safe_code=None,
+                        reason='；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps),
+                        gaps=gaps, conflicts=[], domains=domains,
+                        unresolved_context_access_count=len(unresolved_context))
+        classification, reason, code = self._safe_rule(variable, runtime, writes,
+                                                       domain_kinds, domains, protection)
+        return dict(classification=classification, reason=reason, safe_code=code,
+                    gaps=[], conflicts=[], domains=domains,
                     unresolved_context_access_count=len(unresolved_context))
 
     def _safe_rule(self, variable, runtime, writes, domain_kinds, domains, protection):
         if not runtime:
-            return 'SAFE', '无运行期访问（定义/初始化之外未发现 READ/WRITE/RMW）。', 'SAFE_NO_RUNTIME_ACCESS'
+            return ('SAFE_PROVEN', '无运行期访问（定义/初始化之外未发现 READ/WRITE/RMW）。',
+                    'SAFE_NO_RUNTIME_ACCESS')
         if not writes:
             if len(domains) > 1:
-                return ('SAFE', '多个物理上下文均只读取该变量，没有写者。', 'SAFE_MULTI_CONTEXT_READ_ONLY')
-            return 'SAFE', '全部已解析访问均为 READ，且没有地址逃逸或外部写入证据。', 'SAFE_READ_ONLY'
+                return ('SAFE_PROVEN', '多个物理上下文均只读取该变量，没有写者。',
+                        'SAFE_MULTI_CONTEXT_READ_ONLY')
+            return 'SAFE_PROVEN', '全部已解析访问均为 READ，且没有地址逃逸或外部写入证据。', 'SAFE_READ_ONLY'
         if len(domains) == 1:
             domain = domains[0]
             if domain == 'FOREGROUND':
-                return ('SAFE', '全部访问属于同一前台（main 调度）串行执行域，没有 ISR/DMA/异步访问。',
+                return ('SAFE_PROVEN', '全部访问属于同一前台（main 调度）串行执行域，没有 ISR/DMA/异步访问。',
                         'SAFE_SINGLE_FOREGROUND')
             kinds = {self.contexts[c].get('kind') for c in self.domain if self.domain[c] == domain}
             if kinds == {'ISR'}:
-                return ('SAFE', '全部访问属于同一 IRQ 物理上下文；单个 Cortex-M 中断处理内部串行执行。',
+                return ('SAFE_PROVEN', '全部访问属于同一 IRQ 物理上下文；单个 Cortex-M 中断处理内部串行执行。',
                         'SAFE_SINGLE_IRQ')
-            return 'SAFE', '全部访问属于同一串行执行域。', 'SAFE_SINGLE_CONTEXT'
+            return 'SAFE_PROVEN', '全部访问属于同一串行执行域。', 'SAFE_SINGLE_CONTEXT'
         if protection == 'EFFECTIVE':
-            return ('SAFE', '跨上下文冲突访问的完整窗口已被证明处于有效临界区保护内。',
+            return ('SAFE_PROVEN', '跨上下文冲突访问的完整窗口已被证明处于有效临界区保护内。',
                     'SAFE_EFFECTIVE_PROTECTION')
         if self.init_only_write_proof(writes, runtime):
-            return ('SAFE', '全部写入只发生在 main 初始化阶段（异步源启用之前），运行期只有读取。',
+            return ('SAFE_PROVEN', '全部写入只发生在 main 初始化阶段（异步源启用之前），运行期只有读取。',
                     'SAFE_INIT_ONLY_WRITE')
         # 多域 + 写 + 全部域对不可交错（同一抢占优先级等已证明关系）。
-        return ('SAFE', '多个执行域均已被证明无法互相抢占 / 重入。', 'SAFE_NON_INTERLEAVING')
+        return ('SAFE_PROVEN', '多个执行域均已被证明无法互相抢占 / 重入。', 'SAFE_NON_INTERLEAVING')
 
 
 def unknown_fanout_report(variables, threshold):

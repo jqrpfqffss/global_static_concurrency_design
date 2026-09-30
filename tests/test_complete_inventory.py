@@ -128,7 +128,7 @@ int main(void){
                         'broken.c': '#include "missing.h"\nint unrelated;'} )
         g = next(v for v in vs if v['name'] == 'g')
         self.assertEqual(g['analysis_coverage'], 'COMPLETE')
-        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(g['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(self.report['analysis_status'], 'INCOMPLETE')
 
     def test_vendor_prototype_cannot_hide_user_parameter(self):

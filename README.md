@@ -96,7 +96,7 @@ python run_ecra.py --profile <你的项目ID> --no-review
 python run_ecra.py review --profile <你的项目ID>
 ```
 
-大型回归的范围与证据边界见 [大型项目验收说明](docs/large-project-validation.md)。逐项校验保证核对记录不漏项，不能替代对模型推理和真实固件配置的验证。
+大型回归的范围与证据边界见 [大型项目验收说明](docs/large-project-validation.md)。三个真实开源工程（betaflight / klipper / blackmagic）上的 Pre-OpenCode 静态分类基准、SAFE 抽样审计与静态分析边界见[基准报告](docs/pre_opencode_classification_benchmark.md)：修复后三工程 UNKNOWN 占比 2.4%–6.0%，OpenCode 队列缩减 67%–84%（betaflight 从引擎无法完成变为可用）。逐项校验保证核对记录不漏项，不能替代对模型推理和真实固件配置的验证。
 
 JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_summary` 单独统计模型复核进度。具备源码证据的快照候选可展开三步交错示例；打印会保留当前筛选并包含全部匹配分页。过期或失败的旧回答不进入当前结论和修复清单。
 

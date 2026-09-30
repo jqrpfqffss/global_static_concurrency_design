@@ -25,7 +25,16 @@ def walk(c):
 
 
 def tokens(c):
-    return [t.spelling for t in c.get_tokens()]
+    spellings = []
+    for t in c.get_tokens():
+        try:
+            spellings.append(t.spelling)
+        except UnicodeDecodeError:
+            # 源文件含非 UTF-8 字节（如 Latin-1 注释/字符串）时 libclang 的
+            # token 解码会抛异常；降级为占位文本，不让整个编译单元的提取
+            # 失败。受影响参数无法按字面量解析，保守处理。
+            spellings.append('<undecodable-token>')
+    return spellings
 
 
 def constant_value(cursor):
@@ -522,7 +531,9 @@ class Extractor:
                 if cs and not any(self.variables[s]["is_array"] for s, _ in self.refs(cs[0])):
                     self.issue("POINTER_SUBSCRIPT", c, fid)
             if "ASM" in k:
-                self.issue("INLINE_ASSEMBLY", c, fid)
+                # extent 覆盖整个 asm 语句（含操作数），用于后续把流入
+                # 汇编块的函数地址恢复为可达边。
+                self.issue("INLINE_ASSEMBLY", c, fid, end_offset=c.extent.end.offset)
             for i, ch in enumerate(c.get_children()):
                 visit(ch, ancestors + [(c, i)])
         visit(fn, [])

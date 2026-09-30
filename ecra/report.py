@@ -13,6 +13,81 @@ def location(row):
     return f"{row.get('file') or '未知'}:{row.get('line') or '?'}"
 
 
+# SUSPECT 展示规则 → 根因桶（Section 1 的用户 taxonomy）。
+SUSPECT_CAUSE_BUCKETS = (
+    ('GS-DMA-RACE', 'DMA'),
+    ('GS-MULTI-FIELD-COHERENCE', 'MULTI_FIELD_COHERENCE'),
+    ('GS-MULTI-WRITER', 'MULTI_WRITER'),
+    ('GS-RMW-INTERLEAVE', 'RMW'),
+    ('GS-STALE-SNAPSHOT', 'STALE_SNAPSHOT'),
+    ('GS-LOCAL-STATIC-REENTRANT', 'FUNCTION_STATIC_REENTRANCY'),
+    ('GS-STRUCT-INCONSISTENT', 'STRUCT_BITFIELD'),
+    ('GS-TEAR-RISK', 'TEAR_RISK'),
+    ('GS-OWNER-VIOLATION', 'OWNER_VIOLATION'),
+    ('GS-MULTI-CONTEXT', 'MULTI_CONTEXT'),
+)
+
+
+def write_classification_diagnostics(out, facts, report):
+    """classification_root_causes.md + classification_quality.html（Section 1/14）。"""
+    from .common import digest
+    cov = report['coverage']
+    static = cov.get('static_classification', {})
+    variables = facts['variables']
+    compiled = [v for v in variables
+                if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}
+                and v.get('coverage_source') == 'compile_database']
+    total = len(compiled) or 1
+    findings_by_sid = {f['symbol_id']: f for f in report['findings'] if f.get('symbol_id')}
+    suspect_causes = Counter()
+    for v in compiled:
+        if v.get('static_classification') != 'SUSPECT':
+            continue
+        finding = findings_by_sid.get(v['symbol_id'], {})
+        rules = set(finding.get('rules', []))
+        matched = [label for code, label in SUSPECT_CAUSE_BUCKETS if code in rules]
+        for label in (matched or ['其它']):
+            suspect_causes[label] += 1
+    unknown_causes = Counter()
+    for v in compiled:
+        if v.get('static_classification') != 'UNKNOWN':
+            continue
+        for reason in (v.get('unknown_reason') or ['UNKNOWN_GENERAL']):
+            unknown_causes[reason] += 1
+    queue = static.get('suspect', 0) + static.get('unknown', 0)
+    md = ["# 分类根因统计（SUSPECT / UNKNOWN）", "",
+          f"- TOTAL（编译变量）：{len(compiled)}",
+          f"- SUSPECT：{static.get('suspect', 0)}（{round(100 * static.get('suspect', 0) / total, 1)}%）",
+          f"- UNKNOWN：{static.get('unknown', 0)}（{round(100 * static.get('unknown', 0) / total, 1)}%）",
+          f"- OpenCode 队列（SUSPECT+UNKNOWN）：{queue}（{round(100 * queue / total, 1)}%）", "",
+          "| 原因 | 变量数 | 占总变量% | 占 SUSPECT/UNKNOWN% |", "|---|---|---|---|"]
+    queue_total = max(1, queue)
+    for label, count in suspect_causes.most_common():
+        md.append(f"| SUSPECT:{label} | {count} | {round(100 * count / total, 1)} | {round(100 * count / queue_total, 1)} |")
+    for label, count in unknown_causes.most_common():
+        md.append(f"| UNKNOWN:{label} | {count} | {round(100 * count / total, 1)} | {round(100 * count / queue_total, 1)} |")
+    md += ["", "SUSPECT 只统计破坏性冲突模式（双写 / RMW 交叉 / DMA 与 CPU 至少一方写 / 位域 / 多字段一致性）；"
+           "单一写者 + 只读者的共享变量已归入 SHARED_NO_REVIEW，不进入本表。"]
+    (out / "reports/classification_root_causes.md").write_text("\n".join(md), encoding="utf-8")
+
+    quality = cov.get('classification_quality', {})
+    if quality:
+        rows = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>"
+                       for k, v in sorted(quality.get('refinements', {}).items(), key=lambda kv: -kv[1]))
+        html = ("<!doctype html><meta charset='utf-8'><title>分类质量报告</title>"
+                "<style>body{font-family:system-ui;margin:2rem}table{border-collapse:collapse}"
+                "td,th{border:1px solid #ccc;padding:.3rem .8rem}</style>"
+                "<h1>分类质量报告</h1>"
+                f"<p>TOTAL {quality.get('total')}；原始共享写候选 {quality.get('raw_shared_write_candidates')}；"
+                f"精化后 OpenCode 队列 {quality.get('suspect') + quality.get('unknown')}"
+                f"（Review Rate {quality.get('review_rate')}%）。</p>"
+                "<h2>降噪贡献（按最终证明规则）</h2>"
+                "<table><tr><th>精化规则</th><th>变量数</th></tr>" + rows + "</table>"
+                "<p class='muted'>原始候选到最终分类的差值由破坏性冲突保留量（SUSPECT）与证据缺口（UNKNOWN）解释；"
+                "降噪不得通过放宽冲突判定实现。</p>")
+        (out / "classification_quality.html").write_text(html, encoding="utf-8")
+
+
 def write_database(path, facts, report):
     # Replace a complete temporary DB atomically; never leave partially refreshed facts.
     temp = path.with_suffix(".db.tmp")
@@ -123,7 +198,12 @@ def generate(out, facts, report, reviews):
           "[变量完整清单](../inventory/global_static_inventory.md) · [未知项](unknown_contexts.md) · [OpenCode 复核](opencode_global_static_review.md)", ""]
     static = cov.get('static_classification', {})
     if static:
-        md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE {static.get('safe', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
+        if 'proven' in static:
+            md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE_PROVEN {static.get('proven', 0)} + "
+                       f"SHARED_NO_REVIEW {static.get('no_review', 0)} + SUSPECT {static.get('suspect', 0)} + "
+                       f"UNKNOWN {static.get('unknown', 0)}；OpenCode 队列 "
+                       f"{static.get('suspect', 0) + static.get('unknown', 0)}（"
+                       f"{round(100 * (static.get('suspect', 0) + static.get('unknown', 0)) / max(1, static.get('total', 1)), 1)}%）", ""]
         safe_dist = cov.get('safe_reason_distribution', {})
         unknown_dist = cov.get('unknown_reason_distribution', {})
         if safe_dist:
@@ -189,4 +269,5 @@ def generate(out, facts, report, reviews):
             patches += [f"## {r['finding_id']}", "", r["answer"]["fix"], "", r["answer"]["verification"], ""]
     (out / "reports/opencode_global_static_review.md").write_text("\n".join(review_md), encoding="utf-8")
     (out / "reports/opencode_patch_plan.md").write_text("\n".join(patches), encoding="utf-8")
+    write_classification_diagnostics(out, facts, report)
     write_html(out, facts, report, reviews)

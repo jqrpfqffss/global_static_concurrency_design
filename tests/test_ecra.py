@@ -354,9 +354,9 @@ void main(void){ __disable_irq(); g++; __enable_irq(); }
         facts, report = self.extract(cfg)
         g = next(v for v in facts["variables"] if v['name'] == 'g')
         self.assertEqual(g['protection_status'], 'EFFECTIVE')
-        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(g['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(g['analysis_coverage'], 'COMPLETE')
-        self.assertEqual(report['coverage']['static_classification'], dict(total=1, safe=1, suspect=0, unknown=0))
+        self.assertEqual(report['coverage']['static_classification'], dict(total=1, proven=1, no_review=0, suspect=0, unknown=0))
 
     def test_primask_save_restore_keeps_complete_window_effective(self):
         cfg = self.project({"a.c": """int g; typedef unsigned int uint32_t;
@@ -404,7 +404,7 @@ void main(void){ HAL_NVIC_SetPriorityGrouping(3); HAL_NVIC_SetPriority(TIM4_IRQn
         facts, _ = self.extract(cfg)
         g = next(v for v in facts['variables'] if v['name'] == 'g')
         self.assertEqual(g['protection_status'], 'EFFECTIVE')
-        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(g['static_classification'], 'SAFE_PROVEN')
 
     def test_conditional_irq_mask_never_becomes_effective(self):
         cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void);
