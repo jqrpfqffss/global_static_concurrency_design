@@ -469,18 +469,35 @@ class ClassificationModel:
         # OPT-14（FS-5）：只要工程中存在内联汇编就扫描汇编文本中的变量名。
         # 旧条件 `self.opaque_code is False` 恰好写反——内联汇编本身使
         # opaque_code 为真，扫描从未执行，汇编文本写入被判只读（P23）。
+        # 性能：逐汇编 × 逐变量做正则是 O(N_asm × N_var) 乘积爆炸
+        # （betaflight ~5875 s）；先按外部变量建 Aho-Corasick 式词表——
+        # 变量数有限，逐汇编一次扫描所有候选词的匹配用简单子串预过滤 +
+        # 词边界正则确认，仅对文本中出现候选子串的变量执行。
         if any(u.get('kind') == 'INLINE_ASSEMBLY' for u in self.facts['unknowns']):
+            externals = [v for v in self.facts['variables'] if v.get('linkage') == 'EXTERNAL']
+            patterns = {}
+            for v in externals:
+                try:
+                    patterns[v['symbol_id']] = re.compile(
+                        r'\b' + re.escape(v['name']) + r'\b')
+                except re.error:
+                    continue
             for u in self.facts['unknowns']:
                 if u.get('kind') != 'INLINE_ASSEMBLY':
                     continue
                 text = u.get('source_text', '') or ''
                 modeled = set(u.get('modeled_operand_sids') or ())
-                for v in self.facts['variables']:
-                    if v.get('linkage') != 'EXTERNAL' or v['symbol_id'] in modeled:
-                        # 操作数语义已恢复的变量不按文本重报（OPT-14）。
+                for v in externals:
+                    sid = v['symbol_id']
+                    if sid in modeled or sid in refs:
+                        # 操作数语义已恢复的变量不按文本重报（OPT-14）；
+                        # 已有引用记录的变量保留首条证据。
                         continue
-                    if re.search(r'\b' + re.escape(v['name']) + r'\b', text):
-                        refs.setdefault(v['symbol_id'], dict(
+                    pattern = patterns.get(sid)
+                    if pattern is None or v['name'] not in text:
+                        continue
+                    if pattern.search(text):
+                        refs.setdefault(sid, dict(
                             kind='INLINE_ASSEMBLY', file=u.get('file'), line=u.get('line'),
                             source_text=text[:200], explanation='内联汇编文本引用了该外部变量名'))
         return refs
