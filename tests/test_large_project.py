@@ -95,9 +95,16 @@ class ScreeningTests(unittest.TestCase):
         out = self.root/'.ecra'
         facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
         report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
-        self.assertEqual({f['symbol_id'] for f in report['findings'] if f.get('symbol_id')},
-                         {v['symbol_id'] for v in facts['variables']})
+        by_name = {v['name']: v for v in facts['variables']}
         self.assertEqual({v['name'] for v in facts['variables']},{'missing','orphan'})
+        # 定义不在构建闭包内的 extern：依赖声明（范围外组件所有），仅盘点、
+        # 不进入风险队列、也不宣称安全。
+        self.assertEqual(by_name['missing']['audit_status'], 'DEPENDENCY_DECLARATION')
+        self.assertEqual(by_name['missing']['static_classification'], 'DEPENDENCY_DECLARATION')
+        self.assertNotIn('missing', {f['symbol_id'] for f in report['findings'] if f.get('symbol_id')})
+        # 头文件 static 属补充盘点：仅盘点声明，不生成变量复核项。
+        self.assertEqual(by_name['orphan'].get('audit_status'), 'SUPPLEMENTAL_INVENTORY')
+        self.assertEqual({f['symbol_id'] for f in report['findings'] if f.get('symbol_id')} & {'missing'}, set())
 
     def test_local_pointees_and_function_dereferences_do_not_poison_globals(self):
         cfg = self.project({'a.c': '''

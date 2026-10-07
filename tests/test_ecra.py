@@ -288,12 +288,22 @@ void main(void) { ECAT_Task(); }
                 dict(function_id='main', api_name='HAL_NVIC_SetPriorityGrouping', arguments=['3']),
                 dict(function_id='main', api_name='HAL_NVIC_SetPriority', arguments=['TIM4_IRQn', '1', '0']),
                 dict(function_id='main', api_name='HAL_NVIC_SetPriority', arguments=['USART1_IRQn', '3', '0'])])
-        contexts = dict(tim=dict(id='tim', kind='ISR'), uart=dict(id='uart', kind='ISR'))
-        relation = preemption_relations(facts, contexts, dict(project=dict(nvic_priority_bits=4)))[0]
+        contexts = dict(main=dict(id='main', kind='MAIN'),
+                        tim=dict(id='tim', kind='ISR'), uart=dict(id='uart', kind='ISR'))
+        def isr_pair(relations):
+            return next(r for r in relations if set(r['contexts']) == {'tim', 'uart'})
+        relation = isr_pair(preemption_relations(facts, contexts, dict(project=dict(nvic_priority_bits=4))))
         self.assertEqual(relation['relation'], 'CAN_PREEMPT')
         self.assertEqual(relation['higher'], 'tim')
         facts['irq_priority_events'] = facts['irq_priority_events'][1:]
-        self.assertEqual(preemption_relations(facts, contexts)[0]['relation'], 'UNKNOWN_PREEMPTION')
+        # 无分组配置 => 复位默认 PRIGROUP=0；优先级仍唯一 => 仍可比较。
+        self.assertEqual(isr_pair(preemption_relations(
+            facts, contexts, dict(project=dict(nvic_priority_bits=4))))['relation'], 'CAN_PREEMPT')
+        facts['irq_priority_events'] = facts['irq_priority_events'][1:] + [
+            dict(function_id='tim', api_name='HAL_NVIC_SetPriority', arguments=['TIM4_IRQn', '2', '0'])]
+        # 同一 IRQ 第二次优先级设置（运行期重配置可能）=> 放弃恢复。
+        self.assertEqual(isr_pair(preemption_relations(
+            facts, contexts, dict(project=dict(nvic_priority_bits=4))))['relation'], 'UNKNOWN_PREEMPTION')
 
     def test_safe_review_sample_is_separate_from_risk_findings(self):
         facts = dict(variables=[dict(symbol_id='b', qualified_name='safe_b', static_classification='SAFE',

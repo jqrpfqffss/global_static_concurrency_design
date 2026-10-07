@@ -54,6 +54,28 @@ class PointerTests(unittest.TestCase):
         self.assertIn('GS-DMA-RACE', finding['rules'])
         self.assertEqual(finding['static_classification'], 'SUSPECT')
 
+    def test_object_sensitive_attribution_separates_instances(self):
+        # 共享写函数经指针参数写两个实例：各实例的写上下文随调用点分离。
+        cfg = self.project({'a.c': '''
+            struct S { unsigned v; };
+            struct S dev1, dev2;
+            void write_it(struct S *s){ s->v = 1; }
+            void USART1_IRQHandler(void){ write_it(&dev1); }
+            void USART2_IRQHandler(void){ write_it(&dev2); }
+            int main(void){ return dev1.v + dev2.v; }
+        '''})
+        facts, _ = self.extract(cfg)
+        def writers_of(path):
+            v = next(x for x in facts['variables'] if x.get('canonical_path') == path)
+            return sorted(v['writers']), sorted(v['contexts'])
+        w1, c1 = writers_of('dev1.v')
+        w2, c2 = writers_of('dev2.v')
+        self.assertEqual(len(w1), 1, w1)
+        self.assertEqual(len(w2), 1, w2)
+        self.assertNotEqual(w1, w2)
+        self.assertNotIn(w2[0], c1)
+        self.assertNotIn(w1[0], c2)
+
     def test_wrapped_task_registration_and_atomic_modes(self):
         cfg = self.project({'a.c': '''
             void xTaskCreate(void (*)(void*), const char*);

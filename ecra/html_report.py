@@ -20,6 +20,7 @@ DISPLAY_TEXT = {
     'DETECTED': '已发现', 'EFFECTIVE': '保护有效', 'PARTIAL': '分析不完整 / 部分覆盖',
     'INEFFECTIVE': '保护无效', 'SAFE': '未发现并发风险',
     'SAFE_PROVEN': '静态已判安全', 'SHARED_NO_REVIEW': '共享访问，无需复核',
+    'DEPENDENCY_DECLARATION': '依赖声明（定义在审计范围外）',
     'SCREENED_SAFE': '已排查：未发现并发风险', 'LIKELY': '疑似并发风险',
     'CONFIRMED': '已确认并发风险', 'UNKNOWN': '无法判断',
     'NEED_MORE_CONTEXT': '信息不足，无法判断', 'NEED_OPENCODE_REVIEW': '待进一步复核',
@@ -359,6 +360,7 @@ DECISIONS = {
     'screened_safe': ('静态已判安全', '存在具体静态安全证明（只读 / 单一串行域 / 初始化期写入 / 有效保护等）；不覆盖解析盲区、汇编或未建模硬件入口。'),
     'no_review': ('共享访问，无需复核', '唯一写者 + 其余上下文只读 + 可证明的原子访问宽度；这是无需逐项复核的共享模式，不是无风险证明。'),
     'inventory': ('未发现并发风险', '当前建模路径未发现跨执行上下文读写线索；结论仅适用于已解析范围。'),
+    'dependency': ('依赖声明（定义在审计范围外）', '变量由排除目录 / 链接库 / 汇编定义，范围内代码仅引用；按审计范围语义仅盘点，不进入风险队列，也不宣称安全。'),
     'supplemental': ('补充声明（未分析访问）', '来自未编译文件或条件分支变体；仅盘点声明，并发访问尚未分析。'),
 }
 
@@ -386,6 +388,8 @@ def variable_decisions(facts, report, records):
             result[sid] = 'unresolved'
         elif groups[sid]:
             result[sid] = min(groups[sid], key=priority.index)
+        elif v.get('static_classification') == 'DEPENDENCY_DECLARATION':
+            result[sid] = 'dependency'
         elif v.get('static_classification') == 'SHARED_NO_REVIEW':
             result[sid] = 'no_review'
         elif v.get('static_classification') in ('SAFE', 'SAFE_PROVEN') or v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK':
@@ -613,7 +617,7 @@ def risk_overview(facts, report, records, assessments):
         state, color = '当前未发现未解决的并发风险线索', 'unresolved'
         explanation = '这不是全工程无风险证明。已复核结论只适用于所列条件，未发现线索的变量尚未证明安全。'
     cards = ''.join(f'<a class="verdict-card {key}" href="#{"inventory" if key == "screened_safe" else "risks"}" data-decision-filter="{key}"><strong>{counts[key]}</strong><span>{esc(DECISIONS[key][0])}</span></a>'
-                    for key in ['confirmed', 'likely', 'unresolved', 'safe', 'no_review', 'screened_safe'])
+                    for key in ['confirmed', 'likely', 'unresolved', 'safe', 'no_review', 'screened_safe', 'dependency'])
     cov = report['coverage']
     gap_count = sum(not f.get('symbol_id') for f in report['findings'])
     inventory_by_kind = cov.get('inventory_by_kind', {})
@@ -624,6 +628,8 @@ def risk_overview(facts, report, records, assessments):
             + '<p class="scope-line">以上按变量去重统计。共 ' + str(len(facts['variables'])) + ' 个变量（' + esc(kind_line) + '）；另有 '
             + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个静态已判安全</a>、'
             + f'<a href="#inventory" data-decision-filter="no_review">{counts["no_review"]} 个共享访问，无需复核</a>、'
+            + (f'<a href="#inventory" data-decision-filter="dependency">{counts["dependency"]} 个依赖声明（定义在范围外）</a>、'
+               if counts.get('dependency') else '')
             + f'<a href="#inventory" data-decision-filter="inventory">{counts["inventory"]} 个未发现静态线索</a>（不等于安全）'
             + (f'、<a href="#inventory" data-decision-filter="supplemental">{counts["supplemental"]} 个补充解析</a>' if counts.get('supplemental') else '')
             + f'。<a href="#gaps">{gap_count} 项覆盖 / 依赖缺口</a>单独保留，不计入风险变量。</p>'

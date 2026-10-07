@@ -77,8 +77,29 @@ class Solver:
             row['access_id'] = 'A-' + digest(row)[:20]
             self.facts['accesses'].append(row)
 
+    # 标准分配器：返回值 = 独立抽象堆对象（按调用站点）。FreeRTOS/ CMSIS
+    # 常见封装一并覆盖；项目私有名可经 analysis.heap_allocators 补充。
+    DEFAULT_HEAP_ALLOCATORS = {'malloc', 'calloc', 'realloc', 'aligned_alloc',
+                               'pvPortMalloc', 'pvPortMallocUint32', 'osMemAlloc'}
+
+    def heap_allocators(self):
+        names = set(self.DEFAULT_HEAP_ALLOCATORS)
+        extra = (self.cfg or {}).get('analysis', {}).get('heap_allocators') or []
+        if isinstance(extra, str):
+            extra = [extra]
+        names.update(extra)
+        return names
+
     def solve(self):
         calls = self.facts.get('semantic_calls', [])
+        allocators = self.heap_allocators()
+        # 分配站点种子：在不动点迭代前注入，使赋值链（p = malloc(); q = p;）
+        # 正常传播。每个调用站点一个抽象堆对象，字段敏感机制按 heap:N/field
+        # 自然分离；dev->cb = fn 与 t->tc = &ctrl 由此可被解引用恢复。
+        for call in calls:
+            if call.get('name') in allocators and call.get('result', {}).get('id'):
+                site = 'heap:' + str(call.get('file') or '?') + ':' + str(call.get('offset', 0))
+                self.points[call['result']['id']].add(site)
         # Monotone finite inclusion system. A resource cap must be an explicit
         # incompleteness fact; no silent fixed number of propagation passes.
         for iteration in range(1000):
@@ -135,18 +156,146 @@ class Solver:
             if index not in self.matched_registration_specs:
                 self.facts['unknowns'].append(dict(kind='UNMATCHED_ENTRY_REGISTRATION', api=spec['api'],
                     hint='配置的注册 API 未匹配当前构建的调用；核对名称、宏展开及构建变体'))
-        for item in self.facts.get('indirect_accesses', []):
-            targets = self.locations(item['location'])
-            self.add_access(targets, item, item['mode'])
-            # Known automatic/parameter storage is a resolved object too. It is
-            # intentionally absent from the global/static inventory; that must
-            # not become a project-wide unknown write to exported globals.
-            if not targets:
-                self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE',
-                    function_id=item['function_id'], file=item['file'], line=item['line']))
+        self._attribute_indirect_accesses()
         self.facts['pointer_targets'] = [dict(location=k, targets=sorted(v)) for k, v in sorted(self.points.items()) if v]
         # Exact direct calls are retained; resolved edges augment their evidence.
         self.facts['accesses'] = list({a['access_id']: a for a in self.facts['accesses']}.values())
+
+    # -- 对象敏感访问归属（object-sensitive attribution） ---------------------
+
+    def _build_call_site_bindings(self, calls):
+        """每个 (被调函数, 参数序号) → 调用点索引列表。
+
+        固定点收敛后计算：参数绑定取调用点实参表达式的指向集，而不是
+        形参的全局合并集——这是实例分离（huart1/huart2/...）的依据。
+        站点身份用 semantic_calls 的行索引表示，保证同一调用点对所有
+        形参的绑定可以组合。
+        """
+        bindings = defaultdict(list)
+        for site_index, call in enumerate(calls):
+            targets = self.targets(call)
+            if not targets:
+                continue
+            arg_locs = [frozenset(self.value(arg)) for arg in call['arguments']]
+            for target in targets:
+                for i in range(len(arg_locs)):
+                    bindings[(target, i)].append(site_index)
+        self._site_by_index = [(call['function_id'], arg_locs)
+                               for call in calls for arg_locs in [[frozenset(self.value(a)) for a in call['arguments']]]]
+        return bindings
+
+    def _collect_param_refs(self, expr, found):
+        op = expr.get('op')
+        if op == 'loc':
+            ident = expr.get('id', '')
+            if ':param:' in ident:
+                fid, index = ident.rsplit(':param:', 1)
+                if index.isdigit():
+                    found.add((fid, int(index)))
+        elif op == 'addr':
+            self._collect_param_refs(expr['value'], found)
+        elif op == 'deref':
+            self._collect_param_refs(expr['value'], found)
+        elif op == 'field':
+            self._collect_param_refs(expr['base'], found)
+        elif op == 'union':
+            for item in expr.get('items', []):
+                self._collect_param_refs(item, found)
+
+    def _eval_value(self, expr, env):
+        op = expr.get('op')
+        if op == 'addr':
+            return self._eval_locations(expr['value'], env)
+        if op == 'function':
+            return {'fn:' + expr['id']}
+        if op == 'union':
+            result = set()
+            for item in expr.get('items', []):
+                result |= self._eval_value(item, env)
+            return result
+        if op == 'loc' and expr.get('id') in env:
+            # 调用点绑定：形参的值就是实参指向集，不能再查形参的全局合并表。
+            return set(env[expr['id']])
+        if op in {'loc', 'deref', 'field'}:
+            # 与 value() 同构：值 = 各位置的指向集（多跳解引用逐级查表）。
+            result = set()
+            for p in self._eval_locations(expr, env):
+                result |= self.points.get(p, set())
+            return result
+        return set()
+
+    def _eval_locations(self, expr, env):
+        op = expr.get('op')
+        if op == 'loc':
+            ident = expr.get('id', '')
+            if ident in env:
+                return {p for p in env[ident] if not p.startswith('fn:')}
+            return {ident}
+        if op == 'deref':
+            return {p for p in self._eval_value(expr['value'], env) if not p.startswith('fn:')}
+        if op == 'field':
+            return {p + '/' + expr['field'] for p in self._eval_locations(expr['base'], env)}
+        if op == 'union':
+            result = set()
+            for item in expr.get('items', []):
+                result |= self._eval_locations(item, env)
+            return result
+        return set()
+
+    def _attribute_indirect_accesses(self):
+        """按调用点参数绑定归属指针访问（Section 8/10：对象敏感）。
+
+        共享 HAL 处理函数（UART_Receive_IT(huart) 等）经形参写入各实例
+        对象；旧模型把形参的全局合并指向集 + 被调函数的调用者并集上下文
+        记到每个实例上，制造跨实例假双写者/假一致性。这里按每个调用点的
+        实参指向集重新求值访问表达式，访问行归属调用者函数（上下文随
+        调用点走），实例之间不再互相污染。形参无任何已解析调用绑定时
+        保守保留全局合并行。
+        """
+        calls = self.facts.get('semantic_calls', [])
+        bindings = self._build_call_site_bindings(calls)
+        for item in self.facts.get('indirect_accesses', []):
+            param_refs = {(fid, i) for (fid, i) in
+                          (self._param_refs_of(item) or set()) if fid == item['function_id']}
+            if not param_refs:
+                self._emit_union_row(item)
+                continue
+            # 同一被调函数内按调用点分组：所有引用形参在该调用点都必须有绑定。
+            site_sets = [set(bindings.get(ref, ())) for ref in param_refs]
+            common_sites = set.intersection(*site_sets) if site_sets else set()
+            if not common_sites:
+                self._emit_union_row(item)
+                continue
+            emitted = False
+            for site_index in sorted(common_sites):
+                caller, arg_locs = self._site_by_index[site_index]
+                env = {item['function_id'] + ':param:' + str(i): arg_locs[i]
+                       for (_fid, i) in param_refs if i < len(arg_locs)}
+                locs = self._eval_locations(item['location'], env)
+                if not locs:
+                    continue
+                self.add_access(locs, dict(item, function_id=caller), item['mode'])
+                emitted = True
+            if not emitted:
+                # 所有调用点实参都未解析出对象：保留缺口语义。
+                self._emit_union_row(item)
+
+    def _param_refs_of(self, item):
+        found = set()
+        self._collect_param_refs(item['location'], found)
+        return found
+        # 旧的全局合并行不再生成：per-site 行已覆盖有绑定的形参；无绑定
+        # 形参经 _emit_union_row 保守保留。
+
+    def _emit_union_row(self, item):
+        targets = self.locations(item['location'])
+        self.add_access(targets, item, item['mode'])
+        if not targets:
+            # Known automatic/parameter storage is a resolved object too. It is
+            # intentionally absent from the global/static inventory; that must
+            # not become a project-wide unknown write to exported globals.
+            self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE',
+                function_id=item['function_id'], file=item['file'], line=item['line']))
 
     def registrations(self, call):
         specs = {

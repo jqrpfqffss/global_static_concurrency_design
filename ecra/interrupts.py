@@ -12,13 +12,21 @@ def irq_key(name):
     return re.sub(r'_(IRQHANDLER|IRQN)$', '', (name or '').upper())
 
 
-def priority_model(facts, cfg):
+def priority_model(facts, cfg, fg_functions=None):
+    """恢复每个 IRQ 的逻辑优先级（用于证明同抢占优先级串行）。
+
+    有效性条件（声音性优先）：
+    - 分组配置：恰好一次按字面量读取；完全没有分组调用时采用 Cortex-M
+      复位默认 PRIGROUP=0（硬件事实：全部优先级位为抢占位）；多次/动态
+      分组放弃。
+    - 每个 IRQ 恰好一次优先级设置，调用点无条件祖先，且设置函数只从前台
+      （MAIN 域）可达——ISR 内改优先级属于运行期重配置，不采纳。
+    """
     bits = cfg.get('project', {}).get('nvic_priority_bits')
     if type(bits) is not int or not 1 <= bits <= 8:
         return {}, '缺少有效 nvic_priority_bits。'
+    fg_functions = fg_functions or set()
     events = facts.get('irq_priority_events', [])
-    funcs = {f['function_id']: f for f in facts['functions']}
-    roots = {b['function_id'] for b in facts.get('context_bindings', []) if b['call_depth'] == 0}
     by_irq, groups = defaultdict(list), []
     for e in events:
         args = e.get('arguments', [])
@@ -26,25 +34,26 @@ def priority_model(facts, cfg):
             groups.append(e)
         elif args:
             by_irq[irq_key(args[0])].append(e)
-    if len(groups) != 1:
-        return {}, 'NVIC 分组缺失或存在多次/动态配置。'
+
     def valid(e):
-        # Only unconditional setup in MAIN before its first application call
-        # or shared access is proven here. Uncalled setup is never evidence.
-        fid = e['function_id']
-        if fid not in roots or funcs.get(fid, {}).get('name') != 'main' or e.get('conditional_ancestor'):
+        if not fg_functions or e['function_id'] not in fg_functions:
             return False
-        first = [a.get('offset', -1) for a in facts['accesses'] if a['function_id'] == fid]
-        first += [c.get('offset', -1) for c in facts['calls'] if c['caller_function_id'] == fid
-                  and c.get('callee_function_id') in funcs and not c.get('callee_name', '').startswith(('HAL_NVIC_', 'NVIC_'))]
-        return not first or e.get('offset', -1) < min(first)
-    if not valid(groups[0]):
-        return {}, 'NVIC 分组未证明在 MAIN 访问前无条件执行。'
-    group = (groups[0].get('argument_values') or [None])[0]
-    if group is None:
-        group = literal(groups[0]['arguments'][0])
-    if group is None or not 0 <= group <= 7:
-        return {}, 'NVIC priority grouping 无法恢复。'
+        return not e.get('conditional_ancestor')
+
+    if len(groups) > 1:
+        return {}, 'NVIC 分组多次/动态配置。'
+    if groups:
+        if not valid(groups[0]):
+            return {}, 'NVIC 分组未证明在前台初始化路径无条件执行。'
+        group = (groups[0].get('argument_values') or [None])[0]
+        if group is None:
+            group = literal(groups[0]['arguments'][0])
+        if group is None or not 0 <= group <= 7:
+            return {}, 'NVIC priority grouping 无法恢复。'
+        grouping_reason = '已核对唯一分组配置。'
+    else:
+        group = 0
+        grouping_reason = '工程未配置优先级分组，采用 Cortex-M 复位默认 PRIGROUP=0。'
     pre_bits = min(bits, 7 - group)
     sub_bits = bits - pre_bits
     result = {}
@@ -68,7 +77,7 @@ def priority_model(facts, cfg):
             logical = priority
         result[irq] = dict(logical=logical, preemption=logical >> sub_bits, bits=bits,
                            sub_bits=sub_bits, evidence=event)
-    return result, '已核对 MAIN 初始化位置、NVIC 位数、分组及唯一优先级配置。'
+    return result, grouping_reason + ' 已核对前台初始化位置与唯一优先级配置。'
 
 
 def context_priorities(facts, model):
@@ -84,7 +93,13 @@ def context_priorities(facts, model):
 
 def relations(facts, contexts, cfg):
     from itertools import combinations
-    model, reason = priority_model(facts, cfg)
+    # 前台函数：全部执行上下文均为 MAIN 域（ISR 内的优先级设置不采纳）。
+    by_function = defaultdict(set)
+    for b in facts.get('context_bindings', []):
+        by_function[b['function_id']].add(b['context_id'])
+    fg_functions = {fid for fid, cids in by_function.items()
+                    if cids and all(contexts.get(c, {}).get('kind') == 'MAIN' for c in cids)}
+    model, reason = priority_model(facts, cfg, fg_functions)
     priorities = context_priorities(facts, model)
     rows = []
     for a, b in combinations(sorted(contexts), 2):
@@ -111,7 +126,13 @@ def relations(facts, contexts, cfg):
 
 
 def basepri_status(windows, isrs, facts, cfg):
-    model, reason = priority_model(facts, cfg)
+    by_function = defaultdict(set)
+    for b in facts.get('context_bindings', []):
+        by_function[b['function_id']].add(b['context_id'])
+    contexts_map = {c['id']: c for c in facts.get('contexts', [])}
+    fg_functions = {fid for fid, cids in by_function.items()
+                    if cids and all(contexts_map.get(c, {}).get('kind') == 'MAIN' for c in cids)}
+    model, reason = priority_model(facts, cfg, fg_functions)
     priorities = context_priorities(facts, model)
     if not isrs or any(c not in priorities for c in isrs):
         return 'UNRESOLVED', reason + ' 无法恢复全部竞争 IRQ 优先级。'

@@ -178,6 +178,7 @@ class ClassificationModel:
         self.word_bytes = max(1, (cfg.get('project', {}).get('native_word_bits', 32) or 32) // 8)
         # 多字段一致性 flagged 成员（analysis 在访问聚合后填充）。
         self.coherent_members = set()
+        self._build_phase_model()
 
     # -- 域间关系 ---------------------------------------------------------
 
@@ -493,6 +494,189 @@ class ClassificationModel:
             queue.extend(graph[fid])
         return False
 
+    # -- 初始化 / 运行期相位（transitive init-phase proof） ------------------
+
+    def _build_phase_model(self):
+        """phase(F)=PRE：F 的每次执行都发生在任何异步源启用之前。
+
+        传递定义（Section 6 泛化，声音性优先）::
+
+            边 (C, off) 是 PRE ⟺ phase(C)=PRE
+                                 ∧ C 体内 off 之前没有直接启用调用
+                                 ∧ C 体内 off 之前没有调用"可能包含启用"的函数
+                                 ∧ ¬(off 位于 C 的循环体内 ∧ C 可能包含启用)
+
+            phase(F) = PRE ⟺ F 至少有一条入边且全部入边都是 PRE 边。
+            根：main 入口为 PRE；ISR/DMA/注册入口与无入边函数为 RUNTIME。
+
+        启用后调用的初始化函数如实降级为 RUNTIME 写者（仍可走单写者共享
+        规则）；无启用事件的工程不产生 PRE 证明（无异步即单前台域）。
+        """
+        calls_by_caller = defaultdict(list)
+        for c in self.facts['calls']:
+            if c.get('callee_function_id'):
+                calls_by_caller[c['caller_function_id']].append(c)
+        incoming = defaultdict(list)
+        for c in self.facts['calls']:
+            if c.get('callee_function_id'):
+                incoming[c['callee_function_id']].append(c)
+        direct_enable_offsets = defaultdict(list)
+        for c in self.facts['calls']:
+            if c.get('callee_name') in ASYNC_ENABLE_APIS and c.get('offset') is not None:
+                direct_enable_offsets[c['caller_function_id']].append(c['offset'])
+        may_enable = {fid for fid, offs in direct_enable_offsets.items() if offs}
+        # 反向传播：调用者的执行包含被调者的启用效果（callee 有启用 =>
+        # caller 可能在启用后继续运行）。
+        callers_of = defaultdict(list)
+        for c in self.facts['calls']:
+            if c.get('callee_function_id'):
+                callers_of[c['callee_function_id']].append(c['caller_function_id'])
+        changed = True
+        while changed:
+            changed = False
+            for fid in list(may_enable):
+                for caller in callers_of.get(fid, ()):
+                    if caller not in may_enable:
+                        may_enable.add(caller)
+                        changed = True
+        # 循环体偏移（CFG 回边可达节点集合）。
+        loop_offsets = defaultdict(set)
+        for g in self.facts.get('control_flow', []):
+            nodes = {n['id']: n for n in g['nodes']}
+            graph = defaultdict(set)
+            for n in g['nodes']:
+                for s in n['successors']:
+                    if s in nodes:
+                        graph[n['id']].add(s)
+            in_loop = set()
+            for start in list(graph):
+                stack = [(start, [start])]
+                while stack:
+                    node, path = stack.pop()
+                    for succ in graph.get(node, ()):
+                        if succ in path:
+                            in_loop.update(path[path.index(succ):])
+                        elif len(path) < 64:
+                            stack.append((succ, path + [succ]))
+            for nid in in_loop:
+                n = nodes.get(nid)
+                if n and n.get('offset') is not None:
+                    loop_offsets[g['function_id']].add((n['offset'], n.get('end_offset') or n['offset']))
+
+        def blocked_at(fid, off):
+            for e in direct_enable_offsets.get(fid, ()):
+                if e < off:
+                    return True
+            for c in calls_by_caller.get(fid, ()):
+                coff = c.get('offset')
+                if coff is not None and coff < off and c.get('callee_function_id') in may_enable:
+                    return True
+            return False
+
+        def in_loop_with_enable(fid, off):
+            if not loop_offsets.get(fid) or fid not in may_enable:
+                return False
+            for lo, hi in loop_offsets[fid]:
+                if lo <= off <= hi:
+                    return True
+            return False
+
+        def edge_is_pre(c):
+            caller, off = c['caller_function_id'], c.get('offset')
+            if caller not in self.funcs or off is None:
+                return False
+            if blocked_at(caller, off):
+                return False
+            return not in_loop_with_enable(caller, off)
+
+        async_roots = set()
+        for b in self.facts.get('context_bindings', []):
+            if b['call_depth'] == 0 and self.contexts.get(b['context_id'], {}).get('kind') != 'MAIN':
+                async_roots.add(b['function_id'])
+        for f in self.facts['functions']:
+            if f.get('entry_attributes') or f.get('linkage') == 'HARDWARE':
+                async_roots.add(f['function_id'])
+        main_fids = {b['function_id'] for b in self.facts.get('context_bindings', [])
+                     if b['call_depth'] == 0 and self.contexts.get(b['context_id'], {}).get('kind') == 'MAIN'}
+        # 前提守门：只有 main 可达代码中确实存在启用调用（异步源在复位后
+        # 某一时刻才打开）才存在"启用前的初始化窗口"。没有任何启用事件的
+        # 工程，中断从复位即可能活�动，初始化期证明整体不适用。
+        main_reachable = set(main_fids)
+        frontier = list(main_fids)
+        while frontier:
+            fid = frontier.pop()
+            for c in calls_by_caller.get(fid, ()):
+                callee = c.get('callee_function_id')
+                if callee and callee not in main_reachable:
+                    main_reachable.add(callee)
+                    frontier.append(callee)
+        if not (may_enable & main_reachable):
+            self.phase = {}
+            self._phase_blocked = lambda fid, off: False
+            self._phase_loop_guard = lambda fid, off: False
+            self._phase_may_enable_any = {}
+            return
+        phase = {}
+        queue = deque()
+        for fid in self.funcs:
+            # main 入口（无入边）是 PRE 根；其余无入边函数入口不明 → RUNTIME。
+            if fid in async_roots or (not incoming.get(fid) and fid not in main_fids):
+                phase[fid] = 'RUNTIME'
+                queue.append(fid)
+        for fid in main_fids:
+            if fid not in phase:
+                phase[fid] = 'PRE'
+        while queue:
+            runtime_caller = queue.popleft()
+            for c in calls_by_caller.get(runtime_caller, ()):
+                callee = c.get('callee_function_id')
+                if callee and phase.get(callee) != 'RUNTIME':
+                    phase[callee] = 'RUNTIME'
+                    queue.append(callee)
+        # 未被 RUNTIME 洪水覆盖的函数默认 PRE 候选，随后按入边阻断降级。
+        for fid in self.funcs:
+            if fid not in phase:
+                phase[fid] = 'PRE'
+        pending = deque(fid for fid, p in phase.items() if p == 'PRE')
+        while pending:
+            fid = pending.popleft()
+            if phase.get(fid) != 'PRE':
+                continue
+            edges = incoming.get(fid, ())
+            if edges and any(not edge_is_pre(c) for c in edges):
+                phase[fid] = 'RUNTIME'
+                for c in calls_by_caller.get(fid, ()):
+                    callee = c.get('callee_function_id')
+                    if callee and phase.get(callee) != 'RUNTIME':
+                        phase[callee] = 'RUNTIME'
+                        pending.append(callee)
+        may_enable_any = {}
+        for fid in self.funcs:
+            if fid in may_enable or any(
+                    c.get('callee_function_id') in may_enable
+                    for c in calls_by_caller.get(fid, ())):
+                may_enable_any[fid] = True
+        self.phase = phase
+        self._phase_blocked = blocked_at
+        self._phase_loop_guard = in_loop_with_enable
+        self._phase_may_enable_any = may_enable_any
+
+    def is_pre_write(self, function_id, offset, conditional_ancestor=False):
+        """写站点是否可证明发生在全部异步源启用之前。
+
+        函数自身包含启用效果时，条件分支/循环内的写点无法用源码偏移证明
+        与启用的先后（CFG 循环未建模时同样无法排除回边），宁可放弃证明。
+        """
+        if self.phase.get(function_id) != 'PRE' or offset is None:
+            return False
+        if self._phase_blocked(function_id, offset):
+            return False
+        if self._phase_loop_guard(function_id, offset):
+            return False
+        if conditional_ancestor and self._phase_may_enable_any.get(function_id):
+            return False
+        return True
+
     # -- 单变量分类 -----------------------------------------------------------
 
     # C 标量类型名 → 字节宽度（用于单写者共享的原子宽度证明）。
@@ -546,6 +730,12 @@ class ClassificationModel:
         sid = variable['symbol_id']
         runtime = [a for a in accesses if a.get('access_kind') in {'READ', 'WRITE', 'RMW'}]
         writes = [a for a in runtime if a['access_kind'] in {'WRITE', 'RMW'}]
+        # 初始化期写入（PRE 相位证明）：发生在任何异步源启用之前，与运行期
+        # 访问有序，不参与破坏性冲突枚举。
+        pre_writes = {id(a) for a in writes
+                      if self.is_pre_write(a['function_id'], a.get('offset', -1),
+                                           a.get('conditional_ancestor'))}
+        all_writers_pre = bool(writes) and all(id(a) in pre_writes for a in writes)
         domain_kinds = defaultdict(set)
         domain_of_context = self.domain
         dma_domains = set()
@@ -606,6 +796,14 @@ class ClassificationModel:
         # --- 破坏性冲突模式（destructive conflict） ---
         domains = sorted(domain_kinds)
         writer_domains = [d for d in domains if domain_kinds[d] & {'WRITE', 'RMW'}]
+        # 初始化期证明（Section 6）：全部写者都可证明发生在任何异步源启用
+        # 之前，运行期只有读取。在"ISR 可能从复位即活"的保守语义下，PRE
+        # 写者不得与任何运行期写者组合降噪（守门 G5）。
+        if all_writers_pre and len(domains) >= 2:
+            return dict(classification='SAFE_PROVEN', safe_code='SAFE_INIT_ONLY_WRITE',
+                        reason='全部写入发生在初始化阶段（调用链传递证明：任何异步源启用之前），运行期只有读取。',
+                        gaps=[], conflicts=[], domains=domains,
+                        unresolved_context_access_count=len(unresolved_context))
         conflicts = []
         destructive_reasons = []
         for i, first in enumerate(domains):
@@ -624,9 +822,9 @@ class ClassificationModel:
             cpu_write = any(domain_kinds[d] & {'WRITE', 'RMW'} for d in domains if d not in dma_domains)
             if (dma_kinds & {'WRITE', 'RMW'} and cpu_write) or (dma_kinds & {'WRITE', 'RMW'}) or cpu_write:
                 destructive_reasons.append('CPU↔DMA 访问重叠且至少一方写（DMA 传输可与 CPU 访问任意交错）')
-        if variable.get('is_bitfield_container') and writes:
+        if variable.get('is_bitfield_container') and writer_domains:
             destructive_reasons.append('位域容器跨上下文并发修改（读改写非原子且共享宿主字）')
-        if (sid in self.coherent_members and len(domains) >= 2 and writes):
+        if (sid in self.coherent_members and len(domains) >= 2 and writer_domains):
             destructive_reasons.append('多字段一致性：同一 root 的多个关联字段被一个上下文修改、'
                                        '另一上下文成对读取，可能观察到撕裂的字段组合')
         if conflicts or destructive_reasons:
@@ -654,7 +852,7 @@ class ClassificationModel:
                         gaps=gaps, conflicts=[], domains=domains,
                         unresolved_context_access_count=len(unresolved_context))
 
-        # --- 单一写者域 + 其余只读 → SHARED_NO_REVIEW 候选 ---
+        # --- 单一运行期写者域 + 其余只读 → SHARED_NO_REVIEW 候选 ---
         # 必须存在真实共享（≥2 个物理域）：单域变量由 SAFE 规则直接证明。
         if len(writer_domains) == 1 and len(domains) >= 2:
             writer_domain = writer_domains[0]

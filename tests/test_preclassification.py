@@ -363,6 +363,41 @@ class PreClassificationTests(unittest.TestCase):
         self.assertIn('safe_reason_distribution', coverage)
 
 
+    # ---- 传递式初始化阶段证明（Section 6 泛化） ----
+
+    def test_init_write_before_enable_is_safe_init_only(self):
+        facts, _ = self.analyze({'a.c': '''
+            int cfg_value; int sink;
+            void init_cfg(void){cfg_value = 5;}
+            void TIM4_IRQHandler(void){sink = cfg_value;}
+            int main(void){init_cfg(); __enable_irq(); for(;;){sink++;}}
+        '''})
+        v = self.variable(facts, 'cfg_value')
+        # 写函数在 main 启用异步源之前调用（传递证明）=> 运行期只读。
+        self.assertEqual(v['static_classification'], 'SAFE_PROVEN')
+        self.assertEqual(v['screening_reason'], 'SAFE_INIT_ONLY_WRITE')
+
+    def test_init_write_after_enable_is_shared_no_review(self):
+        facts, _ = self.analyze({'a.c': '''
+            int cfg_value; int sink;
+            void init_cfg(void){cfg_value = 5;}
+            void TIM4_IRQHandler(void){sink = cfg_value;}
+            int main(void){__enable_irq(); init_cfg(); for(;;){sink++;}}
+        '''})
+        v = self.variable(facts, 'cfg_value')
+        # 启用之后才写：运行期单一前台写者 + ISR 只读 => 共享无需复核。
+        self.assertEqual(v['static_classification'], 'SHARED_NO_REVIEW')
+
+    def test_init_write_in_loop_with_enable_stays_shared(self):
+        facts, _ = self.analyze({'a.c': '''
+            int cfg_value; int sink;
+            void TIM4_IRQHandler(void){sink = cfg_value;}
+            int main(void){for(int i=0;i<3;i++){cfg_value = i; __enable_irq();} for(;;){sink++;}}
+        '''})
+        v = self.variable(facts, 'cfg_value')
+        # 写点在含启用调用的循环内：无法证明写在启用前 => 不予初始期证明。
+        self.assertEqual(v['static_classification'], 'SHARED_NO_REVIEW')
+
     # ---- 守门规则（Section 15）：以下模式永远不得降噪为 SAFE/NO_REVIEW ----
 
     def guard(self, sources, name, configure=None, path=None):

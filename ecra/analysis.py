@@ -815,11 +815,14 @@ def analyze(facts, cfg, coverage, root=None):
         for a in access_rows:
             if a.get('access_kind') not in {'READ', 'WRITE', 'RMW'}:
                 continue
+            pre_write = (a['access_kind'] in {'WRITE', 'RMW'}
+                         and model.is_pre_write(a['function_id'], a.get('offset', -1),
+                                                a.get('conditional_ancestor')))
             for cid in a.get('contexts', ()):
                 domain = model.domain[cid]
                 if a['access_kind'] == 'READ':
                     domain_fn_member_reads[root_sid][(domain, a['function_id'])].add(member_sid)
-                else:
+                elif not pre_write:
                     domain_member_writes[root_sid][domain].add(member_sid)
     coherent_members = set()
     for root_sid, per_domain in domain_member_writes.items():
@@ -834,6 +837,33 @@ def analyze(facts, cfg, coverage, root=None):
     findings = []
     analyzed_variables = [v for v in facts['variables']
                           if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}]
+    # 定义不在当前构建闭包内的 extern 声明：变量由范围外组件（排除目录 /
+    # 链接库 / 汇编）定义和所有，范围内代码仅引用。按 include_dirs 的审计
+    # 范围语义（"只将定义在范围内的变量计入清单和风险结论"），它们是依赖
+    # 声明：仅盘点、不进入风险队列、也不宣称安全。范围内的解析失败仍是
+    # 真实缺口，保持 UNKNOWN。
+    dependency_declarations = [v for v in analyzed_variables
+                               if not v.get('definition_file')
+                               and v.get('coverage_source') == 'compile_database']
+    dependency_ids = {v['symbol_id'] for v in dependency_declarations}
+    analyzed_variables = [v for v in analyzed_variables if v['symbol_id'] not in dependency_ids]
+    for v in dependency_declarations:
+        all_accesses = by_var[v['symbol_id']]
+        decl_contexts = sorted({cid for a in all_accesses for cid in a.get('contexts', ())})
+        v.update(accesses=all_accesses, readers=sorted({cid for a in all_accesses
+                    if a['access_kind'] in {'READ', 'RMW'} for cid in a.get('contexts', ())}),
+                 writers=sorted({cid for a in all_accesses
+                                 if a['access_kind'] in {'WRITE', 'RMW'} for cid in a.get('contexts', ())}),
+                 contexts=decl_contexts, protection_status='NONE', annotations=[],
+                 audit_status='DEPENDENCY_DECLARATION', screening_reason=None,
+                 safe_reason_code=None, screening_blockers=[], analysis_coverage='COMPLETE',
+                 coverage_reasons=[], static_classification='DEPENDENCY_DECLARATION',
+                 gap_evidence=[], pending_confirmation=[],
+                 access_count=len(all_accesses), conflict_pairs=[], conflict_pairs_capped=None,
+                 unreachable_access_count=0, concurrency_relations=[],
+                 resolved_call_path_count=sum(a.get('resolved_call_path_count', 0) for a in all_accesses),
+                 classification_reason='定义不在当前构建闭包内（外部组件所有）；'
+                                       '按审计范围语义仅盘点其被范围内代码引用的事实，不进入风险队列。')
     from .protection import set_route_ancestors
     set_route_ancestors(route_ancestors_by_function, facts)
     for v in analyzed_variables:

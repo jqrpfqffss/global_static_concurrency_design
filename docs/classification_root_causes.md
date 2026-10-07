@@ -6,11 +6,18 @@
 
 ## 汇总
 
-| 工程 | TOTAL | SAFE_PROVEN | SHARED_NO_REVIEW | SUSPECT | UNKNOWN | OpenCode 队列 |
+| 工程 | TOTAL* | SAFE_PROVEN | SHARED_NO_REVIEW | SUSPECT | UNKNOWN | OpenCode 队列 |
 |---|---|---|---|---|---|---|
-| klipper | 901 | 841 (93.3%) | 1 (0.1%) | 37 (4.1%) | 22 (2.4%) | **59 (6.5%)** |
-| blackmagic | 716 | 498 (69.6%) | 9 (1.3%) | 121 (16.9%) | 88 (12.3%) | **209 (29.2%)** |
-| betaflight | 7936 | 4630 (58.3%) | 180 (2.3%) | 2693 (33.9%) | 433 (5.5%) | **3126 (39.4%)** |
+| klipper | 889 | 841 (94.6%) | 0 | 38 (4.3%) | 10 (1.1%) | **48 (5.4%)** |
+| blackmagic | 691 | 493 (71.3%) | 9 (1.3%) | 121 (17.5%) | 68 (9.8%) | **196 (27.4%)** |
+| betaflight | 7630 | 5041 (66.1%) | 68 (0.9%) | 2380 (31.2%) | 141 (1.8%) | **2521 (33.0%)** |
+
+*TOTAL 扣除定义不在构建闭包内的依赖声明（klipper 12 / blackmagic 25 /
+betaflight 306），它们按 include_dirs 审计范围语义仅盘点、不进队列。
+
+第四列降噪来源（对象敏感归属 + 传递式 init-phase）：betaflight
+SAFE_INIT_ONLY_WRITE 342（原双写者候选，初始化链写入证明）、
+SAFE_SINGLE_FOREGROUND 1412、对象敏感实例分离消除了大量跨实例假双写者。
 
 ## SUSPECT 根因（破坏性冲突模式，按用户 taxonomy）
 
