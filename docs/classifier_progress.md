@@ -291,3 +291,45 @@ tests/test_phase2_paths.py（新增 25 项）、tests/test_phase1_soundness.py�
 cli.rx_tail/uart 依赖 OPT-24 C5，13 个为真实共享/缺陷（诚实保留）。
 GR-12 的 u.h.hi 由 SUSPECT 变为 SAFE_SINGLE_IRQ 属精确化（u.w 只与 u.h.lo
 共享字节 0-3，hi 的字节 4-7 无跨域写），测试断言随附依据更新。
+
+### Phase 5 续 —— 阶段 2 基准（betaflight）与 G4 性能回退的发现与修复
+
+betaflight 内存内回放首跑 **7406 s**（基线 ~780 s 的 9.5 倍，违反 G4 预算
+≤1.3 倍）。cProfile + 分段计时定位：
+
+- **根因不在 OPT-20**，而是 OPT-13 的连锁暴露：`_build_phase_model` 的
+  循环体检测是旧有的 O(V²·E) DFS（每起点带 path 列表）。基线上
+  `may_enable & main_reachable` 几乎恒为空（使能名单 API 罕见），守门
+  提前返回，该循环从未真正执行；OPT-13 的未知使能点（外部声明函数调用）
+  使 blackmagic may_enable 从名单内少量函数膨胀到 1191/2320，守门不再
+  提前返回，旧 DFS 首次跑满（blackmagic 593 s、betaflight 同比例放大）。
+- **修复**（commit 5a26afa）：循环体检测改为迭代 Tarjan SCC——"节点在
+  循环体内"⟺ 位于 size>1 的 SCC 或有自环，O(V+E)；只对 may_enable 函数
+  计算；main_reachable 守门前置（无启用工程直接返回，不进 DFS）；
+  blocked_at 的调用边查询改倒排索引 + bisect。
+- **验证**：blackmagic analyze 604 s → **44.8 s**，分类逐项不变
+  （543/10/90/48）；全量 326 测试通过。betaflight 修复后回放见下表。
+
+**betaflight 阶段 2 结果（修复后重放）**：
+
+| 指标 | Phase 2 基线（p2 重放） | 阶段 2+OPT-20 |
+|---|---|---|
+| TOTAL_BUILD | 7630 | 7936（提取器记录更全：数组成员等） |
+| SAFE_PROVEN | 5071 | 4730 |
+| SHARED_NO_REVIEW | 68 | 219 |
+| SUSPECT | 2359 | 2358 |
+| UNKNOWN | 132 | 323 |
+| 队列 / RR_build | 2491 / 32.6% | 2681 / **33.8%** |
+
+betaflight 的 UNKNOWN 上升 191 主要来自 OPT-14：内联汇编文本符号扫描
+条件修复（旧 `opaque_code is False` 写反、从未执行）后，~196 个
+UNKNOWN_INLINE_ASM 首次如实暴露（betaflight 大量驱动内联汇编）；
+NO_REVIEW +151 来自路径修复后更多变量走到门槛并如实通过；D-01 双写
+基本持平（2358 vs 2359，RC-1 上下文污染未修，符合阶段预期——那是
+OPT-42/43/44 阶段 4 的目标）。这些上升是健全性修复的如实披露（规划
+§3.5：不以精度收益抵消），数字与"betaflight 队列主体 = 上下文污染 +
+真实共享"的根因结论一致。
+
+**阶段 2（第一批 OPT-20）三工程合计**：klipper 46（不变）、blackmagic
+138（−3）、V0 28（−2）、betaflight 2681（+190，其中 196 为内联汇编
+缺口的首次如实暴露，属健全性修复增量）。
