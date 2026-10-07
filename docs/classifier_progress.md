@@ -243,3 +243,51 @@ detailed processing record 会污染参数 token 串（真实工程用 CMSIS 枚
 RC-11/M-38 的预期收益），无放宽检测器；SUSPECT 集合在两工程上逐项不变。
 OPT-18（mmio/寄存器级 DMA，FS-9/GR-24）未在本轮实施，属阶段 1 遗留，随后
 单独实施并回放。
+
+## Phase 5 —— 规划阶段 2（第一批）：OPT-20 访问路径代数（RC-3、M-40、FS-11）
+
+**依据**：规划 §10.2（OPT-20，P0）、§13.4 GP-03/GP-04、§3.6 V0 预期。
+
+**修改文件**：ecra/extract.py、ecra/pointer_extract.py、ecra/analysis.py、
+tests/test_phase2_paths.py（新增 25 项）、tests/test_phase1_soundness.py（GR-12
+断言按精确重叠语义更新）、tests/test_phase0_metrics.py（继承链测试改用类型
+双关构造回退行）。
+
+1. **嵌套路径自然顺序（RC-3/M-05）**：access_path 按"根→深层"拼接并去掉
+   旧实现多余的 reversed（s.inner.x 曾记成 x.inner、r.buf[i] 记成 [].buf）；
+   `[]` 直接依附前一字段（buf[]、arr[].x）。
+2. **别名基路径（M-06）**：局部别名条目改为 (root_sid, base_path) 元组
+   （p = &s.inner → (s,'inner')），经别名的访问路径 = 基路径+相对路径。
+   修复过程中发现并修复一处消费点崩溃：CALL_EXPR 参数收集曾把元组直接
+   塞进 self.variables 查找（blackmagic 3 个 TU 提取失败的根因，已加回归
+   测试；教训：回放后必须核对 parse_failed_tus=0）。
+3. **M-40 解引用截断**：extract.access_mode 遇"指针类型成员 + ->"终止左值
+   链（h->Instance->CR1 的 Instance 只 READ，写经 PointerExtractor/points-to
+   归属 pointe e）；PointerExtractor.mode() 对称修复（被 '->' 用作基址的
+   解引用节点是 READ，不再继承外层 RMW）。
+4. **数组元素路径匹配（GP-04）**：buf[] 经 trim 匹配数组成员资源 buf
+   （OPT-21 前元素不拆分）。
+5. **回退可见化（M-07）**：路径不匹配的整对象回退记录 fallback_reason=
+   path_unmatched 并计入 coverage.fallback_whole_object_accesses /
+   inherited_accesses；类型双关（字节级指针写）成为回退的主要合法来源。
+
+**测试**：tests/test_phase2_paths.py 25 项（GP-03/GP-04/M-40/别名基路径/
+回退记录/别名元组回归）；全量 326 项通过。**确定性检查**：V0 两次重放输出
+逐行一致（规划 §18.5）。
+
+**基准变化（全量重提取后回放，2026-10-07）**：
+
+| 工程 | TOTAL_BUILD | SAFE | NO_REVIEW | SUSPECT | UNKNOWN | 队列 | RR_build | vs 阶段1 |
+|---|---|---|---|---|---|---|---|---|
+| klipper | 889 | 843 | 0 | 38 | 8 | 46 | 5.2% | 不变（路径缺陷在本工程队列无命中） |
+| blackmagic | 691 | 543 | 10 | 90 | 48 | 138 | **20.0%** | −3（SUSPECT 93→90） |
+| betaflight | 7630 | （内存内回放，见下） | | | | | | |
+| V0 CubeMX | 44 | 16 | 0 | 28 | 0 | 28 | 63.6% | −2（huart2.hdmarx、pTxBuffPtr 的回退继承写消失，§3.6 预期命中） |
+
+**审计结论**：SUSPECT 下降来自回退继承行消失（访问落到正确成员后跨域写对
+减少）；blackmagic 实际 −3 对照规划上界 −19——其余"双写者"在路径修正后
+仍是真实共享（上界≠实际，符合预期方向）。V0 剩余 28 个的归属与规划 §3.6
+一致：7 个 Init.* + Instance/DebugCliStats 3 个依赖阶段 5 的 HB(A)，
+cli.rx_tail/uart 依赖 OPT-24 C5，13 个为真实共享/缺陷（诚实保留）。
+GR-12 的 u.h.hi 由 SUSPECT 变为 SAFE_SINGLE_IRQ 属精确化（u.w 只与 u.h.lo
+共享字节 0-3，hi 的字节 4-7 无跨域写），测试断言随附依据更新。

@@ -621,29 +621,84 @@ class ClassificationModel:
                     if caller not in may_enable:
                         may_enable.add(caller)
                         changed = True
-        # 循环体偏移（CFG 回边可达节点集合）。
+        # 循环体偏移（CFG 回边可达节点集合）。只对 may_enable 的函数计算
+        # （其余函数的 in_loop_with_enable 恒为 False）。
+        # 算法：迭代 Tarjan SCC——"节点在循环体内" ⟺ 位于 size>1 的强
+        # 连通分量或存在自环。旧的"每个起点一次带 path 列表的 DFS"是
+        # O(V²·E) 且路径拷贝昂贵，blackmagic 规模下单此循环 ~590 s
+        # （基线因 main_reachable 守门几乎总提前返回从未暴露；OPT-13 的
+        # 未知使能点使 may_enable & main_reachable 非空后首次触发）。
         loop_offsets = defaultdict(set)
         for g in self.facts.get('control_flow', []):
-            nodes = {n['id']: n for n in g['nodes']}
-            graph = defaultdict(set)
+            if g['function_id'] not in may_enable:
+                continue
+            succs = defaultdict(list)
             for n in g['nodes']:
                 for s in n['successors']:
-                    if s in nodes:
-                        graph[n['id']].add(s)
-            in_loop = set()
-            for start in list(graph):
-                stack = [(start, [start])]
-                while stack:
-                    node, path = stack.pop()
-                    for succ in graph.get(node, ()):
-                        if succ in path:
-                            in_loop.update(path[path.index(succ):])
-                        elif len(path) < 64:
-                            stack.append((succ, path + [succ]))
-            for nid in in_loop:
-                n = nodes.get(nid)
-                if n and n.get('offset') is not None:
-                    loop_offsets[g['function_id']].add((n['offset'], n.get('end_offset') or n['offset']))
+                    if s != n['id']:
+                        succs[n['id']].append(s)
+                    elif n.get('offset') is not None:
+                        # 自环节点本身在循环体内。
+                        loop_offsets[g['function_id']].add(
+                            (n['offset'], n.get('end_offset') or n['offset']))
+            on_cycle = set()
+            index, lowlink, on_stack = {}, {}, set()
+            stack, call = [], []
+            next_index = [0]
+            for root in list(succs):
+                if root in index:
+                    continue
+                index[root] = lowlink[root] = next_index[0]
+                next_index[0] += 1
+                stack.append(root); on_stack.add(root)
+                call.append((root, iter(succs[root])))
+                while call:
+                    node, it = call[-1]
+                    advanced = False
+                    for nxt in it:
+                        if nxt not in index:
+                            index[nxt] = lowlink[nxt] = next_index[0]
+                            next_index[0] += 1
+                            stack.append(nxt); on_stack.add(nxt)
+                            call.append((nxt, iter(succs[nxt])))
+                            advanced = True
+                            break
+                        elif nxt in on_stack:
+                            lowlink[node] = min(lowlink[node], index[nxt])
+                    if advanced:
+                        continue
+                    call.pop()
+                    if call:
+                        parent = call[-1][0]
+                        lowlink[parent] = min(lowlink[parent], lowlink[node])
+                    if lowlink[node] == index[node]:
+                        component = []
+                        while True:
+                            member = stack.pop()
+                            on_stack.discard(member)
+                            component.append(member)
+                            if member == node:
+                                break
+                        if len(component) > 1:
+                            on_cycle.update(component)
+            if not on_cycle:
+                continue
+            for n in g['nodes']:
+                if n['id'] in on_cycle and n.get('offset') is not None:
+                    loop_offsets[g['function_id']].add(
+                        (n['offset'], n.get('end_offset') or n['offset']))
+
+        # blocked_at 的调用边预索引：caller → 按偏移排序的 (offset, callee)
+        # 列表，只保留 callee ∈ may_enable 的边。旧实现对每个查询线性扫描
+        # 调用者全部调用边，may_enable 因 OPT-13 的未知使能点扩大后成为
+        # 平方级热点（blackmagic analyze 604 s 中 877 s CPU 的主因）。
+        enable_call_edges = defaultdict(list)
+        for fid, rows in calls_by_caller.items():
+            edges = [(c['offset'], c['callee_function_id']) for c in rows
+                     if c.get('offset') is not None and c.get('callee_function_id') in may_enable]
+            if edges:
+                edges.sort()
+                enable_call_edges[fid] = edges
 
         def blocked_at(fid, off):
             for e in direct_enable_offsets.get(fid, ()):
@@ -653,9 +708,11 @@ class ClassificationModel:
             for e in unknown_enable_offsets.get(fid, ()):
                 if e < off:
                     return True
-            for c in calls_by_caller.get(fid, ()):
-                coff = c.get('offset')
-                if coff is not None and coff < off and c.get('callee_function_id') in may_enable:
+            import bisect
+            edges = enable_call_edges.get(fid)
+            if edges:
+                i = bisect.bisect_left(edges, (off, ''))
+                if i > 0:
                     return True
             return False
 
