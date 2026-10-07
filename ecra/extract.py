@@ -83,6 +83,9 @@ class Extractor:
         self.variables, self.functions, self.symbols = {}, {}, {}
         self.accesses, self.calls, self.unknowns = [], [], []
         self.events, self.irq_priority_events, self.registrations, self.snapshots = [], [], [], []
+        # OPT-12（FS-2）：return 语句中读到的成员路径（访问器函数识别的事实
+        # 基础）：调用者经访问器读取成员时，一致性读组把该读计入调用者。
+        self.returned_members = []
         self.control_flow = []
         self.source_cache = {}
         self.local_counts = {}
@@ -172,7 +175,9 @@ class Extractor:
                                   is_const=typ.is_const_qualified() or (is_array and typ.element_type.is_const_qualified()),
                                   is_volatile=typ.is_volatile_qualified(), is_array=is_array,
                                   is_pointer=typ.kind.name in {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"},
-                                  is_struct=typ.kind.name == "RECORD", is_bitfield_container=bitfield,
+                                  is_struct=typ.kind.name == "RECORD",
+                                  is_union=typ.get_declaration().kind.name == "UNION_DECL",
+                                  is_bitfield_container=bitfield,
                                   declarations=[], definitions=[], translation_units=[self.tu_name],
                                   definition_file=None, definition_line=None, initializer=" ".join(tokens(c))[:500],
                                   coverage_source=self.coverage_source)
@@ -198,19 +203,28 @@ class Extractor:
             if self.interesting(child):
                 self.declare(child, function)
 
-    def record_members(self, typ, prefix='', seen=()):
+    def record_members(self, typ, prefix='', seen=(), base_offset=0, union_sections=()):
         """Return declared field paths for a record, including nested records.
 
         A record field which is itself a record is retained as a container and
         its children are retained as concrete analysis targets.  The ``seen``
         guard makes self-referential declarations finite; pointer fields are
         leaves because their pointee is not inline storage.
+
+        ``bit_offset`` 是相对根记录的位偏移（嵌套字段逐层累加）：有效对齐
+        （OPT-15）由根对象对齐与字节偏移的可整除性推出，packed 成员因此
+        不再按字段类型对齐误判为单指令原子（FS-6）。
+
+        ``union_sections`` 记录该字段所属的每一层 union 的 (union 路径,
+        直接成员路径)：同一 union 的不同 section 共享同一段存储（FS-1，
+        OPT-11），同 section 内的兄弟字段互不重叠。
         """
         canonical = typ.get_canonical()
         declaration = canonical.get_declaration()
         key = declaration.get_usr() or declaration.hash
         if canonical.kind.name != 'RECORD' or key in seen:
             return []
+        is_union = declaration.kind.name == 'UNION_DECL'
         rows = []
         for field in declaration.get_children():
             if field.kind.name != 'FIELD_DECL':
@@ -219,15 +233,23 @@ class Extractor:
             path = prefix + field.spelling
             size, align = field_type.get_size(), field_type.get_align()
             is_record = field_type.kind.name == 'RECORD'
+            try:
+                bit_offset = base_offset + field.get_field_offsetof()
+            except Exception:
+                bit_offset = None
+            field_sections = union_sections + (((prefix, path),) if is_union else ())
             rows.append(dict(field_path=path, name=field.spelling, type=field.type.spelling,
                              size_bytes=size if size >= 0 else None,
                              alignment_bytes=align if align >= 0 else None,
+                             bit_offset=bit_offset,
                              is_struct=is_record,
+                             union_sections=field_sections,
                              is_const=field_type.is_const_qualified(),
                              is_volatile=field_type.is_volatile_qualified(),
                              is_bitfield=field.is_bitfield()))
             if is_record:
-                rows.extend(self.record_members(field_type, path + '.', (*seen, key)))
+                rows.extend(self.record_members(field_type, path + '.', (*seen, key),
+                                                bit_offset or base_offset, field_sections))
         return rows
 
     def refs(self, c):
@@ -266,6 +288,10 @@ class Extractor:
     def access_mode(self, ref, ancestors, pointer=False, pointee=False):
         mode, path = "READ", []
         decay = False
+        # ``f(tbl[i])``：基址的数组退化了被下标表达式消费，后续外层包装
+        # （如 vararg 隐式转换，类型为元素指针）再次置 decay 位时不能把
+        # 元素读翻成 ADDRESS_TAKEN——被调函数拿到的是元素值，不是数组存储。
+        consumed_by_subscript = False
         for parent, index in reversed(ancestors):
             k = parent.kind.name
             if k in WRAPPERS:
@@ -286,6 +312,7 @@ class Extractor:
                 if index != 0 or pointer:
                     return "READ", ".".join(reversed(path))
                 decay = False  # The decayed base is consumed by an element access.
+                consumed_by_subscript = True
                 path.append("[]")
                 continue
             if k == "UNARY_OPERATOR":
@@ -320,7 +347,7 @@ class Extractor:
             if k in {"CXX_UNARY_EXPR", "UNARY_EXPR"} and tokens(parent)[:1] in (["sizeof"], ["alignof"], ["_Alignof"]):
                 return None, ""
             break
-        if mode == "READ" and decay:
+        if mode == "READ" and decay and not consumed_by_subscript:
             mode = "ADDRESS_TAKEN"
         return mode, ".".join(reversed(path))
 
@@ -388,6 +415,9 @@ class Extractor:
     def function_body(self, fn):
         fid = self.fid(fn)
         aliases, snapshots = {}, {}
+        # OPT-14：内联汇编操作数方向表 (function_id, 操作数表达式起始偏移)
+        # → WRITE / RMW / READ；在 DECL_REF_EXPR 访问分类时覆盖默认 READ。
+        asm_operand_modes = {}
         all_nodes = list(walk(fn))
         # Flow-insensitive local pointer alias union: never claim a unique runtime target.
         for _ in range(3):
@@ -462,8 +492,10 @@ class Extractor:
                             or (p.kind.name=='BINARY_OPERATOR' and operator(p) in {'&&','||'}) for p, _ in ancestors),
                         **self.loc(c)))
                 # Explicit library argument semantics, with address escape retained separately.
-                semantics = {"memcpy": {0: "WRITE", 1: "READ"}, "memmove": {0: "WRITE", 1: "READ"},
-                             "memset": {0: "WRITE"}, "memcmp": {0: "READ", 1: "READ"}}.get(name, {})
+                # 定长标准 C 库函数的参数语义来自共享表（ecra.common）；
+                # C 标准完全确定这些方向，读取参数不构成写逃逸。
+                from .common import LIBC_ARG_SEMANTICS
+                semantics = LIBC_ARG_SEMANTICS.get(name, {})
                 for i, arg in enumerate(args):
                     found = {s for s, _ in self.refs(arg)}
                     paths_by_symbol = {}
@@ -495,6 +527,15 @@ class Extractor:
                 sid = self.symbols.get(key)
                 if sid:
                     mode, path = self.access_mode(c, ancestors, self.variables[sid]["is_pointer"])
+                    # OPT-14（FS-5）：内联汇编操作数方向覆盖默认 READ。
+                    # 从当前节点向内层操作数边界扫描，命中 asm 语句即止。
+                    for node in [c] + [p for p, _ in reversed(ancestors)]:
+                        if "ASM" in node.kind.name:
+                            break
+                        operand_mode = asm_operand_modes.get((fid, node.extent.start.offset))
+                        if operand_mode is not None:
+                            mode = operand_mode
+                            break
                     self.add_access(sid, c, fid, mode, access_path=path,
                                     conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
                                                                                    'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
@@ -524,6 +565,12 @@ class Extractor:
                                                                                                'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
                                                                            for parent, _ in ancestors))
                         break
+            if k == "RETURN_STMT":
+                # OPT-12：记录 return 直接读取的成员（访问器返回值来源）。
+                for target_sid, target_path in self.reference_paths(c):
+                    if target_path:
+                        self.returned_members.append(dict(function_id=fid, symbol_id=target_sid,
+                                                          field_path=target_path, **self.loc(c)))
             if (k == "UNARY_OPERATOR" and operator(c) == "*") or (k == "MEMBER_REF_EXPR" and "->" in tokens(c)):
                 self.issue("POINTER_DEREFERENCE", c, fid)
             if k == "ARRAY_SUBSCRIPT_EXPR":
@@ -533,7 +580,52 @@ class Extractor:
             if "ASM" in k:
                 # extent 覆盖整个 asm 语句（含操作数），用于后续把流入
                 # 汇编块的函数地址恢复为可达边。
-                self.issue("INLINE_ASSEMBLY", c, fid, end_offset=c.extent.end.offset)
+                # OPT-14（FS-5）：GCC 扩展汇编操作数方向。libclang 不把约束
+                # 字面量暴露为子节点，从 token 流恢复：约束串后跟 '(' 的是
+                # 操作数——'=' 输出 → WRITE，'+' 读改写 → RMW，其余输入 →
+                # READ；后不跟括号的（clobber，如 "memory"）忽略。恢复失败
+                # 时保守跳过，操作数退回默认 READ 由符号名扫描兜底。
+                try:
+                    asm_toks = list(c.get_tokens())
+                except UnicodeDecodeError:
+                    asm_toks = []
+                modeled_sids = []
+                for i, t in enumerate(asm_toks):
+                    text = t.spelling
+                    if not (len(text) >= 2 and text.startswith('"') and text.endswith('"')):
+                        continue
+                    if i + 1 >= len(asm_toks) or asm_toks[i + 1].spelling != '(':
+                        continue
+                    constraint = text[1:-1]
+                    if constraint.startswith('+'):
+                        operand_mode = 'RMW'
+                    elif constraint.startswith('='):
+                        operand_mode = 'WRITE'
+                    else:
+                        operand_mode = 'READ'
+                    depth = 0
+                    for j in range(i + 1, len(asm_toks)):
+                        if asm_toks[j].spelling == '(':
+                            depth += 1
+                        elif asm_toks[j].spelling == ')':
+                            depth -= 1
+                            if depth == 0 and i + 2 < len(asm_toks):
+                                start = asm_toks[i + 2].location.offset
+                                end = asm_toks[j].location.offset
+                                target = None
+                                for ch in c.get_children():
+                                    if (ch.extent.start.offset <= start
+                                            and end <= ch.extent.end.offset):
+                                        if (target is None
+                                                or ch.extent.end.offset - ch.extent.start.offset
+                                                <= target.extent.end.offset - target.extent.start.offset):
+                                            target = ch
+                                if target is not None:
+                                    asm_operand_modes[(fid, target.extent.start.offset)] = operand_mode
+                                    modeled_sids.extend(s for s, _ in self.refs(target))
+                                break
+                self.issue("INLINE_ASSEMBLY", c, fid, end_offset=c.extent.end.offset,
+                           modeled_operand_sids=sorted(set(modeled_sids)))
             for i, ch in enumerate(c.get_children()):
                 visit(ch, ancestors + [(c, i)])
         visit(fn, [])
@@ -613,6 +705,7 @@ class Extractor:
                     protection_events=self.events, irq_priority_events=self.irq_priority_events,
                     control_flow=self.control_flow,
                     registrations=self.registrations, snapshots=self.snapshots,
+                    returned_members=self.returned_members,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
                     parse_status="FAILED" if self._has_source_errors(diagnostics) else "PARSED")
 

@@ -137,6 +137,23 @@ ASYNC_ENABLE_APIS = {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ', '__enable_irq',
 
 INTERLEAVING_RELATIONS = {'CAN_PREEMPT', 'MAY_INTERLEAVE', 'MAY_REENTER', 'UNKNOWN_PREEMPTION'}
 
+# 破坏性模式码（规划 §4.4）：SUSPECT 的结构化原因，供根因统计与反事实
+# 分析使用；文字 reason 只是展示层。检测器本身不变（OPT-02 只结构化输出）。
+DESTRUCTIVE_LABELS = {
+    'D-01': '跨域写-写（含 RMW）且可交错',
+    'D-02': '可重入写者',
+    'D-03': 'CPU↔DMA 重叠且至少一方写',
+    'D-04': '位域容器跨上下文并发修改',
+    'D-05': 'union/重叠视图跨域写',
+    'D-06': '整对象写 ↔ 成员访问跨域',
+    'D-07': '多字段一致性（撕裂快照）',
+    'D-08': '非原子宽度共享',
+    'D-09': '中间值暴露',
+    'D-10': '可见性',
+    'D-11': '配置所有权违例',
+    'D-12': 'NMI/HardFault 参与的写冲突',
+}
+
 
 def _iter_definitions(facts):
     return {f['function_id']: f for f in facts['functions']}
@@ -167,6 +184,10 @@ class ClassificationModel:
         self.global_blockers = self._global_blockers()
         self.address_escape = {}       # sid -> evidence dict
         self.fn_address_escape = set() # function ids handed to opaque code
+        # 写入声明为 const 且非 volatile 的对象是 C 未定义行为，且在
+        # Cortex-M 上 const 静态存储位于 flash：运行期写物理不可能。
+        # 这些变量的地址即使流入不透明代码也不构成可写路径。
+        self.impossible_write_sids = self._impossible_write_sids()
         self.asm_symbol_refs = self._assembly_symbol_references()
         self._collect_pointer_escapes()
         self._collect_address_escapes()
@@ -211,10 +232,14 @@ class ClassificationModel:
 
     def _summarized_apis(self):
         from .protection import NEUTRAL
-        summarized = {'memcpy', 'memmove', 'memset', 'memcmp', 'xTaskCreate', 'xTaskCreateStatic',
+        from .common import LIBC_FUNCTION_NAMES
+        # 定长标准 C 库函数的参数语义由 C 标准确定（ecra.common）：
+        # 语义已知 ⇒ 不是不透明代码，其调用点参数中的地址不构成逃逸。
+        summarized = {'xTaskCreate', 'xTaskCreateStatic',
                       'osThreadNew', 'xTaskCreatePinnedToCore', '__disable_irq', '__enable_irq',
                       '__get_PRIMASK', '__set_PRIMASK', '__get_BASEPRI', '__set_BASEPRI',
                       '__set_BASEPRI_MAX', '__disable_fault_irq', '__enable_fault_irq'}
+        summarized |= LIBC_FUNCTION_NAMES
         summarized.update(NEUTRAL)
         summarized.update(s[k] for s in self.cfg.get('critical_sections', [])
                           for k in ('enter', 'exit', 'save', 'restore') if k in s)
@@ -269,8 +294,25 @@ class ClassificationModel:
 
     # -- 地址 / 函数地址逃逸 ------------------------------------------------
 
+    def _impossible_write_sids(self):
+        """const 且非 volatile 的变量（含 const root 下的成员）不可运行期写。"""
+        impossible = set()
+        for v in self.variables.values():
+            cursor, seen = v, set()
+            is_const = is_volatile = False
+            while cursor is not None and cursor['symbol_id'] not in seen:
+                seen.add(cursor['symbol_id'])
+                is_volatile = is_volatile or bool(cursor.get('is_volatile'))
+                is_const = is_const or bool(cursor.get('is_const'))
+                root_sid = cursor.get('root_symbol_id')
+                cursor = self.variables.get(root_sid) if root_sid else None
+            if is_const and not is_volatile:
+                impossible.add(v['symbol_id'])
+        return impossible
+
     def _collect_pointer_escapes(self):
         """points-to 已恢复的地址流：进入不透明代码即构成逃逸证据。"""
+        from .common import LIBC_FUNCTION_NAMES
         for row in self.facts.get('pointer_targets', []):
             location, targets = row['location'], row['targets']
             root = location.split('/', 1)[0]
@@ -288,7 +330,14 @@ class ClassificationModel:
             elif ':param:' in root:
                 fid = root.rsplit(':param:', 1)[0]
                 if fid not in self.funcs:
-                    reason = '该地址作为参数流入未解析函数 ' + fid
+                    # OPT-19（FS-10）：函数 ID 可能是 USR（c:@F@strcpy），
+                    # 旧的裸名集合比较永远不匹配。统一按被调函数名查定长
+                    # 标准库语义表：语义已知（参数方向由 C 标准确定、不保留
+                    # 指针）的函数不是不透明代码，读取方向的实参不构成写
+                    # 逃逸；写方向已按参数语义记为访问行。
+                    from .common import libc_function_name
+                    if libc_function_name(fid) not in LIBC_FUNCTION_NAMES:
+                        reason = '该地址作为参数流入未解析函数 ' + fid
             if not reason:
                 continue
             for target in targets:
@@ -417,14 +466,18 @@ class ClassificationModel:
         for u in self.facts['unknowns']:
             if u.get('kind') == 'ASSEMBLY_SYMBOL_REFERENCE' and u.get('symbol_id'):
                 refs.setdefault(u['symbol_id'], u)
-        if self.opaque_code is False:
-            # 不存在不透明代码时无需内联汇编名扫描；存在时按名字匹配变量。
+        # OPT-14（FS-5）：只要工程中存在内联汇编就扫描汇编文本中的变量名。
+        # 旧条件 `self.opaque_code is False` 恰好写反——内联汇编本身使
+        # opaque_code 为真，扫描从未执行，汇编文本写入被判只读（P23）。
+        if any(u.get('kind') == 'INLINE_ASSEMBLY' for u in self.facts['unknowns']):
             for u in self.facts['unknowns']:
                 if u.get('kind') != 'INLINE_ASSEMBLY':
                     continue
                 text = u.get('source_text', '') or ''
+                modeled = set(u.get('modeled_operand_sids') or ())
                 for v in self.facts['variables']:
-                    if v.get('linkage') != 'EXTERNAL':
+                    if v.get('linkage') != 'EXTERNAL' or v['symbol_id'] in modeled:
+                        # 操作数语义已恢复的变量不按文本重报（OPT-14）。
                         continue
                     if re.search(r'\b' + re.escape(v['name']) + r'\b', text):
                         refs.setdefault(v['symbol_id'], dict(
@@ -459,16 +512,20 @@ class ClassificationModel:
             return False
         if any(a['function_id'] != main_fid for a in writes):
             return False
-        enables = self.enable_events.get(main_fid, [])
-        if not enables:
+        enable_offsets = [e.get('offset') for e in self.enable_events.get(main_fid, [])]
+        # OPT-13（FS-3）：未知使能点（外部函数 / 未解析间接调用 / 内联汇编）
+        # 同样终止初始化窗口；识别不了使能机制不等于使能不存在。
+        enable_offsets.extend(self.unknown_enable_offsets.get(main_fid, ()))
+        enable_offsets = [e for e in enable_offsets if e is not None and e >= 0]
+        if not enable_offsets:
             return False
-        first_enable = min(e.get('offset', -1) for e in enables)
+        first_enable = min(enable_offsets)
         if any(a.get('offset', -1) >= first_enable for a in writes):
             return False
         if any(a.get('conditional_ancestor') for a in writes):
             return False
-        # 其它函数若也启用了异步源，无法证明先后顺序。
-        for fid in self.enable_events:
+        # 其它函数若也启用了异步源（含未知使能点），无法证明先后顺序。
+        for fid in list(self.enable_events) + list(self.unknown_enable_offsets):
             if fid != main_fid and self._reachable_from(fid, main_fid):
                 return False
         # 非前台访问必须全部为 READ（缺口类 UNKNOWN 已在此之前拦截）。
@@ -524,7 +581,32 @@ class ClassificationModel:
         for c in self.facts['calls']:
             if c.get('callee_name') in ASYNC_ENABLE_APIS and c.get('offset') is not None:
                 direct_enable_offsets[c['caller_function_id']].append(c['offset'])
+        # OPT-13（FS-3）：fail-closed 使能事件（UNKNOWN_MAY_ENABLE）。下列
+        # 调用点之后不能再证明"异步源尚未启用"：无定义且无标准语义摘要的
+        # 外部函数、未解析间接调用、语义未知的内联汇编。识别不了使能机制
+        # 不等于使能不存在——PRE 证明宁可不成立。
+        unknown_enable_offsets = defaultdict(list)
+        for c in self.facts['calls']:
+            off = c.get('offset')
+            if off is None or c.get('caller_function_id') not in self.funcs:
+                continue
+            callee_fid = c.get('callee_function_id')
+            if callee_fid and callee_fid in self.funcs:
+                continue    # 已定义目标：使能效果经 may_enable 反向传播覆盖
+            if (c.get('callee_name') in self.summarized
+                    or c.get('callee_name') in ASYNC_ENABLE_APIS):
+                continue    # 定长标准库 / 屏蔽内建 / 已识别使能 API：语义已知
+            # 只有声明没有定义的函数（外部库 / 缺失 TU）：其副作用未知，
+            # 可能使能某个中断 → UNKNOWN_MAY_ENABLE（fail-closed，FS-3）。
+            unknown_enable_offsets[c['caller_function_id']].append(off)
+        for u in self.facts['unknowns']:
+            if (u.get('kind') == 'INLINE_ASSEMBLY' and u.get('function_id') in self.funcs
+                    and u.get('offset') is not None):
+                unknown_enable_offsets[u['function_id']].append(u['offset'])
         may_enable = {fid for fid, offs in direct_enable_offsets.items() if offs}
+        may_enable.update(fid for fid, offs in unknown_enable_offsets.items() if offs)
+        # init_only_write_proof 同样使用未知使能点（OPT-13）。
+        self.unknown_enable_offsets = unknown_enable_offsets
         # 反向传播：调用者的执行包含被调者的启用效果（callee 有启用 =>
         # caller 可能在启用后继续运行）。
         callers_of = defaultdict(list)
@@ -565,6 +647,10 @@ class ClassificationModel:
 
         def blocked_at(fid, off):
             for e in direct_enable_offsets.get(fid, ()):
+                if e < off:
+                    return True
+            # OPT-13：未知使能点之后无法证明 PRE。
+            for e in unknown_enable_offsets.get(fid, ()):
                 if e < off:
                     return True
             for c in calls_by_caller.get(fid, ()):
@@ -708,6 +794,17 @@ class ClassificationModel:
             return None
         return None
 
+    def _effective_alignment(self, variable):
+        """单指令原子证明使用的有效对齐（OPT-15，FS-6）。
+
+        结构体成员取 analysis 计算的 ``effective_alignment_bytes``（已并入
+        偏移整除性与根对象对齐）；顶层变量退回声明对齐。
+        """
+        effective = variable.get('effective_alignment_bytes')
+        if effective is not None:
+            return effective
+        return variable.get('alignment_bytes')
+
     def classify(self, variable, accesses, symbol_unknowns, protection):
         """四类裁决：SUSPECT / SHARED_NO_REVIEW / UNKNOWN / SAFE_PROVEN。
 
@@ -758,7 +855,7 @@ class ClassificationModel:
         for kind in self.global_blockers:
             add_gap('UNKNOWN_SCAN_INVALID' if kind != 'UNKNOWN_UNMODELED_CONCURRENCY'
                     else 'UNKNOWN_UNMODELED_CONCURRENCY', dict(kind=kind))
-        if sid in self.address_escape:
+        if sid in self.address_escape and sid not in self.impossible_write_sids:
             add_gap('UNKNOWN_ADDRESS_ESCAPE', self.address_escape[sid])
         if self.points_to_limit:
             add_gap('UNKNOWN_RELEVANT_ALIAS', dict(kind='POINTS_TO_LIMIT'))
@@ -782,6 +879,24 @@ class ClassificationModel:
                 kind='EXECUTION_CONTEXT_UNRESOLVED', file=witness.get('file'), line=witness.get('line'),
                 function_id=witness.get('function_id'),
                 explanation='该写入所在函数的物理执行上下文无法恢复（可能从 MAIN、ISR 或未解析入口进入）'))
+        # OPT-17（FS-8）：未知上下文的读不再被完全忽略。未知入口可能是 ISR：
+        # 当 r 有写者且 r 不满足单拷贝原子（NR-03），或 r 属于一致性候选组时，
+        # 未知读者可能读到撕裂值 / 撕裂字段组合 → 相关缺口。原子宽度且无一
+        # 致性关系时读不产生新风险，但 r 不再是"单域"（见单写者分支）。
+        unresolved_reads = [a for a in unresolved_context if a['access_kind'] == 'READ']
+        if unresolved_reads and not unresolved_writes:
+            width = self._element_width(variable)
+            alignment = self._effective_alignment(variable)
+            atomic = (width is not None and width <= self.word_bytes
+                      and alignment is not None and alignment >= width)
+            if ((writes and not atomic) or sid in self.coherent_members):
+                witness = unresolved_reads[0]
+                add_gap('UNKNOWN_EXECUTION_CONTEXT', dict(
+                    kind='EXECUTION_CONTEXT_UNRESOLVED', access_kind='READ',
+                    file=witness.get('file'), line=witness.get('line'),
+                    function_id=witness.get('function_id'),
+                    explanation='该读取所在函数的物理执行上下文无法恢复；变量存在写者且'
+                                '访问宽度 / 一致性关系使读者可能观察到撕裂值'))
         if sid in self.asm_symbol_refs:
             add_gap('UNKNOWN_INLINE_ASM', self.asm_symbol_refs[sid])
 
@@ -798,7 +913,8 @@ class ClassificationModel:
         writer_domains = [d for d in domains if domain_kinds[d] & {'WRITE', 'RMW'}]
         # 初始化期证明（Section 6）：全部写者都可证明发生在任何异步源启用
         # 之前，运行期只有读取。在"ISR 可能从复位即活"的保守语义下，PRE
-        # 写者不得与任何运行期写者组合降噪（守门 G5）。
+        # 写者不得与任何运行期写者组合降噪（守门 G5，对应任务书
+        # P0-HARD-RISK-01/02 的硬守门：任何优化都不能绕过）。
         if all_writers_pre and len(domains) >= 2:
             return dict(classification='SAFE_PROVEN', safe_code='SAFE_INIT_ONLY_WRITE',
                         reason='全部写入发生在初始化阶段（调用链传递证明：任何异步源启用之前），运行期只有读取。',
@@ -806,6 +922,18 @@ class ClassificationModel:
                         unresolved_context_access_count=len(unresolved_context))
         conflicts = []
         destructive_reasons = []
+        # 结构化模式码与最小见证（OPT-02）：每条见证引用代表访问的稳定
+        # evidence id 与两个域，支撑根因统计、热点聚类与后续 Stage B。
+        domain_write_sample, domain_read_sample = {}, {}
+        for a in runtime:
+            for cid in a.get('contexts', ()):
+                d = domain_of_context[cid]
+                if a['access_kind'] in {'WRITE', 'RMW'}:
+                    domain_write_sample.setdefault(d, a.get('access_id'))
+                elif a['access_kind'] == 'READ':
+                    domain_read_sample.setdefault(d, a.get('access_id'))
+        destructive_codes = []
+        witnesses = []
         for i, first in enumerate(domains):
             for second in domains[i + 1:]:
                 if not self.domains_may_interleave(first, second):
@@ -813,25 +941,50 @@ class ClassificationModel:
                 if ({'WRITE', 'RMW'} & domain_kinds[first]
                         and {'WRITE', 'RMW'} & domain_kinds[second]):
                     conflicts.append((first, second))
+                    destructive_codes.append('D-01')
+                    witnesses.append(dict(pattern='D-01', domains=[first, second],
+                                          access_ids=[x for x in (domain_write_sample.get(first),
+                                                                  domain_write_sample.get(second)) if x]))
         for domain in domains:
             if domain in self.reentrant_domains and {'WRITE', 'RMW'} & domain_kinds[domain]:
                 conflicts.append((domain, domain))
+                destructive_codes.append('D-02')
+                witnesses.append(dict(pattern='D-02', domains=[domain],
+                                      access_ids=[domain_write_sample.get(domain)]))
         # CPU ↔ DMA：只要该变量同时被 DMA 和 CPU 访问且至少一方写。
         if dma_domains and writer_domains:
             dma_kinds = set().union(*(domain_kinds[d] for d in dma_domains))
             cpu_write = any(domain_kinds[d] & {'WRITE', 'RMW'} for d in domains if d not in dma_domains)
             if (dma_kinds & {'WRITE', 'RMW'} and cpu_write) or (dma_kinds & {'WRITE', 'RMW'}) or cpu_write:
                 destructive_reasons.append('CPU↔DMA 访问重叠且至少一方写（DMA 传输可与 CPU 访问任意交错）')
+                destructive_codes.append('D-03')
+                witnesses.append(dict(pattern='D-03', domains=sorted(dma_domains),
+                                      access_ids=[domain_write_sample.get(d) for d in sorted(dma_domains)
+                                                  if domain_write_sample.get(d)]))
         if variable.get('is_bitfield_container') and writer_domains:
             destructive_reasons.append('位域容器跨上下文并发修改（读改写非原子且共享宿主字）')
+            destructive_codes.append('D-04')
+            witnesses.append(dict(pattern='D-04', domains=sorted(writer_domains),
+                                  access_ids=[domain_write_sample.get(d) for d in sorted(writer_domains)
+                                              if domain_write_sample.get(d)]))
         if (sid in self.coherent_members and len(domains) >= 2 and writer_domains):
             destructive_reasons.append('多字段一致性：同一 root 的多个关联字段被一个上下文修改、'
                                        '另一上下文成对读取，可能观察到撕裂的字段组合')
+            destructive_codes.append('D-07')
+            witnesses.append(dict(pattern='D-07', domains=sorted(writer_domains),
+                                  access_ids=[domain_write_sample.get(d) for d in sorted(writer_domains)
+                                              if domain_write_sample.get(d)]))
+        # D-05（OPT-11，FS-1）：union 重叠视图上的写参与冲突（OVERLAP_ACCESS
+        # 副本行）时标注 union 模式码。
+        if any(a.get('access_scope') == 'OVERLAP_ACCESS'
+               and a['access_kind'] in {'WRITE', 'RMW'} for a in runtime):
+            destructive_codes.append('D-05')
         if conflicts or destructive_reasons:
             if protection == 'EFFECTIVE':
                 return dict(classification='SAFE_PROVEN', safe_code='SAFE_EFFECTIVE_PROTECTION',
                             reason='跨上下文冲突访问的完整窗口已被证明处于有效临界区保护内。',
                             gaps=[], conflicts=conflicts, domains=domains,
+                            destructive_codes=sorted(set(destructive_codes)), witnesses=witnesses,
                             unresolved_context_access_count=len(unresolved_context))
             reason_parts = ['、'.join(f'{a} ↔ {b}' for a, b in conflicts[:4])
                             + ('…' if len(conflicts) > 4 else '')] if conflicts else []
@@ -842,6 +995,7 @@ class ClassificationModel:
             return dict(classification='SUSPECT', safe_code=None, reason=reason,
                         gaps=gaps, conflicts=conflicts, domains=domains,
                         destructive=destructive_reasons,
+                        destructive_codes=sorted(set(destructive_codes)), witnesses=witnesses,
                         unresolved_context_access_count=len(unresolved_context))
 
         # 执行上下文未知的写入：在已解析域之间未建立破坏性冲突时，未知写者
@@ -852,12 +1006,29 @@ class ClassificationModel:
                         gaps=gaps, conflicts=[], domains=domains,
                         unresolved_context_access_count=len(unresolved_context))
 
+        # 相关缺口优先于一切非 SUSPECT 结论（OPT-10，FS-4；规划 §4.6 顺序）：
+        # 单写者门槛通过也不能无视证据切片内的缺口——地址逃逸、别名、缺失
+        # TU 等可能隐藏未知的第二个写者。缺口存在 => UNKNOWN，绝不 NO_REVIEW。
+        if gaps:
+            return dict(classification='UNKNOWN', safe_code=None,
+                        reason='；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps),
+                        gaps=gaps, conflicts=[], domains=domains,
+                        unresolved_context_access_count=len(unresolved_context))
+
         # --- 单一运行期写者域 + 其余只读 → SHARED_NO_REVIEW 候选 ---
         # 必须存在真实共享（≥2 个物理域）：单域变量由 SAFE 规则直接证明。
-        if len(writer_domains) == 1 and len(domains) >= 2:
+        # 例外（OPT-17）：存在未知上下文只读者时，读者物理域不可枚举，
+        # 变量按共享处理（原子宽度前提已在缺口检查中保证）。
+        if len(writer_domains) == 1 and (len(domains) >= 2 or unresolved_reads):
             writer_domain = writer_domains[0]
             writer_kinds = domain_kinds[writer_domain]
             gate_failures = []
+            # 结构化门槛结果（OPT-02，规划 NR-11）：逐项记录 NR 检查，
+            # 失败项带稳定码，供根因统计与反事实分析。
+            gate_results = [dict(gate='NR-01', result='PASS'),
+                            dict(gate='NR-02', result='PASS'),
+                            dict(gate='NR-09', result='PASS'),
+                            dict(gate='NR-10', result='PASS')]
             # 写者域内允许对同一变量存在独立读取站点：本分支已证明它是唯一
             # 写者域，先读后写不会丢失更新（stale snapshot 需要第二个写者，
             # 守门测试 G3 的双写者模式仍由 MULTI_WRITER 拦截）。RMW 是单
@@ -865,32 +1036,59 @@ class ClassificationModel:
             width = self._element_width(variable)
             if width is None:
                 gate_failures.append('无法证明访问宽度为标量（结构体 / 位域 / 未知类型）')
+                gate_results.append(dict(gate='NR-03', result='FAIL', code='NR-03_WIDTH_UNKNOWN'))
             elif width > self.word_bytes:
                 gate_failures.append(f'访问宽度 {width} 字节超过 {self.word_bytes} 字节单指令原子宽度')
+                gate_results.append(dict(gate='NR-03', result='FAIL', code='NR-03_WIDTH_EXCEEDS_WORD',
+                                         width=width, word_bytes=self.word_bytes))
             else:
-                alignment = variable.get('alignment_bytes')
+                alignment = self._effective_alignment(variable)
                 if alignment is None:
                     gate_failures.append('对齐信息缺失，无法证明单指令原子访问')
+                    gate_results.append(dict(gate='NR-03', result='FAIL', code='NR-03_ALIGNMENT_MISSING'))
                 elif alignment < width:
                     gate_failures.append(f'对齐 {alignment} 字节小于访问宽度 {width} 字节')
+                    gate_results.append(dict(gate='NR-03', result='FAIL', code='NR-03_ALIGNMENT_INSUFFICIENT',
+                                             width=width, alignment=alignment))
+                else:
+                    gate_results.append(dict(gate='NR-03', result='PASS', width=width,
+                                             alignment=alignment))
+            gate_results.append(dict(gate='NR-06', result='PASS' if not dma_domains else 'FAIL'))
             if gate_failures:
                 if any(g['code'] != 'ACCESS_NOT_ANALYZED' for g in gaps):
                     return dict(classification='UNKNOWN', safe_code=None,
                                 reason='；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps),
                                 gaps=gaps, conflicts=[], domains=domains,
+                                destructive_codes=[], witnesses=[],
+                                gate_results=gate_results,
                                 unresolved_context_access_count=len(unresolved_context))
                 return dict(classification='SUSPECT', safe_code=None,
                             reason='单一写者共享变量未通过无复核门槛：' + '；'.join(gate_failures) + '。',
                             gaps=[], conflicts=[], domains=domains,
+                            destructive_codes=['D-08'],
+                            witnesses=[dict(pattern='D-08', domains=sorted(domains),
+                                            access_ids=[domain_write_sample.get(writer_domain)],
+                                            failed_gates=[g.get('code') for g in gate_results
+                                                          if g.get('result') == 'FAIL'])],
+                            gate_results=gate_results,
                             unresolved_context_access_count=len(unresolved_context))
             evidence = dict(writer_domain=writer_domain, writer_kinds=sorted(writer_kinds),
                             reader_domains=sorted(d for d in domains if d != writer_domain),
-                            element_width=width, alignment_bytes=variable.get('alignment_bytes'))
+                            unknown_context_readers=len(unresolved_reads) or None,
+                            element_width=width, alignment_bytes=variable.get('alignment_bytes'),
+                            effective_alignment_bytes=self._effective_alignment(variable),
+                            nr_checks=gate_results + [
+                                dict(gate='NR-04', result='NOT_EVALUATED'),
+                                dict(gate='NR-05', result='PASS' if sid not in self.coherent_members
+                                     else 'FAIL'),
+                                dict(gate='NR-07', result='PASS' if not gaps else 'FAIL'),
+                                dict(gate='NR-08', result='NOT_EVALUATED')])
             return dict(classification='SHARED_NO_REVIEW', safe_code='SHARED_NO_REVIEW',
                         reason=('唯一写者（' + writer_domain + '）+ 其余上下文只读；访问宽度 '
                                 + str(width) + ' 字节、对齐 ' + str(variable.get('alignment_bytes'))
                                 + ' 字节满足单指令原子访问；无 DMA、地址逃逸或多字段一致性关联。'),
                         gaps=[], conflicts=[], domains=domains, shared_evidence=evidence,
+                        destructive_codes=[], witnesses=[],
                         unresolved_context_access_count=len(unresolved_context))
 
         if gaps:
@@ -898,10 +1096,56 @@ class ClassificationModel:
                         reason='；'.join(UNKNOWN_LABELS.get(g['code'], g['code']) for g in gaps),
                         gaps=gaps, conflicts=[], domains=domains,
                         unresolved_context_access_count=len(unresolved_context))
+        # OPT-16（FS-7）：多个写者域两两不可交错（同抢占优先级）时，旧逻辑
+        # 直接返回 SAFE_NON_INTERLEAVING，忽略写者组与可交错读者域之间的
+        # 撕裂（P28：两个同优先级 ISR 写 64 位、前台读）。把互相串行的写者
+        # 域视为一个"写者组"：组与可交错读者域之间必须满足单拷贝原子门槛
+        # （NR-03），全部满足才共享无复核，否则读者可见撕裂值（D-08）。
+        if len(writer_domains) >= 2 and len(domains) >= 2:
+            interleaving_readers = [d for d in domains
+                                    if not domain_kinds[d] & {'WRITE', 'RMW'}
+                                    and any(self.domains_may_interleave(d, w) for w in writer_domains)]
+            if interleaving_readers:
+                width = self._element_width(variable)
+                alignment = self._effective_alignment(variable)
+                tear_failures = []
+                if width is None:
+                    tear_failures.append('无法证明访问宽度为标量')
+                elif width > self.word_bytes:
+                    tear_failures.append(f'访问宽度 {width} 字节超过 {self.word_bytes} 字节单指令原子宽度')
+                elif alignment is None:
+                    tear_failures.append('对齐信息缺失')
+                elif alignment < width:
+                    tear_failures.append(f'对齐 {alignment} 字节小于访问宽度 {width} 字节')
+                if tear_failures:
+                    return dict(classification='SUSPECT', safe_code=None,
+                                reason=('多个写者域相互串行，但写者组与可交错的读者域（'
+                                        + '、'.join(interleaving_readers) + '）之间访问宽度 '
+                                        '不满足单拷贝原子：' + '；'.join(tear_failures) + '。'),
+                                gaps=gaps, conflicts=[], domains=domains,
+                                destructive_codes=['D-08'],
+                                witnesses=[dict(pattern='D-08',
+                                                domains=[min(writer_domains), min(interleaving_readers)],
+                                                writer_group=sorted(writer_domains),
+                                                reader_domains=sorted(interleaving_readers))],
+                                unresolved_context_access_count=len(unresolved_context))
+                evidence = dict(writer_domains=sorted(writer_domains),
+                                reader_domains=sorted(interleaving_readers),
+                                element_width=width, alignment_bytes=alignment,
+                                writer_group_serial=True)
+                return dict(classification='SHARED_NO_REVIEW', safe_code='SHARED_NO_REVIEW',
+                            reason=('多个写者域（' + '、'.join(sorted(writer_domains))
+                                    + '）已证明相互不可交错，构成单一串行写者组；可交错读者域只读，'
+                                    '访问宽度 ' + str(width) + ' 字节满足单拷贝原子。'),
+                            gaps=[], conflicts=[], domains=domains, shared_evidence=evidence,
+                            destructive_codes=[], witnesses=[],
+                            unresolved_context_access_count=len(unresolved_context))
+
         classification, reason, code = self._safe_rule(variable, runtime, writes,
                                                        domain_kinds, domains, protection)
         return dict(classification=classification, reason=reason, safe_code=code,
                     gaps=[], conflicts=[], domains=domains,
+                    destructive_codes=[], witnesses=[],
                     unresolved_context_access_count=len(unresolved_context))
 
     def _safe_rule(self, variable, runtime, writes, domain_kinds, domains, protection):

@@ -8,7 +8,8 @@ from .common import digest
 
 
 TABLES = ("variables", "functions", "accesses", "calls", "unknowns", "protection_events", "registrations", "snapshots",
-          "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow")
+          "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow",
+          "returned_members")
 
 # Cortex-M 前台（reset/引导链）入口命名约定：这些名字经向量表第 0/1 项进入，
 # 属于唯一的 foreground 串行执行域，绝不能按 *_handler 后缀误判成 ISR。
@@ -295,6 +296,46 @@ def member_symbol_id(root_symbol_id, field_path):
     return root_symbol_id + '::member::' + field_path
 
 
+def _access_evidence_id(access):
+    """Content-stable evidence id: identical facts collapse to one id.
+
+    payload 排除 access_id 本身；生成后不再改变，继承行
+    ``inherited_from_access_id`` 因此可以长期追溯到来源访问（OPT-03）。
+    """
+    payload = {k: v for k, v in access.items() if k != 'access_id'}
+    return 'A-' + digest(payload)[:20]
+
+
+def union_overlap_targets(root_sid, definitions, descendants):
+    """FS-1（OPT-11）：union 各直接成员共享同一段存储。
+
+    返回 ``{field_path: [重叠叶子成员 sid]}``：同一 union 路径下 section
+    不同的路径两两重叠（取目标路径下的叶子成员）；同 section 内的兄弟
+    字段（嵌套 struct 的不同叶子，如 u.h.lo 与 u.h.hi）不重叠。提取器为
+    每个成员记录所属各层 union 的 (union 路径, 直接成员路径) 序列。
+    """
+    section_index = defaultdict(dict)  # union_path -> section_path -> {field_path}
+    for fp, fd in definitions.items():
+        for upath, spath in (fd.get('union_sections') or ()):
+            section_index[upath].setdefault(spath, set()).add(fp)
+    result = {}
+    for fp, fd in definitions.items():
+        targets = set()
+        for upath, spath in (fd.get('union_sections') or ()):
+            for other_spath, others in section_index[upath].items():
+                if other_spath != spath:
+                    targets.update(others)
+        if not targets:
+            continue
+        sids = []
+        for target_path in sorted(targets):
+            for sid in descendants[(root_sid, target_path)]:
+                if sid not in sids:
+                    sids.append(sid)
+        result[fp] = sids
+    return result
+
+
 def canonicalize_member_resources(facts):
     """Promote record fields to independent concurrency-analysis resources.
 
@@ -307,6 +348,10 @@ def canonicalize_member_resources(facts):
     """
     if facts.get('member_resources_canonicalized'):
         return
+    # 继承行生成前，源访问的 evidence id 必须已定（此后不再改变）。
+    for access in facts['accesses']:
+        if not access.get('access_id'):
+            access['access_id'] = _access_evidence_id(access)
     roots = {v['symbol_id']: v for v in facts['variables']}
     records = {sid: v for sid, v in roots.items() if v.get('is_struct')}
     if not records:
@@ -316,6 +361,7 @@ def canonicalize_member_resources(facts):
     children_by_root = defaultdict(list)
     descendants = defaultdict(list)
     member_by_key = {}
+    overlap_map_by_root = {}
     additions = []
     for root_sid, root in records.items():
         root['resource_kind'] = 'STRUCT_CONTAINER'
@@ -326,6 +372,17 @@ def canonicalize_member_resources(facts):
         for field_path, field in sorted(definitions.items()):
             sid = member_symbol_id(root_sid, field_path)
             resource = dict(root)
+            # 有效对齐（OPT-15，FS-6）：min(字段类型对齐, 由根对象对齐与
+            # 字节偏移整除性推出的上界)。packed / 奇偏移成员因此不再按
+            # 类型对齐误判为单指令原子。
+            effective_alignment = field.get('alignment_bytes')
+            bit_offset = field.get('bit_offset')
+            if effective_alignment is not None and bit_offset is not None:
+                byte_offset, bit_rem = divmod(bit_offset, 8)
+                if bit_rem == 0 and byte_offset:
+                    effective_alignment = min(effective_alignment, byte_offset & -byte_offset)
+                elif bit_rem == 0 and root.get('alignment_bytes'):
+                    effective_alignment = min(effective_alignment, root['alignment_bytes'])
             resource.update(symbol_id=sid, name=field.get('name') or field_path.rsplit('.', 1)[-1],
                             qualified_name=root['qualified_name'] + '.' + field_path,
                             kind='STRUCT_MEMBER', scope='member',
@@ -335,6 +392,8 @@ def canonicalize_member_resources(facts):
                             resource_kind='STRUCT_MEMBER_CONTAINER' if field.get('is_struct') else 'STRUCT_MEMBER',
                             type=field.get('type') or root.get('type'),
                             size_bytes=field.get('size_bytes'), alignment_bytes=field.get('alignment_bytes'),
+                            bit_offset=bit_offset, effective_alignment_bytes=effective_alignment,
+                            union_sections=[list(pair) for pair in (field.get('union_sections') or ())],
                             is_const=bool(field.get('is_const')), is_volatile=bool(field.get('is_volatile')),
                             is_struct=bool(field.get('is_struct')),
                             is_bitfield_container=bool(field.get('is_bitfield')),
@@ -351,6 +410,7 @@ def canonicalize_member_resources(facts):
                                                    if child == field_path or child.startswith(field_path + '.')
                                                    if member_by_key[(root_sid, child)]['resource_kind'] == 'STRUCT_MEMBER']
         root['member_symbol_ids'] = children_by_root[root_sid]
+        overlap_map_by_root[root_sid] = union_overlap_targets(root_sid, definitions, descendants)
 
     additions_by_sid = {v['symbol_id']: v for v in additions}
     generated = []
@@ -382,13 +442,32 @@ def canonicalize_member_resources(facts):
             for target_sid in inherited_targets:
                 target = additions_by_sid[target_sid]
                 inherited = copy.deepcopy(access)
+                inherited.pop('access_id', None)
                 inherited.update(symbol_id=target_sid, root_symbol_id=original_sid,
                                  root_symbol=root['qualified_name'], field_path=target['field_path'],
                                  canonical_path=target['canonical_path'],
                                  access_scope='INHERITED_WHOLE_OBJECT_ACCESS',
-                                 inherited_from_access_id=access.get('access_id'),
+                                 inherited_from_access_id=access['access_id'],
                                  inherited_from_canonical_path=access['canonical_path'])
                 generated.append(inherited)
+        # union 重叠（OPT-11，FS-1）：命中的成员路径若与同 union 其它
+        # section 重叠，为其叶子成员生成 OVERLAP_ACCESS 副本。整对象回退
+        # 已覆盖全部叶子（含全部 section），不重复复制。
+        if (field_path and access.get('access_scope') != 'WHOLE_OBJECT_ACCESS'
+                and access['access_kind'] in {'READ', 'WRITE', 'RMW'}):
+            for target_sid in overlap_map_by_root.get(original_sid, {}).get(field_path, ()):
+                if target_sid == access.get('symbol_id'):
+                    continue
+                target = additions_by_sid[target_sid]
+                overlap = copy.deepcopy(access)
+                overlap.pop('access_id', None)
+                overlap.update(symbol_id=target_sid, root_symbol_id=original_sid,
+                               root_symbol=root['qualified_name'], field_path=target['field_path'],
+                               canonical_path=target['canonical_path'],
+                               access_scope='OVERLAP_ACCESS',
+                               inherited_from_access_id=access['access_id'],
+                               inherited_from_canonical_path=access['canonical_path'])
+                generated.append(overlap)
 
     facts['variables'].extend(additions)
     facts['variables'].sort(key=lambda row: row['symbol_id'])
@@ -408,10 +487,12 @@ def canonicalize_member_resources(facts):
                          inherited_object_uncertainty=True)
             inherited_unknowns.append(clone)
     facts['unknowns'].extend(inherited_unknowns)
-    # Access identity must include target identity after one root fact becomes
-    # several member effects.  Do this only once all generated records exist.
-    for index, access in enumerate(facts['accesses']):
-        access['access_id'] = 'A-' + digest([index, access])[:20]
+    # Access identity must be unique after one root fact becomes several
+    # member effects. 只为仍缺失 ID 的行（主要是继承行）补内容稳定 ID；
+    # 不做全量重编号，否则继承行引用的来源 ID 会失效（OPT-03）。
+    for access in facts['accesses']:
+        if not access.get('access_id'):
+            access['access_id'] = _access_evidence_id(access)
     facts['struct_containers'] = [v for v in facts['variables'] if v.get('resource_kind') == 'STRUCT_CONTAINER']
     facts['member_resources_canonicalized'] = True
 
@@ -703,6 +784,40 @@ def analyze(facts, cfg, coverage, root=None):
     from .scope import AuditScope, select_facts
     scope = AuditScope(project_root, cfg['analysis'])
     select_facts(facts, scope, coverage)
+    # ---- 不可达写剔除：声明为 const 且非 volatile 的对象（含经 root 归并的
+    # 成员）不可能被运行期写入。写入 const 对象是 C 标准定义的未定义行为
+    # （C11 §6.7.3），在 Cortex-M 裸机目标上 const 静态存储位于 flash
+    # (.rodata)，运行期写入物理上也不可能成功。points-to 的流不敏感指向集
+    # 并集（互斥分支的 `*buf = &desc` 与 `*buf = ctrl_buf`）会给 const 对象
+    # 制造幻影 WRITE，进而伪造双写者 / 多字段一致性候选。这些写是不可达
+    # 访问，按通用规则剔除并保留诊断计数；READ / ADDRESS_TAKEN 行不受影响。
+    var_by_sid = {v['symbol_id']: v for v in facts['variables']}
+
+    def _const_write_impossible(sid):
+        v = var_by_sid.get(sid)
+        seen = set()
+        while v is not None and v['symbol_id'] not in seen:
+            seen.add(v['symbol_id'])
+            if v.get('is_volatile'):
+                return False
+            if v.get('is_const'):
+                return True
+            root_sid = v.get('root_symbol_id')
+            v = var_by_sid.get(root_sid) if root_sid else None
+        return False
+
+    kept_accesses, const_write_dropped = [], []
+    for a in facts['accesses']:
+        if a.get('access_kind') in {'WRITE', 'RMW'} and _const_write_impossible(a.get('symbol_id')):
+            const_write_dropped.append(a)
+        else:
+            kept_accesses.append(a)
+    if const_write_dropped:
+        facts['accesses'] = kept_accesses
+        coverage['impossible_const_writes'] = len(const_write_dropped)
+        coverage['impossible_const_write_examples'] = sorted(
+            {var_by_sid[a['symbol_id']].get('qualified_name', a['symbol_id'])
+             for a in const_write_dropped if a.get('symbol_id') in var_by_sid})[:20]
     by_var, events = defaultdict(list), defaultdict(list)
     for e in facts["protection_events"]:
         events[e["function_id"]].append(e)
@@ -824,6 +939,30 @@ def analyze(facts, cfg, coverage, root=None):
                     domain_fn_member_reads[root_sid][(domain, a['function_id'])].add(member_sid)
                 elif not pre_write:
                     domain_member_writes[root_sid][domain].add(member_sid)
+    # OPT-12（FS-2）：访问器读组。返回值来自成员读的访问器函数（一层），
+    # 其每个调用者按该成员的读计入读组——value+valid 协议经
+    # `if (get_valid()) return get_value();` 读出时不再漏标一致性。
+    # 读者函数自身没有直接成员读时也要建立读组条目（按访问器调用者驱动）。
+    accessor_members = defaultdict(set)   # function_id -> {(root_sid, canonical_field_path)}
+    for row in facts.get('returned_members', []):
+        if row.get('function_id') and row.get('symbol_id') and row.get('field_path'):
+            accessor_members[row['function_id']].add(
+                (row['symbol_id'], canonical_member_path(row['field_path'])))
+    if accessor_members:
+        callers_of_function = defaultdict(set)
+        for c in facts['calls']:
+            if c.get('callee_function_id'):
+                callers_of_function[c['callee_function_id']].add(c['caller_function_id'])
+        for acc_fn, members in accessor_members.items():
+            for caller in callers_of_function.get(acc_fn, ()):
+                if caller == acc_fn:
+                    continue
+                for cid in paths.get(caller, {}):
+                    domain = model.domain[cid]
+                    for acc_root, field_path in members:
+                        member_sid = acc_root + '::member::' + field_path
+                        if member_sid in model.variables:
+                            domain_fn_member_reads[acc_root][(domain, caller)].add(member_sid)
     coherent_members = set()
     for root_sid, per_domain in domain_member_writes.items():
         for writer_domain, written in per_domain.items():
@@ -919,7 +1058,8 @@ def analyze(facts, cfg, coverage, root=None):
         if owner_violation and static_classification in {'SAFE_PROVEN', 'SHARED_NO_REVIEW'}:
             static_classification = 'SUSPECT'
             result = dict(result, classification='SUSPECT',
-                          reason='违反配置声明的上下文所有权：存在声明所有者之外的写入上下文。')
+                          reason='违反配置声明的上下文所有权：存在声明所有者之外的写入上下文。',
+                          destructive_codes=sorted(set(result.get('destructive_codes') or ()) | {'D-11'}))
         gap_codes = sorted({g['code'] for g in result['gaps']})
         coverage_reasons = list(gap_codes)
         coverage_status = 'COMPLETE' if not coverage_reasons else 'PARTIAL'
@@ -946,13 +1086,15 @@ def analyze(facts, cfg, coverage, root=None):
                     rules.add("GS-STRUCT-INCONSISTENT")
             if owner_violation:
                 rules.add("GS-OWNER-VIOLATION")
-            for destructive_reason in result.get('destructive') or ():
-                if 'CPU↔DMA' in destructive_reason:
-                    rules.add("GS-DMA-RACE")
-                elif '多字段一致性' in destructive_reason:
-                    rules.add("GS-MULTI-FIELD-COHERENCE")
-                elif '位域' in destructive_reason:
-                    rules.add("GS-STRUCT-INCONSISTENT")
+            # 结构化破坏性模式码 → 展示规则（OPT-02）：不再对 reason 文本
+            # 做字符串匹配；码由 classify() 的检测器直接给出。
+            code_to_rule = {'D-03': "GS-DMA-RACE",
+                            'D-07': "GS-MULTI-FIELD-COHERENCE",
+                            'D-04': "GS-STRUCT-INCONSISTENT"}
+            for destructive_code in result.get('destructive_codes') or ():
+                rule = code_to_rule.get(destructive_code)
+                if rule:
+                    rules.add(rule)
         if static_classification in {'SAFE_PROVEN', 'SHARED_NO_REVIEW'}:
             safe_code = result['safe_code']
             from .classify import SAFE_LABELS
@@ -1001,6 +1143,9 @@ def analyze(facts, cfg, coverage, root=None):
                  conflict_pairs=member_conflicts, conflict_pairs_capped=conflict_cap_info,
                  access_count=len(all_accesses),
                  gap_evidence=result['gaps'], pending_confirmation=pending,
+                 destructive_codes=result.get('destructive_codes') or [],
+                 witnesses=result.get('witnesses') or [],
+                 gate_results=result.get('gate_results') or [],
                  resolved_call_path_count=sum(a['resolved_call_path_count'] for a in all_accesses))
         finding = dict(finding_id="GS-" + digest([sid, finding_rules, sorted(all_contexts)])[:16],
                        symbol_id=sid, variable_name=v["qualified_name"], rules=finding_rules, risk_level=risk_level,
@@ -1013,6 +1158,8 @@ def analyze(facts, cfg, coverage, root=None):
                         concurrency_reason=classification_reason,
                        snapshots=snapshots[sid], uncertainties=uncertain,
                        screening_blockers=gap_codes, pending_confirmation=pending,
+                       destructive_codes=result.get('destructive_codes') or [],
+                       witnesses=result.get('witnesses') or [],
                        configured_preemption=[p for p in cfg["preemption"] if {p["higher"], p["lower"]} <= all_contexts],
                        configured_concurrency=[p for p in cfg["concurrency"] if set(p["contexts"]) <= all_contexts],
                        protection_note=protection_note, protection_details=protection_details,
@@ -1089,6 +1236,25 @@ def analyze(facts, cfg, coverage, root=None):
     coverage['static_classification'] = dict(total=len(ids), proven=static_counts['SAFE_PROVEN'],
         no_review=static_counts['SHARED_NO_REVIEW'], suspect=static_counts['SUSPECT'],
         unknown=static_counts['UNKNOWN'])
+    # 口径拆分（OPT-01）：编译变量口径（TOTAL_BUILD）与全盘点口径并列。
+    # 补充盘点声明（supplemental / inactive_branch）固定判为
+    # ACCESS_NOT_ANALYZED 的 UNKNOWN；混入同一分母会让 Review Rate 随盘点
+    # 规模膨胀。两个口径同时展示：RR_build = (S+U)/TOTAL_BUILD，RR_all =
+    # (S+U+VARIANT_INVENTORY)/(TOTAL_BUILD+VARIANT_INVENTORY)；不隐藏盘点。
+    build_variables = [v for v in analyzed_variables if v.get('coverage_source') == 'compile_database']
+    inventory_count = sum(v.get('coverage_source') in ('supplemental', 'inactive_branch')
+                          for v in analyzed_variables)
+    build_counts = Counter(v['static_classification'] for v in build_variables)
+    queue_build = build_counts['SUSPECT'] + build_counts['UNKNOWN']
+    coverage['static_classification_build'] = dict(
+        total=len(build_variables), proven=build_counts['SAFE_PROVEN'],
+        no_review=build_counts['SHARED_NO_REVIEW'], suspect=build_counts['SUSPECT'],
+        unknown=build_counts['UNKNOWN'],
+        rr_build=round(100 * queue_build / max(1, len(build_variables)), 2),
+        rr_all=round(100 * (queue_build + inventory_count)
+                     / max(1, len(build_variables) + inventory_count), 2),
+        variant_inventory=inventory_count,
+        dependency_declarations=len(dependency_ids))
     # Reason distributions + UNKNOWN fanout diagnostics (Section 19/26):
     # 诊断目标而非通过标准；超过阈值的 fanout 标记为疑似过度传播。
     from .classify import unknown_fanout_report
@@ -1111,14 +1277,21 @@ def analyze(facts, cfg, coverage, root=None):
             raw_shared_write += 1
     proven_by_code = Counter(v.get('safe_reason_code') for v in analyzed_variables
                              if v.get('static_classification') == 'SAFE_PROVEN')
+    quality_build = coverage['static_classification_build']
     coverage['classification_quality'] = dict(
         total=len(ids),
+        total_build=quality_build['total'],
+        variant_inventory=quality_build['variant_inventory'],
         raw_shared_write_candidates=raw_shared_write,
         safe_proven=static_counts['SAFE_PROVEN'],
         shared_no_review=static_counts['SHARED_NO_REVIEW'],
         suspect=static_counts['SUSPECT'],
         unknown=static_counts['UNKNOWN'],
-        review_rate=round(100 * (static_counts['SUSPECT'] + static_counts['UNKNOWN']) / max(1, len(ids)), 2),
+        # review_rate（历史键）= (S+U+盘点)/全部分母，与 rr_all 同口径；两个
+        # 口径并列展示（OPT-01），任何报告中不得混用分子分母。
+        review_rate=quality_build['rr_all'],
+        rr_build=quality_build['rr_build'],
+        rr_all=quality_build['rr_all'],
         refinements=dict(
             single_foreground=proven_by_code['SAFE_SINGLE_FOREGROUND'],
             read_only=proven_by_code['SAFE_READ_ONLY'] + proven_by_code['SAFE_MULTI_CONTEXT_READ_ONLY'],
@@ -1129,7 +1302,8 @@ def analyze(facts, cfg, coverage, root=None):
             effective_protection=proven_by_code['SAFE_EFFECTIVE_PROTECTION'],
             init_only_write=proven_by_code['SAFE_INIT_ONLY_WRITE'],
             single_writer_no_review=static_counts['SHARED_NO_REVIEW'],
-        ))
+        ),
+        impossible_const_writes=coverage.get('impossible_const_writes', 0))
     coverage['struct_containers'] = sum(v.get('resource_kind') == 'STRUCT_CONTAINER' for v in facts['variables'])
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]

@@ -145,8 +145,11 @@ class Solver:
                         offset=call['offset'], confidence='may_target'))
             name = call['name']
             args = call['arguments']
-            semantics = {'memcpy': {0: 'WRITE', 1: 'READ'}, 'memmove': {0: 'WRITE', 1: 'READ'},
-                         'memset': {0: 'WRITE'}, 'memcmp': {0: 'READ', 1: 'READ'}}.get(name, {})
+            # OPT-19（FS-10）：与提取器共用唯一的定长标准库语义表
+            # （ecra.common）。目的指针的指向对象记 WRITE、源记 READ；语义
+            # 已知的调用点不是不透明代码。
+            from .common import LIBC_ARG_SEMANTICS
+            semantics = LIBC_ARG_SEMANTICS.get(name, {})
             for i, mode in semantics.items():
                 if i < len(args):
                     self.add_access(self.value(args[i]), call, mode, via_api=name)

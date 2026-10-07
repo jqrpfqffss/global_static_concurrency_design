@@ -22,8 +22,10 @@ def file_digest(path):
 
 
 def engine_digest():
+    # report/diagnostics 参与摘要：分类结论与根因报告随引擎变化失效，
+    # 旧复核收据不得复用（规划 §17.2）。
     return digest({name: file_digest(Path(__file__).with_name(name+'.py')) for name in
-                   ('analysis', 'classify', 'cli', 'compilation', 'config', 'extract', 'controlflow', 'protection', 'interrupts', 'pointer_extract', 'points_to', 'scope', 'common', 'supplemental')})
+                   ('analysis', 'classify', 'cli', 'compilation', 'config', 'extract', 'controlflow', 'protection', 'interrupts', 'pointer_extract', 'points_to', 'scope', 'common', 'supplemental', 'report', 'diagnostics')})
 
 
 def analysis_config(cfg):

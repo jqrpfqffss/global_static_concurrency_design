@@ -43,9 +43,11 @@ class SerialRegressionTests(unittest.TestCase):
         # uint64 在 32 位目标上无法单指令原子读取：单一写者也保持 SUSPECT。
         self.assertEqual(lifetime['static_classification'], 'SUSPECT')
         self.assertIn('GS-MULTI-CONTEXT',next(f for f in report['findings'] if f.get('symbol_id')==lifetime['symbol_id'])['rules'])
-        # 4 字节对齐标量：唯一写者 + 只读者 => 共享无需复核，不生成 finding。
-        self.assertEqual(value['static_classification'], 'SHARED_NO_REVIEW')
-        self.assertFalse(any(f.get('symbol_id')==value['symbol_id'] for f in report['findings']))
+        # packed 结构偏移 1 的 4 字节成员有效对齐只有 1 字节（FS-6 / OPT-15，
+        # GR-13/P27）：非对齐字访问在 Cortex-M 上不是单拷贝原子，唯一写者
+        # + 只读者也必须保持 SUSPECT（D-08），不得判共享无需复核。
+        self.assertEqual(value['static_classification'], 'SUSPECT')
+        self.assertTrue(any(f.get('symbol_id')==value['symbol_id'] for f in report['findings']))
 
     def test_typedef_function_pointer_cast_preserves_callback_target(self):
         cfg=self.project({'a.c': '''

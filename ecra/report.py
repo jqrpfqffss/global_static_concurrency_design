@@ -13,7 +13,9 @@ def location(row):
     return f"{row.get('file') or '未知'}:{row.get('line') or '?'}"
 
 
-# SUSPECT 展示规则 → 根因桶（Section 1 的用户 taxonomy）。
+# SUSPECT 展示规则保留给 finding 层（风险排序展示）；根因统计自 OPT-02
+# 起直接使用 classify() 输出的结构化破坏性模式码（D-xx），见
+# write_classification_diagnostics 与 ecra.diagnostics。
 SUSPECT_CAUSE_BUCKETS = (
     ('GS-DMA-RACE', 'DMA'),
     ('GS-MULTI-FIELD-COHERENCE', 'MULTI_FIELD_COHERENCE'),
@@ -29,46 +31,70 @@ SUSPECT_CAUSE_BUCKETS = (
 
 
 def write_classification_diagnostics(out, facts, report):
-    """classification_root_causes.md + classification_quality.html（Section 1/14）。"""
+    """classification_root_causes.md + classification_quality.html（Section 1/14）。
+
+    口径（OPT-01）：编译变量口径为主表（分子分母同为 TOTAL_BUILD）；
+    补充盘点声明单独列出，绝不同表混算。
+    """
     from .common import digest
     cov = report['coverage']
     static = cov.get('static_classification', {})
+    build = cov.get('static_classification_build') or {}
     variables = facts['variables']
     compiled = [v for v in variables
                 if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}
                 and v.get('coverage_source') == 'compile_database']
+    inventory = [v for v in variables
+                 if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}
+                 and v.get('coverage_source') in ('supplemental', 'inactive_branch')]
     total = len(compiled) or 1
-    findings_by_sid = {f['symbol_id']: f for f in report['findings'] if f.get('symbol_id')}
+    # 编译变量口径的队列分子直接按变量统计，保证与分母同口径。
+    suspect_build = build.get('suspect') if build else sum(
+        1 for v in compiled if v.get('static_classification') == 'SUSPECT')
+    unknown_build = build.get('unknown') if build else sum(
+        1 for v in compiled if v.get('static_classification') == 'UNKNOWN')
+    queue = (suspect_build or 0) + (unknown_build or 0)
+    rr_build = build.get('rr_build') if build else round(100 * queue / total, 2)
+    rr_all = build.get('rr_all') if build else round(
+        100 * (queue + len(inventory)) / max(1, len(compiled) + len(inventory)), 2)
+    # SUSPECT 根因 v2：直接使用分类器的结构化破坏性模式码（OPT-02），
+    # 每变量的全部码各计一次（多原因并列）；不再经 finding 规则做字符串
+    # 匹配。DMA 桶只含真实硬件 DMA 域（kind=DMA）产生的 D-03，不再按
+    # 上下文名含 "DMA" 误归（规划 §3.1）。
+    from .classify import DESTRUCTIVE_LABELS
     suspect_causes = Counter()
     for v in compiled:
         if v.get('static_classification') != 'SUSPECT':
             continue
-        finding = findings_by_sid.get(v['symbol_id'], {})
-        rules = set(finding.get('rules', []))
-        matched = [label for code, label in SUSPECT_CAUSE_BUCKETS if code in rules]
-        for label in (matched or ['其它']):
-            suspect_causes[label] += 1
+        for code in (v.get('destructive_codes') or ['其它']):
+            suspect_causes[code] += 1
     unknown_causes = Counter()
     for v in compiled:
         if v.get('static_classification') != 'UNKNOWN':
             continue
         for reason in (v.get('unknown_reason') or ['UNKNOWN_GENERAL']):
             unknown_causes[reason] += 1
-    queue = static.get('suspect', 0) + static.get('unknown', 0)
     md = ["# 分类根因统计（SUSPECT / UNKNOWN）", "",
-          f"- TOTAL（编译变量）：{len(compiled)}",
-          f"- SUSPECT：{static.get('suspect', 0)}（{round(100 * static.get('suspect', 0) / total, 1)}%）",
-          f"- UNKNOWN：{static.get('unknown', 0)}（{round(100 * static.get('unknown', 0) / total, 1)}%）",
-          f"- OpenCode 队列（SUSPECT+UNKNOWN）：{queue}（{round(100 * queue / total, 1)}%）", "",
+          f"- TOTAL_BUILD（编译变量）：{len(compiled)}",
+          f"- SUSPECT：{suspect_build}（{round(100 * (suspect_build or 0) / total, 1)}%）",
+          f"- UNKNOWN：{unknown_build}（{round(100 * (unknown_build or 0) / total, 1)}%）",
+          f"- OpenCode 队列（编译变量口径）：{queue}（RR_build {rr_build}%）",
+          f"- 补充盘点声明（VARIANT_INVENTORY，不分析只盘点）：{len(inventory)}；"
+          f"全盘点口径 RR_all {rr_all}%（分母含盘点声明，与 RR_build 并列展示）", "",
           "| 原因 | 变量数 | 占总变量% | 占 SUSPECT/UNKNOWN% |", "|---|---|---|---|"]
     queue_total = max(1, queue)
-    for label, count in suspect_causes.most_common():
-        md.append(f"| SUSPECT:{label} | {count} | {round(100 * count / total, 1)} | {round(100 * count / queue_total, 1)} |")
+    for code, count in suspect_causes.most_common():
+        label = "SUSPECT:" + code + (" " + DESTRUCTIVE_LABELS[code] if code in DESTRUCTIVE_LABELS else "")
+        md.append(f"| {label} | {count} | {round(100 * count / total, 1)} | {round(100 * count / queue_total, 1)} |")
     for label, count in unknown_causes.most_common():
         md.append(f"| UNKNOWN:{label} | {count} | {round(100 * count / total, 1)} | {round(100 * count / queue_total, 1)} |")
     md += ["", "SUSPECT 只统计破坏性冲突模式（双写 / RMW 交叉 / DMA 与 CPU 至少一方写 / 位域 / 多字段一致性）；"
-           "单一写者 + 只读者的共享变量已归入 SHARED_NO_REVIEW，不进入本表。"]
+           "单一写者 + 只读者的共享变量已归入 SHARED_NO_REVIEW，不进入本表。",
+           "根因为结构化破坏性模式码（D-xx）；每变量的全部码都计入（多原因并列）；"
+           "热点聚类、NR 门槛失败与反事实统计见 root_cause_v2.json。"]
     (out / "reports/classification_root_causes.md").write_text("\n".join(md), encoding="utf-8")
+    from .diagnostics import write_root_cause_v2
+    write_root_cause_v2(out, facts, report)
 
     quality = cov.get('classification_quality', {})
     if quality:
@@ -78,9 +104,10 @@ def write_classification_diagnostics(out, facts, report):
                 "<style>body{font-family:system-ui;margin:2rem}table{border-collapse:collapse}"
                 "td,th{border:1px solid #ccc;padding:.3rem .8rem}</style>"
                 "<h1>分类质量报告</h1>"
-                f"<p>TOTAL {quality.get('total')}；原始共享写候选 {quality.get('raw_shared_write_candidates')}；"
-                f"精化后 OpenCode 队列 {quality.get('suspect') + quality.get('unknown')}"
-                f"（Review Rate {quality.get('review_rate')}%）。</p>"
+                f"<p>TOTAL_BUILD（编译变量）{quality.get('total_build', '—')}；补充盘点 {quality.get('variant_inventory', 0)}；"
+                f"原始共享写候选 {quality.get('raw_shared_write_candidates')}；"
+                f"精化后 OpenCode 队列（编译变量口径）{quality.get('suspect', 0) + quality.get('unknown', 0)}"
+                f"（RR_build {quality.get('rr_build', '—')}%；RR_all {quality.get('rr_all', '—')}%）。</p>"
                 "<h2>降噪贡献（按最终证明规则）</h2>"
                 "<table><tr><th>精化规则</th><th>变量数</th></tr>" + rows + "</table>"
                 "<p class='muted'>原始候选到最终分类的差值由破坏性冲突保留量（SUSPECT）与证据缺口（UNKNOWN）解释；"
@@ -199,11 +226,14 @@ def generate(out, facts, report, reviews):
     static = cov.get('static_classification', {})
     if static:
         if 'proven' in static:
+            build = cov.get('static_classification_build', {})
             md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE_PROVEN {static.get('proven', 0)} + "
                        f"SHARED_NO_REVIEW {static.get('no_review', 0)} + SUSPECT {static.get('suspect', 0)} + "
                        f"UNKNOWN {static.get('unknown', 0)}；OpenCode 队列 "
                        f"{static.get('suspect', 0) + static.get('unknown', 0)}（"
-                       f"{round(100 * (static.get('suspect', 0) + static.get('unknown', 0)) / max(1, static.get('total', 1)), 1)}%）", ""]
+                       f"{round(100 * (static.get('suspect', 0) + static.get('unknown', 0)) / max(1, static.get('total', 1)), 1)}%）", "",
+                       f"- 口径（OPT-01）：编译变量 TOTAL_BUILD {build.get('total', '—')}，RR_build {build.get('rr_build', '—')}%；"
+                       f"补充盘点声明 {build.get('variant_inventory', '—')} 项只盘点不分析；全盘点口径 RR_all {build.get('rr_all', '—')}%。", ""]
         safe_dist = cov.get('safe_reason_distribution', {})
         unknown_dist = cov.get('unknown_reason_distribution', {})
         if safe_dist:
