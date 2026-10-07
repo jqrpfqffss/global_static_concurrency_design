@@ -524,7 +524,10 @@ class Extractor:
                         paths_by_symbol.setdefault(target_sid, set()).add(target_path)
                     for x in walk(arg):
                         if x.kind.name == "DECL_REF_EXPR" and x.referenced:
-                            found |= aliases.get(self.key(x.referenced), set())
+                            # OPT-20：别名条目是 (root_sid, base_path) 元组，
+                            # 这里只需要 root sid 集合。
+                            found |= {sid for sid, _base in
+                                      aliases.get(self.key(x.referenced), set())}
                     if i in semantics:
                         for sid in found:
                             # A pointer object is read; its pointee remains an alias uncertainty.

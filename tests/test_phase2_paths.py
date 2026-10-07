@@ -136,3 +136,24 @@ class Phase2PathTests(Phase0Tests):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class Phase2AliasRegressionTests(Phase0Tests):
+    """OPT-20 别名条目改为 (sid, base_path) 元组后的消费点回归。"""
+
+    def test_alias_entries_do_not_crash_libc_arg_walk(self):
+        # 黑magic 回放中 3 个 TU 因 KeyError 崩溃：CALL_EXPR 参数收集把
+        # (sid, base_path) 元组直接塞进 self.variables[...] 查找。
+        facts, _ = self.analyze({'a.c': '''
+            struct Cmd { int op; };
+            int memcpy(void *d, const void *s, unsigned n);
+            struct Cmd table[4];
+            int main(void){
+                struct Cmd *p = &table[1];
+                memcpy(&table[2], p, sizeof(struct Cmd));
+                return 0;
+            }
+            '''})
+        self.assertTrue(any(v['name'] == 'table' for v in facts['variables']))
+        self.assertTrue(all(v.get('parse_status') == 'PARSED'
+                            for v in facts['variables']))
