@@ -422,6 +422,12 @@ def canonicalize_member_resources(facts):
             continue
         original_sid = access['symbol_id']
         field_path = canonical_member_path(access.get('access_path'))
+        # OPT-20（GP-04）：数组元素访问路径 ``buf[]`` 匹配数组成员资源
+        # ``buf``（OPT-21 之前元素不拆分；元素写视为对整个数组成员的访问）。
+        if field_path.endswith('[]') and (original_sid, field_path) not in member_by_key:
+            trimmed = field_path[:-2]
+            if (original_sid, trimmed) in member_by_key:
+                field_path = trimmed
         access['root_symbol_id'] = original_sid
         access['root_symbol'] = root['qualified_name']
         if field_path and (original_sid, field_path) in member_by_key:
@@ -436,6 +442,11 @@ def canonicalize_member_resources(facts):
                 inherited_targets = []
         else:
             access.update(canonical_path=root['qualified_name'], access_scope='WHOLE_OBJECT_ACCESS')
+            if field_path:
+                # OPT-20（M-07）：路径无法匹配成员（类型双关 / 逆序残留）时
+                # 显式记录回退原因，计入统计——RC-3 修复后应只剩真实类型
+                # 双关，不再静默放大到全部成员。
+                access['fallback_reason'] = 'path_unmatched'
             inherited_targets = descendants[(original_sid, '')] = [sid for sid in children_by_root[original_sid]
                 if member_by_key[(original_sid, sid.rsplit('::member::', 1)[1])]['resource_kind'] == 'STRUCT_MEMBER']
         if inherited_targets and access['access_kind'] in {'READ', 'WRITE', 'RMW'}:
@@ -1305,6 +1316,12 @@ def analyze(facts, cfg, coverage, root=None):
         ),
         impossible_const_writes=coverage.get('impossible_const_writes', 0))
     coverage['struct_containers'] = sum(v.get('resource_kind') == 'STRUCT_CONTAINER' for v in facts['variables'])
+    # OPT-20（M-07）：整对象回退可见化——路径无法匹配成员的访问数（应只剩
+    # 真实类型双关）与回退产生的继承访问行数。
+    coverage['fallback_whole_object_accesses'] = sum(
+        1 for a in facts['accesses'] if a.get('fallback_reason') == 'path_unmatched')
+    coverage['inherited_accesses'] = sum(
+        1 for a in facts['accesses'] if a.get('access_scope') == 'INHERITED_WHOLE_OBJECT_ACCESS')
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]
     covered_functions = sum(f['function_id'] in paths for f in functions)

@@ -161,10 +161,15 @@ class Phase0Tests(unittest.TestCase):
     # ---- OPT-03：证据 ID 稳定化 -------------------------------------------
 
     def test_OPT03_inherited_access_ids_stay_resolvable(self):
+        # RC-3 路径修复（OPT-20）后，常规成员访问不再回退；用字节级类型
+        # 双关（无法匹配成员路径）构造整对象回退与继承行，验证证据链。
         facts, _ = self.analyze({'a.c': '''
             struct Ring { int head; int tail; int buf[4]; };
             struct Ring r;
-            void TIM2_IRQHandler(void){ r.buf[0] = 1; r.head = 2; }
+            void TIM2_IRQHandler(void){
+                unsigned char *cp = (unsigned char *)&r;
+                cp[0] = 1;
+            }
             int main(void){ r.tail = 3; while(1){ int x = r.tail; (void)x; } return 0; }
             '''})
         inherited = [a for a in facts['accesses']

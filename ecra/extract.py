@@ -305,12 +305,18 @@ class Extractor:
                 # ``pointer=False`` so both ``.`` and ``->`` preserve the
                 # pointee's concrete member path.
                 if pointer:
-                    return "READ", ".".join(reversed(path))
+                    return "READ", ".".join(path)
+                # OPT-20（M-40）：路径中遇到"指针类型成员 + -> 解引用"时，
+                # 左值链在此终止。该成员只是作为地址被读取（READ）；其指向
+                # 对象上的写/RMW 由 PointerExtractor 的间接访问行归属到
+                # 具体目标，不再把整个链条记到根对象上（P33）。
+                if path and "->" in tokens(parent):
+                    return "READ", ".".join(path)
                 path.append(parent.spelling)
                 continue
             if k == "ARRAY_SUBSCRIPT_EXPR":
                 if index != 0 or pointer:
-                    return "READ", ".".join(reversed(path))
+                    return "READ", ".".join(path)
                 decay = False  # The decayed base is consumed by an element access.
                 consumed_by_subscript = True
                 path.append("[]")
@@ -336,7 +342,7 @@ class Extractor:
                     # storage root.  ``config.limit = config.period * 2`` is a
                     # WRITE of limit plus a READ of period; only an RHS read of
                     # the exact same member can make this left side RMW.
-                    if op == "=" and any(s == self.symbols.get(self.key(ref.referenced)) and rhs_path == ".".join(reversed(path))
+                    if op == "=" and any(s == self.symbols.get(self.key(ref.referenced)) and rhs_path == ".".join(path)
                                            for s, rhs_path in self.reference_paths(children(parent)[1])):
                         mode = "RMW"
                 break
@@ -349,7 +355,17 @@ class Extractor:
             break
         if mode == "READ" and decay and not consumed_by_subscript:
             mode = "ADDRESS_TAKEN"
-        return mode, ".".join(reversed(path))
+        # OPT-20：路径按"根 → 深层"的自然顺序拼接（旧实现多包一层
+        # reversed，两层及以上嵌套路径整体逆序：s.inner.x 记成 x.inner，
+        # 与成员定义不匹配 → 整对象回退放大，RC-3）。``[]`` 直接依附于
+        # 前一个字段（s.buf[i] → buf[]；s.arr[i].x → arr[].x）。
+        joined = ''
+        for part in path:
+            if part == '[]':
+                joined += '[]'
+            else:
+                joined = joined + '.' + part if joined else part
+        return mode, joined
 
     def add_access(self, sid, c, fid, mode, **extra):
         if mode is None:
@@ -433,17 +449,22 @@ class Extractor:
                         local, rhs = left[0], cs[1]
                 if local is None:
                     continue
-                direct = {s for s, _ in self.refs(rhs) if not self.variables[s]['is_pointer']}
+                # OPT-20：局部别名携带基路径 ``p = &s.inner → (s, 'inner')``；
+                # 经别名的访问路径 = 基路径 + 相对路径。旧实现只记 root，
+                # ``p->y`` 被记成根对象的顶层路径 y（RC-3 / P2）。
+                direct_pairs = {(s, path) for s, path in self.reference_paths(rhs)
+                                if not self.variables[s]['is_pointer']}
+                direct_sids = {s for s, _ in direct_pairs}
                 inherited = set()
                 for x in walk(rhs):
                     if x.kind.name == "DECL_REF_EXPR" and x.referenced:
                         inherited |= aliases.get(self.key(x.referenced), set())
                 key = self.key(local)
                 if local.type.get_canonical().kind.name in {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"}:
-                    if direct or inherited:
-                        aliases.setdefault(key, set()).update(direct | inherited)
-                elif direct:
-                    snapshots.setdefault(key, set()).update(direct)
+                    if direct_pairs or inherited:
+                        aliases.setdefault(key, set()).update(direct_pairs | inherited)
+                elif direct_sids:
+                    snapshots.setdefault(key, set()).update(direct_sids)
 
         def visit(c, ancestors):
             k = c.kind.name
@@ -558,8 +579,11 @@ class Extractor:
                             # expression silently turned those into whole-object
                             # reads and lost the write/RMW operator above it.
                             mode, path = self.access_mode(c, ancestors, False, pointee=True)
-                            for original in aliases[key]:
-                                self.add_access(original, c, fid, mode, access_path=path, via_alias=c.spelling,
+                            for original_sid, base_path in aliases[key]:
+                                # OPT-20：别名基路径 + 相对路径合成完整成员路径。
+                                full_path = '.'.join(part for part in (base_path, path) if part)
+                                self.add_access(original_sid, c, fid, mode, access_path=full_path,
+                                                via_alias=c.spelling,
                                                 parse_confidence_override="conservative",
                                                 conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
                                                                                                'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}

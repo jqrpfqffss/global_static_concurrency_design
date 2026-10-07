@@ -76,13 +76,20 @@ class Phase1SoundnessTests(Phase0Tests):
             void TIM2_IRQHandler(void){ u.w = 1; }
             int main(void){ u.h.lo = 2; return u.h.lo; }
             '''})
-        for path in ('u.w', 'u.h.lo', 'u.h.hi'):
+        # u.w 与 u.h.lo 共享字节 0-3：跨域写 → SUSPECT（D-01，重叠副本
+        # 使双方互见对方域的写）。
+        for path in ('u.w', 'u.h.lo'):
             v = self.variable(facts, 'u', path=path)
             self.assertEqual(v['static_classification'], 'SUSPECT',
                              path + ': ' + v['classification_reason'])
+        # u.h.hi（字节 4-7）不与 u.w 重叠且前台只写 u.h.lo：OPT-20 路径
+        # 修复后不再被回退继承污染，ISR 单域写 → SAFE_SINGLE_IRQ（精确）。
+        hi = self.variable(facts, 'u', path='u.h.hi')
+        self.assertEqual(hi['screening_reason'], 'SAFE_SINGLE_IRQ',
+                         hi['classification_reason'])
         # 重叠副本行标记 union 模式码 D-05（至少一个成员携带）。
         codes = set()
-        for path in ('u.w', 'u.h.lo', 'u.h.hi'):
+        for path in ('u.w', 'u.h.lo'):
             v = self.variable(facts, 'u', path=path)
             codes |= set(v['destructive_codes'])
         self.assertTrue(codes & {'D-01', 'D-05'})

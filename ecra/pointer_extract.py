@@ -128,7 +128,17 @@ class PointerExtractor:
     def mode(self, ancestors):
         for parent, index in reversed(ancestors):
             k = parent.kind.name
-            if k in WRAPPERS or k == 'MEMBER_REF_EXPR' or k == 'ARRAY_SUBSCRIPT_EXPR' and index == 0:
+            if k in WRAPPERS:
+                continue
+            if k == 'MEMBER_REF_EXPR':
+                # OPT-20（M-40）：当前解引用节点的值被 '->' 用作基址指针
+                # 时，该节点本身只是 READ；写/RMW 属于更外层的解引用节点
+                # （单独成行）。无条件 continue 会把 h->Instance 记成
+                # h->Instance->CR1 的 RMW（P33：Instance 误成写者）。
+                if '->' in safe_tokens(parent):
+                    return 'READ'
+                continue
+            if k == 'ARRAY_SUBSCRIPT_EXPR' and index == 0:
                 continue
             if k == 'UNARY_OPERATOR':
                 op = operator(parent)
