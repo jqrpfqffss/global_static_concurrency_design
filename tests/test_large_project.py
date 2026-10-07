@@ -44,7 +44,7 @@ class ScreeningTests(unittest.TestCase):
         self.assertEqual(vars['private_state']['screening_reason'], 'SINGLE_ACCESS_SITE')
         self.assertEqual(vars['readonly']['screening_reason'], 'UNREACHABLE_ACCESSORS')
         self.assertNotIn('EXTERNAL_CALLEE', vars['exported']['screening_blockers'])
-        self.assertEqual(vars['exported']['static_classification'], 'SAFE')
+        self.assertEqual(vars['exported']['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(vars['exported']['safe_reason_code'], 'SAFE_READ_ONLY')
         self.assertTrue(any(u['kind'] == 'EXTERNAL_CALLEE' for u in facts['unknowns']))
 

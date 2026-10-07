@@ -27,6 +27,9 @@ class FullRescanSolver(Solver):
     def load_location(self, location, decay=False):
         return self.compute_load(location, decay)[0]
 
+    def update(self, left, right, aggregate=False, aggregate_paths=None, cache_key=None):
+        return super().update(left, right, aggregate, aggregate_paths, cache_key=None)
+
 
 class PointerWorklistTests(unittest.TestCase):
     def check_fixed_point(self, constraints):
@@ -75,6 +78,43 @@ class PointerWorklistTests(unittest.TestCase):
         result = self.check_fixed_point(constraints)
         self.assertEqual(result.points['result'], {'first', 'second'})
 
+    def test_location_projection_cache_includes_late_field_and_index_targets(self):
+        solver = Solver(dict(variables=[], functions=[]))
+        field = dict(op='field', base=dict(op='deref', value=loc('pointer')), field='member')
+        index = dict(op='index', base=dict(op='deref', value=loc('pointer')), index='2')
+        solver.add_points('pointer', {'first', 'fn:NotStorage'})
+        self.assertEqual(solver.locations(field), {'first/member'})
+        self.assertEqual(solver.locations(index), {'first/[2]'})
+        self.assertEqual(solver.locations(field), {'first/member'})
+        solver.add_points('pointer', {'second', 'unknown:external'})
+        self.assertEqual(solver.locations(field),
+                         {'first/member', 'second/member', 'unknown:external'})
+        self.assertEqual(solver.locations(index),
+                         {'first/[2]', 'second/[2]', 'unknown:external'})
+
+    def test_nested_location_projection_keeps_all_new_pointees(self):
+        solver = Solver(dict(variables=[], functions=[]))
+        expression = dict(op='field', field='leaf', base=dict(op='field', field='child',
+                          base=dict(op='deref', value=loc('pointer'))))
+        solver.add_points('pointer', {'first'})
+        self.assertEqual(solver.locations(expression), {'first/child/leaf'})
+        solver.add_points('pointer', {'second'})
+        self.assertEqual(solver.locations(expression),
+                         {'first/child/leaf', 'second/child/leaf'})
+
+    def test_equation_deltas_cover_new_left_locations_and_right_values(self):
+        constraints = [
+            dict(left=dict(op='field', base=dict(op='deref', value=loc('pointer')),
+                           field='member'), right=loc('values')),
+            dict(left=loc('values'), right=addr('value_one')),
+            dict(left=loc('pointer'), right=addr('first')),
+            dict(left=loc('values'), right=addr('value_two')),
+            dict(left=loc('pointer'), right=addr('second')),
+        ]
+        result = self.check_fixed_point(constraints)
+        self.assertEqual(result.points['first/member'], {'value_one', 'value_two'})
+        self.assertEqual(result.points['second/member'], {'value_one', 'value_two'})
+
     def test_cached_loads_invalidate_for_opaque_ancestors_and_new_overlap_fields(self):
         solver = Solver(dict(variables=[], functions=[], pointer_storage=[
             dict(location='record', paths=['/first', '/second'], array_size=None)]))
@@ -95,6 +135,25 @@ class PointerWorklistTests(unittest.TestCase):
         solver.add_points('table/[1]', {'second'})
         solver.add_points('table/[9]', {'third'})
         self.assertEqual(solver.value(loc('table/[*]')), {'first','second','third'})
+
+    def test_fixed_array_load_watches_only_overlapping_wildcards(self):
+        solver = Solver(dict(variables=[], functions=[]))
+        query = loc('matrix/[0]/cell/[2]')
+        self.assertFalse(solver.value(query))
+        key = ('load', 'matrix/[0]/cell/[2]', False)
+        self.assertIn(key, solver.load_cache)
+        solver.add_points('matrix/[1]/cell/[2]', {'different-row'})
+        solver.add_points('matrix/[0]/cell/[3]', {'different-column'})
+        self.assertIn(key, solver.load_cache)
+        solver.add_points('matrix/[*]/cell/[2]', {'same-column-any-row'})
+        self.assertNotIn(key, solver.load_cache)
+        self.assertEqual(solver.value(query), {'same-column-any-row'})
+        solver.add_points('matrix/[0]/cell/[*]', {'same-row-any-column'})
+        self.assertEqual(solver.value(query),
+                         {'same-column-any-row', 'same-row-any-column'})
+        solver.add_points('matrix/[*]/cell/[*]', {'any-cell'})
+        self.assertEqual(solver.value(query),
+                         {'same-column-any-row', 'same-row-any-column', 'any-cell'})
 
     def test_cached_random_graphs_match_uncached_full_rescan(self):
         import random
@@ -164,6 +223,49 @@ class PointerWorklistTests(unittest.TestCase):
         self.assertIn('local:array/$overlap', solver.points['p'])
         self.assertNotIn('local:array/[3]', solver.points['p'])
         self.assertTrue(facts['points_to_stats']['complete'])
+
+    def test_offset_image_cache_tracks_late_pointees_and_exact_overlap(self):
+        solver = Solver(dict(variables=[], functions=[], pointer_storage=[
+            dict(location='local:array', paths=['/[*]'], array_size=2),
+            dict(location='local:record', paths=['/field'], array_size=None)]))
+        expression = dict(op='offset', value=loc('cursor'), index='1')
+        solver.add_points('cursor', {'local:array/[0]', 'local:record', 'unknown:external'})
+        expected = {'local:array/[1]', 'local:record', 'local:record/$overlap',
+                    'unknown:external'}
+        self.assertEqual(solver.value(expression), expected)
+        self.assertEqual(solver.value(expression), expected)  # cached image
+        solver.add_points('cursor', {'local:array/[1]'})
+        self.assertEqual(solver.value(expression), expected | {'local:array/$overlap'})
+
+    def test_offset_cycle_matches_full_rescan_fixed_point(self):
+        facts = dict(variables=[], functions=[], accesses=[], calls=[], unknowns=[],
+                     pointer_storage=[dict(location='array', paths=['/[*]'], array_size=3)],
+                     pointer_constraints=[
+            dict(left=loc('cursor'), right=addr('array/[0]')),
+            dict(left=loc('next'), right=dict(op='offset', value=loc('cursor'), index='1')),
+            dict(left=loc('cursor'), right=loc('next')),
+            dict(left=loc('out'), right=dict(op='deref', value=loc('cursor'))),
+            dict(left=loc('array/[2]'), right=addr('late')),
+        ])
+        fast, oracle = Solver(copy.deepcopy(facts)), FullRescanSolver(copy.deepcopy(facts))
+        fast.solve()
+        oracle.solve()
+        self.assertEqual(dict(fast.points), dict(oracle.points))
+        self.assertTrue(fast.facts['points_to_stats']['complete'])
+        self.assertIn('array/[2]', fast.points['cursor'])
+
+    def test_function_address_offset_cycle_is_finite_and_opaque(self):
+        constraints = [
+            dict(left=loc('callback'), right=dict(op='function', id='Handler')),
+            dict(left=loc('advanced'), right=dict(op='offset', value=loc('callback'), index='*')),
+            dict(left=loc('callback'), right=loc('advanced')),
+        ]
+        result = self.check_fixed_point(constraints)
+        self.assertEqual(result.points['callback'],
+                         {'fn:Handler', 'unknown:function-offset:Handler'})
+        self.assertEqual(result.points['advanced'],
+                         {'fn:Handler', 'unknown:function-offset:Handler'})
+        self.assertLess(result.facts['points_to_stats']['evaluations'], 20)
 
     def test_global_nested_arrays_preserve_fields_and_finite_extents(self):
         solver = Solver(dict(variables=[dict(symbol_id='object',name='object')],functions=[],pointer_storage=[

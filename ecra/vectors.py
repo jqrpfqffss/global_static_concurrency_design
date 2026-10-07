@@ -5,6 +5,8 @@ exceptions. Slot identity preserves separate IRQs sharing the same callback.
 """
 import re
 
+from .common import digest
+
 
 SECTIONS = {'.isr_vector', '.vectors', '.vector_table', '.interrupt_vector'}
 
@@ -151,9 +153,67 @@ def recover_vector_entries(facts):
                     entries.append(dict(function_id=target[3:], slot=slot,
                         kind='MAIN' if slot == 1 else 'ISR', vector='slot:' + str(slot),
                         unmaskable=slot in {2, 3}, storage_symbol_id=sid,
+                        storage_access_path=path,
                         file=variable.get('definition_file'), line=variable.get('definition_line'),
                         discovery='Cortex-M vector table section and ABI slot'))
     facts['vector_entries'] = entries
+    # An initialized vector is read by the CPU when that exception is taken.
+    # Function-pointer initialization alone is not a runtime READ, and would
+    # otherwise let a vector table claim SAFE_NO_RUNTIME_ACCESS.  Keep the
+    # original storage path so array/record canonicalization can attribute the
+    # read to the exact slot.  The handler is an execution anchor, not the C
+    # source of the memory access; restrict this synthetic fact to its slot.
+    existing_fetches = {(a.get('symbol_id'), a.get('access_path'), tuple(a.get('allowed_contexts', ())))
+                        for a in facts['accesses'] if a.get('via_api') == 'CORTEX_M_VECTOR_FETCH'}
+    hardware_fetches = list(entries)
+    reset_by_storage = {}
+    for entry in entries:
+        if entry.get('slot') == 1 and entry.get('storage_symbol_id') in variables:
+            reset_by_storage.setdefault(entry['storage_symbol_id'], entry)
+    for sid, reset in sorted(reset_by_storage.items()):
+        variable = variables[sid]
+        if (variable.get('is_array') and isinstance(variable.get('array_size'), int)
+                and variable['array_size'] >= 2):
+            # The verified reset entry at [1] proves that this C array has a
+            # preceding ABI slot even when the stack initializer has no
+            # points-to target (for example a linker-defined stack address).
+            path, provenance = '[0]', 'ARRAY_LAYOUT_SLOT_ZERO'
+        else:
+            leaves = [field for field in variable.get('member_definitions', ())
+                      if field.get('offset_bits') == 0 and not field.get('is_struct')
+                      and not field.get('is_bitfield')
+                      and isinstance(field.get('size_bytes'), int)
+                      and field['size_bytes'] >= 4]
+            if len(leaves) == 1:
+                path = leaves[0]['field_path']
+                provenance = 'RECORD_LAYOUT_SLOT_ZERO'
+            else:
+                # Ambiguous unions/bitfields or missing layout cannot justify
+                # a field-specific proof.  Read the enclosing C object so no
+                # member can claim that hardware never accesses it.
+                path, provenance = '', 'CONSERVATIVE_WHOLE_OBJECT'
+        hardware_fetches.append(dict(reset, slot=0, storage_access_path=path,
+                                     vector_slot_path_proof=provenance))
+    for entry in hardware_fetches:
+        sid = entry.get('storage_symbol_id')
+        path = entry.get('storage_access_path')
+        if not sid:
+            continue  # Assembly vector storage has no C variable resource.
+        context = 'vector:' + entry['vector']
+        key = (sid, path, (context,))
+        if key in existing_fetches:
+            continue
+        existing_fetches.add(key)
+        facts['accesses'].append(dict(
+            access_id='A-' + digest(['CORTEX_M_VECTOR_FETCH', sid, path, context, entry['slot']])[:20],
+            symbol_id=sid, function_id=entry['function_id'], access_kind='READ',
+            access_path=path, file=entry.get('file'), line=entry.get('line'),
+            column=0, offset=-1, source_text=('Cortex-M initial stack pointer fetch'
+                if entry['slot'] == 0 else 'Cortex-M hardware vector fetch'),
+            parse_confidence='architecture', via_api='CORTEX_M_VECTOR_FETCH',
+            allowed_contexts=[context], hardware_access=True,
+            vector_slot=entry['slot'],
+            vector_slot_path_proof=entry.get('vector_slot_path_proof', 'RESOLVED_FUNCTION_ENTRY')))
     # Taking an address for a recovered hardware slot is a resolved entry,
     # not an unknown caller. Other opaque uses of the same function remain.
     recovered = {(e['function_id'], e['file'], e['line']) for e in entries}

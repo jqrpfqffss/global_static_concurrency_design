@@ -48,29 +48,36 @@ def file_hashes(root, out, extra=(), audit_roots=()):
     return result
 
 
-def safe_review_samples(facts, count):
-    """Select deterministic SAFE samples without changing risk accounting."""
-    if not count:
+def safe_review_samples(facts, count, shared_count=0):
+    """Select deterministic screened samples without changing risk accounting."""
+    if not count and not shared_count:
         return []
-    selected = [v for v in facts['variables'] if v.get('static_classification') == 'SAFE']
     samples = []
-    for variable in sorted(selected, key=lambda v: v['symbol_id'])[:count]:
-        samples.append(dict(
-            finding_id='SAFE-SAMPLE-' + digest(variable['symbol_id'])[:16],
-            symbol_id=variable['symbol_id'], variable_name=variable['qualified_name'],
-            rules=['SAFE_SAMPLE'], risk_level='LOW', confidence='HIGH',
-            status='NEED_OPENCODE_REVIEW', review_safe_sample=True,
-            static_classification='SAFE', protection_status=variable.get('protection_status', 'NOT_FOUND'),
-            protection_note=variable.get('protection_note'), accesses=variable.get('accesses', []),
-            definition=dict(file=variable.get('definition_file'), line=variable.get('definition_line')),
-            context_pairs=[], concurrency_relations=variable.get('concurrency_relations', []),
-            screening_blockers=variable.get('screening_blockers', []),
-            uncertainties=[],
-            concurrency_reason='SAFE 抽样复核：核对静态安全依据是否覆盖全部已解析访问和调用链。'))
+    for classification, limit, prefix in (
+            ('SAFE_PROVEN', count, 'SAFE-SAMPLE-'),
+            ('SHARED_NO_REVIEW', shared_count, 'SHARED-SAMPLE-')):
+        selected = [v for v in facts['variables'] if v.get('static_classification') == classification]
+        for variable in sorted(selected, key=lambda v: v['symbol_id'])[:limit]:
+            samples.append(dict(
+                finding_id=prefix + digest(variable['symbol_id'])[:16],
+                symbol_id=variable['symbol_id'], variable_name=variable['qualified_name'],
+                rules=['SAFE_SAMPLE' if classification == 'SAFE_PROVEN' else 'SHARED_NO_REVIEW_SAMPLE'],
+                risk_level='LOW', confidence='HIGH', status='NEED_OPENCODE_REVIEW',
+                review_safe_sample=True, review_screened_sample=True,
+                static_classification=classification,
+                protection_status=variable.get('protection_status', 'NOT_FOUND'),
+                protection_note=variable.get('protection_note'), accesses=variable.get('accesses', []),
+                definition=dict(file=variable.get('definition_file'), line=variable.get('definition_line')),
+                context_pairs=[], concurrency_relations=variable.get('concurrency_relations', []),
+                screening_blockers=variable.get('screening_blockers', []), uncertainties=[],
+                concurrency_reason=('SAFE_PROVEN 抽样复核：核对静态安全依据是否覆盖全部已解析访问和调用链。'
+                    if classification == 'SAFE_PROVEN' else
+                    'SHARED_NO_REVIEW 抽样复核：核对单写者门禁、访问原子性和协议排除证据。')))
     return samples
 
 
-def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0):
+def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
+        review_shared_sample=0):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     cfg, config_file = load_config(root, config_path)
@@ -240,7 +247,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         # Build per-file coverage table for source-level accountability
         from .supplemental import build_file_coverage
         report = analyze(facts, cfg, cov, root=root)
-        samples = safe_review_samples(facts, review_safe_sample)
+        samples = safe_review_samples(facts, review_safe_sample, review_shared_sample)
         if samples:
             # Samples are deliberately separate from report.findings: they do
             # not turn a SAFE result into a risk candidate or alter TOTAL
@@ -349,7 +356,9 @@ def main(argv=None):
     parser.add_argument('--toolchain-file', help='init 时指定 CMake Arm 工具链文件（相对固件根目录）')
     parser.add_argument("--no-review", action="store_true", help="只生成静态报告与待复核清单，不调用 OpenCode")
     parser.add_argument("--review-safe-sample", type=int, default=0, metavar='N',
-                        help='额外抽取 N 个静态 SAFE 项生成 OpenCode 质量复核证据包；不改变风险队列')
+                        help='额外抽取 N 个 SAFE_PROVEN 项生成质量复核证据包；不改变风险队列')
+    parser.add_argument("--review-shared-sample", type=int, default=0, metavar='N',
+                        help='额外抽取 N 个 SHARED_NO_REVIEW 项生成质量复核证据包；不改变风险队列')
     parser.add_argument("--json", action="store_true", help="status 输出可供脚本读取的 JSON")
     args = parser.parse_args(argv)
     try:
@@ -357,8 +366,10 @@ def main(argv=None):
             raise ValueError('--json 仅用于 status')
         if args.review_safe_sample < 0:
             raise ValueError('--review-safe-sample 必须是非负整数')
-        if args.review_safe_sample and args.command != 'run':
-            raise ValueError('--review-safe-sample 仅用于 run')
+        if args.review_shared_sample < 0:
+            raise ValueError('--review-shared-sample 必须是非负整数')
+        if (args.review_safe_sample or args.review_shared_sample) and args.command != 'run':
+            raise ValueError('--review-safe-sample/--review-shared-sample 仅用于 run')
         if args.command != 'init' and (args.compile_database is not None or args.model is not None or args.toolchain_file is not None):
             raise ValueError('--compile-database / --model / --toolchain-file 仅用于 init；已有工程请编辑 semantics.yaml')
         if args.command != 'init':
@@ -441,7 +452,8 @@ def main(argv=None):
             print('环境检查：' + launcher + ' doctor')
             print('一键排查：' + launcher)
             return 0
-        return run(root, str(config_path), args.no_review, args.command == "doctor", args.review_safe_sample)
+        return run(root, str(config_path), args.no_review, args.command == "doctor",
+                   args.review_safe_sample, args.review_shared_sample)
     except (ValueError, OSError, ImportError) as exc:
         print(f"ECRA: {exc}", file=sys.stderr)
         return 3

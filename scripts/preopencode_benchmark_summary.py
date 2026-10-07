@@ -66,26 +66,45 @@ def records(path, key='variables'):
 
 
 def summarize(folder):
-    classes, kinds, safe, unknown = Counter(), Counter(), Counter(), Counter()
+    classes, kinds, safe, shared, unknown = Counter(), Counter(), Counter(), Counter(), Counter()
     roots = {}
-    for v in records(folder/'facts.json'):
+    variant_inventory = 0
+    source = folder/'facts.json'
+    rows = records(source) if source.exists() else iter(json.loads((folder/'classification-index.json').read_text(encoding='utf-8')))
+    for v in rows:
         state = v.get('static_classification')
-        if state not in {'SAFE', 'SUSPECT', 'UNKNOWN'}:
+        state = 'SAFE_PROVEN' if state == 'SAFE' else state
+        if state == 'OUT_OF_BUILD' and v.get('resource_kind') not in {
+                'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER'}:
+            variant_inventory += 1
+        if state not in {'SAFE_PROVEN', 'SHARED_NO_REVIEW', 'SUSPECT', 'UNKNOWN'}:
             continue
         classes[state] += 1
         kinds[v['kind']] += 1
-        if state == 'SAFE':
+        if state == 'SAFE_PROVEN':
             safe[v.get('safe_reason_code') or v.get('screening_reason')] += 1
+        elif state == 'SHARED_NO_REVIEW':
+            shared[v.get('shared_reason_code') or v.get('screening_reason')] += 1
         elif state == 'UNKNOWN':
             blockers = v.get('unknown_reason_codes') or v.get('screening_blockers', [])
             unknown.update(b if isinstance(b,str) else b.get('code',b.get('kind','UNSPECIFIED')) for b in blockers)
         root = v.get('array_root_symbol_id') or v.get('root_symbol_id') or v['symbol_id']
         root = root.split('::element::', 1)[0]
-        roots[root] = max(roots.get(root, 'SAFE'), state, key={'SAFE':0,'UNKNOWN':1,'SUSPECT':2}.get)
+        roots[root] = max(roots.get(root, 'SAFE_PROVEN'), state,
+                          key={'SAFE_PROVEN':0,'SHARED_NO_REVIEW':1,'UNKNOWN':2,'SUSPECT':3}.get)
     total = sum(classes.values())
+    queued = classes['SUSPECT'] + classes['UNKNOWN']
     summary = dict(total=total, classifications=dict(classes), by_kind=dict(kinds),
-        percentages={k: round(100*classes[k]/max(1,total),2) for k in ('SAFE','SUSPECT','UNKNOWN')},
-        safe_reasons=dict(safe), unknown_reasons=dict(unknown), review_queue=classes['SUSPECT']+classes['UNKNOWN'],
+        percentages={k: round(100*classes[k]/max(1,total),2)
+                     for k in ('SAFE_PROVEN','SHARED_NO_REVIEW','SUSPECT','UNKNOWN')},
+        safe_reasons=dict(safe), shared_reasons=dict(shared), unknown_reasons=dict(unknown),
+        review_queue=queued, variant_inventory=variant_inventory,
+        rr_build=dict(numerator=queued, denominator=total,
+                      percent=round(100 * queued / max(1, total), 2)),
+        rr_all=dict(numerator=queued + variant_inventory,
+                    denominator=total + variant_inventory,
+                    percent=round(100 * (queued + variant_inventory)
+                                  / max(1, total + variant_inventory), 2)),
         root_storage_total=len(roots), root_classifications=dict(Counter(roots.values())))
     existing = folder/'summary.json'
     if existing.exists():

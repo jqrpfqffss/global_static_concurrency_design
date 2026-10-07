@@ -146,7 +146,8 @@ class TestLocalsAndParameters(InventoryFixture):
         """})
         facts, report = self.extract(cfg)
         g_var = next(v for v in facts["variables"] if v["name"] == "g")
-        self.assertTrue(any(a.get("via_alias") == "p" and a["access_kind"] == "WRITE" for a in g_var["accesses"]))
+        self.assertTrue(any(a.get("via_alias") == "interprocedural points-to"
+                            and a["access_kind"] == "WRITE" for a in g_var["accesses"]))
 
 
 class TestNoRiskAndUnusedSymbols(InventoryFixture):
@@ -175,7 +176,7 @@ class TestNoRiskAndUnusedSymbols(InventoryFixture):
         facts, report = self.extract(cfg)
         self.assertTrue(any(v["name"] == "table" and v["is_const"] for v in facts["variables"]))
         table = next(v for v in facts["variables"] if v["name"] == "table")
-        self.assertEqual(table["audit_status"], "SCREENED_NO_CONCURRENCY_RISK")
+        self.assertEqual(table["audit_status"], "STATIC_SAFE_PROVEN")
 
 
 class TestStaticIdentity(InventoryFixture):
@@ -342,7 +343,7 @@ class TestExistingRiskEvidence(InventoryFixture):
         """})
         facts, report = self.extract(cfg)
         g = next(v for v in facts["variables"] if v["name"] == "g")
-        self.assertTrue(any(a.get("via_alias") == "p" for a in g["accesses"]))
+        self.assertTrue(any(a.get("via_alias") == "interprocedural points-to" for a in g["accesses"]))
         arr = next(v for v in facts["variables"] if v["name"] == "arr")
         self.assertTrue(any(a["access_kind"] == "ADDRESS_TAKEN" for a in arr["accesses"]))
 

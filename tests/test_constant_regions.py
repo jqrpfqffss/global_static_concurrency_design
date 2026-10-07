@@ -22,7 +22,7 @@ class ConstantRegionTests(unittest.TestCase):
                 return 0;
             }
         ''')
-        self.assert_classified('value', 'SAFE', 'SAFE_SINGLE_FOREGROUND')
+        self.assert_classified('value', 'SAFE_PROVEN', 'SAFE_SINGLE_FOREGROUND')
         removed = self.facts['constant_pruned_evidence']
         self.assertTrue(any(r['table']=='semantic_calls' and r['evidence'].get('inline_assembly') for r in removed))
 
@@ -39,7 +39,7 @@ class ConstantRegionTests(unittest.TestCase):
             static void Work(void) { value++; }
             int main(void) { if (1) { Work(); } else { Register(Work); } return 0; }
         ''')
-        self.assert_classified('value', 'SAFE', 'SAFE_SINGLE_FOREGROUND')
+        self.assert_classified('value', 'SAFE_PROVEN', 'SAFE_SINGLE_FOREGROUND')
 
     def test_mutable_condition_does_not_remove_an_escape(self):
         self.scan('''static unsigned value; volatile const unsigned zero=0;
@@ -75,7 +75,7 @@ class ConstantRegionTests(unittest.TestCase):
             void Opaque(unsigned *);
             int main(void) { if (0 && (flags & 1)) { Opaque(&value); } value++; return 0; }
         ''')
-        self.assert_classified('value', 'SAFE', 'SAFE_SINGLE_FOREGROUND')
+        self.assert_classified('value', 'SAFE_PROVEN', 'SAFE_SINGLE_FOREGROUND')
 
     def test_possible_logical_branch_keeps_an_escape(self):
         self.scan('''static unsigned value; volatile unsigned flags;

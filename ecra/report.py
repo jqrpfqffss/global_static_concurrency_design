@@ -51,6 +51,14 @@ def generate(out, facts, report, reviews):
     report['safe_sample_summary'] = dict(total=len(sample_records),
         completed=sum(r['state']=='DONE' for r in sample_records),
         unresolved=sum(category(r)=='unresolved' for r in sample_records))
+    sample_findings = {item['finding_id']: item for item in report.get('review_safe_samples', [])}
+    report['screened_sample_summary'] = {
+        state: dict(total=sum(sample_findings.get(record['finding_id'], {}).get('static_classification') == state
+                              for record in sample_records),
+                    completed=sum(record['state'] == 'DONE'
+                                  and sample_findings.get(record['finding_id'], {}).get('static_classification') == state
+                                  for record in sample_records))
+        for state in ('SAFE_PROVEN', 'SHARED_NO_REVIEW')}
     for finding in report['findings']:
         record = records_by_id[finding['finding_id']]
         finding['review_state'] = record['state']
@@ -71,7 +79,8 @@ def generate(out, facts, report, reviews):
     terminal = sum(all(category(r) in {'confirmed', 'safe'} for r in group) for group in by_symbol.values())
     report['review_summary']['variable_coverage'] = dict(
         total=report.get('coverage', {}).get('static_classification', {}).get('total', len(facts['variables'])),
-        statically_screened=sum(v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK' for v in facts['variables']),
+        statically_screened=sum(v.get('static_classification') in {'SAFE_PROVEN', 'SHARED_NO_REVIEW'}
+                                for v in facts['variables']),
         queued=len(by_symbol), terminal=terminal, remaining=len(by_symbol)-terminal)
     report['risk_summary'] = risk_summary(facts, report, records_by_id)
     report['final_conclusion'] = final_conclusion(report, records)
@@ -79,6 +88,15 @@ def generate(out, facts, report, reviews):
         report['run_status'] = 'INCOMPLETE'
     for folder in ("inventory", "reports"):
         (out / folder).mkdir(parents=True, exist_ok=True)
+    from .diagnostics import root_causes, root_causes_markdown
+    diagnostic = root_causes(facts['variables'], report['coverage']['review_rates'])
+    quality = report['coverage']['classification_quality']
+    quality['root_cause_reason_counts'] = diagnostic['reason_counts']
+    quality['root_cause_hotspots'] = diagnostic['hotspots'][:50]
+    quality['counterfactual_upper_bounds'] = diagnostic['counterfactual_upper_bounds']
+    write_json(out / 'reports/root_cause_v2.json', diagnostic)
+    (out / 'reports/classification_root_causes.md').write_text(
+        root_causes_markdown(diagnostic), encoding='utf-8')
     write_json(out / "facts.json", facts)
     write_json(out / "inventory/global_static_inventory.json", facts["variables"])
     write_json(out / "reports/global_static_concurrency.json", report)
@@ -125,7 +143,13 @@ def generate(out, facts, report, reviews):
           "[变量完整清单](../inventory/global_static_inventory.md) · [未知项](unknown_contexts.md) · [OpenCode 复核](opencode_global_static_review.md)", ""]
     static = cov.get('static_classification', {})
     if static:
-        md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE {static.get('safe', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
+        md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE_PROVEN {static.get('safe_proven', 0)} + SHARED_NO_REVIEW {static.get('shared_no_review', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
+    rates = cov.get('review_rates', {})
+    if rates:
+        build, all_inventory = rates['rr_build'], rates['rr_all']
+        md[2:2] = [
+            f"- RR_build：{build['numerator']}/{build['denominator']} = {build['percent']}%（当前构建变量）",
+            f"- RR_all：{all_inventory['numerator']}/{all_inventory['denominator']} = {all_inventory['percent']}%（含 {rates['variant_inventory']} 个未分析的补充盘点声明）", ""]
     causes = ["# 变量相关 UNKNOWN 根因", "",
               f"UNKNOWN 比例：{cov.get('unknown_percent', 0)}%；诊断阈值 10% 仅触发分析，不改变判定标准。", "",
               "| 原因 | 变量数 |", "|---|---:|"]

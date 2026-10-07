@@ -89,7 +89,8 @@ void Task(void){
         member = next(v for v in facts['variables'] if v['qualified_name'] == 's.field')
         self.assertIn("WRITE", [a["access_kind"] for a in member["accesses"]])
         self.assertEqual([a["access_kind"] for a in vs["gp"]["accesses"]], ["READ"])
-        self.assertTrue(any(a.get("via_alias") == "p" and a["access_kind"] == "WRITE" for a in vs["g"]["accesses"]))
+        self.assertTrue(any(a.get("via_alias") == "interprocedural points-to"
+                            and a["access_kind"] == "WRITE" for a in vs["g"]["accesses"]))
         self.assertFalse(any(a["line"] == 10 for a in vs["g"]["accesses"]))
         self.assertIn("INCOMPLETE", report["analysis_status"])
 
@@ -296,9 +297,9 @@ void main(void) { ECAT_Task(); }
         self.assertEqual(preemption_relations(facts, contexts)[0]['relation'], 'UNKNOWN_PREEMPTION')
 
     def test_safe_review_sample_is_separate_from_risk_findings(self):
-        facts = dict(variables=[dict(symbol_id='b', qualified_name='safe_b', static_classification='SAFE',
+        facts = dict(variables=[dict(symbol_id='b', qualified_name='safe_b', static_classification='SAFE_PROVEN',
                                      accesses=[], definition_file='b.c', definition_line=2),
-                                dict(symbol_id='a', qualified_name='safe_a', static_classification='SAFE',
+                                dict(symbol_id='a', qualified_name='safe_a', static_classification='SAFE_PROVEN',
                                      accesses=[], definition_file='a.c', definition_line=1),
                                 dict(symbol_id='c', qualified_name='unknown', static_classification='UNKNOWN')])
         samples = safe_review_samples(facts, 1)
@@ -354,9 +355,10 @@ void main(void){ __disable_irq(); g++; __enable_irq(); }
         facts, report = self.extract(cfg)
         g = next(v for v in facts["variables"] if v['name'] == 'g')
         self.assertEqual(g['protection_status'], 'EFFECTIVE')
-        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(g['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(g['analysis_coverage'], 'COMPLETE')
-        self.assertEqual(report['coverage']['static_classification'], dict(total=1, safe=1, suspect=0, unknown=0))
+        self.assertEqual(report['coverage']['static_classification'],
+                         dict(total=1, safe_proven=1, shared_no_review=0, suspect=0, unknown=0))
 
     def test_primask_save_restore_keeps_complete_window_effective(self):
         cfg = self.project({"a.c": """int g; typedef unsigned int uint32_t;
@@ -402,7 +404,7 @@ void main(void){ HAL_NVIC_SetPriorityGrouping(3); HAL_NVIC_SetPriority(TIM4_IRQn
         facts, _ = self.extract(cfg)
         g = next(v for v in facts['variables'] if v['name'] == 'g')
         self.assertEqual(g['protection_status'], 'EFFECTIVE')
-        self.assertEqual(g['static_classification'], 'SAFE')
+        self.assertEqual(g['static_classification'], 'SAFE_PROVEN')
 
     def test_conditional_irq_mask_never_becomes_effective(self):
         cfg = self.project({"a.c": """int g; void __disable_irq(void); void __enable_irq(void);
@@ -613,6 +615,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
         self.assertEqual(report["coverage"]["unlisted_headers"], [])
         self.assertEqual(report['findings'], [])
+        quality = self.root / '.ecra/classification_quality.html'
+        self.assertTrue(quality.is_file())
+        quality_text = quality.read_text(encoding='utf-8')
+        self.assertIn('Pre-OpenCode 四分类质量', quality_text)
+        self.assertIn('SAFE_PROVEN', quality_text)
+        self.assertIn('复核比例', quality_text)
         self.assertTrue(list((self.root / ".ecra/snapshots").iterdir()))
 
     def test_corrupt_review_cache_is_reprocessed(self):

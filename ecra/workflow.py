@@ -22,8 +22,11 @@ def file_digest(path):
 
 
 def engine_digest():
-    return digest({name: file_digest(Path(__file__).with_name(name+'.py')) for name in
-                   ('analysis', 'cli', 'compilation', 'config', 'extract', 'controlflow', 'protection', 'interrupts', 'pointer_extract', 'points_to', 'scope', 'common', 'supplemental')})
+    package = Path(__file__).parent
+    # Every package module can change a scan's facts, verdict, or evidence.
+    # A fixed hand-maintained list previously omitted evidence/initialization
+    # and allowed review resumption against a different classifier revision.
+    return digest({path.name: file_digest(path) for path in sorted(package.glob('*.py'))})
 
 
 def analysis_config(cfg):

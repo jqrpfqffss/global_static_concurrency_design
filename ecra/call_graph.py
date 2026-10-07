@@ -100,6 +100,19 @@ class AccessGraphSlices:
     def __init__(self, facts, paths):
         self.facts, self.paths, self.cache = facts, paths, {}
         self.incoming = {}
+        self.call_indices_by_edge = defaultdict(list)
+        for index, call in enumerate(facts['calls']):
+            self.call_indices_by_edge[(call.get('caller_function_id'),
+                                       call.get('callee_function_id'))].append(index)
+        self.issue_indices_by_function = defaultdict(set)
+        relevant = {'INDIRECT_CALL', 'EXTERNAL_CALLEE', 'MISSING_SOURCE_CALLER',
+                    'UNRESOLVED_REGISTERED_ENTRY'}
+        for index, issue in enumerate(facts['unknowns']):
+            if issue['kind'] not in relevant:
+                continue
+            for function in (issue.get('function_id'), issue.get('target_function_id')):
+                if function:
+                    self.issue_indices_by_function[function].add(index)
         for cid, edges in facts['context_call_graph']['edges'].items():
             reverse = defaultdict(set)
             for caller, callee in edges:
@@ -122,11 +135,9 @@ class AccessGraphSlices:
                         seen.add(caller)
                         todo.append(caller)
             ancestors.update(seen)
-        calls = [i for i, call in enumerate(self.facts['calls'])
-                 if (call.get('caller_function_id'),call.get('callee_function_id')) in edges]
-        unresolved = [i for i, issue in enumerate(self.facts['unknowns']) if
-            (issue.get('function_id') in ancestors or issue.get('target_function_id') in ancestors)
-            and issue['kind'] in {'INDIRECT_CALL','EXTERNAL_CALLEE','MISSING_SOURCE_CALLER','UNRESOLVED_REGISTERED_ENTRY'}]
+        calls = sorted({index for edge in edges for index in self.call_indices_by_edge.get(edge, ())})
+        unresolved = sorted({index for function in ancestors
+                             for index in self.issue_indices_by_function.get(function, ())})
         result = dict(function_id=fid, function_ids=sorted(ancestors), call_edge_indices=calls,
             unresolved_issue_indices=unresolved,
             recursive_edges=[e for e in self.facts['recursive_edges'] if tuple(e) in edges],

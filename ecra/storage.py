@@ -2,6 +2,7 @@
 import copy
 import re
 from collections import defaultdict
+from math import gcd
 
 from .common import digest
 
@@ -84,13 +85,28 @@ def canonicalize_arrays(facts):
         for index in sorted(indices):
             child = copy.deepcopy(root)
             child_sid = sid + '::element::' + index
+            match = re.fullmatch(r'\[(\d+)\]', index)
+            element_size = root.get('array_element_size_bytes')
+            root_alignment = root.get('alignment_bytes')
+            guaranteed_alignment = root.get('array_element_alignment_bytes')
+            if (match and isinstance(element_size, int) and element_size > 0
+                    and isinstance(root_alignment, int) and root_alignment > 0):
+                guaranteed_alignment = gcd(root_alignment, int(match[1]) * element_size)
             child.update(symbol_id=child_sid, name=root['name'] + index,
                 qualified_name=root['qualified_name'] + index, canonical_path=root['qualified_name'] + index,
                 array_root_symbol_id=sid, array_index=index, resource_kind='ARRAY_ELEMENT',
                 is_array=False, is_struct=bool(root.get('array_element_is_struct')),
                 is_union=bool(root.get('array_element_is_union')), type=root.get('array_element_type', root['type']),
+                alignment_bytes=guaranteed_alignment,
+                declared_alignment_bytes=root.get('array_element_alignment_bytes'),
+                root_alignment_bytes=root_alignment,
+                is_const=bool(root.get('is_const') or root.get('array_element_is_const')),
+                is_volatile=bool(root.get('is_volatile') or root.get('array_element_is_volatile')),
+                is_atomic=bool(root.get('array_element_is_atomic')),
                 member_definitions=copy.deepcopy(root.get('member_definitions', [])))
-            if root.get('array_size') and root.get('size_bytes'):
+            if isinstance(element_size, int) and element_size > 0:
+                child['size_bytes'] = element_size
+            elif root.get('array_size') and root.get('size_bytes'):
                 child['size_bytes'] = root['size_bytes'] // root['array_size']
             targets[(sid, index)] = child
             additions.append(child)
@@ -104,6 +120,15 @@ def canonicalize_arrays(facts):
             continue
         match = re.match(r'^/?(\[(?:\d+|\*)\])(.*)$', access.get('access_path', ''))
         index, suffix = (match[1], match[2].lstrip('./')) if match else (None, '')
+        if index is None:
+            # A whole-array source has no canonical element of its own. Keep
+            # the container access as the provenance parent of every element
+            # effect; containers do not receive a separate risk verdict.
+            access['array_source_access'] = True
+            rows.append(access)
+        source_target = targets.get((sid, index)) if index is not None else None
+        source_id = ('A-' + digest([access['access_id'], source_target['symbol_id']])[:20]
+                     if source_target is not None else access['access_id'])
         for target_index in sorted(indexed[sid]):
             # '*' overlaps every element of THIS array, never another root.
             if index is not None and index != '[*]' and target_index not in {index, '[*]'}:
@@ -114,7 +139,7 @@ def canonicalize_arrays(facts):
                 canonical_path=target['canonical_path'], array_root_symbol_id=sid,
                 storage_index=index or '[*]', canonical_array_index=target_index)
             if index != target_index:
-                row['inherited_from_access_id'] = access['access_id']
+                row['inherited_from_access_id'] = source_id
                 row['inherited_from_canonical_path'] = roots[sid]['qualified_name'] + (index or '')
                 row['access_scope'] = 'OVERLAPPING_ARRAY_ACCESS'
             row['access_id'] = 'A-' + digest([access['access_id'], target['symbol_id']])[:20]
@@ -138,15 +163,67 @@ def canonicalize_arrays(facts):
 
 
 def propagate_overlapping_members(facts):
-    """Union/bitfield accesses must never acquire a disjoint-field proof."""
+    """Propagate accesses across physically overlapping record members.
+
+    A flexible array inside a nested record may use storage provided by a
+    following field of the enclosing record (a common wire-descriptor layout).
+    Its declared size is zero, so ordinary field-path disjointness is not a
+    proof that the later field is untouched.
+    """
     variables = {v['symbol_id']: v for v in facts['variables']}
     members = defaultdict(list)
     for variable in variables.values():
         if variable.get('resource_kind') == 'STRUCT_MEMBER':
             members[variable['root_symbol_id']].append(variable)
+
+    flexible = defaultdict(list)
+    for root in variables.values():
+        for field in root.get('member_definitions', ()):
+            if (field.get('is_array') and field.get('array_size') is None
+                    and isinstance(field.get('offset_bits'), int)
+                    and isinstance(field.get('array_element_size_bytes'), int)
+                    and field['array_element_size_bytes'] > 0):
+                flexible[root['symbol_id']].append(field)
+
+    def member_interval(member):
+        start, size = member.get('offset_bits'), member.get('size_bytes')
+        if isinstance(start, int) and isinstance(size, int) and size > 0:
+            return start, start + size * 8
+        return None
+
+    def flexible_overlap(member, other, root):
+        path = member.get('field_path', '')
+        other_path = other.get('field_path', '')
+        for field in flexible[root['symbol_id']]:
+            prefix = field['field_path']
+            for source, target, source_path, target_path in (
+                    (member, other, path, other_path),
+                    (other, member, other_path, path)):
+                match = re.match(r'^' + re.escape(prefix) + r'\[(\d+|\*)\](?:$|[.\[])', source_path)
+                if not match or target_path.startswith(prefix + '['):
+                    continue
+                target_span = member_interval(target)
+                if target_span is None:
+                    # A second unknown-size field at or after the flexible
+                    # storage start cannot establish spatial disjointness.
+                    if target.get('offset_bits') is None or target['offset_bits'] >= field['offset_bits']:
+                        return True
+                    continue
+                index = match[1]
+                if index == '*':
+                    if target_span[1] > field['offset_bits']:
+                        return True
+                    continue
+                element_bits = field['array_element_size_bytes'] * 8
+                start = field['offset_bits'] + int(index) * element_bits
+                if start < target_span[1] and target_span[0] < start + element_bits:
+                    return True
+        return False
+
     def overlaps(member, other, root):
         return (root.get('is_union') or (member.get('is_bitfield_container') and other.get('is_bitfield_container'))
-                or bool(set(member.get('overlap_groups', [])) & set(other.get('overlap_groups', []))))
+                or bool(set(member.get('overlap_groups', [])) & set(other.get('overlap_groups', [])))
+                or flexible_overlap(member, other, root))
 
     generated = []
     for access in list(facts['accesses']):
@@ -225,7 +302,7 @@ def add_disjoint_storage_proofs(facts):
 
     families = defaultdict(list)
     for variable in variables.values():
-        if variable.get('static_classification') not in {'SAFE', 'SUSPECT', 'UNKNOWN'}:
+        if variable.get('static_classification') not in {'SAFE_PROVEN', 'SHARED_NO_REVIEW', 'SUSPECT', 'UNKNOWN'}:
             continue
         accesses = [access for access in variable.get('accesses', [])
                     if access['access_kind'] in runtime_kinds and access.get('reachability') != 'PROVEN_UNREACHABLE']
@@ -236,7 +313,7 @@ def add_disjoint_storage_proofs(facts):
         families[span[0]].append((variable, accesses, span, physical))
     for family in families.values():
         for variable, accesses, span, physical in family:
-            if variable['static_classification'] != 'SAFE' or not physical:
+            if variable['static_classification'] != 'SAFE_PROVEN' or not physical:
                 continue
             witnesses = []
             for other, other_accesses, other_span, other_physical in family:

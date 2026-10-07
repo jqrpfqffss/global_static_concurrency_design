@@ -9,6 +9,7 @@ from .review_presentation import explanation as story_explanation
 
 
 REVIEW_PAGE = "opencode_review.html"
+QUALITY_PAGE = "classification_quality.html"
 HTML_CONFLICT_PAIR_SAMPLE_LIMIT = 12
 # Internal enum values deliberately remain unchanged in facts/report JSON.  This
 # is the single display boundary for the human-facing HTML: templates must use
@@ -19,6 +20,7 @@ DISPLAY_TEXT = {
     'UNRESOLVED': '尚未确认', 'NOT_FOUND': '未发现', 'NONE': '未发现',
     'DETECTED': '已发现', 'EFFECTIVE': '保护有效', 'PARTIAL': '分析不完整 / 部分覆盖',
     'INEFFECTIVE': '保护无效', 'SAFE': '未发现并发风险',
+    'SAFE_PROVEN': '静态已判安全', 'SHARED_NO_REVIEW': '共享访问，无需复核',
     'SCREENED_SAFE': '已排查：未发现并发风险', 'LIKELY': '疑似并发风险',
     'CONFIRMED': '已确认并发风险', 'UNKNOWN': '无法判断',
     'NEED_MORE_CONTEXT': '信息不足，无法判断', 'NEED_OPENCODE_REVIEW': '待进一步复核',
@@ -163,6 +165,7 @@ RULES = {
     'GS-MULTI-WRITER': ('多个执行入口会写入', '先核对各写入入口能否交错，再确认临界区覆盖了完整更新。'),
     'GS-TEAR-RISK': ('访问可能需要多条指令', '核对实际访问宽度和对齐，检查读取时是否可能混入另一次更新。'),
     'GS-STRUCT-INCONSISTENT': ('多个字段可能不一致', '检查读者能否读到一部分新字段和一部分旧字段。'),
+    'GS-MULTI-FIELD-COHERENCE': ('跨字段发布 / 消费可能不一致', '核对同一结构体多个成员是否构成一个必须整体一致的状态快照。'),
     'GS-LOCAL-STATIC-REENTRANT': ('函数 static 可能被重入', '确认函数从哪些入口调用，以及执行尚未结束时能否再次进入。'),
     'GS-OWNER-VIOLATION': ('访问超出声明的所有者', '核对配置中的所有者和实际调用入口是否一致。'),
     'GS-UNKNOWN-CONTEXT': ('部分访问找不到执行入口', '从访问函数向上查找主循环、中断或回调入口；必要时补充 contexts。'),
@@ -345,6 +348,7 @@ DECISIONS = {
     'unresolved': ('无法判断', '缺少入口、访问或定义证据，不能判定安全。'),
     'safe': ('已复核：未发现并发风险', '仅在该项复核列出的条件下成立。'),
     'screened_safe': ('已排查：未发现并发风险', '当前编译配置下没有可形成读写冲突的已知访问；不覆盖解析盲区、汇编或未建模硬件入口。'),
+    'screened_shared': ('共享访问，无需复核', '已通过严格单写者门禁；这是共享访问筛除结论，不等同于静态安全证明。'),
     'inventory': ('未发现并发风险', '当前建模路径未发现跨执行上下文读写线索；结论仅适用于已解析范围。'),
     'supplemental': ('补充声明（未分析访问）', '来自未编译文件或条件分支变体；仅盘点声明，并发访问尚未分析。'),
 }
@@ -375,8 +379,10 @@ def variable_decisions(facts, report, records):
             result[sid] = 'unresolved'
         elif groups[sid]:
             result[sid] = min(groups[sid], key=priority.index)
-        elif v.get('static_classification') == 'SAFE' or v.get('audit_status') == 'SCREENED_NO_CONCURRENCY_RISK':
+        elif v.get('static_classification') == 'SAFE_PROVEN' or v.get('audit_status') == 'STATIC_SAFE_PROVEN':
             result[sid] = 'screened_safe'
+        elif v.get('static_classification') == 'SHARED_NO_REVIEW' or v.get('audit_status') == 'SHARED_NO_REVIEW':
+            result[sid] = 'screened_shared'
         else:
             result[sid] = 'inventory'
     return result
@@ -520,7 +526,7 @@ def page(title, content, report, options, script="", reading=False):
     content = content.replace('<!--controls-->', controls)
     if report.get('presentation_notice'):
         content = '<p class="notice">' + esc(report['presentation_notice']) + '</p>' + content
-    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
+    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><a href="' + QUALITY_PAGE + '">分类质量</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
 
 
 def metrics(values):
@@ -602,8 +608,8 @@ def risk_overview(facts, report, records, assessments):
     else:
         state, color = '当前未发现未解决的并发风险线索', 'unresolved'
         explanation = '这不是全工程无风险证明。已复核结论只适用于所列条件，未发现线索的变量尚未证明安全。'
-    cards = ''.join(f'<a class="verdict-card {key}" href="#{"inventory" if key == "screened_safe" else "risks"}" data-decision-filter="{key}"><strong>{counts[key]}</strong><span>{esc(DECISIONS[key][0])}</span></a>'
-                    for key in ['confirmed', 'likely', 'unresolved', 'safe', 'screened_safe'])
+    cards = ''.join(f'<a class="verdict-card {key}" href="#{"inventory" if key in {"screened_safe", "screened_shared"} else "risks"}" data-decision-filter="{key}"><strong>{counts[key]}</strong><span>{esc(DECISIONS[key][0])}</span></a>'
+                    for key in ['confirmed', 'likely', 'unresolved', 'safe', 'screened_safe', 'screened_shared'])
     cov = report['coverage']
     gap_count = sum(not f.get('symbol_id') for f in report['findings'])
     inventory_by_kind = cov.get('inventory_by_kind', {})
@@ -613,6 +619,7 @@ def risk_overview(facts, report, records, assessments):
             + esc(state) + '</h2><p>' + esc(explanation) + '</p></div><div class="verdict-cards">' + cards + '</div>'
             + '<p class="scope-line">以上按变量去重统计。共 ' + str(len(facts['variables'])) + ' 个变量（' + esc(kind_line) + '）；另有 '
             + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个已排查：未发现并发风险</a>、'
+            + f'<a href="#inventory" data-decision-filter="screened_shared">{counts["screened_shared"]} 个共享访问、无需复核</a>、'
             + f'<a href="#inventory" data-decision-filter="inventory">{counts["inventory"]} 个未发现静态线索</a>（不等于安全）'
             + (f'、<a href="#inventory" data-decision-filter="supplemental">{counts["supplemental"]} 个补充解析</a>' if counts.get('supplemental') else '')
             + f'。<a href="#gaps">{gap_count} 项覆盖 / 依赖缺口</a>单独保留，不计入风险变量。</p>'
@@ -621,6 +628,72 @@ def risk_overview(facts, report, records, assessments):
             + ('<strong>请先修复解析失败；当前结果可能遗漏风险。</strong>' if cov.get('translation_units_failed') else '') + '</p>'
             + '<details class="scope-check"><summary>过滤结果与排查范围：已排除 ' + str(cov.get('audit_scope', {}).get('variables_omitted', 0))
             + ' 个变量；查看具体配置</summary>' + scope_summary(cov) + next_actions(report, records.values()) + '</details></section>')
+
+
+def classification_quality_html(facts, report):
+    """Render an auditable account of what left and remained in the queue."""
+    quality = report.get('coverage', {}).get('classification_quality', {})
+    rates = quality.get('review_rates', {})
+    build = rates.get('rr_build', {})
+    all_inventory = rates.get('rr_all', {})
+    headline = metrics([
+        ('构建变量总数', quality.get('total', 0)),
+        ('SAFE_PROVEN', quality.get('safe_proven', 0)),
+        ('SHARED_NO_REVIEW', quality.get('shared_no_review', 0)),
+        ('SUSPECT', quality.get('suspect', 0)),
+        ('UNKNOWN', quality.get('unknown', 0)),
+        ('复核队列', quality.get('review_queue', 0)),
+        ('复核比例（RR_build）', str(build.get('percent', quality.get('review_queue_percent', 0))) + '%'),
+        ('补充盘点声明', rates.get('variant_inventory', 0)),
+        ('RR_all', str(all_inventory.get('percent', 0)) + '%'),
+    ])
+    elimination_rows = []
+    for item in quality.get('eliminations', []):
+        variable_rows = [row([
+            '<a href="index.html#' + anchor('var-', variable['symbol_id']) + '">' + esc(variable['name']) + '</a>',
+            esc(variable['classification']), esc(variable['symbol_id'])])
+            for variable in item.get('variables', [])]
+        details = '<details><summary>查看 ' + str(item.get('variable_count', 0)) + ' 个变量</summary>'
+        details += table(['变量', '分类', 'symbol_id'], variable_rows) + '</details>'
+        elimination_rows.append(row([esc(item.get('code')), esc(item.get('description')),
+                                     str(item.get('variable_count', 0)), details],
+                                    search_text=' '.join(str(variable.get('name', ''))
+                                                         for variable in item.get('variables', []))))
+    distribution = lambda values: table(['原因', '变量数'], [
+        row([esc(code), str(count)]) for code, count in
+        sorted(values.items(), key=lambda pair: (-pair[1], pair[0]))])
+    fanout_rows = [row([
+        esc(item.get('kind')), esc(loc(item)), str(item.get('blocker_fanout', 0)),
+        esc(item.get('diagnostic') or '变量局部传播'),
+        raw(item.get('relevance_proofs', []), '逐变量相关性证明')])
+        for item in quality.get('blocker_fanout', [])]
+    content = '<section class="overview"><h2>Pre-OpenCode 四分类质量</h2>' + headline
+    content += '<p>RR_build = 构建变量复核队列 / 构建变量总数；RR_all = (复核队列 + 未分析的补充盘点声明) / (构建变量 + 补充盘点声明)。补充声明保留在清单中，须扫描对应构建变体才能完成访问分析。</p>'
+    content += '<p>' + esc(quality.get('note', '')) + '</p></section>'
+    content += '<nav class="tabs"><a href="#eliminations">排除贡献</a><a href="#remaining">剩余原因</a><a href="#fanout">UNKNOWN fanout</a><a href="#hotspots">源码热点</a></nav><!--controls-->'
+    content += panel('eliminations', '哪些机制排除了哪些变量',
+                     '每一行都能展开到 canonical variable；同一变量可由多个证据机制共同证明。',
+                     table(['机制', '证明含义', '变量数', '变量清单'], elimination_rows,
+                           'quality-eliminations', True), [('all', '全部机制')])
+    remaining = '<h3>SUSPECT 主要原因</h3>' + distribution(quality.get('suspect_reason_distribution', {}))
+    remaining += '<h3>UNKNOWN 变量相关原因</h3>' + distribution(quality.get('unknown_reason_distribution', {}))
+    remaining += '<h3>结构化分类原因</h3>' + distribution(quality.get('root_cause_reason_counts', {}))
+    remaining += '<h3>单一缺口的可能翻转上界</h3>' + distribution(quality.get('counterfactual_upper_bounds', {}))
+    remaining += '<p>上界只用于决定下一步分析顺序；取得新的静态证明前，变量分类不会变化。</p>'
+    content += panel('remaining', '仍需复核的原因',
+                     'SUSPECT 表示已存在冲突候选；UNKNOWN 表示变量证据切片内仍可能隐藏冲突。',
+                     remaining, [('all', '全部原因')])
+    content += panel('fanout', 'UNKNOWN blocker fanout',
+                     'fanout 只统计真正进入各变量 evidence slice 的 blocker，并保留相关性证明。',
+                     table(['blocker', '位置', '变量数', '诊断', '相关性证据'], fanout_rows,
+                           'quality-fanout', True), [('all', '全部 blocker')])
+    content += panel('hotspots', '根因源码热点',
+                     '按每个复核变量的一处冲突或阻塞见证位置统计；完整见证见 root_cause_v2.json。',
+                     table(['文件', '变量数'], [row([esc(item['file']), str(item['variables'])])
+                         for item in quality.get('root_cause_hotspots', [])],
+                         'quality-hotspots', True), [('all', '全部热点')])
+    content += raw(quality, '完整 classification_quality 机器证据')
+    return page('Pre-OpenCode 分类质量', content, report, [('all', '全部记录')])
 
 
 def write_html(out, facts, report, reviews):
@@ -803,8 +876,13 @@ def write_html(out, facts, report, reviews):
         return text
 
     def variable_explanation(variable, views, finding_list):
-        if variable.get('static_classification') == 'SAFE':
+        if variable.get('static_classification') == 'SAFE_PROVEN':
             return ('静态已判安全', variable.get('classification_reason', ''), '')
+        if variable.get('static_classification') == 'SHARED_NO_REVIEW':
+            proof = variable.get('shared_evidence', {})
+            detail = ('唯一写入者：' + str(proof.get('writer_physical_context', '?'))
+                      + '；只读观察者：' + '、'.join(proof.get('reader_physical_contexts', [])))
+            return ('共享访问，无需复核', variable.get('classification_reason', ''), detail)
         if variable.get('static_classification') == 'OUT_OF_BUILD':
             return ('未参与当前固件构建', variable.get('classification_reason', ''), '')
         if variable.get('static_classification') == 'UNKNOWN':
@@ -838,7 +916,7 @@ def write_html(out, facts, report, reviews):
             reader = context(reader_contexts[0]) if reader_contexts else '其它执行上下文'
             return ('疑似并发风险', reader + '会读取该变量；' + context(async_writers[0]) + '会写入该变量。',
                     '重点确认：写入者是否可能与读取或其它写入交错执行，以及保护是否覆盖完整访问。')
-        if variable.get('static_classification') == 'SAFE' or assessments.get(variable['symbol_id']) == 'screened_safe':
+        if variable.get('static_classification') == 'SAFE_PROVEN' or assessments.get(variable['symbol_id']) == 'screened_safe':
             all_contexts = {cid for view in views for cid in view['context_ids']}
             if all_contexts and all(contexts.get(cid, {}).get('kind') == 'MAIN' for cid in all_contexts):
                 reason = '当前解析到的访问均来自主循环同一串行执行上下文，未发现其它中断或异步执行入口修改该变量。'
@@ -1069,7 +1147,9 @@ def write_html(out, facts, report, reviews):
     static = cov.get('static_classification', {})
     if static:
         coverage += '<h3>变量静态分类归账</h3>' + metrics([('变量总数', static.get('total', 0)),
-            ('未发现并发风险', static.get('safe', 0)), ('疑似并发风险', static.get('suspect', 0)),
+            ('静态已判安全', static.get('safe_proven', 0)),
+            ('共享访问，无需复核', static.get('shared_no_review', 0)),
+            ('疑似并发风险', static.get('suspect', 0)),
             ('无法判断', static.get('unknown', 0))])
         coverage += '<h3>UNKNOWN 传播诊断</h3>' + raw(cov.get('blocker_fanout', []), 'blocker_fanout 与逐变量相关性证明')
         coverage += raw(cov.get('safe_reason_distribution', {}), 'SAFE 证明分布')
@@ -1223,17 +1303,22 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         sample_rows = []
         for sample in samples:
             receipt = sample_records[sample['finding_id']]
+            proof_label = ('静态安全证明与全部访问'
+                           if sample.get('static_classification') == 'SAFE_PROVEN'
+                           else '共享免复核门禁与全部访问')
             sample_rows.append(row([esc(sample['variable_name']), esc(review_label(receipt)),
-                '<a href="index.html#' + anchor('var-',sample['symbol_id']) + '">静态 SAFE 证明与全部访问</a>'
+                '<a href="index.html#' + anchor('var-',sample['symbol_id']) + '">' + proof_label + '</a>'
                 + raw(receipt, '抽样复核记录') + accesses(sample.get('accesses', []), 'sample-' + sample['finding_id'])],
                 anchor('review-',sample['finding_id'])))
-        content += '<section id="safe-samples"><h2>SAFE 独立抽样审计</h2><p>不计入风险队列，不改变静态分类；未执行不等于复核安全。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
+        content += '<section id="safe-samples"><h2>筛除项独立抽样审计</h2><p>SAFE_PROVEN 与 SHARED_NO_REVIEW 分别抽样；不计入风险队列，也不改变静态分类。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
     content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'
     content += '<p>主循环：CPU 正常轮询执行的代码。中断 / ISR：事件触发后，CPU 暂停当前代码并执行处理函数，返回后继续原来的位置。DMA：独立于 CPU 搬运数据的硬件。读改写 / RMW：读出旧值、计算、写回；中间若被另一写入者打断，可能覆盖对方的新值。</p>'
     content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('尚未完成项', counts['unresolved'])])
     content += raw(cov, '本轮静态覆盖范围') + raw(report['limitations'], '结论适用范围与限制') + '</details></div>'
     review_page = page('并发复核：原因、过程与结论', content, report, review_options, reading=True)
-    for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page)]:
+    quality_page = classification_quality_html(facts, report)
+    for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page),
+                           (QUALITY_PAGE, quality_page)]:
         temporary = out / (name + '.tmp')
         temporary.write_text(contents, encoding='utf-8')
         from .common import replace_file
@@ -1242,5 +1327,5 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
 
 def write_failure(out):
     contents = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>本次扫描失败</title><h1>本次扫描失败，不能使用旧结论</h1><p>请查看 run.json / run.log。已有事实及复核缓存可能来自旧版本，不能作为本次结论。</p></html>'
-    for name in ('index.html', REVIEW_PAGE):
+    for name in ('index.html', REVIEW_PAGE, QUALITY_PAGE):
         (out / name).write_text(contents, encoding='utf-8')

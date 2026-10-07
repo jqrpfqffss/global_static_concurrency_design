@@ -16,7 +16,7 @@ class AssemblyBranchTests(unittest.TestCase):
             static void Stage(void) { value++; }
             int main(void) { __asm volatile("bx %0" : : "r"(Stage)); return 0; }
         ''')
-        self.assert_classified('value','SAFE','SAFE_SINGLE_FOREGROUND')
+        self.assert_classified('value','SAFE_PROVEN','SAFE_SINGLE_FOREGROUND')
         self.assertTrue(any(c.get('implicit_call')=='ARM_LITERAL_BRANCH'
                             for c in self.facts['semantic_calls']))
 
@@ -26,7 +26,7 @@ class AssemblyBranchTests(unittest.TestCase):
             void TIM4_IRQHandler(void) { __asm volatile("bx %0" : : "r"(Stage)); }
             int main(void) { return 0; }
         ''')
-        self.assert_classified('value','SAFE','SAFE_SINGLE_IRQ')
+        self.assert_classified('value','SAFE_PROVEN','SAFE_SINGLE_IRQ')
 
     def test_extra_data_use_of_function_address_stays_opaque(self):
         self.scan('''static unsigned value;

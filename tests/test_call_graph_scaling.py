@@ -139,7 +139,7 @@ void USART1_IRQHandler(void){g++;}
 
     def test_effective_protection_requires_both_routes_masked(self):
         _,_,g=self.classify_diamond(True)
-        self.assertEqual(g['static_classification'],'SAFE')
+        self.assertEqual(g['static_classification'],'SAFE_PROVEN')
         self.assertEqual(g['safe_reason_code'],'SAFE_EFFECTIVE_PROTECTION')
         self.assertEqual(g['protection_status'],'EFFECTIVE')
 

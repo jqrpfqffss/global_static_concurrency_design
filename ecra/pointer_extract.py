@@ -17,8 +17,16 @@ class PointerExtractor:
         self.path_conditions = []
         self.guard_sites = {}
         self.condition_cache = {}
+        self.compound_condition_cache = {}
         self.storage = {}
         self.variadic_expression_cache = {}
+        self.variadic_macro_sites = set()
+        # Different nested call expressions in one macro expansion can have
+        # the same reported source offset.  Their result slots must still be
+        # distinct, or a scalar helper's result can become an unrelated
+        # pointer actual (and contaminate variadic points-to sets).
+        self.result_ids = {}
+        self.integer_pointer_carriers = {}
         self.constant_regions = []
 
     def is_variadic_expression(self, node):
@@ -27,8 +35,72 @@ class PointerExtractor:
         if node.kind.name != 'UNEXPOSED_EXPR':
             return False
         if node not in self.variadic_expression_cache:
-            self.variadic_expression_cache[node] = tokens(node, 1) == ['__builtin_va_arg']
+            location = self.e.loc(node)
+            # On ARM GCC-compatible headers libclang exposes ``va_arg`` as a
+            # separate MACRO_INSTANTIATION, while the expanded expression has
+            # an empty token range and only a va_list child.  Match their exact
+            # expansion site instead of mistaking the va_list record itself for
+            # the extracted pointer value.
+            macro_site = (location.get('file'), location.get('offset')) in self.variadic_macro_sites
+            self.variadic_expression_cache[node] = macro_site or tokens(node, 1) == ['__builtin_va_arg']
         return self.variadic_expression_cache[node]
+
+    def pointer_carriers(self, function):
+        """Integer locals explicitly converted back to a pointer.
+
+        Tracking every integer assignment as pointer provenance makes ordinary
+        lengths, enum values and variadic scalars alias every pointer argument.
+        Preserve the intentional uintptr_t round trip only when the function
+        contains source evidence that the integer is converted back to a
+        pointer.
+        """
+        result = set()
+        for node in walk(function):
+            expressions = [child for child in children(node) if child.kind.is_expression()]
+            if (('CAST' in node.kind.name or node.kind.name == 'UNEXPOSED_EXPR')
+                    and node.type.get_canonical().kind.name == 'POINTER' and expressions):
+                operand = expressions[-1]
+                if operand.type.get_canonical().kind.name == 'POINTER':
+                    continue
+                for reference in walk(operand):
+                    if (reference.kind.name == 'DECL_REF_EXPR' and reference.referenced
+                            and reference.referenced.kind.name in {'VAR_DECL', 'PARM_DECL'}):
+                        result.add(self.key(reference.referenced))
+        return result
+
+    def type_contains_pointer(self, typ, seen=()):
+        canonical = typ.get_canonical()
+        kind = canonical.kind.name
+        if kind in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE', 'BLOCKPOINTER'}:
+            return True
+        if 'ARRAY' in kind:
+            return self.type_contains_pointer(canonical.element_type, seen)
+        if kind != 'RECORD':
+            return False
+        declaration = canonical.get_declaration()
+        key = declaration.get_usr() or declaration.hash
+        if key in seen:
+            return False
+        return any(self.type_contains_pointer(field.type, (*seen, key))
+                   for field in declaration.get_children() if field.kind.name == 'FIELD_DECL')
+
+    def carrier_location(self, expression):
+        return (expression.get('op') == 'loc'
+                and expression.get('id') in self.integer_pointer_carriers.get(self.function, set()))
+
+    def variadic_payload(self, node):
+        node = self.unwrap(node)
+        cs = children(node)
+        if not self.is_variadic_expression(node) or not cs:
+            return dict(op='empty')
+        operand = next((child for child in cs if child.kind.is_expression()), None)
+        return dict(op='va_arg', value=self.value(operand) if operand is not None else dict(op='empty'))
+
+    def assignment_value(self, left, node):
+        value = self.value(node)
+        if value.get('op') == 'empty' and self.carrier_location(left):
+            value = self.variadic_payload(node)
+        return value
 
     def storage_definition(self, location, typ):
         canonical = typ.get_canonical()
@@ -75,46 +147,95 @@ class PointerExtractor:
                         parameters.discard(self.key(target.referenced))
         return parameters
 
+    def _condition(self, statement, branch_true):
+        """Serialize one pointer equality that controls a reachable branch.
+
+        The compared value may itself be a pointer slot (for example
+        ``handle == owner->active_handle``).  The points-to solver, rather
+        than the extractor, decides whether that slot has one complete set of
+        targets.  Unknown or multi-target slots therefore remain conservative,
+        while singleton object identities can prune unrelated HAL instances.
+        """
+        key = (self.function, statement, branch_true)
+        if key in self.condition_cache:
+            return self.condition_cache[key]
+        self.condition_cache[key] = []
+        cs = children(statement)
+        if statement.kind.name != 'IF_STMT' or len(cs) not in {2, 3}:
+            return []
+        condition = self.unwrap(cs[0])
+        op = operator(condition) if condition.kind.name == 'BINARY_OPERATOR' else ''
+        operands = children(condition)
+        if op not in {'==', '!='} or len(operands) != 2:
+            return []
+        left, right = map(self.value, operands)
+        stable = self.stable_pointer_parameters.get(self.function, set())
+        if right.get('op') == 'loc' and right.get('id') in stable:
+            left, right = right, left
+        if left.get('op') != 'loc' or left.get('id') not in stable:
+            return []
+        # NULL, scalar values and unsupported expressions carry no pointer
+        # provenance and cannot establish object disjointness.  Any supported
+        # pointer expression is safe to retain: guard_evidence requires a
+        # complete, non-unknown may-target set before it removes a path.
+        if right.get('op') in {'empty', 'unknown'}:
+            return []
+        row = dict(parameter=left, target=right,
+            equals=(op == '==') == branch_true, **self.e.loc(condition))
+        self.condition_cache[key] = [row]
+        return [row]
+
+    def _always_returns(self, node):
+        """Recognize only structural, label-free branches that cannot fall through."""
+        if has_entry_label(node):
+            return False
+        kind, cs = node.kind.name, children(node)
+        if kind == 'RETURN_STMT':
+            return True
+        if kind == 'COMPOUND_STMT':
+            return bool(cs) and self._always_returns(cs[-1])
+        if kind == 'IF_STMT' and len(cs) == 3:
+            return self._always_returns(cs[1]) and self._always_returns(cs[2])
+        return False
+
+    def _fallthrough_conditions(self, compound):
+        """Cache guard-clause constraints once per compound statement.
+
+        ``conditions`` runs for every AST node.  Rescanning all prior siblings
+        there makes a large generated function quadratic (and repeats that
+        scan for every descendant).  A prefix table is both exact for this
+        structural rule and linear in the compound size.
+        """
+        key = (self.function, compound)
+        if key in self.compound_condition_cache:
+            return self.compound_condition_cache[key]
+        active, prefixes = [], {}
+        for index, statement in enumerate(children(compound)):
+            if has_entry_label(statement):
+                active = []
+            prefixes[index] = list(active)
+            branch = children(statement)
+            if (statement.kind.name == 'IF_STMT' and len(branch) == 2
+                    and self._always_returns(branch[1])):
+                active.extend(self._condition(statement, False))
+        self.compound_condition_cache[key] = prefixes
+        return prefixes
+
     def conditions(self, ancestors):
         result = []
         if not self.stable_pointer_parameters.get(self.function):
             return result
         for parent, index in ancestors:
-            if parent.kind.name != 'IF_STMT' or index not in {1, 2}:
+            if parent.kind.name == 'IF_STMT' and index in {1, 2}:
+                result.extend(self._condition(parent, index == 1))
+            if parent.kind.name != 'COMPOUND_STMT' or index <= 0:
                 continue
-            key = (self.function, parent, index)
-            if key in self.condition_cache:
-                result.extend(self.condition_cache[key])
-                continue
-            self.condition_cache[key] = []
-            cs = children(parent)
-            if len(cs) not in {2, 3}:
-                continue
-            condition = self.unwrap(cs[0])
-            if condition.kind.name != 'BINARY_OPERATOR' or operator(condition) not in {'==', '!='}:
-                continue
-            operands = children(condition)
-            if len(operands) != 2:
-                continue
-            left, right = map(self.value, operands)
-            if right.get('op') == 'loc' and right.get('id') in self.stable_pointer_parameters.get(self.function, set()):
-                left, right = right, left
-            if (left.get('op') != 'loc' or left.get('id') not in self.stable_pointer_parameters.get(self.function, set())
-                    or right.get('op') != 'addr'):
-                continue
-            location = right.get('value', {})
-            # A direct static object/member address is invariant. Mutable
-            # pointer values, arbitrary pointer arithmetic and null tests do
-            # not supply a disjoint-address proof here.
-            while location.get('op') in {'field', 'index'}:
-                location = location['base']
-            if location.get('op') != 'loc' or not location.get('id', '').startswith('obj:'):
-                continue
-            row = dict(parameter=left, target=right,
-                equals=(operator(condition) == '==') == (index == 1), **self.e.loc(condition))
-            self.condition_cache[key] = [row]
-            result.append(row)
-        return result
+            result.extend(self._fallthrough_conditions(parent).get(index, ()))
+        # Nested and early-exit discovery can describe the same guard twice.
+        unique = {}
+        for row in result:
+            unique[repr(row)] = row
+        return list(unique.values())
 
     def aggregate_paths(self, typ):
         """Finite inline storage layout; pointer fields are terminal leaves.
@@ -171,6 +292,8 @@ class PointerExtractor:
         return self.aggregate_paths(typ), size if size >= 0 else None
 
     def constraint(self, left, right, node):
+        if right.get('op') == 'empty':
+            return
         self.constraints.append(dict(left=left, right=right, function_id=self.function,
                                      path_conditions=list(self.path_conditions),
                                      aggregate=node.type.get_canonical().kind.name == 'RECORD',
@@ -292,8 +415,12 @@ class PointerExtractor:
         return dict(op='empty')
 
     def value(self, node):
-        typ = node.type.get_canonical().kind.name
+        original_type = node.type.get_canonical()
+        typ = original_type.kind.name
         node = self.unwrap(node)
+        unwrapped_type = node.type.get_canonical()
+        pointer_provenance = (self.type_contains_pointer(original_type)
+                              or self.type_contains_pointer(unwrapped_type))
         k, cs = node.kind.name, children(node)
         if k == 'DECL_REF_EXPR' and node.referenced and node.referenced.kind.name in FUNCTIONS:
             return dict(op='function', id=self.e.fid(node.referenced))
@@ -305,8 +432,17 @@ class PointerExtractor:
         if k == 'UNARY_OPERATOR' and operator(node) == '*' and cs:
             if node.type.get_canonical().kind.name in {'FUNCTIONPROTO', 'FUNCTIONNOPROTO'}:
                 return self.value(cs[0])
+        if k == 'UNARY_OPERATOR' and operator(node) in {'++', '--'} and cs and pointer_provenance:
+            # Postfix p++ evaluates to the old pointer while mutating p. The
+            # flow-insensitive offset constraint below retains both possible
+            # values; the dereference must still consume p's provenance.
+            return self.value(cs[0])
         if k == 'CALL_EXPR':
-            return self.result(node)
+            # A scalar call result is not pointer provenance merely because
+            # another nested call in the same macro expansion returns a
+            # pointer.  Explicit casts to a pointer retain provenance via
+            # ``original_type`` above.
+            return self.result(node) if pointer_provenance else dict(op='empty')
         if k == 'StmtExpr' or k == 'STMT_EXPR':
             # GNU statement expressions take the value of the final
             # expression statement, including calls inside registration
@@ -328,8 +464,10 @@ class PointerExtractor:
                         right=payload, function_id=self.function, path_conditions=list(self.path_conditions),
                         **self.e.loc(node)))
                 return storage
-            # Addresses may travel through uintptr_t before a later cast.
-            return payload
+            # A scalar va_arg is pointer provenance only if its declared type
+            # is pointer-like. Integer uintptr_t round trips are admitted by
+            # assignment_value once a later pointer cast proves that intent.
+            return payload if self.type_contains_pointer(original_type) else dict(op='empty')
         if k in {'COMPOUND_LITERAL_EXPR', 'CXX_TEMPORARY_OBJECT_EXPR'}:
             initializer = next((child for child in cs if child.kind.name == 'INIT_LIST_EXPR'), None)
             if initializer is not None:
@@ -339,6 +477,10 @@ class PointerExtractor:
                 self.initializer(storage, node.type, initializer)
                 return storage
         if k in {'DECL_REF_EXPR', 'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR', 'UNARY_OPERATOR'}:
+            carrier = (k == 'DECL_REF_EXPR' and node.referenced
+                       and self.key(node.referenced) in self.integer_pointer_carriers.get(self.function, set()))
+            if not carrier and not pointer_provenance and 'ARRAY' not in typ:
+                return dict(op='empty')
             loc = self.lvalue(node)
             if 'ARRAY' in node.type.get_canonical().kind.name:
                 return dict(op='addr', value=loc)
@@ -361,7 +503,7 @@ class PointerExtractor:
             return dict(op='union', items=[self.value(c) for c in cs])
         if k == 'BINARY_OPERATOR' and operator(node) == '=' and len(cs) == 2:
             return self.value(cs[1])
-        if typ in {'POINTER', 'LVALUEREFERENCE', 'RVALUEREFERENCE'}:
+        if pointer_provenance:
             # Preserve incomplete provenance even when a second assignment
             # supplies known may-targets for the same pointer.
             if constant_value(node) == 0:
@@ -371,7 +513,10 @@ class PointerExtractor:
 
     def result(self, node):
         loc = self.e.loc(node)
-        return dict(op='loc', id='call:' + self.e.tu_name + ':' + loc['file'] + ':' + str(loc['offset']))
+        if node not in self.result_ids:
+            self.result_ids[node] = len(self.result_ids)
+        return dict(op='loc', id='call:' + self.e.tu_name + ':' + loc['file'] + ':'
+                    + str(loc['offset']) + ':' + str(self.result_ids[node]))
 
     def initializer(self, loc, typ, node):
         node = self.unwrap(node)
@@ -417,7 +562,7 @@ class PointerExtractor:
                     self.initializer(dict(op='index', base=loc, index=str(position)), canonical.element_type, init)
                     position += 1
                 return
-        self.constraint(loc, self.value(node), node)
+        self.constraint(loc, self.assignment_value(loc, node), node)
 
     def mode(self, ancestors):
         for parent, index in reversed(ancestors):
@@ -453,6 +598,7 @@ class PointerExtractor:
                 return
             self.function = self.e.fid(node)
             self.stable_pointer_parameters[self.function] = self.stable_parameters(node)
+            self.integer_pointer_carriers[self.function] = self.pointer_carriers(node)
             self.storage_definition(self.function + ':return', node.result_type)
         self.path_conditions = self.conditions(ancestors) if self.function else []
         if self.path_conditions:
@@ -478,13 +624,14 @@ class PointerExtractor:
             if init:
                 self.initializer(dict(op='loc', id=self.key(node)), node.type, init)
         if k == 'BINARY_OPERATOR' and operator(node) == '=' and len(cs) == 2:
-            right = self.value(cs[1])
+            left = self.lvalue(cs[0])
+            right = self.assignment_value(left, cs[1])
             if right.get('op') == 'offset' and self.lvalue(cs[0]) == right['value']:
                 # A flow-insensitive recurrence p=p+1 can visit an arbitrary
                 # number of elements. Widen once instead of silently stopping
                 # at a fixed propagation count or inventing an unbounded set.
                 right['index'] = '*'
-            self.constraint(self.lvalue(cs[0]), right, node)
+            self.constraint(left, right, node)
         if k == 'UNARY_OPERATOR' and operator(node) in {'++', '--'} and cs and cs[0].type.get_canonical().kind.name == 'POINTER':
             self.constraint(self.lvalue(cs[0]), dict(op='offset', value=self.value(cs[0]), index='*'), node)
         if k == 'RETURN_STMT' and cs and self.function:
@@ -558,6 +705,9 @@ class PointerExtractor:
             if node.kind.name == 'MACRO_INSTANTIATION' and node.spelling.startswith('atomic_'):
                 loc = self.e.loc(node)
                 self.atomic_macros[(loc['file'], loc['offset'])] = node.spelling
+            if node.kind.name == 'MACRO_INSTANTIATION' and node.spelling in {'va_arg', '__builtin_va_arg'}:
+                loc = self.e.loc(node)
+                self.variadic_macro_sites.add((loc['file'], loc['offset']))
         self.visit(cursor)
         for row in self.e.accesses + self.e.calls + self.e.unknowns:
             owner = row.get('function_id', row.get('caller_function_id'))

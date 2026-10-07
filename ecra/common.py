@@ -6,6 +6,23 @@ import time
 from pathlib import Path
 
 
+# C library pointer-argument effects. A name enters the no-escape contract
+# only when both extraction and points-to use this same table.
+LIBC_POINTER_MODES = {
+    'memcpy': {0: 'WRITE', 1: 'READ'},
+    'memmove': {0: 'WRITE', 1: 'READ'},
+    'memset': {0: 'WRITE'},
+    'memcmp': {0: 'READ', 1: 'READ'},
+    'strcpy': {0: 'WRITE', 1: 'READ'},
+    'strncpy': {0: 'WRITE', 1: 'READ'},
+    'strcat': {0: 'RMW', 1: 'READ'},
+    'strncat': {0: 'RMW', 1: 'READ'},
+    'strcmp': {0: 'READ', 1: 'READ'},
+    'strncmp': {0: 'READ', 1: 'READ'},
+    'strlen': {0: 'READ'},
+}
+
+
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 

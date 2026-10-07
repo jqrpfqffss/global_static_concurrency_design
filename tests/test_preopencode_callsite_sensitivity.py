@@ -24,7 +24,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
         ''')
         for name in ('first.state', 'second.state'):
             variable = next(v for v in facts['variables'] if v['qualified_name'] == name)
-            self.assertEqual(variable['static_classification'], 'SAFE', variable)
+            self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
             self.assertEqual(variable['safe_reason_code'], 'SAFE_SINGLE_IRQ')
             self.assertEqual(len(variable['writers']), 1)
 
@@ -53,7 +53,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
         ''')
         for name in ('first.state', 'second.state'):
             variable = next(v for v in facts['variables'] if v['qualified_name'] == name)
-            self.assertEqual(variable['static_classification'], 'SAFE', variable)
+            self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
             self.assertEqual(variable['safe_reason_code'], 'SAFE_SINGLE_IRQ')
             self.assertEqual(len(variable['writers']), 1)
 
@@ -81,7 +81,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'completed')
-        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
         self.assertEqual(variable['safe_reason_code'], 'SAFE_SINGLE_IRQ')
         self.assertEqual(len(variable['writers']), 1)
         self.assertIn('USART2', variable['writers'][0])
@@ -96,8 +96,28 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'completed')
-        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
         self.assertEqual(variable['safe_reason_code'], 'SAFE_SINGLE_IRQ')
+
+    def test_early_return_guard_uses_pointer_slot_object_identity(self):
+        facts, _ = self.scan('''
+            typedef struct { unsigned state; } Device;
+            typedef struct { Device *selected; unsigned completed; } Owner;
+            static Device first, second;
+            static Owner owner = { &second, 0 };
+            static void Complete(Device *device) {
+                if (device != owner.selected) return;
+                owner.completed++;
+            }
+            void USART1_IRQHandler(void) { Complete(&first); }
+            void USART2_IRQHandler(void) { Complete(&second); }
+            int main(void) { return 0; }
+        ''')
+        variable = next(v for v in facts['variables'] if v['qualified_name'] == 'owner.completed')
+        self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
+        self.assertEqual(variable['safe_reason_code'], 'SAFE_SINGLE_IRQ')
+        self.assertEqual(len(variable['writers']), 1)
+        self.assertIn('USART2', variable['writers'][0])
 
     def test_opaque_pointer_in_other_irq_does_not_taint_known_private_target(self):
         facts, _ = self.scan('''
@@ -108,7 +128,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'value')
-        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
         self.assertEqual(variable['safe_reason_code'], 'SAFE_SINGLE_IRQ')
 
     def test_known_and_opaque_pointer_in_same_irq_keeps_relevant_gap(self):
@@ -154,7 +174,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'unreachable_value')
-        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
         self.assertEqual(variable['safe_reason_code'], 'SAFE_NO_RUNTIME_ACCESS')
         self.assertTrue(variable['safe_evidence']['context_exclusions'])
         self.assertTrue(all(a['reachability'] == 'PROVEN_UNREACHABLE' for a in variable['accesses']))
@@ -171,7 +191,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'value')
-        self.assertEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
         self.assertEqual(variable['safe_reason_code'], 'SAFE_NO_RUNTIME_ACCESS')
         self.assertTrue(any(row['kind'] == 'FUNCTION_ADDRESS'
                             for row in facts['context_pruned_uncertainties']))
@@ -186,7 +206,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { Register(Complete); return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'value')
-        self.assertNotEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertNotEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
         self.assertIn('UNKNOWN_EXECUTION_CONTEXT', variable['unknown_reason_codes'])
 
     def test_unknown_callback_input_reaches_downstream_guard(self):
@@ -200,7 +220,7 @@ class CallsiteSensitivityTests(unittest.TestCase):
             int main(void) { Register(Complete); return 0; }
         ''')
         variable = next(v for v in facts['variables'] if v['name'] == 'value')
-        self.assertNotEqual(variable['static_classification'], 'SAFE', variable)
+        self.assertNotEqual(variable['static_classification'], 'SAFE_PROVEN', variable)
 
 
 if __name__ == '__main__':

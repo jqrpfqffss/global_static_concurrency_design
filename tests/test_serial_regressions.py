@@ -122,7 +122,7 @@ class SerialRegressionTests(unittest.TestCase):
         facts, report = self.extract(cfg)
         variables = {v['name']: v for v in facts['variables']}
         for name in ('only_read', 'only_write', 'local_state'):
-            self.assertEqual(variables[name]['audit_status'], 'SCREENED_NO_CONCURRENCY_RISK')
+            self.assertEqual(variables[name]['audit_status'], 'STATIC_SAFE_PROVEN')
             self.assertFalse(any(f.get('symbol_id') == variables[name]['symbol_id'] for f in report['findings']))
         self.assertEqual(variables['only_read']['screening_reason'], 'ONLY_READS')
         self.assertEqual(variables['only_write']['screening_reason'], 'SINGLE_ACCESS_SITE')

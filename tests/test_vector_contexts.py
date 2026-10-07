@@ -34,6 +34,43 @@ class VectorContextTests(unittest.TestCase):
             int main(void){return value;}''')
         self.assertEqual(value['static_classification'], 'SUSPECT', value)
         self.assertIn('IRQ:slot:17', value['variable_evidence_slice']['physical_contexts'])
+        slot = next(v for v in facts['variables'] if v['qualified_name'] == 'vectors[17]')
+        reads = [a for a in slot['accesses'] if a.get('via_api') == 'CORTEX_M_VECTOR_FETCH']
+        self.assertEqual(len(reads), 1)
+        self.assertEqual(reads[0]['access_kind'], 'READ')
+        self.assertEqual(reads[0]['contexts'], ['vector:slot:17'])
+        self.assertNotEqual(slot.get('safe_reason_code'), 'SAFE_NO_RUNTIME_ACCESS')
+        stack = next(v for v in facts['variables'] if v['qualified_name'] == 'vectors[0]')
+        stack_reads = [a for a in stack['accesses'] if a.get('vector_slot') == 0]
+        self.assertEqual(len(stack_reads), 1)
+        self.assertEqual(stack_reads[0]['contexts'], ['vector:slot:1'])
+        self.assertEqual(stack_reads[0]['vector_slot_path_proof'], 'ARRAY_LAYOUT_SLOT_ZERO')
+
+    def test_mutable_vector_slot_conflicts_with_hardware_fetch(self):
+        value, facts = self.scan('''typedef void (*handler)(void); static unsigned value;
+            void irq(void) {} void reset(void) {}
+            handler vectors[18] __attribute__((section(".vectors"),used)) =
+                {[1]=reset,[17]=irq};
+            int main(void) { vectors[17] = irq; return value; }''')
+        slot = next(v for v in facts['variables'] if v['qualified_name'] == 'vectors[17]')
+        self.assertEqual(slot['static_classification'], 'SUSPECT', slot)
+        self.assertTrue(any(a.get('via_api') == 'CORTEX_M_VECTOR_FETCH' and
+                            a['access_kind'] == 'READ' for a in slot['accesses']))
+
+    def test_cortex_m_vtor_relocation_does_not_create_opaque_callback_entry(self):
+        value, facts = self.scan('''
+            typedef void (*handler)(void); static unsigned value;
+            void reset(void) {} void irq(void) {}
+            const handler vectors[18] __attribute__((section(".vector_table"),used)) =
+                {[1]=reset,[17]=irq};
+            struct SCBType { volatile unsigned VTOR; };
+            #define SCB ((struct SCBType *)0xE000ED00u)
+            int main(void) { SCB->VTOR = (unsigned)vectors; value++; return 0; }
+        ''')
+        self.assertEqual('SAFE_PROVEN', value['static_classification'])
+        self.assertEqual('SAFE_SINGLE_FOREGROUND', value['safe_reason_code'])
+        self.assertFalse(any(issue['kind'] == 'FUNCTION_ADDRESS' and issue.get('actual_escape')
+                             for issue in facts['unknowns']))
 
     def test_shared_handler_in_two_vector_slots_keeps_two_executors(self):
         value, facts = self.scan('''typedef void (*handler)(void);static unsigned value;
@@ -41,6 +78,12 @@ class VectorContextTests(unittest.TestCase):
             const handler vectors[18] __attribute__((section(".vectors"),used)) =
                 {[16]=shared,[17]=shared};int main(void){return 0;}''')
         self.assertEqual(value['static_classification'], 'SUSPECT', value)
+        for slot in (16, 17):
+            storage = next(v for v in facts['variables']
+                           if v['qualified_name'] == f'vectors[{slot}]')
+            fetch = next(a for a in storage['accesses']
+                         if a.get('via_api') == 'CORTEX_M_VECTOR_FETCH')
+            self.assertEqual(fetch['contexts'], [f'vector:slot:{slot}'])
 
     def test_struct_vector_table_uses_layout_offsets(self):
         value, facts = self.scan('''typedef void (*handler)(void);static unsigned value;
@@ -50,6 +93,26 @@ class VectorContextTests(unittest.TestCase):
                 {.reset=reset,.irq={[1]=custom}};int main(void){return value;}''')
         self.assertEqual(value['static_classification'], 'SUSPECT', value)
         self.assertIn('IRQ:slot:17', value['variable_evidence_slice']['physical_contexts'])
+        slot = next(v for v in facts['variables'] if v['qualified_name'] == 'vectors.irq[1]')
+        self.assertTrue(any(a.get('via_api') == 'CORTEX_M_VECTOR_FETCH' and
+                            a['access_kind'] == 'READ' for a in slot['accesses']))
+        stack = next(v for v in facts['variables'] if v['qualified_name'] == 'vectors.sp')
+        self.assertTrue(any(a.get('vector_slot') == 0 and
+                            a.get('vector_slot_path_proof') == 'RECORD_LAYOUT_SLOT_ZERO'
+                            for a in stack['accesses']))
+
+    def test_ambiguous_stack_slot_reads_whole_vector_object(self):
+        value, facts = self.scan('''typedef void (*handler)(void); static unsigned value;
+            void reset(void) {}
+            union Stack { unsigned first; unsigned second; };
+            struct Vector { union Stack stack; handler reset; };
+            const struct Vector vectors __attribute__((section(".vectors"),used)) =
+                {.reset=reset};
+            int main(void) { return value; }''')
+        table = next(v for v in facts['variables'] if v['qualified_name'] == 'vectors')
+        self.assertTrue(any(a.get('vector_slot') == 0 and
+                            a.get('vector_slot_path_proof') == 'CONSERVATIVE_WHOLE_OBJECT' and
+                            a.get('access_path') == '' for a in table['accesses']))
 
     def test_vector_nmi_cannot_be_protected_by_primask(self):
         value, facts = self.scan('''typedef void (*handler)(void);static unsigned value;

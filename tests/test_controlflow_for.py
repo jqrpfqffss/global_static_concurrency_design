@@ -22,19 +22,19 @@ void TIM4_IRQHandler(void) { value++; }
         main = next(f['function_id'] for f in facts['functions'] if f['name'] == 'main')
         graph = next(g for g in facts['control_flow'] if g['function_id'] == main)
         self.assertTrue(graph['complete'], graph['unsupported'])
-        if classification == 'SAFE':
+        if classification == 'SAFE_PROVEN':
             self.assertEqual(value['safe_reason_code'], 'SAFE_EFFECTIVE_PROTECTION', value)
         return facts, value, graph
 
     def test_for_before_complete_primask_window(self):
         self.check('for (int i=0; i<flag; ++i) {}\n'
-                   'unsigned saved=__get_PRIMASK(); __disable_irq(); value++; __set_PRIMASK(saved);', 'SAFE')
+                   'unsigned saved=__get_PRIMASK(); __disable_irq(); value++; __set_PRIMASK(saved);', 'SAFE_PROVEN')
 
     def test_protected_write_in_for(self):
-        self.check('for (int i=0; i<flag; ++i) { __disable_irq(); value++; __enable_irq(); }', 'SAFE')
+        self.check('for (int i=0; i<flag; ++i) { __disable_irq(); value++; __enable_irq(); }', 'SAFE_PROVEN')
 
     def test_for_condition_and_increment_inside_mask(self):
-        self.check('__disable_irq(); for (;value < flag; value++) {} __enable_irq();', 'SAFE')
+        self.check('__disable_irq(); for (;value < flag; value++) {} __enable_irq();', 'SAFE_PROVEN')
 
     def test_conditional_unmask_and_break_reaches_following_write(self):
         self.check('__disable_irq(); for (int i=0; i<flag; ++i) { '
@@ -50,17 +50,17 @@ void TIM4_IRQHandler(void) { value++; }
         self.check('__disable_irq(); for (int i=0; i<flag; __enable_irq()) { value++; continue; }', 'SUSPECT')
 
     def test_break_skips_unmasking_increment(self):
-        self.check('__disable_irq(); for (int i=0; i<flag; __enable_irq()) { break; } value++;', 'SAFE')
+        self.check('__disable_irq(); for (int i=0; i<flag; __enable_irq()) { break; } value++;', 'SAFE_PROVEN')
 
     def test_nested_break_targets_only_inner_loop(self):
         self.check('__disable_irq(); for (int i=0; i<flag; ++i) { '
                    'for (int j=0; j<flag; ++j) { break; } __enable_irq(); } value++;', 'SUSPECT')
 
     def test_missing_init_and_increment_are_unambiguous(self):
-        self.check('__disable_irq(); for (;flag;) { value++; break; } __enable_irq();', 'SAFE')
+        self.check('__disable_irq(); for (;flag;) { value++; break; } __enable_irq();', 'SAFE_PROVEN')
 
     def test_conditionless_loop_has_no_false_exit(self):
-        facts, value, graph = self.check('__disable_irq(); for (;;) { value++; }\n__enable_irq();', 'SAFE')
+        facts, value, graph = self.check('__disable_irq(); for (;;) { value++; }\n__enable_irq();', 'SAFE_PROVEN')
         reachable, pending = set(), [graph['entry']]
         while pending:
             ident = pending.pop()
@@ -75,7 +75,7 @@ void TIM4_IRQHandler(void) { value++; }
         self.check('__disable_irq(); for (;;) { if(flag) { __enable_irq(); break; } } value++;', 'SUSPECT')
 
     def test_for_macro_preserves_mask_proof(self):
-        self.check('REPEAT(flag) { __disable_irq(); value++; __enable_irq(); }', 'SAFE',
+        self.check('REPEAT(flag) { __disable_irq(); value++; __enable_irq(); }', 'SAFE_PROVEN',
                    declarations='#define REPEAT(n) for (int i=0; i<(n); ++i)\n')
 
     def test_cleanup_scope_exit_invalidates_prior_mask(self):
@@ -88,11 +88,11 @@ void TIM4_IRQHandler(void) { value++; }
 
     def test_cleanup_does_not_invalidate_earlier_protected_access(self):
         self.check('__disable_irq(); { unsigned saved __attribute__((cleanup(Restore)))=0; value++; }',
-                   'SAFE', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+                   'SAFE_PROVEN', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
 
     def test_protection_can_be_reestablished_after_cleanup(self):
         facts, _, graph = self.check('__disable_irq(); { unsigned saved __attribute__((cleanup(Restore)))=0; } '
-                                   '__disable_irq(); value++; __enable_irq();', 'SAFE',
+                                   '__disable_irq(); value++; __enable_irq();', 'SAFE_PROVEN',
                                    helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
         self.assertTrue(any(n.get('reason') == 'CLEANUP_ATTRIBUTE' for n in graph['nodes']))
 
@@ -138,21 +138,21 @@ void TIM4_IRQHandler(void) { value++; }
         for loop in ['while (1) { value++; }', 'do { value++; } while (1);',
                      'for (; 1;) { value++; }', 'while (2 - 1) { value++; }']:
             with self.subTest(loop=loop):
-                _, _, graph = self.check('__disable_irq(); ' + loop + ' __enable_irq();', 'SAFE')
+                _, _, graph = self.check('__disable_irq(); ' + loop + ' __enable_irq();', 'SAFE_PROVEN')
                 reached = self.reachable(graph)
                 self.assertNotIn(graph['exit'], reached)
                 self.assertTrue(all(node['id'] not in reached for node in graph['nodes']
                                     if node.get('name') == '__enable_irq'))
 
     def test_const_volatile_condition_is_not_folded(self):
-        _, _, graph = self.check('__disable_irq(); while (enabled) { value++; } __enable_irq();', 'SAFE',
+        _, _, graph = self.check('__disable_irq(); while (enabled) { value++; } __enable_irq();', 'SAFE_PROVEN',
                                  declarations='const volatile int enabled = 1;\n')
         self.assertIn(graph['exit'], self.reachable(graph))
 
     def test_constant_false_while_and_for_do_not_execute_body(self):
         for loop in ['while (0) { __enable_irq(); }', 'for (; 0;) { __enable_irq(); }']:
             with self.subTest(loop=loop):
-                _, _, graph = self.check('__disable_irq(); ' + loop + ' value++;', 'SAFE')
+                _, _, graph = self.check('__disable_irq(); ' + loop + ' value++;', 'SAFE_PROVEN')
                 reached = self.reachable(graph)
                 self.assertIn(graph['exit'], reached)
                 self.assertTrue(all(node['id'] not in reached for node in graph['nodes']
@@ -175,16 +175,16 @@ void TIM4_IRQHandler(void) { value++; }
 
     def test_for_init_cleanup_does_not_run_on_continue(self):
         self.check('__disable_irq(); for (unsigned saved __attribute__((cleanup(Restore)))=flag; saved; saved=0) '
-                   '{ value++; continue; }', 'SAFE', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
+                   '{ value++; continue; }', 'SAFE_PROVEN', helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
 
     def test_inner_break_does_not_cleanup_outer_loop_init(self):
         self.check('__disable_irq(); for (unsigned saved __attribute__((cleanup(Restore)))=flag; saved; saved=0) '
-                   '{ for (;;) { break; } value++; }', 'SAFE',
+                   '{ for (;;) { break; } value++; }', 'SAFE_PROVEN',
                    helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
 
     def test_cleanup_continue_then_increment_can_reestablish_mask(self):
         self.check('__disable_irq(); for (;flag;__disable_irq()) { '
-                   'unsigned saved __attribute__((cleanup(Restore)))=0; value++; continue; }', 'SAFE',
+                   'unsigned saved __attribute__((cleanup(Restore)))=0; value++; continue; }', 'SAFE_PROVEN',
                    helpers='void Restore(unsigned *saved) { __enable_irq(); }\n')
 
     def test_nested_cleanup_on_return_reaches_each_live_scope(self):

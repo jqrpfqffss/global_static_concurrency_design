@@ -305,7 +305,7 @@ class ResolutionTests(unittest.TestCase):
                            contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, _ = fixtures.ProjectTest.extract(self, cfg)
         value = next(v for v in facts['variables'] if v['name'] == 'value')
-        self.assertEqual(value['static_classification'], 'SAFE')
+        self.assertEqual(value['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(value['safe_reason_code'], 'SAFE_NON_INTERLEAVING')
 
     def test_conflicting_device_priority_widths_cannot_prove_safe(self):

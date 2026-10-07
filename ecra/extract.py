@@ -27,8 +27,11 @@ def walk(c):
 
 
 def tokens(c, limit=None):
-    stream = c.get_tokens()
-    return [t.spelling for t in (stream if limit is None else islice(stream, limit))]
+    stream = (token for token in c.get_tokens() if token.kind != ci.TokenKind.COMMENT)
+    # Comments are never C expression tokens. libclang can include a comment
+    # in a cursor's source range, and its Python binding decodes token text as
+    # strict UTF-8 even when a valid target source uses a legacy byte there.
+    return [token.spelling for token in (stream if limit is None else islice(stream, limit))]
 
 
 def constant_value(cursor):
@@ -159,14 +162,19 @@ class Extractor:
         if k in FUNCTIONS:
             function = c
             if c.is_definition():
+                attributes = [ch for ch in c.get_children() if ch.kind.name.endswith('_ATTR')]
                 f = dict(function_id=self.fid(c), name=c.spelling, qualified_name=c.displayname,
                          linkage=c.linkage.name, is_static=c.linkage.name == "INTERNAL",
                          is_weak=any(ch.kind.name in {'WEAK_ATTR', 'WEAK_IMPORT_ATTR'}
                                      or (ch.kind.name.endswith('_ATTR') and tokens(ch, 1) == ['weak'])
                                      for ch in c.get_children()),
                          translation_unit=self.tu_name,
-                         entry_attributes=[ch.kind.name for ch in c.get_children()
-                                           if ch.kind.name.endswith('_ATTR')],
+                         entry_attributes=[ch.kind.name for ch in attributes],
+                         # Macro expansion can make an opaque attribute's
+                         # token extent span a whole header. Its leading
+                         # spelling identifies the attribute without copying
+                         # thousands of unrelated macro tokens into every TU.
+                         attribute_spellings=[' '.join(tokens(ch, 4)) for ch in attributes],
                          parameter_count=sum(1 for _ in c.get_arguments()),
                          return_type_kind=c.result_type.get_canonical().kind.name,
                          is_variadic=c.type.kind.name == 'FUNCTIONPROTO' and c.type.is_function_variadic(),
@@ -193,9 +201,10 @@ class Extractor:
                 sid = self.symbols[key]
                 typ = c.type.get_canonical()
                 decl = self.loc(c)
-                defining = c.is_definition() or (c.storage_class.name != "EXTERN" and not local
-                                                 and c.semantic_parent.kind.name == "TRANSLATION_UNIT"
-                                                 and Path(self.unit["source"]).suffix.lower() == ".c")
+                defining = c.is_definition() or (c.storage_class.name != "EXTERN" and (
+                    local and c.storage_class.name == "STATIC" or
+                    not local and c.semantic_parent.kind.name == "TRANSLATION_UNIT"
+                    and Path(self.unit["source"]).suffix.lower() == ".c"))
                 record = self.variables.get(sid)
                 if record is None:
                     size, align = typ.get_size(), typ.get_align()
@@ -209,6 +218,7 @@ class Extractor:
                                   alignment_bytes=align if align >= 0 else None,
                                   is_const=typ.is_const_qualified() or (is_array and typ.element_type.is_const_qualified()),
                                   is_volatile=typ.is_volatile_qualified(), is_array=is_array,
+                                  is_atomic=typ.kind.name == 'ATOMIC',
                                   array_size=typ.element_count if typ.kind.name == 'CONSTANTARRAY' else None,
                                   owner_function_id=self.fid(function) if local else None,
                                   is_pointer=typ.kind.name in {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"},
@@ -228,6 +238,10 @@ class Extractor:
                         element = typ.element_type.get_canonical()
                         record.update(array_element_type=element.spelling,
                                       array_element_size_bytes=max(0, element.get_size()),
+                                      array_element_alignment_bytes=max(0, element.get_align()),
+                                      array_element_is_const=element.is_const_qualified(),
+                                      array_element_is_volatile=element.is_volatile_qualified(),
+                                      array_element_is_atomic=element.kind.name == 'ATOMIC',
                                       array_element_is_struct=element.kind.name == 'RECORD',
                                       array_element_is_union=element.get_declaration().kind.name == 'UNION_DECL')
                         if element.kind.name == 'RECORD':
@@ -302,6 +316,7 @@ class Extractor:
                              union_groups=list(union_groups),
                              is_const=field_type.is_const_qualified(),
                              is_volatile=field_type.is_volatile_qualified(),
+                             is_atomic=field_type.kind.name == 'ATOMIC',
                              is_bitfield=field.is_bitfield()))
             if is_record:
                 rows.extend(self.record_members(field_type, path + '.', (*seen, key), absolute_offset, union_groups))
@@ -353,7 +368,11 @@ class Extractor:
         for parent, index in reversed(ancestors):
             k = parent.kind.name
             if k in WRAPPERS:
-                if parent.type.get_canonical().kind.name == "POINTER" and ref.type.get_canonical().kind.name != "POINTER":
+                wrapped = children(parent)
+                child_type = (wrapped[index].type.get_canonical().kind.name
+                              if 0 <= index < len(wrapped) else '')
+                if (parent.type.get_canonical().kind.name == "POINTER"
+                        and "ARRAY" in child_type):
                     decay = True
                 continue
             if k == "MEMBER_REF_EXPR":
@@ -475,38 +494,58 @@ class Extractor:
 
     def function_body(self, fn):
         fid = self.fid(fn)
-        aliases, snapshots = {}, {}
+        snapshots = {}
         all_nodes = list(walk(fn))
-        # Flow-insensitive local pointer alias union: never claim a unique runtime target.
-        for _ in range(3):
-            for n in all_nodes:
-                cs = children(n)
-                local = None
-                rhs = None
-                if n.kind.name == "VAR_DECL" and n.storage_class.name != "STATIC" and cs:
-                    local, rhs = n, cs[-1]
-                elif n.kind.name == "BINARY_OPERATOR" and operator(n) == "=" and len(cs) == 2:
-                    left = [x.referenced for x in walk(cs[0]) if x.kind.name == "DECL_REF_EXPR" and x.referenced]
-                    if len(left) == 1 and left[0].kind.name == "VAR_DECL" and self.key(left[0]) not in self.symbols:
-                        local, rhs = left[0], cs[1]
-                if local is None:
-                    continue
-                direct = {s for s, _ in self.refs(rhs) if not self.variables[s]['is_pointer']}
-                inherited = set()
-                for x in walk(rhs):
-                    if x.kind.name == "DECL_REF_EXPR" and x.referenced:
-                        inherited |= aliases.get(self.key(x.referenced), set())
-                key = self.key(local)
-                if local.type.get_canonical().kind.name in {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"}:
-                    if direct or inherited:
-                        aliases.setdefault(key, set()).update(direct | inherited)
-                elif direct:
-                    snapshots.setdefault(key, set()).update(direct)
+        # Snapshot facts describe value copies used later in a writeback or
+        # decision. Pointer aliases are deliberately excluded here: the
+        # PointerExtractor/Solver is the single source of indirect accesses,
+        # with exact subobject and pointer-slot load semantics. The former
+        # flow-insensitive alias union confused pointer containers with their
+        # pointees and manufactured whole-object writes.
+        for n in all_nodes:
+            cs = children(n)
+            local = rhs = None
+            if n.kind.name == "VAR_DECL" and n.storage_class.name != "STATIC" and cs:
+                local, rhs = n, cs[-1]
+            elif n.kind.name == "BINARY_OPERATOR" and operator(n) == "=" and len(cs) == 2:
+                left = [x.referenced for x in walk(cs[0])
+                        if x.kind.name == "DECL_REF_EXPR" and x.referenced]
+                if len(left) == 1 and left[0].kind.name == "VAR_DECL" and self.key(left[0]) not in self.symbols:
+                    local, rhs = left[0], cs[1]
+            if (local is None or local.type.get_canonical().kind.name in
+                    {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"}):
+                continue
+            direct = {s for s, _ in self.refs(rhs) if not self.variables[s]['is_pointer']}
+            if direct:
+                snapshots.setdefault(self.key(local), set()).update(direct)
 
         def visit(c, ancestors):
             k = c.kind.name
             if c != fn and k in FUNCTIONS:
                 return
+            if k == 'BINARY_OPERATOR' and operator(c) == '=':
+                operands = children(c)
+                if len(operands) == 2:
+                    destination, source = operands
+                    peripheral_addresses = sorted({value for node in walk(destination)
+                        if node.kind.name == 'INTEGER_LITERAL'
+                        for value in [constant_value(node)]
+                        if value is not None and 0x40000000 <= value <= 0x5fffffff})
+                    if peripheral_addresses:
+                        def published(node, parents):
+                            if node.kind.name == 'DECL_REF_EXPR' and node.referenced:
+                                sid = self.symbols.get(self.key(node.referenced))
+                                if sid:
+                                    mode, path = self.access_mode(
+                                        node, parents, self.variables[sid]['is_pointer'])
+                                    if mode == 'ADDRESS_TAKEN':
+                                        self.issue('UNRESOLVED_DMA_BUFFER', c, fid,
+                                            symbol_id=sid, access_path=path,
+                                            mmio_address=peripheral_addresses[0],
+                                            reason='Object address published to a peripheral register; hardware access direction and lifetime are unresolved')
+                            for index, child in enumerate(node.get_children()):
+                                published(child, parents + [(node, index)])
+                        published(source, [])
             if k == "CALL_EXPR":
                 ref = c.referenced
                 direct = ref is not None and ref.kind.name in FUNCTIONS
@@ -549,16 +588,13 @@ class Extractor:
                             or (p.kind.name=='BINARY_OPERATOR' and operator(p) in {'&&','||'}) for p, _ in ancestors),
                         **self.loc(c)))
                 # Explicit library argument semantics, with address escape retained separately.
-                semantics = {"memcpy": {0: "WRITE", 1: "READ"}, "memmove": {0: "WRITE", 1: "READ"},
-                             "memset": {0: "WRITE"}, "memcmp": {0: "READ", 1: "READ"}}.get(name, {})
+                from .common import LIBC_POINTER_MODES
+                semantics = LIBC_POINTER_MODES.get(name, {})
                 for i, arg in enumerate(args):
                     found = {s for s, _ in self.refs(arg)}
                     paths_by_symbol = {}
                     for target_sid, target_path in self.reference_paths(arg):
                         paths_by_symbol.setdefault(target_sid, set()).add(target_path)
-                    for x in walk(arg):
-                        if x.kind.name == "DECL_REF_EXPR" and x.referenced:
-                            found |= aliases.get(self.key(x.referenced), set())
                     if i in semantics:
                         for sid in found:
                             # A pointer object is read; its pointee remains an alias uncertainty.
@@ -585,25 +621,6 @@ class Extractor:
                     for original in snapshots[key]:
                         self.snapshots.append(dict(symbol_id=original, function_id=fid, local_name=c.spelling,
                                                    **self.loc(c), source_text=self.source(c), confidence="conservative"))
-                if key in aliases:
-                    for parent, index in reversed(ancestors):
-                        if parent.kind.name in WRAPPERS:
-                            continue
-                        if (parent.kind.name == "UNARY_OPERATOR" and operator(parent) == "*") or parent.kind.name in {"ARRAY_SUBSCRIPT_EXPR", "MEMBER_REF_EXPR"}:
-                            # ``c`` is an alias variable, not the pointee.  Use
-                            # its complete enclosing expression to retain
-                            # ``p->field`` / ``p->nested.field`` on the original
-                            # storage object.  Truncating at the first member
-                            # expression silently turned those into whole-object
-                            # reads and lost the write/RMW operator above it.
-                            mode, path = self.access_mode(c, ancestors, False, pointee=True)
-                            for original in aliases[key]:
-                                self.add_access(original, c, fid, mode, access_path=path, via_alias=c.spelling,
-                                                parse_confidence_override="conservative",
-                                                conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
-                                                                                               'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
-                                                                           for parent, _ in ancestors))
-                        break
             if (k == "UNARY_OPERATOR" and operator(c) == "*") or (k == "MEMBER_REF_EXPR" and "->" in tokens(c)):
                 self.issue("POINTER_DEREFERENCE", c, fid)
             if k == "ARRAY_SUBSCRIPT_EXPR":
@@ -636,7 +653,11 @@ class Extractor:
             ci.Config.set_library_file(self.cfg["analysis"]["libclang_file"])
         index = ci.Index.create()
         unsaved = [(path, content) for path, content in self.source_overrides.items()]
-        tu = index.parse(self.unit["source"], args=self.unit["arguments"],
+        # GCC accepts some legacy function-pointer assignments that recent
+        # Clang treats as errors by default. Keep the diagnostic as a warning
+        # so its AST and pointer flow remain available for conservative audit.
+        clang_args = [*self.unit["arguments"], '-Wno-error=incompatible-function-pointer-types']
+        tu = index.parse(self.unit["source"], args=clang_args,
                          unsaved_files=unsaved,
                          options=ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
         diagnostics = [dict(severity=d.severity, message=str(d)) for d in tu.diagnostics]

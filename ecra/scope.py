@@ -1,6 +1,7 @@
 """Select audit ownership without cutting dependency call/alias propagation."""
 from collections import Counter, defaultdict
 from fnmatch import fnmatch
+from functools import lru_cache
 import os
 from pathlib import Path
 
@@ -8,6 +9,9 @@ from pathlib import Path
 class AuditScope:
     def __init__(self, root, analysis):
         self.root = Path(root).resolve()
+        project_root = self.root
+        self._resolved_path = lru_cache(maxsize=16384)(
+            lambda value: (project_root / value.replace('\\', '/')).resolve())
         self.include_dirs = analysis.get('include_dirs', [])
         self.exclude_dirs = analysis.get('exclude_dirs', [])
         self.exclude_files = analysis.get('exclude_files', [])
@@ -27,7 +31,7 @@ class AuditScope:
                 raise ValueError(f'exclude_files 中填写了目录: {file}；请改放到 analysis.exclude_dirs')
 
     def path(self, path):
-        return (self.root / str(path).replace('\\', '/')).resolve()
+        return self._resolved_path(str(path))
 
     def contains(self, path):
         if not path:

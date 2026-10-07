@@ -4,7 +4,7 @@ Object fields and constant array elements have separate abstract locations.
 Call arguments and results propagate across translation units. May-targets are
 evidence of possible accesses, never proof of a particular runtime target.
 """
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque, OrderedDict
 from functools import lru_cache
 import copy
 import fnmatch
@@ -58,15 +58,34 @@ class Solver:
         self.readers = defaultdict(set)
         self.load_cache = {}
         self.load_dependencies = defaultdict(set)
+        # Pointer offsets are pure functions of their exact input target set,
+        # index, and this solver's immutable storage layout.  A large call
+        # graph can revisit the same offset after an unrelated slot changes;
+        # retain a small per-solution image instead of re-projecting every
+        # pointee on each such revisit.  Reading the child expression still
+        # installs the current task's dependencies before consulting this.
+        self.offset_images = OrderedDict()
+        self.offset_prefixes = {}
+        # Field/index projections are monotone within one solution. Cache the
+        # projected locations and visit only newly discovered bases when a
+        # pointer equation is woken again.
+        self.location_images = {}
+        self.update_images = {}
         self.current_task = None
         self.pending = deque()
         self.enqueued = set()
+        self.recent_locations = deque(maxlen=12)
         self.unresolved_copies = []
+        self.pruned_functions = set(facts.get('pointer_solver_pruning', {}).get('pruned_function_ids', ()))
+        self.active_constraints = []
+        self.active_indirect_accesses = []
         self.functions = {f['function_id']: f for f in facts['functions']}
         self.variables = {v['symbol_id']: v for v in facts['variables']}
         self.objects = {'obj:' + s: s for s in self.variables}
         self.storage_definitions = {}
         for row in facts.get('pointer_storage', []):
+            if row.get('function_id') in self.pruned_functions:
+                continue
             location = row['location']
             if location not in self.storage_definitions:
                 self.storage_definitions[location] = dict(row, paths=set(row['paths']),
@@ -119,17 +138,20 @@ class Solver:
             return
         fresh = location not in self.points
         if fresh:
+            if os.environ.get('ECRA_SOLVER_TRACE_HOT'):
+                self.recent_locations.append(location)
             self.slots_by_shape[self.shape(location)].add(location)
             ancestor = location
             while '/' in ancestor:
                 ancestor = ancestor.rpartition('/')[0]
                 self.descendant_slots[ancestor].add(location)
                 self.notify_change('descendants:' + ancestor)
-        previous = len(self.points[location])
-        self.points[location].update(values)
-        self.unknown_points[location].bits = self.points[location].bits & self.target_pool.unknown_mask
-        self.changed |= len(self.points[location]) != previous
-        if len(self.points[location]) != previous:
+        points = self.points[location]
+        previous = points.bits
+        points.update(values)
+        if points.bits != previous:
+            self.unknown_points[location].bits = points.bits & self.target_pool.unknown_mask
+            self.changed = True
             self.escape_closures.clear()
             self.notify_change(location)
             self.notify_change('shape:' + self.shape(location))
@@ -210,22 +232,27 @@ class Solver:
     def locations(self, e):
         op = e.get('op')
         if op == 'loc':
-            return self.section_starts.get(e['id'], {self.storage_location(e['id'])})
+            return self.target_pool.make(
+                self.section_starts.get(e['id'], {self.storage_location(e['id'])}))
         if op == 'deref':
-            return {p for p in self.value(e['value']) if not p.startswith('fn:')}
+            pointees = self.value(e['value'])
+            return TargetSet(self.target_pool, pointees.bits & ~self.target_pool.function_mask)
         if op == 'field':
-            result = set()
-            for base in self.locations(e['base']):
+            bases = self.locations(e['base'])
+            result, fresh = self._location_projection(e, bases)
+            for base in fresh:
                 if base.startswith('unknown:'):
                     result.add(base)
                     continue
                 array = (base in self.objects and self.variables[self.objects[base]].get('array_element_is_struct')
                          or '/[*]' in self.storage_definitions.get(base, {}).get('paths', ()))
                 result.add(self.storage_location(base + ('/[0]' if array else '') + '/' + e['field']))
+            self.location_images[id(e)] = (e, bases.bits, result.bits)
             return result
         if op == 'index':
-            result = set()
-            for base in self.locations(e['base']):
+            bases = self.locations(e['base'])
+            result, fresh = self._location_projection(e, bases)
+            for base in fresh:
                 if base.startswith('unknown:'):
                     # An opaque allocation has unknown subobjects already.
                     # Appending .next/.next/... invents an infinite lattice.
@@ -246,10 +273,21 @@ class Solver:
                     index = str(int(match[1]) + int(index)) if '*' not in {match[1], index} else '*'
                     base = base[:match.start()]
                 result.add(self.storage_location(base + '/[' + index + ']'))
+            self.location_images[id(e)] = (e, bases.bits, result.bits)
             return result
         if op == 'union':
-            return set().union(*(self.locations(x) for x in e['items']))
-        return set()
+            result = self.target_pool.make()
+            for item in e['items']:
+                result.update(self.locations(item))
+            return result
+        return self.target_pool.make()
+
+    def _location_projection(self, expression, bases):
+        image = self.location_images.get(id(expression))
+        if image is not None and image[0] is expression and image[1] & bases.bits == image[1]:
+            return (TargetSet(self.target_pool, image[2]),
+                    TargetSet(self.target_pool, bases.bits & ~image[1]))
+        return self.target_pool.make(), bases
 
     def value(self, e):
         op = e.get('op')
@@ -262,10 +300,44 @@ class Solver:
         if op == 'unknown':
             return self.target_pool.make({'unknown:' + e['id']})
         if op == 'offset':
-            result = self.target_pool.make()
-            for base in self.value(e['value']):
+            pointees = self.value(e['value'])
+            # In the inclusion solver a particular expression's pointees can
+            # only grow. Project only newly discovered bases: re-walking its
+            # entire (potentially very large) set on every equation wakeup is
+            # unnecessary. Retain the expression object to make its id stable
+            # even for a temporary expression outside the merged facts.
+            site = id(e)
+            prefix = self.offset_prefixes.get(site)
+            if (prefix is not None and prefix[0] == e['index']
+                    and prefix[1] & pointees.bits == prefix[1]):
+                if prefix[1] == pointees.bits:
+                    return TargetSet(self.target_pool, prefix[2])
+                bases = TargetSet(self.target_pool, pointees.bits & ~prefix[1])
+                result = TargetSet(self.target_pool, prefix[2])
+            else:
+                bases = pointees
+                result = self.target_pool.make()
+            key = (pointees.bits, e['index'])
+            cached = self.offset_images.get(key)
+            if cached is not None:
+                self.offset_images.move_to_end(key)
+                self.offset_prefixes[site] = (e['index'], pointees.bits, cached.bits, e)
+                return cached.copy()
+            for base in bases:
                 if base.startswith('unknown:') or e['index'] == '0':
                     result.add(base)
+                    continue
+                if base.startswith('fn:'):
+                    # Function designators are not C storage objects. An
+                    # arithmetic view of one cannot become another known
+                    # callback or a recursive field of the function address.
+                    # Preserve a stable opaque target for the relevant call/
+                    # alias gap instead of inventing fn/.../$overlap/... .
+                    if e['index'] == '*':
+                        # An unknown offset includes zero, which retains the
+                        # original callable target as one possibility.
+                        result.add(base)
+                    result.add('unknown:function-offset:' + base[3:])
                     continue
                 match = re.search(r'/\[(-?\d+|\*)\]$', base)
                 sid = self.objects.get(base)
@@ -277,9 +349,18 @@ class Solver:
                 elif sid and self.variables[sid].get('linker_section'):
                     result.add(base)
                 else:
-                    # Non-array pointer arithmetic lacks a proven extent.
-                    # Preserve the may-object and an explicit missing fact.
-                    result.update({base, 'unknown:offset:' + base})
+                    # A cast byte pointer may advance across the object
+                    # representation. The owning storage's overlap summary
+                    # already denotes every possible member in that object;
+                    # adding an opaque pointee here would turn this *known*
+                    # object-local traversal into a false UNKNOWN for every
+                    # member it can read. Arithmetic outside the original C
+                    # object is not a defined cross-object access.
+                    result.update({base, self.storage_location(base + '/$overlap')})
+            self.offset_prefixes[site] = (e['index'], pointees.bits, result.bits, e)
+            self.offset_images[key] = result.copy()
+            if len(self.offset_images) > 128:
+                self.offset_images.popitem(last=False)
             return result
         if op == 'union':
             result = self.target_pool.make()
@@ -289,7 +370,7 @@ class Solver:
         if op in {'loc', 'deref', 'field', 'index'}:
             result = self.target_pool.make()
             for loc in self.locations(e):
-                result.update(self.load_location(loc, e['op'] == 'deref'))
+                result.update(self.load_location(loc, op == 'deref'))
             return result
         return self.target_pool.make()
 
@@ -329,15 +410,51 @@ class Solver:
             dependencies.add(ancestor)
             result.update(self.unknown_points.get(ancestor, ()))
         if '/[' in location:
-            dependencies.add('shape:' + self.shape(location))
-            for other in self.slots_by_shape.get(self.shape(location), ()):
-                if other != location and self.overlaps(location, other):
-                    result.update(self.points[other])
+            indices = list(re.finditer(r'/\[-?\d+\]', location))
+            if indices and '/[*]' not in location and len(indices) <= 5:
+                # A fixed element can overlap only itself and the finite set
+                # of slots obtained by replacing some of its indices with
+                # wildcards. Watch those exact slots even before they exist.
+                # Sibling concrete elements cannot alter this load and must
+                # not repeatedly wake its readers in a large table.
+                candidates = {location}
+                for match in reversed(indices):
+                    candidates.update(candidate[:match.start()] + '/[*]' + candidate[match.end():]
+                                      for candidate in tuple(candidates))
+                dependencies.update(candidates)
+                for other in candidates - {location}:
+                    result.update(self.points.get(other, ()))
+            else:
+                # A wildcard query can overlap arbitrarily many concrete
+                # elements, including ones created after this load.
+                dependencies.add('shape:' + self.shape(location))
+                for other in self.slots_by_shape.get(self.shape(location), ()):
+                    if other != location and self.overlaps(location, other):
+                        result.update(self.points[other])
         return result, dependencies
 
-    def update(self, left, right, aggregate=False, aggregate_paths=None):
+    def update(self, left, right, aggregate=False, aggregate_paths=None, cache_key=None):
         vals = self.value(right)
-        for loc in self.locations(left):
+        if not vals and not aggregate:
+            return
+        locations = self.locations(left)
+        if cache_key is not None and not aggregate:
+            previous = self.update_images.get(cache_key)
+            self.update_images[cache_key] = (locations.bits, vals.bits)
+            if previous is not None and (previous[0] & locations.bits == previous[0]
+                                         and previous[1] & vals.bits == previous[1]):
+                # This equation already propagated old values to old targets.
+                # Grow each side of the product once; dependencies were read
+                # above even when both deltas are empty.
+                fresh_values = TargetSet(self.target_pool, vals.bits & ~previous[1])
+                fresh_locations = TargetSet(self.target_pool, locations.bits & ~previous[0])
+                if fresh_values:
+                    for loc in TargetSet(self.target_pool, locations.bits & previous[0]):
+                        self.add_points(loc, fresh_values)
+                for loc in fresh_locations:
+                    self.add_points(loc, vals)
+                return
+        for loc in locations:
             self.add_points(loc, vals)
             if aggregate:
                 if aggregate_paths is None:
@@ -432,46 +549,59 @@ class Solver:
             self.facts['accesses'].append(row)
 
     def solve(self):
-        calls = self.facts.get('semantic_calls', [])
-        constraints = self.facts.get('pointer_constraints', [])
+        calls = [row for row in self.facts.get('semantic_calls', [])
+                 if row.get('function_id') not in self.pruned_functions]
+        constraints = [row for row in self.facts.get('pointer_constraints', [])
+                       if row.get('function_id') not in self.pruned_functions]
+        self.active_constraints = constraints
+        self.active_indirect_accesses = [row for row in self.facts.get('indirect_accesses', [])
+                                         if row.get('function_id') not in self.pruned_functions]
         tasks = [('constraint', c) for c in constraints] + [('call', c) for c in calls]
         self.pending.extend(range(len(tasks)))
         self.enqueued.update(range(len(tasks)))
         evaluations = 0
+        trace_hot = bool(os.environ.get('ECRA_SOLVER_TRACE_HOT'))
+        depth_first = bool(os.environ.get('ECRA_SOLVER_LIFO'))
+        hot_tasks = Counter() if trace_hot else None
         # Re-evaluate only equations whose actual read locations changed.
         # Dynamic dereferences/aggregate descendants add dependencies as the
         # monotone graph grows; this computes the same inclusion fixed point.
         while self.pending:
-            task = self.pending.popleft()
+            task = self.pending.pop() if depth_first else self.pending.popleft()
             self.enqueued.remove(task)
             self.current_task = task
             kind, item = tasks[task]
             if kind == 'constraint':
                 c = item
-                self.update(c['left'], c['right'], c.get('aggregate', False), c.get('aggregate_paths'))
+                self.update(c['left'], c['right'], c.get('aggregate', False),
+                            c.get('aggregate_paths'), cache_key=('constraint', task))
             else:
                 call = item
                 targets = self.targets(call)
                 if (call.get('returns_pointer') or call.get('returns_aggregate')) and (not targets or any(t not in self.functions for t in targets)):
-                    self.update(call['result'], dict(op='unknown', id=call['result']['id']))
+                    self.update(call['result'], dict(op='unknown', id=call['result']['id']),
+                                cache_key=('opaque_return', task))
                 for target in targets:
                     function = self.functions.get(target, {})
                     for i, arg in enumerate(call['arguments']):
                         aggregates = call.get('argument_aggregates', [])
                         layouts = call.get('argument_aggregate_paths', [])
                         self.update(dict(op='loc', id=self.parameter_location(target, i, call)), arg,
-                                    i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
+                                    i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None,
+                                    cache_key=('argument', task, target, i))
                         if function.get('is_variadic') and i >= function['parameter_count']:
                             variadic_slot = self.parameter_location(target, 'varargs', call)
                             self.update(dict(op='loc', id=variadic_slot), arg,
-                                        i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None)
+                                        i < len(aggregates) and aggregates[i], layouts[i] if i < len(layouts) else None,
+                                        cache_key=('vararg', task, target, i))
                             if i < len(aggregates) and aggregates[i] and i < len(layouts):
                                 for source in self.locations(arg):
                                     for suffix in layouts[i]:
                                         field = source if source.startswith('unknown:') else self.storage_location(source + suffix)
                                         self.add_points(variadic_slot, self.value(dict(op='loc', id=field)))
                     self.update(call['result'], dict(op='loc', id=self.return_location(target, call)),
-                                call.get('returns_aggregate', False), call.get('return_aggregate_paths'))
+                                call.get('returns_aggregate', False), call.get('return_aggregate_paths'),
+                                cache_key=('return', task, target))
                 if call.get('name') in {'memcpy', 'memmove'} and len(call['arguments']) >= 2:
                     self.copy_memory(call)
                 if call.get('name') in {'__builtin_va_start', '__builtin_stdarg_start', '__builtin_va_copy'} and call['arguments']:
@@ -483,10 +613,30 @@ class Solver:
                     destinations = self.locations(argument['value']) if argument.get('op') == 'addr' else self.locations(argument)
                     for destination in destinations:
                         self.add_points(destination, values)
+            if trace_hot:
+                hot_tasks[task] += 1
             evaluations += 1
             if os.environ.get('ECRA_SOLVER_TRACE') and evaluations % 10000 == 0:
                 print('points-to evaluations', evaluations, 'pending', len(self.pending), 'slots', len(self.points),
                       'values', sum(map(len, self.points.values())), file=sys.stderr, flush=True)
+            if trace_hot and evaluations % 100000 == 0:
+                active = []
+                for index, count in hot_tasks.most_common(8):
+                    task_kind, row = tasks[index]
+                    active.append(dict(task=index, count=count, kind=task_kind,
+                                       file=row.get('file'), line=row.get('line'),
+                                       name=row.get('name'),
+                                       left_op=row.get('left', {}).get('op'),
+                                       right_op=row.get('right', {}).get('op'),
+                                       source=re.sub(r'\s+', ' ', row.get('source_text', ''))[:100]))
+                largest = sorted(self.points.items(), key=lambda pair: len(pair[1]), reverse=True)[:8]
+                print('points-to hotspots', evaluations, 'tasks', active,
+                      'largest_slots', [(location, len(values)) for location, values in largest],
+                      'recent_locations', list(self.recent_locations),
+                      'highest_array_indices', sorted(((max(map(int, re.findall(r'/\[(-?\d+)\]', location))), location)
+                          for location in self.points if re.search(r'/\[-?\d+\]', location)), reverse=True)[:6],
+                      file=sys.stderr, flush=True)
+                hot_tasks.clear()
             if evaluations > max(10000, len(tasks) * 1000):
                 self.facts['unknowns'].append(dict(kind='POINTS_TO_LIMIT', evaluations=evaluations))
                 break
@@ -507,8 +657,8 @@ class Solver:
                         offset=call['offset'], confidence='may_target'))
             name = call['name']
             args = call['arguments']
-            semantics = {'memcpy': {0: 'WRITE', 1: 'READ'}, 'memmove': {0: 'WRITE', 1: 'READ'},
-                         'memset': {0: 'WRITE'}, 'memcmp': {0: 'READ', 1: 'READ'}}.get(name, {})
+            from .common import LIBC_POINTER_MODES
+            semantics = LIBC_POINTER_MODES.get(name, {})
             for i, mode in semantics.items():
                 if i < len(args):
                     self.add_access(self.value(args[i]), call, mode, via_api=name)
@@ -518,13 +668,18 @@ class Solver:
             if index not in self.matched_registration_specs:
                 self.facts['unknowns'].append(dict(kind='UNMATCHED_ENTRY_REGISTRATION', api=spec['api'],
                     hint='配置的注册 API 未匹配当前构建的调用；核对名称、宏展开及构建变体'))
-        for item in self.facts.get('indirect_accesses', []):
+        for item in self.active_indirect_accesses:
             targets = self.locations(item['location'])
             self.add_access(targets, item, item['mode'])
             # Known automatic/parameter storage is a resolved object too. It is
             # intentionally absent from the global/static inventory; that must
             # not become a project-wide unknown write to exported globals.
-            if not targets or any(p.startswith('unknown:') or p.endswith('/$overlap') for p in targets):
+            # ``/$overlap`` is a finite may-touch-any-member view of a *known*
+            # root storage object. add_access above records that whole-object
+            # effect for every canonical member. It is not evidence of an
+            # additional, unidentified pointee. An actual opaque target keeps
+            # its ``unknown:`` tag and remains a variable-local blocker.
+            if not targets or any(p.startswith('unknown:') for p in targets):
                 self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE',
                     function_id=item['function_id'], file=item['file'], line=item['line'],
                     offset=item.get('offset'), may_target_symbol_ids=sorted({self.symbol(p) for p in targets if self.symbol(p)})))
@@ -609,7 +764,8 @@ class Solver:
         edges were successfully recovered.
         """
         escapes, escaped_functions = [], set()
-        safe_apis = {'memcpy', 'memmove', 'memset', 'memcmp', '__disable_irq', '__enable_irq',
+        from .common import LIBC_POINTER_MODES
+        safe_apis = set(LIBC_POINTER_MODES) | {'__disable_irq', '__enable_irq',
                      '__builtin_va_start', '__builtin_stdarg_start', '__builtin_va_copy', '__builtin_va_end',
                      '__get_PRIMASK', '__set_PRIMASK', '__get_BASEPRI', '__set_BASEPRI',
                      '__set_BASEPRI_MAX', '__disable_fault_irq', '__enable_fault_irq',
@@ -658,14 +814,31 @@ class Solver:
             if not contracted and (call.get('target_coverage') == 'PARTIAL' or any(t not in self.functions for t in targets)):
                 values = set().union(*(self.value(arg) for arg in call['arguments']))
                 escape(values, call, 'Pointer argument reaches code without an analyzable implementation')
-        for constraint in self.facts.get('pointer_constraints', []):
+        for constraint in self.active_constraints:
             locations = self.locations(constraint['left'])
             if constraint['left'].get('op') in {'deref', 'field', 'index'} and (
                     not locations or any(p.startswith('unknown:') for p in locations)):
+                left, right = constraint['left'], constraint['right']
+                if (left.get('op') == 'field' and left.get('field') == 'VTOR'
+                        and right.get('op') == 'addr'
+                        and right.get('value', {}).get('op') == 'loc'):
+                    # ARM Cortex-M VTOR consumes the address of a vector
+                    # table, not an unknown software callback destination.
+                    # Only a proven vector-section object qualifies; the
+                    # separate vector recovery pass still reports incomplete
+                    # slots as UNRESOLVED_VECTOR_ENTRY.
+                    from .vectors import SECTIONS
+                    table_location = right['value']['id']
+                    table_sid = self.objects.get(table_location)
+                    if table_sid and self.variables[table_sid].get('linker_section') in SECTIONS:
+                        continue
                 escape(self.value(constraint['right']), constraint, 'Pointer value stored through an unresolved destination')
-        incomplete_build = (bool(self.facts.get('build_closure', {}).get('missing_objects'))
-                            or any(u['kind'] == 'PARSE_FAILED' for u in self.facts['unknowns'])
-                            or any(u.get('parse_status') == 'FAILED' for u in self.facts.get('translation_units', [])))
+        missing_objects = bool(self.facts.get('build_closure', {}).get('missing_objects'))
+        failed_files = {u.get('file') for u in self.facts['unknowns'] if u['kind'] == 'PARSE_FAILED'}
+        failed_files.update(u.get('source_file') for u in self.facts.get('translation_units', [])
+                            if u.get('parse_status') == 'FAILED')
+        incomplete_build = missing_objects or bool(failed_files)
+        from .missing_source import may_reference
         for location, values in list(self.points.items()) if incomplete_build else ():
             sid = self.symbol(location)
             if sid and self.variables[sid].get('linkage') == 'EXTERNAL':
@@ -673,8 +846,11 @@ class Solver:
                 # obtain its pointees/callbacks. With a complete closure,
                 # visibility alone is not an extra asynchronous consumer.
                 variable = self.variables[sid]
-                escape(values, dict(file=variable.get('definition_file'),
-                    line=variable.get('definition_line')), 'Missing linked code may consume an exported pointer slot')
+                if missing_objects or any(file is None or may_reference(
+                        self.facts, file, variable.get('name')) for file in failed_files):
+                    escape(values, dict(file=variable.get('definition_file'),
+                        line=variable.get('definition_line')),
+                        'Missing linked code may consume an exported pointer slot')
 
         self.facts['address_escapes'] = list({digest(e): e for e in escapes}.values())
         resolved, remaining = [], []
@@ -686,7 +862,7 @@ class Solver:
         represented_functions.update(target for call in calls for target in self.targets(call))
         represented_functions.update(reg['function_id'] for reg in self.facts.get('registrations', []))
         dynamic_sites = {(item['function_id'], item['file'], item.get('offset')): self.locations(item['location'])
-                         for item in self.facts.get('indirect_accesses', [])}
+                         for item in self.active_indirect_accesses}
         for issue in self.facts['unknowns']:
             kind = issue['kind']
             site = (issue.get('function_id'), issue.get('file'), issue.get('offset'))

@@ -19,7 +19,7 @@ class StorageEvidenceTests(unittest.TestCase):
             void TIM4_IRQHandler(void){state.slots[1]++;}
             int main(void){state.slots[0]++;state.other++;return 0;}''')
         for name in ('state.slots[0]', 'state.slots[1]', 'state.other'):
-            self.assertEqual(rows[name]['static_classification'], 'SAFE', rows[name])
+            self.assertEqual(rows[name]['static_classification'], 'SAFE_PROVEN', rows[name])
             self.assertIn('SAFE_DISJOINT_STORAGE', rows[name].get('safe_reason_codes', []), rows[name])
             proof = rows[name]['safe_evidence']['disjoint_storage']
             start, end = proof['range_bits']
@@ -33,7 +33,7 @@ class StorageEvidenceTests(unittest.TestCase):
         for name in ('state.slots[0]', 'state.slots[*]'):
             self.assertEqual(rows[name]['static_classification'], 'SUSPECT', rows[name])
             self.assertNotIn('SAFE_DISJOINT_STORAGE', rows[name].get('safe_reason_codes', []))
-        self.assertEqual(rows['state.other']['static_classification'], 'SAFE')
+        self.assertEqual(rows['state.other']['static_classification'], 'SAFE_PROVEN')
 
     def test_escaped_union_member_affects_overlapping_member(self):
         rows = self.scan('''static union { unsigned a, b; } state;
@@ -48,15 +48,15 @@ class StorageEvidenceTests(unittest.TestCase):
             void Opaque(unsigned*);void TIM4_IRQHandler(void){(void)state[1].a;}
             int main(void){Opaque(&state[0].a);state[0].b++;return 0;}''')
         self.assertEqual(rows['state[0].a']['static_classification'], 'UNKNOWN', rows['state[0].a'])
-        self.assertEqual(rows['state[0].b']['static_classification'], 'SAFE', rows['state[0].b'])
-        self.assertEqual(rows['state[1].a']['static_classification'], 'SAFE', rows['state[1].a'])
+        self.assertEqual(rows['state[0].b']['static_classification'], 'SAFE_PROVEN', rows['state[0].b'])
+        self.assertEqual(rows['state[1].a']['static_classification'], 'SAFE_PROVEN', rows['state[1].a'])
 
     def test_dynamic_nested_array_escape_is_relevant_to_constant_index(self):
         rows = self.scan('''static struct { unsigned a[2], b; } state;
             void Opaque(unsigned*);void TIM4_IRQHandler(void){(void)state.a[0];}
             int main(int i){Opaque(&state.a[i]);state.b++;return 0;}''')
         self.assertEqual(rows['state.a[0]']['static_classification'], 'UNKNOWN', rows['state.a[0]'])
-        self.assertEqual(rows['state.b']['static_classification'], 'SAFE', rows['state.b'])
+        self.assertEqual(rows['state.b']['static_classification'], 'SAFE_PROVEN', rows['state.b'])
 
     def test_bitfields_do_not_get_independent_word_rmw_proof(self):
         rows = self.scan('''static struct { unsigned a:1, b:1; } state;
@@ -70,7 +70,7 @@ class StorageEvidenceTests(unittest.TestCase):
             void TIM4_IRQHandler(void){state.irq++;}
             int main(void){state.foreground++;return 0;}''')
         for name in ('state.foreground', 'state.irq'):
-            self.assertEqual(rows[name]['static_classification'], 'SAFE')
+            self.assertEqual(rows[name]['static_classification'], 'SAFE_PROVEN')
             self.assertIn('SAFE_DISJOINT_STORAGE', rows[name]['safe_reason_codes'])
 
     def test_union_members_cannot_gain_disjoint_proof(self):

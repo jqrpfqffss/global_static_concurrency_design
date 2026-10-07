@@ -85,6 +85,31 @@ class VariadicPointerTests(unittest.TestCase):
         ''')
         self.assertEqual(variables['value']['static_classification'], 'SUSPECT')
 
+    def test_nested_macro_scalar_call_does_not_inherit_pointer_result(self):
+        variables, facts = self.scan('''
+            struct Encoder { unsigned size; };
+            static const struct Encoder encoder = { 4 };
+            static const struct Encoder *Lookup(void) { return &encoder; }
+            static int Check(void) { return 1; }
+            static void Store(const struct Encoder *e, int tag, ...) {
+                va_list ap; va_start(ap,tag);
+                int n = va_arg(ap,int);
+                const char *s = va_arg(ap,const char *);
+                while (*s) s++;
+                (void)n; (void)e->size; va_end(ap);
+            }
+            #define SEND() Store(Lookup(), 0, Check(), "hello")
+            int main(void) { SEND(); return 0; }
+        ''')
+        member = next(v for v in facts['variables'] if v.get('canonical_path') == 'encoder.size')
+        self.assertEqual(member['static_classification'], 'SAFE_PROVEN', member)
+        self.assertFalse(any(g.get('kind') == 'UNRESOLVED_POINTEE'
+                             for g in member.get('blocking_evidence', ())), member)
+        calls = [c for c in facts['semantic_calls'] if c.get('name') in {'Lookup', 'Check', 'Store'}]
+        results = [c['result']['id'] for c in calls]
+        self.assertEqual(3, len(results), calls)
+        self.assertEqual(len(results), len(set(results)), calls)
+
 
 if __name__ == '__main__':
     unittest.main()

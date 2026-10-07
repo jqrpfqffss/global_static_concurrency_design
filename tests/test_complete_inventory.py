@@ -83,6 +83,21 @@ int main(void){
         self.assertEqual(local['coverage_source'],'inactive_branch')
         self.assertEqual(local['static_classification'], 'OUT_OF_BUILD')
         self.assertFalse(any(v['symbol_id']==local['symbol_id'] for v in self.report['risk_summary']['variables']))
+        rates = self.report['coverage']['review_rates']
+        build = rates['rr_build']
+        all_inventory = rates['rr_all']
+        self.assertEqual(build['denominator'], self.report['coverage']['static_classification']['total'])
+        self.assertEqual(build['numerator'], self.report['coverage']['opencode_review_queue'])
+        self.assertEqual(rates['variant_inventory'], sum(
+            v.get('static_classification') == 'OUT_OF_BUILD' for v in vs))
+        self.assertGreater(rates['variant_inventory'], 0)
+        self.assertEqual(all_inventory['denominator'], build['denominator'] + rates['variant_inventory'])
+        self.assertEqual(all_inventory['numerator'], build['numerator'] + rates['variant_inventory'])
+        self.assertIn('RR_build', (self.root/'.ecra/classification_quality.html').read_text(encoding='utf-8'))
+        self.assertIn('RR_all', (self.root/'.ecra/classification_quality.html').read_text(encoding='utf-8'))
+        diagnostic = json.loads((self.root/'.ecra/reports/root_cause_v2.json').read_text(encoding='utf-8'))
+        self.assertEqual(diagnostic['review_rates'], rates)
+        self.assertTrue((self.root/'.ecra/reports/classification_root_causes.md').exists())
 
     def test_header_real_tu_context_relative_includes(self):
         build=self.root/'build';build.mkdir()

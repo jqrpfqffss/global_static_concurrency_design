@@ -154,6 +154,7 @@ def _pass(facts, cfg, domains):
     # Unknown callback inputs cannot be bounded by the arguments from known
     # callers. Keep every guard arm in that callback and its callees.
     unknown_reachable = reachable_domains({'unknown-entry': unknown_entries}, facts['calls'])
+    pruned_functions = set(facts.get('pointer_solver_pruning', {}).get('pruned_function_ids', ()))
     temporary = {key: [] for key in ('accesses', 'calls', 'unknowns', 'registrations',
                                     'pointer_constraints', 'semantic_calls', 'indirect_accesses')}
     temporary['variables'] = facts['variables']
@@ -161,14 +162,18 @@ def _pass(facts, cfg, domains):
     temporary['build_closure'] = facts.get('build_closure', {})
     temporary['translation_units'] = facts.get('translation_units', [])
     temporary['guard_unknown_entries'] = set(unknown_reachable)
+    temporary['pointer_solver_pruning'] = facts.get('pointer_solver_pruning', {})
     temporary['pointer_storage'] = [dict(row, location=scoped_location(row['location'], context))
         for row in facts.get('pointer_storage', [])
+        if row.get('function_id') not in pruned_functions
         for context in sorted(domains.get(row.get('function_id'), ())) or [None]]
     expressions = {'pointer_constraints': ('left', 'right', 'path_conditions'),
                    'semantic_calls': ('expression', 'arguments', 'result', 'path_conditions'),
                    'indirect_accesses': ('location', 'path_conditions')}
     for table, fields in expressions.items():
         for row in facts.get(table, []):
+            if row.get('function_id') in pruned_functions:
+                continue
             contexts = sorted(domains.get(row.get('function_id'), ())) or [None]
             for context in contexts:
                 temporary[table].append(clone_record(row, context, fields))
@@ -188,6 +193,7 @@ def _pass(facts, cfg, domains):
                          pointer_storage=temporary['pointer_storage'],
                          build_closure=facts.get('build_closure', {}), translation_units=facts.get('translation_units', []),
                          guard_unknown_entries=set(unknown_reachable),
+                         pointer_solver_pruning=facts.get('pointer_solver_pruning', {}),
                          accesses=[], calls=[], unknowns=[], registrations=[], **filtered)
     else:
         return None
@@ -226,7 +232,11 @@ def _pass(facts, cfg, domains):
             contexts = domains.get(row.get('function_id'))
             if contexts:
                 allowed, excluded = [], []
+                source_allowed = (set(row['allowed_contexts'])
+                                  if 'allowed_contexts' in row else None)
                 for context in sorted(contexts):
+                    if source_allowed is not None and context not in source_allowed:
+                        continue
                     proof = solver.guard_evidence(clone_record(row, context, ('path_conditions',)))
                     if proof:
                         excluded.extend(proof)
@@ -302,15 +312,24 @@ def refine(facts, cfg, contexts, paths):
         if narrowed != domains:
             domains = narrowed
             continue
+        # Keep provenance/accounting without retaining a second copy of every
+        # access and complete call-chain payload.  Large firmware otherwise
+        # serializes the same evidence twice and can grow facts.json by GBs.
+        insensitive_accesses = [row for row in facts['accesses']
+                                if row.get('via_alias') == 'interprocedural points-to']
+        insensitive_calls = [row for row in facts['calls'] if row.get('call_kind') == 'INDIRECT_RESOLVED']
         facts['context_insensitive_pointer_model'] = dict(
-            accesses=[row for row in facts['accesses'] if row.get('via_alias') == 'interprocedural points-to'],
-            calls=[row for row in facts['calls'] if row.get('call_kind') == 'INDIRECT_RESOLVED'],
+            access_count=len(insensitive_accesses), call_count=len(insensitive_calls),
+            access_ids=sorted(row.get('access_id') for row in insensitive_accesses if row.get('access_id')),
+            call_sites=sorted({(row.get('caller_function_id'), row.get('file'), row.get('offset'))
+                               for row in insensitive_calls}),
             stats=facts.get('points_to_stats', {}))
         facts['accesses'], facts['calls'] = accesses, calls
         # Variable-scoped missing facts found by the refined solver are still
         # real gaps; keep them in addition to first-pass coverage evidence.
+        pruned_functions = set(facts.get('pointer_solver_pruning', {}).get('pruned_function_ids', ()))
         recomputed = {site(row) for table in ('indirect_accesses', 'semantic_calls', 'pointer_constraints')
-                      for row in facts.get(table, [])}
+                      for row in facts.get(table, []) if row.get('function_id') not in pruned_functions}
         pruned = temporary.get('context_pruned_uncertainties', [])
         pruned_ids = {row['original_issue_digest'] for row in pruned}
         retained = [issue for issue in facts['unknowns']

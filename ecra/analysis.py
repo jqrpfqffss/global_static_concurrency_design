@@ -2,6 +2,7 @@ from collections import Counter, defaultdict, deque
 import copy
 import fnmatch
 import itertools
+from math import gcd
 import re
 
 from .common import digest
@@ -10,6 +11,7 @@ from .common import digest
 TABLES = ("variables", "functions", "accesses", "calls", "unknowns", "protection_events", "registrations", "snapshots",
           "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow", "pointer_storage",
           "constant_regions")
+CONFLICT_PAIR_INLINE_LIMIT = 4096
 
 
 def merge(parts):
@@ -293,6 +295,12 @@ def canonicalize_member_resources(facts):
         for field_path, field in sorted(definitions.items()):
             sid = member_symbol_id(root_sid, field_path)
             resource = dict(root)
+            offset_bits = field.get('offset_bits')
+            root_alignment = root.get('alignment_bytes')
+            guaranteed_alignment = None
+            if (isinstance(root_alignment, int) and root_alignment > 0
+                    and isinstance(offset_bits, int) and offset_bits >= 0 and offset_bits % 8 == 0):
+                guaranteed_alignment = gcd(root_alignment, offset_bits // 8)
             resource.update(symbol_id=sid, name=field.get('name') or field_path.rsplit('.', 1)[-1],
                             qualified_name=root['qualified_name'] + '.' + field_path,
                             kind='STRUCT_MEMBER', scope='member',
@@ -301,11 +309,15 @@ def canonicalize_member_resources(facts):
                             canonical_path=root['qualified_name'] + '.' + field_path,
                             resource_kind='STRUCT_MEMBER_CONTAINER' if field.get('is_struct') else 'STRUCT_MEMBER',
                             type=field.get('type') or root.get('type'),
-                            size_bytes=field.get('size_bytes'), alignment_bytes=field.get('alignment_bytes'),
-                            is_const=bool(field.get('is_const')), is_volatile=bool(field.get('is_volatile')),
+                            size_bytes=field.get('size_bytes'), alignment_bytes=guaranteed_alignment,
+                            declared_alignment_bytes=field.get('alignment_bytes'),
+                            root_alignment_bytes=root_alignment,
+                            is_const=bool(root.get('is_const') or field.get('is_const')),
+                            is_volatile=bool(root.get('is_volatile') or field.get('is_volatile')),
+                            is_atomic=bool(field.get('is_atomic')),
                             is_struct=bool(field.get('is_struct')),
                             is_bitfield_container=bool(field.get('is_bitfield')),
-                            overlap_groups=field.get('union_groups', []), offset_bits=field.get('offset_bits'),
+                            overlap_groups=field.get('union_groups', []), offset_bits=offset_bits,
                             member_definitions=[])
             additions.append(resource)
             member_by_key[(root_sid, field_path)] = resource
@@ -320,8 +332,14 @@ def canonicalize_member_resources(facts):
                                                    if member_by_key[(root_sid, child)]['resource_kind'] == 'STRUCT_MEMBER']
         root['member_symbol_ids'] = children_by_root[root_sid]
 
+    member_by_id = {resource['symbol_id']: resource for resource in additions}
+    leaves_by_root = {root_sid: [sid for sid in children
+                     if member_by_id[sid]['resource_kind'] == 'STRUCT_MEMBER']
+                      for root_sid, children in children_by_root.items()}
     generated = []
     for access in facts['accesses']:
+        if access.get('array_source_access'):
+            continue
         root = records.get(access['symbol_id'])
         if root is None:
             access.setdefault('root_symbol_id', access['symbol_id'])
@@ -343,18 +361,23 @@ def canonicalize_member_resources(facts):
                 inherited_targets = []
         else:
             access.update(canonical_path=root['qualified_name'], access_scope='WHOLE_OBJECT_ACCESS')
-            inherited_targets = descendants[(original_sid, '')] = [sid for sid in children_by_root[original_sid]
-                if member_by_key[(original_sid, sid.rsplit('::member::', 1)[1])]['resource_kind'] == 'STRUCT_MEMBER']
+            inherited_targets = descendants[(original_sid, '')] = leaves_by_root[original_sid]
         if inherited_targets and access['access_kind'] in {'READ', 'WRITE', 'RMW', 'ADDRESS_TAKEN'}:
             for target_sid in inherited_targets:
-                target = next(v for v in additions if v['symbol_id'] == target_sid)
-                inherited = copy.deepcopy(access)
+                target = member_by_id[target_sid]
+                # The large call-chain/protection payload is immutable after
+                # context recovery. Share it across inherited member facts;
+                # later passes assign per-access top-level fields instead of
+                # mutating those nested witnesses.
+                inherited = dict(access)
                 inherited.update(symbol_id=target_sid, root_symbol_id=original_sid,
                                  root_symbol=root['qualified_name'], field_path=target['field_path'],
                                  canonical_path=target['canonical_path'],
                                  access_scope='INHERITED_WHOLE_OBJECT_ACCESS',
                                  inherited_from_access_id=access.get('access_id'),
                                  inherited_from_canonical_path=access['canonical_path'])
+                inherited['access_id'] = 'A-' + digest([
+                    access['access_id'], target_sid, 'INHERITED_WHOLE_OBJECT_ACCESS'])[:20]
                 generated.append(inherited)
 
     facts['variables'].extend(additions)
@@ -369,9 +392,8 @@ def canonicalize_member_resources(facts):
         root_sid = issue.get('symbol_id')
         if root_sid not in records:
             continue
-        for target_sid in [sid for sid in children_by_root[root_sid]
-                           if next(v for v in additions if v['symbol_id']==sid)['resource_kind']=='STRUCT_MEMBER']:
-            target = next(v for v in additions if v['symbol_id'] == target_sid)
+        for target_sid in leaves_by_root[root_sid]:
+            target = member_by_id[target_sid]
             issue_path = canonical_member_path(issue.get('access_path'))
             from .storage import path_may_cover
             if issue_path and issue_path not in {'static_initializer'} and not path_may_cover(issue_path, target['field_path']):
@@ -380,10 +402,10 @@ def canonicalize_member_resources(facts):
                          canonical_path=target['canonical_path'], inherited_object_uncertainty=True)
             inherited_unknowns.append(clone)
     facts['unknowns'].extend(inherited_unknowns)
-    # Access identity must include target identity after one root fact becomes
-    # several member effects.  Do this only once all generated records exist.
-    for index, access in enumerate(facts['accesses']):
-        access['access_id'] = 'A-' + digest([index, access])[:20]
+    # Original IDs are already stable source-site identities. Re-numbering all
+    # rows here used to leave inherited_from_access_id pointing at an ID that
+    # no longer existed. Derived member effects use the source ID and member
+    # identity above, so unrelated access ordering cannot change their IDs.
     facts['struct_containers'] = [v for v in facts['variables'] if v.get('resource_kind') == 'STRUCT_CONTAINER']
     facts['member_resources_canonicalized'] = True
 
@@ -411,10 +433,11 @@ def conflict_pairs(accesses, relations, contexts):
     and reports their product count, retaining every possible pair while
     keeping facts and HTML proportional to the actual call graph.
     """
+    from .evidence import access_role
     relation_by_contexts = {tuple(sorted(row['contexts'])): row for row in relations}
     instances = {}
     for access in accesses:
-        if access.get('access_kind') not in {'READ', 'WRITE', 'RMW'}:
+        if access_role(access.get('access_kind')) is None:
             continue
         for context_id, route in all_resolved_routes(access):
             key = (access.get('access_id'), context_id)
@@ -434,13 +457,104 @@ def conflict_pairs(accesses, relations, contexts):
     by_context = defaultdict(list)
     for instance in instances.values():
         by_context[instance['context_id']].append(instance)
+    # The ordinary rows are useful for a small variable, but even after call
+    # routes are shared, one row per access pair is quadratic.  A context pair
+    # has one execution relation, so its complete product can be represented
+    # by the two context selectors over the variable's canonical accesses.
+    # The original accesses (including every access ID and full graph evidence)
+    # remain in variable.accesses and can reproduce every row on demand.
+    grouped = {cid: (items,
+                     [item for item in items if access_role(item['access_kind']) == 'WRITE'],
+                     [item for item in items if access_role(item['access_kind']) == 'READ'])
+               for cid, items in by_context.items()}
+    potential_rows = 0
+    context_ids = sorted(grouped)
+    for i, left_cid in enumerate(context_ids):
+        left_all, left_writes, left_reads = grouped[left_cid]
+        for right_cid in context_ids[i:]:
+            right_all, right_writes, right_reads = grouped[right_cid]
+            if left_cid == right_cid:
+                if contexts.get(left_cid, {}).get('reentrant'):
+                    potential_rows += (len(left_writes) * (len(left_writes) + 1) // 2
+                                       + len(left_writes) * len(left_reads))
+            else:
+                potential_rows += (len(left_writes) * len(right_all)
+                                   + len(left_reads) * len(right_writes))
+    if potential_rows > CONFLICT_PAIR_INLINE_LIMIT:
+        for i, left_cid in enumerate(context_ids):
+            left_all, left_writes, left_reads = grouped[left_cid]
+            for right_cid in context_ids[i:]:
+                right_all, right_writes, right_reads = grouped[right_cid]
+                if left_cid == right_cid:
+                    if not contexts.get(left_cid, {}).get('reentrant'):
+                        continue
+                    count = (len(left_writes) * (len(left_writes) + 1) // 2
+                             + len(left_writes) * len(left_reads))
+                    write_paths = sum(row['call_path_count'] for row in left_writes)
+                    read_paths = sum(row['call_path_count'] for row in left_reads)
+                    path_count = (write_paths * read_paths
+                                  + (write_paths * write_paths
+                                     + sum(row['call_path_count'] ** 2 for row in left_writes)) // 2)
+                else:
+                    count = (len(left_writes) * len(right_all)
+                             + len(left_reads) * len(right_writes))
+                    path_count = (sum(row['call_path_count'] for row in left_writes)
+                                  * sum(row['call_path_count'] for row in right_all)
+                                  + sum(row['call_path_count'] for row in left_reads)
+                                  * sum(row['call_path_count'] for row in right_writes))
+                if not count:
+                    continue
+                left = left_writes[0] if left_writes else left_reads[0]
+                right = right_all[0] if left_writes else right_writes[0]
+                left_context = contexts.get(left_cid, {})
+                right_context = contexts.get(right_cid, {})
+                same_physical = (left_context.get('physical_id') is not None
+                                 and left_context.get('physical_id') == right_context.get('physical_id'))
+                reentrant_physical = left_context.get('reentrant') or right_context.get('reentrant')
+                if same_physical and not reentrant_physical:
+                    relation = dict(contexts=sorted({left_cid, right_cid}), relation='SERIAL',
+                                    reason='两个逻辑入口属于同一物理执行上下文；该前台域或 IRQ 向量内部串行执行。',
+                                    physical_id=left_context['physical_id'])
+                elif left_cid == right_cid:
+                    relation = dict(contexts=[left_cid], relation='MAY_REENTER',
+                                    reason='同一执行上下文默认串行；显式可重入上下文另作并发候选。')
+                else:
+                    relation = relation_by_contexts.get(tuple(sorted((left_cid, right_cid))),
+                                                        dict(contexts=[left_cid, right_cid],
+                                                             relation='UNKNOWN_PREEMPTION',
+                                                             reason='未恢复两个执行上下文的关系。'))
+                mhp = ('NO' if relation['relation'] == 'SERIAL' else
+                       'MAYBE' if relation['relation'] == 'UNKNOWN_PREEMPTION' else 'YES')
+                possible = mhp != 'NO'
+                pairs.append(dict(
+                    conflict_id='C-' + digest([left['instance_id'], right['instance_id'],
+                                               left_cid, right_cid, 'CONTEXT_ACCESS_PRODUCT'])[:16],
+                    representation='CONTEXT_ACCESS_PRODUCT',
+                    access_reference='variable.accesses',
+                    pair_generation=('COMBINATIONS_WITH_REPLACEMENT' if left_cid == right_cid
+                                     else 'CROSS_PRODUCT'),
+                    pair_rule='AT_LEAST_ONE_WRITE', pair_count=count,
+                    participant_a_read_access_ids=sorted({row['access_id'] for row in left_reads}),
+                    participant_a_write_access_ids=sorted({row['access_id'] for row in left_writes}),
+                    participant_b_read_access_ids=sorted({row['access_id'] for row in right_reads}),
+                    participant_b_write_access_ids=sorted({row['access_id'] for row in right_writes}),
+                    participant_a=left, participant_b=right, relation=relation,
+                    mhp=mhp, may_concurrent=possible, has_write_conflict=True,
+                    status='需确认' if possible else '忽略（同一串行上下文）',
+                    path_combination_count=path_count,
+                    path_combination_count_kind=('EXACT_PATH_PRODUCT'
+                        if all(row['call_path_count_kind'] == 'EXACT_PATH_COUNT'
+                               for row in left_all + right_all) else 'WITNESS_PRODUCT')))
+        return sorted(pairs, key=lambda pair: (
+            not pair['may_concurrent'], pair['participant_a']['context_id'],
+            pair['participant_b']['context_id'], pair['conflict_id']))
     for left_cid, right_cid in itertools.combinations_with_replacement(sorted(by_context), 2):
         if left_cid == right_cid and not contexts.get(left_cid, {}).get('reentrant'):
             continue
         candidates = (itertools.combinations_with_replacement(by_context[left_cid], 2)
                       if left_cid == right_cid else itertools.product(by_context[left_cid], by_context[right_cid]))
         for left, right in candidates:
-            if left['access_kind'] == right['access_kind'] == 'READ':
+            if access_role(left['access_kind']) == access_role(right['access_kind']) == 'READ':
                 continue
             # The exact same source access on the exact same route is one
             # access instance, not a self-conflict.  The same source point in
@@ -448,7 +562,17 @@ def conflict_pairs(accesses, relations, contexts):
             if (left['access_id'] == right['access_id'] and left['context_id'] == right['context_id']
                     and not contexts.get(left['context_id'], {}).get('reentrant')):
                 continue
-            if left['context_id'] == right['context_id']:
+            left_context = contexts.get(left['context_id'], {})
+            right_context = contexts.get(right['context_id'], {})
+            same_physical = (left_context.get('physical_id') is not None
+                             and left_context.get('physical_id') == right_context.get('physical_id'))
+            reentrant_physical = left_context.get('reentrant') or right_context.get('reentrant')
+            if same_physical and not reentrant_physical:
+                relation = dict(contexts=sorted({left['context_id'], right['context_id']}),
+                                relation='SERIAL',
+                                reason='两个逻辑入口属于同一物理执行上下文；该前台域或 IRQ 向量内部串行执行。',
+                                physical_id=left_context['physical_id'])
+            elif left['context_id'] == right['context_id']:
                 relation = dict(contexts=[left['context_id']],
                                 relation='MAY_REENTER' if contexts.get(left['context_id'], {}).get('reentrant') else 'SERIAL',
                                 reason='同一执行上下文默认串行；显式可重入上下文另作并发候选。')
@@ -457,13 +581,15 @@ def conflict_pairs(accesses, relations, contexts):
                                                     dict(contexts=[left['context_id'], right['context_id']],
                                                          relation='UNKNOWN_PREEMPTION',
                                                          reason='未恢复两个执行上下文的关系。'))
-            possible = relation['relation'] not in {'SERIAL'}
-            has_write = left['access_kind'] in {'WRITE', 'RMW'} or right['access_kind'] in {'WRITE', 'RMW'}
+            mhp = ('NO' if relation['relation'] == 'SERIAL' else
+                   'MAYBE' if relation['relation'] == 'UNKNOWN_PREEMPTION' else 'YES')
+            possible = mhp != 'NO'
+            has_write = access_role(left['access_kind']) == 'WRITE' or access_role(right['access_kind']) == 'WRITE'
             state = ('需确认' if possible and has_write else
                      '无写冲突' if possible else '忽略（同一串行上下文）')
             pairs.append(dict(conflict_id='C-' + digest([left['instance_id'], right['instance_id']])[:16],
                               participant_a=left, participant_b=right, relation=relation,
-                              may_concurrent=possible, has_write_conflict=has_write, status=state,
+                              mhp=mhp, may_concurrent=possible, has_write_conflict=has_write, status=state,
                               path_combination_count=left['call_path_count'] * right['call_path_count'],
                               path_combination_count_kind=('EXACT_PATH_PRODUCT'
                                   if left['call_path_count_kind'] == right['call_path_count_kind'] == 'EXACT_PATH_COUNT'
@@ -471,6 +597,106 @@ def conflict_pairs(accesses, relations, contexts):
     return sorted(pairs, key=lambda pair: (not pair['may_concurrent'], not pair['has_write_conflict'],
                                            pair['participant_a']['context_id'], pair['participant_b']['context_id'],
                                            pair['conflict_id']))
+
+
+def multi_field_coherence(variables, accesses_by_symbol, contexts, calls=(), bindings=()):
+    """Find source-backed cross-field transactions on one storage root.
+
+    Field sensitivity must not erase a protocol in which one executor publishes
+    several fields and another consumes the same set.  Requiring at least two
+    common fields in one writer function and one reader function avoids using
+    names or project-specific allow/deny lists as a substitute for evidence.
+    """
+    from .evidence import access_role
+    callers = defaultdict(set)
+    for call in calls:
+        if call.get('callee_function_id'):
+            callers[call['callee_function_id']].add(call['caller_function_id'])
+    caller_contexts = defaultdict(set)
+    for binding in bindings:
+        caller_contexts[binding['function_id']].add(binding['context_id'])
+    roots = defaultdict(list)
+    for variable in variables:
+        if variable.get('root_symbol_id'):
+            roots[variable['root_symbol_id']].append(variable)
+    result = defaultdict(list)
+    grouped = {}
+    for root_id, members in roots.items():
+        writes, reads = defaultdict(set), defaultdict(set)
+        sites = defaultdict(lambda: defaultdict(list))
+        for member in members:
+            sid = member['symbol_id']
+            for access in accesses_by_symbol.get(sid, []):
+                role = access_role(access.get('access_kind'))
+                if role is None or access.get('reachability') == 'PROVEN_UNREACHABLE':
+                    continue
+                for cid in access.get('contexts', []):
+                    physical = contexts.get(cid, {}).get('physical_id')
+                    if not physical:
+                        continue
+                    key = (physical, access.get('function_id'))
+                    (writes if role == 'WRITE' else reads)[key].add(sid)
+                    sites[key][sid].append(access['access_id'])
+                    if role == 'READ':
+                        # A caller can consume several fields through separate
+                        # one-level accessors. Attribute their actual reads to
+                        # that invocation as a conservative coherence group.
+                        # Context intersection prevents an unrelated caller
+                        # domain from inheriting the read.
+                        for caller in callers.get(access.get('function_id'), ()):
+                            if cid in caller_contexts[caller]:
+                                caller_key = (physical, caller)
+                                reads[caller_key].add(sid)
+                                sites[caller_key][sid].append(access['access_id'])
+        for writer, written in writes.items():
+            if len(written) < 2:
+                continue
+            for reader, observed in reads.items():
+                if writer[0] == reader[0]:
+                    continue
+                common = written & observed
+                if len(common) < 2:
+                    continue
+                # A large cooperative call graph can have thousands of writer
+                # and reader functions for the same physical context/member
+                # set.  The cross product is an audit presentation detail, not
+                # a new coherence fact.  Keep one source-backed group and its
+                # exact pair count, functions, accesses and one concrete pair.
+                key = (root_id, writer[0], reader[0], tuple(sorted(common)))
+                evidence = grouped.get(key)
+                if evidence is None:
+                    evidence = grouped[key] = dict(kind='MULTI_FIELD_COHERENCE',
+                        coherence_id='MC-' + digest(key)[:20],
+                        root_symbol_id=root_id, writer_physical_context=writer[0],
+                        reader_physical_context=reader[0], member_symbol_ids=list(key[3]),
+                        writer_function_ids=set(), reader_function_ids=set(),
+                        writer_access_ids=set(), reader_access_ids=set(),
+                        function_pair_count=0,
+                        witness=dict(writer_function_id=writer[1], reader_function_id=reader[1]),
+                        reason='同一写入函数发布多个成员，另一物理上下文中的同一调用过程直接或经一层访问器读取这些成员。')
+                evidence['function_pair_count'] += 1
+                evidence['writer_function_ids'].add(writer[1])
+                evidence['reader_function_ids'].add(reader[1])
+                candidate = (writer[1], reader[1])
+                previous = (evidence['witness']['writer_function_id'],
+                            evidence['witness']['reader_function_id'])
+                if candidate < previous:
+                    evidence['witness'] = dict(writer_function_id=writer[1],
+                                               reader_function_id=reader[1])
+                evidence['writer_access_ids'].update(
+                    ident for sid in common for ident in sites[writer][sid])
+                evidence['reader_access_ids'].update(
+                    ident for sid in common for ident in sites[reader][sid])
+    for evidence in grouped.values():
+        for name in ('writer_function_ids', 'reader_function_ids',
+                     'writer_access_ids', 'reader_access_ids'):
+            evidence[name] = sorted(evidence[name])
+        for sid in evidence['member_symbol_ids']:
+            result[sid].append(evidence)
+    return {sid: sorted(rows, key=lambda row: (
+                row['root_symbol_id'], row['writer_physical_context'],
+                row['reader_physical_context'], row['member_symbol_ids']))
+            for sid, rows in result.items()}
 
 
 def validate_member_fact_consistency(facts):
@@ -528,6 +754,8 @@ def compact_conflict_pair_storage(records):
 def analyze(facts, cfg, coverage, root=None):
     from pathlib import Path
     project_root = Path(root or coverage.get('project_root', Path.cwd()))
+    from .missing_source import preprocess_failed_units, complete_identifiers
+    preprocess_failed_units(facts)
     # Assembly startup/vector references are possible entries, not C callers.
     # Match whole identifiers conservatively across every branch. Macro/include
     # expansion is not implemented, so those sources retain an explicit gap.
@@ -571,23 +799,31 @@ def analyze(facts, cfg, coverage, root=None):
                         file=file, line=line, source_text=text))
     from .points_to import enrich
     facts['build_closure'] = coverage.get('build_closure', {})
+    from .solver_reachability import prepare as prepare_pointer_solver_reachability
+    prepare_pointer_solver_reachability(facts, cfg, coverage)
     enrich(facts, cfg)
     if any(u['kind'] == 'POINTS_TO_LIMIT' for u in facts['unknowns']):
         raise ValueError('POINTS_TO_LIMIT：别名求解未收敛，扫描失败；不对截断的访问集合生成安全结论。')
     from .vectors import recover_vector_entries, resolve_assembly_references
     recover_vector_entries(facts)
     resolve_assembly_references(facts)
+    from .nonlocal_jumps import recover_nonlocal_jumps
+    recover_nonlocal_jumps(facts)
     # Missing-source lexical references are candidates, never definite READ/
     # WRITE facts. Keep their file/line and bind them only to named variables.
     missing_files = set()
     missing_files.update(u.get('file') for u in facts['unknowns'] if u['kind']=='PARSE_FAILED' and u.get('file'))
     for file in sorted(missing_files):
-        try:
-            text = (project_root / file).read_text(encoding='utf-8', errors='replace')
-        except OSError:
-            continue
-        text = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"', lambda m: '\n' * m[0].count('\n'), text, flags=re.S)
-        names = {name for name in re.findall(r'\b[A-Za-z_]\w*\b', text)}
+        names = complete_identifiers(facts, file)
+        text = ''
+        if names is None:
+            try:
+                text = (project_root / file).read_text(encoding='utf-8', errors='replace')
+            except OSError:
+                continue
+            text = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"',
+                          lambda m: '\n' * m[0].count('\n'), text, flags=re.S)
+            names = set(re.findall(r'\b[A-Za-z_]\w*\b', text))
         for f in facts['functions']:
             if f['name'] in names and (f.get('linkage')=='EXTERNAL' or f['file']==file):
                 facts['unknowns'].append(dict(kind='MISSING_SOURCE_CALLER', target_function_id=f['function_id'],
@@ -597,7 +833,7 @@ def analyze(facts, cfg, coverage, root=None):
             if v['name'] in names and (v.get('linkage')=='EXTERNAL' or file in v.get('translation_units', [])):
                 facts['unknowns'].append(dict(kind='SOURCE_NOT_IN_DATABASE' if file in coverage.get('unlisted_sources', []) else 'PARSE_FAILED',
                     symbol_id=v['symbol_id'], file=file, relation='possible_source_reference',
-                    line=next((i for i,s in enumerate(text.splitlines(),1) if re.search(r'\b'+re.escape(v['name'])+r'\b',s)),1),
+                    line=next((i for i,s in enumerate(text.splitlines(),1) if re.search(r'\b'+re.escape(v['name'])+r'\b',s)),None),
                     hint='未完整分析的源码引用了该变量；补齐编译数据库/解析参数后恢复访问。'))
     # Refine invocation-local pointer state by physical execution domain while
     # storage is still canonical at the root level. Global/static locations
@@ -650,8 +886,50 @@ def analyze(facts, cfg, coverage, root=None):
         raise ValueError('源码在扫描期间发生变化；无法对不一致快照作安全证明，请重新扫描。')
     failed_files = {u.get('file') for u in facts['unknowns'] if u['kind'] == 'PARSE_FAILED'}
     possible = set(paths)
-    possible.update(u['target_function_id'] for u in facts['unknowns'] if u.get('target_function_id'))
-    possible.update(f['function_id'] for f in facts['functions'] if f.get('entry_attributes'))
+    for issue in facts['unknowns'] + facts.get('resolved_pointer_facts', []):
+        target = issue.get('target_function_id')
+        if not target:
+            continue
+        owner = issue.get('function_id')
+        if owner in known:
+            graph[owner].add(target)
+        else:
+            possible.add(target)
+    # libclang reports both constructor and always_inline as UNEXPOSED_ATTR.
+    # Inspect the attribute's spelling when available; older saved extractions
+    # can omit a header-inline root only when final link artifacts prove that
+    # no body was emitted.  Calls and registrations remain independent roots.
+    from .linker_symbols import linked_symbol_names
+    linked_names = linked_symbol_names(coverage.get('build_closure', {}), project_root)
+    non_entry_attributes = {'UNEXPOSED_ATTR', 'ALWAYS_INLINE_ATTR', 'NO_INLINE_ATTR',
+                            'NORETURN_ATTR', 'PURE_ATTR', 'CONST_ATTR', 'HOT_ATTR', 'COLD_ATTR'}
+    from .solver_reachability import BENIGN_ATTRIBUTE_WORDS
+    non_entry_spellings = BENIGN_ATTRIBUTE_WORDS
+    def has_entry_attribute(function):
+        attributes = function.get('entry_attributes', [])
+        spellings = function.get('attribute_spellings')
+        for index, kind in enumerate(attributes):
+            if kind != 'UNEXPOSED_ATTR':
+                if kind not in non_entry_attributes:
+                    return True
+                continue
+            # The final ELF is stronger than libclang's opaque attribute
+            # tokens: a private header helper with no emitted symbol cannot
+            # become an independent entry. Reachable inlined call sites are
+            # still represented by their callers.
+            if (linked_names is not None and function.get('is_static')
+                    and re.search(r'\.(?:h|hh|hpp|hxx)$', function.get('file') or '', re.I)
+                    and function.get('name') not in linked_names):
+                continue
+            if spellings is not None and index < len(spellings):
+                words = set(re.findall(r'[A-Za-z_][A-Za-z_0-9]*', spellings[index]))
+                if words and words <= non_entry_spellings:
+                    continue
+                return True
+            return True
+        return False
+    possible.update(f['function_id'] for f in facts['functions']
+                    if has_entry_attribute(f))
     # Unknown entry sources are local to the functions they can reference.
     # An opaque ordinary call is not an asynchronous caller of every symbol.
     if failed_files:
@@ -664,6 +942,11 @@ def analyze(facts, cfg, coverage, root=None):
             if callee and callee not in possible:
                 possible.add(callee)
                 queue.append(callee)
+    incorrectly_pruned = possible.intersection(
+        facts.get('pointer_solver_pruning', {}).get('pruned_function_ids', ()))
+    if incorrectly_pruned:
+        raise ValueError('Pointer solver reachability disagrees with execution entry proof: '
+                         + ', '.join(sorted(incorrectly_pruned)[:8]))
     unreachable = {f['function_id'] for f in facts['functions'] if f['function_id'] not in possible
                    and contexts and f.get('file') not in failed_files}
     for f in facts['functions']:
@@ -708,20 +991,77 @@ def analyze(facts, cfg, coverage, root=None):
     MaskAnalysis(facts, cfg).run()
     for s in facts["snapshots"]:
         snapshots[s["symbol_id"]].append(s)
-    from .evidence import EvidenceIndex, classify, fanout_diagnostics
+    from .evidence import (CLASSIFIED_STATES, SCREENED_STATES, EvidenceIndex,
+                           access_role, classify, fanout_diagnostics)
     evidence_index = EvidenceIndex(facts, coverage, cfg, unreachable)
     by_symbol = evidence_index.by_symbol
     findings = []
+    # A zero-sized NOTYPE symbol assigned by the linker script is an address
+    # boundary, not a C storage object.  Keep its source/ELF evidence in the
+    # inventory, but never claim a variable SAFE merely because the synthetic
+    # C declaration has no direct runtime load or store.
+    variables_by_id = {row['symbol_id']: row for row in facts['variables']}
+    live_roots = set()
+    for access in facts['accesses']:
+        if access.get('reachability') == 'PROVEN_UNREACHABLE':
+            continue
+        owner = variables_by_id.get(access.get('symbol_id'), {})
+        live_roots.add(owner.get('root_symbol_id') or owner.get('array_root_symbol_id')
+                       or owner.get('symbol_id'))
+    for variable in facts['variables']:
+        root = variables_by_id.get(
+            variable.get('root_symbol_id') or variable.get('array_root_symbol_id'), variable)
+        if (not root.get('definition_file') and root.get('linkage') == 'EXTERNAL'
+                and root.get('name') in evidence_index.linker_definitions):
+            proof = evidence_index.linker_definitions[root['name']]
+            variable.update(resource_kind='LINKER_ADDRESS_ANCHOR',
+                            static_classification='NON_STORAGE',
+                            audit_status='LINKER_ADDRESS_ANCHOR',
+                            analysis_coverage='NOT_APPLICABLE',
+                            coverage='NOT_APPLICABLE',
+                            classification_reason='ELF 与 map 证实为零尺寸链接地址边界，不是独立 C 存储对象。',
+                            linker_anchor_evidence=proof)
+        elif (not root.get('definition_file') and root.get('linkage') == 'EXTERNAL'
+              and linked_names is not None and root.get('name') not in linked_names
+              and root['symbol_id'] not in live_roots):
+            # A header declaration repeated in many parsed TUs is not a
+            # variable in this firmware when no body can reach it and the
+            # final linked ELF has no such symbol. Keep it in the inventory for
+            # audit, outside the storage-classification denominator.
+            variable.update(resource_kind='UNLINKED_DECLARATION',
+                            static_classification='NON_STORAGE',
+                            audit_status='UNLINKED_DECLARATION',
+                            analysis_coverage='NOT_APPLICABLE',
+                            coverage='NOT_APPLICABLE',
+                            classification_reason='最终 ELF 无此符号，且全部源码访问均不可达；声明未形成当前固件存储。',
+                            unlinked_declaration_evidence=dict(symbol=root['name'],
+                                source_files=sorted({row.get('file') for row in root.get('declarations', ())
+                                                     if row.get('file')}),
+                                build_elf=coverage.get('build_closure', {}).get('elf')))
+    coverage['linker_address_anchor_count'] = sum(
+        row.get('resource_kind') == 'LINKER_ADDRESS_ANCHOR' for row in facts['variables'])
+    coverage['unlinked_declaration_count'] = sum(
+        row.get('resource_kind') == 'UNLINKED_DECLARATION' for row in facts['variables'])
     analyzed_variables = [v for v in facts['variables']
-                          if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER'}
+                          if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER',
+                                                             'ARRAY_CONTAINER', 'LINKER_ADDRESS_ANCHOR',
+                                                             'UNLINKED_DECLARATION'}
                           and v.get('coverage_source') not in {'supplemental', 'inactive_branch'}]
+    coherence_by_symbol = multi_field_coherence(analyzed_variables, by_var, contexts,
+                                                facts['calls'], facts['context_bindings'])
+    facts['multi_field_coherence'] = list({id(row): row for rows in
+        coherence_by_symbol.values() for row in rows}.values())
     for v in analyzed_variables:
         sid = v["symbol_id"]
         all_accesses = by_var[sid]
         accesses = [a for a in all_accesses if a.get('reachability') != 'PROVEN_UNREACHABLE']
-        readers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"READ", "RMW"}))
-        writers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses if a["access_kind"] in {"WRITE", "RMW"}))
+        readers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses
+            if access_role(a.get("access_kind")) == 'READ' or a.get('access_kind') == 'RMW'))
+        writers = set(itertools.chain.from_iterable(a["contexts"] for a in accesses
+            if access_role(a.get("access_kind")) == 'WRITE'))
         all_contexts = set(itertools.chain.from_iterable(a["contexts"] for a in accesses))
+        physical_contexts = {contexts[c].get('physical_id') for c in all_contexts if c in contexts}
+        physical_writers = {contexts[c].get('physical_id') for c in writers if c in contexts}
         variable_relations = [relation for relation in relations
                               if set(relation['contexts']) <= all_contexts]
         rules = {"GS-PARSE-INCOMPLETE"} if v.get("parse_status") == "FAILED" else set()
@@ -738,10 +1078,10 @@ def analyze(facts, cfg, coverage, root=None):
         if any(u["kind"] == "DMA_SHARED_REVIEW" for u in uncertain):
             rules.add("DMA_SHARED_REVIEW")
         reentrant = any(contexts[c].get("reentrant", False) for c in all_contexts)
-        shared = len(all_contexts) >= 2 or reentrant
+        shared = len(physical_contexts) >= 2 or reentrant
         if shared and writers:
             rules.add("GS-MULTI-CONTEXT")
-            if len(writers) >= 2 or (reentrant and writers):
+            if len(physical_writers) >= 2 or (reentrant and writers):
                 rules.add("GS-MULTI-WRITER")
             if any(a["access_kind"] == "RMW" for a in accesses):
                 rules.add("GS-RMW-INTERLEAVE")
@@ -756,6 +1096,22 @@ def analyze(facts, cfg, coverage, root=None):
                 rules.add("GS-TEAR-RISK")
             if v["is_struct"] or v["is_bitfield_container"]:
                 rules.add("GS-STRUCT-INCONSISTENT")
+        coherence_evidence = coherence_by_symbol.get(sid, [])
+        coherence_summary = [dict(
+            coherence_id=row['coherence_id'], root_symbol_id=row['root_symbol_id'],
+            writer_physical_context=row['writer_physical_context'],
+            reader_physical_context=row['reader_physical_context'],
+            member_symbol_ids=row['member_symbol_ids'],
+            function_pair_count=row['function_pair_count'],
+            writer_access_count=len(row['writer_access_ids']),
+            reader_access_count=len(row['reader_access_ids']),
+            writer_access_ids=row['writer_access_ids'][:8],
+            reader_access_ids=row['reader_access_ids'][:8],
+            witness=row['witness'],
+            full_evidence_reference='facts.json:multi_field_coherence')
+            for row in coherence_evidence]
+        if coherence_evidence:
+            rules.add('GS-MULTI-FIELD-COHERENCE')
         annotations = [r for r in cfg["resources"] if r.get("symbol_id", r.get("name")) in {sid, v["name"], v["qualified_name"]}]
         if any(r.get("owner_context") and writers - {r["owner_context"]} for r in annotations):
             rules.add("GS-OWNER-VIOLATION")
@@ -768,7 +1124,8 @@ def analyze(facts, cfg, coverage, root=None):
         evidence = evidence_index.build(v, accesses, contexts, protection_details)
         from .initialization import prove_initialization
         init_proof = prove_initialization(v, accesses, facts, contexts, cfg)
-        verdict = classify(evidence, accesses, contexts, member_conflicts, protection, protection_note, init_proof)
+        verdict = classify(evidence, accesses, contexts, member_conflicts, protection, protection_note,
+            init_proof, variable=v, cfg=cfg, snapshots=snapshots[sid], coherence_evidence=coherence_evidence)
         static_classification = verdict['static_classification']
         classification_reason = verdict['classification_reason']
         coverage_reasons = verdict['coverage_reasons']
@@ -776,7 +1133,7 @@ def analyze(facts, cfg, coverage, root=None):
         blockers = verdict['screening_blockers']
         v.update(verdict)
         screened_reason = None
-        if static_classification == 'SAFE':
+        if static_classification == 'SAFE_PROVEN':
             code = verdict['safe_reason_code']
             site_keys = {(a.get('function_id'), a.get('file'), a.get('offset'), a.get('access_path', ''), a['access_kind'])
                          for a in accesses if a['access_kind'] in {'READ', 'WRITE', 'RMW'}}
@@ -786,11 +1143,15 @@ def analyze(facts, cfg, coverage, root=None):
                     'SINGLE_ACCESS_SITE' if len(site_keys)==1 and len(all_contexts)==1 else
                     'SINGLE_EXECUTION_CONTEXT' if len(all_contexts)==1 else code)
             rules.clear()
+        elif static_classification == 'SHARED_NO_REVIEW':
+            screened_reason = verdict['shared_reason_code']
+            rules.clear()
         elif static_classification == 'UNKNOWN':
             rules.add('GS-COVERAGE-INCOMPLETE')
         elif not rules:
             rules.add('GS-MULTI-CONTEXT')
-        audit_status = 'SCREENED_NO_CONCURRENCY_RISK' if screened_reason else 'REVIEW_REQUIRED'
+        audit_status = ('STATIC_SAFE_PROVEN' if static_classification == 'SAFE_PROVEN' else
+                        'SHARED_NO_REVIEW' if static_classification == 'SHARED_NO_REVIEW' else 'REVIEW_REQUIRED')
         v.update(accesses=all_accesses, readers=sorted(readers), writers=sorted(writers), contexts=sorted(all_contexts),
                  protection_status=protection, annotations=annotations, audit_status=audit_status,
                  screening_reason=screened_reason, screening_blockers=sorted(blockers),
@@ -799,10 +1160,12 @@ def analyze(facts, cfg, coverage, root=None):
                   coverage_reasons=sorted(coverage_reasons), static_classification=static_classification,
                   classification_reason=classification_reason, concurrency_relations=variable_relations,
                   conflict_pairs=member_conflicts, access_count=len(all_accesses),
+                  multi_field_coherence=coherence_summary,
                   resolved_call_path_count=sum(1 for access in all_accesses for _ in all_resolved_routes(access)))
         if not rules:
             continue
-        high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT", "GS-OWNER-VIOLATION"}
+        high = {"GS-MULTI-WRITER", "GS-RMW-INTERLEAVE", "GS-LOCAL-STATIC-REENTRANT", "GS-STALE-SNAPSHOT",
+                "GS-OWNER-VIOLATION", 'GS-MULTI-FIELD-COHERENCE'}
         level = "HIGH" if rules & high else "MEDIUM"
         if level == "HIGH" and any(r.get("business_critical") for r in annotations):
             level = "CRITICAL"
@@ -836,13 +1199,15 @@ def analyze(facts, cfg, coverage, root=None):
         members = members_by_root.get(container['symbol_id'], [])
         if container.get('resource_kind') == 'ARRAY_CONTAINER':
             members = [v for v in analyzed_variables if v.get('array_root_symbol_id') == container['symbol_id']]
-            by_var[container['symbol_id']] = list({a['access_id']:a for member in members
-                                                 for a in member.get('accesses', [])}.values())
+            source_accesses = by_var[container['symbol_id']]
+            by_var[container['symbol_id']] = list({a['access_id']:a for a in
+                itertools.chain(source_accesses, *(member.get('accesses', []) for member in members))}.values())
         states = Counter(member.get('static_classification', 'UNKNOWN') for member in members)
         container.update(accesses=by_var[container['symbol_id']],
                          whole_object_accesses=by_var[container['symbol_id']],
-                         member_count=len(members), member_status_counts=dict(
-                             safe=states['SAFE'], suspect=states['SUSPECT'], unknown=states['UNKNOWN']),
+                          member_count=len(members), member_status_counts=dict(
+                              safe_proven=states['SAFE_PROVEN'], shared_no_review=states['SHARED_NO_REVIEW'],
+                              suspect=states['SUSPECT'], unknown=states['UNKNOWN']),
                          audit_status='STRUCT_CONTAINER', screening_reason=None,
                          static_classification='CONTAINER', analysis_coverage='COMPLETE',
                          readers=sorted({c for m in members for c in m.get('readers', [])}),
@@ -868,21 +1233,26 @@ def analyze(facts, cfg, coverage, root=None):
         queued=len(queued), missing=0, duplicate_ids=0)
     for v in analyzed_variables:
         status = v.get('static_classification')
-        if status not in {'SAFE','SUSPECT','UNKNOWN'}:
+        if status not in CLASSIFIED_STATES:
             raise ValueError('变量缺少显式静态分类：' + v['symbol_id'])
-        v['safe_reason'] = v.get('classification_reason') if status == 'SAFE' else None
+        v['safe_reason'] = v.get('classification_reason') if status == 'SAFE_PROVEN' else None
         v['safe_evidence'] = (dict(proof=v.get('safe_reason_code'),
             access_ids=[a['access_id'] for a in v.get('accesses', [])],
             physical_contexts=v.get('variable_evidence_slice', {}).get('physical_contexts', []),
             contexts=v.get('contexts', []), protection_status=v.get('protection_status'),
             coverage=v.get('analysis_coverage'), initialization=v.get('initialization_proof'),
             context_exclusions=[proof for a in v.get('accesses', []) for proof in a.get('context_exclusions', [])],
-            evidence_slice_symbol_id=v['symbol_id']) if status == 'SAFE' else None)
+            evidence_slice_symbol_id=v['symbol_id']) if status == 'SAFE_PROVEN' else None)
         v['unknown_reason'] = v.get('unknown_reason_codes', []) if status == 'UNKNOWN' else []
         v['required_context'] = [dict(kind=g['reason_code'], file=g.get('file'), line=g.get('line'),
             action=g['relevance']) for g in v.get('blocking_evidence', [])] if status == 'UNKNOWN' else []
-        if status == 'SAFE' and (not v['safe_reason'] or not v.get('safe_reason_code') or not v.get('screening_reason')):
-            raise ValueError('SAFE 缺少完整证明：' + v['symbol_id'])
+        if status == 'SAFE_PROVEN' and (not v['safe_reason'] or not v.get('safe_reason_code') or not v.get('screening_reason')):
+            raise ValueError('SAFE_PROVEN 缺少完整证明：' + v['symbol_id'])
+        if status in {'SAFE_PROVEN', 'SHARED_NO_REVIEW'} and v.get('blocking_evidence'):
+            raise ValueError('筛除变量存在相关证据缺口：' + v['symbol_id'])
+        if status == 'SHARED_NO_REVIEW' and (v.get('safe_reason_code') or not v.get('shared_reason_code')
+                                             or not v.get('shared_evidence') or not v.get('screening_reason')):
+            raise ValueError('SHARED_NO_REVIEW 缺少独立的严格门禁证据：' + v['symbol_id'])
     from .storage import add_disjoint_storage_proofs
     add_disjoint_storage_proofs(facts)
     coverage['safe_proof_distribution'] = dict(Counter(code for v in analyzed_variables
@@ -890,16 +1260,85 @@ def analyze(facts, cfg, coverage, root=None):
     coverage['blocker_fanout'] = fanout_diagnostics(analyzed_variables,
         cfg['analysis'].get('max_unknown_fanout_debug', 50))
     coverage['safe_reason_distribution'] = dict(Counter(v['safe_reason_code'] for v in analyzed_variables if v.get('safe_reason_code')))
+    coverage['shared_reason_distribution'] = dict(Counter(
+        v['shared_reason_code'] for v in analyzed_variables if v.get('shared_reason_code')))
     coverage['unknown_reason_distribution'] = dict(Counter(code for v in analyzed_variables for code in v.get('unknown_reason_codes', [])))
     static_counts = Counter(v['static_classification'] for v in analyzed_variables)
-    if set(static_counts) - {'SAFE', 'SUSPECT', 'UNKNOWN'} or sum(static_counts.values()) != len(ids):
-        raise ValueError('变量静态分类归账失败：TOTAL 必须等于 SAFE + SUSPECT + UNKNOWN')
-    coverage['static_classification'] = dict(total=len(ids), safe=static_counts['SAFE'],
-        suspect=static_counts['SUSPECT'], unknown=static_counts['UNKNOWN'])
+    if set(static_counts) - CLASSIFIED_STATES or sum(static_counts.values()) != len(ids):
+        raise ValueError('变量静态分类归账失败：TOTAL 必须等于 SAFE_PROVEN + SHARED_NO_REVIEW + SUSPECT + UNKNOWN')
+    coverage['static_classification'] = dict(total=len(ids), safe_proven=static_counts['SAFE_PROVEN'],
+        shared_no_review=static_counts['SHARED_NO_REVIEW'], suspect=static_counts['SUSPECT'],
+        unknown=static_counts['UNKNOWN'])
     coverage['unknown_percent'] = round(100 * static_counts['UNKNOWN'] / max(1, len(ids)), 2)
     coverage['unknown_root_cause_analysis_required'] = coverage['unknown_percent'] > 10
     coverage['opencode_review_queue'] = len(queued)
     coverage['review_queue_percent'] = round(100 * len(queued) / max(1, len(ids)), 2)
+    variant_inventory = sum(
+        v.get('coverage_source') in {'supplemental', 'inactive_branch'}
+        and v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER'}
+        for v in facts['variables'])
+    coverage['review_rates'] = dict(
+        rr_build=dict(numerator=len(queued), denominator=len(ids),
+                      percent=coverage['review_queue_percent']),
+        rr_all=dict(numerator=len(queued) + variant_inventory,
+                    denominator=len(ids) + variant_inventory,
+                    percent=round(100 * (len(queued) + variant_inventory)
+                                  / max(1, len(ids) + variant_inventory), 2)),
+        variant_inventory=variant_inventory)
+    screened_states = {'SAFE_PROVEN', 'SHARED_NO_REVIEW'}
+    indirect_callers = {call.get('caller_function_id') for call in facts.get('calls', [])
+                        if call.get('call_kind') == 'INDIRECT_RESOLVED'}
+
+    def quality_row(code, description, predicate):
+        matched = [v for v in analyzed_variables
+                   if v.get('static_classification') in screened_states and predicate(v)]
+        return dict(code=code, description=description, variable_count=len(matched),
+                    variables=[dict(symbol_id=v['symbol_id'], name=v.get('qualified_name'),
+                                    classification=v.get('static_classification')) for v in matched])
+
+    eliminations = [
+        quality_row('FOREGROUND_DOMAIN_COLLAPSE', '全部访问归入同一个 cooperative foreground 物理域。',
+                    lambda v: v.get('safe_reason_code') == 'SAFE_SINGLE_FOREGROUND'),
+        quality_row('SAME_IRQ_DOMAIN_COLLAPSE', '全部访问归入同一个 IRQ 向量，逻辑调用路径不形成自并发。',
+                    lambda v: v.get('safe_reason_code') == 'SAFE_SINGLE_IRQ'),
+        quality_row('READ_ONLY_PROOF', '所有运行期访问均为读取，跨上下文也不形成写冲突。',
+                    lambda v: v.get('safe_reason_code') in {'SAFE_READ_ONLY', 'SAFE_MULTI_CONTEXT_READ_ONLY'}),
+        quality_row('INIT_RUNTIME_MHP', '初始化写与运行期访问已证明不同时发生。',
+                    lambda v: v.get('safe_reason_code') == 'SAFE_INIT_ONLY_WRITE'),
+        quality_row('EFFECTIVE_PROTECTION', '每个相关冲突访问窗口均有已证明有效的保护。',
+                    lambda v: v.get('safe_reason_code') == 'SAFE_EFFECTIVE_PROTECTION'),
+        quality_row('PAIRWISE_NON_INTERLEAVING', '物理上下文关系证明相关访问不能交错。',
+                    lambda v: v.get('safe_reason_code') == 'SAFE_NON_INTERLEAVING'),
+        quality_row('SINGLE_WRITER_GATE', '单一物理写者与纯读取观察者通过严格免复核门禁。',
+                    lambda v: v.get('static_classification') == 'SHARED_NO_REVIEW'),
+        quality_row('ALIAS_REFINEMENT', '已解析的 alias 访问保留为变量局部证据且未留下相关缺口。',
+                    lambda v: any(a.get('via_alias') for a in v.get('accesses', []))
+                              and not v.get('blocking_evidence')),
+        quality_row('OBJECT_CONTEXT_REFINEMENT', '对象或调用点敏感分析排除了不可能到达该变量的上下文。',
+                    lambda v: any(a.get('context_exclusions') for a in v.get('accesses', []))),
+        quality_row('INDIRECT_CALL_RESOLUTION', '函数指针目标已静态恢复并继承调用者物理上下文。',
+                    lambda v: bool(set(v.get('variable_evidence_slice', {}).get('function_ids', ()))
+                                   & indirect_callers)),
+        quality_row('SAME_PHYSICAL_CONTEXT_SERIALIZATION',
+                    '不同逻辑入口映射到同一物理执行域，冲突对被证明串行。',
+                    lambda v: any(p.get('relation', {}).get('physical_id') and not p.get('may_concurrent')
+                                  for p in v.get('conflict_pairs', []))),
+    ]
+    suspect_reason_distribution = Counter()
+    for finding in findings:
+        if finding.get('static_classification') == 'SUSPECT':
+            suspect_reason_distribution.update(finding.get('rules', []))
+    coverage['classification_quality'] = dict(
+        total=len(ids), safe_proven=static_counts['SAFE_PROVEN'],
+        shared_no_review=static_counts['SHARED_NO_REVIEW'], suspect=static_counts['SUSPECT'],
+        unknown=static_counts['UNKNOWN'], review_queue=len(queued),
+        review_queue_percent=coverage['review_queue_percent'],
+        review_rates=coverage['review_rates'],
+        eliminations=[row for row in eliminations if row['variable_count']],
+        suspect_reason_distribution=dict(suspect_reason_distribution),
+        unknown_reason_distribution=coverage['unknown_reason_distribution'],
+        blocker_fanout=coverage['blocker_fanout'],
+        note='各排除机制可能作用于同一变量，贡献行彼此重叠，不能相加为变量总数。')
     coverage['struct_containers'] = sum(v.get('resource_kind') == 'STRUCT_CONTAINER' for v in facts['variables'])
     coverage["unknown_accesses"] = unknown_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]

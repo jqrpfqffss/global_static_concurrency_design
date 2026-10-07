@@ -86,7 +86,7 @@ class EntryAndSafetyTests(unittest.TestCase):
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, report = self.extract(cfg)
         written = next(v for v in facts['variables'] if v['name']=='written')
-        self.assertNotEqual(written['audit_status'], 'SCREENED_NO_CONCURRENCY_RISK')
+        self.assertEqual(written['audit_status'], 'REVIEW_REQUIRED')
         self.assertTrue(any('GS-MULTI-WRITER' in f['rules'] for f in report['findings']))
 
     def test_grouped_registration_keeps_reentrancy_and_multiple_matching_contexts(self):
@@ -111,7 +111,7 @@ class EntryAndSafetyTests(unittest.TestCase):
         facts, _ = self.extract(cfg)
         self.assertTrue({'UNRESOLVED_REGISTERED_ENTRY','UNMATCHED_ENTRY_REGISTRATION'} <= {u['kind'] for u in facts['unknowns']})
         count = next(v for v in facts['variables'] if v['name']=='count')
-        self.assertEqual(count['static_classification'], 'SAFE')
+        self.assertEqual(count['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(count['safe_reason_code'], 'SAFE_SINGLE_FOREGROUND')
         self.assertEqual(count['screening_blockers'], [])
 
@@ -131,7 +131,7 @@ class EntryAndSafetyTests(unittest.TestCase):
         facts, _ = self.extract(cfg)
         shared = next(v for v in facts['variables'] if v['name']=='shared')
         self.assertNotIn('SOURCE_NOT_IN_DATABASE', shared['screening_blockers'])
-        self.assertEqual(shared['static_classification'], 'SAFE')
+        self.assertEqual(shared['static_classification'], 'SAFE_PROVEN')
         self.assertEqual(shared['safe_reason_code'], 'SAFE_READ_ONLY')
         self.assertEqual(shared['writers'], [])
 
@@ -140,7 +140,7 @@ class EntryAndSafetyTests(unittest.TestCase):
                            contexts=[dict(id='serial_irq',kind='ISR',functions=['A','B'])])
         facts, _ = self.extract(cfg)
         self.assertFalse(facts['contexts'][0]['reentrant'])
-        self.assertEqual(facts['variables'][0]['audit_status'], 'SCREENED_NO_CONCURRENCY_RISK')
+        self.assertEqual(facts['variables'][0]['audit_status'], 'STATIC_SAFE_PROVEN')
 
 
 class ProjectPortabilityTests(unittest.TestCase):
@@ -215,7 +215,7 @@ class ProjectPortabilityTests(unittest.TestCase):
                 out=root/'.ecra'
                 facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
                 variables={v['name']:v for v in facts['variables']}
-                self.assertEqual(variables['read_only']['audit_status'],'SCREENED_NO_CONCURRENCY_RISK')
+                self.assertEqual(variables['read_only']['audit_status'],'STATIC_SAFE_PROVEN')
                 self.assertEqual(len(variables['count']['writers']),2)
                 html=(out/'index.html').read_text(encoding='utf-8')
                 self.assertIn('href="#inventory" data-decision-filter="screened_safe"',html)
@@ -261,7 +261,7 @@ class ProjectPortabilityTests(unittest.TestCase):
         self.assertIn('多个编译数据库',self.stdout.getvalue())
 
     def test_existing_findings_override_screened_label(self):
-        facts=dict(variables=[dict(symbol_id='x',audit_status='SCREENED_NO_CONCURRENCY_RISK')])
+        facts=dict(variables=[dict(symbol_id='x',audit_status='STATIC_SAFE_PROVEN')])
         report=dict(findings=[dict(symbol_id='x',finding_id='GS-x',rules=['GS-MULTI-WRITER'])])
         self.assertEqual(variable_decisions(facts,report,{}),{'x':'likely'})
 
