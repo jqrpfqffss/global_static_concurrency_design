@@ -10,6 +10,7 @@ from .common import digest, execute, read_json, write_json
 from .review import (collect_evidence, parse_answer, resolve_command, verify_receipt,
                      validate_investigation, INVESTIGATION_PROMPT)
 from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION
+from .review_risk import validate_risk_result
 
 
 AUDIT_PROMPT = '''对刚才的结论做反证复核。先前答案仅是待证假设，不是事实或验收真值。
@@ -22,6 +23,7 @@ AUDIT_PROMPT = '''对刚才的结论做反证复核。先前答案仅是待证�
 5. 修复建议必须覆盖忙状态和所有写点。例如不能仅把 memset 移到 DMA 启动之前，却在上一次 DMA 仍忙时再次 memset。若没有板上实验，不得写成已验证实测或“必然在某个时刻发生”。
 6. 不能由合法源码行号推导整段推理必然正确。每项 claim 必须说明该行具体支持什么；若还需要另一行才能证明 IRQ 使能，应引用使能行，不能把 SetPriority 说成 EnableIRQ。
 请自行读取被遗漏函数及调用者，明确修正或维持本项结论。当前证据足够时给 CONFIRMED / REVIEWED_SAFE / FALSE_POSITIVE；无法证明具体风险或安全时给 NEED_MORE_CONTEXT，写出具体缺失条件。不要为了二选一强行下结论。
+首轮的静态规则和风险标签都只是待推翻的假设。风险答案须通过证据包里的可成立冲突对与源码引用校验；若静态事实错漏，按首轮相同的 risk_override 字段提供两个实际访问、调度、保护及错误结果的源码证据。不要因原答案是 CONFIRMED/LIKELY 就维持风险。
 最终只输出一个与首轮相同字段的 JSON 对象，finding_id 必须保持不变。evidence 每项必须含 file、line、该行连续原文 quote、claim；quote 将逐字验证。reason 首句回答有问题、无问题或证据不足，并说明反证核对后是否修正首轮判断。
 必须包含非空字符串字段 reason、interleaving、protection、impact、fix、verification，以及 evidence 列表和合法 status。finding_id 必须逐字复制本条消息末尾 ID，不得根据上轮回答或记忆改写。
 '''
@@ -46,7 +48,8 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
             prompt += '\n本项 review_type 必须为 ' + expected_type
         if challenges and fid in challenges:
             prompt += '\n额外待核实问题（这是复核问题，不是事实或指定答案）：\n' + challenges[fid]
-        policy_digest = digest([prompt, Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8')])
+        policy_digest = digest([prompt, Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8'),
+                                Path(__file__).with_name('review_risk.py').read_text(encoding='utf-8')])
         if original['state'] == 'DONE':
             verify_receipt(root, folder, original)
         audit_key = digest([original.get('execution',{}).get('stdout_sha256'), original.get('cache_key'), policy_digest,
@@ -93,24 +96,37 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
             OPENCODE_CONFIG_CONTENT=json.dumps(dict(permission=permissions, share='disabled',
                 agent={'ecra-review':dict(description='Read-only concurrency evidence reviewer',mode='primary',permission=permissions)})))
         progress('OpenCode 反证复核：' + fid)
-        result = dict(original, state='FAILED', status='NEED_MORE_CONTEXT', audit_key=audit_key)
+        result = dict(original, state='FAILED', status=None, audit_key=audit_key)
         result.pop('answer', None)
         result.pop('cached', None)
-        result['previous_reviews'] = original.get('previous_reviews',[]) + [dict(answer=original.get('answer',dict(status='FAILED',reason=original.get('error'))),
-            execution=original.get('execution',dict(stdout_file=first_log or '')), state=original['state'])]
+        result['previous_reviews'] = original.get('previous_reviews',[]) + [dict(original)]
+        result['attempts'] = list(original.get('attempts', []))
         for attempt in range(int(settings.get('retries',1))+1):
             stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
             name = f'{fid}.audit-{stamp}-{attempt}'
             started = datetime.now(timezone.utc).isoformat()
+            record = dict(number=attempt, stage='audit', started=started, prompt_file=name+'.prompt.txt',
+                          packet_file=packet.name, stdout_file=name+'.jsonl', stderr_file=name+'.stderr.txt',
+                          model=settings.get('model','OpenCode configured default'))
+            result['attempts'].append(record)
+            result['execution'] = dict(started=started, attempt=attempt, model=record['model'],
+                prompt_file=record['prompt_file'], packet_file=packet.name,
+                stdout_file=record['stdout_file'], stderr_file=record['stderr_file'])
+            write_json(cache,result)
             try:
                 (folder/(name+'.prompt.txt')).write_text(prompt,encoding='utf-8')
+                (folder/(name+'.jsonl')).write_text('',encoding='utf-8')
+                (folder/(name+'.stderr.txt')).write_text('',encoding='utf-8')
                 proc = execute(argv+['--',prompt],cwd=root,env=env,timeout=settings.get('timeout_seconds',300))
                 (folder/(name+'.jsonl')).write_text(proc.stdout,encoding='utf-8')
                 (folder/(name+'.stderr.txt')).write_text(proc.stderr,encoding='utf-8')
                 if proc.returncode:
+                    record['returncode'] = proc.returncode
                     raise ValueError(f'OpenCode audit exit={proc.returncode}: {proc.stderr[-500:]}')
                 answer = parse_answer(proc.stdout,fid,root,require_quotes=True,require_schema=True,expected_type=expected_type)
                 validate_investigation(answer, requirements)
+                if packet.is_file():
+                    validate_risk_result(answer, read_json(packet))
                 result.update(state='DONE',status=answer['status'],answer=answer,
                     source_evidence=collect_evidence(root,answer), audit_prompt_digest=policy_digest,
                     execution=dict(started=started,finished=datetime.now(timezone.utc).isoformat(),
@@ -121,16 +137,32 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
                         stdout_file=name+'.jsonl',stderr_file=name+'.stderr.txt',
                         prompt_file=name+'.prompt.txt',prompt_sha256=hashlib.sha256((folder/(name+'.prompt.txt')).read_bytes()).hexdigest(),
                         stdout_sha256=hashlib.sha256((folder/(name+'.jsonl')).read_bytes()).hexdigest(),
+                        stderr_sha256=hashlib.sha256((folder/(name+'.stderr.txt')).read_bytes()).hexdigest(),
                         evidence_validation='OpenCode 反证复核；原文与日志一致性校验，不等于硬件实测'))
                 result.pop('error',None)
+                record.update(state='DONE', finished=result['execution']['finished'], returncode=0,
+                              stdout_sha256=result['execution']['stdout_sha256'])
                 break
             except Exception as exc:
                 for stream,suffix in (('stdout','.jsonl'),('stderr','.stderr.txt')):
                     data=getattr(exc,stream,None)
                     if data:
                         (folder/(name+suffix)).write_text(data.decode('utf-8','replace') if isinstance(data,bytes) else data,encoding='utf-8')
-                result['error']=f'反证复核未通过：{type(exc).__name__}: {str(exc)[:1000]}'
-                prompt += '\n上次返回未通过校验，请纠正：' + result['error']
+                result.update(error=f'反证复核未通过：{type(exc).__name__}: {str(exc)[:1000]}',
+                              error_type=type(exc).__name__, failure_stage='audit')
+                record.update(state='FAILED', finished=datetime.now(timezone.utc).isoformat(),
+                              error_type=type(exc).__name__, error_message=str(exc),
+                              timeout=isinstance(exc, TimeoutError) or type(exc).__name__ == 'TimeoutExpired')
+                result['execution'].update(finished=record['finished'],
+                    returncode=record.get('returncode'), timeout=record['timeout'])
+                for stream in ('stdout', 'stderr'):
+                    log = folder/record[stream+'_file']
+                    if log.is_file():
+                        record[stream+'_sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
+                write_json(cache,result)
+                prompt += ('\n上次返回未通过校验，请纠正：' + result['error']
+                           + '\n重新核对所有反证；候选不成立应给 REVIEWED_SAFE/FALSE_POSITIVE，'
+                             '证据不足给 NEED_MORE_CONTEXT。不得为维持风险结论编造 risk_override。')
         write_json(cache,result)
         return result
 
@@ -139,10 +171,13 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
         try:
             return process(original)
         except Exception as exc:
-            result = dict(original, state='FAILED', status='NEED_MORE_CONTEXT',
-                          error=f'反证复核准备失败：{type(exc).__name__}: {str(exc)[:1000]}')
+            result = dict(original, state='FAILED', status=None,
+                          error=f'反证复核准备失败：{type(exc).__name__}: {str(exc)[:1000]}',
+                          error_type=type(exc).__name__, failure_stage='audit_prepare',
+                          previous_reviews=original.get('previous_reviews', [])+[dict(original)])
             result.pop('answer', None)
             result.pop('cached', None)
+            write_json(audit_folder/(original['finding_id']+'.result.json'),result)
             return result
     batch_size = settings.get('max_items', 0) or len(reviews) or 1
     batch_count = (len(reviews) + batch_size - 1) // batch_size

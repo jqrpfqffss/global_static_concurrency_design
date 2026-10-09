@@ -113,6 +113,7 @@ review:
   # model: provider/model  # 使用你已配置并登录的 OpenCode 模型
   timeout_seconds: 300
   retries: 1
+  audit_verdicts: true  # 对首轮结论再做一次反证复核
   # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
   max_items: 0
 """
@@ -158,6 +159,7 @@ review:
   # model: provider/model
   timeout_seconds: 300
   retries: 1
+  audit_verdicts: true  # 对首轮结论再做一次反证复核
   # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
   max_items: 0
 """

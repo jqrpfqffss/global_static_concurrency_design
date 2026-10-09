@@ -35,18 +35,21 @@ def analysis_config(cfg):
 
 def clean_report(report):
     result = copy.deepcopy(report)
-    for key in ('run_status', 'review_summary', 'matrix_review_summary', 'risk_summary', 'final_conclusion'):
+    for key in ('run_status', 'stale_reason', 'review_summary', 'review_integrity', 'review_records', 'matrix_review_summary', 'risk_summary', 'final_conclusion'):
         result.pop(key, None)
     for f in result['findings']:
         f.pop('review', None)
         f.pop('review_state', None)
+        f.pop('review_result', None)
         f['status'] = 'NEED_OPENCODE_REVIEW'
     return result
 
 
 def save_scan(root, out, cfg, config_file, report):
-    write_json(out/'review/queue.json', [dict(finding_id=f['finding_id'],state='PENDING',status='NEED_MORE_CONTEXT')
-                                      for f in report['findings']])
+    from .review_integrity import review_targets, assert_review_integrity
+    queue = [dict(finding_id=f['finding_id'],state='PENDING') for f in review_targets(report)]
+    assert_review_integrity(report, queue)
+    write_json(out/'review/queue.json', queue)
     write_json(out/'scan_state.json', dict(schema=1, project_root=str(root),
         config_file=relative(config_file, root), config_digest=digest(analysis_config(cfg)),
         engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),
@@ -108,8 +111,8 @@ def checked_reviews(root, out, reviews, fingerprint):
                 if answer['status']!=r.get('status'):
                     raise ValueError('复核状态与答案不一致')
             except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
-                r.update(state='STALE',status='NEED_MORE_CONTEXT',error=str(exc))
-                r.pop('answer',None)
+                from .review_integrity import mark_review_stale
+                mark_review_stale(out/'review', r, exc)
         verified.append(r)
     return verified
 
@@ -136,9 +139,12 @@ def status(root, config_path=None):
         report = read_json(out/'reports/global_static_concurrency.json')
         queue = read_queue(out)
         records = review_records(report, queue)
+        from .review_integrity import review_integrity
+        integrity = review_integrity(report, queue)
         info.update(state=report.get('run_status', 'SCANNED'), analysis_status=report['analysis_status'],
                     variables=report['coverage'].get('variables_total'), findings=len(records),
                     unresolved=sum(category(r)=='unresolved' for r in records),
+                    review_integrity=integrity,
                     inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))
         if info['scan_lock']:
             info.update(resumable=False, next_action='存在运行锁：等待扫描/复核结束；若进程已退出，确认后移除过期 scan.lock。当前数量来自已保存的结果。')
@@ -167,7 +173,31 @@ def saved_run(root, config_path=None, render_only=False):
     os.write(fd, str(os.getpid()).encode())
     os.close(fd)
     try:
-        facts, report, state = checked_scan(root, out, cfg, config_file)
+        try:
+            facts, report, state = checked_scan(root, out, cfg, config_file)
+        except ValueError as exc:
+            if '源码/头文件/编译数据库已变化' not in str(exc):
+                raise
+            # The old scan cannot be reviewed against changed source. Keep every
+            # ID visible as STALE until a fresh run creates a new fingerprint.
+            facts = read_json(out/'facts.json')
+            report = clean_report(read_json(out/'reports/global_static_concurrency.json'))
+            from .review_integrity import review_targets, mark_review_stale
+            saved = {r['finding_id']:r for r in read_queue(out)}
+            reviews = [saved.get(f['finding_id'], dict(finding_id=f['finding_id'], state='PENDING'))
+                       for f in review_targets(report)]
+            for row in reviews:
+                mark_review_stale(out/'review', row, exc)
+                row['error_type'] = 'SourceChanged'
+                row['failure_stage'] = 'source_validation'
+                write_json(out/'review'/(row['finding_id']+'.result.json'), row)
+            report['run_status'] = 'INCOMPLETE'
+            report['stale_reason'] = str(exc)
+            generate(out, facts, report, reviews)
+            write_json(out/'review/queue.json', reviews)
+            write_json(out/'resume.json', dict(command='run', state='INCOMPLETE', exit_code=2,
+                review_integrity=report['review_integrity'], finished=datetime.now(timezone.utc).isoformat()))
+            return 2
         queue_file = out/'review/queue.json'
         reviews = read_queue(out)
         reviews = checked_reviews(root, out, reviews, state['fingerprint'])
@@ -193,23 +223,29 @@ def saved_run(root, config_path=None, render_only=False):
         try:
             checked_scan(root, out, cfg, config_file)
         except (OSError, ValueError, KeyError):
+            from .review_integrity import mark_review_stale
             for r in reviews:
-                r['state']='STALE'
+                mark_review_stale(out/'review', r, '恢复期间输入发生变化；请重新扫描。')
             report['analysis_status']='INCOMPLETE'
             report['limitations'].append('恢复期间输入发生变化；请重新扫描。')
         records = review_records(report, reviews)
-        report['run_status'] = 'INCOMPLETE' if report['analysis_status']=='INCOMPLETE' or any(category(r) in {'unresolved', 'likely'} for r in records) else 'REVIEW_COMPLETE'
+        from .review_integrity import review_integrity
+        integrity = review_integrity(report, reviews, require_terminal=True)
+        report['run_status'] = 'INCOMPLETE' if (report['analysis_status']=='INCOMPLETE' or
+            not integrity['complete'] or any(category(r) in {'unresolved', 'likely'} for r in records)) else 'REVIEW_COMPLETE'
         mapping={r['finding_id']:r for r in records}
         for f in report['findings']:
             r=mapping[f['finding_id']]
             f['review_state']=r['state']
+            f['review_result']=r
             if r['state']=='DONE':
                 f['status']=r['status']; f['review']=r['answer']
         generate(out, facts, report, reviews)
         write_json(queue_file, reviews)
         code=2 if report['run_status']=='INCOMPLETE' else (1 if report['findings'] else 0)
         write_json(out/'resume.json', dict(command='report' if render_only else 'review', state=report['run_status'],
-                                         finished=datetime.now(timezone.utc).isoformat(), exit_code=code))
+                                         finished=datetime.now(timezone.utc).isoformat(), exit_code=code,
+                                         review_integrity=integrity))
         print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)
         return code
     finally:

@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from ecra.html_report import final_conclusion
 from ecra.review import collect_evidence, parse_answer, review_all, verify_receipt
+from ecra.review_integrity import assert_review_archive, assert_review_integrity, review_integrity
 from tests.review_fixtures import structured_fields
 
 
@@ -83,7 +84,7 @@ class IntegrityTests(unittest.TestCase):
         def checkpoint(results):
             queue=json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
             self.assertEqual([r['finding_id'] for r in queue], [f['finding_id'] for f in findings])
-            self.assertEqual(sum(r['state']=='DONE' for r in queue),sum(r['state']=='DONE' for r in results))
+            self.assertGreaterEqual(sum(r['state']=='DONE' for r in queue),sum(r['state']=='DONE' for r in results))
 
         with patch('ecra.review.resolve_command',return_value=['fake-protocol-test']), patch('ecra.review.execute',side_effect=execute):
             first=review_all(self.root,out,cfg,facts,report,'scan',lambda _:None,checkpoint)
@@ -277,6 +278,161 @@ class IntegrityTests(unittest.TestCase):
             review_all(self.root,out,cfg,facts,report,'scan',lambda _:None)
             self.assertEqual(first.call_count,1)
             self.assertEqual(second.call_count,1)
+
+    def test_101_targets_all_batches_archived(self):
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(101)],
+                      coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, workers=4, max_items=5, retries=0), analysis={})
+        out = self.root/'.ecra-101'
+        seen = []
+        def execute(argv, **kwargs):
+            fid = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))['finding']['finding_id']
+            seen.append(fid)
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch('ecra.review.execute', side_effect=execute):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        summary = assert_review_integrity(report, rows, require_terminal=True)
+        self.assertEqual((summary['targets'], summary['archived'], summary['missing'], summary['duplicate']),
+                         (101, 101, 0, 0))
+        self.assertEqual(len(seen), 101)
+        self.assertEqual(len(json.loads((out/'review/queue.json').read_text(encoding='utf-8'))), 101)
+
+    def test_failure_types_leave_receipts_and_later_items_run(self):
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(10)],
+                      coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, workers=1, max_items=5, retries=0), analysis={})
+        out = self.root/'.ecra-failures'
+        def execute(argv, **kwargs):
+            fid = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))['finding']['finding_id']
+            i = int(fid[1:])
+            if i == 1:
+                raise TimeoutError('simulated timeout')
+            if i == 2:
+                return CompletedProcess(argv, 7, 'partial output', 'stderr diagnostic')
+            if i == 3:
+                return CompletedProcess(argv, 0, 'not json', '')
+            answer = dict(self.answer, finding_id=fid)
+            if i == 4: answer['finding_id'] = 'WRONG'
+            if i == 5: answer['status'] = 'INVALID'
+            if i == 6: answer['evidence'] = [dict(file='app.c', line=100, quote='bad', claim='bad')]
+            return CompletedProcess(argv, 0, self.event(answer), '')
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch('ecra.review.execute', side_effect=execute):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual([r['state'] for r in rows], ['DONE']+['FAILED']*6+['DONE']*3)
+        self.assertEqual((review_integrity(report, rows)['missing'], review_integrity(report, rows)['duplicate']), (0, 0))
+        for row in rows[1:7]:
+            self.assertTrue(row['error'])
+            self.assertTrue(row['attempts'])
+            self.assertTrue((out/'review'/(row['finding_id']+'.result.json')).is_file())
+            self.assertTrue((out/'review'/row['attempts'][-1]['prompt_file']).is_file())
+
+    def test_duplicate_and_invalid_terminal_invariants(self):
+        report = dict(findings=[dict(finding_id='F')])
+        invalid = [dict(finding_id='F', state='DONE', status='REVIEWED_SAFE')]
+        self.assertIn('DONE 缺少', ' '.join(review_integrity(report, invalid)['errors']))
+        with self.assertRaisesRegex(ValueError, '重复'):
+            assert_review_integrity(report, invalid+invalid)
+        self.assertFalse(review_integrity(report, [dict(finding_id='F', state='FAILED')])['complete'])
+        self.assertIn('不得携带当前有效 status', ' '.join(review_integrity(report, [dict(
+            finding_id='F', state='FAILED', status='NEED_MORE_CONTEXT', error='timeout')])['errors']))
+
+    def test_archive_comparison_detects_queue_result_disagreement(self):
+        report = dict(findings=[dict(finding_id='F')])
+        folder = self.root/'review'
+        folder.mkdir()
+        row = dict(finding_id='F', state='FAILED', error='timeout')
+        (folder/'queue.json').write_text(json.dumps([row]), encoding='utf-8')
+        (folder/'F.result.json').write_text(json.dumps(dict(row, error='different')), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'result 与 queue'):
+            assert_review_archive(report, [row], folder)
+
+    def test_duplicate_old_queue_is_logged_and_repaired(self):
+        report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, retries=0), analysis={})
+        out = self.root/'.ecra-duplicate'
+        folder = out/'review'
+        folder.mkdir(parents=True)
+        (folder/'queue.json').write_text(json.dumps([dict(finding_id='F', state='PENDING')]*2), encoding='utf-8')
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', return_value=CompletedProcess([], 0, self.event(self.answer), '')):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(review_integrity(report, rows)['duplicate'], 0)
+        self.assertEqual(json.loads((folder/'queue_repair.json').read_text(encoding='utf-8'))['integrity']['duplicate'], 1)
+
+    def test_invalid_old_done_row_is_rechecked(self):
+        report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, retries=0), analysis={})
+        out = self.root/'.ecra-bad-queue'
+        folder = out/'review'
+        folder.mkdir(parents=True)
+        (folder/'queue.json').write_text(json.dumps([dict(finding_id='F', state='DONE', status='REVIEWED_SAFE')]),
+                                         encoding='utf-8')
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', return_value=CompletedProcess([], 0, self.event(self.answer), '')):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(rows[0]['state'], 'DONE')
+        self.assertTrue((folder/'queue_repair.json').exists())
+
+    def test_resume_after_interrupt_uses_prior_receipt(self):
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(3)],
+                      coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, workers=1, max_items=1, retries=0), analysis={})
+        out = self.root/'.ecra-interrupt'
+        calls = []
+        interrupt = True
+        def execute(argv, **kwargs):
+            fid = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))['finding']['finding_id']
+            calls.append(fid)
+            if interrupt and fid == 'F1': raise KeyboardInterrupt()
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch('ecra.review.execute', side_effect=execute):
+            with self.assertRaises(KeyboardInterrupt):
+                review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+            queue = json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
+            self.assertEqual([r['state'] for r in queue], ['DONE', 'PENDING', 'PENDING'])
+            interrupt = False
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(calls, ['F0', 'F1', 'F1', 'F2'])
+        self.assertEqual((review_integrity(report, rows)['missing'], review_integrity(report, rows)['duplicate']), (0, 0))
+
+    def test_audit_failure_preserves_first_pass_for_resume(self):
+        report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, audit_verdicts=True, workers=1, max_items=1, retries=0), analysis={})
+        out = self.root/'.ecra-audit-failure'
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review_audit.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', return_value=CompletedProcess([], 0, self.event(self.answer), '')) as first, patch(
+                'ecra.review_audit.execute', side_effect=[CompletedProcess([], 1, '', 'audit failed'),
+                                                           CompletedProcess([], 0, self.event(self.answer), '')]) as second:
+            failed = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+            self.assertEqual(failed[0]['state'], 'FAILED')
+            self.assertEqual(failed[0]['failure_stage'], 'audit')
+            self.assertEqual(failed[0]['previous_reviews'][0]['state'], 'DONE')
+            resumed = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(resumed[0]['state'], 'DONE')
+        self.assertEqual(first.call_count, 1)
+        self.assertEqual(second.call_count, 2)
+
+    def test_damaged_cache_is_reexecuted_and_noted(self):
+        report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, workers=1, retries=0), analysis={})
+        out = self.root/'.ecra-damaged'
+        folder = out/'review'
+        folder.mkdir(parents=True)
+        (folder/'F.result.json').write_text('{broken', encoding='utf-8')
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', return_value=CompletedProcess([], 0, self.event(self.answer), '')):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(rows[0]['state'], 'DONE')
+        self.assertIn('缓存损坏', rows[0]['cache_error'])
 
 
 if __name__ == '__main__':

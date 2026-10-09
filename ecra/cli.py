@@ -296,10 +296,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if end_hashes != after:
             report["analysis_status"] = "INCOMPLETE"
             report["limitations"].append("复核期间源码或输入发生变化；本轮证据需重新生成。")
+            from .review_integrity import mark_review_stale
             for r in reviews:
-                r["state"] = "STALE"
-        pending = sum(r["state"] != "DONE" or r["status"] in {"NEED_MORE_CONTEXT", "LIKELY"} for r in reviews)
-        report["review_summary"] = dict(total=len(reviews), unresolved=pending)
+                mark_review_stale(out/'review', r, '复核期间源码或输入发生变化；本轮证据需重新生成。')
+            write_json(out/'review/queue.json', reviews)
+        from .review_integrity import review_integrity
+        integrity = review_integrity(report, reviews, require_terminal=True)
+        pending = sum(r["state"] != "DONE" or r.get("status") in {"NEED_MORE_CONTEXT", "LIKELY"} for r in reviews)
+        report["review_summary"] = dict(total=len(reviews), unresolved=pending, **integrity)
         review_by_id = {r["finding_id"]: r for r in reviews}
         for finding in report["findings"]:
             r = review_by_id.get(finding["finding_id"], {})
@@ -307,7 +311,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             if r.get("state") == "DONE":
                 finding["status"] = r["status"]
                 finding["review"] = r["answer"]
-        report["run_status"] = "INCOMPLETE" if report["analysis_status"] == "INCOMPLETE" or pending else "REVIEW_COMPLETE"
+        report["run_status"] = "INCOMPLETE" if report["analysis_status"] == "INCOMPLETE" or pending or not integrity['complete'] else "REVIEW_COMPLETE"
         generate(out, facts, report, reviews)
         code = 2 if report["run_status"] == "INCOMPLETE" else (1 if report["findings"] else 0)
         run_info.update(state=report["run_status"], exit_code=code, fingerprint=fingerprint,

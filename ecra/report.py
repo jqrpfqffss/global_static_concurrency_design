@@ -42,9 +42,13 @@ def generate(out, facts, report, reviews):
     from .html_report import category, review_records, write_html, risk_summary, final_conclusion
     from .scope import validate_selection
     from .analysis import compact_conflict_pair_storage
+    from .review_integrity import review_integrity
+    from .review_integrity import review_targets
     compact_conflict_pair_storage(facts.get('variables', []))
     compact_conflict_pair_storage(report.get('findings', []))
     validate_selection(facts, report)
+    report['review_integrity'] = review_integrity(report, reviews)
+    report['review_records'] = review_records(dict(findings=review_targets(report)), reviews)
     records = review_records(report, reviews)
     records_by_id = {r['finding_id']: r for r in records}
     sample_records = review_records(dict(findings=report.get('review_safe_samples', [])), reviews)
@@ -62,6 +66,7 @@ def generate(out, facts, report, reviews):
     for finding in report['findings']:
         record = records_by_id[finding['finding_id']]
         finding['review_state'] = record['state']
+        finding['review_result'] = record
         finding['status'] = record['status'] if record['state'] == 'DONE' else 'NEED_OPENCODE_REVIEW'
         if record['state'] == 'DONE' and record.get('answer'):
             finding['review'] = record['answer']
@@ -72,6 +77,8 @@ def generate(out, facts, report, reviews):
     report['review_summary'] = dict(total=len(records), unresolved=counts['unresolved'],
                                    confirmed=counts['confirmed'], likely=counts['likely'],
                                    reviewed_safe_or_false_positive=counts['safe'])
+    report['review_summary'].update({k: report['review_integrity'][k] for k in
+        ('targets', 'archived', 'done', 'failed', 'pending', 'stale', 'missing', 'duplicate')})
     by_symbol = defaultdict(list)
     for f in report['findings']:
         if f.get('symbol_id'):
@@ -84,7 +91,7 @@ def generate(out, facts, report, reviews):
         queued=len(by_symbol), terminal=terminal, remaining=len(by_symbol)-terminal)
     report['risk_summary'] = risk_summary(facts, report, records_by_id)
     report['final_conclusion'] = final_conclusion(report, records)
-    if (counts['unresolved'] or counts['likely']) and report.get('run_status') == 'REVIEW_COMPLETE':
+    if (counts['unresolved'] or counts['likely'] or not report['review_integrity']['complete']) and report.get('run_status') == 'REVIEW_COMPLETE':
         report['run_status'] = 'INCOMPLETE'
     for folder in ("inventory", "reports"):
         (out / folder).mkdir(parents=True, exist_ok=True)
@@ -179,7 +186,7 @@ def generate(out, facts, report, reviews):
         r = review_map.get(f["finding_id"], {})
         md += ["", f"## {f['finding_id']} — {f['variable_name']}", "", f"- 风险：{f['risk_level']}；置信度：{f['confidence']}",
                f"- 规则：{', '.join(f['rules'])}", f"- 定义：{location(f['definition'])}；ID: `{f.get('symbol_id')}`",
-               f"- 保护：{f['protection_status']}；复核：{r.get('state', 'PENDING')} / {r.get('status', 'NEED_MORE_CONTEXT')}",
+               f"- 保护：{f['protection_status']}；复核：{r.get('state', 'PENDING')} / {r.get('status') or '—'}",
                f"- 依据：{f.get('concurrency_reason', '分析盲区需要补充源码/配置证据')}", ""]
         for a in f["accesses"]:
             md.append(f"- **{a['access_kind']}** {location(a)} `{a['source_text']}`")
@@ -201,12 +208,22 @@ def generate(out, facts, report, reviews):
     conclusion = report['final_conclusion']
     review_md = ["# OpenCode 逐项复核结果", "", '**最终结论：' + conclusion['label'] + '**', '',
                  conclusion['scope'], '', f"已返回回答 {conclusion['reviewed']}/{conclusion['total']}；仍未决 {len(conclusion['unresolved_findings'])} 项。", '',
-                 "状态统计：" + str(dict(Counter(r["state"] for r in reviews))), ""]
+                 "状态统计：" + str(dict(Counter(r["state"] for r in reviews))), "",
+                 "覆盖完整性：" + ("通过" if report['review_integrity']['complete'] else "复核结果不完整"), "",
+                 "目标 {targets}；归档 {archived}；完成 {done}；失败 {failed}；待复核 {pending}；失效 {stale}；遗漏 {missing}；重复 {duplicate}".format(**report['review_integrity']), ""]
+    review_md += ['- ' + error for error in report['review_integrity']['errors']]
     patches = ["# 最小修复建议（未修改固件）", ""]
-    for r in records:
+    for r in report['review_records']:
         review_md += [f"## {r['finding_id']}", "", f"- {r['state']} / {r['status']}"]
         if r.get("error"):
             review_md.append("- " + r["error"])
+            review_md += [f"- 失败阶段：{r.get('failure_stage', 'unknown')}；错误类型：{r.get('error_type', 'unknown')}",
+                          f"- 历次尝试：{json.dumps(r.get('attempts', []), ensure_ascii=False)}"]
+            for key, label in (('prompt_file', 'Prompt'), ('packet_file', 'Packet'),
+                               ('stdout_file', 'stdout'), ('stderr_file', 'stderr')):
+                name = r.get('execution', {}).get(key) or r.get(key)
+                if name:
+                    review_md.append(f'- {label}：[{name}](../review/{name})')
         if r.get('state') == 'DONE':
             from .review_presentation import review_markdown
             review_md += review_markdown(r.get('answer', {}))

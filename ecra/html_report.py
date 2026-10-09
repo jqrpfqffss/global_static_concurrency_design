@@ -140,7 +140,7 @@ VERDICTS = {
     "LIKELY": "疑似存在，尚需验证",
     "REVIEWED_SAFE": "已复核：在所述条件下安全",
     "FALSE_POSITIVE": "已复核：该候选为误报",
-    "NEED_MORE_CONTEXT": "证据不足 / 尚未完成",
+    "NEED_MORE_CONTEXT": "已完成复核，源码证据仍不足",
 }
 LABELS = {
     "symbol_id": "唯一变量 ID", "name": "名称", "qualified_name": "限定名称", "kind": "变量类别",
@@ -206,7 +206,7 @@ def local_pending(record):
 def review_label(record):
     if record.get('state') == 'DONE':
         return VERDICTS.get(record.get('status'), '证据不足，不能判定安全')
-    return {'FAILED': '复核失败，不能判定安全', 'STALE': '旧结论已失效，需重新复核',
+    return {'FAILED': '复核执行失败，不能判定安全', 'STALE': '旧结论已失效，需重新复核',
             'AUDIT_PENDING': '首轮已返回，等待反证复核',
             'RUNNING': '正在复核，尚无有效结论'}.get(record.get('state'),
             '待人工核对（未启用模型）' if local_pending(record) else '待复核，不能判定安全')
@@ -308,8 +308,42 @@ def review_records(report, reviews):
     by_id = {r["finding_id"]: r for r in reviews}
     return [dict(by_id.get(f["finding_id"], {}), finding_id=f["finding_id"],
                  state=by_id.get(f["finding_id"], {}).get("state", "PENDING"),
-                 status=by_id.get(f["finding_id"], {}).get("status", "NEED_MORE_CONTEXT"))
+                 status=(by_id.get(f["finding_id"], {}).get("status")
+                         if by_id.get(f["finding_id"], {}).get("state") == "DONE" else None))
             for f in report["findings"]]
+
+
+def reviewed_variable_summary(findings, records):
+    """Use final review state for the inventory headline, not the static rule."""
+    if not findings:
+        return None
+    rows = [records.get(f['finding_id'], {'state': 'PENDING'}) for f in findings]
+    def done(status):
+        return next((r for r in rows if r.get('state') == 'DONE' and r.get('status') == status), None)
+    def explanation(row):
+        answer = row.get('answer') or {}
+        return ((answer.get('explanation') or {}).get('summary') or answer.get('reason') or
+                review_label(row))[:260]
+    if row := done('CONFIRMED'):
+        return '已确认并发风险', explanation(row)
+    if any(r.get('state') == 'FAILED' for r in rows):
+        return '复核执行失败', 'OpenCode 未产生通过校验的最终结论；请查看对应 finding 的失败记录。'
+    if any(r.get('state') == 'STALE' for r in rows):
+        return '复核结果已失效', '源码或收据发生变化；旧结论不能作为当前安全或风险证据。'
+    if all(local_pending(r) for r in rows):
+        return '静态候选，尚未复核', '模型复核未启用；这里只保留静态线索，不代表 OpenCode 已确认风险。'
+    if any(r.get('state') in {'PENDING', 'RUNNING'} for r in rows):
+        return '待复核', '静态线索尚未形成经过校验的 OpenCode 最终结论。'
+    if row := done('LIKELY'):
+        return '疑似并发风险', explanation(row)
+    if row := done('NEED_MORE_CONTEXT'):
+        return '复核完成，证据不足', explanation(row)
+    if all(r.get('state') == 'DONE' and r.get('status') in {'REVIEWED_SAFE', 'FALSE_POSITIVE'}
+           for r in rows):
+        if all(r.get('status') == 'FALSE_POSITIVE' for r in rows):
+            return '已确认误报', explanation(rows[0])
+        return '已复核安全', explanation(rows[0])
+    return None
 
 
 def category(review):
@@ -358,6 +392,8 @@ def decision(finding, record):
     reviewed = category(record)
     if reviewed != 'unresolved':
         return reviewed
+    if record.get('state') in {'FAILED', 'PENDING', 'RUNNING', 'STALE'} and not local_pending(record):
+        return 'unresolved'
     if finding.get('static_classification') in {'SUSPECT', 'UNKNOWN'}:
         return 'likely' if finding['static_classification'] == 'SUSPECT' else 'unresolved'
     return 'likely' if set(finding.get('rules', [])) & CONCURRENT_SIGNALS else 'unresolved'
@@ -368,7 +404,7 @@ def variable_decisions(facts, report, records):
     for f in report['findings']:
         if f.get('symbol_id'):
             groups[f['symbol_id']].append(decision(f, records.get(f['finding_id'], {})))
-    priority = ['confirmed', 'likely', 'unresolved', 'safe']
+    priority = ['confirmed', 'unresolved', 'likely', 'safe']
     result = {}
     for v in facts['variables']:
         sid = v['symbol_id']
@@ -1012,6 +1048,9 @@ def write_html(out, facts, report, reviews):
             verify_member_rendering(v)
             views = source_access_views(v.get('accesses', []))
             conclusion, reason, focus = variable_explanation(v, views, candidates[sid])
+            reviewed_summary = reviewed_variable_summary(candidates[sid], records)
+            if reviewed_summary:
+                conclusion, reason = reviewed_summary
             detail_body += '<h3>一句话结论</h3><p><strong>' + esc(conclusion) + '</strong></p><p>' + esc(reason) + '</p>'
             if v.get('safe_reason_code'):
                 detail_body += '<p>静态证明：<code>' + esc(v['safe_reason_code']) + '</code></p>' + raw(v.get('safe_evidence'), '查看安全证明依据')
@@ -1032,6 +1071,9 @@ def write_html(out, facts, report, reviews):
             conclusion = '查看成员级结论'
         else:
             conclusion, why, _ = variable_explanation(v, list_views, candidates[sid])
+            reviewed_summary = reviewed_variable_summary(candidates[sid], records)
+            if reviewed_summary:
+                conclusion, why = reviewed_summary
         if v.get('parse_status') == 'FAILED' and v.get('static_classification') != 'SUSPECT':
             conclusion, why = '无法判断', '解析不完整：只保留已恢复声明，可能仍有漏项，不能判定安全。'
         inventory_rows.append(row(['<a class="item-name" href="#' + anchor('var-', sid) + '">' + esc(v['qualified_name'])
@@ -1247,6 +1289,11 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
             explanation += '<p>旧回答已失效，仅在原始记录中保留，不作为本轮结论或证据。</p>'
         error = '<details><summary>复核未完成的原因</summary><p>' + esc(r['error']) + '</p></details>' if r.get('error') and not local_pending(r) else ''
         execution = r.get('execution', {})
+        for key, label in (('prompt_file', 'Prompt'), ('packet_file', '证据包'),
+                           ('stderr_file', 'stderr')):
+            name = execution.get(key) or r.get(key)
+            if name:
+                error += '<p><a href="review/' + esc(name) + '">' + label + '</a></p>'
         if execution.get('stdout_file'):
             error += '<p><a href="review/' + esc(execution['stdout_file']) + '">原始 OpenCode 执行日志</a></p>'
             error += '<details><summary>执行时间、日志 SHA-256 与校验范围</summary>' + fields(execution) + '</details>'
@@ -1288,6 +1335,11 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     remaining_variables = sum(counts_by_variable[k] for k in ('likely','unresolved','supplemental','inventory'))
     content += '<p><strong>' + str(counts_by_variable['confirmed']) + ' 个变量确认有风险</strong> · ' + str(counts_by_variable['safe']) + ' 个变量复核安全 / 误报 · ' + str(remaining_variables) + ' 个变量仍需判断。</p>'
     content += '<p class="muted">' + esc(conclusion['scope']) + ' 收到有效回答 ' + str(conclusion['reviewed']) + '/' + str(conclusion['total']) + ' 项（含独立证据缺口；证据不足的回答仍需继续排查）。</p></section>'
+    from .review_integrity import review_integrity
+    integrity = report.get('review_integrity') or review_integrity(report, reviews)
+    content += '<p class="review-coverage"><strong>' + ('复核覆盖完整' if integrity['complete'] else '复核结果不完整') + '</strong> · OpenCode目标总数 ' + str(integrity['targets']) + ' · 成功完成数 ' + str(integrity['done']) + ' · 复核失败数 ' + str(integrity['failed']) + ' · 待复核数 ' + str(integrity['pending']) + ' · 结果失效数 ' + str(integrity['stale']) + ' · 遗漏数 ' + str(integrity['missing']) + ' · 重复数 ' + str(integrity['duplicate']) + '</p>'
+    if integrity['errors']:
+        content += '<details><summary>复核结果不完整：查看不变量错误</summary>' + raw(integrity['errors']) + '</details>'
     structured_count = sum(r.get('state') == 'DONE' and r.get('answer', {}).get('schema_version') == 2 for r in records.values())
     content += '<p class="format-summary">并发结论与解释由 OpenCode 生成，工具负责候选提取、协议/引用校验和展示。统一协议 v2：' + str(structured_count) + '/' + str(conclusion['total']) + ' 项；旧版回答保留原样，重新执行 review 才会由 OpenCode 按新协议复核。</p>'
     content += '<nav class="tabs" aria-label="复核栏目">' + ''.join('<a href="#reviews' + ('-' + key if key != 'risks' else '') + '">' + label + ' ' + str(len(review_rows[key])) + '</a>'

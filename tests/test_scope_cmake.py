@@ -210,7 +210,7 @@ class ScopeCMakeTest(unittest.TestCase):
         self.assertNotIn('OLD_FIX', (out/'reports/opencode_patch_plan.md').read_text(encoding='utf-8'))
         self.assertNotIn('OLD_REASON', (out/'reports/opencode_global_static_review.md').read_text(encoding='utf-8'))
         self.assertIn('与 HTML 一致', (out/'reports/global_static_concurrency.md').read_text(encoding='utf-8'))
-        self.assertEqual(report['risk_summary']['counts']['likely'], 1)
+        self.assertEqual(report['risk_summary']['counts']['unresolved'], 1)
         record.update(state='DONE', status='CONFIRMED')
         generate(out, facts, report, [record])
         self.assertEqual(report['risk_summary']['counts']['confirmed'], 1)

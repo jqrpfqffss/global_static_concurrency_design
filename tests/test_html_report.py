@@ -5,7 +5,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from ecra.html_report import (REVIEW_PAGE, anchor, write_html, review_label, rule_summary, decision,
-                              variable_decisions, risk_overview, snapshot_scenario, to_display_text)
+                              variable_decisions, reviewed_variable_summary, review_records,
+                              risk_overview, snapshot_scenario, to_display_text)
 
 
 class Document(HTMLParser):
@@ -71,7 +72,7 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(decision(gap, {}), 'unresolved')
         self.assertEqual(decision(shared, dict(state='DONE', status='CONFIRMED')), 'confirmed')
         self.assertEqual(decision(shared, dict(state='DONE', status='REVIEWED_SAFE')), 'safe')
-        self.assertEqual(decision(shared, dict(state='STALE', status='REVIEWED_SAFE')), 'likely')
+        self.assertEqual(decision(shared, dict(state='STALE', status='REVIEWED_SAFE')), 'unresolved')
         self.assertEqual(decision(gap, dict(state='FAILED', status='CONFIRMED')), 'unresolved')
         facts = dict(variables=[dict(symbol_id=s) for s in ['a', 'b', 'c']])
         report = dict(findings=[shared, gap, dict(finding_id='D', symbol_id=None, rules=['INDIRECT_CALL'])], coverage={})
@@ -84,6 +85,26 @@ class ReportTests(unittest.TestCase):
         self.assertIn('data-decision-filter="confirmed"><strong>0</strong>', html)
         self.assertIn('data-decision-filter="likely"><strong>1</strong>', html)
         self.assertIn('data-decision-filter="unresolved"><strong>1</strong>', html)
+
+    def test_inventory_summary_uses_review_state_and_verdict(self):
+        findings = [dict(finding_id='F')]
+        answer = dict(explanation=dict(summary='源码证明两个入口串行'))
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
+            state='DONE', status='REVIEWED_SAFE', answer=answer)}),
+            ('已复核安全', '源码证明两个入口串行'))
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
+            state='DONE', status='FALSE_POSITIVE', answer=answer)})[0], '已确认误报')
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
+            state='DONE', status='NEED_MORE_CONTEXT', answer=answer)})[0], '复核完成，证据不足')
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
+            state='FAILED', status='CONFIRMED', error='timeout')})[0], '复核执行失败')
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
+            state='STALE', status='REVIEWED_SAFE')})[0], '复核结果已失效')
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(state='PENDING')})[0], '待复核')
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
+            state='PENDING', error='OpenCode 自动复核已关闭')})[0], '静态候选，尚未复核')
+        self.assertIsNone(review_records(dict(findings=findings), [dict(
+            finding_id='F', state='PENDING', status='NEED_MORE_CONTEXT')])[0]['status'])
 
     def test_two_reports_preserve_identities_paths_and_unfinished_results(self):
         # Same name, different storage identities; a diamond graph has two paths

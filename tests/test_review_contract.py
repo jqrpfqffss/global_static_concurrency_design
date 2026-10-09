@@ -109,6 +109,7 @@ class ContractTests(unittest.TestCase):
             root = Path(directory)
             (root/'src.c').write_text('count++;\n', encoding='utf-8')
             complete = answer_for()
+            complete['review_type'] = 'EVIDENCE_GAP'
             incomplete = copy.deepcopy(complete)
             incomplete['explanation'].pop('participants')
             values = [incomplete, complete]
@@ -119,7 +120,7 @@ class ContractTests(unittest.TestCase):
                 return CompletedProcess(argv, 0, json.dumps(dict(type='text', part=dict(text=json.dumps(value)))), '')
             cfg = dict(review=dict(enabled=True, workers=1, retries=1), analysis={})
             facts = dict(variables=[], contexts=[], functions=[], calls=[])
-            report = dict(findings=[dict(finding_id='F', symbol_id='count', accesses=[])], coverage={}, limitations=[])
+            report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])
             with patch('ecra.review.resolve_command', return_value=['fake-protocol-only']), patch('ecra.review.execute', side_effect=execute):
                 result = review_all(root, root/'.ecra', cfg, facts, report, 'scan', lambda _: None)[0]
             self.assertEqual(len(prompts), 2)

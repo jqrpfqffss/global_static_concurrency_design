@@ -172,6 +172,8 @@ review:
   # model: provider/model
   timeout_seconds: 300
   retries: 5
+  # 首轮结果再做独立的反证复核；安全与风险结论均需核查，失败会单独归档。
+  audit_verdicts: true
 
   # 每批最多提交多少项复核；0 表示不限制批次大小。自动连续处理全部批次。
   # workers 控制批内并发数；max_items 不限制整次运行的总数。

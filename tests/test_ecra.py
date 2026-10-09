@@ -705,8 +705,9 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         path.write_text(json.dumps(cfg),encoding='utf-8')
         checked_scan(self.root,out,cfg,path)  # review-only settings do not force Clang
         (self.root/'a.c').write_text('int changed;',encoding='utf-8')
-        with self.assertRaisesRegex(ValueError,'变化'):
-            saved_run(self.root)
+        self.assertEqual(saved_run(self.root), 2)
+        stale=json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
+        self.assertTrue(all(r['state']=='STALE' and '变化' in r['error'] for r in stale))
         self.assertFalse((out/'scan.lock').exists())
 
     def test_resume_rejects_changed_nested_response_file_and_new_sources(self):
@@ -721,12 +722,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         manifest=json.loads((self.root/'.ecra/input_manifest.json').read_text(encoding='utf-8'))
         self.assertIn('inner.rsp',manifest)
         (self.root/'inner.rsp').write_text('-DFEATURE=2',encoding='utf-8')
-        with self.assertRaisesRegex(ValueError,'inner.rsp'):
-            saved_run(self.root,render_only=True)
+        self.assertEqual(saved_run(self.root,render_only=True), 2)
+        self.assertTrue(all(r['state']=='STALE' for r in json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))))
         (self.root/'inner.rsp').write_text('-DFEATURE=1',encoding='utf-8')
         (self.root/'new.c').write_text('int missed;',encoding='utf-8')
-        with self.assertRaisesRegex(ValueError,'new.c'):
-            saved_run(self.root,render_only=True)
+        self.assertEqual(saved_run(self.root,render_only=True), 2)
+        self.assertIn('new.c', json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))[0]['error'])
 
     def test_doctor_preserves_previous_run_and_reports_even_on_failure(self):
         from unittest.mock import patch

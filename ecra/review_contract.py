@@ -42,7 +42,7 @@ CONTRACT_PROMPT = '''
 2. summary 不超过 180 字；participants 中 label 不超过 100 字，entry/access 各不超过 400 字；每步 action 不超过 400 字、state_before/state_after 各不超过 240 字。用短句写清谁做什么，英文缩写首次用中文说明。不要把代码全文或一串文件行号当作解释。
 3. evidence_refs 是 evidence 列表的 1 起始序号，必须引用实际读过且 quote/claim 正确的源码。cause/scheduling 共用 explanation.evidence_refs；参与者和每步也各自引用依据。引用正确不代表推理自动正确，必须核对抢占和调用条件。
 4. VARIABLE 的 CONFIRMED：至少两个真实参与执行者，首个场景必须 CONFLICT，至少两步且涉及至少两方；写出完整可成立过程与预期/实际差异。读改写应展示读旧值、另一方更新、旧副本写回；DMA 场景应展示硬件启动、CPU/硬件重叠访问及结果。不要为了凑步骤捏造被源码排除的路径。多个冲突用不同 scenarios，不能把多个起点混为一个顺序。
-5. REVIEWED_SAFE/FALSE_POSITIVE：至少一个 BLOCKED 场景，说明冲突在哪个条件被阻止；没有运行期访问时 steps 可为空，不能编造访问。LIKELY/NEED_MORE_CONTEXT 只能用 UNRESOLVED/BLOCKED 场景，missing_evidence 必须列具体缺失条件；无法确定参与者/状态时保留空列表或明确未知，不猜。EVIDENCE_GAP 不强制构造变量冲突，不计作变量缺陷。
+5. REVIEWED_SAFE/FALSE_POSITIVE：至少一个 BLOCKED 场景，说明冲突在哪个条件被阻止；没有运行期访问时 steps 可为空，不能编造访问。VARIABLE 的 LIKELY 必须有至少一个 ACTUAL 参与者、另一个具体参与者以及 UNRESOLVED 场景，只能是少量关键运行条件尚待核实；仅仅“不知道”应给 NEED_MORE_CONTEXT。LIKELY/NEED_MORE_CONTEXT 的 missing_evidence 必须列具体缺失条件；无法确定参与者/状态时保留空列表或明确未知，不猜。EVIDENCE_GAP 不强制构造变量冲突，不计作变量缺陷。
 6. explanation 中不得与 status 或其他文字自相矛盾；安全回答不能包含 CONFLICT 场景。已有 interleaving 与结构化 scenarios 应描述相同事实，反证撤回的错误路径只能作为 BLOCKED 场景或在 reason 中说明，不能混入成立场景。
 7. impact 分清可证明的存储结果和未证实的业务后果；fix 覆盖所有真实写点及忙状态；verification 是待执行的验证建议，没有实际执行就不能说已实测。缺依据请返回 NEED_MORE_CONTEXT，而不是为了填满格式编造事实。
 8. 格式或证据校验失败将把具体错误退给你重新输出完整答案；程序不会替你生成字段。首轮和反证轮都必须使用这个版本。
@@ -146,6 +146,13 @@ def validate_explanation(answer, expected_type=None, required=False):
     if review_type == 'VARIABLE' and status == 'CONFIRMED':
         if not scenarios or scenarios[0]['kind'] != 'CONFLICT':
             fail('scenarios', '确认变量缺陷必须首先给出一个完整 CONFLICT 场景')
+        if scenarios[0]['expected'].strip() == scenarios[0]['actual'].strip():
+            fail('scenarios[0]', '预期与实际结果相同，未证明错误结果')
+    if review_type == 'VARIABLE' and status == 'LIKELY':
+        if len(participants) < 2 or not any(a['eligibility'] == 'ACTUAL' for a in participants):
+            fail('participants', 'LIKELY 必须有实际访问者和另一个具体参与者')
+        if not any(s['kind'] == 'UNRESOLVED' for s in scenarios):
+            fail('scenarios', 'LIKELY 必须给出具体待核实的交错场景')
     if status in {'REVIEWED_SAFE', 'FALSE_POSITIVE'} and not scenarios:
         fail('scenarios', '安全/误报必须给出至少一个 BLOCKED 场景及不成立原因')
     missing = array(details, 'missing_evidence')
