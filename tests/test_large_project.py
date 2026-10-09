@@ -217,7 +217,7 @@ class ReviewScaleTests(unittest.TestCase):
         queue=json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
         self.assertEqual([r['finding_id'] for r in queue],['Bad','Good'])
 
-    def test_250_items_resume_exactly_and_reject_omitted_access(self):
+    def test_250_items_auto_batch_cache_and_reject_omitted_access(self):
         (self.root/'app.c').write_text('int x;\n', encoding='utf-8')
         findings = [dict(finding_id=f'F{i}', symbol_id=f'x{i}', rules=['GS-UNKNOWN-CONTEXT'],
             screening_blockers=['FUNCTION_ADDRESS'], accesses=[dict(access_id=f'A{i}',
@@ -235,13 +235,13 @@ class ReviewScaleTests(unittest.TestCase):
             return CompletedProcess(argv, 0, json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
         with patch('ecra.review.resolve_command',return_value=['fake-protocol-only']), patch('ecra.review.execute',side_effect=execute):
             first = review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
-            self.assertEqual(sum(r['state']=='DONE' for r in first),73)
+            self.assertEqual(sum(r['state']=='DONE' for r in first),250)
             self.assertEqual(len(first),250)
             cfg['review']['max_items']=0
             second = review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
         self.assertEqual(len(seen),251)  # All 250 IDs, plus the rejected first answer.
         self.assertEqual(len(set(seen)),250)
-        self.assertEqual(sum(r.get('cached',False) for r in second),73)
+        self.assertEqual(sum(r.get('cached',False) for r in second),250)
         self.assertTrue(all(r['state']=='DONE' for r in second))
         self.assertEqual([r['finding_id'] for r in second],[f['finding_id'] for f in findings])
         folder = self.root/'.ecra/review'

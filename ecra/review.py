@@ -5,7 +5,6 @@ import shutil
 import hashlib
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Lock
 from pathlib import Path
 
 from .common import digest, execute, read_json, write_json
@@ -220,18 +219,6 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             command = resolve_command(settings.get("command", ["opencode"]))
         except ValueError as exc:
             command_error = str(exc)
-    count = 0
-    count_lock = Lock()
-
-    def reserve_slot():
-        nonlocal count
-        with count_lock:
-            limit = settings.get('max_items', 0)
-            if limit and count >= limit:
-                return False
-            count += 1
-            return True
-
     facts_path=Path(settings.get('facts_path',out/'facts.json')).resolve()
     # Shared build/config evidence is written once. Repeating a full vendor
     # compile database and exclusion list in every gap packet can consume GBs.
@@ -381,8 +368,6 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
             result["error"] = "OpenCode 自动复核已关闭；证据包已生成"
         elif command_error:
             result.update(state="FAILED", error=command_error)
-        elif not reserve_slot():
-            result["error"] = "达到 max_items，本项尚未复核"
         else:
             progress(f"OpenCode 复核 {index + 1}/{len(targets)}: {fid}")
             argv = command + ["run", "--agent", "ecra-review", "--format", "json", "--file", str(packet_path)]
@@ -470,19 +455,30 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
                         error=f'复核准备失败：{type(exc).__name__}: {str(exc)[:1000]}')
 
     workers = int(settings.get('workers', 1))
-    if workers == 1:
-        for index, finding in enumerate(targets):
-            completed(process_safely(index, finding))
-    else:
-        # Workers only write their own packet/transcript/receipt. The coordinator
-        # alone writes the complete queue and renders checkpoints.
-        executor = ThreadPoolExecutor(max_workers=workers)
-        try:
-            futures = [executor.submit(process_safely, i, f) for i, f in enumerate(targets)]
-            for future in as_completed(futures):
-                completed(future.result())
-        finally:
-            executor.shutdown(wait=True, cancel_futures=True)
+    batch_size = settings.get('max_items', 0) or len(targets) or 1
+    batch_count = (len(targets) + batch_size - 1) // batch_size
+    for start in range(0, len(targets), batch_size):
+        batch = list(enumerate(targets[start:start + batch_size], start))
+        number = start // batch_size + 1
+        if enabled:
+            progress(f"OpenCode 复核：共 {len(targets)} 项，当前批次 {number}/{batch_count}，本批 {len(batch)} 项，已完成 {len(results)}/{len(targets)}")
+        if workers == 1:
+            for index, finding in batch:
+                completed(process_safely(index, finding))
+        else:
+            # Workers only write their own packet/transcript/receipt. The coordinator
+            # alone writes the complete queue and renders checkpoints. Do not submit
+            # the next batch until every item in this one has finished.
+            executor = ThreadPoolExecutor(max_workers=min(workers, len(batch)))
+            try:
+                futures = [executor.submit(process_safely, i, f) for i, f in batch]
+                for future in as_completed(futures):
+                    completed(future.result())
+            finally:
+                executor.shutdown(wait=True, cancel_futures=True)
+        if enabled:
+            progress(f"OpenCode 批次 {number}/{batch_count} 完成，累计完成 {len(results)}/{len(targets)}"
+                     + ("，自动进入下一批" if number < batch_count else ""))
     by_id = {r['finding_id']: r for r in results}
     results = [by_id[f['finding_id']] for f in targets]
     if enabled and results and not command_error and settings.get('audit_verdicts', False):
@@ -504,4 +500,8 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
 
         results = audit_reviews(root, out, cfg, originals, progress, audit_checkpoint)
     save_queue()
+    if enabled and targets:
+        progress(f"OpenCode 复核完成：总数 {len(targets)}，成功 {sum(r['state'] == 'DONE' for r in results)}，"
+                 f"失败 {sum(r['state'] == 'FAILED' for r in results)}，"
+                 f"剩余待处理 {sum(r['state'] not in {'DONE', 'FAILED'} for r in results)}")
     return results

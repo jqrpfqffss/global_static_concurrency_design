@@ -1,6 +1,7 @@
 """Protocol tests use an explicit fake process; they are not real model evidence."""
 import hashlib
 import json
+import re
 import tempfile
 import threading
 import time
@@ -56,7 +57,7 @@ class IntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'缺少原始'):
             verify_receipt(self.root,self.root,receipt)
 
-    def test_parallel_completion_preserves_queue_limit_and_cache(self):
+    def test_parallel_completion_preserves_batch_size_and_cache(self):
         findings = [dict(finding_id='F'+str(i), status='NEED_OPENCODE_REVIEW', accesses=[]) for i in range(5)]
         facts = dict(variables=[], contexts=[], functions=[], calls=[])
         report = dict(findings=findings, coverage={}, limitations=[])
@@ -86,14 +87,104 @@ class IntegrityTests(unittest.TestCase):
 
         with patch('ecra.review.resolve_command',return_value=['fake-protocol-test']), patch('ecra.review.execute',side_effect=execute):
             first=review_all(self.root,out,cfg,facts,report,'scan',lambda _:None,checkpoint)
-            self.assertEqual(len(seen),3)
+            self.assertEqual(len(seen),5)
             self.assertGreater(max(simultaneous),1)
-            self.assertEqual(sum(r['state']=='PENDING' for r in first),2)
+            self.assertLessEqual(max(simultaneous),3)
+            self.assertTrue(all(r['state']=='DONE' for r in first))
             cfg['review']['max_items']=0
             second=review_all(self.root,out,cfg,facts,report,'scan',lambda _:None,checkpoint)
             self.assertEqual(len(seen),5)
-            self.assertEqual(sum(r.get('cached',False) for r in second),3)
+            self.assertEqual(sum(r.get('cached',False) for r in second),5)
             self.assertTrue(all(r['state']=='DONE' for r in second))
+
+    def test_batch_sizes_concurrency_and_single_run_completion(self):
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        for total, workers, limit, sizes in (
+                (10, 1, 1, [1] * 10),
+                (23, 4, 5, [5, 5, 5, 5, 3]),
+                (23, 8, 5, [5, 5, 5, 5, 3]),
+                (23, 4, 0, [23])):
+            with self.subTest(total=total, workers=workers, max_items=limit):
+                out = self.root/f'.ecra-{workers}-{limit}'
+                report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(total)],
+                              coverage={}, limitations=[])
+                cfg = dict(review=dict(enabled=True, workers=workers, max_items=limit, retries=0), analysis={})
+                active = peak = 0
+                started = []
+                batch_sizes = []
+                current_batch = 0
+                lock = threading.Lock()
+
+                def progress(message):
+                    nonlocal current_batch
+                    match = re.search(r'当前批次 (\d+)/(\d+)，本批 (\d+) 项', message)
+                    if match:
+                        with lock:
+                            self.assertEqual(active, 0)
+                            current_batch = int(match.group(1))
+                            batch_sizes.append(int(match.group(3)))
+
+                def execute(argv, **kwargs):
+                    nonlocal active, peak
+                    packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
+                    fid = packet['finding']['finding_id']
+                    with lock:
+                        active += 1
+                        peak = max(peak, active)
+                        started.append((current_batch, fid))
+                    time.sleep(.01)
+                    with lock:
+                        active -= 1
+                    return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+                def checkpoint(results):
+                    queue = json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
+                    self.assertEqual(len(queue), total)
+                    for row in results:
+                        self.assertEqual(row['state'], 'DONE')
+                        self.assertTrue((out/'review'/(row['finding_id']+'.result.json')).is_file())
+
+                with patch('ecra.review.resolve_command', return_value=['fake-protocol-test']), patch(
+                        'ecra.review.execute', side_effect=execute):
+                    rows = review_all(self.root, out, cfg, facts, report, 'scan', progress, checkpoint)
+                self.assertEqual(batch_sizes, sizes)
+                self.assertEqual([sum(batch == i for batch, _ in started) for i in range(1, len(sizes)+1)], sizes)
+                self.assertEqual(len({fid for _, fid in started}), total)
+                self.assertLessEqual(peak, min(workers, max(sizes)))
+                self.assertTrue(all(row['state'] == 'DONE' for row in rows))
+
+    def test_failed_item_does_not_stop_later_batch_and_resume_reuses_completed(self):
+        out = self.root/'.ecra-failure'
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(7)],
+                      coverage={}, limitations=[])
+        cfg = dict(review=dict(enabled=True, workers=4, max_items=5, retries=1), analysis={})
+        calls = []
+        fail = True
+
+        def execute(argv, **kwargs):
+            packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
+            fid = packet['finding']['finding_id']
+            calls.append(fid)
+            if fail and fid == 'F2':
+                return CompletedProcess(argv, 1, '', 'simulated failure')
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        with patch('ecra.review.resolve_command', return_value=['fake-protocol-test']), patch(
+                'ecra.review.execute', side_effect=execute):
+            first = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+            self.assertEqual([r['state'] for r in first],
+                             ['DONE', 'DONE', 'FAILED', 'DONE', 'DONE', 'DONE', 'DONE'])
+            self.assertEqual(calls.count('F2'), 2)
+            self.assertIn('F6', calls)
+            queue = json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
+            self.assertEqual(queue[2]['state'], 'FAILED')
+            fail = False
+            second = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(calls.count('F2'), 3)
+        self.assertEqual(len(calls), 9)
+        self.assertEqual(sum(bool(r.get('cached')) for r in second), 6)
+        self.assertTrue(all(r['state'] == 'DONE' for r in second))
 
     def test_final_conclusion_distinguishes_defect_from_completion(self):
         report=dict(analysis_status='MODELED_SCOPE_COMPLETE',findings=[dict(finding_id='F',symbol_id='s')])
@@ -129,6 +220,44 @@ class IntegrityTests(unittest.TestCase):
             verify_receipt(self.root,folder,rows[0])
             audit_reviews(self.root,out,cfg,[original],lambda _:None)
             self.assertEqual(execute.call_count,1)
+
+    def test_second_pass_uses_same_batch_concurrency_limit(self):
+        from ecra.review_audit import audit_reviews
+        out = self.root/'.ecra-audit-batches'
+        folder = out/'review'
+        folder.mkdir(parents=True)
+        originals = [dict(finding_id=f'F{i}', state='FAILED', status='NEED_MORE_CONTEXT',
+                          error='First pass failed') for i in range(6)]
+        for original in originals:
+            (folder/(original['finding_id']+'.input.json')).write_text(
+                json.dumps(dict(finding=dict(finding_id=original['finding_id']),
+                                investigation_requirements=[])), encoding='utf-8')
+        cfg = dict(review=dict(command=['fake-protocol-test'], workers=8, max_items=5, retries=0))
+        active = peak = 0
+        finished = set()
+        lock = threading.Lock()
+
+        def execute(argv, **kwargs):
+            nonlocal active, peak
+            packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
+            fid = packet['finding']['finding_id']
+            with lock:
+                if fid == 'F5':
+                    self.assertEqual(len(finished), 5)
+                active += 1
+                peak = max(peak, active)
+            time.sleep(.01)
+            with lock:
+                active -= 1
+                finished.add(fid)
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        with patch('ecra.review_audit.resolve_command', return_value=['fake-protocol-test']), patch(
+                'ecra.review_audit.execute', side_effect=execute):
+            rows = audit_reviews(self.root, out, cfg, originals, lambda _: None)
+        self.assertEqual(len(finished), 6)
+        self.assertLessEqual(peak, 5)
+        self.assertTrue(all(r['state'] == 'DONE' for r in rows))
 
     def test_pipeline_exports_audited_verdict_and_reuses_both_passes(self):
         out=self.root/'.ecra'

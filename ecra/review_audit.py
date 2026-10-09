@@ -144,14 +144,22 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
             result.pop('answer', None)
             result.pop('cached', None)
             return result
-    executor=ThreadPoolExecutor(max_workers=int(settings.get('workers',1)))
-    try:
-        futures=[executor.submit(process_safely,r) for r in reviews]
-        for future in as_completed(futures):
-            results.append(future.result())
-            if on_result:
-                on_result(results)
-    finally:
-        executor.shutdown(wait=True,cancel_futures=True)
+    batch_size = settings.get('max_items', 0) or len(reviews) or 1
+    batch_count = (len(reviews) + batch_size - 1) // batch_size
+    for start in range(0, len(reviews), batch_size):
+        batch = reviews[start:start + batch_size]
+        number = start // batch_size + 1
+        progress(f'OpenCode 反证复核：当前批次 {number}/{batch_count}，本批 {len(batch)} 项，已完成 {len(results)}/{len(reviews)}')
+        executor=ThreadPoolExecutor(max_workers=min(int(settings.get('workers',1)), len(batch)))
+        try:
+            futures=[executor.submit(process_safely,r) for r in batch]
+            for future in as_completed(futures):
+                results.append(future.result())
+                if on_result:
+                    on_result(results)
+        finally:
+            executor.shutdown(wait=True,cancel_futures=True)
+        progress(f'OpenCode 反证批次 {number}/{batch_count} 完成，累计完成 {len(results)}/{len(reviews)}'
+                 + ('，自动进入下一批' if number < batch_count else ''))
     mapping={r['finding_id']:r for r in results}
     return [mapping[r['finding_id']] for r in reviews]

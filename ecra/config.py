@@ -113,7 +113,7 @@ review:
   # model: provider/model  # 使用你已配置并登录的 OpenCode 模型
   timeout_seconds: 300
   retries: 1
-  # 0 表示不限制。设置上限后剩余项始终标为 PENDING。
+  # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
   max_items: 0
 """
 
@@ -158,6 +158,7 @@ review:
   # model: provider/model
   timeout_seconds: 300
   retries: 1
+  # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
   max_items: 0
 """
 
