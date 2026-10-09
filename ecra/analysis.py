@@ -1121,9 +1121,9 @@ def analyze(facts, cfg, coverage, root=None):
             protection = 'DETECTED'
             protection_note = '配置中声明了保护措施，但当前源码未找到可关联的保护操作，不能证明其覆盖访问窗口。'
         member_conflicts = conflict_pairs(accesses, variable_relations, contexts)
-        evidence = evidence_index.build(v, accesses, contexts, protection_details)
         from .initialization import prove_initialization
         init_proof = prove_initialization(v, accesses, facts, contexts, cfg)
+        evidence = evidence_index.build(v, accesses, contexts, protection_details, init_proof)
         verdict = classify(evidence, accesses, contexts, member_conflicts, protection, protection_note,
             init_proof, variable=v, cfg=cfg, snapshots=snapshots[sid], coherence_evidence=coherence_evidence)
         static_classification = verdict['static_classification']

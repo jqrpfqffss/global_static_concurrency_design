@@ -96,10 +96,11 @@ def combine(root, inputs, regions, out, elf_paths=None):
         units.extend(dict(u, variant=variant) for u in facts['translation_units'])
     combined['variables'] = list(objects.values())
     combined['translation_units'] = units
-    coverage = dict(translation_units_failed=sum(u['parse_status'] != 'PARSED' for u in units),
+    coverage = dict(translation_units_failed=sum(u['parse_status'] == 'FAILED' for u in units),
+                    translation_units_partial=sum(u['parse_status'] == 'PARTIAL' for u in units),
                     translation_units_total=len(units), unlisted_sources=[])
-    coverage['translation_units_parsed'] = len(units) - coverage['translation_units_failed']
-    coverage['parse_coverage_percent'] = round(100*coverage['translation_units_parsed']/max(1,len(units)),2)
+    coverage['translation_units_parsed'] = sum(u['parse_status'] == 'PARSED' for u in units)
+    coverage['parse_coverage_percent'] = round(100*(coverage['translation_units_parsed'] + coverage['translation_units_partial'])/max(1,len(units)),2)
     report = analyze(combined, cfg, coverage)
     for finding in report['findings']:
         if len(cross.get(finding.get('symbol_id'), set())) > 1:

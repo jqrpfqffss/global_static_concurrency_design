@@ -14,6 +14,7 @@ class TargetPool:
         self.values = []
         self.unknown_mask = 0
         self.function_mask = 0
+        self.on_new_target = None
 
     def bit(self, value):
         index = self.indices.get(value)
@@ -21,6 +22,8 @@ class TargetPool:
             index = len(self.values)
             self.indices[value] = index
             self.values.append(value)
+            if self.on_new_target is not None:
+                self.on_new_target(value)
             if value.startswith('unknown:'):
                 self.unknown_mask |= 1 << index
             if value.startswith('fn:'):

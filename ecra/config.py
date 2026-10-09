@@ -208,7 +208,7 @@ def load_config(root=None, path=None):
             raise ValueError(f"{key} 必须是映射")
     if 'root' in cfg['project'] and (not isinstance(cfg['project']['root'], str) or not cfg['project']['root'].strip()):
         raise ValueError('project.root 必须是非空路径字符串')
-    for key in ("contexts", "concurrency", "preemption", "call_edges", "entry_registrations", "resources", "protection", "critical_sections", "known_safe"):
+    for key in ("contexts", "concurrency", "preemption", "call_edges", "entry_registrations", "async_enable", "resources", "protection", "critical_sections", "known_safe"):
         cfg.setdefault(key, [])
         if not isinstance(cfg[key], list) or any(not isinstance(x, dict) for x in cfg[key]):
             raise ValueError(f"{key} 必须是映射列表")
@@ -251,6 +251,11 @@ def load_config(root=None, path=None):
             raise ValueError("entry_registrations.context_id 必须是非空字符串")
         if "may_repeat" in entry and type(entry["may_repeat"]) is not bool:
             raise ValueError("entry_registrations.may_repeat 必须是 true/false")
+    for entry in cfg['async_enable']:
+        if set(entry) - {'api', 'irq_arg'} or not isinstance(entry.get('api'), str) or not entry['api'].strip():
+            raise ValueError('async_enable 每项必须提供 api，可选 irq_arg')
+        if 'irq_arg' in entry and (type(entry['irq_arg']) is not int or entry['irq_arg'] < 0):
+            raise ValueError('async_enable.irq_arg 必须是非负整数')
     for section in cfg['critical_sections']:
         allowed = {'enter', 'exit', 'save', 'restore', 'type'}
         if set(section) - allowed:

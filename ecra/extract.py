@@ -20,6 +20,38 @@ def children(c):
     return list(c.get_children())
 
 
+def declaration_section(cursor, section_macros=None):
+    """Read a section attribute without version-specific pretty-print APIs.
+
+    Attribute spelling is auxiliary metadata. A binding that cannot expose
+    its tokens must never prevent extraction of the enclosing declaration.
+    """
+    try:
+        for attribute in cursor.get_children():
+            if not attribute.kind.name.endswith('_ATTR'):
+                continue
+            attribute_tokens = ' '.join(token.spelling for token in islice(attribute.get_tokens(), 128))
+            match = re.search(r'\bsection\s*\(\s*"([^"\\]*)"\s*\)', attribute_tokens)
+            if match:
+                return match.group(1)
+        spelling = ' '.join(token.spelling for token in islice(cursor.get_tokens(), 512)).split(' = ', 1)[0]
+        match = re.search(r'\bsection\s*\(\s*"([^"\\]*)"\s*\)', spelling)
+        if match:
+            return match.group(1)
+        for name, argument in (section_macros or {}).items():
+            use = re.search(r'\b' + re.escape(name) + r'\s*\(([^)]*)\)', spelling)
+            if not use:
+                continue
+            values = [value.strip() for value in use.group(1).split(',')]
+            if argument < len(values) and re.fullmatch(r'"[^"\\]*"', values[argument]):
+                return values[argument][1:-1]
+    except Exception:
+        # Attribute metadata is optional; an incompatible binding must not
+        # abort the semantic AST/access extraction of this translation unit.
+        pass
+    return None
+
+
 def walk(c):
     yield c
     for child in c.get_children():
@@ -165,7 +197,7 @@ class Extractor:
                 attributes = [ch for ch in c.get_children() if ch.kind.name.endswith('_ATTR')]
                 f = dict(function_id=self.fid(c), name=c.spelling, qualified_name=c.displayname,
                          linkage=c.linkage.name, is_static=c.linkage.name == "INTERNAL",
-                         is_weak=any(ch.kind.name in {'WEAK_ATTR', 'WEAK_IMPORT_ATTR'}
+                         is_weak=bool(re.search(r'\b(?:__weak|weak)\b', self.source(c).split(c.spelling, 1)[0])) or any(ch.kind.name in {'WEAK_ATTR', 'WEAK_IMPORT_ATTR'}
                                      or (ch.kind.name.endswith('_ATTR') and tokens(ch, 1) == ['weak'])
                                      for ch in c.get_children()),
                          translation_unit=self.tu_name,
@@ -255,15 +287,9 @@ class Extractor:
                     if 'ARRAY' in typ.kind.name:
                         record['array_size'] = typ.element_count if typ.kind.name == 'CONSTANTARRAY' else None
                     if any(attr.kind.name.endswith('_ATTR') for attr in c.get_children()):
-                        # Macro attribute cursors can have empty token ranges.
-                        # Use Clang's expanded declaration, excluding initializer
-                        # strings and large table contents. A prior extern may
-                        # have created the inventory row without these attributes.
-                        policy = ci.PrintingPolicy.create(c)
-                        policy.set_property(ci.PrintingPolicyProperty.SuppressInitializers, 1)
-                        sections = re.findall(r'\bsection\s*\(\s*"([^"\\]*)"\s*\)', c.pretty_printed(policy))
-                        if sections:
-                            record['linker_section'] = sections[0]
+                        section = declaration_section(c, self.section_macros)
+                        if section:
+                            record['linker_section'] = section
                 if decl not in record["declarations"]:
                     record["declarations"].append(decl)
                 if defining and decl not in record["definitions"]:
@@ -577,7 +603,8 @@ class Extractor:
                 # property of an IRQHandler name.  Preserve raw argument
                 # tokens so analysis can use literal, reproducible cases and
                 # report all other cases as unresolved.
-                if name in {'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_SetPriorityGrouping',
+                from .async_semantics import is_async_enable
+                if is_async_enable(name, self.cfg) or name in {'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_SetPriorityGrouping',
                             'NVIC_SetPriorityGrouping', 'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ',
                             'NVIC_DisableIRQ', 'HAL_NVIC_DisableIRQ', 'SysTick_Config',
                             'HAL_SYSTICK_Config'}:
@@ -588,8 +615,8 @@ class Extractor:
                             or (p.kind.name=='BINARY_OPERATOR' and operator(p) in {'&&','||'}) for p, _ in ancestors),
                         **self.loc(c)))
                 # Explicit library argument semantics, with address escape retained separately.
-                from .common import LIBC_POINTER_MODES
-                semantics = LIBC_POINTER_MODES.get(name, {})
+                from .common import libc_pointer_modes
+                semantics = libc_pointer_modes(name, len(args))
                 for i, arg in enumerate(args):
                     found = {s for s, _ in self.refs(arg)}
                     paths_by_symbol = {}
@@ -660,9 +687,32 @@ class Extractor:
         tu = index.parse(self.unit["source"], args=clang_args,
                          unsaved_files=unsaved,
                          options=ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
-        diagnostics = [dict(severity=d.severity, message=str(d)) for d in tu.diagnostics]
+        diagnostics = [dict(severity=d.severity, message=str(d),
+                            file=(relative(d.location.file.name, self.root)
+                                  if d.location.file else None),
+                            line=d.location.line, column=d.location.column)
+                       for d in tu.diagnostics]
+        self.section_macros = {}
+        for macro in tu.cursor.get_children():
+            if macro.kind.name != 'MACRO_DEFINITION':
+                continue
+            try:
+                spelling = [token.spelling for token in islice(macro.get_tokens(), 128)]
+            except Exception:
+                continue
+            if 'section' not in spelling or len(spelling) < 5 or spelling[1] != '(':
+                continue
+            closing = spelling.index(')') if ')' in spelling else 0
+            parameters = [value for value in spelling[2:closing] if value != ',']
+            match = re.search(r'\bsection\s*\(\s*([A-Za-z_]\w*)\s*\)', ' '.join(spelling))
+            if match and match.group(1) in parameters:
+                self.section_macros[macro.spelling] = parameters.index(match.group(1))
         self.declare(tu.cursor)
-        parse_status = "FAILED" if any(d["severity"] >= 3 for d in diagnostics) else "PARSED"
+        # A Clang error can coexist with a traversable AST. Its affected
+        # declarations/calls remain explicit evidence gaps; it is not a
+        # translation-unit-wide PARSE_FAILED taint.
+        parse_status = ("FAILED" if any(d['severity'] >= 4 for d in diagnostics) else
+                        "PARTIAL" if any(d["severity"] >= 3 for d in diagnostics) else "PARSED")
         for v in self.variables.values():
             v["parse_status"] = parse_status
         if self.declaration_only:
@@ -677,6 +727,37 @@ class Extractor:
                 if self.interesting(ch):
                     bodies(ch)
         bodies(tu.cursor)
+        # A recoverable parser error may leave only one function's body
+        # incomplete. Attach its coverage gap to variables actually named in
+        # that source region, never to every variable of the translation unit.
+        for diagnostic in diagnostics:
+            if diagnostic['severity'] < 3 or not diagnostic.get('file'):
+                continue
+            owners = [function for function in self.functions.values()
+                      if function.get('file') == diagnostic['file']
+                      and function.get('line', 0) <= diagnostic['line'] <= function.get('end_line', -1)]
+            missing_header = ('file not found' in diagnostic['message']
+                              or 'No such file' in diagnostic['message'])
+            if not owners and not missing_header:
+                continue
+            owner = (min(owners, key=lambda row: row['end_line'] - row['line'])
+                     if owners else None)
+            source_path = self.root / diagnostic['file']
+            try:
+                lines = source_path.read_text(encoding='utf-8', errors='replace').splitlines()
+                body = ('\n'.join(lines[owner['line'] - 1:owner['end_line']])
+                        if owner else '\n'.join(lines))
+            except OSError:
+                continue
+            for symbol_id, variable in self.variables.items():
+                if (variable.get('linkage') == 'EXTERNAL'
+                        or diagnostic['file'] in variable.get('translation_units', ())):
+                    if re.search(r'\b' + re.escape(variable['name']) + r'\b', body):
+                        self.unknowns.append(dict(kind='PARTIAL_PARSE_REGION', symbol_id=symbol_id,
+                            function_id=owner['function_id'] if owner else '', file=diagnostic['file'],
+                            line=diagnostic['line'], diagnostic=diagnostic['message'],
+                            relation=('variable_identifier_in_partial_function' if owner else
+                                      'variable_identifier_in_partially_preprocessed_tu')))
         # Static-duration initializer address references are not function bodies,
         # but can expose a variable through global pointers and callback tables.
         def initializers(c, in_function=False):
@@ -757,7 +838,7 @@ class Extractor:
                     control_flow=self.control_flow,
                     registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
-                    parse_status="FAILED" if any(d["severity"] >= 3 for d in diagnostics) else "PARSED")
+                    parse_status=parse_status)
 
 
 def main():

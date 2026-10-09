@@ -51,6 +51,9 @@ class Solver:
         self.facts = facts
         self.cfg = cfg or {}
         self.target_pool = TargetPool()
+        self.recent_targets = deque(maxlen=12)
+        if os.environ.get('ECRA_SOLVER_TRACE_HOT'):
+            self.target_pool.on_new_target = self.trace_new_target
         self.points = defaultdict(self.target_pool.make)
         self.slots_by_shape = defaultdict(set)
         self.descendant_slots = defaultdict(set)
@@ -139,7 +142,11 @@ class Solver:
         fresh = location not in self.points
         if fresh:
             if os.environ.get('ECRA_SOLVER_TRACE_HOT'):
-                self.recent_locations.append(location)
+                task = self.current_task
+                source = self.tasks[task] if task is not None and hasattr(self, 'tasks') else None
+                self.recent_locations.append((location, task, source[0] if source else None,
+                    source[1].get('file') if source else None,
+                    source[1].get('line') if source else None))
             self.slots_by_shape[self.shape(location)].add(location)
             ancestor = location
             while '/' in ancestor:
@@ -155,6 +162,15 @@ class Solver:
             self.escape_closures.clear()
             self.notify_change(location)
             self.notify_change('shape:' + self.shape(location))
+
+    def trace_new_target(self, value):
+        match = re.search(r'/\[(-?\d+)\]$', value)
+        if match and int(match[1]) >= 8:
+            task = self.current_task
+            source = self.tasks[task] if task is not None and hasattr(self, 'tasks') else None
+            self.recent_targets.append((value, task, source[0] if source else None,
+                source[1].get('file') if source else None,
+                source[1].get('line') if source else None))
 
     def notify_change(self, location):
         # A cached load depends on points, overlap summaries, ancestor opaque
@@ -557,17 +573,17 @@ class Solver:
         self.active_indirect_accesses = [row for row in self.facts.get('indirect_accesses', [])
                                          if row.get('function_id') not in self.pruned_functions]
         tasks = [('constraint', c) for c in constraints] + [('call', c) for c in calls]
+        self.tasks = tasks
         self.pending.extend(range(len(tasks)))
         self.enqueued.update(range(len(tasks)))
         evaluations = 0
         trace_hot = bool(os.environ.get('ECRA_SOLVER_TRACE_HOT'))
-        depth_first = bool(os.environ.get('ECRA_SOLVER_LIFO'))
         hot_tasks = Counter() if trace_hot else None
         # Re-evaluate only equations whose actual read locations changed.
         # Dynamic dereferences/aggregate descendants add dependencies as the
         # monotone graph grows; this computes the same inclusion fixed point.
         while self.pending:
-            task = self.pending.pop() if depth_first else self.pending.popleft()
+            task = self.pending.popleft()
             self.enqueued.remove(task)
             self.current_task = task
             kind, item = tasks[task]
@@ -582,7 +598,12 @@ class Solver:
                     self.update(call['result'], dict(op='unknown', id=call['result']['id']),
                                 cache_key=('opaque_return', task))
                 for target in targets:
-                    function = self.functions.get(target, {})
+                    function = self.functions.get(target)
+                    if function is None:
+                        # Opaque callees have no body equations that can read
+                        # parameter slots. Their escapes, API effects and
+                        # unknown returns are handled at the call site below.
+                        continue
                     for i, arg in enumerate(call['arguments']):
                         aggregates = call.get('argument_aggregates', [])
                         layouts = call.get('argument_aggregate_paths', [])
@@ -633,6 +654,7 @@ class Solver:
                 print('points-to hotspots', evaluations, 'tasks', active,
                       'largest_slots', [(location, len(values)) for location, values in largest],
                       'recent_locations', list(self.recent_locations),
+                      'recent_targets', list(self.recent_targets),
                       'highest_array_indices', sorted(((max(map(int, re.findall(r'/\[(-?\d+)\]', location))), location)
                           for location in self.points if re.search(r'/\[-?\d+\]', location)), reverse=True)[:6],
                       file=sys.stderr, flush=True)
@@ -657,8 +679,8 @@ class Solver:
                         offset=call['offset'], confidence='may_target'))
             name = call['name']
             args = call['arguments']
-            from .common import LIBC_POINTER_MODES
-            semantics = LIBC_POINTER_MODES.get(name, {})
+            from .common import libc_pointer_modes
+            semantics = libc_pointer_modes(name, len(args))
             for i, mode in semantics.items():
                 if i < len(args):
                     self.add_access(self.value(args[i]), call, mode, via_api=name)

@@ -136,7 +136,7 @@ def generate(out, facts, report, reviews):
     cov = report["coverage"]
     md = ["# 全局变量与 static 变量并发排查报告", "", f"- 分析状态：**{report['analysis_status']}**", f"- 本轮状态：**{report.get('run_status', 'SCANNED')}**",
           f"- 变量：{len(facts['variables'])}；候选及盲区复核项：{len(report['findings'])}",
-          f"- 编译单元：{cov['translation_units_parsed']}/{cov['translation_units_total']} 成功（{cov['parse_coverage_percent']}%）；失败 {cov['translation_units_failed']}",
+          f"- 编译单元：完整 {cov['translation_units_parsed']}；部分 {cov.get('translation_units_partial', 0)}；失败 {cov['translation_units_failed']}；可分析覆盖 {cov['parse_coverage_percent']}%（总计 {cov['translation_units_total']}）",
           f"- 函数上下文覆盖：{cov['context_coverage_percent']}%；未知访问：{cov['unknown_accesses']}",
           f"- 工程版本：{report.get('git_commit', 'unknown')}；源码指纹：{report.get('fingerprint', 'unknown')}", "",
           "本报告是风险候选和覆盖证据，不是全工程无风险证明。OpenCode 结论仍需工程/硬件验证。", "",
@@ -173,7 +173,7 @@ def generate(out, facts, report, reviews):
         md.append(f"- {key}: " + (", ".join(cov.get(key, [])) or "无"))
     for u in facts["translation_units"]:
         if u["parse_status"] != "PARSED":
-            md += [f"- 失败：{u['source_file']}"] + ["  - " + cell(d["message"]) for d in u["diagnostics"]]
+            md += [f"- {u['parse_status']}：{u['source_file']}"] + ["  - " + cell(d["message"]) for d in u["diagnostics"]]
     review_map = {r["finding_id"]: r for r in reviews}
     for f in report["findings"]:
         r = review_map.get(f["finding_id"], {})

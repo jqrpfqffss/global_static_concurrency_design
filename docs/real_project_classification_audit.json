@@ -1,0 +1,1466 @@
+{
+  "variables": [
+    {
+      "symbol_id": "c:@DebugCliStats::member::cmd_err",
+      "name": "DebugCliStats.cmd_err",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 6,
+      "runtime_writes": 6,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::cmd_ok",
+      "name": "DebugCliStats.cmd_ok",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::last_cmd[*]",
+      "name": "DebugCliStats.last_cmd[*]",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 8,
+      "runtime_writes": 8,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::last_cmd[0]",
+      "name": "DebugCliStats.last_cmd[0]",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 8,
+      "runtime_writes": 8,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::rx_bytes",
+      "name": "DebugCliStats.rx_bytes",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 2,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-800666791c56877a3dfe",
+          "right": "A-ee4cdc9c1bfce7e8c9c7",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 29
+        },
+        {
+          "left": "A-86b6b01ab06aea5f6ffe",
+          "right": "A-ee4cdc9c1bfce7e8c9c7",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::rx_lines",
+      "name": "DebugCliStats.rx_lines",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::rx_overflow",
+      "name": "DebugCliStats.rx_overflow",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 2,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-357c3b120904bd8c0497",
+          "right": "A-c909df1afd9dab8274ba",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 29
+        },
+        {
+          "left": "A-7b403aeeb92524eb34f0",
+          "right": "A-c909df1afd9dab8274ba",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@DebugCliStats::member::uart_error",
+      "name": "DebugCliStats.uart_error",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 3,
+      "blocker_count": 1,
+      "conflict_count": 2,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-0356a76c0dde556d6091",
+          "right": "A-cdb8ccf35857d1c8de22",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 29
+        },
+        {
+          "left": "A-291618f8d69a3b41bea8",
+          "right": "A-cdb8ccf35857d1c8de22",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 29
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::ErrorCode",
+      "name": "huart2.ErrorCode",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 11,
+      "runtime_writes": 9,
+      "blocker_count": 1,
+      "conflict_count": 32,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-15b2d68ac32155da0340",
+          "right": "A-2d92bb09f449d0c03b1d",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3242
+        },
+        {
+          "left": "A-5172210f8f9c23838c78",
+          "right": "A-317e52a4dcfca612e45d",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1152
+        },
+        {
+          "left": "A-1ff8d512cc390a2cc727",
+          "right": "A-32a92170caeceb4662b5",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3212
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError",
+            "Cli_ArmReceive",
+            "HAL_UART_Receive_IT",
+            "UART_Start_Receive_IT"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.BaudRate",
+      "name": "huart2.Init.BaudRate",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 2,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.HwFlowCtl",
+      "name": "huart2.Init.HwFlowCtl",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.Mode",
+      "name": "huart2.Init.Mode",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 2,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.OverSampling",
+      "name": "huart2.Init.OverSampling",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 1,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.Parity",
+      "name": "huart2.Init.Parity",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_INIT_ONLY_WRITE",
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 7,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": true
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.StopBits",
+      "name": "huart2.Init.StopBits",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 2,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::Init.WordLength",
+      "name": "huart2.Init.WordLength",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_INIT_ONLY_WRITE",
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 7,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": true
+    },
+    {
+      "symbol_id": "c:@huart2::member::Instance",
+      "name": "huart2.Instance",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_INIT_ONLY_WRITE",
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 58,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": true
+    },
+    {
+      "symbol_id": "c:@huart2::member::Lock",
+      "name": "huart2.Lock",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 2,
+      "runtime_writes": 2,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::ReceptionType",
+      "name": "huart2.ReceptionType",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 8,
+      "runtime_writes": 5,
+      "blocker_count": 1,
+      "conflict_count": 21,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-ecf61dd61a22ddedea24",
+          "right": "A-3a6c4d09ff7dd47d5da2",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3342
+        },
+        {
+          "left": "A-4386c3a9f75ceaf22866",
+          "right": "A-ffb66ffa1fefe38b7d1f",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1361
+        },
+        {
+          "left": "A-ecf61dd61a22ddedea24",
+          "right": "A-4386c3a9f75ceaf22866",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3342
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError",
+            "Cli_ArmReceive",
+            "HAL_UART_Receive_IT"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxEventType",
+      "name": "huart2.RxEventType",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 4,
+      "runtime_writes": 4,
+      "blocker_count": 0,
+      "conflict_count": 3,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-19618683f83c563896eb",
+          "right": "A-7366b775d6d93ee25d14",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 420
+        },
+        {
+          "left": "A-19618683f83c563896eb",
+          "right": "A-09c92afbcb9c60a6e9bf",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 420
+        },
+        {
+          "left": "A-19618683f83c563896eb",
+          "right": "A-47477e3d27cb544f9944",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 420
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxState",
+      "name": "huart2.RxState",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 8,
+      "runtime_writes": 6,
+      "blocker_count": 1,
+      "conflict_count": 26,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-74ff20eb807860653159",
+          "right": "A-143089ce572ccd075dd5",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3348
+        },
+        {
+          "left": "A-74ff20eb807860653159",
+          "right": "A-91abdffbd32058f76704",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3348
+        },
+        {
+          "left": "A-bb6613aa5c18bb170b31",
+          "right": "A-91abdffbd32058f76704",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3243
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError",
+            "Cli_ArmReceive",
+            "HAL_UART_Receive_IT"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxXferCount",
+      "name": "huart2.RxXferCount",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 6,
+      "runtime_writes": 3,
+      "blocker_count": 1,
+      "conflict_count": 6,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-343390c046fc9ec071d4",
+          "right": "A-6077c94bf03e2535752d",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3240
+        },
+        {
+          "left": "A-343390c046fc9ec071d4",
+          "right": "A-4dec8c0bbc0d9b1e68bd",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3240
+        },
+        {
+          "left": "A-343390c046fc9ec071d4",
+          "right": "A-4ff053dc60b53ec2b941",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3240
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError",
+            "Cli_ArmReceive",
+            "HAL_UART_Receive_IT",
+            "UART_Start_Receive_IT"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxXferSize",
+      "name": "huart2.RxXferSize",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 5,
+      "runtime_writes": 1,
+      "blocker_count": 1,
+      "conflict_count": 5,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-cac817b684e34eee61b2",
+          "right": "A-cac817b684e34eee61b2",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3239
+        },
+        {
+          "left": "A-cac817b684e34eee61b2",
+          "right": "A-1eddf8c8c8ea4abfccea",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3239
+        },
+        {
+          "left": "A-cac817b684e34eee61b2",
+          "right": "A-1b73dd2f7118c17356e8",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3239
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError",
+            "Cli_ArmReceive",
+            "HAL_UART_Receive_IT",
+            "UART_Start_Receive_IT"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::TxXferCount",
+      "name": "huart2.TxXferCount",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 4,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 3,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-2891c3dabf8fbe760079",
+          "right": "A-25c0e55f53b343af368a",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1191
+        },
+        {
+          "left": "A-4f34f4a857bfd2426ab2",
+          "right": "A-25c0e55f53b343af368a",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1173
+        },
+        {
+          "left": "A-8dc02095797f2c1d201c",
+          "right": "A-25c0e55f53b343af368a",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1159
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::TxXferSize",
+      "name": "huart2.TxXferSize",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 1,
+      "runtime_writes": 1,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::gState",
+      "name": "huart2.gState",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 10,
+      "runtime_writes": 7,
+      "blocker_count": 0,
+      "conflict_count": 14,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-d7bc59caad2facbc65e5",
+          "right": "A-fc2e666decf740b1e840",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1177
+        },
+        {
+          "left": "A-d7bc59caad2facbc65e5",
+          "right": "A-8bfaa09d6b514ae0bf15",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 1177
+        },
+        {
+          "left": "A-47d624c9d6b98aa9e381",
+          "right": "A-8bfaa09d6b514ae0bf15",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 418
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::hdmarx",
+      "name": "huart2.hdmarx",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_READ_ONLY",
+      "physical_contexts": [
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 8,
+      "runtime_writes": 0,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::hdmatx",
+      "name": "huart2.hdmatx",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_NO_RUNTIME_ACCESS",
+      "physical_contexts": [],
+      "runtime_accesses": 0,
+      "runtime_writes": 0,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "c:@huart2::member::pRxBuffPtr",
+      "name": "huart2.pRxBuffPtr",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 5,
+      "runtime_writes": 3,
+      "blocker_count": 1,
+      "conflict_count": 5,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-ffad56b6611ae38f5228",
+          "right": "A-a39b9c056343aabfb7dd",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3238
+        },
+        {
+          "left": "A-ffad56b6611ae38f5228",
+          "right": "A-122408b73adc4006f93e",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3238
+        },
+        {
+          "left": "A-ffad56b6611ae38f5228",
+          "right": "A-aef71e871eebb8b3636b",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 3238
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError",
+            "Cli_ArmReceive",
+            "HAL_UART_Receive_IT",
+            "UART_Start_Receive_IT"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "c:@huart2::member::pTxBuffPtr",
+      "name": "huart2.pTxBuffPtr",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_IRQ",
+      "physical_contexts": [
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 2,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/app_cli_commands.c::c:app_cli_commands.c@app_cli_commands::element::[*]::member::handler",
+      "name": "app_cli_commands[*].handler",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_READ_ONLY",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 1,
+      "runtime_writes": 0,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/app_cli_commands.c::c:app_cli_commands.c@app_cli_commands::element::[*]::member::name",
+      "name": "app_cli_commands[*].name",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_READ_ONLY",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 3,
+      "runtime_writes": 0,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/app_cli_commands.c::c:app_cli_commands.c@app_cli_commands::element::[*]::member::summary",
+      "name": "app_cli_commands[*].summary",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_READ_ONLY",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 2,
+      "runtime_writes": 0,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/app_cli_commands.c::c:app_cli_commands.c@app_cli_commands::element::[*]::member::usage",
+      "name": "app_cli_commands[*].usage",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_READ_ONLY",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 1,
+      "runtime_writes": 0,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::command_count",
+      "name": "cli.command_count",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 21,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::commands",
+      "name": "cli.commands",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 21,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::last_eol_was_cr",
+      "name": "cli.last_eol_was_cr",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 22,
+      "runtime_writes": 6,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::line_buffer[*]",
+      "name": "cli.line_buffer[*]",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 41,
+      "runtime_writes": 6,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::line_buffer[63]",
+      "name": "cli.line_buffer[63]",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 41,
+      "runtime_writes": 6,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::line_length",
+      "name": "cli.line_length",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 24,
+      "runtime_writes": 6,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::line_overflow",
+      "name": "cli.line_overflow",
+      "classification": "SAFE_PROVEN",
+      "reason": "SAFE_SINGLE_FOREGROUND",
+      "physical_contexts": [
+        "FOREGROUND"
+      ],
+      "runtime_accesses": 21,
+      "runtime_writes": 5,
+      "blocker_count": 0,
+      "conflict_count": 0,
+      "initialization_proof": false
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::rx_byte",
+      "name": "cli.rx_byte",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 29,
+      "runtime_writes": 5,
+      "blocker_count": 0,
+      "conflict_count": 69,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-3ae8d8725cf916090fe5",
+          "right": "A-af02cc49849be261d10e",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 396
+        },
+        {
+          "left": "A-0b7943de802ee753e81a",
+          "right": "A-af02cc49849be261d10e",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 223
+        },
+        {
+          "left": "A-5d195767b5d4064cdece",
+          "right": "A-af02cc49849be261d10e",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 391
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::rx_cr_seen",
+      "name": "cli.rx_cr_seen",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 24,
+      "runtime_writes": 8,
+      "blocker_count": 0,
+      "conflict_count": 93,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-f4a459f9b1ded21c0f13",
+          "right": "A-e8d356ebdf5e9779ec5d",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 401
+        },
+        {
+          "left": "A-33bf77887e90c9f91c0a",
+          "right": "A-7a50e616f0cf7d5e4393",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 198
+        },
+        {
+          "left": "A-e1f31e556f3bc63e838e",
+          "right": "A-7a50e616f0cf7d5e4393",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 391
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::rx_head",
+      "name": "cli.rx_head",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 22,
+      "runtime_writes": 4,
+      "blocker_count": 0,
+      "conflict_count": 25,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-e63297ee00a0feda8f4b",
+          "right": "A-4840772b981ba6a5fdcf",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 25
+        },
+        {
+          "left": "A-cbf9af936c5088449e79",
+          "right": "A-100a45d7f51327bb8b10",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 391
+        },
+        {
+          "left": "A-e63297ee00a0feda8f4b",
+          "right": "A-44b951af9e19a6df9260",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::rx_overflow",
+      "name": "cli.rx_overflow",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 20,
+      "runtime_writes": 4,
+      "blocker_count": 0,
+      "conflict_count": 19,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-a74db63faf06978e72cc",
+          "right": "A-feecdcbba99c73098886",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 396
+        },
+        {
+          "left": "A-87bea96c9d83e11b12d3",
+          "right": "A-feecdcbba99c73098886",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 233
+        },
+        {
+          "left": "A-92e07485d9932724798e",
+          "right": "A-feecdcbba99c73098886",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 228
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::rx_queue[*]",
+      "name": "cli.rx_queue[*]",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 19,
+      "runtime_writes": 3,
+      "blocker_count": 0,
+      "conflict_count": 18,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-0a182b0accb53f980d8a",
+          "right": "A-b47a7b162e63b2645d78",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 272
+        },
+        {
+          "left": "A-4f9688648f034166bb9a",
+          "right": "A-b47a7b162e63b2645d78",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 203
+        },
+        {
+          "left": "A-501b747bcc2f7494c534",
+          "right": "A-b47a7b162e63b2645d78",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 233
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::rx_tail",
+      "name": "cli.rx_tail",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 23,
+      "runtime_writes": 4,
+      "blocker_count": 0,
+      "conflict_count": 4,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-f339c4b7e7bbfaf2a81c",
+          "right": "A-d1286160dab35a571676",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 401
+        },
+        {
+          "left": "A-6f7fdc1f144fe159093d",
+          "right": "A-d1286160dab35a571676",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 273
+        },
+        {
+          "left": "A-851eebfa36e3ab445099",
+          "right": "A-d1286160dab35a571676",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::uart",
+      "name": "cli.uart",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 23,
+      "runtime_writes": 3,
+      "blocker_count": 1,
+      "conflict_count": 9,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-c2871d08c570b41e94a6",
+          "right": "A-b0dac8b34beb03d86d36",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 26
+        },
+        {
+          "left": "A-88bed99cd24e9aa897be",
+          "right": "A-b0dac8b34beb03d86d36",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 25
+        },
+        {
+          "left": "A-88bed99cd24e9aa897be",
+          "right": "A-6139d50b50e1891fc975",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 25
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    },
+    {
+      "symbol_id": "tu::Core/Src/main.c::c:main.c@cli::member::uart_error",
+      "name": "cli.uart_error",
+      "classification": "SUSPECT",
+      "reason": null,
+      "physical_contexts": [
+        "FOREGROUND",
+        "IRQ:slot:54"
+      ],
+      "runtime_accesses": 20,
+      "runtime_writes": 4,
+      "blocker_count": 1,
+      "conflict_count": 19,
+      "initialization_proof": false,
+      "conflict_witness": [
+        {
+          "left": "A-1c007859b6e116af5d0c",
+          "right": "A-64f28f2de072c1310fbd",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 48
+        },
+        {
+          "left": "A-bd91f9f85efa5aa0f352",
+          "right": "A-64f28f2de072c1310fbd",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/cli.c",
+          "line": 372
+        },
+        {
+          "left": "A-ebfbe7ee547bb95d6f6c",
+          "right": "A-64f28f2de072c1310fbd",
+          "left_context": "vector:slot:1",
+          "right_context": "vector:slot:54",
+          "relation": "CAN_PREEMPT",
+          "file": "Core/Src/app_cli_commands.c",
+          "line": 223
+        }
+      ],
+      "blockers": [
+        {
+          "id": "B-613299e69c54ae6fb469",
+          "code": "UNKNOWN_EXECUTION_CONTEXT",
+          "file": "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c",
+          "line": 2428,
+          "target": "UART_DMAAbortOnError",
+          "call_path": [
+            "UART_DMAAbortOnError",
+            "HAL_UART_ErrorCallback",
+            "Cli_HandleError"
+          ],
+          "relation": "此未知入口可沿已解析调用边到达目标变量的访问函数。"
+        }
+      ]
+    }
+  ],
+  "self_conflicts": [
+    {
+      "symbol_id": "c:@huart2::member::ErrorCode",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::ReceptionType",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::ReceptionType",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxState",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxState",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxXferCount",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::RxXferSize",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    },
+    {
+      "symbol_id": "c:@huart2::member::pRxBuffPtr",
+      "left": "vector:slot:1",
+      "right": "vector:slot:54",
+      "relation": "CAN_PREEMPT"
+    }
+  ],
+  "issues": []
+}

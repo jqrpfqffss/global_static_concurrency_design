@@ -59,7 +59,13 @@ def build_cfg(extractor, function):
         # for an expression mixing a call and an access or several calls.
         calls = [c for c in walk(cursor) if c.kind.name == 'CALL_EXPR']
         refs = extractor.refs(cursor)
-        ambiguous = len(calls) > 1 or (calls and refs and kind != 'CALL_EXPR')
+        # References that are operands of the sole call are evaluated as part
+        # of that call, even when the call is wrapped by an if comparison.
+        # They do not create a second unsequenced operation.
+        outside_call = [ref for _, ref in refs if not any(
+            call.extent.start.offset <= ref.location.offset < call.extent.end.offset
+            and call.location.file == ref.location.file for call in calls)]
+        ambiguous = len(calls) > 1 or (calls and outside_call and kind != 'CALL_EXPR')
         if ambiguous:
             unsupported.append(dict(kind='UNSEQUENCED_EXPRESSION', **extractor.loc(cursor)))
             bad = node(cursor, 'unknown', reason='UNSEQUENCED_EXPRESSION')

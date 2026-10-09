@@ -23,8 +23,10 @@ class PrecisionDiagnosticsTests(unittest.TestCase):
         variables = [dict(symbol_id=sid, qualified_name=sid, definition_file='main.c',
                           definition_line=1, linkage='INTERNAL', declarations=[],
                           translation_units=['main.c']) for sid in ('first', 'second')]
+        # The shared entry gap represents a proven opaque consumer, not mere
+        # address formation inside a synchronous function table.
         issue = dict(kind='FUNCTION_ADDRESS', target_function_id='f',
-                     file='main.c', line=2)
+                     actual_escape=True, file='main.c', line=2)
         facts = dict(variables=variables, functions=[], calls=[], unknowns=[issue])
         index = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}}, set())
         contexts = {'main': dict(physical_id='FOREGROUND', physical_kind='MAIN')}
@@ -56,6 +58,64 @@ class PrecisionDiagnosticsTests(unittest.TestCase):
         self.assertEqual(gaps[0]['entry_site_count'], 3)
         self.assertEqual(gaps[0]['line'], 6)
         self.assertEqual(facts['unknowns'], sites)
+
+    def test_unreachable_callback_registration_cannot_create_entry_gap(self):
+        variable = dict(symbol_id='value', qualified_name='value',
+                        definition_file='main.c', definition_line=1,
+                        linkage='INTERNAL', declarations=[],
+                        translation_units=['main.c'])
+        issue = dict(kind='FUNCTION_ADDRESS', target_function_id='callback',
+                     function_id='unused_dma_start', actual_escape=True,
+                     file='hal.c', line=42)
+        facts = dict(variables=[variable], functions=[], calls=[], unknowns=[issue])
+        contexts = {'main': dict(physical_id='FOREGROUND', physical_kind='MAIN')}
+        access = dict(access_id='A', function_id='callback', access_kind='WRITE',
+                      file='main.c', line=5, contexts=['main'])
+        unreachable = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}},
+                                    {'unused_dma_start'})
+        self.assertFalse(unreachable.build(variable, [access], contexts, []).critical_gaps)
+        reachable = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}}, set())
+        self.assertEqual(reachable.build(variable, [access], contexts, []).critical_gaps[0]['reason_code'],
+                         'UNKNOWN_EXECUTION_CONTEXT')
+
+    def test_irq_callback_entry_after_all_init_writes_is_not_a_gap(self):
+        variable = dict(symbol_id='config', qualified_name='config',
+                        definition_file='main.c', definition_line=1,
+                        linkage='INTERNAL', declarations=[], translation_units=['main.c'])
+        issue = dict(kind='FUNCTION_ADDRESS', target_function_id='callback',
+                     function_id='irq_dispatch', actual_escape=True,
+                     file='hal.c', line=30)
+        facts = dict(variables=[variable], functions=[], calls=[], unknowns=[issue],
+                     contexts=[dict(id='irq', physical_kind='IRQ', physical_id='IRQ:slot:54', slot=54)],
+                     context_bindings=[dict(function_id='irq_dispatch', context_id='irq')])
+        contexts = dict(main=dict(physical_id='FOREGROUND', physical_kind='MAIN'),
+                        irq=facts['contexts'][0])
+        accesses = [dict(access_id='write', function_id='init', access_kind='WRITE',
+                         file='main.c', line=3, contexts=['main']),
+                    dict(access_id='read', function_id='callback', access_kind='READ',
+                         file='hal.c', line=35, contexts=['irq'])]
+        proof = dict(write_access_ids=['write'], irq_barriers=[dict(enables=[dict(argument_values=[38])])])
+        index = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}}, set())
+        self.assertFalse(index.build(variable, accesses, contexts, [], proof).critical_gaps)
+        wrong_irq = dict(write_access_ids=['write'], irq_barriers=[dict(enables=[dict(argument_values=[39])])])
+        self.assertEqual(index.build(variable, accesses, contexts, [], wrong_irq).critical_gaps[0]['reason_code'],
+                         'UNKNOWN_EXECUTION_CONTEXT')
+        facts['calls'].append(dict(caller_function_id='callback', callee_function_id='init'))
+        reentrant = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}}, set())
+        self.assertEqual(reentrant.build(variable, accesses, contexts, [], proof).critical_gaps[0]['reason_code'],
+                         'UNKNOWN_EXECUTION_CONTEXT')
+        facts['calls'].clear()
+        facts['unknowns'].append(dict(kind='FUNCTION_ADDRESS', target_function_id='callback',
+                                      actual_escape=True, file='unknown.c', line=7))
+        unowned = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}}, set())
+        self.assertEqual(unowned.build(variable, accesses, contexts, [], proof).critical_gaps[0]['reason_code'],
+                         'UNKNOWN_EXECUTION_CONTEXT')
+        facts['unknowns'].pop()
+        facts['unknowns'].append(dict(kind='UNKNOWN_CALLBACK_ENTRY', target_function_id='irq_dispatch',
+                                      file='unknown.c', line=8))
+        extra_entry = EvidenceIndex(facts, {'build_closure': {}}, {'project': {}}, set())
+        self.assertEqual(extra_entry.build(variable, accesses, contexts, [], proof).critical_gaps[0]['reason_code'],
+                         'UNKNOWN_EXECUTION_CONTEXT')
 
     def test_conflict_witness_and_variable_local_gap(self):
         pair = dict(conflict_id='C-1', may_concurrent=True, has_write_conflict=True,

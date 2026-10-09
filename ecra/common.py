@@ -20,7 +20,22 @@ LIBC_POINTER_MODES = {
     'strcmp': {0: 'READ', 1: 'READ'},
     'strncmp': {0: 'READ', 1: 'READ'},
     'strlen': {0: 'READ'},
+    # Formatted output writes only its destination. Format strings and
+    # pointer-valued substitutions are read; none of these APIs retains a
+    # caller pointer or registers an asynchronous entry.
+    'vsnprintf': {0: 'WRITE', 2: 'READ', 3: 'READ'},
+    'snprintf': {0: 'WRITE', 2: 'READ'},
+    'vsprintf': {0: 'WRITE', 1: 'READ', 2: 'READ'},
+    'sprintf': {0: 'WRITE', 1: 'READ'},
 }
+
+
+def libc_pointer_modes(name, argument_count):
+    modes = dict(LIBC_POINTER_MODES.get(name, {}))
+    first_variadic = {'snprintf': 3, 'sprintf': 2}.get(name)
+    if first_variadic is not None:
+        modes.update({index: 'READ' for index in range(first_variadic, argument_count)})
+    return modes
 
 
 def digest(value):

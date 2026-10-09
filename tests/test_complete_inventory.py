@@ -169,7 +169,8 @@ int main(void){
         vs=self.scan({'main.c':'int main(void){return 0;}\n#if 0\nint recovered;\nBadType broken;\n#endif',
             'one.c':'int same=1;', 'two.c':'double same=2;'},compiled=['main.c'])
         self.assertIn('recovered',{v['name'] for v in vs})
-        self.assertTrue(any(u['kind']=='INACTIVE_BRANCH_PARSE_FAILED' for u in self.facts['unknowns']))
+        self.assertTrue(any(u['kind']=='INACTIVE_BRANCH_PARSE_PARTIAL' for u in self.facts['unknowns']))
+        self.assertFalse(any(u['kind']=='INACTIVE_BRANCH_PARSE_FAILED' for u in self.facts['unknowns']))
         same=next(v for v in vs if v['name']=='same')
         self.assertTrue(any(d['file']=='two.c' for d in same['declarations']))
         self.assertEqual(same['supplemental_declarations'][0]['type'],'double')

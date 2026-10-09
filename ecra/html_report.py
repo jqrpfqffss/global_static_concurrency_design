@@ -623,8 +623,10 @@ def risk_overview(facts, report, records, assessments):
             + f'<a href="#inventory" data-decision-filter="inventory">{counts["inventory"]} 个未发现静态线索</a>（不等于安全）'
             + (f'、<a href="#inventory" data-decision-filter="supplemental">{counts["supplemental"]} 个补充解析</a>' if counts.get('supplemental') else '')
             + f'。<a href="#gaps">{gap_count} 项覆盖 / 依赖缺口</a>单独保留，不计入风险变量。</p>'
-            + '<p class="muted">' + esc(mode) + ' 源码解析 ' + esc(f'{cov.get("translation_units_parsed", "?")}/{cov.get("translation_units_total", "?")}')
-            + '；解析失败 ' + str(cov.get('translation_units_failed', 0)) + '。'
+            + '<p class="muted">' + esc(mode) + ' 源码解析完整 ' + str(cov.get('translation_units_parsed', '?'))
+            + '；部分 ' + str(cov.get('translation_units_partial', 0))
+            + '；失败 ' + str(cov.get('translation_units_failed', 0))
+            + '；总计 ' + str(cov.get('translation_units_total', '?')) + '。'
             + ('<strong>请先修复解析失败；当前结果可能遗漏风险。</strong>' if cov.get('translation_units_failed') else '') + '</p>'
             + '<details class="scope-check"><summary>过滤结果与排查范围：已排除 ' + str(cov.get('audit_scope', {}).get('variables_omitted', 0))
             + ' 个变量；查看具体配置</summary>' + scope_summary(cov) + next_actions(report, records.values()) + '</details></section>')
@@ -1139,7 +1141,8 @@ def write_html(out, facts, report, reviews):
     inventory_by_kind = cov.get('inventory_by_kind', {})
     if inventory_by_kind:
         coverage += '<h3>变量盘点分类</h3>' + table(['变量类别', '数量'], [row([esc(KINDS.get(k, k)), str(n)]) for k, n in sorted(inventory_by_kind.items())])
-    coverage += metrics([('源码解析成功 / 总数', f'{cov.get("translation_units_parsed", "?")} / {cov.get("translation_units_total", "?")}'),
+    coverage += metrics([('源码解析完整 / 总数', f'{cov.get("translation_units_parsed", "?")} / {cov.get("translation_units_total", "?")}'),
+                         ('部分解析', cov.get('translation_units_partial', 0)),
                          ('解析失败', cov.get('translation_units_failed', 0)),
                          ('入口已知的目标函数 / 总数', f'{cov.get("functions_with_context", "?")} / {cov.get("functions_total", "?")}'),
                          ('未知入口访问', cov.get('unknown_accesses', 0)),

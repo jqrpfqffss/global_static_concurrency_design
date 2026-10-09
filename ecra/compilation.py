@@ -153,29 +153,8 @@ def normalize(entry, root, analysis):
     if Path(args[0]).stem.lower() in {"ccache", "sccache"}:
         args = args[1:]
     compiler, args = args[0], args[1:]
-    filtered, removed = [], []
-    skip_next = False
-    for arg in args:
-        if skip_next:
-            removed.append(arg)
-            skip_next = False
-            continue
-        if arg in {"-o", "-MF", "-MT", "-MQ", "-MJ"}:
-            removed.append(arg)
-            skip_next = True
-        elif arg in {"-c", "-S", "-E", "-MD", "-MMD", "-MP", "-MG", "-Werror"} or arg.startswith('-Werror='):
-            # GCC/Clang have different warning catalogs. Warning promotion is
-            # a build policy, not C semantics; genuine parser errors remain
-            # errors. Record the removed flag with the original command.
-            removed.append(arg)
-        elif any(arg.startswith(p) and len(arg) > len(p) for p in ("-o", "-MF", "-MT", "-MQ", "-MJ")):
-            removed.append(arg)
-        elif arg in analysis.get("remove_args", []):
-            removed.append(arg)
-        elif not arg.startswith("-") and (directory / arg).resolve() == source:
-            removed.append(arg)
-        else:
-            filtered.append(arg)
+    filtered, removed = normalize_clang_arguments(args, directory, source,
+                                                   analysis.get('remove_args', []))
     extra = analysis.get("extra_args", [])
     inferred_target = None
     if "arm-none-eabi" in compiler.lower() and not any(a.startswith(("--target", "-target")) for a in filtered + extra):
@@ -207,6 +186,49 @@ def normalize(entry, root, analysis):
                 original_arguments=raw, arguments=filtered, removed_arguments=removed, response_files=sorted(response_files),
                 inferred_target=inferred_target,
                 missing_defines=sorted(set(missing)))
+
+
+def normalize_clang_arguments(args, directory, source, remove_args=()):
+    """Keep compile-time language/ABI inputs, discard other build-stage inputs.
+
+    Paired options are consumed with their operands. Unknown switches remain
+    visible to Clang: silently removing an unrecognized ABI option would be
+    less safe than recording a partial parse with a diagnostic.
+    """
+    paired_drop = {'-o', '-MF', '-MT', '-MQ', '-MJ', '-Xlinker', '-Xassembler',
+                   '-Wl', '-Wa', '--specs', '-u', '-T', '-L', '-l'}
+    single_drop = {'-c', '-S', '-E', '-M', '-MM', '-MD', '-MMD', '-MP', '-MG',
+                   '-nostartfiles', '-nodefaultlibs', '-nostdlib', '-shared',
+                   '-static', '-s', '-Werror', '-pipe'}
+    # These GCC ARM flags change code generation, not the preprocessor, ABI,
+    # scalar width, or record layout used by libclang's AST.
+    gcc_codegen = {'-mthumb-interwork', '-mlong-calls', '-mword-relocations'}
+    joined_drop = ('-Wl,', '-Wa,', '-Xlinker=', '-Xassembler=',
+                   '--specs=', '-Map=', '-mno-thumb-interwork')
+    value_joined_drop = ('-o', '-MF', '-MT', '-MQ', '-MJ', '-u', '-T', '-L', '-l')
+    filtered, removed = [], []
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg in paired_drop or arg in remove_args:
+            # Project overrides may be either a standalone switch or a pair.
+            # Only known paired categories consume the following operand.
+            count = 2 if arg in paired_drop and index + 1 < len(args) else 1
+            removed.extend(args[index:index + count])
+            index += count
+            continue
+        if (arg in single_drop or arg in gcc_codegen or arg.startswith('-mapcs-')
+                or arg.startswith(joined_drop) or arg.startswith('-Werror=')
+                or any(arg.startswith(prefix) and len(arg) > len(prefix)
+                       for prefix in value_joined_drop)
+                or arg.startswith('-M')):
+            removed.append(arg)
+        elif not arg.startswith('-') and (directory / arg).resolve() == source:
+            removed.append(arg)
+        else:
+            filtered.append(arg)
+        index += 1
+    return filtered, removed
 
 
 def excluded(path, patterns):

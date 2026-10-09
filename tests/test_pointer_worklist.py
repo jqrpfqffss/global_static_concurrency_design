@@ -32,6 +32,19 @@ class FullRescanSolver(Solver):
 
 
 class PointerWorklistTests(unittest.TestCase):
+    def test_opaque_callee_has_no_unread_parameter_slots(self):
+        call = dict(function_id='Caller', file='a.c', line=1, offset=0,
+                    name='Opaque', target='External',
+                    expression=dict(op='function', id='External'),
+                    arguments=[addr('local:object')], result=loc('return'),
+                    returns_pointer=True, returns_aggregate=False)
+        facts = dict(variables=[], functions=[], accesses=[], calls=[], unknowns=[],
+                     semantic_calls=[call], pointer_constraints=[], indirect_accesses=[])
+        solver = Solver(facts)
+        solver.solve()
+        self.assertNotIn('External:param:0', solver.points)
+        self.assertTrue(any(value.startswith('unknown:') for value in solver.points['return']))
+
     def check_fixed_point(self, constraints):
         facts = dict(variables=[], functions=[], accesses=[], calls=[], unknowns=[],
                      pointer_constraints=constraints)

@@ -204,7 +204,8 @@ def find_inactive_branch_declarations(root, source_file, source_text, arguments,
             v['branch_range'] = dict(file=source_file, start=start, end=end)
         variables.extend(found)
         if part.get('parse_status') != 'PARSED':
-            failures.append(dict(kind='INACTIVE_BRANCH_PARSE_FAILED', file=source_file,
+            failures.append(dict(kind=('INACTIVE_BRANCH_PARSE_FAILED' if part.get('parse_status') == 'FAILED'
+                                       else 'INACTIVE_BRANCH_PARSE_PARTIAL'), file=source_file,
                                  range=f'{start}-{end}', translation_unit=unit['source_file'],
                                  diagnostics=part.get('diagnostics', []),
                                  message='分支变体解析不完整；已保留可恢复声明，仍可能漏项'))
@@ -266,7 +267,9 @@ def supplement(root, out, facts, units, cfg, scope, worker_dir, env, tool_root, 
             supplemental_units.append(fallback)
             variables.extend(v for v in part.get('variables', []) if _owned(v, file))
             if part['parse_status'] != 'PARSED':
-                failures.append(dict(kind='SUPPLEMENTAL_PARSE_FAILED', file=file, diagnostics=fallback['diagnostics']))
+                failures.append(dict(kind=('SUPPLEMENTAL_PARSE_FAILED' if part['parse_status'] == 'FAILED'
+                                           else 'SUPPLEMENTAL_PARSE_PARTIAL'),
+                                     file=file, diagnostics=fallback['diagnostics']))
             contexts = [fallback]
         try:
             source = (root / file).read_text(encoding='utf-8', errors='strict')
@@ -294,7 +297,9 @@ def build_file_coverage(facts, units, supplemental_tus, scope, root, output_dir=
             for file in {d.get('file') for d in _locations(v)}:
                 variables[file].append(v)
     for u in facts.get('unknowns', []):
-        if u.get('kind') in {'INACTIVE_BRANCH_PARSE_FAILED','SUPPLEMENTAL_PARSE_FAILED','INVENTORY_SOURCE_UNREADABLE'}:
+        if u.get('kind') in {'INACTIVE_BRANCH_PARSE_FAILED', 'INACTIVE_BRANCH_PARSE_PARTIAL',
+                             'SUPPLEMENTAL_PARSE_FAILED', 'SUPPLEMENTAL_PARSE_PARTIAL',
+                             'INVENTORY_SOURCE_UNREADABLE'}:
             issues[u.get('file')].append(u)
     for file in selected_files(root, scope, output_dir or root / '.ecra'):
         contexts = indexed_units.get(file, [])

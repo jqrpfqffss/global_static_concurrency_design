@@ -1,15 +1,10 @@
-"""Conservative CFG proof that initialization writes precede IRQ activation.
-
-This first implementation deliberately requires an explicit NVIC disable in
-main.  Reaching main does not establish reset NVIC state: a bootloader, startup
-routine, or constructor may already have enabled an interrupt.  SysTick, DMA,
-faults, opaque calls in the initialization prefix, and helper-function writes
-are not covered by this proof.
-"""
+"""Conservative CFG proof that initialization writes precede async activation."""
 import re
 from collections import defaultdict
+from pathlib import Path
 
 from .interrupts import irq_key
+from .async_semantics import is_async_enable, async_irq_arg
 
 
 ENABLE = {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ'}
@@ -17,6 +12,7 @@ DISABLE = {'NVIC_DisableIRQ', 'HAL_NVIC_DisableIRQ'}
 NEUTRAL = {
     'HAL_NVIC_SetPriority', 'NVIC_SetPriority',
     'HAL_NVIC_SetPriorityGrouping', 'NVIC_SetPriorityGrouping',
+    'HAL_SYSTICK_Config', 'SysTick_Config',
     '__disable_irq', '__enable_irq', '__get_PRIMASK', '__set_PRIMASK',
     '__get_BASEPRI', '__set_BASEPRI', '__set_BASEPRI_MAX',
     '__DMB', '__DSB', '__ISB',
@@ -25,7 +21,68 @@ READS = {'READ', 'WHOLE_OBJECT_READ'}
 WRITES = {'WRITE', 'RMW', 'WHOLE_OBJECT_WRITE'}
 
 
-def _phase_entries_closed(accesses, facts, contexts):
+def _startup_constructor_proof(facts, cfg, reset_id, main_id):
+    """Check calls before main and linked constructor entries for a reset proof.
+
+    The assembly call graph records resolvable C functions. It cannot model
+    __libc_init_array by itself; the linker map bounds the functions that
+    routine may execute before main. An unrecognized constructor voids the
+    assumption that target IRQs are still disabled at main entry.
+    """
+    entry = next((row for row in facts.get('vector_entries', ())
+                  if row.get('function_id') == reset_id and row.get('slot') == 1), None)
+    if not entry or not entry.get('file'):
+        return dict(source='synthetic_or_unavailable_startup')
+    if Path(entry['file']).suffix.lower() != '.s':
+        return dict(source=entry['file'], startup_model='C reset handler AST and call graph')
+    root_name = cfg.get('project', {}).get('root')
+    if not root_name:
+        return None
+    root = Path(root_name)
+    source = root / entry['file']
+    try:
+        assembly = source.read_text(encoding='utf-8', errors='replace')
+    except OSError:
+        return None
+    before_main = assembly.split('bl main', 1)[0]
+    calls = re.findall(r'^\s*bl(?:\.w)?\s+([A-Za-z_]\w*)\b', before_main, re.M)
+    if 'main' not in re.findall(r'^\s*bl(?:\.w)?\s+(main)\b', assembly, re.M):
+        return None
+    known = {row['name'] for row in facts.get('functions', ())}
+    if any(name not in known | {'__libc_init_array'} for name in calls):
+        return None
+    if '__libc_init_array' not in calls:
+        return dict(source=str(source), calls=calls, constructors='none')
+    build = root / cfg.get('analysis', {}).get('cmake', {}).get('build_dir', 'build/ecra')
+    maps = list(build.glob('*.map'))
+    if len(maps) != 1:
+        return None
+    try:
+        map_text = maps[0].read_text(encoding='utf-8', errors='replace')
+    except OSError:
+        return None
+    sections = {}
+    for section in ('preinit_array', 'init_array'):
+        match = re.search(r'^\.' + section + r'\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)\s*$',
+                          map_text, re.M)
+        if not match:
+            return None
+        sections[section] = int(match.group(1), 16)
+    if sections['preinit_array'] != 0:
+        return None
+    if sections['init_array']:
+        contributors = re.findall(r'^[ \t]+\.init_array(?:\.[^\s]+)?[ \t]+0x[0-9A-Fa-f]+[ \t]+0x([0-9A-Fa-f]+)[ \t]+(\S+)',
+                                  map_text, re.M)
+        if (sections['init_array'] != 4 or len(contributors) != 1
+                or int(contributors[0][0], 16) != 4
+                or not contributors[0][1].replace('\\', '/').endswith('/crtbegin.o')):
+            return None
+    return dict(source=str(source), calls=calls, constructor_map=str(maps[0]),
+                preinit_bytes=sections['preinit_array'], init_bytes=sections['init_array'],
+                constructors='GCC crtbegin frame_dummy only')
+
+
+def _phase_entries_closed(accesses, facts, contexts, cfg):
     """Reject phase proofs with an unmodelled executor before IRQ activation.
 
     A source access ID is shared by every invocation of its function.  Seeing
@@ -41,13 +98,6 @@ def _phase_entries_closed(accesses, facts, contexts):
     target_irq_contexts = {cid for row in accesses for cid in row.get('contexts', ())
                            if contexts.get(cid, {}).get('physical_kind') == 'IRQ'}
     roots = [row for row in facts.get('context_bindings', ()) if row.get('call_depth') == 0]
-    for root in roots:
-        cid = root.get('context_id')
-        context = contexts.get(cid, {})
-        kind = context.get('physical_kind')
-        if kind not in {'FOREGROUND', None} and cid not in target_irq_contexts:
-            return False
-
     call_graph = defaultdict(set)
     for call in facts.get('calls', ()):
         if call.get('callee_function_id'):
@@ -73,8 +123,25 @@ def _phase_entries_closed(accesses, facts, contexts):
                  if row.get('kind') == 'MAIN' and row.get('slot') == 1}
     allowed = main_ids | reset_ids
     writer_functions = {row.get('function_id') for row in writers}
+    enable_functions = {event.get('function_id') for event in facts.get('irq_priority_events', ())
+                        if is_async_enable(event.get('api_name', ''), cfg)}
+    function_ids = {row['function_id'] for row in facts.get('functions', ())}
+    opaque_callers = {row.get('caller_function_id') for row in facts.get('calls', ())
+                      if not row.get('callee_function_id') or row.get('callee_function_id') not in function_ids}
+    def closure(start):
+        seen, pending = set(), [start]
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            pending.extend(call_graph.get(current, set()) - seen)
+        return seen
     for call in facts.get('calls', ()):
         callee = call.get('callee_function_id')
+        if (call.get('call_kind') == 'ASSEMBLY_LITERAL_CALL'
+                and call.get('caller_function_id') in reset_ids and callee in main_ids):
+            continue
         if (callee and (call.get('call_kind') == 'CONFIGURED' or call.get('offset') is None)
                 and any(reaches(callee, writer) for writer in writer_functions)):
             # A configured or locationless edge contributes context reachability
@@ -82,9 +149,14 @@ def _phase_entries_closed(accesses, facts, contexts):
             return False
     for root in roots:
         cid = root.get('context_id')
+        fid = root.get('function_id')
+        kind = contexts.get(cid, {}).get('physical_kind')
+        if kind not in {'FOREGROUND', None} and cid not in target_irq_contexts:
+            reachable = closure(fid)
+            if reachable & (writer_functions | enable_functions | opaque_callers):
+                return False
         if contexts.get(cid, {}).get('physical_kind') != 'FOREGROUND':
             continue
-        fid = root.get('function_id')
         if fid not in allowed and any(reaches(fid, writer) for writer in writer_functions):
             return False
     return True
@@ -126,8 +198,6 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
     runtime = [access for access in accesses if access.get('access_kind') in READS | WRITES]
     writers = [access for access in runtime if access['access_kind'] in WRITES]
     if not writers or not any(access['access_kind'] in READS for access in runtime):
-        return None
-    if any(access.get('access_kind') == 'ADDRESS_TAKEN' for access in accesses):
         return None
     if any(not access.get('contexts') for access in runtime):
         return None
@@ -192,16 +262,41 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
 
     reset_entries = {entry.get('function_id') for entry in facts.get('vector_entries', [])
                      if entry.get('kind') == 'MAIN' and entry.get('slot') == 1}
-    reset_entries = {entry for entry in reset_entries
-                     if entry in cfgs and reaches(entry, main_id)}
+    reset_entries = {entry for entry in reset_entries if reaches(entry, main_id)}
     if len(reset_entries) == 1:
-        start_id = next(iter(reset_entries))
+        # Assembly startup has a verified vector and call edges but no C CFG.
+        # Check every known pre-main source for an enable before using the
+        # architectural reset state at the main entry.
+        reset_id = next(iter(reset_entries))
+        pre_main = set()
+        pending = [reset_id]
+        while pending:
+            fid = pending.pop()
+            if fid in pre_main or fid == main_id:
+                continue
+            pre_main.add(fid)
+            pending.extend(call_graph.get(fid, ()))
+        startup_enable = any(event.get('function_id') in pre_main
+                             and is_async_enable(event.get('api_name', ''), cfg)
+                             for event in facts.get('irq_priority_events', ()))
+        if startup_enable:
+            return None
+        function_ids = set(functions)
+        if any(call.get('caller_function_id') in pre_main
+               and call.get('callee_function_id') not in function_ids
+               for call in facts.get('calls', ())):
+            return None
+        startup_evidence = _startup_constructor_proof(facts, cfg, reset_id, main_id)
+        if startup_evidence is None:
+            return None
+        start_id = main_id
         initial = ((0,) * len(irqs), (False,) * len(irqs))
         reset_proven = True
     else:
         start_id = main_id
         initial = ((-1,) * len(irqs), (False,) * len(irqs))
         reset_proven = False
+        startup_evidence = None
 
     writer_nodes = defaultdict(list)
     expected_writes = {access['access_id'] for access in writers}
@@ -218,7 +313,7 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
     switch_nodes = defaultdict(list)
     enable_events, disable_events = [], []
     for event in facts.get('irq_priority_events', []):
-        if event.get('api_name') not in ENABLE | DISABLE:
+        if event.get('api_name') not in DISABLE and not is_async_enable(event.get('api_name', ''), cfg):
             continue
         graph = cfgs.get(event.get('function_id'))
         if not graph:
@@ -237,16 +332,53 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
             callees[(call['caller_function_id'], ident)].add(call['callee_function_id'])
 
     writer_sites = {(access.get('file'), access.get('offset')) for access in writers}
+    uncertain_store_sites = {(issue.get('file'), issue.get('offset'))
+                             for issue in facts.get('unknowns', ())
+                             if issue.get('kind') == 'UNRESOLVED_POINTEE'}
     opaque_store_nodes = set()
     for access in facts.get('indirect_accesses', []):
         mode = access.get('mode', access.get('access_kind'))
         if mode not in WRITES or (access.get('file'), access.get('offset')) in writer_sites:
+            continue
+        # A resolved indirect store to known peripheral storage is not an
+        # arbitrary IRQ enable or alias of this variable. Unresolved stores
+        # (including raw NVIC MMIO) remain phase barriers.
+        if (access.get('file'), access.get('offset')) not in uncertain_store_sites:
             continue
         graph = cfgs.get(access.get('function_id'))
         if graph:
             ident = _node_for(access, {node['id']: node for node in graph['nodes']})
             if ident is not None:
                 opaque_store_nodes.add((access['function_id'], ident))
+
+    # Only calls in the backward slice of a target write or an async switch
+    # can change this variable's phase. Complete, unrelated helpers need no
+    # CFG; this matters for vendor delay/math helpers with unsupported syntax.
+    reverse = defaultdict(set)
+    opaque_callers = set()
+    for call in facts.get('calls', []):
+        caller, callee = call.get('caller_function_id'), call.get('callee_function_id')
+        if callee in functions and call.get('callee_name') not in NEUTRAL:
+            reverse[callee].add(caller)
+        elif not is_async_enable(call.get('callee_name', ''), cfg) and call.get('callee_name') not in NEUTRAL:
+            opaque_callers.add(caller)
+    relevant_functions = ({fid for fid, _ in writer_nodes}
+                          | {fid for fid, _ in switch_nodes}
+                          | {fid for fid, _ in opaque_store_nodes}
+                          | opaque_callers)
+    pending_relevant = list(relevant_functions)
+    while pending_relevant:
+        for caller in reverse.get(pending_relevant.pop(), ()):
+            if caller not in relevant_functions:
+                relevant_functions.add(caller)
+                pending_relevant.append(caller)
+    writer_relevant = {fid for fid, _ in writer_nodes}
+    pending_writers = list(writer_relevant)
+    while pending_writers:
+        for caller in reverse.get(pending_writers.pop(), ()):
+            if caller not in writer_relevant:
+                writer_relevant.add(caller)
+                pending_writers.append(caller)
 
     failure = []
     seen_writes = set()
@@ -264,9 +396,12 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
     def event_transition(state, event):
         current, runtime_started = map(list, state)
         arguments = event.get('arguments', [])
-        spelling = arguments[0].strip() if arguments else ''
+        argument_index = (0 if event['api_name'] in DISABLE else
+                          async_irq_arg(event['api_name'], cfg))
+        spelling = (arguments[argument_index].strip()
+                    if argument_index is not None and argument_index < len(arguments) else '')
         target = irq_key(spelling) if re.fullmatch(r'[A-Za-z_]\w*_IRQn', spelling) else None
-        enable = event['api_name'] in ENABLE
+        enable = is_async_enable(event['api_name'], cfg)
         if target not in irq_index:
             if target is None or enable:
                 # Enabling another IRQ before a candidate write permits that
@@ -297,7 +432,12 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
             return set()
         graph = cfgs.get(function_id)
         if not graph:
-            failure.append('MISSING_INITIALIZATION_CFG')
+            if function_id not in writer_relevant and seen_writes == expected_writes:
+                # This helper cannot reach another target write. Once every
+                # competing source has started, its unsupported CFG cannot
+                # invalidate the already established write-before-enable fact.
+                return {entry_state}
+            failure.append('MISSING_INITIALIZATION_CFG:' + str(function_id))
             return set()
         visited_functions.add(function_id)
         nodes = {node['id']: node for node in graph['nodes']}
@@ -334,7 +474,12 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
                     returned = set()
                     for target in targets:
                         for state in produced:
-                            returned.update(interpret(target, state, stack + (function_id,)))
+                            if target not in functions:
+                                returned.add(unknown_transition(state))
+                            elif target in relevant_functions:
+                                returned.update(interpret(target, state, stack + (function_id,)))
+                            else:
+                                returned.add(state)
                     produced = returned
                 else:
                     produced = {unknown_transition(state) for state in produced}
@@ -362,25 +507,25 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
                                    disables=[event for event in disable_events
                                              if irq_key((event.get('arguments') or [''])[0]) == irq],
                                    enables=[event for event in enable_events
-                                            if irq_key((event.get('arguments') or [''])[0]) == irq])
+                                            if (async_irq_arg(event['api_name'], cfg) is not None
+                                                and async_irq_arg(event['api_name'], cfg) < len(event.get('arguments', ()))
+                                                and irq_key(event['arguments'][async_irq_arg(event['api_name'], cfg)]) == irq)])
                               for irq in irqs],
                 visited_functions=sorted(visited_functions),
                 initial_state_evidence=('Verified Cortex-M reset vector entry; configurable NVIC IRQs start disabled'
                                         if reset_proven else
                                         'Explicit NVIC disable on every path to each initialization write'),
+                startup_evidence=startup_evidence,
                 limitation='Configurable external NVIC IRQ consumers; no DMA, SysTick, fault, or opaque pre-write path')
 
 
 def prove_initialization(variable, accesses, facts, contexts, cfg):
-    """Return an inspectable proof, or None without weakening classification.
+    """Prove every target write occurs before competing async activation.
 
-    Every writer must be in an acyclic, unconditional part of main.  For each
-    competing IRQ, an explicit disable must dominate every writer, and every
-    writer must dominate the unique enable.  No unresolved call or pointer
-    write may occur in the entry-to-enable prefix.  Runtime read loops after
-    enable are permitted; a loop containing a writer is rejected.
+    Prefer the interprocedural CFG phase interpreter. The legacy direct-main
+    dominance proof remains a conservative fallback for supported NVIC cases.
     """
-    if not _phase_entries_closed(accesses, facts, contexts):
+    if not _phase_entries_closed(accesses, facts, contexts, cfg):
         return None
     interprocedural = _interprocedural_initialization(variable, accesses, facts, contexts, cfg)
     if interprocedural:
@@ -388,8 +533,6 @@ def prove_initialization(variable, accesses, facts, contexts, cfg):
     runtime = [access for access in accesses if access.get('access_kind') in READS | WRITES]
     writers = [access for access in runtime if access['access_kind'] in WRITES]
     if not writers or not any(access['access_kind'] in READS for access in runtime):
-        return None
-    if any(access.get('access_kind') == 'ADDRESS_TAKEN' for access in accesses):
         return None
     if any(not access.get('contexts') for access in runtime):
         return None

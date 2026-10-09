@@ -170,9 +170,19 @@ class PointerExtractor:
             return []
         left, right = map(self.value, operands)
         stable = self.stable_pointer_parameters.get(self.function, set())
-        if right.get('op') == 'loc' and right.get('id') in stable:
+        def stable_operand(value):
+            if value.get('op') == 'loc':
+                return value.get('id') in stable
+            # HAL dispatch commonly compares htim->Instance with TIMx.
+            # Context-specific points-to later resolves this field through
+            # each callsite's handle object before any branch is removed.
+            base = value.get('base', {})
+            pointer = base.get('value', {}) if base.get('op') == 'deref' else {}
+            return (value.get('op') == 'field' and base.get('op') == 'deref'
+                    and pointer.get('op') == 'loc' and pointer.get('id') in stable)
+        if stable_operand(right):
             left, right = right, left
-        if left.get('op') != 'loc' or left.get('id') not in stable:
+        if not stable_operand(left):
             return []
         # NULL, scalar values and unsupported expressions carry no pointer
         # provenance and cannot establish object disjointness.  Any supported

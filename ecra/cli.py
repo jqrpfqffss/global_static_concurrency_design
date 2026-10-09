@@ -238,11 +238,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         for path in compilation["unlisted_sources"]:
             facts["unknowns"].append(dict(kind="SOURCE_NOT_IN_DATABASE", file=path))
         for unit in units:
-            if unit["parse_status"] != "PARSED":
+            if unit["parse_status"] == "FAILED":
                 facts["unknowns"].append(dict(kind="PARSE_FAILED", file=unit["source_file"], diagnostics=unit["diagnostics"]))
         parsed = sum(u["parse_status"] == "PARSED" for u in units)
+        partial = sum(u["parse_status"] == "PARTIAL" for u in units)
+        failed = sum(u["parse_status"] == "FAILED" for u in units)
         cov = dict(translation_units_total=len(units), translation_units_parsed=parsed,
-                   translation_units_failed=len(units) - parsed, parse_coverage_percent=round(100 * parsed / len(units), 2),
+                   translation_units_partial=partial, translation_units_failed=failed,
+                   parse_coverage_percent=round(100 * (parsed + partial) / len(units), 2),
                    **compilation)
         # Build per-file coverage table for source-level accountability
         from .supplemental import build_file_coverage

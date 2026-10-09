@@ -150,7 +150,8 @@ def reachable_domains(roots, calls):
 def _pass(facts, cfg, domains):
     from .evidence import ENTRY_GAPS
     unknown_entries = {row['target_function_id'] for row in facts['unknowns']
-                       if row.get('target_function_id') and row['kind'] in ENTRY_GAPS}
+                       if row.get('target_function_id') and row['kind'] in ENTRY_GAPS
+                       and (row['kind'] != 'FUNCTION_ADDRESS' or row.get('actual_escape'))}
     # Unknown callback inputs cannot be bounded by the arguments from known
     # callers. Keep every guard arm in that callback and its callees.
     unknown_reachable = reachable_domains({'unknown-entry': unknown_entries}, facts['calls'])

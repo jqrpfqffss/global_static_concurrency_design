@@ -46,6 +46,7 @@ SYMBOL_CODES = {
     'TYPE_VARIANT': 'UNKNOWN_RELEVANT_ALIAS',
     'UNRESOLVED_POINTEE': 'UNKNOWN_RELEVANT_ALIAS',
     'INDIRECT_CALL': 'UNKNOWN_RELEVANT_INDIRECT_CALL',
+    'PARTIAL_PARSE_REGION': 'UNKNOWN_RELEVANT_PARTIAL_TU',
     'NONLOCAL_JUMP_CONTEXT': 'UNKNOWN_EXECUTION_CONTEXT',
 }
 
@@ -85,6 +86,10 @@ class EvidenceIndex:
         self.by_symbol, self.entries, self.reverse = defaultdict(list), defaultdict(list), defaultdict(set)
         self.function_files = {f['function_id']: f.get('file') for f in facts['functions']}
         self.variables_by_id = {v['symbol_id']: v for v in facts['variables']}
+        self.contexts_by_id = {row['id']: row for row in facts.get('contexts', ())}
+        self.owner_contexts = defaultdict(set)
+        for binding in facts.get('context_bindings', ()):
+            self.owner_contexts[binding['function_id']].add(binding['context_id'])
         self.linker_definitions = linker_definitions(
             coverage.get('build_closure', {}), coverage.get('project_root'))
         self.call_edges_by_caller = defaultdict(list)
@@ -101,8 +106,17 @@ class EvidenceIndex:
             if issue.get('symbol_id'):
                 self.by_symbol[issue['symbol_id']].append(issue)
             if issue.get('target_function_id') and issue['kind'] in ENTRY_GAPS:
-                if issue['kind'] == 'FUNCTION_ADDRESS' and issue.get('actual_escape'):
-                    escaped_entry_sites[issue['target_function_id']].append(issue)
+                # An opaque callback slot can create an executor only if the
+                # assignment site itself can execute. A linked but unreachable
+                # HAL DMA helper must not become an entry for unrelated runs.
+                if issue.get('function_id') in self.unreachable:
+                    continue
+                if issue['kind'] == 'FUNCTION_ADDRESS':
+                    # Address formation inside a dispatch table is ordinary
+                    # data flow. Only an actual opaque consumer can introduce
+                    # an additional, unknown execution source.
+                    if issue.get('actual_escape'):
+                        escaped_entry_sites[issue['target_function_id']].append(issue)
                 else:
                     self.entries[issue['target_function_id']].append(issue)
         for target, sites in escaped_entry_sites.items():
@@ -118,6 +132,9 @@ class EvidenceIndex:
                 function_id=first.get('function_id'), file=first.get('file'),
                 line=first.get('line'), offset=first.get('offset'),
                 actual_escape=True, entry_site_count=len(ordered),
+                entry_site_function_ids=sorted({row.get('function_id') for row in ordered
+                                                if row.get('function_id')}),
+                entry_site_has_unowned=any(not row.get('function_id') for row in ordered),
                 entry_sites_reference='facts.json:unknowns (FUNCTION_ADDRESS, actual_escape, target_function_id)',
                 entry_site_sample=[dict(file=row.get('file'), line=row.get('line'),
                                         function_id=row.get('function_id'), offset=row.get('offset'))
@@ -136,7 +153,36 @@ class EvidenceIndex:
             self.ancestor_cache[fid] = found
         return self.ancestor_cache[fid]
 
-    def build(self, variable, accesses, contexts, protection):
+    def entry_after_init_writes(self, issue, writers, proof):
+        """An IRQ-only callback registration cannot race with proven init writes.
+
+        Every publisher must execute in an IRQ whose concrete vector slot is
+        covered by the initialization proof's NVIC enable barrier. The callback
+        must not be able to reach any of this variable's writers. In all other
+        cases the unknown entry remains a critical gap.
+        """
+        if (issue.get('kind') != 'FUNCTION_ADDRESS' or not proof or not writers
+                or issue.get('entry_site_has_unowned')):
+            return False
+        if {row['access_id'] for row in writers} != set(proof.get('write_access_ids', ())):
+            return False
+        target = issue.get('target_function_id')
+        if not target or any(target in self.ancestors(row['function_id']) for row in writers):
+            return False
+        slots = {int(value) + 16
+                 for barrier in proof.get('irq_barriers', ())
+                 for event in barrier.get('enables', ())
+                 for value in event.get('argument_values', ())
+                 if isinstance(value, int)}
+        owners = issue.get('entry_site_function_ids') or [issue.get('function_id')]
+        if (not slots or not owners or any(not self.owner_contexts.get(owner)
+                                          or self.entries.get(owner) for owner in owners)):
+            return False
+        return all(self.contexts_by_id.get(cid, {}).get('physical_kind') == 'IRQ'
+                   and self.contexts_by_id[cid].get('slot') in slots
+                   for owner in owners for cid in self.owner_contexts[owner])
+
+    def build(self, variable, accesses, contexts, protection, init_proof=None):
         sid = variable['symbol_id']
         runtime = [a for a in accesses if a['access_kind'] in RUNTIME]
         writers = any(a['access_kind'] in WRITES for a in runtime)
@@ -199,8 +245,11 @@ class EvidenceIndex:
         # An unknown execution source is immaterial when every possible
         # access to this storage is a read. It cannot manufacture a writer.
         if writers:
+            writer_rows = [a for a in runtime if a['access_kind'] in WRITES]
             for fid in sorted(ancestors):
                 for issue in self.entries[fid]:
+                    if self.entry_after_init_writes(issue, writer_rows, init_proof):
+                        continue
                     gap(issue, 'UNKNOWN_EXECUTION_CONTEXT',
                         '此未知入口可沿已解析调用边到达目标变量的访问函数。')
                     result.unresolved_edges.append(issue)
@@ -451,7 +500,7 @@ def classify(evidence, accesses, contexts, pairs, protection, protection_note, i
     return dict(static_classification=state, classification_reason=explanation,
         safe_reason_code=code, shared_reason_code=shared_code, shared_evidence=shared_evidence,
         shared_no_review_rejections=shared_rejections,
-        unknown_reason_codes=sorted({g['reason_code'] for g in evidence.critical_gaps}) if state == 'UNKNOWN' else [],
+        unknown_reason_codes=sorted({g['reason_code'] for g in evidence.critical_gaps}),
         coverage='PARTIAL' if reasons else 'COMPLETE', analysis_coverage='PARTIAL' if reasons else 'COMPLETE',
         coverage_reasons=sorted(reasons), screening_blockers=sorted({g['kind'] for g in evidence.critical_gaps}),
         # Evidence rows are immutable after classification. Preserve their
@@ -465,8 +514,6 @@ def classify(evidence, accesses, contexts, pairs, protection, protection_note, i
 def fanout_diagnostics(variables, threshold=50):
     rows = {}
     for variable in variables:
-        if variable.get('static_classification') != 'UNKNOWN':
-            continue
         for gap in variable.get('blocking_evidence', []):
             row = rows.setdefault(gap['blocker_id'], dict(blocker_id=gap['blocker_id'], kind=gap['kind'],
                 file=gap.get('file'), line=gap.get('line'), symbol_ids=set(), relevance_proofs=[]))
