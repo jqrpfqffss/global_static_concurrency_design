@@ -47,7 +47,8 @@ def review_integrity(report, records, *, require_terminal=False):
     summary = dict(targets=len(targets), archived=len(archived), done=states['DONE'],
                    failed=states['FAILED'], pending=states['PENDING'] + states['RUNNING'],
                    stale=states['STALE'], missing=len(missing), duplicate=len(duplicates),
-                   errors=errors, complete=not errors)
+                   errors=errors, complete=not errors,
+                   all_done=not errors and states['DONE'] == len(targets))
     return summary
 
 

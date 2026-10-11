@@ -94,7 +94,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         raise ValueError(f"已有扫描锁 {lock}；确认没有扫描进程后移除过期锁") from exc
     os.write(fd, json.dumps(dict(pid=os.getpid(), started=started)).encode())
     os.close(fd)
-    run_info = dict(version=__version__, started=started, project_root=str(root), state="RUNNING")
+    run_info = dict(version=__version__, started=started, project_root=str(root), state="RUNNING",
+                    review_mode='disabled_by_cli' if no_review else
+                    ('enabled' if cfg['review'].get('enabled', True) else 'disabled_by_config'))
     doctor = dict(project_root=str(root), python=sys.executable, python_version=sys.version,
                   semantics_found=True, config=str(config_file), ready_for_scan=False)
     log_lines = []
@@ -129,6 +131,10 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             (out/'scan_state.json').unlink(missing_ok=True)
             write_json(out / "run.json", run_info)
         progress("检查配置、libclang 和真实编译数据库…")
+        if no_review:
+            progress('本次命令使用 --no-review，已跳过 OpenCode；候选项只会保存为 PENDING。')
+        elif not cfg['review'].get('enabled', True):
+            progress('review.enabled 为 false，已跳过 OpenCode；候选项只会保存为 PENDING。')
         from clang import cindex
         if cfg["analysis"].get("libclang_file"):
             cindex.Config.set_library_file(cfg["analysis"]["libclang_file"])
@@ -291,7 +297,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             write_html(out, facts, report, current)
             last_checkpoint = time.monotonic()
 
-        reviews = review_all(root, out, cfg, facts, report, fingerprint, progress, on_result=checkpoint)
+        reviews = review_all(root, out, cfg, facts, report, fingerprint, progress, on_result=checkpoint,
+                             review_context_path=config_file.parent/'review_context.md')
         end_hashes = file_hashes(root, out, [config_file, compilation["compile_database"], *sources, *all_includes, *response_files], scope.includes)
         if end_hashes != after:
             report["analysis_status"] = "INCOMPLETE"

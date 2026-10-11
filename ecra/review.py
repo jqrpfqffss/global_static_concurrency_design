@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import hashlib
+from collections import Counter
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -11,6 +12,7 @@ from .common import digest, execute, read_json, write_json
 from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION, validate_explanation
 from .review_integrity import assert_review_integrity, assert_review_archive, review_integrity, review_targets
 from .review_risk import risk_focus, validate_risk_result
+from .review_context import review_context_section
 
 
 STATUSES = {"CONFIRMED", "LIKELY", "REVIEWED_SAFE", "FALSE_POSITIVE", "NEED_MORE_CONTEXT"}
@@ -33,7 +35,13 @@ def validate_investigation(answer, requirements):
     ids = [r.get('id') for r in rows]
     expected = {r['id'] for r in requirements}
     if any(not isinstance(i, str) for i in ids) or len(ids) != len(set(ids)) or set(ids) != expected:
-        raise ValueError('investigation 必须逐项覆盖全部访问/规则/阻塞项 ID，不得遗漏、重复或新增')
+        missing = sorted(expected - {i for i in ids if isinstance(i, str)})
+        extra = sorted({i for i in ids if isinstance(i, str)} - expected)
+        duplicates = sorted(i for i, count in Counter(
+            i for i in ids if isinstance(i, str)).items() if count > 1)
+        raise ValueError('investigation 必须逐项覆盖全部访问/规则/阻塞项 ID，不得遗漏、重复或新增；'
+                         f'缺少 {len(missing)} 项: {missing[:8]}；多出 {len(extra)} 项: {extra[:4]}；'
+                         f'重复 {len(duplicates)} 项: {duplicates[:4]}')
     for row in rows:
         if not isinstance(row.get('assessment'), str) or not row['assessment'].strip():
             raise ValueError('investigation.assessment 必须说明逐项核对结果')
@@ -192,7 +200,8 @@ def parse_answer(raw, finding_id, root, require_quotes=False, require_schema=Fal
     return value
 
 
-def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_result=None):
+def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_result=None,
+               review_context_path=None):
     settings = cfg["review"]
     if type(settings.get('audit_verdicts', False)) is not bool:
         raise ValueError('review.audit_verdicts 必须是布尔值 true/false')
@@ -303,27 +312,20 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                         for a in finding.get('accesses', [])]
         requirements += [dict(id='rule:' + r, kind='RULE') for r in finding.get('rules', [])]
         requirements += [dict(id='blocker:' + b, kind='BLOCKER') for b in finding.get('screening_blockers', [])]
-        requirements += [dict(id='function:' + fid, kind='FUNCTION',
-                             file=functions_by_id[fid]['file'], line=functions_by_id[fid].get('line'))
-                         for fid in sorted(related) if fid in functions_by_id]
-        requirements += [dict(id='context:' + str(cid), kind='CONTEXT')
-                         for a in finding.get('accesses', []) for cid in a.get('contexts', [])]
-        requirements += [dict(id='call:' + digest(c), kind='CALL_EDGE', file=c.get('file'), line=c.get('line'))
-                         for key in sorted(related) for c in calls_by_function.get(key, [])]
-        requirements += [dict(id='unknown:' + digest(u), kind='UNKNOWN_CALL') for u in facts.get('unknowns', [])
-                         if u.get('function_id') in related and u.get('kind') in
-                         {'INDIRECT_CALL', 'EXTERNAL_CALLEE', 'UNRESOLVED_REGISTERED_ENTRY'}]
-        requirements += [dict(id='protection:' + digest(e), kind='PROTECTION') for e in facts.get('protection_events', [])
-                         if e.get('function_id') in related]
-        requirements += [dict(id='priority:' + digest(e), kind='IRQ_PRIORITY') for e in facts.get('irq_priority_events', [])]
-        requirements += [dict(id='lifecycle:' + fid, kind='LIFECYCLE') for fid in sorted(related)
-                         if any(word in functions_by_id.get(fid, {}).get('name', fid).lower()
-                                for word in ('init', 'start', 'stop', 'reset', 'deinit', 'error', 'recover', 'timeout'))]
+        # Require a source-backed answer for every access and candidate rule.
+        # The full callers, CFG, IRQ events and lifecycle functions stay in the
+        # packet for reasoning, but listing hundreds of transitive edges again
+        # in the final JSON routinely exhausts the model's output budget.
         requirements = list({r['id']: r for r in requirements}.values())
         source_variable = by_symbol.get(finding.get('symbol_id'))
         packet_variable = ({k: v for k, v in source_variable.items() if k not in
                             {'static_classification', 'audit_status', 'classification_reason',
                              'risk_level', 'confidence'}} if source_variable else None)
+        if packet_variable:
+            for key in ('accesses', 'conflict_pairs', 'variable_evidence_slice',
+                        'protection_details', 'blocking_evidence', 'concurrency_relations'):
+                if key in packet_variable and packet_variable[key] == finding.get(key):
+                    packet_variable.pop(key)
         packet = dict(review_focus=None, finding=finding, variable=packet_variable,
                       investigation_requirements=requirements,
                       project_evidence_path=str(shared_path), limitations=report["limitations"],
@@ -339,13 +341,16 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             preemption_relations=finding.get('concurrency_relations', []),
             protection_events=[e for e in facts.get('protection_events', []) if e['function_id'] in related],
             irq_priority_events=facts.get('irq_priority_events', []),
-            control_flow=[g for g in facts.get('control_flow', []) if g['function_id'] in related],
+            control_flow=[{k: v for k, v in g.items() if k != 'nodes'} |
+                          {'node_count': len(g.get('nodes', []))}
+                          for g in facts.get('control_flow', []) if g['function_id'] in related],
             mask_windows=[w for w in facts.get('mask_windows', []) if w['symbol_id']==finding.get('symbol_id')],
             recursive_edges=facts.get('recursive_edges', []),
             unresolved_call_edges=[u for u in facts.get('unknowns', [])
                 if u.get('function_id') in related and u.get('kind') in {'INDIRECT_CALL','EXTERNAL_CALLEE','UNRESOLVED_REGISTERED_ENTRY'}])
         packet['project_native_word_bits'] = cfg.get('project', {}).get('native_word_bits', 32)
         packet['review_focus'] = risk_focus(packet)
+        packet['full_control_flow_path'] = str(facts_path)
         # Put the actual neighboring statements beside accesses. An isolated
         # assignment line hides conditional unlock/return paths from reviewers.
         windows = {}
@@ -411,9 +416,13 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
 "impact":"业务影响","fix":"最小修复建议，不直接修改","verification":"验证方法"}}
 只有源码和运行配置证据足够时才能判定安全。缺少的信息写入 reason。
 证据 quote 必须与指定行的实际原文一致，将被程序逐字校验；不要根据记忆猜行号。
+evidence.file 使用从源码读取结果或 project_evidence_path.source_files 核对过的工程相对路径；不要根据 .c 路径猜测 .h 所在目录。
 确认缺陷必须引用冲突双方及可抢占/调用入口证据；安全结论须解释本项所有候选规则为何不成立。
 """
+        prompt += review_context_section(review_context_path)
         prompt += CONTRACT_PROMPT + INVESTIGATION_PROMPT
+        prompt += '\n本项 investigation 必须回答的精确 ID（仅以下清单；其他调用边、函数、IRQ 和生命周期仍须核查，但不逐 ID 复述）：\n'
+        prompt += '\n'.join(r['id'] for r in requirements)
         expected_type = 'VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
         prompt += '\n本项 review_type 必须为 ' + expected_type + '；finding_id 必须为 ' + fid
         (folder / (fid + ".prompt.txt")).write_text(prompt, encoding="utf-8")
@@ -461,15 +470,17 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
         if not enabled:
             result["error"] = "OpenCode 自动复核已关闭；证据包已生成"
         elif command_error:
-            result.update(state="FAILED", error=command_error, error_type='CommandResolutionError',
-                          failure_stage='launch', execution=dict(
+            config_error = 'Configuration is invalid at ' in command_error
+            error_type = 'OpenCodeConfigurationError' if config_error else 'CommandResolutionError'
+            result.update(state="FAILED", error=command_error, error_type=error_type,
+                           failure_stage='configuration' if config_error else 'launch', execution=dict(
                               started=datetime.now(timezone.utc).isoformat(),
                               finished=datetime.now(timezone.utc).isoformat(),
                               model=settings.get('model', 'OpenCode configured default'),
                               attempt=0, prompt_file=fid+'.prompt.txt', packet_file=packet_path.name,
                               stdout_file=None, stderr_file=None))
             result['attempts'].append(dict(number=0, stage='launch', state='FAILED',
-                                           error_type='CommandResolutionError', error_message=command_error))
+                                           error_type=error_type, error_message=command_error))
         else:
             progress(f"OpenCode 复核 {index + 1}/{len(targets)}: {fid}")
             argv = command + ["run", "--agent", "ecra-review", "--format", "json", "--file", str(packet_path)]
@@ -550,25 +561,32 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
                                           stdout_sha256=result['execution']['stdout_sha256'])
                     break
                 except (ValueError, OSError, TimeoutError) as exc:
+                    invalid_config = 'Configuration is invalid at ' in str(exc)
                     result.update(state="FAILED", error=str(exc), error_type=type(exc).__name__,
                                   failure_stage=attempt_record['stage'])
                     attempt_record.update(state='FAILED', finished=datetime.now(timezone.utc).isoformat(),
                                           error_type=type(exc).__name__, error_message=str(exc))
+                    if invalid_config:
+                        result.update(error_type='OpenCodeConfigurationError', failure_stage='configuration')
+                        attempt_record['error_type'] = 'OpenCodeConfigurationError'
                     result['execution'].update(finished=attempt_record['finished'],
                         returncode=attempt_record.get('returncode'), timeout=False)
                 except Exception as exc:
                     # Includes subprocess.TimeoutExpired, preserving the queue instead of dropping items.
+                    timed_out = isinstance(exc, TimeoutError) or type(exc).__name__ == 'TimeoutExpired'
+                    message = (f'OpenCode 单次调用超过 {settings.get("timeout_seconds", 300)} 秒'
+                               if timed_out else str(exc))
                     for stream, suffix in (('stdout','jsonl'),('stderr','stderr.txt')):
                         partial=getattr(exc,stream,None)
                         if partial:
                             if isinstance(partial,bytes): partial=partial.decode('utf-8','replace')
                             (folder/(attempt_name+'.'+suffix)).write_text(partial,encoding='utf-8')
                             (folder/f'{fid}.attempt{attempt}.{suffix}').write_text(partial,encoding='utf-8')
-                    result.update(state="FAILED", error=f"{type(exc).__name__}: {exc}",
+                    result.update(state="FAILED", error=f"{type(exc).__name__}: {message}",
                                   error_type=type(exc).__name__, failure_stage=attempt_record['stage'])
                     attempt_record.update(state='FAILED', finished=datetime.now(timezone.utc).isoformat(),
-                                          error_type=type(exc).__name__, error_message=str(exc),
-                                          timeout=isinstance(exc, TimeoutError) or type(exc).__name__ == 'TimeoutExpired')
+                                          error_type=type(exc).__name__, error_message=message,
+                                          timeout=timed_out)
                     result['execution'].update(finished=attempt_record['finished'],
                         returncode=attempt_record.get('returncode'), timeout=attempt_record['timeout'])
                 for name in ('stdout', 'stderr'):
@@ -576,18 +594,39 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
                     if path.is_file():
                         attempt_record[name+'_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
                 write_json(cache, result)
+                if result.get('error_type') == 'OpenCodeConfigurationError':
+                    break
         write_json(cache, result)
         return result
 
     def completed(result):
+        nonlocal command_error
         results.append(result)
         save_queue()
         if on_result:
             on_result(results)
+        if result.get('error_type') == 'OpenCodeConfigurationError':
+            # The project configuration is shared by every item. Preserve a
+            # terminal receipt for each remaining item without relaunching a
+            # command that cannot even start.
+            if command_error is None:
+                command_error = result['error']
+                detail = re.sub(r'\x1b\[[0-9;]*m', '', command_error).replace('\n', ' | ')
+                progress('OpenCode 项目配置无效，已停止后续调用；请修复后运行 review。' + detail[:500])
 
     def process_safely(index, finding):
         try:
-            return process(index, finding)
+            result = process(index, finding)
+            if (enabled and not command_error and settings.get('audit_verdicts', False)
+                    and result.get('error_type') != 'OpenCodeConfigurationError'):
+                # Finish both passes for this item before the coordinator archives
+                # it and advances to the next item. The first-pass receipt is
+                # already durable, so an interrupted audit can be resumed.
+                from .review_audit import audit_reviews
+                result = audit_reviews(root, out, cfg, [result], progress,
+                                       review_context_path=review_context_path)[0]
+                write_json(folder/(result['finding_id']+'.result.json'), result)
+            return result
         except Exception as exc:
             # A single unreadable packet/source must not abandon all later IDs.
             fid = finding['finding_id']
@@ -641,24 +680,6 @@ CONFIRMED 必须对应当前源码与运行配置中已经存在、能够成立�
     assert_review_integrity(report, results, require_terminal=enabled)
     by_id = {r['finding_id']: r for r in results}
     results = [by_id[f['finding_id']] for f in targets]
-    if enabled and results and not command_error and settings.get('audit_verdicts', False):
-        from .review_audit import audit_reviews
-        originals = results
-        results = [dict(r, state='RUNNING', status=None, answer=None)
-                   if r.get('state') == 'DONE' else r for r in originals]
-        save_queue()
-
-        def audit_checkpoint(current):
-            nonlocal results
-            updated = {r['finding_id']: r for r in current}
-            results = [updated.get(r['finding_id'], r) for r in results]
-            for r in current:
-                write_json(folder/(r['finding_id']+'.result.json'), r)
-            save_queue()
-            if on_result:
-                on_result(results)
-
-        results = audit_reviews(root, out, cfg, originals, progress, audit_checkpoint)
     save_queue()
     assert_review_integrity(report, results, require_terminal=enabled)
     assert_review_archive(report, results, folder, require_terminal=enabled)

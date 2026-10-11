@@ -47,7 +47,10 @@ def generate(out, facts, report, reviews):
     compact_conflict_pair_storage(facts.get('variables', []))
     compact_conflict_pair_storage(report.get('findings', []))
     validate_selection(facts, report)
-    report['review_integrity'] = review_integrity(report, reviews)
+    # The published result must account for every target with a terminal
+    # review record. A queue containing all IDs is structurally valid but is
+    # not a completed review when any record is still PENDING or RUNNING.
+    report['review_integrity'] = review_integrity(report, reviews, require_terminal=True)
     report['review_records'] = review_records(dict(findings=review_targets(report)), reviews)
     records = review_records(report, reviews)
     records_by_id = {r['finding_id']: r for r in records}
@@ -79,6 +82,8 @@ def generate(out, facts, report, reviews):
                                    reviewed_safe_or_false_positive=counts['safe'])
     report['review_summary'].update({k: report['review_integrity'][k] for k in
         ('targets', 'archived', 'done', 'failed', 'pending', 'stale', 'missing', 'duplicate')})
+    report['review_summary']['complete'] = report['review_integrity']['complete']
+    report['review_summary']['all_done'] = report['review_integrity']['all_done']
     by_symbol = defaultdict(list)
     for f in report['findings']:
         if f.get('symbol_id'):

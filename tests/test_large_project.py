@@ -184,16 +184,24 @@ class ReviewScaleTests(unittest.TestCase):
                           end_line=1800 if f=='Left' else 1) for f in ('Root','Left','Right','Use')]
         calls = [dict(caller_function_id=a, callee_function_id=b) for a,b in
                  [('Root','Left'),('Root','Right'),('Left','Use'),('Right','Use'),('Use','Use')]]
-        facts = dict(variables=[], contexts=[], functions=functions, calls=calls)
-        report = dict(findings=[dict(finding_id='F',symbol_id='x',accesses=[dict(
-            access_id='A',function_id='Use',file='app.c',line=1,access_kind='READ',
-            call_chains={'main':['Root','Left','Use']})])],coverage={},limitations=[])
+        access = dict(access_id='A',function_id='Use',file='app.c',line=1,access_kind='READ',
+                      call_chains={'main':['Root','Left','Use']})
+        facts = dict(variables=[dict(symbol_id='x',canonical_path='x',accesses=[access])],
+                     contexts=[], functions=functions, calls=calls,
+                     control_flow=[dict(function_id='Use',nodes=[{'id': i} for i in range(1000)],complete=True)])
+        report = dict(findings=[dict(finding_id='F',symbol_id='x',accesses=[access])],
+                      coverage={},limitations=[])
         cfg = dict(review=dict(enabled=False,prepare_packets=True),analysis={})
         review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
         packet = json.loads((self.root/'.ecra/review/F.input.json').read_text(encoding='utf-8'))
         self.assertEqual({f['function_id'] for f in packet['functions']},{'Root','Left','Right','Use'})
         self.assertFalse(next(f for f in packet['source_context_manifest'] if f['function_id']=='Left')['complete'])
-        self.assertIn('function:Right',{r['id'] for r in packet['investigation_requirements']})
+        self.assertEqual([r['id'] for r in packet['investigation_requirements']], ['access:A'])
+        self.assertIn('Right', {f['function_id'] for f in packet['functions']})
+        self.assertNotIn('accesses', packet['variable'])
+        self.assertEqual(packet['control_flow'][0]['node_count'], 1000)
+        self.assertNotIn('nodes', packet['control_flow'][0])
+        self.assertIn('access:A', (self.root/'.ecra/review/F.prompt.txt').read_text(encoding='utf-8'))
 
     def test_one_broken_packet_does_not_abandon_remaining_variables(self):
         from ecra.common import write_json

@@ -11,6 +11,7 @@ from .review import (collect_evidence, parse_answer, resolve_command, verify_rec
                      validate_investigation, INVESTIGATION_PROMPT)
 from .review_contract import CONTRACT_PROMPT, SCHEMA_VERSION
 from .review_risk import validate_risk_result
+from .review_context import review_context_section
 
 
 AUDIT_PROMPT = '''对刚才的结论做反证复核。先前答案仅是待证假设，不是事实或验收真值。
@@ -25,11 +26,13 @@ AUDIT_PROMPT = '''对刚才的结论做反证复核。先前答案仅是待证�
 请自行读取被遗漏函数及调用者，明确修正或维持本项结论。当前证据足够时给 CONFIRMED / REVIEWED_SAFE / FALSE_POSITIVE；无法证明具体风险或安全时给 NEED_MORE_CONTEXT，写出具体缺失条件。不要为了二选一强行下结论。
 首轮的静态规则和风险标签都只是待推翻的假设。风险答案须通过证据包里的可成立冲突对与源码引用校验；若静态事实错漏，按首轮相同的 risk_override 字段提供两个实际访问、调度、保护及错误结果的源码证据。不要因原答案是 CONFIRMED/LIKELY 就维持风险。
 最终只输出一个与首轮相同字段的 JSON 对象，finding_id 必须保持不变。evidence 每项必须含 file、line、该行连续原文 quote、claim；quote 将逐字验证。reason 首句回答有问题、无问题或证据不足，并说明反证核对后是否修正首轮判断。
+evidence.file 必须是已核对的工程相对路径；头文件目录请从源码或 project_evidence_path.source_files 查证，不要根据 .c 路径猜测。
 必须包含非空字符串字段 reason、interleaving、protection、impact、fix、verification，以及 evidence 列表和合法 status。finding_id 必须逐字复制本条消息末尾 ID，不得根据上轮回答或记忆改写。
 '''
 
 
-def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, challenges=None):
+def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, challenges=None,
+                  review_context_path=None):
     folder = out/'review'
     audit_folder = folder/'audit'
     audit_folder.mkdir(parents=True, exist_ok=True)
@@ -43,7 +46,10 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
         packet = folder/(fid+'.input.json')
         expected_type = ('VARIABLE' if read_json(packet)['finding'].get('symbol_id') else 'EVIDENCE_GAP') if packet.is_file() else None
         requirements = read_json(packet).get('investigation_requirements', []) if packet.is_file() else []
-        prompt = AUDIT_PROMPT + CONTRACT_PROMPT + INVESTIGATION_PROMPT + '\n本项 ID：' + fid
+        prompt = (AUDIT_PROMPT + review_context_section(review_context_path)
+                  + CONTRACT_PROMPT + INVESTIGATION_PROMPT + '\n本项 ID：' + fid)
+        prompt += '\n本项 investigation 必须回答的精确 ID（仅以下清单；调用边、函数、IRQ 和生命周期仍须核查，但不逐 ID 复述）：\n'
+        prompt += '\n'.join(r['id'] for r in requirements)
         if expected_type:
             prompt += '\n本项 review_type 必须为 ' + expected_type
         if challenges and fid in challenges:
@@ -144,15 +150,22 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
                               stdout_sha256=result['execution']['stdout_sha256'])
                 break
             except Exception as exc:
+                invalid_config = 'Configuration is invalid at ' in str(exc)
+                timed_out = isinstance(exc, TimeoutError) or type(exc).__name__ == 'TimeoutExpired'
+                message = (f'OpenCode 反证调用超过 {settings.get("timeout_seconds", 300)} 秒'
+                           if timed_out else str(exc))
                 for stream,suffix in (('stdout','.jsonl'),('stderr','.stderr.txt')):
                     data=getattr(exc,stream,None)
                     if data:
                         (folder/(name+suffix)).write_text(data.decode('utf-8','replace') if isinstance(data,bytes) else data,encoding='utf-8')
-                result.update(error=f'反证复核未通过：{type(exc).__name__}: {str(exc)[:1000]}',
+                result.update(error=f'反证复核未通过：{type(exc).__name__}: {message[:1000]}',
                               error_type=type(exc).__name__, failure_stage='audit')
                 record.update(state='FAILED', finished=datetime.now(timezone.utc).isoformat(),
-                              error_type=type(exc).__name__, error_message=str(exc),
-                              timeout=isinstance(exc, TimeoutError) or type(exc).__name__ == 'TimeoutExpired')
+                              error_type=type(exc).__name__, error_message=message,
+                              timeout=timed_out)
+                if invalid_config:
+                    result.update(error_type='OpenCodeConfigurationError', failure_stage='configuration')
+                    record['error_type'] = 'OpenCodeConfigurationError'
                 result['execution'].update(finished=record['finished'],
                     returncode=record.get('returncode'), timeout=record['timeout'])
                 for stream in ('stdout', 'stderr'):
@@ -163,6 +176,8 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
                 prompt += ('\n上次返回未通过校验，请纠正：' + result['error']
                            + '\n重新核对所有反证；候选不成立应给 REVIEWED_SAFE/FALSE_POSITIVE，'
                              '证据不足给 NEED_MORE_CONTEXT。不得为维持风险结论编造 risk_override。')
+                if invalid_config:
+                    break
         write_json(cache,result)
         return result
 
@@ -185,15 +200,21 @@ def audit_reviews(root, out, cfg, reviews, progress=print, on_result=None, chall
         batch = reviews[start:start + batch_size]
         number = start // batch_size + 1
         progress(f'OpenCode 反证复核：当前批次 {number}/{batch_count}，本批 {len(batch)} 项，已完成 {len(results)}/{len(reviews)}')
-        executor=ThreadPoolExecutor(max_workers=min(int(settings.get('workers',1)), len(batch)))
-        try:
-            futures=[executor.submit(process_safely,r) for r in batch]
-            for future in as_completed(futures):
-                results.append(future.result())
+        if len(batch) == 1 or int(settings.get('workers',1)) == 1:
+            for row in batch:
+                results.append(process_safely(row))
                 if on_result:
                     on_result(results)
-        finally:
-            executor.shutdown(wait=True,cancel_futures=True)
+        else:
+            executor=ThreadPoolExecutor(max_workers=min(int(settings.get('workers',1)), len(batch)))
+            try:
+                futures=[executor.submit(process_safely,r) for r in batch]
+                for future in as_completed(futures):
+                    results.append(future.result())
+                    if on_result:
+                        on_result(results)
+            finally:
+                executor.shutdown(wait=True,cancel_futures=True)
         progress(f'OpenCode 反证批次 {number}/{batch_count} 完成，累计完成 {len(results)}/{len(reviews)}'
                  + ('，自动进入下一批' if number < batch_count else ''))
     mapping={r['finding_id']:r for r in results}

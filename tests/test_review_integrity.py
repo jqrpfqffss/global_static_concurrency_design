@@ -262,6 +262,8 @@ class IntegrityTests(unittest.TestCase):
 
     def test_pipeline_exports_audited_verdict_and_reuses_both_passes(self):
         out=self.root/'.ecra'
+        context_path=self.root/'review_context.md'
+        context_path.write_text('<!-- 模板说明 -->\nIRQ_A 与 IRQ_B 因互斥使能不会同时运行。', encoding='utf-8')
         facts=dict(variables=[],contexts=[],functions=[],calls=[])
         report=dict(findings=[dict(finding_id='F',accesses=[])],coverage={},limitations=[])
         cfg=dict(review=dict(enabled=True,audit_verdicts=True,workers=2,retries=0),analysis={})
@@ -271,13 +273,26 @@ class IntegrityTests(unittest.TestCase):
                 'ecra.review_audit.resolve_command',return_value=['fake-protocol-test']), patch(
                 'ecra.review.execute',return_value=CompletedProcess([],0,self.event(self.answer),'')) as first, patch(
                 'ecra.review_audit.execute',return_value=CompletedProcess([],0,self.event(final),'')) as second:
-            result=review_all(self.root,out,cfg,facts,report,'scan',lambda _:None)
+            result=review_all(self.root,out,cfg,facts,report,'scan',lambda _:None,
+                              review_context_path=context_path)
             queue=json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
             self.assertEqual(queue[0]['answer'],final)
             self.assertEqual(result[0]['previous_reviews'][0]['answer'],self.answer)
-            review_all(self.root,out,cfg,facts,report,'scan',lambda _:None)
+            for call in (first, second):
+                prompt=call.call_args.args[0][-1]
+                self.assertIn('IRQ_A 与 IRQ_B',prompt)
+                self.assertNotIn('模板说明',prompt)
+            review_all(self.root,out,cfg,facts,report,'scan',lambda _:None,
+                       review_context_path=context_path)
             self.assertEqual(first.call_count,1)
             self.assertEqual(second.call_count,1)
+            context_path.write_text('IRQ_A 与 IRQ_B 可能嵌套。', encoding='utf-8')
+            review_all(self.root,out,cfg,facts,report,'scan',lambda _:None,
+                       review_context_path=context_path)
+            self.assertEqual(first.call_count,2)
+            self.assertEqual(second.call_count,2)
+            self.assertIn('可能嵌套', first.call_args.args[0][-1])
+            self.assertIn('可能嵌套', second.call_args.args[0][-1])
 
     def test_101_targets_all_batches_archived(self):
         report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(101)],
@@ -337,6 +352,14 @@ class IntegrityTests(unittest.TestCase):
         self.assertFalse(review_integrity(report, [dict(finding_id='F', state='FAILED')])['complete'])
         self.assertIn('不得携带当前有效 status', ' '.join(review_integrity(report, [dict(
             finding_id='F', state='FAILED', status='NEED_MORE_CONTEXT', error='timeout')])['errors']))
+
+    def test_terminal_failure_is_archived_but_not_successfully_done(self):
+        report = dict(findings=[dict(finding_id='F')])
+        row = dict(finding_id='F', state='FAILED', error='timeout')
+        summary = review_integrity(report, [row], require_terminal=True)
+        self.assertTrue(summary['complete'])
+        self.assertFalse(summary['all_done'])
+        self.assertEqual((summary['done'], summary['failed']), (0, 1))
 
     def test_archive_comparison_detects_queue_result_disagreement(self):
         report = dict(findings=[dict(finding_id='F')])
@@ -419,6 +442,124 @@ class IntegrityTests(unittest.TestCase):
         self.assertEqual(resumed[0]['state'], 'DONE')
         self.assertEqual(first.call_count, 1)
         self.assertEqual(second.call_count, 2)
+
+    def test_each_item_is_audited_and_archived_before_next_starts(self):
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(3)],
+                      coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, audit_verdicts=True, workers=1,
+                               max_items=2, timeout_seconds=300, retries=0), analysis={})
+        out = self.root/'.ecra-item-order'
+        folder = out/'review'
+        events = []
+
+        def first(argv, **kwargs):
+            fid = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))['finding']['finding_id']
+            self.assertEqual(kwargs['timeout'], 300)
+            if fid != 'F0':
+                prior = json.loads((folder/'queue.json').read_text(encoding='utf-8'))[int(fid[1:])-1]
+                receipt = json.loads((folder/(prior['finding_id']+'.result.json')).read_text(encoding='utf-8'))
+                self.assertEqual(prior, receipt)
+                self.assertEqual(prior['state'], 'FAILED' if fid == 'F2' else 'DONE')
+                self.assertIn('audit_key', prior)
+            events.append('first:'+fid)
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        def audit(argv, **kwargs):
+            fid = Path(argv[argv.index('--file')+1]).name.split('.')[0]
+            self.assertEqual(kwargs['timeout'], 300)
+            events.append('audit:'+fid)
+            if fid == 'F1':
+                return CompletedProcess(argv, 1, '', 'simulated audit failure')
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review_audit.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', side_effect=first), patch(
+                'ecra.review_audit.execute', side_effect=audit):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(events, ['first:F0', 'audit:F0', 'first:F1', 'audit:F1',
+                                  'first:F2', 'audit:F2'])
+        self.assertEqual([r['state'] for r in rows], ['DONE', 'FAILED', 'DONE'])
+        summary = assert_review_archive(report, rows, folder)
+        self.assertEqual((summary['targets'], summary['archived'], summary['missing']), (3, 3, 0))
+
+    def test_project_configuration_failure_stops_relaunches_and_can_resume(self):
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(3)],
+                      coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, audit_verdicts=True, workers=1,
+                               retries=2), analysis={})
+        out = self.root/'.ecra-bad-opencode-config'
+        calls = []
+        messages = []
+        broken = True
+
+        def first(argv, **kwargs):
+            fid = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))['finding']['finding_id']
+            calls.append(fid)
+            if broken:
+                return CompletedProcess(argv, 1, '',
+                                        'Error: Configuration is invalid at .opencode/agent/bad.md')
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        def audit(argv, **kwargs):
+            fid = Path(argv[argv.index('--file')+1]).name.split('.')[0]
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review_audit.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', side_effect=first), patch(
+                'ecra.review_audit.execute', side_effect=audit) as audit_call:
+            failed = review_all(self.root, out, cfg, facts, report, 'scan', messages.append)
+            self.assertEqual(calls, ['F0'])
+            audit_call.assert_not_called()
+            self.assertEqual([r['state'] for r in failed], ['FAILED'] * 3)
+            self.assertTrue(all(r['error_type'] == 'OpenCodeConfigurationError' for r in failed))
+            self.assertTrue(all(r['failure_stage'] == 'configuration' for r in failed))
+            self.assertEqual(len(failed[0]['attempts']), 1)
+            self.assertEqual(sum('项目配置无效，已停止后续调用' in m for m in messages), 1)
+            assert_review_archive(report, failed, out/'review')
+
+            broken = False
+            recovered = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+            self.assertEqual([r['state'] for r in recovered], ['DONE'] * 3)
+            self.assertEqual(calls, ['F0', 'F0', 'F1', 'F2'])
+            self.assertEqual(audit_call.call_count, 3)
+            assert_review_archive(report, recovered, out/'review')
+
+    def test_audit_configuration_failure_preserves_first_pass_and_stops_queue(self):
+        report = dict(findings=[dict(finding_id=f'F{i}', accesses=[]) for i in range(2)],
+                      coverage={}, limitations=[])
+        facts = dict(variables=[], contexts=[], functions=[], calls=[])
+        cfg = dict(review=dict(enabled=True, audit_verdicts=True, workers=1,
+                               retries=2), analysis={})
+        out = self.root/'.ecra-audit-config'
+        first_calls = []
+        audit_calls = []
+
+        def first(argv, **kwargs):
+            fid = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))['finding']['finding_id']
+            first_calls.append(fid)
+            return CompletedProcess(argv, 0, self.event(dict(self.answer, finding_id=fid)), '')
+
+        def audit(argv, **kwargs):
+            fid = Path(argv[argv.index('--file')+1]).name.split('.')[0]
+            audit_calls.append(fid)
+            return CompletedProcess(argv, 1, '',
+                                    'Error: Configuration is invalid at .opencode/agent/bad.md')
+
+        with patch('ecra.review.resolve_command', return_value=['fake']), patch(
+                'ecra.review_audit.resolve_command', return_value=['fake']), patch(
+                'ecra.review.execute', side_effect=first), patch(
+                'ecra.review_audit.execute', side_effect=audit):
+            rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(first_calls, ['F0'])
+        self.assertEqual(audit_calls, ['F0'])
+        self.assertEqual([r['state'] for r in rows], ['FAILED', 'FAILED'])
+        self.assertEqual(rows[0]['previous_reviews'][0]['state'], 'DONE')
+        self.assertTrue(all(r['error_type'] == 'OpenCodeConfigurationError' for r in rows))
+        assert_review_archive(report, rows, out/'review')
 
     def test_damaged_cache_is_reexecuted_and_noted(self):
         report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])

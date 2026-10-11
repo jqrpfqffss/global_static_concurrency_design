@@ -39,6 +39,8 @@
 
 工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
 
+可在 [`config/review_context.md`](config/review_context.md) 预先填写当前工程的补充背景，例如两个中断因优先级或互斥使能不会同时运行，并写明适用构建和源码依据。每项 OpenCode 首轮及反证复核都会读取该文件；这些信息会被当作待核实的用户声明，结论仍须依据源码和运行配置。修改该文件后运行 `python run_ecra.py review` 即会重新复核已有候选项，无需重新扫描。使用 `ECRA_CONFIG_HOME` 或 `--config` 时，将同名 Markdown 文件放在实际 `semantics.yaml` 旁边。切换 `project.root` 时同步更新内容。
+
 ```powershell
 py -3.10 run_ecra.py
 ```
@@ -54,6 +56,12 @@ OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围�
 `review.max_items` 是每批最多处理的候选项数，`0` 表示不限制批次大小；一次 `run` 会自动处理全部批次。`review.workers` 可设置为 1–8（默认 1，当前示例为 4），控制批内最多同时运行多少个独立只读会话，实际并发不超过本批项数。主线程逐项保存完整、有序的队列。每项输入补充完整相关函数（最多 1600 行，超出部分按路径继续读取），用于核对中断入口、提前返回和真实保护范围。权限按 [OpenCode 官方说明](https://opencode.ai/docs/permissions/) 配置，禁止修改、shell 和继续委派。
 
 `review.audit_verdicts: true` 会对已返回的答案再做一次 OpenCode 反证复核，也会尝试恢复首轮执行失败的项。它重点查找安全证明遗漏的重置/错误恢复路径、无法成立的抢占、指针与缓冲区混淆、没有源码依据的业务读者，以及修复建议是否在 DMA 忙期间仍修改缓冲区。首轮答案和日志保留在 `previous_reviews`，新结论来自新日志；反证执行失败时保留未决，不能沿用首轮安全判断。两轮由同一 OpenCode 会话继续完成，属于模型自查，不是独立专家或板上实验。
+
+串行复核时，每个候选项依次完成首轮、反证复核（启用时）和 `review/` 收据及队列归档，随后立即开始下一项；`timeout_seconds` 是每次 OpenCode 命令的最长运行时间，并非两项之间的等待时间。命令正常结束会立即校验结果。若超时或校验失败，每轮最多再试 `retries` 次；当前 600 秒、重试 1 次、启用反证时，单项两轮的最坏超时预算约为 40 分钟。`--no-review` 会覆盖配置中的 `review.enabled: true`，只留下 `PENDING` 队列；若扫描输入和分析实现均未变化，可运行 `review` 继续，无需重扫。
+
+默认逐项调用 OpenCode 的对象是候选项；静态判安全的变量留在变量清单。若要让范围内这些变量也逐项调用 OpenCode，完整运行时加入 `--review-safe-sample 9999 --review-shared-sample 9999`；这两个参数会将现有两类静态筛除变量全部加入独立复核队列，具体数量取决于当次扫描结果。
+
+若所有复核项几秒内失败，先查看 `review/*.attempt*.stderr.txt` 并在固件目录运行 `opencode agent list` 检查项目配置。OpenCode 会加载 `.opencode/agent/` 中的 agent 文件；其 YAML 头部的 `model` 只能是单个模型字符串，列表会使整个 OpenCode 命令启动失败。工具发现 `Configuration is invalid at ...` 后会记录失败原因，并停止对后续项重复启动；修复配置后重新运行 `review`（分析实现或扫描输入变化时需重新运行 `run`）。
 
 判定时分开报告存储一致性与业务影响：没有额外业务消费者，不能据此否认 `++` 或位域/union 的非原子读改写会丢失更新；反过来，原子字节 store/store 的最后写者生效，也不能凭空推导出不存在的业务协议被破坏。变量结论绑定自己的 `symbol_id`，指针指向对象的问题不能重复算成指针本身的问题。
 
@@ -103,7 +111,7 @@ HTML 首页按变量给出“已确认风险 / 疑似并发风险 / 无法判断
 
 无关库调用、未编译文件不会一概阻塞所有未逃逸 static；可能访问导出全局变量的外部代码、解析失败、DMA 和未恢复入口仍明确保留阻塞原因。指针本体与 DMA 指向缓冲区分开判定。
 
-OpenCode 每项证据包包含全部上游调用者和 `investigation_requirements` 核对清单。首轮和反证复核均须逐条回应访问点、相关函数、候选规则及阻塞项；遗漏、重复、引用无效会退回重试。超过源码附带上限的函数逐项标记，要求继续分段读取。单项准备失败不会中止本批或后续批次；中断时未处理项、失败项、`LIKELY` 和 `NEED_MORE_CONTEXT` 均保留待办。`review_summary.variable_coverage` 区分静态安全、入队、最终定论和剩余变量。
+OpenCode 每项证据包包含全部上游调用者和 `investigation_requirements` 核对清单。首轮和反证复核均须逐条回应每个访问点、候选规则及阻塞项；函数、调用边、IRQ 和生命周期仍在证据包中供核查，无需在最终 JSON 中逐 ID 复述。遗漏、重复、引用无效会退回重试。超过源码附带上限的函数逐项标记，要求继续分段读取。单项准备失败不会中止本批或后续批次；中断时未处理项、失败项、`LIKELY` 和 `NEED_MORE_CONTEXT` 均保留待办。`review_summary.variable_coverage` 区分静态安全、入队、最终定论和剩余变量。
 
 更新后必须重新运行完整扫描，旧报告不能只刷新：
 

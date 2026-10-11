@@ -60,7 +60,7 @@
 
 ## 大型项目逐项核对扩展
 
-新生成的证据包包含 `investigation_requirements`。首轮和反证答案增加 `investigation` 数组：每个清单 ID 必须恰好出现一次，包含非空 `assessment` 和引用 `evidence` 的 1-based `evidence_refs`。确认风险、安全或误报的最终结论要求每项有源码引用；证据不足时说明具体缺失信息并保留 `NEED_MORE_CONTEXT`。
+新生成的证据包包含 `investigation_requirements`，仅列本项访问点、候选规则和阻塞项。完整函数、调用边、IRQ、生命周期和控制流可供核查，但不要求在答案中逐 ID 复述。首轮和反证答案增加 `investigation` 数组：每个清单 ID 必须恰好出现一次，包含非空 `assessment` 和引用 `evidence` 的 1-based `evidence_refs`。确认风险、安全或误报的最终结论要求每项有源码引用；证据不足时说明具体缺失信息并保留 `NEED_MORE_CONTEXT`。
 
 复核归档采用每项一条记录：`queue.json`、`<finding_id>.result.json`、全局 JSON、HTML 与 Markdown 均保留当前状态。`DONE + NEED_MORE_CONTEXT` 表示模型已正常完成但源码证据不足；`FAILED` 表示执行或校验没有得到可信答案，记录失败阶段、历次尝试、Prompt、packet 及日志。`PENDING`、`RUNNING` 和 `STALE` 不作为有效安全结论。报告显示目标、归档、完成、失败、待复核、失效、遗漏和重复数量；遗漏或重复时不会显示 `REVIEW_COMPLETE`。`max_items` 仅限制每批大小，所有批次会连续执行；重新运行 `review` 会验证并复用可信 `DONE`，继续处理失败或未完成项。源码变化后旧记录标为 `STALE`，需要完整 `run` 重新扫描。
 

@@ -95,3 +95,11 @@
 ## 遗留证明边界
 
 当前工程没有满足 `SHARED_SINGLE_WRITER_READERS` 严格模型的变量，`SHARED_NO_REVIEW=0` 没有通过放宽门槛制造数量。20 个 SUSPECT 仍需人工判断业务协议是否容许交错；9 个附加 DMA 回调入口 blocker 也不能仅凭静态调用边证明具体硬件会否触发。若需复现请求中的 220 TU 故障，应将 `project.root` 指向那个构建变体并提供其真实 `compile_commands.json`；本报告不把 20 TU 工程的结果外推至未扫描的变体。
+
+## 2026-10-10 回归修复与复验
+
+最近的复核完整性改动引入一处报告状态错误：20 项复核全部 `PENDING` 时，`run_status=INCOMPLETE`，但最终 JSON 的 `review_integrity.complete=true`，HTML 仍显示“复核覆盖完整”。根因是 `ecra/report.py::generate()` 调用了未要求终态的账本校验，把目标 ID 已归档误当成复核完成。
+
+现在最终报告要求每个复核目标有终态记录，并单独提供 `all_done` 表示全部成功完成。`FAILED` 收据可以构成完整账本，但不会被页面说成复核全部完成；`PENDING` 或 `RUNNING` 使最终 `complete=false`。`review_summary`、JSON 和 HTML 共用这份状态。修改涉及 `ecra/report.py`、`ecra/review_integrity.py`、`ecra/html_report.py`，并在 `tests/test_ecra.py`、`tests/test_review_integrity.py` 加入端到端与失败反例。
+
+回归测试 `python -m unittest discover -s tests -p 'test_*.py' -q` 运行 603 项，全部通过，1 项按原条件跳过。再次删除 `.ecra` 和 `build/manual`，重新配置/构建并提取 20/20 TU；最终为 SAFE 29、SHARED 0、SUSPECT 20、UNKNOWN 0，初始化证明 3、冲突对 426、同源码访问对 8、附加执行入口 blocker 9，与已保存基线逐变量完全相同。49 个变量全量一致性审计无异常。新报告中 `review_integrity={targets:20, done:0, pending:20, complete:false, all_done:false}`，`review_summary` 同样未完成，HTML 显示“复核结果不完整”。`--no-review` 按当前直接执行模式保留人工复核队列，因此扫描状态为 `INCOMPLETE`。

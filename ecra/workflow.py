@@ -213,7 +213,8 @@ def saved_run(root, config_path=None, render_only=False):
                     last=time.monotonic()
 
             try:
-                reviews = review_all(root, out, cfg, facts, report, state['fingerprint'], on_result=checkpoint)
+                reviews = review_all(root, out, cfg, facts, report, state['fingerprint'], on_result=checkpoint,
+                                     review_context_path=config_file.parent/'review_context.md')
             except KeyboardInterrupt:
                 reviews = read_queue(out)
                 report['run_status']='INTERRUPTED'

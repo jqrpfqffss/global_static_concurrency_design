@@ -1337,7 +1337,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     content += '<p class="muted">' + esc(conclusion['scope']) + ' 收到有效回答 ' + str(conclusion['reviewed']) + '/' + str(conclusion['total']) + ' 项（含独立证据缺口；证据不足的回答仍需继续排查）。</p></section>'
     from .review_integrity import review_integrity
     integrity = report.get('review_integrity') or review_integrity(report, reviews)
-    content += '<p class="review-coverage"><strong>' + ('复核覆盖完整' if integrity['complete'] else '复核结果不完整') + '</strong> · OpenCode目标总数 ' + str(integrity['targets']) + ' · 成功完成数 ' + str(integrity['done']) + ' · 复核失败数 ' + str(integrity['failed']) + ' · 待复核数 ' + str(integrity['pending']) + ' · 结果失效数 ' + str(integrity['stale']) + ' · 遗漏数 ' + str(integrity['missing']) + ' · 重复数 ' + str(integrity['duplicate']) + '</p>'
+    content += '<p class="review-coverage"><strong>' + ('复核目标全部完成' if integrity['all_done'] else '复核结果不完整') + '</strong> · OpenCode目标总数 ' + str(integrity['targets']) + ' · 成功完成数 ' + str(integrity['done']) + ' · 复核失败数 ' + str(integrity['failed']) + ' · 待复核数 ' + str(integrity['pending']) + ' · 结果失效数 ' + str(integrity['stale']) + ' · 遗漏数 ' + str(integrity['missing']) + ' · 重复数 ' + str(integrity['duplicate']) + '</p>'
     if integrity['errors']:
         content += '<details><summary>复核结果不完整：查看不变量错误</summary>' + raw(integrity['errors']) + '</details>'
     structured_count = sum(r.get('state') == 'DONE' and r.get('answer', {}).get('schema_version') == 2 for r in records.values())

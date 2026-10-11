@@ -170,8 +170,10 @@ review:
 
   # 启用复核时，可指定已登录的 provider/model；不需要则保持注释。
   # model: provider/model
-  timeout_seconds: 300
-  retries: 5
+  # 每次 OpenCode 调用的最长等待时间，不是变量之间的等待间隔；返回即校验、归档并推进。
+  timeout_seconds: 600
+  # 失败后额外尝试次数；首轮和反证轮分别适用，避免单项长期阻塞后续变量。
+  retries: 1
   # 首轮结果再做独立的反证复核；安全与风险结论均需核查，失败会单独归档。
   audit_verdicts: true
 
