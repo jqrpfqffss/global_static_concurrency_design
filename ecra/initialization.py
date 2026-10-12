@@ -4,7 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .interrupts import irq_key
-from .async_semantics import is_async_enable, async_irq_arg
+from .async_semantics import is_async_enable, async_irq_arg, canonical_cmsis_api
 
 
 ENABLE = {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ'}
@@ -358,9 +358,10 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
     opaque_callers = set()
     for call in facts.get('calls', []):
         caller, callee = call.get('caller_function_id'), call.get('callee_function_id')
-        if callee in functions and call.get('callee_name') not in NEUTRAL:
+        api_name = canonical_cmsis_api(call.get('callee_name', ''))
+        if callee in functions and api_name not in NEUTRAL:
             reverse[callee].add(caller)
-        elif not is_async_enable(call.get('callee_name', ''), cfg) and call.get('callee_name') not in NEUTRAL:
+        elif not is_async_enable(api_name, cfg) and api_name not in NEUTRAL:
             opaque_callers.add(caller)
     relevant_functions = ({fid for fid, _ in writer_nodes}
                           | {fid for fid, _ in switch_nodes}

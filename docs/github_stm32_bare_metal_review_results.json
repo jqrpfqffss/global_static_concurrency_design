@@ -1,0 +1,348 @@
+{
+  "upstream": "https://github.com/ViniBR01/stm32-bare-metal",
+  "upstream_commit": "065875948326eab4d82cdaca59dd8bbd96d3516e",
+  "firmware_target": "cli_simple_standalone",
+  "scan_fingerprint": "66f5db39b53d75f9853ce57f3e956604a1c11d4ee069443fcbb46c9c159e1490",
+  "analysis_status": "INCOMPLETE",
+  "run_status": "INCOMPLETE",
+  "review_integrity": {
+    "targets": 40,
+    "archived": 40,
+    "done": 40,
+    "failed": 0,
+    "pending": 0,
+    "stale": 0,
+    "missing": 0,
+    "duplicate": 0,
+    "errors": [],
+    "complete": true,
+    "all_done": true
+  },
+  "verdict_counts": {
+    "CONFIRMED": 4,
+    "FALSE_POSITIVE": 5,
+    "REVIEWED_SAFE": 31
+  },
+  "findings": [
+    {
+      "finding_id": "GS-24cc7563e81075f4",
+      "variable_name": "error_flags.noise_error",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "反证复核后维持无问题。error_flags.noise_error 只有 deinit(写0) 与 USART2 ISR(写1) 两个可达单字节写者，deinit 先关 NVIC 与外设误差中断再清零，ISR 无法插入；三 ISR 写同值且 USART1/6 未使能、同级不抢占，且无可达读者，故多写者/多上下文候选不成立。",
+      "receipt": ".ecra/review/GS-24cc7563e81075f4.result.json"
+    },
+    {
+      "finding_id": "GS-275190917c231e54",
+      "variable_name": "g_cli.history_stash_len",
+      "static_classification": "SUSPECT",
+      "review_status": "FALSE_POSITIVE",
+      "summary": "反证核对后无实际并发缺陷。history_stash_len 只有 main 启动时 cli_init 写 0 与 USART2 中断内 cli_history_up 写 len 两处，后者要求 history_count>0（只在初始化后由 main 置位），且无读取者；其余候选中断未使能且同优先级，故多写者/多上下文为误报。",
+      "receipt": ".ecra/review/GS-275190917c231e54.result.json"
+    },
+    {
+      "finding_id": "GS-2b90b8077d69bf49",
+      "variable_name": "g_cli.history_count",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，反证复核后维持 REVIEWED_SAFE。g_cli.history_count 运行期唯一写者是主循环 ++，USART 中断只读；无第二个写者故不会丢失更新，4 字节对齐读取原子；stop/wake 与错误路径均不重置该计数，多字段更新顺序也不会让读者看到超前值。",
+      "receipt": ".ecra/review/GS-2b90b8077d69bf49.result.json"
+    },
+    {
+      "finding_id": "GS-3a34213ab96da5da",
+      "variable_name": "g_cli.buffer_pos",
+      "static_classification": "SUSPECT",
+      "review_status": "CONFIRMED",
+      "summary": "反证后维持有问题（CONFIRMED）。g_cli.buffer_pos 被 USART2 接收中断与前台 main 双写且无临界区；中断可抢占 main，命令处理期间输入字符可能被清零丢弃，或主循环匹配命令时因中断改写 buffer_pos/终止符而误判。已排除 USART1/USART6（未使能）与 main 单写者情形；内存越界未证实。",
+      "receipt": ".ecra/review/GS-3a34213ab96da5da.result.json"
+    },
+    {
+      "finding_id": "GS-46ee54d955992314",
+      "variable_name": "rx_dma_last_ndtr",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（维持 REVIEWED_SAFE）。本项虽是文件静态变量，但当前构建的 DMA RX 功能未接线：uart_start_rx_dma 无调用者、rx_dma_active 恒0、ISR 的456/470不执行、DMA回调354/369不可达，运行期只有 uart_deinit 单线程写0。",
+      "receipt": ".ecra/review/GS-46ee54d955992314.result.json"
+    },
+    {
+      "finding_id": "GS-4705c51c77f98cbd",
+      "variable_name": "callbacks[*]",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "复检后无问题。callbacks 全局仅一个普通整字写入点，各 ISR 只读写本槽下标，跨定时器候选是不同存储；四个定时器 ISR 同优先级不互相抢占，且仅 TIMER_3 注册。同格 main 与 TIM3 ISR 均为原子指针 store，注册前已先置计数为正，自清除无法与注册并发。无成立反证。",
+      "receipt": ".ecra/review/GS-4705c51c77f98cbd.result.json"
+    },
+    {
+      "finding_id": "GS-48f0a5885fdd7895",
+      "variable_name": "rx_dma_buf_size",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，反证复核后维持 REVIEWED_SAFE。rx_dma_buf_size 本构建唯一可达访问是 main 在 uart_deinit 写 0；ISR 读取被 rx_dma_active（恒 0，启动函数无调用者）和 rx_dma_callback（从未注册）门控，DMA RX 回调亦不可达，无并发读取者。",
+      "receipt": ".ecra/review/GS-48f0a5885fdd7895.result.json"
+    },
+    {
+      "finding_id": "GS-498d7bd4247b0011",
+      "variable_name": "g_cli.buffer",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "复核后改判：本项对象 g_cli.buffer 是指针本体，只在启动 cli_init 写一次，运行期主循环与 USART2 中断都只读它，故无本项并发缺陷。首轮把 pointee（g_cmd_buffer）上的字符读写竞争误算到指针本体；该竞争属另一对象，须另案跟踪。USART1/USART6 未使能，相关候选排除。",
+      "receipt": ".ecra/review/GS-498d7bd4247b0011.result.json"
+    },
+    {
+      "finding_id": "GS-578c8d813ea5e733",
+      "variable_name": "g_cli.history_stash[*]",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "维持无问题（REVIEWED_SAFE，限当前 cli_simple 构建）。g_cli.history_stash 只由启动 cli_init 和 USART2 中断的 cli_history_up 写；USART1/USART6 中断未使能，三 USART 同优先级 2 互不抢占，前台写又在 history_browse 置 -1 后，故不重叠。",
+      "receipt": ".ecra/review/GS-578c8d813ea5e733.result.json"
+    },
+    {
+      "finding_id": "GS-5829a719fb3c63d6",
+      "variable_name": "stream_state[*].tc_callback",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题：反证后维持 REVIEWED_SAFE。全部写点仅 init 第225行与 release 第285行，均在 main；同 stream 中断在写窗口内禁用，不同 stream 元素独立，ISR 无第三种写者。静态 [*] 通配导致的候选交错不成立。",
+      "receipt": ".ecra/review/GS-5829a719fb3c63d6.result.json"
+    },
+    {
+      "finding_id": "GS-5b576a4de342dfe6",
+      "variable_name": "g_cli.command_list[*].name",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题。command_list[*].name 只在开机 cli_init 里写一次，运行期只读；读取均以 num_commands 为循环门，而该字段在初始化末尾才发布，故读写生命周期不重叠，候选并发规则均不成立。",
+      "receipt": ".ecra/review/GS-5b576a4de342dfe6.result.json"
+    },
+    {
+      "finding_id": "GS-655a2cd85646100f",
+      "variable_name": "spi_dma_active[*]",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题：spi_dma_active 只被写、从不被读，属死存储；两处写（main 行331、DMA 完成 ISR 行260）即使命中同一实例元素，也被 DMA 完成协议串行化，无观察者能读到错误值。",
+      "receipt": ".ecra/review/GS-655a2cd85646100f.result.json"
+    },
+    {
+      "finding_id": "GS-81de704195ac1ee0",
+      "variable_name": "stream_state[*].error_callback",
+      "static_classification": "SUSPECT",
+      "review_status": "FALSE_POSITIVE",
+      "summary": "本项无问题，反证后维持误报结论。error_callback 只在 main 的 dma_stream_init/release 写，读点仅在 DMA 中断；init 先写后开 NVIC，release 先关 NVIC 后写，同元素读写永不重叠，且各调用者都传 NULL，间接调用恒不执行。",
+      "receipt": ".ecra/review/GS-81de704195ac1ee0.result.json"
+    },
+    {
+      "finding_id": "GS-8ca7f2c3efd02a31",
+      "variable_name": "blink_remaining",
+      "static_classification": "SUSPECT",
+      "review_status": "FALSE_POSITIVE",
+      "summary": "维持无问题（FALSE_POSITIVE）。反证复核确认 blink_remaining 仅 main 写一次、仅被只注册到 TIM3 的回调读改写，TIM2/4/5 回调槽为空不可达；同核 Cortex-M 上 main 无法抢占执行中的 ISR，故 ISR 的递减读改写不会被 main 写入打断，丢失更新与丢失去注册均无法成立。",
+      "receipt": ".ecra/review/GS-8ca7f2c3efd02a31.result.json"
+    },
+    {
+      "finding_id": "GS-9394e08585f3cf58",
+      "variable_name": "buffer_indices[*]",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题：逐写点核对并寻找反证后，buffer_indices 虽由 main 与 DMA 发送完成中断分别写入，但 double-buffer 约定使 _putchar 只写 active_buffer 元素、回调只写 tx_buffer 元素，二者恒不同，属按 buffer_indices[*] 合并数组元素造成的静态误报。",
+      "receipt": ".ecra/review/GS-9394e08585f3cf58.result.json"
+    },
+    {
+      "finding_id": "GS-a046e7619013b785",
+      "variable_name": "buffer_indices[1]",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（REVIEWED_SAFE），反证复核后维持首轮判断。buffer_indices[1] 的写者被双缓冲不变量分隔：main 只写 active_buffer 元素，UART TX DMA 完成 ISR 只写 tx_buffer 元素，二者恒不同；_putchar 在当前代码中不可从 ISR 到达，故元素 [1] 无同一存储位置的并发写。",
+      "receipt": ".ecra/review/GS-a046e7619013b785.result.json"
+    },
+    {
+      "finding_id": "GS-a32953d8c23809fa",
+      "variable_name": "command_pending",
+      "static_classification": "SUSPECT",
+      "review_status": "CONFIRMED",
+      "summary": "有问题：command_pending 由 USART2 接收中断与 main 无保护共享；main 先读标志执行、最后才无条件清零，检查与清零之间到达的新命令置位会被清零吞掉，命令不执行。字节 store 本身不撕裂，缺陷是检查-清零的协议违规。",
+      "receipt": ".ecra/review/GS-a32953d8c23809fa.result.json"
+    },
+    {
+      "finding_id": "GS-b1fb91629dc3552b",
+      "variable_name": "error_flags.framing_error",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "本项无问题，维持 REVIEWED_SAFE。framing_error 的写入只在 uart.c：uart_deinit(196) 与 USART2 中断(482) 为运行期真实写者。deinit 先 NVIC_DisableIRQ 关掉唯一中断源，且均为单字节原子 store、无读改写、无读取者，冲突不成立。",
+      "receipt": ".ecra/review/GS-b1fb91629dc3552b.result.json"
+    },
+    {
+      "finding_id": "GS-b2051ee43726d47d",
+      "variable_name": "buffer_indices[0]",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（维持 REVIEWED_SAFE）。逐写入点复核：主循环只自增 buffer_indices[active_buffer]，DMA 完成中断只清零 buffer_indices[tx_buffer]；try_swap 恒定令二者不同且仅在空闲时运行，故两写者永不针对同一元素，静态 [*]→[0] 归并是误报。",
+      "receipt": ".ecra/review/GS-b2051ee43726d47d.result.json"
+    },
+    {
+      "finding_id": "GS-b21d38fa05a063d8",
+      "variable_name": "g_cli.history_head",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（对 history_head 本体），反证核对后维持首轮 REVIEWED_SAFE。该字段只被 main 写入，UART 中断只读，且为 4 字节对齐原子访问；保存顺序先写槽位再推进 head，中断据 head 取模算出的下标始终指向已写好槽位，故不会损坏 head 或越界。",
+      "receipt": ".ecra/review/GS-b21d38fa05a063d8.result.json"
+    },
+    {
+      "finding_id": "GS-b444de217a78a0f5",
+      "variable_name": "g_cli.num_commands",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "本项未发现问题。反证复核确认 g_cli.num_commands 只有启动时 cli_init 一次写入，运行期只被 USART2 中断和主循环读取；初始化窗口内其值为 0，读取者不会据其索引 command_list，故候选交错被阻断。",
+      "receipt": ".ecra/review/GS-b444de217a78a0f5.result.json"
+    },
+    {
+      "finding_id": "GS-bc577a01ad120ee1",
+      "variable_name": "g_cli.history_stash[0]",
+      "static_classification": "SUSPECT",
+      "review_status": "FALSE_POSITIVE",
+      "summary": "无问题：反证后维持 FALSE_POSITIVE。history_stash[0] 只有一个运行期写者 cli_history_up（USART2 中断），与一次性初始化写 cli_init 被 history_count==0 守卫时间分离；USART1/USART6 中断从未使能。",
+      "receipt": ".ecra/review/GS-bc577a01ad120ee1.result.json"
+    },
+    {
+      "finding_id": "GS-c6ca751f6cc49b8a",
+      "variable_name": "stream_state[*].cb_ctx",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "反证复核后维持无缺陷。全工程仅 dma.c 的 dma_stream_init(227)与 dma_stream_release(287)写 cb_ctx；init 在 NVIC 使能前写，release 在 NVIC 关闭后清，IRQ 仅使能后读同一元素，写读不重叠。",
+      "receipt": ".ecra/review/GS-c6ca751f6cc49b8a.result.json"
+    },
+    {
+      "finding_id": "GS-c7b38f61327af8f8",
+      "variable_name": "g_cmd_buffer[*]",
+      "static_classification": "SUSPECT",
+      "review_status": "CONFIRMED",
+      "summary": "经反证复核维持有真实并发缺陷。g_cmd_buffer 是 CLI 输入缓冲，USART2 接收中断每收一字节就在 cli_process_char 中改写它，主循环同时用它执行/保存命令，二者无临界区；Cortex-M 下中断可抢占 main，类型预输入时同一数组元素被两方写入并破坏终止符与位置一致性。",
+      "receipt": ".ecra/review/GS-c7b38f61327af8f8.result.json"
+    },
+    {
+      "finding_id": "GS-d45d026234db3787",
+      "variable_name": "error_flags.overrun_error",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题。反证核对后维持 REVIEWED_SAFE：overrun_error 全部写入点中，uart_clear_errors 不可达，主循环可达写点只有 uart_deinit，且它在写前先关中断；唯一使能的 USART2 中断写者被关中断阻止，USART1/USART6 未使能，读-清丢事件路径也不可达。",
+      "receipt": ".ecra/review/GS-d45d026234db3787.result.json"
+    },
+    {
+      "finding_id": "GS-f3f04fd58953a719",
+      "variable_name": "g_cli.history[*]",
+      "static_classification": "SUSPECT",
+      "review_status": "CONFIRMED",
+      "summary": "有问题，维持首轮 CONFIRMED：历史环满 8 条且浏览到最旧项(browse==7)时读索引等于 head，USART2 中断能在主循环 cli_history_save 写 history[head] 期间读到同一槽，无屏蔽，得新旧混合字符串；反证仅排除 USART1/USART6 与未满环情形。",
+      "receipt": ".ecra/review/GS-f3f04fd58953a719.result.json"
+    },
+    {
+      "finding_id": "GS-f5aa64461900e0d8",
+      "variable_name": "g_cli.esc_state",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题。esc_state 运行期只有 USART2 中断一个写者；USART1/USART6 中断未使能 NVIC，且所有 USART 中断同为抢占优先级 2 不能互相抢占。main 仅启动时写一次；反证复核后维持原判。",
+      "receipt": ".ecra/review/GS-f5aa64461900e0d8.result.json"
+    },
+    {
+      "finding_id": "GS-f6c44c25b00ba68d",
+      "variable_name": "tx_busy",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "反证后无问题。tx_busy 置 1 仅由主循环 uart_write_dma 在读到 0 时执行，DMA 传输完成中断只清 0；清 0 前提是此前为 1，故不会在读 0 与写 1 之间插入清零造成丢失更新，deinit 的清 0 与 ISR 同值。",
+      "receipt": ".ecra/review/GS-f6c44c25b00ba68d.result.json"
+    },
+    {
+      "finding_id": "GS-f9faf89d98686c1e",
+      "variable_name": "g_cli.history_browse",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，修正首轮 CONFIRMED：history_browse 的跨上下文写均为对齐 int 原子 store，ISR 的 ++/-- 无更高优先级写者可抢占，主循环写 -1 只造成末值顺序差异，无源码协议被破坏；错误命令执行属相邻 buffer 对象。",
+      "receipt": ".ecra/review/GS-f9faf89d98686c1e.result.json"
+    },
+    {
+      "finding_id": "GS-fb3fadb7da2b7511",
+      "variable_name": "g_cli.buffer_size",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "反证复核后维持无问题（REVIEWED_SAFE）。g_cli.buffer_size 仅由 cli_init 在启动时写入一次(32)，运行期及 Stop/唤醒路径均无写者，中断只读且值恒定；启动窗口读到 0 的后果落在 g_cli.buffer 这一另一字段。",
+      "receipt": ".ecra/review/GS-fb3fadb7da2b7511.result.json"
+    },
+    {
+      "finding_id": "GS-0df75701a25d3981",
+      "variable_name": "rx_dma_callback",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "反证复核后无运行期并发问题，维持 REVIEWED_SAFE。rx_dma_callback 只有三个写点：初值、uart_deinit 关闭 USART IRQ 后置 NULL、以及无调用者的注册函数；DMA 接收回调整条链不可达，ISR 读取又被 rx_dma_active 恒0短路，故候选冲突不成立。",
+      "receipt": ".ecra/review/GS-0df75701a25d3981.result.json"
+    },
+    {
+      "finding_id": "GS-20d1ca517b722b91",
+      "variable_name": "active_buffer",
+      "static_classification": "UNKNOWN",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，维持 REVIEWED_SAFE。active_buffer 为文件内 static，全工程仅 printf_dma.c 五处访问；能到达它的函数只由 main 调用，反证复核确认无任何中断进入 _putchar。",
+      "receipt": ".ecra/review/GS-20d1ca517b722b91.result.json"
+    },
+    {
+      "finding_id": "GS-487d73e1bd2fae7e",
+      "variable_name": "pending_tx",
+      "static_classification": "UNKNOWN",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（REVIEWED_SAFE），反证复核未推翻首轮结论。pending_tx 的 8 处访问全在 foreground/main：ISR 回显用 uart_write，DMA/TIM/SPI 回调只改各自状态，故障入口用 snprintf 与 uart_write。无第二写者、无读-改-写，故覆盖缺口不构成缺陷。",
+      "receipt": ".ecra/review/GS-487d73e1bd2fae7e.result.json"
+    },
+    {
+      "finding_id": "GS-59e12b79bf5d8f46",
+      "variable_name": "rx_callback",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题：rx_callback 是文件静态函数指针，仅 main 单写；写为对齐 32 位原子存储，ISR 读取前判空，且 uart_deinit 先禁用 USART 中断再清指针，故不会出现撕裂指针或空指针调用，最多在注册窗口丢一个字节。",
+      "receipt": ".ecra/review/GS-59e12b79bf5d8f46.result.json"
+    },
+    {
+      "finding_id": "GS-5aee3ed9b3229068",
+      "variable_name": "rx_dma_active",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，维持 REVIEWED_SAFE。rx_dma_active 仅三处写入，唯一可达写入在 uart_deinit 写 0，写前已 NVIC_DisableIRQ（含 DSB/ISB）关掉唯一使能的 USART2 中断；置 1 的 uart_start_rx_dma 无调用者，变量恒 0，字节访问无读改写，冲突不成立。",
+      "receipt": ".ecra/review/GS-5aee3ed9b3229068.result.json"
+    },
+    {
+      "finding_id": "GS-5efe8bfbcdc882bc",
+      "variable_name": "tx_buf[*]",
+      "static_classification": "UNKNOWN",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，维持 REVIEWED_SAFE。tx_buf 只有唯一写者且在唯一前台上下文；DMA 读取被阻塞忙等待隔离，无任何中断访问它，故不存在可成立的并发交错，静态标签只是覆盖缺口。",
+      "receipt": ".ecra/review/GS-5efe8bfbcdc882bc.result.json"
+    },
+    {
+      "finding_id": "GS-7147845e1b9f3830",
+      "variable_name": "printf_buffers[*]",
+      "static_classification": "UNKNOWN",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题，经反证复核维持安全结论。本对象 CPU 端只在 main 内被 _putchar 写、被 try_swap 取指针；DMA 只读另一方缓冲，交换协议保证索引不同；各 ISR 与故障入口均不触达本对象。",
+      "receipt": ".ecra/review/GS-7147845e1b9f3830.result.json"
+    },
+    {
+      "finding_id": "GS-a82172ceb3ad32fe",
+      "variable_name": "rx_dma_buf",
+      "static_classification": "SUSPECT",
+      "review_status": "FALSE_POSITIVE",
+      "summary": "无问题：反证复核未找到可达的并发读取路径。rx_dma_buf 的 ISR/回调读取全部受 rx_dma_active 门控，而该标志仅由本构建从未被调用的 uart_start_rx_dma 置 1，运行期只有 main 单写者写 NULL。",
+      "receipt": ".ecra/review/GS-a82172ceb3ad32fe.result.json"
+    },
+    {
+      "finding_id": "GS-b8d7eb7ac8da62de",
+      "variable_name": "tx_buffer",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（REVIEWED_SAFE），维持判断。tx_buffer 运行期只有 main 在 TX 空闲时写(line87)，唯一 ISR 读取(line39)在 TX 完成中断内，且 tx_busy 由同一回调清 0 后紧接读取，故写时读取已完成，无法交错。",
+      "receipt": ".ecra/review/GS-b8d7eb7ac8da62de.result.json"
+    },
+    {
+      "finding_id": "GS-c6c30251afb2748e",
+      "variable_name": "tx_complete_callback",
+      "static_classification": "SUSPECT",
+      "review_status": "REVIEWED_SAFE",
+      "summary": "无问题（维持 REVIEWED_SAFE）。反证复核枚举了全部写点：tx_complete_callback 仅由 main 的 uart_deinit 与注册函数写入，DMA TX 中断只读；main 不能抢占中断，ISR 判空与调用之间无写者插入，且指针为原子单字，故静态多上下文标签不构成竞争。",
+      "receipt": ".ecra/review/GS-c6c30251afb2748e.result.json"
+    }
+  ]
+}

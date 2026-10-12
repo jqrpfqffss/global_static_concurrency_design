@@ -81,14 +81,14 @@ class SharedNoReviewTests(unittest.TestCase):
         self.assertIn('SHARED_NOT_SINGLE_WRITER', value['shared_no_review_rejections'])
         self.assertIn('SHARED_WRITER_ALSO_READS', value['shared_no_review_rejections'])
 
-    def test_rmw_remains_suspect(self):
+    def test_single_writer_rmw_with_atomic_readers_needs_no_review(self):
         self.scan('''
             static volatile unsigned value;
             void TIM2_IRQHandler(void) { value++; }
             int main(void) { return (int)value; }
         ''')
-        value = self.assert_classification('value', 'SUSPECT')
-        self.assertIn('SHARED_RMW', value['shared_no_review_rejections'])
+        value = self.assert_classification('value', 'SHARED_NO_REVIEW')
+        self.assertEqual(len(value['shared_evidence']['writer_rmw_access_ids']), 1)
 
     def test_relevant_address_escape_is_unknown_instead_of_shared(self):
         self.scan('''

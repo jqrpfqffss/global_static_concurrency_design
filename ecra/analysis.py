@@ -1002,12 +1002,14 @@ def analyze(facts, cfg, coverage, root=None):
     # C declaration has no direct runtime load or store.
     variables_by_id = {row['symbol_id']: row for row in facts['variables']}
     live_roots = set()
+    root_access_kinds = defaultdict(set)
     for access in facts['accesses']:
-        if access.get('reachability') == 'PROVEN_UNREACHABLE':
-            continue
         owner = variables_by_id.get(access.get('symbol_id'), {})
-        live_roots.add(owner.get('root_symbol_id') or owner.get('array_root_symbol_id')
-                       or owner.get('symbol_id'))
+        root_id = (owner.get('root_symbol_id') or owner.get('array_root_symbol_id')
+                   or owner.get('symbol_id'))
+        root_access_kinds[root_id].add(access.get('access_kind'))
+        if access.get('reachability') != 'PROVEN_UNREACHABLE':
+            live_roots.add(root_id)
     for variable in facts['variables']:
         root = variables_by_id.get(
             variable.get('root_symbol_id') or variable.get('array_root_symbol_id'), variable)
@@ -1021,6 +1023,20 @@ def analyze(facts, cfg, coverage, root=None):
                             coverage='NOT_APPLICABLE',
                             classification_reason='ELF 与 map 证实为零尺寸链接地址边界，不是独立 C 存储对象。',
                             linker_anchor_evidence=proof)
+        elif (not root.get('definition_file') and root.get('linkage') == 'EXTERNAL'
+              and root.get('is_weak') and linked_names is not None
+              and root.get('name') not in linked_names
+              and root_access_kinds[root['symbol_id']] <= {'ADDRESS_TAKEN'}):
+            # An unresolved weak declaration evaluates to a null address in
+            # this linked image. Address queries do not access a C object.
+            variable.update(resource_kind='UNDEFINED_WEAK_SYMBOL',
+                            static_classification='NON_STORAGE',
+                            audit_status='UNDEFINED_WEAK_SYMBOL',
+                            analysis_coverage='NOT_APPLICABLE', coverage='NOT_APPLICABLE',
+                            classification_reason='最终 ELF 未定义该弱符号；源码仅取址，当前固件无对应存储对象。',
+                            weak_symbol_evidence=dict(symbol=root['name'],
+                                build_elf=coverage.get('build_closure', {}).get('elf'),
+                                build_map=coverage.get('build_closure', {}).get('map')))
         elif (not root.get('definition_file') and root.get('linkage') == 'EXTERNAL'
               and linked_names is not None and root.get('name') not in linked_names
               and root['symbol_id'] not in live_roots):
@@ -1042,10 +1058,12 @@ def analyze(facts, cfg, coverage, root=None):
         row.get('resource_kind') == 'LINKER_ADDRESS_ANCHOR' for row in facts['variables'])
     coverage['unlinked_declaration_count'] = sum(
         row.get('resource_kind') == 'UNLINKED_DECLARATION' for row in facts['variables'])
+    coverage['undefined_weak_symbol_count'] = sum(
+        row.get('resource_kind') == 'UNDEFINED_WEAK_SYMBOL' for row in facts['variables'])
     analyzed_variables = [v for v in facts['variables']
                           if v.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER',
                                                              'ARRAY_CONTAINER', 'LINKER_ADDRESS_ANCHOR',
-                                                             'UNLINKED_DECLARATION'}
+                                                             'UNLINKED_DECLARATION', 'UNDEFINED_WEAK_SYMBOL'}
                           and v.get('coverage_source') not in {'supplemental', 'inactive_branch'}]
     coherence_by_symbol = multi_field_coherence(analyzed_variables, by_var, contexts,
                                                 facts['calls'], facts['context_bindings'])

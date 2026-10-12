@@ -313,7 +313,7 @@ def shared_no_review_proof(variable, evidence, accesses, contexts, pairs, cfg, s
     """Prove the deliberately narrow single-writer/readers review exemption.
 
     This is not a safety proof.  It only establishes that every known
-    interleaving is one naturally aligned scalar store observed by readers,
+    interleaving is one naturally aligned scalar access observed by readers,
     with none of the destructive protocols listed by the classification
     contract.  Rejections are retained so a known conflict cannot silently
     fall through to SAFE_PROVEN.
@@ -352,8 +352,10 @@ def shared_no_review_proof(variable, evidence, accesses, contexts, pairs, cfg, s
         # Until an ordered def-use proof exists, a writer-side read may be a
         # snapshot/check followed by a later writeback.
         reasons.add('SHARED_WRITER_ALSO_READS')
-    if any(row.get('access_kind') == 'RMW' for row in runtime):
-        reasons.add('SHARED_RMW')
+    # A read/modify/write by the sole physical writer cannot lose another
+    # writer's update. Its intermediate read is private to that writer; the
+    # other domains can only observe a complete aligned scalar value. Other
+    # gates below still reject snapshots, conditional protocols and reentry.
     if any(row.get('access_kind', '').startswith('DMA_') for row in runtime):
         reasons.add('SHARED_DMA')
     if any(row.get('access_kind') in {'WHOLE_OBJECT_READ', 'WHOLE_OBJECT_WRITE'}
@@ -406,13 +408,15 @@ def shared_no_review_proof(variable, evidence, accesses, contexts, pairs, cfg, s
         writer_physical_context=writer,
         reader_physical_contexts=sorted(readers - {writer}),
         writer_access_ids=sorted({row['access_id'] for row in writer_rows}),
+        writer_rmw_access_ids=sorted({row['access_id'] for row in writer_rows
+                                      if row.get('access_kind') == 'RMW'}),
         reader_access_ids=sorted({row['access_id'] for row in reader_rows}),
         atomic_width_bytes=size,
         alignment_bytes=alignment,
         declared_alignment_bytes=variable.get('declared_alignment_bytes', alignment),
         root_alignment_bytes=variable.get('root_alignment_bytes', alignment),
         compiler_visibility='ATOMIC' if variable.get('is_atomic') else 'VOLATILE',
-        excluded_hazards=['RMW', 'MULTI_WRITER', 'STALE_SNAPSHOT', 'CHECK_THEN_ACT', 'DMA',
+        excluded_hazards=['MULTI_WRITER', 'STALE_SNAPSHOT', 'CHECK_THEN_ACT', 'DMA',
                           'BITFIELD', 'UNION_OR_OVERLAP', 'WHOLE_OBJECT_MEMBER_CONFLICT',
                           'ADDRESS_ESCAPE', 'MULTI_FIELD_COHERENCE', 'UNKNOWN_WRITER'])
     return proof, []

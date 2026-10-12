@@ -179,6 +179,27 @@ class MissingDefinitionEvidenceTests(unittest.TestCase):
         self.assertFalse(any(row.get('symbol_id') == boundary['symbol_id']
                              for row in report['findings']))
 
+    def test_absent_weak_address_is_not_a_storage_variable(self):
+        cfg = self.project({'a.c': '''extern int optional __attribute__((weak));
+            extern int weak_read __attribute__((weak));
+            extern int strong;
+            int main(void) { return (int)(unsigned long)&optional
+                                  + (int)(unsigned long)&strong + weak_read; }'''},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        elf, link_map = self.root/'firmware.elf', self.root/'firmware.map'
+        write_elf64(elf, [('main', 0x1000, 2, 1)])
+        link_map.write_text(' 0x00001000 main = .\n', encoding='utf-8')
+        cfg['analysis']['build_closure'] = dict(elf=str(elf), map=str(link_map))
+        facts, report = self.extract(cfg)
+        names = {row['name']: row for row in facts['variables']}
+        self.assertTrue(names['optional']['is_weak'])
+        self.assertEqual('UNDEFINED_WEAK_SYMBOL', names['optional']['resource_kind'])
+        self.assertEqual('NON_STORAGE', names['optional']['static_classification'])
+        self.assertEqual('UNKNOWN', names['weak_read']['static_classification'])
+        self.assertEqual('UNKNOWN', names['strong']['static_classification'])
+        self.assertFalse(any(row.get('symbol_id') == names['optional']['symbol_id']
+                             for row in report['findings']))
+
 
 if __name__ == '__main__':
     unittest.main()

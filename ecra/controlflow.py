@@ -1,5 +1,6 @@
 """Serializable AST-derived control-flow facts (no safety verdicts here)."""
 from .common import digest
+from .async_semantics import canonical_cmsis_api
 
 
 def build_cfg(extractor, function):
@@ -75,7 +76,7 @@ def build_cfg(extractor, function):
             for arg in cursor.get_arguments():
                 incoming = expr(arg, incoming)
             ref = cursor.referenced
-            current = node(cursor, 'call', name=ref.spelling if ref else cursor.spelling,
+            current = node(cursor, 'call', name=canonical_cmsis_api(ref.spelling if ref else cursor.spelling),
                            callee=extractor.fid(ref) if ref and ref.kind.name in FUNCTIONS else None,
                            arguments=[value(a) for a in cursor.get_arguments()])
         elif kind == 'VAR_DECL':

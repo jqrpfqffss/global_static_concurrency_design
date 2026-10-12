@@ -233,6 +233,9 @@ class Extractor:
                 sid = self.symbols[key]
                 typ = c.type.get_canonical()
                 decl = self.loc(c)
+                weak_decl = any(ch.kind.name in {'WEAK_ATTR', 'WEAK_IMPORT_ATTR'}
+                                or (ch.kind.name.endswith('_ATTR') and 'weak' in tokens(ch, 4))
+                                for ch in c.get_children())
                 defining = c.is_definition() or (c.storage_class.name != "EXTERN" and (
                     local and c.storage_class.name == "STATIC" or
                     not local and c.semantic_parent.kind.name == "TRANSLATION_UNIT"
@@ -256,6 +259,7 @@ class Extractor:
                                   is_pointer=typ.kind.name in {"POINTER", "LVALUEREFERENCE", "RVALUEREFERENCE"},
                                   is_struct=typ.kind.name == "RECORD", is_bitfield_container=bitfield,
                                   is_union=type_decl.kind.name == 'UNION_DECL',
+                                  is_weak=weak_decl,
                                   declarations=[], definitions=[], translation_units=[self.tu_name],
                                   definition_file=None, definition_line=None, initializer=" ".join(tokens(c))[:500],
                                   coverage_source=self.coverage_source)
@@ -279,6 +283,8 @@ class Extractor:
                         if element.kind.name == 'RECORD':
                             record['member_definitions'] = self.record_members(element)
                     self.variables[sid] = record
+                else:
+                    record['is_weak'] = record.get('is_weak', False) or weak_decl
                 if defining:
                     size, align = typ.get_size(), typ.get_align()
                     record.update(type=c.type.spelling, initializer=' '.join(tokens(c))[:500],
@@ -603,12 +609,14 @@ class Extractor:
                 # property of an IRQHandler name.  Preserve raw argument
                 # tokens so analysis can use literal, reproducible cases and
                 # report all other cases as unresolved.
-                from .async_semantics import is_async_enable
-                if is_async_enable(name, self.cfg) or name in {'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_SetPriorityGrouping',
+                from .async_semantics import is_async_enable, canonical_cmsis_api
+                api_name = canonical_cmsis_api(name)
+                if is_async_enable(api_name, self.cfg) or api_name in {'HAL_NVIC_SetPriority', 'NVIC_SetPriority', 'HAL_NVIC_SetPriorityGrouping',
                             'NVIC_SetPriorityGrouping', 'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ',
                             'NVIC_DisableIRQ', 'HAL_NVIC_DisableIRQ', 'SysTick_Config',
                             'HAL_SYSTICK_Config'}:
-                    self.irq_priority_events.append(dict(function_id=fid, api_name=name,
+                    self.irq_priority_events.append(dict(function_id=fid, api_name=api_name,
+                        raw_api_name=name,
                         arguments=[' '.join(tokens(arg)) for arg in args],
                         argument_values=[constant_value(arg) for arg in args],
                         conditional_ancestor=any(p.kind.name in {'IF_STMT','WHILE_STMT','FOR_STMT','SWITCH_STMT','DO_STMT','CONDITIONAL_OPERATOR'}

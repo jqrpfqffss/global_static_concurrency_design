@@ -1,6 +1,7 @@
 """NVIC evidence validation and BASEPRI threshold proofs."""
 import re
 from collections import defaultdict
+from .async_semantics import canonical_cmsis_api
 
 
 def literal(text):
@@ -44,7 +45,7 @@ def priority_model(facts, cfg):
             return False
         first = [a.get('offset', -1) for a in facts['accesses'] if a['function_id'] == fid]
         first += [c.get('offset', -1) for c in facts['calls'] if c['caller_function_id'] == fid
-                  and c.get('callee_function_id') in funcs and not c.get('callee_name', '').startswith(('HAL_NVIC_', 'NVIC_'))]
+                  and c.get('callee_function_id') in funcs and not canonical_cmsis_api(c.get('callee_name', '')).startswith(('HAL_NVIC_', 'NVIC_'))]
         return not first or e.get('offset', -1) < min(first)
     if not valid(groups[0]):
         return {}, 'NVIC 分组未证明在 MAIN 访问前无条件执行。'

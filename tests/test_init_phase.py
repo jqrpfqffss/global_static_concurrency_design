@@ -11,6 +11,36 @@ class InitializationPhaseTests(unittest.TestCase):
     project = fixtures.ProjectTest.project
     extract = fixtures.ProjectTest.extract
 
+    def test_cmsis_macro_expansion_keeps_irq_events_and_barrier(self):
+        source = '''
+            enum { TIM4_IRQn = 30 };
+            void __NVIC_EnableIRQ(int); void __NVIC_DisableIRQ(int);
+            void __NVIC_SetPriority(int, unsigned);
+            #define NVIC_EnableIRQ(irq) __NVIC_EnableIRQ(irq)
+            #define NVIC_DisableIRQ(irq) __NVIC_DisableIRQ(irq)
+            #define NVIC_SetPriority(irq, priority) __NVIC_SetPriority(irq, priority)
+            static unsigned value;
+            void TIM4_IRQHandler(void) { (void)value; }
+            int main(void) {
+                NVIC_SetPriority(TIM4_IRQn, 2);
+                NVIC_DisableIRQ(TIM4_IRQn); value = 7;
+                NVIC_EnableIRQ(TIM4_IRQn); while (1) { (void)value; }
+            }
+        '''
+        cfg = self.project({'main.c': source}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        facts, _ = self.extract(cfg)
+        events = [event for event in facts['irq_priority_events'] if event['api_name'] in {
+            'NVIC_SetPriority', 'NVIC_DisableIRQ', 'NVIC_EnableIRQ'}]
+        self.assertEqual([event['api_name'] for event in events],
+                         ['NVIC_SetPriority', 'NVIC_DisableIRQ', 'NVIC_EnableIRQ'])
+        self.assertEqual([event['raw_api_name'] for event in events],
+                         ['__NVIC_SetPriority', '__NVIC_DisableIRQ', '__NVIC_EnableIRQ'])
+        self.assertEqual([event['argument_values'] for event in events], [[30, 2], [30], [30]])
+        variable = next(item for item in facts['variables'] if item['name'] == 'value')
+        contexts = {context['id']: context for context in facts['contexts']}
+        self.assertIsNotNone(prove_initialization(variable, variable['accesses'], facts,
+                                                  contexts, cfg))
+
     def check(self, body, expected, *, extra='', handler='TIM4_IRQHandler'):
         source = '''
             enum { TIM4_IRQn = 30, USART1_IRQn = 37 };

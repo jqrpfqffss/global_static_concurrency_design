@@ -12,12 +12,19 @@ ASYNC_ENABLE_APIS = {
 }
 
 
+def canonical_cmsis_api(api):
+    """CMSIS macros commonly expand NVIC_* calls to __NVIC_* in the AST."""
+    return api[2:] if api.startswith('__NVIC_') else api
+
+
 def is_async_enable(api, cfg):
+    api = canonical_cmsis_api(api)
     return api in ASYNC_ENABLE_APIS or any(
         fnmatch.fnmatchcase(api, item['api']) for item in cfg.get('async_enable', ()))
 
 
 def async_irq_arg(api, cfg):
+    api = canonical_cmsis_api(api)
     if api in {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ'}:
         return 0
     for item in cfg.get('async_enable', ()):
