@@ -179,6 +179,28 @@ class MissingDefinitionEvidenceTests(unittest.TestCase):
         self.assertFalse(any(row.get('symbol_id') == boundary['symbol_id']
                              for row in report['findings']))
 
+    def test_unknown_entry_counts_storage_but_not_linker_address_anchor(self):
+        cfg = self.project({'a.c': '''extern unsigned char boundary;
+            int stored;
+            void __attribute__((constructor)) Mystery_Entry(void) {
+                (void)&boundary;
+                stored = 1;
+            }
+            int main(void) { return 0; }'''},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        elf, link_map = self.root/'firmware.elf', self.root/'firmware.map'
+        write_elf64(elf, [('boundary', 0x20001000, 0, 0),
+                          ('stored', 0x20002000, 1, 4),
+                          ('Mystery_Entry', 0x1000, 2, 4)])
+        link_map.write_text(' 0x20001000 boundary = .\n', encoding='utf-8')
+        cfg['analysis']['build_closure'] = dict(elf=str(elf), map=str(link_map))
+        facts, report = self.extract(cfg)
+        self.assertEqual('NON_STORAGE', next(v for v in facts['variables']
+                                            if v['name'] == 'boundary')['static_classification'])
+        self.assertEqual(1, report['coverage']['non_storage_unknown_entry_accesses'])
+        self.assertEqual(1, report['coverage']['unknown_accesses'])
+        self.assertEqual('INCOMPLETE', report['analysis_status'])
+
     def test_absent_weak_address_is_not_a_storage_variable(self):
         cfg = self.project({'a.c': '''extern int optional __attribute__((weak));
             extern int weak_read __attribute__((weak));

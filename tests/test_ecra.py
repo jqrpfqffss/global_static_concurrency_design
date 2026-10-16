@@ -307,6 +307,37 @@ void main(void) { ECAT_Task(); }
         self.assertTrue(samples[0]['review_safe_sample'])
         self.assertEqual(samples[0]['rules'], ['SAFE_SAMPLE'])
 
+    def test_private_unobserved_writes_are_safe_but_volatile_and_readers_stay_queued(self):
+        cfg = self.project({'a.c': '''static int unused_state;
+            static volatile int device_signal;
+            static int observed;
+            static int escaped;
+            static int incremented;
+            extern void opaque(int *);
+            void USART2_IRQHandler(void) { unused_state = 1; device_signal = 1; (void)observed;
+                                            escaped = 1; opaque(&escaped); incremented++; }
+            int main(void) { unused_state = 2; device_signal = 2; observed = 2;
+                             escaped = 2; incremented++; return 0; }'''},
+                           contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        facts, report = self.extract(cfg)
+        variables = {v['name']: v for v in facts['variables']}
+        self.assertEqual('SAFE_PROVEN', variables['unused_state']['static_classification'])
+        self.assertEqual('SAFE_UNOBSERVED_WRITES', variables['unused_state']['safe_reason_code'])
+        self.assertEqual('COMPLETE', variables['unused_state']['analysis_coverage'])
+        self.assertEqual('SUSPECT', variables['device_signal']['static_classification'])
+        self.assertEqual('SUSPECT', variables['observed']['static_classification'])
+        self.assertNotEqual('SAFE_PROVEN', variables['escaped']['static_classification'])
+        self.assertEqual('SUSPECT', variables['incremented']['static_classification'])
+        self.assertEqual(4, report['coverage']['opencode_review_queue'])
+
+    def test_write_only_task_state_is_not_auto_safe(self):
+        cfg = self.project({'a.c': '''static int shared;
+            void ISR(void) { shared = 1; }
+            void Task(void) { shared = 2; }'''})
+        facts, _ = self.extract(cfg)
+        shared = next(v for v in facts['variables'] if v['name'] == 'shared')
+        self.assertEqual('SUSPECT', shared['static_classification'])
+
     def test_task_registration_is_not_direct_call(self):
         cfg = self.project({"a.c": """int g; int xTaskCreate(void (*f)(void*), const char*, int, void*, int, void*);
 void Job(void *p){g++;}
@@ -716,6 +747,43 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         stale=json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
         self.assertTrue(all(r['state']=='STALE' and '变化' in r['error'] for r in stale))
         self.assertFalse((out/'scan.lock').exists())
+
+    def test_status_reports_empty_review_queue_complete_when_model_disabled(self):
+        from ecra.workflow import status
+        self.project({'a.c': 'int main(void){return 0;}'},
+                     contexts=[dict(id='main', kind='MAIN', functions=['main'])],
+                     review=dict(enabled=False))
+        self.assertEqual(run(self.root, no_review=True), 0)
+        state = status(self.root)
+        self.assertTrue(state['review_complete'])
+        self.assertFalse(state['review_enabled'])
+        self.assertIn('逐项复核已完成', state['next_action'])
+
+    def test_status_rejects_done_label_without_verified_receipt(self):
+        from ecra.workflow import status
+        self.project({'a.c': 'int shared; void ISR(void){shared++;} '
+                             'void Task(void){shared++;}'})
+        self.assertEqual(run(self.root, no_review=True), 2)
+        queue_file = self.root/'.ecra/review/queue.json'
+        queue = json.loads(queue_file.read_text(encoding='utf-8'))
+        self.assertTrue(queue)
+        queue[0].update(state='DONE', status='REVIEWED_SAFE',
+                        answer=dict(status='REVIEWED_SAFE'))
+        queue_file.write_text(json.dumps(queue), encoding='utf-8')
+        state = status(self.root)
+        self.assertFalse(state['review_complete'])
+        self.assertTrue(state['review_receipt_errors'])
+        self.assertIn('收据未通过校验', state['next_action'])
+
+    def test_run_rejects_engine_change_during_scan(self):
+        from unittest.mock import patch
+        self.project({'a.c': 'static int value; int main(void){value=1;return 0;}'},
+                     contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        with patch('ecra.workflow.engine_digest', side_effect=['before', 'after']):
+            self.assertEqual(run(self.root, no_review=True), 3)
+        self.assertFalse((self.root/'.ecra/scan_state.json').exists())
+        failure = json.loads((self.root/'.ecra/run.json').read_text(encoding='utf-8'))
+        self.assertIn('扫描期间分析实现已变化', failure['error'])
 
     def test_resume_rejects_changed_nested_response_file_and_new_sources(self):
         from ecra.workflow import saved_run

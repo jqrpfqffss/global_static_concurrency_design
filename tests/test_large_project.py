@@ -203,6 +203,32 @@ class ReviewScaleTests(unittest.TestCase):
         self.assertNotIn('nodes', packet['control_flow'][0])
         self.assertIn('access:A', (self.root/'.ecra/review/F.prompt.txt').read_text(encoding='utf-8'))
 
+    def test_review_packet_checks_async_registration_before_foreground_init(self):
+        from ecra.review import validate_investigation
+        accesses = [dict(access_id='init', function_id='initialize', file='app.c', line=2,
+                         access_kind='WRITE', contexts=['main']),
+                    dict(access_id='irq', function_id='receive', file='app.c', line=3,
+                         access_kind='READ', contexts=['usart'])]
+        facts = dict(variables=[dict(symbol_id='state', qualified_name='state')],
+                     contexts=[dict(id='main', physical_kind='FOREGROUND'),
+                               dict(id='usart', physical_kind='IRQ')],
+                     functions=[], calls=[])
+        report = dict(findings=[dict(finding_id='F', symbol_id='state', accesses=accesses)],
+                      coverage={}, limitations=[])
+        cfg = dict(review=dict(enabled=False, prepare_packets=True), analysis={})
+        review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
+        packet = json.loads((self.root/'.ecra/review/F.input.json').read_text(encoding='utf-8'))
+        requirement = next(r for r in packet['investigation_requirements']
+                           if r['id'] == 'lifecycle:async_before_init')
+        answer = dict(status='REVIEWED_SAFE', evidence=[dict(file='app.c', line=2),
+                                                        dict(file='app.c', line=3)],
+                      investigation=[dict(id=requirement['id'], assessment='Checked order',
+                                          evidence_refs=[1])])
+        with self.assertRaisesRegex(ValueError, '两个不同源码位置'):
+            validate_investigation(answer, [requirement])
+        answer['investigation'][0]['evidence_refs'] = [1, 2]
+        validate_investigation(answer, [requirement])
+
     def test_one_broken_packet_does_not_abandon_remaining_variables(self):
         from ecra.common import write_json
         (self.root/'app.c').write_text('int x;\n',encoding='utf-8')

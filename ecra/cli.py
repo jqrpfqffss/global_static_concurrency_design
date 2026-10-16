@@ -107,6 +107,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         (out / ("doctor.log" if doctor_only else "run.log")).write_text("\n".join(log_lines), encoding="utf-8")
 
     try:
+        from .workflow import engine_digest
+        engine_at_start = engine_digest()
         previous = {}
         old_report = out / "reports/global_static_concurrency.json"
         if old_report.is_file():
@@ -267,6 +269,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         # Local fixes to extraction/review code must invalidate prior conclusions
         # even before a packaged release changes the version number.
         from .workflow import engine_digest, analysis_config
+        if engine_digest() != engine_at_start:
+            raise ValueError('扫描期间分析实现已变化；请重新运行 run，不能保存混用版本的证据')
         analysis_inputs = {p:h for p,h in after.items() if p != relative(config_file,root)}
         fingerprint = digest([__version__, engine_digest(), analysis_config(cfg), analysis_inputs, [u["arguments"] for u in units]])
         report.update(fingerprint=fingerprint, generated_at=started, tool_version=__version__)

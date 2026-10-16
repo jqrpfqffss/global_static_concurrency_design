@@ -19,6 +19,7 @@ SAFE_REASONS = {
     'SAFE_NON_INTERLEAVING': '静态已判安全：所有修改相关上下文均已证明不能交错',
     'SAFE_EFFECTIVE_PROTECTION': '静态已判安全：完整临界区保护',
     'SAFE_INIT_ONLY_WRITE': '静态已判安全：写入仅发生在异步源启用前的初始化阶段',
+    'SAFE_UNOBSERVED_WRITES': '静态已判安全：内部非 volatile 存储只有完整覆盖的普通写入，没有任何读取或可观察别名',
     'SAFE_DISJOINT_STORAGE': '静态已判安全：不同执行上下文访问不重叠的存储',
 }
 SHARED_REASONS = {
@@ -461,13 +462,34 @@ def classify(evidence, accesses, contexts, pairs, protection, protection_note, i
     if any(p['relation']['relation'] == 'UNKNOWN_PREEMPTION' for p in conflicts):
         reasons.add('IRQ_PREEMPTION_UNRESOLVED')
     state, code, shared_code, shared_evidence = None, None, None, None
+    # In a closed bare-metal image, ordinary writes to private storage that
+    # nobody reads cannot affect a value or protocol. Keep MMIO/volatile,
+    # atomics, overlapping storage, DMA and every unresolved alias in review.
+    physical_writers = {contexts[c]['physical_kind'] for a in runtime for c in a.get('contexts', [])}
+    unobserved_writes = bool(conflicts) and bool(variable) and (
+        variable.get('linkage') == 'INTERNAL'
+        and variable.get('resource_kind') not in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER'}
+        and not any(variable.get(key) for key in ('is_volatile', 'is_atomic', 'is_union',
+                                                   'is_bitfield', 'is_bitfield_container', 'overlap_groups'))
+        and not coherence_evidence and not snapshots and not evidence.critical_gaps
+        and (cfg or {}).get('project', {}).get('concurrency_model', 'single_core_preemptive') == 'single_core_preemptive'
+        and physical_writers == {'FOREGROUND', 'IRQ'}
+        and all(a.get('contexts') and all(contexts[c]['physical_kind'] in {'FOREGROUND', 'IRQ'}
+                                          for c in a['contexts']) for a in runtime)
+        and all(a['access_kind'] in {'WRITE', 'WHOLE_OBJECT_WRITE'} for a in runtime))
     shared_rejections = []
     known_destructive = False
-    if conflicts:
+    if conflicts and not unobserved_writes:
         shared_evidence, shared_rejections = shared_no_review_proof(
             variable or {}, evidence, runtime, contexts, conflicts, cfg or {}, snapshots, coherence_evidence)
         known_destructive = any(reason != 'SHARED_RELEVANT_UNKNOWN' for reason in shared_rejections)
-    if conflicts and known_destructive:
+    if unobserved_writes:
+        state = 'SAFE_PROVEN'
+        code = 'SAFE_UNOBSERVED_WRITES'
+        explanation = SAFE_REASONS[code]
+        reasons.discard('IRQ_PREEMPTION_UNRESOLVED')
+        reasons.discard('PROTECTION_UNRESOLVED')
+    elif conflicts and known_destructive:
         state = 'SUSPECT'
         explanation = '存在已知跨物理上下文修改冲突；尚未证明不能交错或受到完整有效保护。'
         if protection == 'UNRESOLVED':

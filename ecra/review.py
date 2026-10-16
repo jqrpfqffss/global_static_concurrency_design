@@ -22,6 +22,7 @@ INVESTIGATION_PROMPT = '''
 答案增加 investigation 数组，每项为 {"id":"原样复制清单 ID","assessment":"本项核对结论与依据","evidence_refs":[1]}。
 必须覆盖清单的每个 ID 且不重复；evidence_refs 是 evidence 的 1-based 序号。
 证据不足也须逐项说明缺什么，并给 NEED_MORE_CONTEXT；最终确认/安全结论的每项核对必须引用源码证据。
+若清单含 lifecycle:async_before_init，必须核对中断/回调何时使能及注册、目标对象何时完成初始化，并考虑这几步之间收到事件的路径；至少引用两个不同源码位置，不能只凭“仅初始化写一次”判安全。
 source_context_manifest 明确列出未完整附带的函数；按 file/line/end_line 分段 read，不得视为不存在。
 '''
 
@@ -50,6 +51,10 @@ def validate_investigation(answer, requirements):
             raise ValueError('investigation.evidence_refs 引用序号无效')
         if answer['status'] in {'CONFIRMED', 'REVIEWED_SAFE', 'FALSE_POSITIVE'} and not refs:
             raise ValueError('最终结论的每项 investigation 必须有源码证据')
+        if row['id'] == 'lifecycle:async_before_init' and answer['status'] in {'CONFIRMED', 'REVIEWED_SAFE', 'FALSE_POSITIVE'}:
+            locations = {(answer['evidence'][i - 1]['file'], answer['evidence'][i - 1]['line']) for i in refs}
+            if len(locations) < 2:
+                raise ValueError('异步入口与初始化顺序必须引用至少两个不同源码位置')
 
 
 def verify_receipt(root, folder, receipt):
@@ -279,6 +284,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     calls_by_function = {}
     incoming = {}
     functions_by_id = {f['function_id']: f for f in facts['functions']}
+    physical_kinds = {c['id']: c.get('physical_kind') for c in facts.get('contexts', [])}
     for call in facts['calls']:
         incoming.setdefault(call['callee_function_id'], set()).add(call['caller_function_id'])
         for key in (call['caller_function_id'], call['callee_function_id']):
@@ -312,6 +318,16 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                         for a in finding.get('accesses', [])]
         requirements += [dict(id='rule:' + r, kind='RULE') for r in finding.get('rules', [])]
         requirements += [dict(id='blocker:' + b, kind='BLOCKER') for b in finding.get('screening_blockers', [])]
+        runtime = [a for a in finding.get('accesses', []) if a.get('reachability') != 'PROVEN_UNREACHABLE']
+        foreground_writes = any(a.get('access_kind') in {'WRITE', 'RMW', 'WHOLE_OBJECT_WRITE'}
+                                and any(physical_kinds.get(c) == 'FOREGROUND' for c in a.get('contexts', []))
+                                for a in runtime)
+        asynchronous_access = any(a.get('access_kind') in {'READ', 'WRITE', 'RMW', 'WHOLE_OBJECT_READ', 'WHOLE_OBJECT_WRITE'}
+                                  and any(physical_kinds.get(c) in {'IRQ', 'TASK', 'DMA', 'UNKNOWN_CONTEXT'}
+                                          for c in a.get('contexts', [])) for a in runtime)
+        if foreground_writes and asynchronous_access and not finding.get('initialization_proof'):
+            requirements.append(dict(id='lifecycle:async_before_init', kind='LIFECYCLE',
+                question='检查异步入口使能/回调注册与变量初始化的先后，以及两者之间可发生的访问。'))
         # Require a source-backed answer for every access and candidate rule.
         # The full callers, CFG, IRQ events and lifecycle functions stay in the
         # packet for reasoning, but listing hundreds of transitive edges again
@@ -396,7 +412,7 @@ grep 不开放，避免检索到历史答案或测试真值。不得因不能 gr
 4. 对每个访问点逐条检查保护获取、访问、释放及所有 return/goto/错误/嵌套路径，特别检查释放后的写入；不能只看到锁名就判安全，也不能未查范围就判无效。
 5. 区分单次原子 load/store、RMW、多字段一致性和所有权/状态机协议。多个普通对齐 store 的最终顺序不确定本身不证明缺陷；++、|=、&= 要检查旧值到写回的抢占窗口。
 6. 主动寻找反证：入口不能同跑、生命周期互斥、仅一名真实写者、完整临界区、同优先级 IRQ、不同成员或实例、参数过滤、宏关闭、指针本体不变、候选规则误触发。每项反证要在 investigation 中说明依据或具体缺口。
-首先把 review_focus 里的串行/排除项作为反证核对。finding.rules 和 conflict_pairs 只是待验证假设，不能引用这些标签替代源码事实。优先寻找能判 REVIEWED_SAFE/FALSE_POSITIVE 的证据；只有反证逐项排除后才考虑风险。
+首先把 review_focus 里的串行/排除项作为反证核对。finding.rules 和 conflict_pairs 只是待验证假设，不能引用这些标签替代源码事实。安全反证与风险路径都要按真实执行顺序核实；不能因“仅初始化写一次”就忽略 IRQ 使能、回调注册与初始化之间的窗口。
 CONFIRMED 须同时证明两个真实参与者、同一存储对象或源码支持的一致性约束、当前配置都可达、调度允许交错、保护不能阻止、源码支持的最短交错、具体错误结果及所有关键源码证据。任何一项缺失不得 CONFIRMED。LIKELY 须有明确的现存风险依据，仅少量运行条件待核实；不知道不能作为 LIKELY 的理由，改用 NEED_MORE_CONTEXT。已证伪候选应给 REVIEWED_SAFE 或 FALSE_POSITIVE。
 风险结论会校验 packet 中可成立且未被保护/初始化排除的冲突对，并要求 evidence 分别引用冲突双方的真实访问行。若你从源码发现静态分析漏掉或误判的实际访问/优先级/协议，可增加 risk_override：reason、evidence_refs（至少两处）、schedule_evidence_ref、protection_evidence_ref、outcome_evidence_ref、accesses（恰好两项，每项有 kind/file/line/evidence_ref/context_id/canonical_path）。这些引用必须分别支撑调度、保护和实际错误结果；两个访问必须属于本项存储对象且至少一个写入。若只是多个对齐 store，还须给 invariant_evidence_refs 指向源码中的协议约束。没有这类补证时，不能用 CONFIRMED/LIKELY 绕过已证明串行、保护、初始化或不同存储的反证。
 遵守配置的 include_dirs/exclude_dirs 排查范围；依赖源码用于解释本项目标变量的访问和调用链，不另行排查范围外变量。

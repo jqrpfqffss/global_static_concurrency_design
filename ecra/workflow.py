@@ -144,19 +144,51 @@ def status(root, config_path=None):
         info.update(state=report.get('run_status', 'SCANNED'), analysis_status=report['analysis_status'],
                     variables=report['coverage'].get('variables_total'), findings=len(records),
                     unresolved=sum(category(r)=='unresolved' for r in records),
-                    review_integrity=integrity,
+                    review_integrity=integrity, review_complete=integrity['all_done'],
                     inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))
         if info['scan_lock']:
             info.update(resumable=False, next_action='存在运行锁：等待扫描/复核结束；若进程已退出，确认后移除过期 scan.lock。当前数量来自已保存的结果。')
             return info
         try:
             checked_scan(root, out, cfg, config_file)
+            # A DONE label in queue.json is not enough to claim completion.
+            # Check the immutable prompt, transcript, answer and cited source
+            # before reporting a review as finished, without changing files.
+            receipt_errors = []
+            verified_queue = copy.deepcopy(queue)
+            for row in verified_queue:
+                if row.get('state') != 'DONE':
+                    continue
+                try:
+                    verify_receipt(root, out/'review', row)
+                except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+                    receipt_errors.append(dict(finding_id=row['finding_id'], error=str(exc)))
+                    row.update(state='STALE', status=None, error=str(exc))
+                    row.pop('answer', None)
+            if receipt_errors:
+                integrity = review_integrity(report, verified_queue)
+                records = review_records(report, verified_queue)
+                info.update(review_integrity=integrity, review_complete=False,
+                            unresolved=sum(category(r) == 'unresolved' for r in records),
+                            review_receipt_errors=receipt_errors)
             disabled = not cfg.get('review', {}).get('enabled', True)
+            if receipt_errors:
+                action = f"{len(receipt_errors)} 项复核收据未通过校验；运行 review 重建对应结果。"
+            elif integrity['all_done']:
+                if info['unresolved']:
+                    action = f"全部模型复核已有答复，但 {info['unresolved']} 项仍缺证据；查看逐项复核并补充上下文。"
+                elif report['analysis_status'] == 'INCOMPLETE':
+                    action = '逐项复核已完成；静态分析仍有覆盖缺口，请查看报告的覆盖证据与未知事实。'
+                else:
+                    action = '逐项复核已完成；查看报告并核对固件构建配置。'
+            elif disabled:
+                action = '当前未启用模型：可按 HTML 人工排查；运行原命令重新扫描；运行 report 仅刷新结果。'
+            else:
+                action = '运行 review 继续模型复核；运行 report 仅刷新结果'
             info.update(resumable=True, review_enabled=not disabled,
-                next_action=('当前未启用模型：可按 HTML 人工排查；运行原命令重新扫描；运行 report 仅刷新结果。'
-                             if disabled else '运行 review 继续模型复核；运行 report 仅刷新结果'))
+                        next_action=action)
         except (OSError, ValueError, KeyError) as exc:
-            info.update(resumable=False, next_action=str(exc))
+            info.update(resumable=False, review_complete=False, next_action=str(exc))
     return info
 
 

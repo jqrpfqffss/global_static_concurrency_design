@@ -1239,7 +1239,15 @@ def analyze(facts, cfg, coverage, root=None):
             v.update(static_classification='OUT_OF_BUILD', audit_status='SUPPLEMENTAL_INVENTORY',
                      analysis_coverage='NOT_APPLICABLE', coverage='NOT_APPLICABLE', accesses=[],
                      classification_reason='未参与当前固件构建，仅保留声明盘点，不进入并发复核队列。')
-    unknown_accesses = sum(not a["contexts"] and a.get('reachability') != 'PROVEN_UNREACHABLE' for a in facts["accesses"])
+    # Linker address boundaries and absent weak symbols remain in the audit
+    # inventory, but are proven not to be storage in this linked image. Their
+    # synthetic address references cannot be missing *storage* access contexts.
+    unknown_entry_accesses = [a for a in facts['accesses']
+        if not a['contexts'] and a.get('reachability') != 'PROVEN_UNREACHABLE']
+    non_storage_unknown_entry_accesses = sum(
+        variables_by_id.get(a.get('symbol_id'), {}).get('static_classification') == 'NON_STORAGE'
+        for a in unknown_entry_accesses)
+    unknown_accesses = len(unknown_entry_accesses) - non_storage_unknown_entry_accesses
     coverage['unreachable_functions'] = len(unreachable)
     coverage['unreachable_accesses'] = sum(a.get('reachability') == 'PROVEN_UNREACHABLE' for a in facts['accesses'])
     queued = {f['symbol_id'] for f in findings if f.get('symbol_id')}
@@ -1321,6 +1329,8 @@ def analyze(facts, cfg, coverage, root=None):
                     lambda v: v.get('safe_reason_code') == 'SAFE_SINGLE_IRQ'),
         quality_row('READ_ONLY_PROOF', '所有运行期访问均为读取，跨上下文也不形成写冲突。',
                     lambda v: v.get('safe_reason_code') in {'SAFE_READ_ONLY', 'SAFE_MULTI_CONTEXT_READ_ONLY'}),
+        quality_row('UNOBSERVED_WRITE_PROOF', '内部普通存储只有已覆盖的写入，没有读取、重叠别名或相关证据缺口。',
+                    lambda v: v.get('safe_reason_code') == 'SAFE_UNOBSERVED_WRITES'),
         quality_row('INIT_RUNTIME_MHP', '初始化写与运行期访问已证明不同时发生。',
                     lambda v: v.get('safe_reason_code') == 'SAFE_INIT_ONLY_WRITE'),
         quality_row('EFFECTIVE_PROTECTION', '每个相关冲突访问窗口均有已证明有效的保护。',
@@ -1359,6 +1369,7 @@ def analyze(facts, cfg, coverage, root=None):
         note='各排除机制可能作用于同一变量，贡献行彼此重叠，不能相加为变量总数。')
     coverage['struct_containers'] = sum(v.get('resource_kind') == 'STRUCT_CONTAINER' for v in facts['variables'])
     coverage["unknown_accesses"] = unknown_accesses
+    coverage['non_storage_unknown_entry_accesses'] = non_storage_unknown_entry_accesses
     functions = [f for f in facts['functions'] if not scope.active or scope.contains(f['file'])]
     covered_functions = sum(f['function_id'] in paths for f in functions)
     coverage["functions_total"] = len(functions)
