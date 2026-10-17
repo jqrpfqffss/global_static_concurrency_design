@@ -7,6 +7,7 @@ __pycache__/
 build/
 Debug/
 dist/
+.tools-cache/
 *.o
 *.obj
 *.d

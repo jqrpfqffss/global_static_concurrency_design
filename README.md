@@ -6,6 +6,58 @@
 
 适用于 CMake STM32 裸机工程（自动生成真实 `compile_commands.json`），也兼容已有编译数据库的工程，也能盘点 C++ 命名空间变量和静态成员；C++ 复杂运行语义会单独标记盲区。第一版采用 Python + libclang，不需要自行构建 C++ 提取器，也不要求虚拟环境。
 
+## Windows Full Portable 离线打包
+
+`build_portable.ps1` **不会联网**。它从项目根目录的 `.tools-cache/` 读取工具和 Python 依赖，生成 `dist/ECRA-Portable/` 与 `dist/ECRA-Portable.zip`。默认版本记录在 `config/portable_sources.psd1`，目前内置 Python 为 **3.12.10（64 位）**、Arm GCC 为 **10.3.1**。若缓存中仍是旧版 Arm GCC，需重新准备缓存，或通过 `-ArmGccSource` 指定本地 10.3.1 完整目录。
+
+### 把源码和已有缓存迁移到新电脑打包
+
+1. 在旧电脑上复制**整个项目源码和完整的 `.tools-cache/` 目录**到新电脑，保持两者相邻。例如：
+
+   ```text
+   D:\ECRA\
+   ├─ build_portable.ps1
+   ├─ prepare_portable_cache.ps1
+   ├─ requirements.txt
+   ├─ config\portable_sources.psd1
+   └─ .tools-cache\
+      ├─ python\
+      ├─ cmake\
+      ├─ ninja\
+      ├─ arm-gcc\
+      ├─ downloads\
+      └─ wheels\
+   ```
+
+   `.tools-cache/` 被 `.gitignore` 忽略，单独克隆 Git 仓库不会得到它。必须复制完整目录，不能只复制 `downloads/`：缓存中的某些工具可能只有完整解压目录，没有对应的原始 ZIP。项目可以放在其他盘符；脚本会以自身所在目录定位默认缓存。新电脑需要 64 位 Windows，建议预留约 5–6 GB 空间用于缓存、打包产物和 ZIP 自检时的临时解压。
+
+2. 在新电脑打开 PowerShell，进入项目根目录，离线检查缓存：
+
+   ```powershell
+   Set-Location 'D:\ECRA'
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\prepare_portable_cache.ps1 -OfflineCheck
+   ```
+
+   出现“本地 Portable 缓存已备齐”后继续。`-OfflineCheck` 不下载文件；若提示缺少工具或 wheel，从旧电脑补复制相应缓存，或在可联网的新电脑运行不带 `-OfflineCheck` 的准备脚本。
+
+3. 离线打包并检查产物：
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\build_portable.ps1
+   .\dist\ECRA-Portable\runtime\python.exe --version
+   .\dist\ECRA-Portable\ecra.cmd --help
+   ```
+
+   内置 Python 应显示 `Python 3.12.10`。打包脚本会自检内置 Python、依赖、CMake、Ninja 和 ARM 工具链，还会解压生成的 ZIP 再检查一次。最终交付文件为 `dist\ECRA-Portable.zip`。
+
+**新电脑已安装 Python 3.10 也不影响上述打包。** 准备脚本使用缓存中的嵌入式 Python 检查 wheel；打包脚本使用缓存中的 Python 3.12.10 和对应的依赖 wheel，不调用系统 PATH 中的 Python 3.10。不要因为新电脑的 Python 版本是 3.10 就把 `config/portable_sources.psd1` 改为 3.10；如果确实要改用 3.10 打包，需要同时更换匹配的嵌入式 Python 和依赖 wheel，重新准备缓存并通过自检。
+
+### 新电脑只有源码、没有缓存
+
+先在可联网的新电脑运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\prepare_portable_cache.ps1`，下载 Python、CMake、Ninja、ARM GNU Toolchain、pip wheel 和 `requirements.txt` 的依赖 wheel 到 `.tools-cache/`，再按上面的步骤执行 `-OfflineCheck` 和离线打包。若需要保留四个工具的原始 ZIP，在准备时加 `-ForceArchives`；默认也可复用完整解压缓存。已有其他本地工具目录或 ZIP 时，可向打包脚本传入 `-PythonSource`、`-CMakeSource`、`-NinjaSource`、`-ArmGccSource`，pip wheel 可用 `-PipWheelSource` 指定。
+
+将便携包解压到目标电脑后，按实际固件位置修改包内 `config/semantics.yaml` 的 `project.root` 和相关 CMake 设置。AI review 仍需目标电脑有可用的 OpenCode；只做静态扫描可使用 `--no-review`。
+
 ## 完整变量清单与覆盖检查
 
 `index.html` 默认打开“全部全局 / static 变量清单”。常量和未使用变量也保留；全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）均可查询。同名 static 按编译单元区分。结构体成员和已知数组元素按独立存储分析；父对象仅汇总，不重复计入分类分母。普通自动局部变量和函数参数用于恢复别名，不作为独立共享对象盘点。
