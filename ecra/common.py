@@ -42,12 +42,13 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
-def write_json(path, value):
+def write_json(path, value, *, indent=2):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(path.suffix + ".tmp")
     with temp.open('w', encoding='utf-8') as stream:
-        json.dump(value, stream, ensure_ascii=False, indent=2)
+        json.dump(value, stream, ensure_ascii=False, indent=indent,
+                  separators=(',', ':') if indent is None else None)
     replace_file(temp, path)
 
 
@@ -79,11 +80,13 @@ def relative(path, root):
         return p.as_posix()
 
 
-def execute(argv, **kwargs):
+def execute(argv, *, input=None, **kwargs):
     """No shell evaluation; kill the process tree on a timeout."""
     options = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                    encoding="utf-8", errors="replace")
     options.update(kwargs)
+    if input is not None:
+        options['stdin'] = subprocess.PIPE
     timeout = options.pop("timeout", 300)
     if os.name == "nt":
         options["creationflags"] = subprocess.CREATE_NO_WINDOW
@@ -91,7 +94,7 @@ def execute(argv, **kwargs):
         options["start_new_session"] = True
     proc = subprocess.Popen(argv, **options)
     try:
-        out, err = proc.communicate(timeout=timeout)
+        out, err = proc.communicate(input=input, timeout=timeout)
     except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
         if os.name == "nt":
             subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],

@@ -1,141 +1,131 @@
-"""Schema/retry tests use synthetic subprocess output, never review evidence."""
+"""Synthetic protocol tests; no claim to validate model reasoning."""
 import copy
 import json
 import tempfile
+import sys
 import unittest
 from pathlib import Path
-from subprocess import CompletedProcess
-from unittest.mock import patch
 
-from ecra.review import parse_answer, review_all
-from ecra.review_contract import CONTRACT_PROMPT, validate_explanation
+from ecra.review import parse_answer, ReviewExecutionError
+from ecra.review_contract import STATUSES, validate_minimal_answer
 from ecra.review_presentation import explanation, review_markdown
-from tests.review_fixtures import structured_fields
-from tests.test_review_presentation import VisibleText
 
 
-def answer_for(status='CONFIRMED'):
-    return dict(finding_id='F', status=status,
-                evidence=[dict(file='src.c', line=1, quote='count++;', claim='Protocol fixture access')],
-                **{k: 'Protocol fixture only' for k in ('reason', 'interleaving', 'protection', 'impact', 'fix', 'verification')},
-                **structured_fields(status))
+def answer_for(status='CONFIRMED', fid='F'):
+    return dict(finding_id=fid, status=status, reason='Checked the current source.',
+        interleaving='main reads; IRQ updates; main writes old copy.',
+        protection='No complete protection.', impact='A count may be lost.',
+        evidence=[dict(file='app.c', line=2, claim='The IRQ updates shared.')],
+        fix='Protect the whole RMW window.', verification='Exercise an IRQ inside that window.',
+        missing_context=['Actual NVIC preemption priority.'] if status in {'LIKELY', 'NEED_MORE_CONTEXT'} else [])
 
 
 class ContractTests(unittest.TestCase):
-    def test_rejects_missing_actors_steps_states_and_broken_references(self):
-        original = answer_for()
-        changes = [
-            (lambda a: a.pop('schema_version'), 'schema_version'),
-            (lambda a: a.pop('explanation'), 'explanation'),
-            (lambda a: a['explanation'].pop('participants'), 'participants'),
-            (lambda a: a['explanation']['participants'][1].update(id='A'), '不能重复'),
-            (lambda a: a['explanation']['participants'][1].update(eligibility='EXCLUDED'), '已排除'),
-            (lambda a: a['explanation']['scenarios'][0]['steps'][0].update(actor_id='ghost'), '不存在'),
-            (lambda a: a['explanation']['scenarios'][0]['steps'][0].pop('state_before'), 'state_before'),
-            (lambda a: a['explanation']['scenarios'][0]['steps'][0].update(evidence_refs=[2]), '序号'),
-            (lambda a: a['explanation']['scenarios'][0]['steps'].pop(), '至少两步'),
-            (lambda a: a['explanation'].update(summary='长'*181), '180'),
-            (lambda a: a['evidence'][0].pop('claim'), 'claim'),
-        ]
-        for change, message in changes:
-            with self.subTest(message=message):
-                value = copy.deepcopy(original)
-                change(value)
-                with self.assertRaisesRegex(ValueError, message):
-                    validate_explanation(value, required=True)
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        (self.root / 'app.c').write_text('int shared;\nvoid IRQ(void){shared++;}\n', encoding='utf-8')
 
-    def test_safe_unknown_and_gaps_do_not_require_fabricated_conflicts(self):
-        for status in ['CONFIRMED', 'REVIEWED_SAFE', 'FALSE_POSITIVE', 'NEED_MORE_CONTEXT', 'LIKELY']:
-            self.assertTrue(validate_explanation(answer_for(status), required=True))
-        safe = answer_for('REVIEWED_SAFE')
-        safe['explanation']['scenarios'][0]['kind'] = 'CONFLICT'
-        with self.assertRaisesRegex(ValueError, '非确认结论'):
-            validate_explanation(safe, required=True)
-        unknown = answer_for('NEED_MORE_CONTEXT')
-        unknown['explanation']['missing_evidence'] = []
-        with self.assertRaisesRegex(ValueError, '还缺什么'):
-            validate_explanation(unknown, required=True)
-        gap = answer_for()
-        gap['review_type'] = 'EVIDENCE_GAP'
-        gap['explanation'].update(participants=[], scenarios=[])
-        self.assertTrue(validate_explanation(gap, expected_type='EVIDENCE_GAP', required=True))
-        with self.assertRaisesRegex(ValueError, 'symbol_id'):
-            validate_explanation(gap, expected_type='VARIABLE', required=True)
+    def test_all_five_semantic_answers_are_valid_without_structured_essays(self):
+        for status in STATUSES:
+            with self.subTest(status=status):
+                value = answer_for(status)
+                self.assertEqual(parse_answer(json.dumps(value), 'F', self.root), value)
 
-    def test_v2_display_is_only_opencode_fields_and_links(self):
+    def test_plain_prose_fences_and_last_matching_object(self):
         answer = answer_for()
-        story = answer['explanation']
-        story['summary'] = 'MODEL_SUMMARY <script>bad()</script>'
-        story['participants'][0]['label'] = 'MODEL_ACTOR_A'
-        story['scenarios'][0]['steps'][0]['action'] = 'MODEL_ACTION_A'
-        story['scenarios'][0]['actual'] = 'MODEL_RESULT'
-        html = explanation(answer, 'confirmed', citation_link=lambda i: '#source-' + str(i))
-        visible = ''.join(VisibleText(html).parts)
-        for text in ['MODEL_SUMMARY', 'MODEL_ACTOR_A', 'MODEL_ACTION_A', 'MODEL_RESULT', 'Fixture before', 'Fixture after']:
-            self.assertIn(text, visible)
-        self.assertIn('href="#source-1"', html)
+        raw = json.dumps(answer)
+        for text in [raw, '\ufeff' + raw, 'Completed.\n' + raw + '\nEnd.',
+                     '```json\n' + raw + '\n```', 'Analysis.\n```JSON\n' + raw + '\n```\nDone.',
+                     json.dumps(answer_for(fid='OTHER')) + '\n' + raw + '\n' + json.dumps({'metadata': 'end'}),
+                     raw + '\n' + json.dumps(answer_for(fid='OTHER'))]:
+            with self.subTest(text=text[:30]):
+                self.assertEqual(parse_answer(text, 'F', self.root), answer)
+        answer['reason'] = 'Literal braces { } and escaped "quotes" are data.'
+        self.assertEqual(parse_answer('Final: ' + json.dumps(answer), 'F', self.root), answer)
+
+    def test_jsonl_and_fragmented_text(self):
+        answer = answer_for()
+        text = json.dumps(answer)
+        split = text.index(',') + 1
+        raw = '\n'.join(json.dumps(dict(type='text', part=dict(text=part)))
+                        for part in ['Finished analysis.', text[:split], text[split:]])
+        self.assertEqual(parse_answer(raw, 'F', self.root), answer)
+        whole = json.dumps(dict(type='text', part=dict(text='Final:\n' + text)))
+        self.assertEqual(parse_answer(whole, 'F', self.root), answer)
+        with self.assertRaises(ReviewExecutionError):
+            parse_answer(whole + '\n' + json.dumps(dict(type='error', error='provider down')), 'F', self.root)
+
+    def test_execution_events_without_final_text_are_not_analysis(self):
+        # Tool transcripts may contain source, so they must never become the
+        # original analysis passed into a formatting-only repair.
+        for events in [
+            [dict(type='step_start'), dict(type='step_finish')],
+            [dict(type='tool_use', part=dict(tool='read', state=dict(
+                status='completed', output='SOURCE_CONTENT_SHOULD_STAY_LOCAL')))],
+            [dict(type='text', part=dict(text='  ')), dict(type='step_finish')]
+        ]:
+            with self.subTest(events=events), self.assertRaises(ReviewExecutionError):
+                parse_answer('\n'.join(json.dumps(e) for e in events), 'F', self.root)
+
+    def test_required_identity_status_reason_and_evidence(self):
+        for change in [dict(finding_id='other'), dict(status='SAFE'), dict(status=[]), dict(reason='  '),
+                       dict(reason=None), dict(evidence=None), dict(evidence=[])]:
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):
+                    validate_minimal_answer(dict(answer_for(), **change), 'F', self.root)
+
+    def test_missing_context_is_required_only_for_uncertain_verdicts(self):
+        for status in ('LIKELY', 'NEED_MORE_CONTEXT'):
+            for value in (None, [], [''], 'priority'):
+                with self.subTest(status=status, missing=value), self.assertRaisesRegex(ValueError, 'missing_context'):
+                    validate_minimal_answer(dict(answer_for(status), missing_context=value), 'F', self.root)
+            value = dict(answer_for(status), evidence=[])
+            self.assertEqual(parse_answer(json.dumps(value), 'F', self.root), value)
+
+    def test_evidence_must_be_inside_project_and_line_in_bounds(self):
+        for evidence in [dict(file='../outside.c', line=1), dict(file='missing.c', line=1),
+                         dict(file='app.c', line=0), dict(file='app.c', line=999),
+                         dict(file='app.c', line=True), dict(file='app.c', line='2')]:
+            with self.subTest(evidence=evidence), self.assertRaises(ValueError):
+                validate_minimal_answer(dict(answer_for(), evidence=[evidence]), 'F', self.root)
+        value = answer_for()
+        value['evidence'][0]['file'] = str(self.root / 'app.c')
+        self.assertEqual(parse_answer(json.dumps(value), 'F', self.root), value)
+
+    def test_long_natural_language_and_optional_display_fields_cannot_fail_review(self):
+        value = answer_for()
+        for key in ('reason', 'interleaving', 'protection', 'impact', 'fix', 'verification'):
+            value[key] = '很长的源码分析；' * 2000
+        value['evidence'][0]['claim'] = '依据' * 5000
+        self.assertEqual(parse_answer(json.dumps(value), 'F', self.root), value)
+        minimal = {k: v for k, v in value.items() if k in {'finding_id', 'status', 'reason', 'evidence'}}
+        self.assertEqual(parse_answer(json.dumps(minimal), 'F', self.root), minimal)
+        self.assertIn('未提供', explanation(minimal, 'confirmed'))
+
+    def test_simple_display_keeps_all_fields_and_escapes_html(self):
+        value = answer_for('NEED_MORE_CONTEXT')
+        value['reason'] = '<script>MODEL_REASON</script>'
+        html = explanation(value, 'unresolved')
+        self.assertIn('MODEL_REASON', html)
         self.assertNotIn('<script>', html)
-        self.assertIn('OpenCode 原始结构化回答', visible)
-        md = '\n'.join(review_markdown(answer))
-        self.assertIn('1. **MODEL_ACTOR_A**：MODEL_ACTION_A', md)
-        self.assertIn('**此过程的结果：**MODEL_RESULT', md)
-        self.assertNotIn("'participants':", md)
-        legacy = answer_for()
-        for key in ['schema_version', 'review_type', 'explanation']:
-            legacy.pop(key)
-        self.assertIn('旧版 OpenCode', explanation(legacy, 'confirmed'))
-        self.assertNotIn('统一协议 v2', explanation(legacy, 'confirmed'))
-        answer['explanation']['participants'] = []
-        self.assertIn('未通过校验', explanation(answer, 'confirmed'))
-        self.assertNotIn('MODEL_ACTION_A', explanation(answer, 'confirmed'))
+        self.assertIn(value['missing_context'][0], html)
+        md = '\n'.join(review_markdown(value))
+        for key in ('reason', 'interleaving', 'protection', 'impact', 'fix', 'verification'):
+            self.assertIn(value[key], md)
+        self.assertIn('app.c:2', md)
+        value.update(explanation={}, schema_version=2, missing_context=None)
+        self.assertIn('MODEL_REASON', explanation(value, 'unresolved'))
+        self.assertIn('MODEL_REASON', '\n'.join(review_markdown(value)))
 
-    def test_same_contract_across_project_roots_checks_each_projects_actual_quotes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            for project in ['项目甲', 'Different Project B']:
-                root = base/project
-                root.mkdir()
-                (root/'src.c').write_text('count++;\n', encoding='utf-8')
-                answer = answer_for()
-                raw = json.dumps(dict(type='text', part=dict(text=json.dumps(answer))))
-                self.assertEqual(parse_answer(raw, 'F', root, require_quotes=True, require_schema=True, expected_type='VARIABLE'), answer)
-            (base/'Different Project B/src.c').write_text('count += 2;\n', encoding='utf-8')
-            raw = json.dumps(dict(type='text', part=dict(text=json.dumps(answer))))
-            with self.assertRaisesRegex(ValueError, '原文与源码不符'):
-                parse_answer(raw, 'F', base/'Different Project B', require_schema=True)
-
-    def test_new_review_rejects_legacy_and_returns_error_to_opencode_for_retry(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root/'src.c').write_text('count++;\n', encoding='utf-8')
-            complete = answer_for()
-            complete['review_type'] = 'EVIDENCE_GAP'
-            incomplete = copy.deepcopy(complete)
-            incomplete['explanation'].pop('participants')
-            values = [incomplete, complete]
-            prompts = []
-            def execute(argv, **kwargs):
-                prompts.append(argv[-1])
-                value = values[len(prompts)-1]
-                return CompletedProcess(argv, 0, json.dumps(dict(type='text', part=dict(text=json.dumps(value)))), '')
-            cfg = dict(review=dict(enabled=True, workers=1, retries=1), analysis={})
-            facts = dict(variables=[], contexts=[], functions=[], calls=[])
-            report = dict(findings=[dict(finding_id='F', accesses=[])], coverage={}, limitations=[])
-            with patch('ecra.review.resolve_command', return_value=['fake-protocol-only']), patch('ecra.review.execute', side_effect=execute):
-                result = review_all(root, root/'.ecra', cfg, facts, report, 'scan', lambda _: None)[0]
-            self.assertEqual(len(prompts), 2)
-            self.assertTrue(all(CONTRACT_PROMPT in prompt for prompt in prompts))
-            self.assertIn('participants', prompts[1])
-            self.assertIn('上一次输出未通过校验', prompts[1])
-            self.assertEqual(result['answer'], complete)  # No fields supplied by renderer/validator.
-            self.assertEqual(result['execution']['schema_version'], 2)
-            legacy = copy.deepcopy(complete)
-            for key in ['schema_version', 'review_type', 'explanation']:
-                legacy.pop(key)
-            raw = json.dumps(dict(type='text', part=dict(text=json.dumps(legacy))))
-            with self.assertRaisesRegex(ValueError, 'schema_version'):
-                parse_answer(raw, 'F', root, require_schema=True)
-            self.assertEqual(parse_answer(raw, 'F', root), legacy)  # Read-only historical compatibility.
+    def test_large_unicode_payload_round_trips_through_process_stdin(self):
+        from ecra.common import execute
+        text = '已有分析与证据，不得截断。' * 5000
+        proc = execute([sys.executable, '-c',
+                        'import sys;sys.stdout.buffer.write(sys.stdin.buffer.read())'], input=text, timeout=10)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout, text)
 
 
 if __name__ == '__main__':

@@ -319,6 +319,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         for finding in report["findings"]:
             r = review_by_id.get(finding["finding_id"], {})
             finding["review_state"] = r.get("state", "PENDING")
+            finding["review_status"] = r.get('status')
             if r.get("state") == "DONE":
                 finding["status"] = r["status"]
                 finding["review"] = r["answer"]
@@ -365,8 +366,8 @@ def main(argv=None):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="STM32 全局/static 清单、读写调用链与 OpenCode 并发复核")
-    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "report", "status"], default="run",
-                        help='run 全流程；review 继续复核；report 刷新报告；status 查看进度；doctor 环境检查')
+    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "review-failed", "report", "status"], default="run",
+                        help='run 全流程；review 重跑全部疑似/未知；review-failed 仅重跑技术失败；report 刷新报告；status 查看进度；doctor 环境检查')
     parser.add_argument("--project", type=Path, help="临时覆盖 semantics.yaml 中的 project.root")
     parser.add_argument("--config", help="显式配置文件路径；正常使用唯一的 config/semantics.yaml")
     parser.add_argument("--compile-database", help="init 时写入真实编译数据库路径（相对工程根目录）")
@@ -395,7 +396,7 @@ def main(argv=None):
             root = args.project.resolve() if args.project else configured_project_root(config_path)
             if not root.is_dir():
                 raise ValueError(f"工程目录不存在: {root}")
-        if args.command in {'review', 'report', 'status'}:
+        if args.command in {'review', 'review-failed', 'report', 'status'}:
             from .workflow import saved_run, status
             if args.no_review:
                 raise ValueError('--no-review 仅用于 run；仅刷新报告请使用 report')
@@ -411,7 +412,8 @@ def main(argv=None):
                     if 'inventory_html' in info:
                         print('变量报告：'+info['inventory_html']+'\n复核报告：'+info['review_html'])
                 return 0
-            return saved_run(root, str(config_path), render_only=args.command=='report')
+            return saved_run(root, str(config_path), render_only=args.command=='report',
+                             failed_only=args.command=='review-failed')
         if args.command == "init":
             import yaml
             if not args.project:

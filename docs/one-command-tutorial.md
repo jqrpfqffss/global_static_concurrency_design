@@ -360,10 +360,11 @@ ecra
 | `ecra doctor` | 检查依赖、CMake/数据库和模型命令，不重扫源码 |
 | `ecra status` | 查看上次扫描状态、未完成数量和建议下一步 |
 | `ecra report` | 不重新解析源码，只刷新已有 HTML/配套报告 |
-| `ecra review` | 已扫描且源码未变，只继续未完成的模型复核 |
+| `ecra review` | 重跑当前全部 SUSPECT/UNKNOWN，包括已经 DONE 的变量 |
+| `ecra review-failed` | 仅重试 TECH_FAILED，可反复执行 |
 | `ecra --no-review` | 本次只做本地静态扫描，不调用模型 |
 
-`report` 和 `review` 会验证已有扫描是否仍与源码、配置和编译输入匹配。若新增源文件、变更宏或构建变体，应回到完整的 `ecra` 重新扫描。
+`report`、`review` 和 `review-failed` 会验证已有扫描是否仍与源码、配置和编译输入匹配。若新增源文件、变更宏或构建变体，应回到完整的 `ecra` 重新扫描。
 
 ## 8. 可选：启用 OpenCode 逐项复核
 
@@ -383,7 +384,7 @@ review:
 
 然后仍运行同一条完整命令。工具会把每个候选的相关源码证据交给已配置的模型提供商进行复核，费用、数据政策和模型名称取决于该提供商。`max_items` 表示每批最多处理多少项，`0` 表示不限制批次大小；批次自动连续执行。`workers` 控制批内并发。若只想做少量连通性验证，可先用 `--no-review` 扫描，再准备少量候选的测试工程；`max_items: 1` 仍会逐批处理全部候选。OpenCode 的安装与登录请参阅其[官方 CLI 文档](https://opencode.ai/docs/cli/)。
 
-模型结论是代码审查辅助，不替代编译、硬件时序验证、代码评审或目标板测试。 `CONFIRMED` / `LIKELY` 需要处理和验证；`REVIEWED_SAFE` 仅在报告列出的条件成立时有效；`PENDING`、`FAILED`、`STALE`、`NEED_MORE_CONTEXT` 都不能当作安全结论。
+模型结论是代码审查辅助，不替代编译、硬件时序验证、代码评审或目标板测试。 `CONFIRMED` / `LIKELY` 需要处理和验证；`REVIEWED_SAFE` 仅在报告列出的条件成立时有效；`PENDING`、`TECH_FAILED`、`NEED_MORE_CONTEXT` 都不能当作安全结论。五种合法语义结论都属于 DONE；NEED_MORE_CONTEXT 表示已完成分析但缺少关键事实，review-failed 不会重跑它。格式错误最多进行两次无源码的轻量 FORMAT_FIX。
 
 ## 9. 常见故障与处理
 
@@ -416,3 +417,5 @@ review:
 - 对高优先级候选，结合源代码、临界区、真实中断优先级、DMA/cache 配置和目标板压力测试作最终判断。
 
 如果想先对照已经接入的裸机配置，可查看仓库中的 [`config/semantics.yaml`](../config/semantics.yaml)。其中的工程路径、工具链、目录排除与构建参数都只适用于当前项目；切换项目时应改写这一份文件，不能直接沿用。关于复杂中断/回调注册和安全筛除规则，请阅读[工具设计文档](concurrency-tool-design.md)；关于如何针对具体变量判断“可能丢事件、读改写被打断或 DMA 竞争”，继续阅读[真实变量排查案例](variable-investigation-guide.md)。
+
+当前变量复核设计、状态与格式修正细节见 [简单稳定复核设计与验证](opencode_review_simple_stable_design.md)。

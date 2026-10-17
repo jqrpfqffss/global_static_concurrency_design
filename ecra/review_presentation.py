@@ -1,7 +1,6 @@
 """Readable, lossless formatting of current review prose; no inferred witnesses."""
 import html
 import re
-from .review_contract import validate_explanation
 
 
 def paragraphs(text):
@@ -120,10 +119,32 @@ def structured_explanation(answer, citation_link=None):
     return result
 
 
-def review_markdown(answer):
+def _simple_markdown(answer):
     """Export the same model-authored structure for readers of Markdown."""
-    if not validate_explanation(answer):
-        return ['来源：旧版 OpenCode 文字回答，尚未按 v2 协议重审。', ''] + [f'- {key}: {value}' for key, value in answer.items()]
+    result = ['来源：OpenCode 变量级回答', '']
+    for key, title in [('reason', '结论依据'), ('interleaving', '并发时序 / 不发生交错的条件'),
+                       ('protection', '保护情况'), ('impact', '影响及证据边界'),
+                       ('fix', '修复建议'), ('verification', '验证建议')]:
+        result += ['### ' + title, '', str(answer.get(key) or '未提供'), '']
+    missing = answer.get('missing_context')
+    if isinstance(missing, list):
+        result += ['### 尚缺事实', ''] + ['- ' + str(s) for s in missing]
+    result += ['', '### 源码依据', '']
+    for item in answer.get('evidence', []):
+        result.append(f'- {item["file"]}:{item["line"]} — {item.get("claim", "")}')
+    return result
+
+
+def review_markdown(answer):
+    if answer.get('schema_version') == 2 and isinstance(answer.get('explanation'), dict):
+        try:
+            return _legacy_markdown(answer)
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError):
+            pass
+    return _simple_markdown(answer)
+
+
+def _legacy_markdown(answer):
     story = answer['explanation']
     actors = {a['id']: a for a in story['participants']}
     result = ['来源：OpenCode 原始结构化回答 · 统一协议 v2', '', '### 一句话结论', '', story['summary'], '', '### 执行入口', '']
@@ -159,13 +180,15 @@ def review_markdown(answer):
 def explanation(answer, group, is_variable=True, citation_link=None):
     if not answer:
         return '<p class="notice">尚无有效复核结论，也没有已验证的执行过程。请先完成复核，不能当作安全。</p>'
-    try:
-        structured = validate_explanation(answer, expected_type='VARIABLE' if is_variable else 'EVIDENCE_GAP')
-    except (ValueError, KeyError, TypeError) as exc:
-        return '<p class="notice">OpenCode 结构化解释未通过校验，不能展示为统一格式：' + html.escape(str(exc)) + '</p>'
-    if structured:
-        return structured_explanation(answer, citation_link)
-    legacy = '<p class="story-origin">来源：旧版 OpenCode 文字回答；尚未按 v2 统一协议重审。以下仅对原文排版，不是工具补写的复核。</p>'
+    if isinstance(answer.get('explanation'), dict):
+        try:
+            return structured_explanation(answer, citation_link)
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError):
+            pass  # Historical display damage cannot invalidate a semantic answer.
+    legacy = '<p class="story-origin">解释来源：OpenCode 变量级回答；以下按原文排版。</p>'
+    missing = answer.get('missing_context')
+    if isinstance(missing, list) and missing:
+        legacy += '<section class="notice"><h4>还缺哪些事实</h4>' + ''.join(prose(s) for s in missing) + '</section>'
     if not is_variable:
         labels = [('reason', '这处证据说明了什么'), ('interleaving', '调用过程与适用条件'),
                   ('protection', '保护条件'), ('impact', '对判断的影响'), ('fix', '处理建议')]

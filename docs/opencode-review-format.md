@@ -1,77 +1,60 @@
-# OpenCode 跨项目复核格式 v2
+# OpenCode 简单变量级复核格式
 
-并发候选由静态提取器发现；最终复核结论、原因、参与者、交错过程与用户解释由 **OpenCode** 生成。Codex 在本次任务中修改工具与测试，不代写项目复核答案。页面只展示当前有效回答，不生成缺失的执行步骤或推测状态。
+ECRA 找全访问事实，OpenCode 结合本地源码判断其含义。每个候选变量只有一个最终语义答案；无需逐 pair、逐 ID、参与者或场景作文。详细设计和本轮验证见 [设计报告](opencode_review_simple_stable_design.md)。
 
-## 迁移到其他工程
+## 三个入口
 
-1. 按 README 注册项目，配置实际构建、排查目录、芯片/核心与必要的入口信息。需要自动执行模型复核时设置 `review.enabled: true`；需要首轮之后继续反证核对时设置 `review.audit_verdicts: true`。
-2. 执行 `py -3.10 run_ecra.py run --profile <项目名>`；已扫描且源码未变时执行 `py -3.10 run_ecra.py review --profile <项目名>`。`review` 命令本身会明确启用 OpenCode，即使新项目配置原先关闭了模型。
-3. 所有工程自动使用 `ecra/review_contract.py` 中的同一协议，首轮和反证轮均适用。不需要复制项目专属提示词，也不需要人工整理 OpenCode 的答案。
-4. 打开工程输出目录中的 `opencode_review.html`，查看协议覆盖数、每项原始回答来源、具体执行过程及源码依据。
+```powershell
+py -3.10 run_ecra.py
+py -3.10 run_ecra.py review
+py -3.10 run_ecra.py review-failed
+```
 
-`--no-review` 只做静态提取，不生成 OpenCode 结论。`report` 只重新展示已经存在的回答，不会把旧文本转换成伪造的 v2 回答。旧记录显示“旧版 OpenCode”，执行 `review` 后由 OpenCode 重新输出；提示词和协议实现参与缓存键，新协议不会直接复用旧格式缓存。
+完整运行执行静态扫描、复核、报告；`review` 使用经校验的扫描，强制重新复核当前全部 SUSPECT/UNKNOWN，包括已有正常答案；`review-failed` 只重试 TECH_FAILED，永不因失败次数永久放弃。无法归属具体变量的覆盖缺口继续独立保留。
 
-## 固定字段
+## 输入
 
-基础字段保持 `finding_id`、`status`、`reason`、`evidence`、`interleaving`、`protection`、`impact`、`fix`、`verification`。每份新回答还必须包含：
+Packet 包含全部访问及其身份、成员/元素、读写种类、上下文、完整路径、保护和未知事实；不默认复制整段函数正文。`call_path_set` 对应 `call_path_sets[].id`，仅对重复路径映射无损去重。`functions`、`files_to_check` 和源码行号提供导航，完整静态冲突、CFG 与构建事实仍可按 `facts_path/static_report_path/project_evidence_path` 读取。
 
-| 字段 | 内容 |
+OpenCode 按声明 → 所有访问点 → 完整调用链 → 入口 → 保护 → unknowns → 直接关联源码检查；需要时继续核查 NVIC、DMA、同步和别名，不无理由遍历全仓。工程补充声明从 semantics.yaml 旁的 review_context.md 读取，并须经源码核实。
+
+## 输出
+
+```json
+{
+  "finding_id": "原样返回",
+  "status": "CONFIRMED",
+  "reason": "结论与依据",
+  "interleaving": "主要交错，或无法形成危险交错的原因",
+  "protection": "保护机制、覆盖范围和有效性",
+  "impact": "源码支持的影响",
+  "evidence": [{"file": "src/a.c", "line": 123, "claim": "该位置支持的事实"}],
+  "fix": "修复建议",
+  "verification": "验证建议",
+  "missing_context": []
+}
+```
+
+| status | 含义与必要依据 |
 |---|---|
-| `schema_version` | 整数 `2` |
-| `review_type` | `VARIABLE` 或 `EVIDENCE_GAP`，必须匹配候选身份 |
-| `explanation.summary` | 不超过 180 字的一句话结论，OpenCode 直接撰写 |
-| `explanation.cause` | 具体原因，不能仅写“存在并发” |
-| `explanation.scheduling` | 实际抢占、串行、跨核或硬件同时执行条件 |
-| `explanation.evidence_refs` | 上述解释对应的 evidence 序号，从 1 开始 |
-| `explanation.participants` | 每个入口的唯一 ID、名称、真实调用路径、读写对象、访问资格及源码依据 |
-| `explanation.scenarios` | 分开的具体场景，每个含前提、逐步动作、状态变化、预期与实际结果 |
-| `explanation.missing_evidence` | 缺失的具体证据列表；疑似/证据不足时不得为空 |
+| CONFIRMED | 源码及执行关系证明实际风险；至少一处有效源码 evidence |
+| LIKELY | 较强的现存风险证据，少量运行条件未定；明确 missing_context |
+| REVIEWED_SAFE | 完整证据证明不冲突或完整保护有效；至少一处有效源码 evidence |
+| FALSE_POSITIVE | 不可达、不同存储、上下文互斥或访问不存在等证伪；源码 evidence |
+| NEED_MORE_CONTEXT | 已分析源码但缺决定性事实；明确 missing_context，禁止猜测 |
 
-参与者固定包含 `id/label/eligibility/entry/access/evidence_refs`。`eligibility` 为 `ACTUAL/EXCLUDED/UNKNOWN`，一个 ID 只代表一个执行上下文。源码中的回调参数过滤、构建分支和 DMA 模式都应由 OpenCode 核对，不能把保守调用图中的所有路径都列为真实访问者。
+五者全部为 `review_state=DONE`。执行状态只有 PENDING、DONE、TECH_FAILED；`state/status` 为既有报告兼容字段，与 `review_state/review_status` 一致。NEED_MORE_CONTEXT 不计为技术失败，也不表示安全。
 
-场景固定包含 `title/kind/precondition/steps/expected/actual`。`kind` 为 `CONFLICT/BLOCKED/UNRESOLVED`。每步固定包含 `actor_id/action/state_before/state_after/evidence_refs`，列表顺序即 OpenCode 给出的执行顺序。示例初值必须注明是假设；未知值明确写未知。页面不会从自由文本、箭头、变量名或静态调用图重新构造另一条时序。
+## 最小校验与格式恢复
 
-确认变量缺陷必须首先给出一个成立的冲突：至少两步、两个真实参与者，以及具体结果差异。安全/误报须展示冲突被哪个条件阻止；没有运行期访问时允许空步骤，避免为填表编造读写。未确认项不能展示为已成立冲突，独立证据缺口不计成变量缺陷。
+硬校验：finding_id 相同、合法 status、非空 reason、evidence 为列表；每条证据的文件在工程内且存在、整数行号有效；上述三种明确结论至少一处 evidence；两种不确定结论至少一个非空 missing_context。无字数限制，不要求 quote、schema_version 或结构化解释。
 
-## 校验与失败处理
+Parser 支持整体 JSON、fenced JSON、前后解释、JSONL 和最后一个与 finding_id 匹配的完整对象。输出格式错误最多进行两次 FORMAT_FIX，只传原始分析文字、当前错误、简单格式、finding_id 和枚举。格式会话没有工具权限、不附 Packet、不延续源码分析会话，不得增添事实或改变原结论。两次后仍无有效结果才为 TECH_FAILED；provider 错误、退出异常、启动失败、timeout 直接按技术失败/有限技术重试处理。
 
-新响应缺字段、编号越界、参与者 ID 不存在、用已排除入口构造冲突、状态与场景类型矛盾、引用原文不匹配时，工具拒绝完成状态，将具体错误交回 OpenCode 重试。重试耗尽保留失败记录，不代填字段，不把失败当成安全。
+## 归档与展示
 
-首轮和反证轮复用同一个协议常量与校验函数。执行回执记录协议版本、原始输出日志与提示词哈希；展示字段仍属于原始回答的一部分，手工修改会导致日志一致性校验失败。引用路径相对当前工程解析，并校验实际行号和原文；共享 SDK 等外部依赖仍按构建中的实际路径核对，不把旧工程的缓存当作新工程证据。
+每次执行保存不可覆盖的时间戳 Packet、Prompt、stdout、stderr、解析答案、模型、时间及 SHA-256；格式修正的原始分析也校验。稳定文件名仅为最新输入副本，收据引用时间戳原件。历史失败不阻碍以后重新复核；旧结论进入历史，当前答案只来自本轮有效日志。
 
-格式校验只保证结构、引用定位与记录一致性，不证明模型推理必然正确。反证复核负责继续核对语义。报告区分源码支持的结果、未证实的业务影响和待做的验证建议；没有板上实验就不能声称已经实测。
+index.html 保持变量级清单和中文栏目；简单字段直接映射为原因、时序、保护、影响、证据、修复、验证和缺失事实。旧 v2 解释仅为历史展示兼容，不再进入新答案的硬校验。源码/扫描指纹变化仍使旧答案失效，要求重新扫描。
 
-## 验证方式
-
-`tests/test_review_contract.py` 和相关协议测试使用明确标记的模拟进程输出，只验证工具行为，不能作为项目风险证据。真实 OpenCode 的跨工程抽样输出、执行日志和页面保存在 `output/opencode-format-v2/`；实际完成数量和结果以其中回执为准。
-
-2026-09-15 真实抽样验证完成：
-
-| 工程 | 变量 | OpenCode 反证后的结论 | 输出版本 |
-|---|---|---|---|
-| serial - continue / STM32F103 | `pending_events` | CONFIRMED | v2 |
-| serial - continue / STM32F103 | `guarded_total` | REVIEWED_SAFE | v2 |
-| H747 CM7 裸机 / 双核验证工程 | `mailbox_shared` | CONFIRMED | v2 |
-| H747 CM7 裸机 / 双核验证工程 | `control_shared` | REVIEWED_SAFE | v2 |
-
-四项均实际调用 OpenCode 完成首轮和反证轮，程序核对两轮提示词包含同一协议、最终答案与原始日志一致、源码引用仍匹配当前文件。70 处最终源码引用及页面链接通过核对。过程中的模型输出与重试日志保留，未手工改写结论或解释。它们是格式与流程的真实抽样，不是重新复核两个工程的全部变量，也不是板上复现。
-
-155 项自动化测试通过；后续 Markdown 展示和跨目录引用测试的针对性检查亦通过。浏览器已检查结构化步骤、操作前后状态、已排除参与者、源码链接和 390 像素手机布局。真实样例入口为 `output/opencode-format-v2/serial/opencode_review.html` 与 `output/opencode-format-v2/h747/opencode_review.html`，校验摘要为同目录上层的 `validation.json`。
-
-## 大型项目逐项核对扩展
-
-新生成的证据包包含 `investigation_requirements`，仅列本项访问点、候选规则和阻塞项。完整函数、调用边、IRQ、生命周期和控制流可供核查，但不要求在答案中逐 ID 复述。首轮和反证答案增加 `investigation` 数组：每个清单 ID 必须恰好出现一次，包含非空 `assessment` 和引用 `evidence` 的 1-based `evidence_refs`。确认风险、安全或误报的最终结论要求每项有源码引用；证据不足时说明具体缺失信息并保留 `NEED_MORE_CONTEXT`。
-
-复核归档采用每项一条记录：`queue.json`、`<finding_id>.result.json`、全局 JSON、HTML 与 Markdown 均保留当前状态。`DONE + NEED_MORE_CONTEXT` 表示模型已正常完成但源码证据不足；`FAILED` 表示执行或校验没有得到可信答案，记录失败阶段、历次尝试、Prompt、packet 及日志。`PENDING`、`RUNNING` 和 `STALE` 不作为有效安全结论。报告显示目标、归档、完成、失败、待复核、失效、遗漏和重复数量；遗漏或重复时不会显示 `REVIEW_COMPLETE`。`max_items` 仅限制每批大小，所有批次会连续执行；重新运行 `review` 会验证并复用可信 `DONE`，继续处理失败或未完成项。源码变化后旧记录标为 `STALE`，需要完整 `run` 重新扫描。
-
-非 `DONE` 项的当前 `status` 必须为空；旧的首轮判定只保留在历史记录中。变量总览使用当前复核结论和状态写标题：安全、误报、证据不足、执行失败、待复核、失效分别显示，避免最终已复核安全的变量仍以静态疑似风险作为总览结论。仅做静态扫描且明确关闭模型复核时，仍保留静态疑似候选计数，并标明尚未复核。
-
-清单涵盖全部访问、全部上游相关函数、候选规则和阻塞项。`source_context_manifest` 标注函数源码是否完整附带；未附带完整的函数必须按文件和行区间继续读取。逐条记录显示在 HTML 和 Markdown 中。收据绑定原始证据包 SHA-256，缓存恢复及报告刷新也会核对；此机制验证记录完整性，不自动证明模型推理正确。
-
-## 风险结论的源码事实门槛
-
-证据包把 `review_focus` 放在静态 finding 之前，先列存储对象身份、指针本体、运行期访问、非访问操作、串行或未知优先级的冲突对、初始化证明及跨字段一致性线索。发送给模型的 finding 和 variable 去掉静态风险等级、置信度和分类标签；原始静态分类仍保存在归档结果里。指针目标单独放在 `pointer_points_to`，不能把 pointee 的访问归到指针变量本体。静态规则仅作为待核查的问题。
-
-变量项的 `CONFIRMED` 必须引用同一存储对象上、未被串行关系或有效保护排除的两个真实访问行，并给出与预期不同的错误结果；只有优先级未知的关系不能直接确认。`LIKELY` 也必须引用两个具体访问，不能作为“还不知道”的兜底。压缩的上下文冲突组合按完整访问 ID 核对引用，不把组合中的代表行误当唯一访问。若静态事实漏掉真实交错，OpenCode 可以用 `risk_override` 附上两个实际访问、执行关系、保护范围、错误结果的源码引用；跨字段一致性和普通对齐 store 的协议缺陷还需要独立的协议依据。校验失败会重试并归档为 `FAILED`，不会自动改判安全。
-
-新项目配置及随仓库提供的 `config/semantics.yaml` 默认启用 `review.audit_verdicts: true`，使首轮安全或风险结论再经过反证复核。校验只能挡住与已提取事实矛盾或缺少指定源码依据的风险结论；源码语义与业务协议仍需模型逐项分析，不能据此声称已测得真实工程的误报率。
+`max_items` 控制每批大小，命令自动处理完所有目标；`workers` 为 1–8。旧 `audit_verdicts` 配置可删除，当前流程不执行额外反证轮。

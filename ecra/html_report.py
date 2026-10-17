@@ -206,7 +206,7 @@ def local_pending(record):
 def review_label(record):
     if record.get('state') == 'DONE':
         return VERDICTS.get(record.get('status'), '证据不足，不能判定安全')
-    return {'FAILED': '复核执行失败，不能判定安全', 'STALE': '旧结论已失效，需重新复核',
+    return {'TECH_FAILED': 'OpenCode复核失败，不能判定安全', 'FAILED': '复核执行失败，不能判定安全', 'STALE': '旧结论已失效，需重新复核',
             'AUDIT_PENDING': '首轮已返回，等待反证复核',
             'RUNNING': '正在复核，尚无有效结论'}.get(record.get('state'),
             '待人工核对（未启用模型）' if local_pending(record) else '待复核，不能判定安全')
@@ -326,7 +326,7 @@ def reviewed_variable_summary(findings, records):
                 review_label(row))[:260]
     if row := done('CONFIRMED'):
         return '已确认并发风险', explanation(row)
-    if any(r.get('state') == 'FAILED' for r in rows):
+    if any(r.get('state') in {'TECH_FAILED', 'FAILED'} for r in rows):
         return '复核执行失败', 'OpenCode 未产生通过校验的最终结论；请查看对应 finding 的失败记录。'
     if any(r.get('state') == 'STALE' for r in rows):
         return '复核结果已失效', '源码或收据发生变化；旧结论不能作为当前安全或风险证据。'
@@ -392,7 +392,7 @@ def decision(finding, record):
     reviewed = category(record)
     if reviewed != 'unresolved':
         return reviewed
-    if record.get('state') in {'FAILED', 'PENDING', 'RUNNING', 'STALE'} and not local_pending(record):
+    if record.get('state') in {'TECH_FAILED', 'FAILED', 'PENDING', 'RUNNING', 'STALE'} and not local_pending(record):
         return 'unresolved'
     if finding.get('static_classification') in {'SUSPECT', 'UNKNOWN'}:
         return 'likely' if finding['static_classification'] == 'SUSPECT' else 'unresolved'
@@ -1285,7 +1285,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         source_evidence = table(['文件', '行号', '引用处源码及邻近语句'], evidence_rows)
         explanation = story_explanation(answer, group, bool(f.get('symbol_id')),
                                         lambda i: '#' + anchor('citation-', f['finding_id'] + ':' + str(i)))
-        if r['state'] in {'STALE', 'FAILED'} and r.get('answer'):
+        if r['state'] in {'TECH_FAILED', 'STALE', 'FAILED'} and r.get('answer'):
             explanation += '<p>旧回答已失效，仅在原始记录中保留，不作为本轮结论或证据。</p>'
         error = '<details><summary>复核未完成的原因</summary><p>' + esc(r['error']) + '</p></details>' if r.get('error') and not local_pending(r) else ''
         execution = r.get('execution', {})
@@ -1298,7 +1298,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
             error += '<p><a href="review/' + esc(execution['stdout_file']) + '">原始 OpenCode 执行日志</a></p>'
             error += '<details><summary>执行时间、日志 SHA-256 与校验范围</summary>' + fields(execution) + '</details>'
         if r.get('previous_reviews'):
-            error += '<p>已做反证复核；保留 ' + str(len(r['previous_reviews'])) + ' 次先前回答，当前状态：' + esc(r['status']) + '。</p>'
+            error += '<p>保留 ' + str(len(r['previous_reviews'])) + ' 次先前回答，当前状态：' + esc(r['status']) + '。</p>'
             for attempt, previous in enumerate(r['previous_reviews'], 1):
                 error += '<details><summary>第 ' + str(attempt) + ' 轮历史回答（不作为当前结论）</summary>' + raw(previous)
                 if previous.get('execution',{}).get('stdout_file'):
@@ -1340,8 +1340,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     content += '<p class="review-coverage"><strong>' + ('复核目标全部完成' if integrity['all_done'] else '复核结果不完整') + '</strong> · OpenCode目标总数 ' + str(integrity['targets']) + ' · 成功完成数 ' + str(integrity['done']) + ' · 复核失败数 ' + str(integrity['failed']) + ' · 待复核数 ' + str(integrity['pending']) + ' · 结果失效数 ' + str(integrity['stale']) + ' · 遗漏数 ' + str(integrity['missing']) + ' · 重复数 ' + str(integrity['duplicate']) + '</p>'
     if integrity['errors']:
         content += '<details><summary>复核结果不完整：查看不变量错误</summary>' + raw(integrity['errors']) + '</details>'
-    structured_count = sum(r.get('state') == 'DONE' and r.get('answer', {}).get('schema_version') == 2 for r in records.values())
-    content += '<p class="format-summary">并发结论与解释由 OpenCode 生成，工具负责候选提取、协议/引用校验和展示。统一协议 v2：' + str(structured_count) + '/' + str(conclusion['total']) + ' 项；旧版回答保留原样，重新执行 review 才会由 OpenCode 按新协议复核。</p>'
+    content += '<p class="format-summary">并发结论与解释由 OpenCode 生成，工具负责完整事实、源码引用校验和归档。review 重新复核全部静态疑似/未知变量；review-failed 只重新复核技术失败项。</p>'
     content += '<nav class="tabs" aria-label="复核栏目">' + ''.join('<a href="#reviews' + ('-' + key if key != 'risks' else '') + '">' + label + ' ' + str(len(review_rows[key])) + '</a>'
         for key, label in [('risks', '风险变量'), ('safe', '安全 / 误报'), ('gaps', '独立证据缺口')]) + '</nav><!--controls-->'
     for key, title, description in [

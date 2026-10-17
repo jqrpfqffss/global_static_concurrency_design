@@ -17,6 +17,9 @@ dist/
 *.map
 compile_commands.json
 .cache/
+.vscode
+.tools-cache.txt
+
 
 # ECRA generated state, reports, and browser-test artifacts
 .ecra/

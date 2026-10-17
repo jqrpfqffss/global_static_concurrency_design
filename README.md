@@ -91,29 +91,29 @@
 
 工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
 
-可在 [`config/review_context.md`](config/review_context.md) 预先填写当前工程的补充背景，例如两个中断因优先级或互斥使能不会同时运行，并写明适用构建和源码依据。每项 OpenCode 首轮及反证复核都会读取该文件；这些信息会被当作待核实的用户声明，结论仍须依据源码和运行配置。修改该文件后运行 `python run_ecra.py review` 即会重新复核已有候选项，无需重新扫描。使用 `ECRA_CONFIG_HOME` 或 `--config` 时，将同名 Markdown 文件放在实际 `semantics.yaml` 旁边。切换 `project.root` 时同步更新内容。
+可在 [`config/review_context.md`](config/review_context.md) 填写当前工程补充背景及源码依据。每次正常变量复核读取它，作为待源码核实的用户声明。修改后运行 `review`，会重新复核全部静态疑似/未知变量。使用 `--config` 时，将同名 Markdown 放在实际 semantics.yaml 旁边；切换工程时同步更新。
 
 ```powershell
 py -3.10 run_ecra.py
 ```
 
-自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出 `.ecra/index.html` 和 `.ecra/opencode_review.html`。新工程默认本地静态排查；当前 `serial-continue` 配置已启用真实 OpenCode 复核，并指向 `H:/stm32_RAG/test/serial - continue`。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
+自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出 `.ecra/index.html` 和 `.ecra/opencode_review.html`。新工程默认本地静态排查；当前工程及复核开关以 config/semantics.yaml 为准。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
 
 OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围内未确认问题、或尚不能确定。确认存在一个变量缺陷即可回答“有问题”，但剩余疑似项、失败项和覆盖盲区仍保留，不能宣称全工程排查完成。`LIKELY` 不算最终定论，下次 `review` 会重新复核。
 
-所有项目的首轮与反证复核统一使用 [OpenCode 输出协议 v2](docs/opencode-review-format.md)。一句话结论、实际参与者、抢占条件、逐步动作、操作前后状态、预期与实际结果均由 OpenCode 直接生成；页面按固定栏目展示，工具不会代写缺失解释。缺字段、无效引用或使用已排除入口构造冲突会退回 OpenCode 重试。旧回答保留并标注旧版格式，运行 `review` 后由 OpenCode 按新协议重新复核；仅刷新 `report` 不会伪造格式升级。
+所有工程使用[简单变量级输出格式](docs/opencode-review-format.md)：`finding_id/status/reason/interleaving/protection/impact/evidence/fix/verification/missing_context`。一个变量一个最终状态和结论，不要求逐 pair、investigation、参与者或结构化步骤。页面保留中文栏目，按模型原文展示；旧归档仍可读取。
 
-每项证据包含文件、行号、源码原文 `quote` 和事实说明 `claim`。新回答必须提供与该行一致的原文；程序保存引用处源码、文件 SHA-256、执行时间和原始 OpenCode JSONL 日志。缓存和 `report` 刷新会核对日志、答案与源码的一致性，缺日志或内容变化会失效。日志链接在每项结论中；这能检查记录完整性，但不代表模型推理已由硬件实验验证，也不是防恶意同时改写全部文件的签名。
+源码证据仅要求 `file/line/claim`；程序核对工程内文件及有效行号，保存邻近源码、完整文件 SHA-256、执行时间、模型、实际提示词、Packet 和原始 stdout/stderr。归档完整性独立于模型输出协议；日志与源码一致不代表模型推理已由硬件实验验证。
 
-`review.max_items` 是每批最多处理的候选项数，`0` 表示不限制批次大小；一次 `run` 会自动处理全部批次。`review.workers` 可设置为 1–8（默认 1，当前示例为 4），控制批内最多同时运行多少个独立只读会话，实际并发不超过本批项数。主线程逐项保存完整、有序的队列。每项输入补充完整相关函数（最多 1600 行，超出部分按路径继续读取），用于核对中断入口、提前返回和真实保护范围。权限按 [OpenCode 官方说明](https://opencode.ai/docs/permissions/) 配置，禁止修改、shell 和继续委派。
+`review.max_items` 是每批最多处理多少项，`0` 表示不限制批次；三个复核入口均自动跑完全部目标。`workers` 为 1–8（默认 1），控制批内独立只读会话数。Packet 保留全部访问、完整调用链、上下文、保护、初始化、别名与未知事实，重复调用链只做无损去重；不再默认附带 1600 行函数正文。OpenCode 按声明、访问点、调用链、入口、保护和 unknowns 导航读取必要源码，避免无关全仓扫描。
 
-`review.audit_verdicts: true` 会对已返回的答案再做一次 OpenCode 反证复核，也会尝试恢复首轮执行失败的项。它重点查找安全证明遗漏的重置/错误恢复路径、无法成立的抢占、指针与缓冲区混淆、没有源码依据的业务读者，以及修复建议是否在 DMA 忙期间仍修改缓冲区。首轮答案和日志保留在 `previous_reviews`，新结论来自新日志；反证执行失败时保留未决，不能沿用首轮安全判断。两轮由同一 OpenCode 会话继续完成，属于模型自查，不是独立专家或板上实验。
+只执行一次正常语义复核。输出结构异常时最多两次 `FORMAT_FIX`，只发送原始分析文字、具体错误、简单格式和 finding_id；格式会话无工具权限，不发送 Packet、不重读源码。旧的 `audit_verdicts` 设置不再参与流程，可从项目配置删除。
 
-串行复核时，每个候选项依次完成首轮、反证复核（启用时）和 `review/` 收据及队列归档，随后立即开始下一项；`timeout_seconds` 是每次 OpenCode 命令的最长运行时间，并非两项之间的等待时间。命令正常结束会立即校验结果。若超时或校验失败，每轮最多再试 `retries` 次；当前 600 秒、重试 1 次、启用反证时，单项两轮的最坏超时预算约为 40 分钟。`--no-review` 会覆盖配置中的 `review.enabled: true`，只留下 `PENDING` 队列；若扫描输入和分析实现均未变化，可运行 `review` 继续，无需重扫。
+`timeout_seconds` 是每次 OpenCode 调用的最长时间，`retries` 只用于有限技术重试；格式修正单独限制为两次。真正执行失败或最终格式仍无效记为 `TECH_FAILED`，始终可用 `review-failed` 再试。`--no-review` 覆盖 enabled，保留完整 `PENDING` 队列。所有合法语义状态（包括 `LIKELY` 和 `NEED_MORE_CONTEXT`）均记 `DONE`，证据不足不是执行失败。
 
 默认逐项调用 OpenCode 的对象是候选项；静态判安全的变量留在变量清单。若要让范围内这些变量也逐项调用 OpenCode，完整运行时加入 `--review-safe-sample 9999 --review-shared-sample 9999`；这两个参数会将现有两类静态筛除变量全部加入独立复核队列，具体数量取决于当次扫描结果。
 
-若所有复核项几秒内失败，先查看 `review/*.attempt*.stderr.txt` 并在固件目录运行 `opencode agent list` 检查项目配置。OpenCode 会加载 `.opencode/agent/` 中的 agent 文件；其 YAML 头部的 `model` 只能是单个模型字符串，列表会使整个 OpenCode 命令启动失败。工具发现 `Configuration is invalid at ...` 后会记录失败原因，并停止对后续项重复启动；修复配置后重新运行 `review`（分析实现或扫描输入变化时需重新运行 `run`）。
+若所有复核项几秒内失败，先查看 `review/*.attempt*.stderr.txt` 并在固件目录运行 `opencode agent list` 检查项目配置。OpenCode 会加载 `.opencode/agent/` 中的 agent 文件；其 YAML 头部的 `model` 只能是单个模型字符串，列表会使整个 OpenCode 命令启动失败。工具发现 `Configuration is invalid at ...` 后会保存该项技术失败，继续处理其余变量；修复配置后运行 `review-failed`（分析实现或扫描输入变化时需重新运行 `run`）。
 
 判定时分开报告存储一致性与业务影响：没有额外业务消费者，不能据此否认 `++` 或位域/union 的非原子读改写会丢失更新；反过来，原子字节 store/store 的最后写者生效，也不能凭空推导出不存在的业务协议被破坏。变量结论绑定自己的 `symbol_id`，指针指向对象的问题不能重复算成指针本身的问题。
 
@@ -163,7 +163,7 @@ HTML 首页按变量给出“已确认风险 / 疑似并发风险 / 无法判断
 
 无关库调用、未编译文件不会一概阻塞所有未逃逸 static；可能访问导出全局变量的外部代码、解析失败、DMA 和未恢复入口仍明确保留阻塞原因。指针本体与 DMA 指向缓冲区分开判定。
 
-OpenCode 每项证据包包含全部上游调用者和 `investigation_requirements` 核对清单。首轮和反证复核均须逐条回应每个访问点、候选规则及阻塞项；函数、调用边、IRQ 和生命周期仍在证据包中供核查，无需在最终 JSON 中逐 ID 复述。遗漏、重复、引用无效会退回重试。超过源码附带上限的函数逐项标记，要求继续分段读取。单项准备失败不会中止本批或后续批次；中断时未处理项、失败项、`LIKELY` 和 `NEED_MORE_CONTEXT` 均保留待办。`review_summary.variable_coverage` 区分静态安全、入队、最终定论和剩余变量。
+OpenCode 每项 Packet 包含全部访问和完整调用链，保护、初始化、覆盖缺口与未解析调用继续保留。程序不要求模型逐访问 ID 复述，也不要求逐组合证明。完整静态冲突证据保留在 facts.json/report 中，Packet 只提供上下文导航摘要。单项准备失败会独立归档，不中止后续项。
 
 更新后必须重新运行完整扫描，旧报告不能只刷新：
 
@@ -185,12 +185,13 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 | 命令 | 作用 |
 |---|---|
 | `python H:/global_static_concurrency_design/run_ecra.py` | 重新盘点源码并执行完整复核流程 |
-| `python H:/global_static_concurrency_design/run_ecra.py review` | 校验已有扫描后继续 OpenCode 复核，不重跑 Clang；复用有效完成项，处理剩余项 |
+| `py -3.10 run_ecra.py review` | 重新复核当前全部静态 SUSPECT/UNKNOWN，包含已有 DONE |
+| `py -3.10 run_ecra.py review-failed` | 仅重试 TECH_FAILED，DONE（包括证据不足）不重复调用 |
 | `python H:/global_static_concurrency_design/run_ecra.py report` | 校验已有扫描，仅刷新两个 HTML 及配套报告，不调用模型 |
 | `python H:/global_static_concurrency_design/run_ecra.py status` | 显示已保存进度、未完成数量、能否恢复及下一步建议；加 `--json` 输出结构化信息 |
 | `python H:/global_static_concurrency_design/run_ecra.py doctor` | 检查源码分析环境与 OpenCode 命令可用性，保留上轮运行记录和报告 |
 
-恢复会验证源码、实际包含的外部头文件、嵌套 `@response` 文件、编译数据库、分析配置、分析实现和事实完整性。新增/删除源码、修改芯片宏或损坏事实会要求重新执行 `run`。修改复核设置无需重新解析；更换模型或命令会重新复核，调整数量限额、超时和重试次数会保留有效的已完成项。`review` 命令表示明确启用复核，即使配置中先前写了 `enabled: false`。
+恢复会验证源码、实际包含的外部头文件、嵌套 `@response` 文件、编译数据库、分析配置、分析实现和事实完整性。新增/删除源码、修改芯片宏或损坏事实会要求重新执行 `run`。修改复核设置无需重新解析；显式 review 总是重新复核全部疑似/未知；复核设置可修改，无需重扫静态事实。`review` 命令表示明确启用复核，即使配置中先前写了 `enabled: false`。
 
 旧版本扫描没有 `scan_state.json`，需要先重新运行一次。`Ctrl+C` 中断保留待办；并行复核会取消尚未开始的任务，已运行的会话可能需要等到本次调用完成或超时，单项收据可在恢复时复用。若静态扫描尚未完成，应重跑 `run`。因强制结束进程或断电遗留的 `scan.lock` 仍需先确认进程已经退出，再移除过期锁。
 
@@ -322,15 +323,15 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 ## OpenCode 复核与持续使用
 
-每个变量的相关风险合并为一个复核包；解析失败、未知调用目标等无法归属于具体变量的盲区也进入队列。默认串行处理全部项目，防止漏掉低置信度项。设置 `max_items: 5` 时每批最多处理 5 项，批次会自动连续执行直到处理完全部候选；`workers` 只控制批内并发。中断后运行 `review`，复用有效完成项并继续处理未完成项。
+每个变量的相关风险合并为一个复核包；无法归属于变量的覆盖盲区仍独立保留，不减少候选。日常完整运行：`py -3.10 run_ecra.py`；全部重评：`py -3.10 run_ecra.py review`；仅技术失败重试：`py -3.10 run_ecra.py review-failed`。后两者使用经一致性检查的静态扫描，不重新运行 Clang。
 
 同一文件中的同类盲区合并成复核项，所有具体位置仍保存在原始事实和该项证据中。队列从开始就列出全部项，处理中断也能看到尚未处理的项目。`--no-review` 默认保存两个 HTML、静态报告与完整待办清单，证据包在实际复核时生成；需要提前导出全部包时可设置 `review.prepare_packets: true`。
 
-通过 `opencode run --format json` 获取事件，并要求最终结构化结论。工具检查 finding ID、状态、必要字段，以及证据文件和行号是否存在。模型报错、超时、非法 JSON、证据缺失都会保留为失败/未完成，不接受为空结果。源码证据的语义正确性仍需工程评审。
+通过 `opencode run --format json` 获取事件，Parser 兼容纯 JSON、前后解释、fenced JSON 和最后一个匹配 finding_id 的完整对象。最小 Validator 只硬校验 finding_id、五种 status、非空 reason、evidence 列表及源码位置；CONFIRMED/REVIEWED_SAFE/FALSE_POSITIVE 至少一处证据，LIKELY/NEED_MORE_CONTEXT 至少一个明确 missing_context。文字长度及可选展示字段不导致技术失败。
 
 复核使用独立 `ecra-review` 只读 agent 权限，禁止修改文件和执行 shell。实际源码及证据会交给你配置的 OpenCode 提供商处理。工具不会自动登录、选择付费提供商、设置自动分享或修改固件。
 
-复核缓存绑定工具版本及 Python 实现内容、配置、项目源码和链接脚本、实际包含的外部头文件、编译参数、证据包、提示词和模型设置。构建产物、日志和报告不作为源码指纹，避免输出使自身复核过期。输入变更会重新复核。缓存答案会再次检查状态和证据；失败或 `NEED_MORE_CONTEXT` 会在后续运行重新尝试。扫描/复核期间输入变化会使本轮结果不完整；致命失败会同时替换两个 HTML 的旧结论为失败提示。风险 ID 不依赖访问行号；局部同名 static 使用函数内同名声明次序区分，新增同名声明可能改变后续 ID。
+正常完整运行可复用当前指纹下的有效 DONE（包括 LIKELY/NEED_MORE_CONTEXT）；显式 `review` 必须重新调用全部当前静态 SUSPECT/UNKNOWN，不受上次 AI 结论影响。`review-failed` 仅重试 TECH_FAILED，成功后自动退出失败集合；没有永久放弃次数。源码、头文件、编译输入、分析实现或事实变化仍要求重新扫描，旧结论移入历史并标记技术失效，不能用于当前安全判断。
 
 每次运行归档上一轮，`baseline.no_longer_observed` 仅表示本次不再观察到，不自动视为已修复。`known_safe` 注释会保留供复核参考，不隐藏候选。意外中止后若遗留 `scan.lock`，确认对应进程已结束再删除锁。归档会持续增长，可按团队保留策略清理 `snapshots`。
 

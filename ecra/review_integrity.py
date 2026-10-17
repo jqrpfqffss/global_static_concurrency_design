@@ -3,8 +3,37 @@ from collections import Counter
 import re
 from .common import read_json, write_json
 
-STATES = {'PENDING', 'RUNNING', 'DONE', 'FAILED', 'STALE'}
+STATES = {'PENDING', 'DONE', 'TECH_FAILED'}
 VERDICTS = {'CONFIRMED', 'LIKELY', 'REVIEWED_SAFE', 'FALSE_POSITIVE', 'NEED_MORE_CONTEXT'}
+
+
+def set_review_state(row, state, status=None):
+    row.update(state=state, review_state=state, status=status, review_status=status)
+    return row
+
+
+def normalize_review_record(row):
+    """Read old ledgers without retaining their obsolete runtime states."""
+    row = dict(row)
+    state = row.get('state', row.get('review_state', 'PENDING'))
+    state = {'FAILED': 'TECH_FAILED', 'STALE': 'TECH_FAILED', 'RUNNING': 'PENDING'}.get(state, state)
+    if state not in STATES:
+        state = 'PENDING'
+    if state == 'DONE':
+        answer = row.get('answer')
+        if (not isinstance(answer, dict) or answer.get('status') not in VERDICTS
+                or row.get('status') != answer.get('status')):
+            state = 'TECH_FAILED'
+            row.update(error='复核收据缺少一致的合法答案；请重新复核', error_type='InvalidReceipt')
+    if state != 'DONE' and row.get('answer'):
+        row['previous_reviews'] = list(row.get('previous_reviews', [])) + [
+            {k: row[k] for k in ('answer', 'status', 'execution', 'source_evidence') if k in row}]
+        row.pop('answer', None)
+    set_review_state(row, state, row.get('status') if state == 'DONE' else None)
+    if state == 'TECH_FAILED':
+        row.setdefault('error', '旧复核未正常完成；可通过 review-failed 再次复核')
+        row.setdefault('last_error', dict(type=row.get('error_type', 'ReviewError'), message=row['error']))
+    return row
 
 
 def review_targets(report):
@@ -32,21 +61,27 @@ def review_integrity(report, records, *, require_terminal=False):
             answer = row.get('answer')
             if not isinstance(answer, dict) or answer.get('status') not in VERDICTS or row.get('status') != answer.get('status'):
                 errors.append(f'{fid}: DONE 缺少合法且一致的 answer')
-        elif state == 'FAILED' and not row.get('error'):
-            errors.append(f'{fid}: FAILED 缺少 error')
-        elif state in {'PENDING', 'RUNNING', 'STALE'} and row.get('answer'):
+        elif state == 'TECH_FAILED' and not row.get('error'):
+            errors.append(f'{fid}: TECH_FAILED 缺少 error')
+        elif state == 'PENDING' and row.get('answer'):
             errors.append(f'{fid}: {state} 不得携带当前有效 answer')
         if state != 'DONE' and row.get('status') is not None:
             errors.append(f'{fid}: {state} 不得携带当前有效 status')
-        if require_terminal and state not in {'DONE', 'FAILED', 'STALE'}:
+        if state == 'TECH_FAILED' and row.get('answer'):
+            errors.append(f'{fid}: TECH_FAILED 不得携带当前有效 answer')
+        if 'review_state' in row and row['review_state'] != state:
+            errors.append(f'{fid}: review_state 与 state 不一致')
+        if 'review_status' in row and row['review_status'] != row.get('status'):
+            errors.append(f'{fid}: review_status 与 status 不一致')
+        if require_terminal and state not in {'DONE', 'TECH_FAILED'}:
             errors.append(f'{fid}: 尚未形成终态记录')
     errors += [f'遗漏 finding_id: {missing}' for _ in [0] if missing]
     errors += [f'多余 finding_id: {extra}' for _ in [0] if extra]
     errors += [f'重复 finding_id: {duplicates}' for _ in [0] if duplicates]
     states = Counter(r.get('state') for r in records)
     summary = dict(targets=len(targets), archived=len(archived), done=states['DONE'],
-                   failed=states['FAILED'], pending=states['PENDING'] + states['RUNNING'],
-                   stale=states['STALE'], missing=len(missing), duplicate=len(duplicates),
+                   failed=states['TECH_FAILED'], tech_failed=states['TECH_FAILED'], pending=states['PENDING'],
+                   stale=0, missing=len(missing), duplicate=len(duplicates),
                    errors=errors, complete=not errors,
                    all_done=not errors and states['DONE'] == len(targets))
     return summary
@@ -72,7 +107,7 @@ def assert_review_archive(report, records, folder, *, require_terminal=True):
         for key in ('state', 'status', 'error', 'answer'):
             if row.get(key) != current.get(key):
                 errors.append(f'{fid}: queue 与本轮结果的 {key} 不一致')
-        if require_terminal:
+        if require_terminal or row.get('state') in {'DONE', 'TECH_FAILED'}:
             try:
                 receipt = read_json(folder / (fid + '.result.json'))
             except (OSError, ValueError) as exc:
@@ -105,7 +140,8 @@ def mark_review_stale(folder, row, reason):
                         answer=row['answer'], execution=row.get('execution') or {},
                         source_evidence=row.get('source_evidence'))
         row['previous_reviews'] = list(row.get('previous_reviews', [])) + [previous]
-    row.update(state='STALE', status=None, error=str(reason),
+    set_review_state(row, 'TECH_FAILED')
+    row.update(error=str(reason), last_error=dict(type='StaleReview', message=str(reason)),
                error_type='StaleReview', failure_stage='source_or_receipt_validation')
     row.pop('answer', None)
     write_json(folder/(row['finding_id']+'.result.json'), row)

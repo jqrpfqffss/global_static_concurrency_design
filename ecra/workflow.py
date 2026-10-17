@@ -10,7 +10,8 @@ from .common import digest, read_json, relative, write_json
 from .config import load_config
 from .html_report import REVIEW_PAGE, category, review_records, write_html
 from .report import generate
-from .review import review_all, parse_answer, verify_receipt
+from .review import review_all, verify_receipt
+from .review_integrity import normalize_review_record, set_review_state
 
 
 def file_digest(path):
@@ -40,6 +41,7 @@ def clean_report(report):
     for f in result['findings']:
         f.pop('review', None)
         f.pop('review_state', None)
+        f.pop('review_status', None)
         f.pop('review_result', None)
         f['status'] = 'NEED_OPENCODE_REVIEW'
     return result
@@ -47,7 +49,7 @@ def clean_report(report):
 
 def save_scan(root, out, cfg, config_file, report):
     from .review_integrity import review_targets, assert_review_integrity
-    queue = [dict(finding_id=f['finding_id'],state='PENDING') for f in review_targets(report)]
+    queue = [set_review_state(dict(finding_id=f['finding_id']), 'PENDING') for f in review_targets(report)]
     assert_review_integrity(report, queue)
     write_json(out/'review/queue.json', queue)
     write_json(out/'scan_state.json', dict(schema=1, project_root=str(root),
@@ -100,7 +102,7 @@ def checked_reviews(root, out, reviews, fingerprint):
     import json
     verified=[]
     for original in reviews:
-        r=copy.deepcopy(original)
+        r=normalize_review_record(copy.deepcopy(original))
         if r.get('state')=='DONE':
             try:
                 cached=read_json(out/'review'/(r['finding_id']+'.result.json'))
@@ -163,7 +165,8 @@ def status(root, config_path=None):
                     verify_receipt(root, out/'review', row)
                 except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
                     receipt_errors.append(dict(finding_id=row['finding_id'], error=str(exc)))
-                    row.update(state='STALE', status=None, error=str(exc))
+                    set_review_state(row, 'TECH_FAILED')
+                    row.update(error=str(exc))
                     row.pop('answer', None)
             if receipt_errors:
                 integrity = review_integrity(report, verified_queue)
@@ -184,7 +187,7 @@ def status(root, config_path=None):
             elif disabled:
                 action = '当前未启用模型：可按 HTML 人工排查；运行原命令重新扫描；运行 report 仅刷新结果。'
             else:
-                action = '运行 review 继续模型复核；运行 report 仅刷新结果'
+                action = '运行 review 重新复核全部疑似/未知；review-failed 只重跑技术失败；report 仅刷新结果'
             info.update(resumable=True, review_enabled=not disabled,
                         next_action=action)
         except (OSError, ValueError, KeyError) as exc:
@@ -192,7 +195,7 @@ def status(root, config_path=None):
     return info
 
 
-def saved_run(root, config_path=None, render_only=False):
+def saved_run(root, config_path=None, render_only=False, failed_only=False):
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
     if not out.is_dir():
@@ -233,6 +236,7 @@ def saved_run(root, config_path=None, render_only=False):
         queue_file = out/'review/queue.json'
         reviews = read_queue(out)
         reviews = checked_reviews(root, out, reviews, state['fingerprint'])
+        write_json(queue_file, reviews)
         if not render_only:
             cfg['review']['enabled'] = True
             last = time.monotonic()
@@ -246,12 +250,13 @@ def saved_run(root, config_path=None, render_only=False):
 
             try:
                 reviews = review_all(root, out, cfg, facts, report, state['fingerprint'], on_result=checkpoint,
-                                     review_context_path=config_file.parent/'review_context.md')
+                                     review_context_path=config_file.parent/'review_context.md',
+                                     mode='review-failed' if failed_only else 'review')
             except KeyboardInterrupt:
                 reviews = read_queue(out)
                 report['run_status']='INTERRUPTED'
                 generate(out, facts, report, reviews)
-                print('复核已中断，队列已保留；运行 review 继续。', flush=True)
+                print('复核已中断，队列已保留；review 重跑全部疑似/未知，review-failed 只重跑技术失败。', flush=True)
                 return 130
         try:
             checked_scan(root, out, cfg, config_file)
@@ -270,13 +275,14 @@ def saved_run(root, config_path=None, render_only=False):
         for f in report['findings']:
             r=mapping[f['finding_id']]
             f['review_state']=r['state']
+            f['review_status']=r.get('status')
             f['review_result']=r
             if r['state']=='DONE':
                 f['status']=r['status']; f['review']=r['answer']
         generate(out, facts, report, reviews)
         write_json(queue_file, reviews)
         code=2 if report['run_status']=='INCOMPLETE' else (1 if report['findings'] else 0)
-        write_json(out/'resume.json', dict(command='report' if render_only else 'review', state=report['run_status'],
+        write_json(out/'resume.json', dict(command='report' if render_only else ('review-failed' if failed_only else 'review'), state=report['run_status'],
                                          finished=datetime.now(timezone.utc).isoformat(), exit_code=code,
                                          review_integrity=integrity))
         print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)

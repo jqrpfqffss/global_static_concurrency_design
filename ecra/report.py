@@ -69,6 +69,7 @@ def generate(out, facts, report, reviews):
     for finding in report['findings']:
         record = records_by_id[finding['finding_id']]
         finding['review_state'] = record['state']
+        finding['review_status'] = record.get('status')
         finding['review_result'] = record
         finding['status'] = record['status'] if record['state'] == 'DONE' else 'NEED_OPENCODE_REVIEW'
         if record['state'] == 'DONE' and record.get('answer'):
@@ -236,7 +237,8 @@ def generate(out, facts, report, reviews):
             review_md.append('- 旧回答已失效，不作为本轮结论；原始收据保留在 review/queue.json。')
         review_md.append("")
         if r['state'] == 'DONE' and r["status"] in {"CONFIRMED", "LIKELY"}:
-            patches += [f"## {r['finding_id']}", "", r["answer"]["fix"], "", r["answer"]["verification"], ""]
+            patches += [f"## {r['finding_id']}", "", str(r['answer'].get('fix') or '未提供修复建议'), "",
+                        str(r['answer'].get('verification') or '未提供验证建议'), ""]
     (out / "reports/opencode_global_static_review.md").write_text("\n".join(review_md), encoding="utf-8")
     (out / "reports/opencode_patch_plan.md").write_text("\n".join(patches), encoding="utf-8")
     write_html(out, facts, report, reviews)

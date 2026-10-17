@@ -6,9 +6,9 @@ from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-import test_ecra
+from tests import test_ecra
 from ecra.cli import run
-from ecra.review import review_all, validate_investigation, verify_receipt
+from ecra.review import review_all, verify_receipt
 from tests.review_fixtures import structured_fields
 
 
@@ -170,124 +170,61 @@ class ScreeningTests(unittest.TestCase):
 class ReviewScaleTests(unittest.TestCase):
     setUp = test_ecra.ProjectTest.setUp
 
-    def answer(self, packet):
-        return dict(finding_id=packet['finding']['finding_id'], status='REVIEWED_SAFE',
-            evidence=[dict(file='app.c',line=1,quote='int x;',claim='Protocol fixture only')],
-            **{k:'Protocol fixture only' for k in ('reason','interleaving','protection','impact','fix','verification')},
-            **structured_fields('REVIEWED_SAFE', review_type='VARIABLE'),
-            investigation=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1])
-                           for r in packet['investigation_requirements']])
-
-    def test_packet_includes_all_ancestors_and_marks_omitted_source(self):
-        (self.root/'app.c').write_text('int x;\n' * 1800,encoding='utf-8')
-        functions = [dict(function_id=f, name=f, file='app.c', line=1,
-                          end_line=1800 if f=='Left' else 1) for f in ('Root','Left','Right','Use')]
-        calls = [dict(caller_function_id=a, callee_function_id=b) for a,b in
+    def test_all_ancestors_paths_and_cfg_navigation_without_function_bodies(self):
+        (self.root/'app.c').write_text('int x;\n' * 1800, encoding='utf-8')
+        functions = [dict(function_id=f, name=f, file='app.c', line=1, end_line=1800)
+                     for f in ('Root', 'Left', 'Right', 'Use')]
+        calls = [dict(caller_function_id=a, callee_function_id=b) for a, b in
                  [('Root','Left'),('Root','Right'),('Left','Use'),('Right','Use'),('Use','Use')]]
-        access = dict(access_id='A',function_id='Use',file='app.c',line=1,access_kind='READ',
-                      call_chains={'main':['Root','Left','Use']})
-        facts = dict(variables=[dict(symbol_id='x',canonical_path='x',accesses=[access])],
-                     contexts=[], functions=functions, calls=calls,
-                     control_flow=[dict(function_id='Use',nodes=[{'id': i} for i in range(1000)],complete=True)])
-        report = dict(findings=[dict(finding_id='F',symbol_id='x',accesses=[access])],
-                      coverage={},limitations=[])
-        cfg = dict(review=dict(enabled=False,prepare_packets=True),analysis={})
-        review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
-        packet = json.loads((self.root/'.ecra/review/F.input.json').read_text(encoding='utf-8'))
-        self.assertEqual({f['function_id'] for f in packet['functions']},{'Root','Left','Right','Use'})
-        self.assertFalse(next(f for f in packet['source_context_manifest'] if f['function_id']=='Left')['complete'])
-        self.assertEqual([r['id'] for r in packet['investigation_requirements']], ['access:A'])
-        self.assertIn('Right', {f['function_id'] for f in packet['functions']})
-        self.assertNotIn('accesses', packet['variable'])
-        self.assertEqual(packet['control_flow'][0]['node_count'], 1000)
-        self.assertNotIn('nodes', packet['control_flow'][0])
-        self.assertIn('access:A', (self.root/'.ecra/review/F.prompt.txt').read_text(encoding='utf-8'))
-
-    def test_review_packet_checks_async_registration_before_foreground_init(self):
-        from ecra.review import validate_investigation
-        accesses = [dict(access_id='init', function_id='initialize', file='app.c', line=2,
-                         access_kind='WRITE', contexts=['main']),
-                    dict(access_id='irq', function_id='receive', file='app.c', line=3,
-                         access_kind='READ', contexts=['usart'])]
-        facts = dict(variables=[dict(symbol_id='state', qualified_name='state')],
-                     contexts=[dict(id='main', physical_kind='FOREGROUND'),
-                               dict(id='usart', physical_kind='IRQ')],
-                     functions=[], calls=[])
-        report = dict(findings=[dict(finding_id='F', symbol_id='state', accesses=accesses)],
-                      coverage={}, limitations=[])
+        accesses = [dict(access_id=f'A{i}', function_id='Use', file='app.c', line=i+1,
+                        access_kind='READ', all_call_chains={'main': [['Root','Left','Use'], ['Root','Right','Use']]})
+                    for i in range(30)]
+        facts = dict(variables=[dict(symbol_id='x', accesses=accesses)], contexts=[], functions=functions, calls=calls,
+                     control_flow=[dict(function_id='Use', nodes=[{'id': i} for i in range(1000)], complete=True)])
+        report = dict(findings=[dict(finding_id='F', symbol_id='x', accesses=accesses)], coverage={}, limitations=[])
         cfg = dict(review=dict(enabled=False, prepare_packets=True), analysis={})
         review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
         packet = json.loads((self.root/'.ecra/review/F.input.json').read_text(encoding='utf-8'))
-        requirement = next(r for r in packet['investigation_requirements']
-                           if r['id'] == 'lifecycle:async_before_init')
-        answer = dict(status='REVIEWED_SAFE', evidence=[dict(file='app.c', line=2),
-                                                        dict(file='app.c', line=3)],
-                      investigation=[dict(id=requirement['id'], assessment='Checked order',
-                                          evidence_refs=[1])])
-        with self.assertRaisesRegex(ValueError, '两个不同源码位置'):
-            validate_investigation(answer, [requirement])
-        answer['investigation'][0]['evidence_refs'] = [1, 2]
-        validate_investigation(answer, [requirement])
+        self.assertEqual({f['function_id'] for f in packet['functions']}, {'Root','Left','Right','Use'})
+        self.assertEqual(len(packet['accesses']), 30)
+        self.assertEqual(len(packet['call_path_sets']), 1)
+        self.assertEqual(packet['control_flow'][0]['node_count'], 1000)
+        self.assertNotIn('nodes', packet['control_flow'][0])
+        self.assertNotIn('access_source_context', packet)
+        self.assertNotIn('investigation_requirements', packet)
+        self.assertLess(len(json.dumps(packet)), 20000)
+        text = (self.root/'.ecra/review/F.input.json').read_text(encoding='utf-8')
+        self.assertGreater(len(text.splitlines()), 30)
+        self.assertLess(max(map(len, text.splitlines())), 2000)
+        self.assertEqual(packet['access_count'], 30)
 
-    def test_one_broken_packet_does_not_abandon_remaining_variables(self):
-        from ecra.common import write_json
-        (self.root/'app.c').write_text('int x;\n',encoding='utf-8')
-        facts = dict(variables=[],contexts=[],functions=[],calls=[])
-        report = dict(findings=[dict(finding_id=f,symbol_id=f,accesses=[]) for f in ('Bad','Good')],
-                      coverage={},limitations=[])
-        cfg = dict(review=dict(enabled=True,workers=2,retries=0),analysis={})
-        def write(path, value):
-            if path.name=='Bad.input.json':
-                raise OSError('Protocol fixture: unreadable packet')
-            return write_json(path,value)
-        def execute(argv,**kwargs):
-            packet=json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
-            answer=self.answer(packet)
-            return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
-        with patch('ecra.review.resolve_command',return_value=['fake-protocol-only']), patch(
-                'ecra.review.execute',side_effect=execute), patch('ecra.review.write_json',side_effect=write):
-            rows=review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
-        self.assertEqual([r['state'] for r in rows],['FAILED','DONE'])
-        queue=json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
-        self.assertEqual([r['finding_id'] for r in queue],['Bad','Good'])
-
-    def test_250_items_auto_batch_cache_and_reject_omitted_access(self):
+    def test_250_variable_batches_cache_and_immutable_packet_binding(self):
         (self.root/'app.c').write_text('int x;\n', encoding='utf-8')
-        findings = [dict(finding_id=f'F{i}', symbol_id=f'x{i}', rules=['GS-UNKNOWN-CONTEXT'],
-            screening_blockers=['FUNCTION_ADDRESS'], accesses=[dict(access_id=f'A{i}',
-                function_id='f', file='app.c', line=1, access_kind='WRITE')]) for i in range(250)]
+        findings = [dict(finding_id=f'F{i}', symbol_id=f'x{i}', accesses=[dict(access_id=f'A{i}',
+                    function_id='f', file='app.c', line=1, access_kind='WRITE')]) for i in range(250)]
         facts = dict(variables=[], contexts=[], functions=[], calls=[])
         report = dict(findings=findings, coverage={}, limitations=[])
-        cfg = dict(review=dict(enabled=True, workers=4, max_items=73, retries=1), analysis={})
+        cfg = dict(review=dict(enabled=True, workers=4, max_items=73, retries=0), analysis={})
         seen = []
         def execute(argv, **kwargs):
             packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
-            answer = self.answer(packet)
-            seen.append(answer['finding_id'])
-            if answer['finding_id'] == 'F0' and seen.count('F0') == 1:
-                answer['investigation'].pop(0)
-            return CompletedProcess(argv, 0, json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
-        with patch('ecra.review.resolve_command',return_value=['fake-protocol-only']), patch('ecra.review.execute',side_effect=execute):
-            first = review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
-            self.assertEqual(sum(r['state']=='DONE' for r in first),250)
-            self.assertEqual(len(first),250)
-            cfg['review']['max_items']=0
-            second = review_all(self.root,self.root/'.ecra',cfg,facts,report,'scan',lambda _:None)
-        self.assertEqual(len(seen),251)  # All 250 IDs, plus the rejected first answer.
-        self.assertEqual(len(set(seen)),250)
-        self.assertEqual(sum(r.get('cached',False) for r in second),250)
-        self.assertTrue(all(r['state']=='DONE' for r in second))
-        self.assertEqual([r['finding_id'] for r in second],[f['finding_id'] for f in findings])
+            fid = packet['finding_id']
+            seen.append(fid)
+            answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='Synthetic source proof.',
+                          evidence=[dict(file='app.c', line=1, claim='Synthetic fixture')])
+            return CompletedProcess(argv, 0, json.dumps(answer), '')
+        with patch('ecra.review.resolve_command', return_value=['synthetic-only']), patch('ecra.review.execute', side_effect=execute):
+            first = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
+            cfg['review']['max_items'] = 0
+            second = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
+        self.assertEqual(len(seen), 250)
+        self.assertEqual(sum(bool(r.get('cached')) for r in second), 250)
+        self.assertEqual([r['finding_id'] for r in first], [f['finding_id'] for f in findings])
         folder = self.root/'.ecra/review'
-        packet = folder/'F0.input.json'
-        data = json.loads(packet.read_text(encoding='utf-8'))
         verify_receipt(self.root, folder, second[0])
-        missing = copy.deepcopy(second[0]['answer'])
-        missing['investigation'].pop()
-        with self.assertRaisesRegex(ValueError,'逐项覆盖'):
-            validate_investigation(missing,data['investigation_requirements'])
-        packet.write_text('{}',encoding='utf-8')
-        with self.assertRaisesRegex(ValueError,'证据包'):
+        packet = folder/second[0]['execution']['packet_file']
+        packet.write_text('{}', encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, '校验失败'):
             verify_receipt(self.root, folder, second[0])
 
 

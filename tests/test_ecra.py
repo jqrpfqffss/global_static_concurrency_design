@@ -545,7 +545,7 @@ answer.update({k:'evidence checked' for k in ('reason','interleaving','protectio
 answer.update(__V2__)
 answer['review_type']='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='Protocol fixture claim'
-answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet['investigation_requirements']]
+answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
 print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 '''.replace('__V2__',repr(structured_fields())), encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=[sys.executable, str(fake)], retries=0)
@@ -564,7 +564,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.assertFalse(any(r.get("cached") for r in third))
         fake.write_text('print("not JSON events")', encoding="utf-8")
         failed = review_all(self.root, out, cfg, facts, report, "source3", lambda _: None)
-        self.assertTrue(all(r["state"] == "FAILED" for r in failed))
+        self.assertTrue(all(r["state"] == "TECH_FAILED" for r in failed))
 
     def test_opencode_timeout_continues_to_next_batch(self):
         cfg = self.project({"a.c": "int g, h;void ISR(void){g++;h++;}void Task(void){g++;h++;}"})
@@ -577,10 +577,10 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
             self.assertEqual(len(queue), len(report['findings']))
         results = review_all(self.root, self.root / ".ecra", cfg, facts, report, "fingerprint", lambda _: None, checkpoint)
-        self.assertTrue(all(r["state"] == "FAILED" for r in results))
+        self.assertTrue(all(r["state"] == "TECH_FAILED" for r in results))
         self.assertTrue(all('单次调用超过 0.5 秒' in r['error'] for r in results))
         self.assertTrue(all(len(r['attempts'][-1]['error_message']) < 100 for r in results))
-        log = self.root/'.ecra/review'/(results[0]['finding_id']+'.attempt0.jsonl')
+        log = self.root/'.ecra/review'/results[0]['execution']['stdout_file']
         self.assertIn('partial-review-evidence', log.read_text(encoding='utf-8'))
 
     def test_run_command_reviews_all_batches_without_manual_review(self):
@@ -603,7 +603,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                              ('reason','interleaving','protection','impact','fix','verification')})
             answer.update(structured_fields(review_type='VARIABLE'))
             answer['investigation'] = [dict(id=r['id'], assessment='Protocol fixture only',
-                                            evidence_refs=[1]) for r in packet['investigation_requirements']]
+                                            evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
             return CompletedProcess(argv, 0, json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), '')
 
         with patch('ecra.review.execute', side_effect=respond):
@@ -629,7 +629,7 @@ answer.update({k:'Checked source' for k in ('reason','interleaving','protection'
 answer.update(__V2__)
 answer['review_type']='VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='Protocol fixture claim'
-answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet['investigation_requirements']]
+answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
 print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 '''.replace('__V2__',repr(structured_fields())), encoding='utf-8')
         cfg, path = load_config(self.root)
@@ -645,10 +645,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
             self.assertTrue(queue)
             self.assertTrue(all(r['state']=='DONE' for r in queue))
-            if index:
+            if command == 'run':
                 self.assertTrue(all(r.get('cached') for r in queue), queue)
+            else:
+                self.assertFalse(any(r.get('cached') for r in queue), queue)
 
-    def test_need_more_context_is_retried_on_next_run(self):
+    def test_need_more_context_is_cached_on_run_and_review_explicitly_reruns(self):
         from subprocess import CompletedProcess
         from unittest.mock import patch
         cfg = self.project({'a.c': 'int g;void ISR(void){g++;}void Task(void){g++;}'})
@@ -662,8 +664,11 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         with patch('ecra.review.execute', return_value=result) as execute:
             review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None)
             second = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None)
+            self.assertEqual(execute.call_count, 1)
+            self.assertTrue(second[0].get('cached'))
+            third = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None, mode='review')
         self.assertEqual(execute.call_count, 2)
-        self.assertFalse(second[0].get('cached'))
+        self.assertFalse(third[0].get('cached'))
 
     def test_stable_ids_when_lines_are_inserted(self):
         source = "int g;static void F(void){static int s;s++;}void ISR(void){g++;F();}void Task(void){g++;F();}"
@@ -699,9 +704,9 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         (folder / (report["findings"][0]["finding_id"] + ".result.json")).write_text("{broken", encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=["ecra-nonexistent-cli-test"])
         results = review_all(self.root, self.root / ".ecra", cfg, facts, report, "x", lambda _: None)
-        self.assertTrue(all(r["state"] == "FAILED" for r in results))
+        self.assertTrue(all(r["state"] == "TECH_FAILED" for r in results))
 
-    def test_review_resume_does_not_parse_again_and_keeps_completed_items(self):
+    def test_review_does_not_parse_again_and_reruns_completed_candidates(self):
         from subprocess import CompletedProcess
         from unittest.mock import patch
         from ecra.workflow import saved_run, status, checked_scan
@@ -722,7 +727,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                 **{k:'Checked source evidence' for k in ('reason','interleaving','protection','impact','fix','verification')})
             answer.update(structured_fields(review_type='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'))
             answer['evidence'][0]['claim']='Protocol fixture claim'
-            answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet['investigation_requirements']]
+            answer['investigation']=[dict(id=r['id'],assessment='Protocol fixture only',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
             return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
         with patch('ecra.cli.execute',side_effect=AssertionError('Resume must not reparse Clang')), patch('ecra.review.execute',side_effect=respond):
             self.assertEqual(saved_run(self.root),130)
@@ -733,9 +738,9 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             cfg['review']['timeout_seconds']=600
             path.write_text(json.dumps(cfg),encoding='utf-8')
             self.assertEqual(saved_run(self.root),1)
-            self.assertEqual(len(calls),2)
+            self.assertEqual(len(calls),3)
             self.assertEqual(saved_run(self.root,render_only=True),1)
-            self.assertEqual(len(calls),2)
+            self.assertEqual(len(calls),3)
             self.assertEqual(status(self.root)['unresolved'],0)
         self.assertEqual(len(set(calls)),2)
         cfg,path=load_config(self.root)
@@ -745,8 +750,38 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         (self.root/'a.c').write_text('int changed;',encoding='utf-8')
         self.assertEqual(saved_run(self.root), 2)
         stale=json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
-        self.assertTrue(all(r['state']=='STALE' and '变化' in r['error'] for r in stale))
+        self.assertTrue(all(r['state']=='TECH_FAILED' and '变化' in r['error'] for r in stale))
         self.assertFalse((out/'scan.lock').exists())
+
+    def test_review_failed_cli_retries_only_the_failed_variable(self):
+        from subprocess import CompletedProcess
+        from unittest.mock import patch
+        from ecra.cli import main
+        self.project({'a.c': 'int g,h;void ISR(void){g++;h++;}void Task(void){g++;h++;}'},
+                     review=dict(enabled=True, command=[sys.executable], retries=0))
+        self.assertEqual(run(self.root, no_review=True), 2)
+        calls = []
+        fail = True
+
+        def respond(argv, **kwargs):
+            packet = json.loads(Path(argv[argv.index('--file') + 1]).read_text(encoding='utf-8'))
+            fid = packet['finding_id']
+            calls.append(fid)
+            if fail and len(calls) == 2:
+                return CompletedProcess(argv, 1, '', 'synthetic provider error')
+            answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='Synthetic protocol response.',
+                          evidence=[dict(file='a.c', line=1, claim='Synthetic fixture')])
+            return CompletedProcess(argv, 0, json.dumps(answer), '')
+
+        with patch('ecra.review.execute', side_effect=respond):
+            self.assertEqual(main(['review', '--project', str(self.root)]), 2)
+            self.assertEqual(len(calls), 2)
+            failed_id = calls[-1]
+            fail = False
+            self.assertEqual(main(['review-failed', '--project', str(self.root)]), 1)
+            self.assertEqual(calls, [calls[0], failed_id, failed_id])
+            self.assertEqual(main(['review-failed', '--project', str(self.root)]), 1)
+            self.assertEqual(len(calls), 3)
 
     def test_status_reports_empty_review_queue_complete_when_model_disabled(self):
         from ecra.workflow import status
@@ -798,7 +833,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.assertIn('inner.rsp',manifest)
         (self.root/'inner.rsp').write_text('-DFEATURE=2',encoding='utf-8')
         self.assertEqual(saved_run(self.root,render_only=True), 2)
-        self.assertTrue(all(r['state']=='STALE' for r in json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))))
+        self.assertTrue(all(r['state']=='TECH_FAILED' for r in json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))))
         (self.root/'inner.rsp').write_text('-DFEATURE=1',encoding='utf-8')
         (self.root/'new.c').write_text('int missed;',encoding='utf-8')
         self.assertEqual(saved_run(self.root,render_only=True), 2)
@@ -840,7 +875,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         queue.write_text(json.dumps(rows),encoding='utf-8')
         self.assertEqual(saved_run(self.root,render_only=True),2)
         rows=json.loads(queue.read_text(encoding='utf-8'))
-        self.assertEqual(rows[0]['state'],'STALE')
+        self.assertEqual(rows[0]['state'],'TECH_FAILED')
         self.assertNotIn('answer',rows[0])
         report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         self.assertEqual(report['review_summary']['reviewed_safe_or_false_positive'],0)

@@ -99,7 +99,15 @@ class DesignCases(unittest.TestCase):
         for f in report['findings']:
             self.assertIn(anchor('review-',f['finding_id']),review_html)
             packet = json.loads((out/'review'/f"{f['finding_id']}.input.json").read_text(encoding='utf-8'))
-            self.assertEqual(packet['finding']['accesses'],f['accesses'])
+            paths = {p['id']: p for p in packet['call_path_sets']}
+            restored = []
+            for access in packet['accesses']:
+                access = dict(access)
+                if 'call_path_set' in access:
+                    mapping = paths[access.pop('call_path_set')]
+                    access.update({k: v for k, v in mapping.items() if k != 'id'})
+                restored.append(access)
+            self.assertEqual(restored, f['accesses'])
         with closing(sqlite3.connect(out/'facts.db')) as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM variables WHERE static_classification IN ('SAFE_PROVEN','SHARED_NO_REVIEW','SUSPECT','UNKNOWN')").fetchone()[0],counts['total'])
             self.assertEqual(db.execute('SELECT COUNT(*) FROM accesses').fetchone()[0],len(access_ids))
