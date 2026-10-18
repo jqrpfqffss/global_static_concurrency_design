@@ -254,6 +254,7 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False):
             try:
                 reviews = review_all(root, out, cfg, facts, report, state['fingerprint'], on_result=checkpoint,
                                      review_context_path=config_file.parent/'review_context.md',
+                                     case_library_path=config_file.parent/'concurrency_cases.md',
                                      mode='review-failed' if failed_only else 'review')
             except KeyboardInterrupt:
                 reviews = read_queue(out)

@@ -209,7 +209,7 @@ try {
     if (-not (Test-Path (Join-Path $packageOut '__init__.py'))) { throw 'ecra 包不完整' }
     $configOut = Join-Path $bundle 'config'
     New-Item -ItemType Directory -Path $configOut | Out-Null
-    foreach ($name in @('semantics.yaml', 'review_context.md')) {
+    foreach ($name in @('semantics.yaml', 'review_context.md', 'concurrency_cases.md')) {
         Copy-Item -LiteralPath (Join-Path (Join-Path $PSScriptRoot 'config') $name) -Destination $configOut
     }
 
@@ -366,7 +366,7 @@ OpenCode 未包含在 Portable 包中。需要 AI review 时，目标电脑需�
         try {
             $names = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
             foreach ($name in @('ecra.cmd', 'run_ecra.py', 'README.txt', 'VERSION.txt',
-                                'config/semantics.yaml', 'config/review_context.md',
+                                'config/semantics.yaml', 'config/review_context.md', 'config/concurrency_cases.md',
                                 'runtime/python.exe', 'tools/cmake/bin/cmake.exe',
                                 'tools/ninja/ninja.exe', 'tools/arm-gcc/bin/arm-none-eabi-gcc.exe')) {
                 if ($names -cnotcontains "ECRA-Portable/$name") { throw "ZIP 缺少: $name" }

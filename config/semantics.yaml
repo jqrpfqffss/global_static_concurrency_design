@@ -163,7 +163,7 @@ contexts:
 review:
   # false：只做本地静态排查，生成待复核清单；推荐新项目首次接入时保持 false。
   # true：在静态扫描后调用下方 command，对每个候选执行 OpenCode 复核。
-  enabled: false
+  enabled: true
 
   # 复核命令必须是参数数组，而不是带空格的一整条 shell 字符串。
   command: [opencode]

@@ -302,7 +302,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             last_checkpoint = time.monotonic()
 
         reviews = review_all(root, out, cfg, facts, report, fingerprint, progress, on_result=checkpoint,
-                             review_context_path=config_file.parent/'review_context.md')
+                             review_context_path=config_file.parent/'review_context.md',
+                             case_library_path=config_file.parent/'concurrency_cases.md')
         end_hashes = file_hashes(root, out, [config_file, compilation["compile_database"], *sources, *all_includes, *response_files], scope.includes)
         if end_hashes != after:
             report["analysis_status"] = "INCOMPLETE"

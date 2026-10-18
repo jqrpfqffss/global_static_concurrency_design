@@ -93,6 +93,18 @@
 
 可在 [`config/review_context.md`](config/review_context.md) 填写当前工程补充背景及源码依据。每次正常变量复核读取它，作为待源码核实的用户声明。修改后运行 `review`，会重新复核全部静态疑似/未知变量。使用 `--config` 时，将同名 Markdown 放在实际 semantics.yaml 旁边；切换工程时同步更新。
 
+### 如何维护 OpenCode 深层并发风险案例库
+
+在 [`config/concurrency_cases.md`](config/concurrency_cases.md) 文件末尾按文末模板追加新案例，后续执行 `review` 时会自动生效，无需修改程序、YAML 或手动重建索引。使用 `--config` 或独立配置目录时，编辑实际 `semantics.yaml` 旁的同名文件。
+
+也可以把[案例生成提示词模板](docs/concurrency_case_prompt_template.md)和案例描述、相关代码一起交给 OpenCode，生成符合格式的条目。模板要求保留来源名称和可信状态、不输出链接、区分已确认事实与待核实条件；核对后将生成条目追加到案例库末尾即可。
+
+完整运行、`review`、`review-failed` 都自动读取最新案例库。每轮提供简短案例索引，在复核产物目录保存正文只读快照，让 OpenCode 按行号读取相关案例；大索引自动保存为可分段读取的文件。正文更新也会使正常运行的旧复核缓存失效；`review-failed` 仍只处理技术失败项，要让已完成变量采用新增案例请执行 `review`。缺失字段或异常格式会警告并保留原文阅读路径，不中止复核，也不覆盖用户原文件。
+
+OpenCode 内部遵循八步方法，核查间接访问、真实抢占、跨函数旧值写回、多变量一致性、DMA、外设和完整保护窗口，继续返回现有变量级 JSON。案例相似不能直接确认风险，没有匹配案例也不能证明安全。案例中的代码和命令仅作参考，不会授予执行权限。来源、覆盖缺口及验证记录见[实施报告](docs/opencode_deep_concurrency_review.md)。
+
+### 日常复核
+
 ```powershell
 py -3.10 run_ecra.py
 ```
