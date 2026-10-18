@@ -1,5 +1,6 @@
 """The variable review contract: essential structure and local source locations."""
 import json
+import re
 from pathlib import Path
 
 
@@ -22,7 +23,56 @@ NEED_MORE_CONTEXT：已检查源码但证据不足以判风险或安全；missin
 evidence 是列表，每项 file 为真实工程内文件、line 为有效行号、claim 说明该位置支持什么。
 reason 必须非空。其余说明字段可按已有证据简洁描述，无需逐访问/逐组合复述，不限制文字长度。
 所有五种 status 都是正常语义结论。无法执行或输出故障不能冒充 NEED_MORE_CONTEXT。
+仅当 Packet 存在 READ_THEN_WRITEBACK，安全/误报结论还须返回：
+"stale_writeback_assessment": {"applicable": true, "blocked": true,
+ "reason": "具体解释整个READ→WRITEBACK窗口为何不能被其他writer插入",
+ "evidence": [{"file": "工程相对路径.c", "line": 1}]}。
+原子load/store、自然对齐、单条store、无撕裂、last-writer-wins、相同setter和单一源码store位置不能作为blocked证明。
+风险/证据不足结论无需该字段。已有字段和五种status保持不变。
 '''
+
+
+class StaleWritebackSafetyError(ValueError):
+    """A semantic safety claim needs one focused challenge, never FORMAT_FIX."""
+
+
+def stale_writeback_hints(packet):
+    return [h for h in (packet or {}).get('concurrency_hints', [])
+            if h.get('kind') == 'READ_THEN_WRITEBACK']
+
+
+def validate_stale_writeback_safety(answer, packet, root):
+    """Only guard safe answers for this one composite operation.
+
+    Source locations and a claimed blocking argument are required, not an
+    automated proof of that argument. Reject the known atomic-only shortcut;
+    the reviewer still owns the final concurrency judgment.
+    """
+    if (not isinstance(answer, dict) or answer.get('status') not in {'REVIEWED_SAFE', 'FALSE_POSITIVE'}
+            or not stale_writeback_hints(packet)):
+        return
+    assessment = answer.get('stale_writeback_assessment')
+    if not isinstance(assessment, dict) or assessment.get('applicable') is not True or assessment.get('blocked') is not True:
+        raise StaleWritebackSafetyError('READ_THEN_WRITEBACK安全结论缺少applicable=true、blocked=true的窗口阻塞证明')
+    reason = assessment.get('reason')
+    if not isinstance(reason, str) or not reason.strip():
+        raise StaleWritebackSafetyError('stale_writeback_assessment.reason必须说明窗口阻塞依据')
+    atomic = re.search(r'原子|32\s*位|对齐|撕裂|last[-_ ]writer[-_ ]wins|最后.*写.*生效|'
+                       r'(?:同一|相同|同一个).*(?:setter|设置函数|写入函数)|'
+                       r'(?:单[一条个]|只有一[个处]|仅一[个处]).*(?:store|赋值|写点|写入位置)|'
+                       r'atomic|align|tear|same\s+setter|(?:single|one)\s+(?:(?:source|code)\s+)?(?:store|assignment)',
+                       reason, re.I)
+    # This is intentionally a narrow shortcut check, not a prose proof engine.
+    blocking = re.search(r'PRIMASK|BASEPRI|FAULTMASK|临界区|屏蔽|不可抢占|不能抢占|无法抢占|'
+                         r'串行|不可重入|同一.*上下文|优先级|启用前|使能前|不同.*存储|'
+                         r'critical\s+section|mask|cannot\s+preempt|non.?reentrant|serial|'
+                         r'same\s+(?:physical\s+)?context|priorit|before.*enabl|different\s+storage', reason, re.I)
+    if atomic and not blocking:
+        raise StaleWritebackSafetyError('原子性/对齐/单store/相同setter/last-writer-wins不能证明stale-writeback窗口被阻塞')
+    try:
+        validate_source_evidence(assessment.get('evidence'), root, required=True)
+    except ValueError as exc:
+        raise StaleWritebackSafetyError('stale_writeback_assessment证据无效: ' + str(exc)) from exc
 
 
 def validate_minimal_answer(answer, finding_id, root, *, require_quotes=False):
@@ -40,9 +90,21 @@ def validate_minimal_answer(answer, finding_id, root, *, require_quotes=False):
     if not isinstance(answer.get('reason'), str) or not answer['reason'].strip():
         raise ValueError('reason 必须是非空字符串')
     evidence = answer.get('evidence')
+    validate_source_evidence(evidence, root,
+        required=answer['status'] in {'CONFIRMED', 'REVIEWED_SAFE', 'FALSE_POSITIVE'}, require_quotes=require_quotes)
+    if answer['status'] in {'LIKELY', 'NEED_MORE_CONTEXT'}:
+        missing = answer.get('missing_context')
+        if (not isinstance(missing, list) or not missing
+                or any(not isinstance(s, str) or not s.strip() for s in missing)):
+            raise ValueError('missing_context 必须至少说明一个具体缺失条件')
+    return answer
+
+
+def validate_source_evidence(evidence, root, *, required=False, require_quotes=False):
+    """Validate local citations for the ordinary and stale-writeback fields."""
     if not isinstance(evidence, list):
         raise ValueError('evidence 必须是列表')
-    if answer['status'] in {'CONFIRMED', 'REVIEWED_SAFE', 'FALSE_POSITIVE'} and not evidence:
+    if required and not evidence:
         raise ValueError('确认风险/安全/误报结论至少需要一处有效源码 evidence')
     root = Path(root).resolve()
     sources = {}
@@ -66,9 +128,3 @@ def validate_minimal_answer(answer, finding_id, root, *, require_quotes=False):
                 raise ValueError('历史证据缺少 quote 原文')
             if quote.strip() not in lines[item['line'] - 1]:
                 raise ValueError(f'证据引用原文与源码不符: {item["file"]}:{item["line"]}')
-    if answer['status'] in {'LIKELY', 'NEED_MORE_CONTEXT'}:
-        missing = answer.get('missing_context')
-        if (not isinstance(missing, list) or not missing
-                or any(not isinstance(s, str) or not s.strip() for s in missing)):
-            raise ValueError('missing_context 必须至少说明一个具体缺失条件')
-    return answer

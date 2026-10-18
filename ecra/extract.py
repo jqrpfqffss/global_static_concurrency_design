@@ -528,6 +528,42 @@ class Extractor:
         fid = self.fid(fn)
         snapshots = {}
         all_nodes = list(walk(fn))
+        # A deliberately small value-flow model: unchanged scalar parameters
+        # may be forwarded to another call or stored. Never infer this from
+        # the callee's name, nor from a write unrelated to its argument.
+        parameters = {self.key(p): i for i, p in enumerate(fn.get_arguments())
+                      if p.type.get_canonical().kind.name in {'BOOL', 'CHAR_U', 'UCHAR', 'CHAR_S',
+                          'SCHAR', 'USHORT', 'SHORT', 'UINT', 'INT', 'ULONG', 'LONG',
+                          'ULONGLONG', 'LONGLONG', 'ENUM', 'FLOAT', 'DOUBLE'}}
+        for node in all_nodes:
+            operands = children(node)
+            if node.kind.name in {'BINARY_OPERATOR', 'COMPOUND_ASSIGNMENT_OPERATOR'} and operator(node) in {
+                    '=', '+=', '-=', '*=', '/=', '%=', '|=', '&=', '^=', '<<=', '>>='}:
+                changed = operands[:1]
+            elif node.kind.name == 'UNARY_OPERATOR' and operator(node) in {'++', '--', '&'}:
+                changed = operands
+            else:
+                continue
+            for operand in changed:
+                for ref in walk(operand):
+                    if ref.kind.name == 'DECL_REF_EXPR' and ref.referenced:
+                        parameters.pop(self.key(ref.referenced), None)
+
+        def value_source(node):
+            while node.kind.name in WRAPPERS and len(children(node)) == 1:
+                node = children(node)[0]
+            if node.kind.name == 'DECL_REF_EXPR' and node.referenced:
+                index = parameters.get(self.key(node.referenced))
+                if index is not None:
+                    return dict(parameter_index=index)
+            if (node.kind.name not in {'DECL_REF_EXPR', 'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'}
+                    or node.type.get_canonical().kind.name in {'POINTER', 'RECORD', 'INCOMPLETEARRAY', 'CONSTANTARRAY'}
+                    or '->' in tokens(node)):
+                return None
+            refs = self.refs(node)
+            if len(refs) == 1:
+                return dict(read_site=self.loc(refs[0][1]))
+            return None
         # Snapshot facts describe value copies used later in a writeback or
         # decision. Pointer aliases are deliberately excluded here: the
         # PointerExtractor/Solver is the single source of indirect accesses,
@@ -588,6 +624,10 @@ class Extractor:
                 if not direct:
                     self.issue("INDIRECT_CALL", c, fid)
                 args = list(c.get_arguments())
+                values = [dict(argument_index=i, **source) for i, arg in enumerate(args)
+                          if (source := value_source(arg)) is not None]
+                if direct and values:
+                    self.calls[-1]['value_arguments'] = values
                 task_arg = {"xTaskCreate": 0, "xTaskCreateStatic": 0, "osThreadNew": 0,
                             "xTaskCreatePinnedToCore": 0}.get(name)
                 if task_arg is not None and args:
@@ -646,7 +686,18 @@ class Extractor:
                 sid = self.symbols.get(key)
                 if sid:
                     mode, path = self.access_mode(c, ancestors, self.variables[sid]["is_pointer"])
+                    value_flow = {}
+                    if mode == 'WRITE':
+                        for parent, index in reversed(ancestors):
+                            if parent.kind.name == 'BINARY_OPERATOR' and operator(parent) == '=' and index == 0:
+                                source = value_source(children(parent)[1])
+                                if source and 'parameter_index' in source:
+                                    value_flow['writeback_parameter_index'] = source['parameter_index']
+                                break
+                            if parent.kind.name not in WRAPPERS | {'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'}:
+                                break
                     self.add_access(sid, c, fid, mode, access_path=path,
+                                    **value_flow,
                                     conditional_ancestor=any(parent.kind.name in {'IF_STMT', 'SWITCH_STMT', 'FOR_STMT',
                                                                                    'WHILE_STMT', 'DO_STMT', 'CONDITIONAL_OPERATOR'}
                                                                for parent, _ in ancestors))

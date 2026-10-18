@@ -989,6 +989,12 @@ def analyze(facts, cfg, coverage, root=None):
     snapshots = defaultdict(list)
     from .protection import MaskAnalysis
     MaskAnalysis(facts, cfg).run()
+    from .stale_writeback import read_then_writeback_hints
+    writeback_hints = defaultdict(list)
+    for hint in read_then_writeback_hints(facts):
+        writeback_hints[hint['symbol_id']].append(hint)
+    for variable in facts['variables']:
+        variable['concurrency_hints'] = writeback_hints[variable['symbol_id']]
     for s in facts["snapshots"]:
         snapshots[s["symbol_id"]].append(s)
     from .evidence import (CLASSIFIED_STATES, SCREENED_STATES, EvidenceIndex,

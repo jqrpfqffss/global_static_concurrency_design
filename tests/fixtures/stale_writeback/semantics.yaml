@@ -1,0 +1,11 @@
+version: 1
+project:
+  nvic_priority_bits: 4
+analysis:
+  auto_contexts: false
+contexts:
+  - {id: main, kind: MAIN, functions: [main]}
+  - {id: IRQ_LOW, kind: ISR, functions: [LOW_IRQHandler], irq: LOW}
+  - {id: IRQ_HIGH, kind: ISR, functions: [HIGH_IRQHandler], irq: HIGH}
+review:
+  enabled: false

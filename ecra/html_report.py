@@ -1121,8 +1121,8 @@ def write_html(out, facts, report, reviews):
         if r.get('state') == 'DONE' and r.get('answer', {}).get('reason'):
             titles = '<p class="review-brief">' + esc(r['answer']['reason'][:240]) + '</p>' + titles
         state = f'<span class="tag {category(r)}">{esc(review_label(r))}</span>'
-        cells = [(('<span>变量最终分类：</span>' + decision_tag(assessments.get(sid, assessment))
-                  + '<br><span>本项分类：</span>' + decision_tag(assessment) + '<br>') if sid else '')
+        cells = [(('<span>变量结论：</span>' + decision_tag(assessments.get(sid, assessment))
+                  + '<br>') if sid else '')
                  + name + '<span class="location">' + esc(loc(f['definition'])) + '</span>'
                  + '<span class="tag priority-' + esc(f['risk_level']) + '">' + esc(PRIORITIES.get(f['risk_level'], f['risk_level'])) + '</span>' + actors,
                  titles + '<div class="source-previews">' + ''.join(previews) + '</div>' + scenario_html + detail,
