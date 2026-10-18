@@ -148,6 +148,24 @@ class IntegrityTests(unittest.TestCase):
         self.assertEqual(fixed['attempts'][0]['stderr_file'], old_stderr)
         self.assertTrue((self.out / 'review' / old_stderr).is_file())
 
+    def test_nonzero_exit_preserves_stdout_api_error_without_headers_or_format_fix(self):
+        event=dict(type='error',error=dict(name='APIError',data=dict(statusCode=429,
+            message='Your credit balance is running low',
+            responseHeaders={'authorization':'SENSITIVE_HEADER_SENTINEL'},
+            responseBody='SENSITIVE_BODY_SENTINEL')))
+        calls=[]
+        def respond(*args,**kwargs):
+            calls.append(args)
+            return CompletedProcess([],1,json.dumps(event),'')
+        row=self.run_review(respond)[0]
+        self.assertEqual(row['state'],'TECH_FAILED')
+        self.assertIn('HTTP 429',row['error'])
+        self.assertIn('credit balance',row['error'])
+        self.assertNotIn('SENSITIVE_',row['error'])
+        self.assertEqual(row['format_fix_count'],0)
+        self.assertEqual(len(calls),1)
+        self.assertNotIn('answer',row)
+
     def test_review_reruns_all_static_candidates_independent_of_previous_semantics(self):
         statuses = ['CONFIRMED', 'LIKELY', 'REVIEWED_SAFE', 'FALSE_POSITIVE', 'NEED_MORE_CONTEXT'] * 2
         self.report['findings'] = [dict(finding_id=f'F{i}', static_classification='UNKNOWN' if i % 2 else 'SUSPECT', accesses=[])

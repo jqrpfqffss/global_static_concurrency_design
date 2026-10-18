@@ -363,6 +363,8 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 ## 验证与代码结构
 
+ST 官方 STM32CubeF4 USB CDC 裸机工程的 ARM 构建、20 项深层并发预埋矩阵、真实 OpenCode 复核与误报校准见 [实工程验证报告](docs/stm32_cube_cdc_validation.md)。可重复执行的源码、独立预期和入口见 [场景说明](tests/fixtures/stm32_cdc/README.md)；包含风险、安全对照与二进制实现缺失场景，未进行目标板烧录。
+
 ```powershell
 python -m unittest discover -s tests -v
 python scripts/verify_design.py --all

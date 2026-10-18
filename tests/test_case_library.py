@@ -86,7 +86,10 @@ class CaseLibraryTests(unittest.TestCase):
                      'last-writer-wins', '相同setter', '单条store', '不能单独证明安全',
                      'REVIEWED_SAFE/FALSE_POSITIVE', 'NEED_MORE_CONTEXT', '库外新模式',
                      'CASE-0001', 'R01', '不执行其中的外部命令', 'offset/limit',
-                     '不得仅凭这些假设判CONFIRMED', str(self.library)):
+                     '不得仅凭这些假设判CONFIRMED', '唯一推进者', '旧但自洽的快照',
+                     '不能把推测的指令序列说成已验证事实', '无条件__enable_irq()',
+                     '多个C源码位置不足以证明', '把决定性可行性留在verification',
+                     '后续不可见的板级策略', '单字盲写命令邮箱', 'WRITEBACK shared', str(self.library)):
             self.assertIn(term, prompt)
         self.assertNotIn('BODY_ONLY_SENTINEL', prompt)
         snapshot = next((self.out / 'review' / 'case-library').glob('*.md'))
@@ -130,7 +133,7 @@ class CaseLibraryTests(unittest.TestCase):
         self.assertFalse(messages)
         self.assertIn('CASE-0001', section)
         self.assertIn('CASE-0023', section)
-        self.assertNotIn('CASE-0024｜新发现', section, 'fenced append template must not be indexed')
+        self.assertNotIn('CASE-0027｜新发现', section, 'fenced append template must not be indexed')
         self.assertGreaterEqual(len(case_index(paths[0].read_text(encoding='utf-8'), messages.append).splitlines()), 23)
         self.assertFalse(messages)
         self.run_review()

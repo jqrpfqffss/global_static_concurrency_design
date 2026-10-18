@@ -1,0 +1,347 @@
+{
+  "description": "Independent source-level expectations authored before any OpenCode run. Never copy this file into model-readable firmware projects. Risk is a feasible source/hardware interleaving, not an on-board reproduction claim.",
+  "cases": [
+    {
+      "id": "p00",
+      "category": "baseline",
+      "title": "上游 USB/UART/TIM 原生状态（不计准确率）",
+      "targets": [
+        "UserTxBufPtrIn",
+        "UserTxBufPtrOut",
+        "UartHandle.gState",
+        "LineCoding.bitrate"
+      ],
+      "allowed": [],
+      "mechanism": "上游原生业务，结论需逐源码独立评估，不能作为带真值样本。"
+    },
+    {
+      "id": "p01",
+      "category": "risk",
+      "title": "直接参数旧值写回",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "TIM6(priority10)读取实参后，TIM7(priority2)写新值，TIM6经Setter回写旧值。",
+      "library": [
+        "CASE-0001"
+      ]
+    },
+    {
+      "id": "p02",
+      "category": "risk",
+      "title": "四层调用与局部旧值",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "局部旧值经过A→B→C→Setter仍是逻辑RMW，TIM7可插入。",
+      "library": [
+        "CASE-0001"
+      ]
+    },
+    {
+      "id": "p03",
+      "category": "risk",
+      "title": "只保护WRITE未保护READ",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "旧值在PRIMASK外读取。即使写回完整屏蔽，TIM7仍可在取值和屏蔽间插入。",
+      "library": [
+        "CASE-0001",
+        "CASE-0015"
+      ]
+    },
+    {
+      "id": "p04",
+      "category": "risk",
+      "title": "BASEPRI阈值未覆盖高优先级写者",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "BASEPRI=0x80只屏蔽数值8及之后的IRQ，priority2不被屏蔽。",
+      "library": [
+        "CASE-0022"
+      ]
+    },
+    {
+      "id": "p05",
+      "category": "risk",
+      "title": "双字段协议混合快照",
+      "targets": [
+        "g_shared.length"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "length与inverse须互补，低IRQ分两条更新，高IRQ检验不变式可观察新旧混合。",
+      "library": [
+        "CASE-0005"
+      ]
+    },
+    {
+      "id": "p06",
+      "category": "risk",
+      "title": "结构体指针与memcpy隐藏写回",
+      "targets": [
+        "g_shared.value"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "低IRQ复制对象到局部，memcpy间接写回整个对象可覆盖高IRQvalue新值。",
+      "library": [
+        "CASE-0001",
+        "CASE-0003"
+      ]
+    },
+    {
+      "id": "p07",
+      "category": "risk",
+      "title": "函数指针回调共用同一赋值点",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "两个物理IRQ通过同一回调写者；低IRQ参数来自旧快照，不能按同一函数当单writer。",
+      "library": [
+        "CASE-0001",
+        "CASE-0003"
+      ]
+    },
+    {
+      "id": "p08",
+      "category": "risk",
+      "title": "每对象原子锁未保护共享缓存",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "a与b锁不同，两个IRQ各持不同锁对同一全局值做逻辑RMW。",
+      "library": [
+        "CASE-0004"
+      ]
+    },
+    {
+      "id": "p09",
+      "category": "risk",
+      "title": "池对象代际被异步回收替换",
+      "targets": [
+        "g_shared.value"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "低IRQ获取对象指针和generation后，高IRQ回收复用同一槽；恢复后以新对象值完成旧generation事务。",
+      "library": [
+        "CASE-0008",
+        "CASE-0018"
+      ]
+    },
+    {
+      "id": "p10",
+      "category": "risk",
+      "title": "CPU关中断后过早复用DMA源内存",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "DMA2 stream0 M2M源是g_shared，启动后立即清零。DMA硬件可在CPUstore后才取源；PRIMASK不阻止DMA。",
+      "library": [
+        "CASE-0012",
+        "CASE-0021"
+      ]
+    },
+    {
+      "id": "p11",
+      "category": "risk",
+      "title": "高优先级IRQ等待低优先级SysTick",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "TIM7 priority2忙等g_shared变化，而唯一增量者SysTick priority15无法抢占TIM7，形成中断依赖死锁。",
+      "library": [
+        "CASE-0022"
+      ]
+    },
+    {
+      "id": "p12",
+      "category": "risk",
+      "title": "长度检查与memcpy二次读取",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "低IRQ检查长度<=8后，高IRQ设32，memcpy重新读取新长度写越8字节目标。",
+      "library": [
+        "CASE-0007",
+        "CASE-0016"
+      ]
+    },
+    {
+      "id": "p13",
+      "category": "safe",
+      "title": "完整PRIMASK覆盖旧值逻辑窗口",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "REVIEWED_SAFE",
+        "FALSE_POSITIVE"
+      ],
+      "mechanism": "低IRQ整个read→调用→writeback均在PRIMASK保护内，保存/恢复原屏蔽。没有DMA或其他对象写者。",
+      "library": [
+        "CASE-0001"
+      ]
+    },
+    {
+      "id": "p14",
+      "category": "safe",
+      "title": "同抢占优先级IRQ串行",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "REVIEWED_SAFE",
+        "FALSE_POSITIVE"
+      ],
+      "mechanism": "TIM6与TIM7均priority10（分组4），两个writer不能互抢，主循环/SysTick不访问。",
+      "library": [
+        "CASE-0022"
+      ]
+    },
+    {
+      "id": "p15",
+      "category": "safe",
+      "title": "有效BASEPRI覆盖全部竞争IRQ",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "REVIEWED_SAFE",
+        "FALSE_POSITIVE"
+      ],
+      "mechanism": "BASEPRI=0x10屏蔽priority2的高IRQ；从read到writeback完整包围并恢复原值，NMI无写入。",
+      "library": [
+        "CASE-0022"
+      ]
+    },
+    {
+      "id": "p16",
+      "category": "safe",
+      "title": "DMA完成握手后复用源",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "REVIEWED_SAFE",
+        "FALSE_POSITIVE"
+      ],
+      "mechanism": "启动前等待stream停，启动后检查TC同时等待EN清零后DSB再改source；DMA2M2M，SRAM且F407无数据Cache。",
+      "library": [
+        "CASE-0012",
+        "CASE-0021"
+      ]
+    },
+    {
+      "id": "p17",
+      "category": "unknown",
+      "title": "二进制板级IRQ优先级策略不可见",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "LIKELY",
+        "NEED_MORE_CONTEXT"
+      ],
+      "mechanism": "Board_IrqPolicy仅有二进制目标、源码及优先级策略不在审查构建闭包；不能假定高IRQ是否可抢占。",
+      "library": [
+        "CASE-0022"
+      ]
+    },
+    {
+      "id": "p18",
+      "category": "unknown",
+      "title": "二进制异步回调调用者不可见",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "LIKELY",
+        "NEED_MORE_CONTEXT"
+      ],
+      "mechanism": "Board_SetHook注册保存函数指针，但二进制库触发上下文不可见，不能凭接口名称断言实际并发或安全。",
+      "library": [
+        "CASE-0006"
+      ]
+    },
+    {
+      "id": "p19",
+      "category": "safe",
+      "title": "有意覆盖的单字GPIO命令邮箱",
+      "targets": [
+        "g_shared"
+      ],
+      "allowed": [
+        "REVIEWED_SAFE",
+        "FALSE_POSITIVE"
+      ],
+      "mechanism": "完整源代码只有每IRQ单字盲写和主循环单次读取驱动GPIO，没有read-write事务、关联协议或必须保存全部事件的消费者。最后实际store决定电平是源代码实际行为，无额外优先级胜出不变式。",
+      "library": [
+        "CASE-0001",
+        "CASE-0017"
+      ]
+    },
+    {
+      "id": "p20",
+      "category": "risk",
+      "title": "中断先使能，回调对象后初始化",
+      "targets": [
+        "g_shared.capacity"
+      ],
+      "allowed": [
+        "CONFIRMED",
+        "LIKELY"
+      ],
+      "mechanism": "NVIC使能和软件pending使高IRQ可在对象初始化前运行；capacity零减1回绕、buffer为空，实际写空指针。",
+      "library": [
+        "CASE-0006",
+        "CASE-0022"
+      ]
+    }
+  ]
+}
