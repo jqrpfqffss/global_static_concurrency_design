@@ -243,7 +243,8 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
     if 'address_taken' in evidence_slice:
         evidence_slice['address_taken'] = [a.get('access_id') for a in evidence_slice['address_taken']]
     static_finding = {k: v for k, v in finding.items() if k not in repeated | {
-        'review', 'review_state', 'review_status', 'review_result', 'status', 'risk_level', 'confidence', 'context_pairs'}}
+        'review', 'review_state', 'review_status', 'review_result', 'effective_decision', 'decision_label',
+        'status', 'risk_level', 'confidence', 'context_pairs'}}
     unknowns = list(finding.get('uncertainties', [])) + list(variable.get('blocking_evidence', []))
     unknowns += [u for u in facts.get('unknowns', []) if sid and u.get('symbol_id') == sid
                  or u.get('function_id') in related or u.get('target_function_id') in related]
@@ -359,10 +360,13 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             selected.append(finding)
             # Keep previous history on disk; the current ledger never claims a
             # verdict until this explicitly requested review has finished.
-            ledger[fid] = set_review_state(dict(finding_id=fid), 'PENDING')
+            ledger[fid] = set_review_state(dict(finding_id=fid,
+                static_classification=finding.get('static_classification')), 'PENDING')
 
     def save_queue():
         rows = [ledger[f['finding_id']] for f in targets]
+        for finding, row in zip(targets, rows):
+            row['static_classification'] = finding.get('static_classification')
         assert_review_integrity(report, rows)
         write_json(folder / 'queue.json', rows)
         return rows
@@ -372,6 +376,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     if not enabled and not settings.get('prepare_packets', False):
         for finding in selected:
             ledger[finding['finding_id']] = set_review_state(dict(finding_id=finding['finding_id'],
+                static_classification=finding.get('static_classification'),
                 error='OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中'), 'PENDING')
         return save_queue()
     command, command_error = None, None

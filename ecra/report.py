@@ -40,6 +40,7 @@ def write_database(path, facts, report):
 
 def generate(out, facts, report, reviews):
     from .html_report import category, review_records, write_html, risk_summary, final_conclusion
+    from .decisions import decision_label, effective_decision
     from .scope import validate_selection
     from .analysis import compact_conflict_pair_storage
     from .review_integrity import review_integrity
@@ -54,6 +55,7 @@ def generate(out, facts, report, reviews):
     report['review_records'] = review_records(dict(findings=review_targets(report)), reviews)
     records = review_records(report, reviews)
     records_by_id = {r['finding_id']: r for r in records}
+    variables_by_id = {v['symbol_id']: v for v in facts['variables']}
     sample_records = review_records(dict(findings=report.get('review_safe_samples', [])), reviews)
     report['safe_sample_summary'] = dict(total=len(sample_records),
         completed=sum(r['state']=='DONE' for r in sample_records),
@@ -71,6 +73,9 @@ def generate(out, facts, report, reviews):
         finding['review_state'] = record['state']
         finding['review_status'] = record.get('status')
         finding['review_result'] = record
+        finding['effective_decision'] = effective_decision(finding, record,
+            variable=variables_by_id.get(finding.get('symbol_id')))
+        finding['decision_label'] = decision_label(finding['effective_decision'], [record])
         finding['status'] = record['status'] if record['state'] == 'DONE' else 'NEED_OPENCODE_REVIEW'
         if record['state'] == 'DONE' and record.get('answer'):
             finding['review'] = record['answer']
@@ -85,6 +90,7 @@ def generate(out, facts, report, reviews):
         ('targets', 'archived', 'done', 'failed', 'pending', 'stale', 'missing', 'duplicate')})
     report['review_summary']['complete'] = report['review_integrity']['complete']
     report['review_summary']['all_done'] = report['review_integrity']['all_done']
+    report['review_summary']['basis'] = '仅统计 OpenCode 原始复核结果与进度；最终风险分类见 risk_summary。'
     by_symbol = defaultdict(list)
     for f in report['findings']:
         if f.get('symbol_id'):
@@ -122,15 +128,18 @@ def generate(out, facts, report, reviews):
     inventory = ["# 全局变量与 static 变量完整清单", "", "清单覆盖全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）及补充声明；普通局部变量、参数和结构体字段不作为共享对象盘点。完整性受报告覆盖门槛约束。", ""]
     if not facts.get('context_call_graph', {}).get('path_lists_complete', True):
         inventory += ["调用路径以下仅列最短见证，条数不是全部路径数；完整调用证据包含全部入口、调用边与上下文，见 [facts.json](../facts.json) 的 context_call_graph、call_graph_slices 和 calls。保护与分类证明使用完整图。", ""]
-    inventory += ["| 变量 | 类别 | 定义 | 读上下文 | 写上下文 | 静态分类 / 覆盖率 |", "|---|---|---|---|---|---|"]
+    variable_risks = {v['symbol_id']: v for v in report['risk_summary']['variables']}
+    inventory += ["| 变量 | 类别 | 定义 | 读上下文 | 写上下文 | 静态分类 / 覆盖率 | 最终分类 |", "|---|---|---|---|---|---|---|"]
     for v in facts["variables"]:
         inventory.append("| " + " | ".join(map(cell, [v["qualified_name"], v["kind"], f"{v.get('definition_file')}:{v.get('definition_line')}",
                          ", ".join(v.get("readers", [])), ", ".join(v.get("writers", [])),
-                         f"{v.get('static_classification', 'UNKNOWN')} / {v.get('analysis_coverage', 'PARTIAL')}"])) + " |")
+                         f"{v.get('static_classification', 'UNKNOWN')} / {v.get('analysis_coverage', 'PARTIAL')}",
+                         variable_risks.get(v['symbol_id'], {}).get('label', '不计入风险统计')])) + " |")
     for v in facts["variables"]:
         inventory += ["", f"## {v['qualified_name']}", "", f"- ID: `{v['symbol_id']}`", f"- 类型: `{v.get('type')}`；大小: {v.get('size_bytes')}；对齐: {v.get('alignment_bytes')}",
                       f"- const: {v.get('is_const')}；volatile: {v.get('is_volatile')}；翻译单元: {', '.join(v.get('translation_units', []))}", ""]
         inventory += [f"- 静态分类：{v.get('static_classification', 'UNKNOWN')}；依据：{v.get('classification_reason', '尚未证明')}",
+                      f"- 最终分类：{variable_risks.get(v['symbol_id'], {}).get('label', '不计入风险统计')}",
                       f"- 分析覆盖率：{v.get('analysis_coverage', 'PARTIAL')}；缺口：{', '.join(v.get('coverage_reasons', [])) or '无'}",
                       f"- 保护：{v.get('protection_status', 'NOT_FOUND')}；说明：{v.get('protection_note', '无')}",
                       f"- 安全筛除依据：{v.get('safe_reason_code') or v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
@@ -187,10 +196,13 @@ def generate(out, facts, report, reviews):
     for u in facts["translation_units"]:
         if u["parse_status"] != "PARSED":
             md += [f"- {u['parse_status']}：{u['source_file']}"] + ["  - " + cell(d["message"]) for d in u["diagnostics"]]
-    review_map = {r["finding_id"]: r for r in reviews}
+    review_map = records_by_id
     for f in report["findings"]:
         r = review_map.get(f["finding_id"], {})
         md += ["", f"## {f['finding_id']} — {f['variable_name']}", "", f"- 风险：{f['risk_level']}；置信度：{f['confidence']}",
+               f"- 静态分类：{f.get('static_classification', 'UNKNOWN')}；本项分类：{f['decision_label']}（{f['effective_decision']}）",
+               *([f"- 变量最终分类：{variable_risks[f['symbol_id']]['label']}（{variable_risks[f['symbol_id']]['decision']}）"]
+                 if f.get('symbol_id') in variable_risks else []),
                f"- 规则：{', '.join(f['rules'])}", f"- 定义：{location(f['definition'])}；ID: `{f.get('symbol_id')}`",
                f"- 保护：{f['protection_status']}；复核：{r.get('state', 'PENDING')} / {r.get('status') or '—'}",
                f"- 依据：{f.get('concurrency_reason', '分析盲区需要补充源码/配置证据')}", ""]
@@ -219,8 +231,15 @@ def generate(out, facts, report, reviews):
                  "目标 {targets}；归档 {archived}；完成 {done}；失败 {failed}；待复核 {pending}；失效 {stale}；遗漏 {missing}；重复 {duplicate}".format(**report['review_integrity']), ""]
     review_md += ['- ' + error for error in report['review_integrity']['errors']]
     patches = ["# 最小修复建议（未修改固件）", ""]
+    findings_by_id = {f['finding_id']: f for f in report['findings']}
     for r in report['review_records']:
         review_md += [f"## {r['finding_id']}", "", f"- {r['state']} / {r['status']}"]
+        finding = findings_by_id.get(r['finding_id'])
+        if finding:
+            review_md += [f"- 静态分类：{finding.get('static_classification', 'UNKNOWN')}；本项分类：{finding['decision_label']}（{finding['effective_decision']}）"]
+            if finding.get('symbol_id') in variable_risks:
+                variable = variable_risks[finding['symbol_id']]
+                review_md += [f"- 变量最终分类：{variable['label']}（{variable['decision']}）"]
         if r.get("error"):
             review_md.append("- " + r["error"])
             review_md += [f"- 失败阶段：{r.get('failure_stage', 'unknown')}；错误类型：{r.get('error_type', 'unknown')}",

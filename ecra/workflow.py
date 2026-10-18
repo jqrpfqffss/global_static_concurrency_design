@@ -43,13 +43,16 @@ def clean_report(report):
         f.pop('review_state', None)
         f.pop('review_status', None)
         f.pop('review_result', None)
+        f.pop('effective_decision', None)
+        f.pop('decision_label', None)
         f['status'] = 'NEED_OPENCODE_REVIEW'
     return result
 
 
 def save_scan(root, out, cfg, config_file, report):
     from .review_integrity import review_targets, assert_review_integrity
-    queue = [set_review_state(dict(finding_id=f['finding_id']), 'PENDING') for f in review_targets(report)]
+    queue = [set_review_state(dict(finding_id=f['finding_id'],
+        static_classification=f.get('static_classification')), 'PENDING') for f in review_targets(report)]
     assert_review_integrity(report, queue)
     write_json(out/'review/queue.json', queue)
     write_json(out/'scan_state.json', dict(schema=1, project_root=str(root),

@@ -72,7 +72,7 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(decision(gap, {}), 'unresolved')
         self.assertEqual(decision(shared, dict(state='DONE', status='CONFIRMED')), 'confirmed')
         self.assertEqual(decision(shared, dict(state='DONE', status='REVIEWED_SAFE')), 'safe')
-        self.assertEqual(decision(shared, dict(state='STALE', status='REVIEWED_SAFE')), 'unresolved')
+        self.assertEqual(decision(shared, dict(state='STALE', status='REVIEWED_SAFE')), 'likely')
         self.assertEqual(decision(gap, dict(state='FAILED', status='CONFIRMED')), 'unresolved')
         facts = dict(variables=[dict(symbol_id=s) for s in ['a', 'b', 'c']])
         report = dict(findings=[shared, gap, dict(finding_id='D', symbol_id=None, rules=['INDIRECT_CALL'])], coverage={})
@@ -87,7 +87,7 @@ class ReportTests(unittest.TestCase):
         self.assertIn('data-decision-filter="unresolved"><strong>1</strong>', html)
 
     def test_inventory_summary_uses_review_state_and_verdict(self):
-        findings = [dict(finding_id='F')]
+        findings = [dict(finding_id='F', static_classification='SUSPECT')]
         answer = dict(explanation=dict(summary='源码证明两个入口串行'))
         self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
             state='DONE', status='REVIEWED_SAFE', answer=answer)}),
@@ -95,14 +95,14 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
             state='DONE', status='FALSE_POSITIVE', answer=answer)})[0], '已确认误报')
         self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
-            state='DONE', status='NEED_MORE_CONTEXT', answer=answer)})[0], '复核完成，证据不足')
+            state='DONE', status='NEED_MORE_CONTEXT', answer=answer)})[0], '疑似并发风险')
         self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
-            state='FAILED', status='CONFIRMED', error='timeout')})[0], '复核执行失败')
+            state='FAILED', status='CONFIRMED', error='timeout')})[0], '疑似并发风险')
         self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
-            state='STALE', status='REVIEWED_SAFE')})[0], '复核结果已失效')
-        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(state='PENDING')})[0], '待复核')
+            state='STALE', status='REVIEWED_SAFE')})[0], '疑似并发风险')
+        self.assertEqual(reviewed_variable_summary(findings, {'F': dict(state='PENDING')})[0], '疑似并发风险')
         self.assertEqual(reviewed_variable_summary(findings, {'F': dict(
-            state='PENDING', error='OpenCode 自动复核已关闭')})[0], '静态候选，尚未复核')
+            state='PENDING', error='OpenCode 自动复核已关闭')})[0], '疑似并发风险')
         self.assertIsNone(review_records(dict(findings=findings), [dict(
             finding_id='F', state='PENDING', status='NEED_MORE_CONTEXT')])[0]['status'])
 

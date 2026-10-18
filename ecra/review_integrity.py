@@ -50,11 +50,15 @@ def review_integrity(report, records, *, require_terminal=False):
     duplicates = sorted(set(k for k, n in tc.items() if n != 1) |
                         set(k for k, n in ac.items() if n != 1))
     errors = []
+    static_by_id = {f['finding_id']: f.get('static_classification') for f in review_targets(report)}
     for fid in targets + archived:
         if not isinstance(fid, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]+', fid) or '..' in fid:
             errors.append(f'非法 finding_id: {fid!r}')
     for row in records:
         fid, state = row['finding_id'], row.get('state')
+        if (row.get('static_classification') is not None and static_by_id.get(fid) is not None
+                and row['static_classification'] != static_by_id[fid]):
+            errors.append(f'{fid}: 复核记录与静态分类不一致')
         if state not in STATES:
             errors.append(f'{fid}: 非法复核状态 {state!r}')
         elif state == 'DONE':
@@ -104,7 +108,7 @@ def assert_review_archive(report, records, folder, *, require_terminal=True):
     for row in queue:
         fid = row['finding_id']
         current = expected[fid]
-        for key in ('state', 'status', 'error', 'answer'):
+        for key in ('state', 'status', 'error', 'answer', 'static_classification'):
             if row.get(key) != current.get(key):
                 errors.append(f'{fid}: queue 与本轮结果的 {key} 不一致')
         if require_terminal or row.get('state') in {'DONE', 'TECH_FAILED'}:
@@ -113,7 +117,7 @@ def assert_review_archive(report, records, folder, *, require_terminal=True):
             except (OSError, ValueError) as exc:
                 errors.append(f'{fid}: 结果收据缺失或损坏：{exc}')
                 continue
-            for key in ('state', 'status', 'error', 'answer'):
+            for key in ('state', 'status', 'error', 'answer', 'static_classification'):
                 if receipt.get(key) != row.get(key):
                     errors.append(f'{fid}: result 与 queue 的 {key} 不一致')
     fingerprint = next((r.get('scan_fingerprint') for r in records if r.get('scan_fingerprint')), None)

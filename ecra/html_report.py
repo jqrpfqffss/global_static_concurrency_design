@@ -5,6 +5,10 @@ from collections import Counter, defaultdict
 from datetime import datetime
 
 from .common import digest
+from .decisions import (CONCURRENT_SIGNALS, DECISIONS, RISK_PRIORITY, aggregate_decisions,
+                        decision_label,
+                        effective_decision as decision, review_category as category,
+                        variable_decisions)
 from .review_presentation import explanation as story_explanation
 
 
@@ -23,7 +27,7 @@ DISPLAY_TEXT = {
     'SAFE_PROVEN': '静态已判安全', 'SHARED_NO_REVIEW': '共享访问，无需复核',
     'SCREENED_SAFE': '已排查：未发现并发风险', 'LIKELY': '疑似并发风险',
     'CONFIRMED': '已确认并发风险', 'UNKNOWN': '无法判断',
-    'NEED_MORE_CONTEXT': '信息不足，无法判断', 'NEED_OPENCODE_REVIEW': '待进一步复核',
+    'NEED_MORE_CONTEXT': 'OpenCode复核证据不足', 'NEED_OPENCODE_REVIEW': '待进一步复核',
     'PENDING': '待复核', 'REVIEWED_SAFE': '已复核：未发现并发风险',
     'FALSE_POSITIVE': '已确认误报', 'READ': '读取', 'WRITE': '写入',
     'RMW': '读改写', 'MAIN': '主循环', 'ISR': '中断', 'TASK': '任务',
@@ -307,14 +311,15 @@ def review_records(report, reviews):
     """Every current finding gets a row; absent/stale receipts cannot imply safe."""
     by_id = {r["finding_id"]: r for r in reviews}
     return [dict(by_id.get(f["finding_id"], {}), finding_id=f["finding_id"],
+                 static_classification=f.get('static_classification'),
                  state=by_id.get(f["finding_id"], {}).get("state", "PENDING"),
                  status=(by_id.get(f["finding_id"], {}).get("status")
                          if by_id.get(f["finding_id"], {}).get("state") == "DONE" else None))
             for f in report["findings"]]
 
 
-def reviewed_variable_summary(findings, records):
-    """Use final review state for the inventory headline, not the static rule."""
+def reviewed_variable_summary(findings, records, variable=None):
+    """Describe the merged risk, keeping review uncertainty on a separate axis."""
     if not findings:
         return None
     rows = [records.get(f['finding_id'], {'state': 'PENDING'}) for f in findings]
@@ -324,32 +329,20 @@ def reviewed_variable_summary(findings, records):
         answer = row.get('answer') or {}
         return ((answer.get('explanation') or {}).get('summary') or answer.get('reason') or
                 review_label(row))[:260]
-    if row := done('CONFIRMED'):
-        return '已确认并发风险', explanation(row)
-    if any(r.get('state') in {'TECH_FAILED', 'FAILED'} for r in rows):
-        return '复核执行失败', 'OpenCode 未产生通过校验的最终结论；请查看对应 finding 的失败记录。'
-    if any(r.get('state') == 'STALE' for r in rows):
-        return '复核结果已失效', '源码或收据发生变化；旧结论不能作为当前安全或风险证据。'
-    if all(local_pending(r) for r in rows):
-        return '静态候选，尚未复核', '模型复核未启用；这里只保留静态线索，不代表 OpenCode 已确认风险。'
-    if any(r.get('state') in {'PENDING', 'RUNNING'} for r in rows):
-        return '待复核', '静态线索尚未形成经过校验的 OpenCode 最终结论。'
-    if row := done('LIKELY'):
-        return '疑似并发风险', explanation(row)
-    if row := done('NEED_MORE_CONTEXT'):
-        return '复核完成，证据不足', explanation(row)
-    if all(r.get('state') == 'DONE' and r.get('status') in {'REVIEWED_SAFE', 'FALSE_POSITIVE'}
-           for r in rows):
-        if all(r.get('status') == 'FALSE_POSITIVE' for r in rows):
-            return '已确认误报', explanation(rows[0])
-        return '已复核安全', explanation(rows[0])
-    return None
-
-
-def category(review):
-    if review.get("state") != "DONE":
-        return "unresolved"
-    return {"CONFIRMED": "confirmed", "LIKELY": "likely", "REVIEWED_SAFE": "safe", "FALSE_POSITIVE": "safe"}.get(review.get("status"), "unresolved")
+    decisions = [decision(f, r, variable=variable) for f, r in zip(findings, rows)]
+    merged = aggregate_decisions(decisions)
+    if merged == 'confirmed':
+        return DECISIONS[merged][0], explanation(done('CONFIRMED'))
+    if merged == 'safe':
+        return decision_label(merged, rows), explanation(rows[0])
+    relevant = [(f, r) for f, r, d in zip(findings, rows, decisions) if d == merged]
+    finding, record = next(((f, r) for f, r in relevant if r.get('state') == 'DONE'), relevant[0])
+    why = explanation(record) if record.get('state') == 'DONE' else (
+        finding.get('classification_reason') or (variable or {}).get('classification_reason') or DECISIONS[merged][1])
+    notes = list(dict.fromkeys(review_label(r) for r in rows if category(r) == 'unresolved'))
+    if notes:
+        why += '；复核状态：' + '；'.join(notes)
+    return DECISIONS[merged][0], why
 
 
 def final_conclusion(report, reviews):
@@ -374,71 +367,26 @@ def final_conclusion(report, reviews):
                 scope='仅适用于当前源码、构建配置和已覆盖路径；原文校验不等于硬件运行验证。')
 
 
-CONCURRENT_SIGNALS = {'GS-MULTI-CONTEXT', 'GS-MULTI-WRITER', 'GS-RMW-INTERLEAVE',
-    'GS-STALE-SNAPSHOT', 'DMA_SHARED_REVIEW', 'GS-LOCAL-STATIC-REENTRANT', 'GS-OWNER-VIOLATION'}
-DECISIONS = {
-    'confirmed': ('已确认并发风险', '存在风险；查看复核依据并修复。'),
-    'likely': ('疑似并发风险', '有并发风险线索，尚未证实为实际缺陷。'),
-    'unresolved': ('无法判断', '缺少入口、访问或定义证据，不能判定安全。'),
-    'safe': ('已复核：未发现并发风险', '仅在该项复核列出的条件下成立。'),
-    'screened_safe': ('已排查：未发现并发风险', '当前编译配置下没有可形成读写冲突的已知访问；不覆盖解析盲区、汇编或未建模硬件入口。'),
-    'screened_shared': ('共享访问，无需复核', '已通过严格单写者门禁；这是共享访问筛除结论，不等同于静态安全证明。'),
-    'inventory': ('未发现并发风险', '当前建模路径未发现跨执行上下文读写线索；结论仅适用于已解析范围。'),
-    'supplemental': ('补充声明（未分析访问）', '来自未编译文件或条件分支变体；仅盘点声明，并发访问尚未分析。'),
-}
-
-
-def decision(finding, record):
-    reviewed = category(record)
-    if reviewed != 'unresolved':
-        return reviewed
-    if record.get('state') in {'TECH_FAILED', 'FAILED', 'PENDING', 'RUNNING', 'STALE'} and not local_pending(record):
-        return 'unresolved'
-    if finding.get('static_classification') in {'SUSPECT', 'UNKNOWN'}:
-        return 'likely' if finding['static_classification'] == 'SUSPECT' else 'unresolved'
-    return 'likely' if set(finding.get('rules', [])) & CONCURRENT_SIGNALS else 'unresolved'
-
-
-def variable_decisions(facts, report, records):
-    groups = defaultdict(list)
-    for f in report['findings']:
-        if f.get('symbol_id'):
-            groups[f['symbol_id']].append(decision(f, records.get(f['finding_id'], {})))
-    priority = ['confirmed', 'unresolved', 'likely', 'safe']
-    result = {}
-    for v in facts['variables']:
-        sid = v['symbol_id']
-        if v.get('coverage_source') in ('supplemental', 'inactive_branch'):
-            resolved = [g for g in groups[sid] if g in {'confirmed', 'safe'}]
-            result[sid] = min(resolved, key=priority.index) if resolved and len(resolved) == len(groups[sid]) else 'supplemental'
-        elif v.get('parse_status') == 'FAILED' and v.get('static_classification') != 'SUSPECT':
-            result[sid] = 'unresolved'
-        elif groups[sid]:
-            result[sid] = min(groups[sid], key=priority.index)
-        elif v.get('static_classification') == 'SAFE_PROVEN' or v.get('audit_status') == 'STATIC_SAFE_PROVEN':
-            result[sid] = 'screened_safe'
-        elif v.get('static_classification') == 'SHARED_NO_REVIEW' or v.get('audit_status') == 'SHARED_NO_REVIEW':
-            result[sid] = 'screened_shared'
-        else:
-            result[sid] = 'inventory'
-    return result
-
-
 def risk_summary(facts, report, records):
     """One variable-level interpretation shared by HTML and machine exports."""
     decisions = variable_decisions(facts, report, records)
     targets = [v for v in facts['variables'] if v.get('static_classification') not in {'CONTAINER', 'OUT_OF_BUILD'}
                and v.get('resource_kind') not in {'STRUCT_MEMBER_CONTAINER', 'STRUCT_CONTAINER', 'ARRAY_CONTAINER'}]
     counts = Counter(decisions[v['symbol_id']] for v in targets)
+    by_symbol = defaultdict(list)
+    for finding in report['findings']:
+        by_symbol[finding.get('symbol_id')].append(records.get(finding['finding_id'], {}))
     return dict(total_variables=len(targets), counts={key: counts[key] for key in DECISIONS},
                 inventory_rows=len(decisions),
                 labels={key: value[0] for key, value in DECISIONS.items()},
                 independent_gaps=sum(not f.get('symbol_id') for f in report['findings']),
                 basis='静态线索与有效复核共同分类；疑似不等于已确认，未发现线索不等于安全。',
                 variables=[dict(symbol_id=v['symbol_id'], name=v.get('qualified_name', v.get('name')),
+                    static_classification=v.get('static_classification'),
                     definition_file=v.get('definition_file'), definition_line=v.get('definition_line'),
                     kind=v.get('kind'), coverage_source=v.get('coverage_source', 'compile_database'),
-                    decision=decisions[v['symbol_id']], label=DECISIONS[decisions[v['symbol_id']]][0])
+                    decision=decisions[v['symbol_id']],
+                    label=decision_label(decisions[v['symbol_id']], by_symbol[v['symbol_id']]))
                     for v in targets])
 
 
@@ -631,7 +579,8 @@ def overview(report, records, values):
 
 
 def risk_overview(facts, report, records, assessments):
-    counts = Counter(assessments.values())
+    summary = risk_summary(facts, report, records)
+    counts = summary['counts']
     if counts['confirmed']:
         state, color = '已确认存在并发风险', 'confirmed'
         explanation = '有效复核已确认风险。先处理红色项目，再核对其余疑似风险。'
@@ -653,7 +602,7 @@ def risk_overview(facts, report, records, assessments):
     kind_line = ' · '.join(f'{KINDS.get(k, k)} {n}' for k, n in sorted(inventory_by_kind.items())) or '无变量'
     return ('<section class="risk-overview"><div class="verdict-head ' + color + '"><span>并发风险结论</span><h2 id="risk-verdict">'
             + esc(state) + '</h2><p>' + esc(explanation) + '</p></div><div class="verdict-cards">' + cards + '</div>'
-            + '<p class="scope-line">以上按变量去重统计。共 ' + str(len(facts['variables'])) + ' 个变量（' + esc(kind_line) + '）；另有 '
+            + '<p class="scope-line">以上按变量去重统计。共 ' + str(summary['total_variables']) + ' 个分析对象（清单含 ' + str(len(facts['variables'])) + ' 行，' + esc(kind_line) + '）；另有 '
             + f'<a href="#inventory" data-decision-filter="screened_safe">{counts["screened_safe"]} 个已排查：未发现并发风险</a>、'
             + f'<a href="#inventory" data-decision-filter="screened_shared">{counts["screened_shared"]} 个共享访问、无需复核</a>、'
             + f'<a href="#inventory" data-decision-filter="inventory">{counts["inventory"]} 个未发现静态线索</a>（不等于安全）'
@@ -914,6 +863,8 @@ def write_html(out, facts, report, reviews):
         return text
 
     def variable_explanation(variable, views, finding_list):
+        if variable.get('static_classification') == 'SUSPECT' and not finding_list:
+            return ('疑似并发风险', variable.get('classification_reason') or DECISIONS['likely'][1], '')
         if variable.get('static_classification') == 'SAFE_PROVEN':
             return ('静态已判安全', variable.get('classification_reason', ''), '')
         if variable.get('static_classification') == 'SHARED_NO_REVIEW':
@@ -1048,7 +999,7 @@ def write_html(out, facts, report, reviews):
             verify_member_rendering(v)
             views = source_access_views(v.get('accesses', []))
             conclusion, reason, focus = variable_explanation(v, views, candidates[sid])
-            reviewed_summary = reviewed_variable_summary(candidates[sid], records)
+            reviewed_summary = reviewed_variable_summary(candidates[sid], records, v)
             if reviewed_summary:
                 conclusion, reason = reviewed_summary
             detail_body += '<h3>一句话结论</h3><p><strong>' + esc(conclusion) + '</strong></p><p>' + esc(reason) + '</p>'
@@ -1071,10 +1022,10 @@ def write_html(out, facts, report, reviews):
             conclusion = '查看成员级结论'
         else:
             conclusion, why, _ = variable_explanation(v, list_views, candidates[sid])
-            reviewed_summary = reviewed_variable_summary(candidates[sid], records)
+            reviewed_summary = reviewed_variable_summary(candidates[sid], records, v)
             if reviewed_summary:
                 conclusion, why = reviewed_summary
-        if v.get('parse_status') == 'FAILED' and v.get('static_classification') != 'SUSPECT':
+        if v.get('parse_status') == 'FAILED' and assessments[sid] == 'unresolved':
             conclusion, why = '无法判断', '解析不完整：只保留已恢复声明，可能仍有漏项，不能判定安全。'
         inventory_rows.append(row(['<a class="item-name" href="#' + anchor('var-', sid) + '">' + esc(v['qualified_name'])
             + '</a><span class="location">' + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
@@ -1087,8 +1038,8 @@ def write_html(out, facts, report, reviews):
                                   *(str(a.get('source_text', '')) for a in v.get('accesses', []))])))
 
     risks, gaps = [], []
-    ordering = {'confirmed': 0, 'likely': 1, 'unresolved': 2, 'safe': 3}
-    for f in sorted(report['findings'], key=lambda f: (ordering[decision(f, records[f['finding_id']])],
+    for f in sorted(report['findings'], key=lambda f: (RISK_PRIORITY.index(decision(f, records[f['finding_id']],
+                    variable=variables.get(f.get('symbol_id')))),
                     {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3}.get(f['risk_level'], 4),
                     -len(set(f.get('rules', [])) & CONCURRENT_SIGNALS), f['variable_name'], f['finding_id'])):
         sid = f.get('symbol_id')
@@ -1166,11 +1117,13 @@ def write_html(out, facts, report, reviews):
                 + esc(loc(a)) + '</span><pre>' + esc(a.get('source_text', '')) + '</pre></div>')
             if len(previews) == 2:
                 break
-        assessment = decision(f, r)
+        assessment = decision(f, r, variable=variables.get(sid))
         if r.get('state') == 'DONE' and r.get('answer', {}).get('reason'):
             titles = '<p class="review-brief">' + esc(r['answer']['reason'][:240]) + '</p>' + titles
         state = f'<span class="tag {category(r)}">{esc(review_label(r))}</span>'
-        cells = [(decision_tag(assessment) + '<br>' if sid else '') + name + '<span class="location">' + esc(loc(f['definition'])) + '</span>'
+        cells = [(('<span>变量最终分类：</span>' + decision_tag(assessments.get(sid, assessment))
+                  + '<br><span>本项分类：</span>' + decision_tag(assessment) + '<br>') if sid else '')
+                 + name + '<span class="location">' + esc(loc(f['definition'])) + '</span>'
                  + '<span class="tag priority-' + esc(f['risk_level']) + '">' + esc(PRIORITIES.get(f['risk_level'], f['risk_level'])) + '</span>' + actors,
                  titles + '<div class="source-previews">' + ''.join(previews) + '</div>' + scenario_html + detail,
                  '<p class="step">' + esc(summary[0][2] if summary else '查看证据，补充未知信息。') + '</p>'
@@ -1260,14 +1213,14 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     counts = Counter(category(r) for r in records.values())
     review_rows = defaultdict(list)
     review_jumps = defaultdict(list)
-    review_priority = {'confirmed': 0, 'likely': 1, 'unresolved': 2, 'safe': 3}
-    ordered_findings = sorted(report['findings'], key=lambda f: review_priority[category(records[f['finding_id']])] if f.get('symbol_id') else 4)
+    ordered_findings = sorted(report['findings'], key=lambda f: RISK_PRIORITY.index(
+        decision(f, records[f['finding_id']], variable=variables.get(f.get('symbol_id')))) if f.get('symbol_id') else 4)
     for f in ordered_findings:
         r = records[f['finding_id']]
         # Failed/stale receipts may contain an old answer. Preserve it only in
         # the raw record, never as the current explanation or source evidence.
         answer = r.get('answer', {}) if r['state'] == 'DONE' else {}
-        group = category(r)
+        group = assessments.get(f['symbol_id'], decision(f, r)) if f.get('symbol_id') else category(r)
         status = review_label(r)
         if not f.get('symbol_id') and r['state'] == 'DONE':
             status = {'CONFIRMED': '此证据疑点成立', 'LIKELY': '此证据疑点仍需验证',
@@ -1283,7 +1236,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
                 '<pre>' + esc(excerpt or '此旧记录未保存源码片段；请按文件与行号核对原始源码。') + '</pre>' + raw(window or e)],
                 anchor('citation-', f['finding_id'] + ':' + str(evidence_index)) ))
         source_evidence = table(['文件', '行号', '引用处源码及邻近语句'], evidence_rows)
-        explanation = story_explanation(answer, group, bool(f.get('symbol_id')),
+        explanation = story_explanation(answer, category(r), bool(f.get('symbol_id')),
                                         lambda i: '#' + anchor('citation-', f['finding_id'] + ':' + str(i)))
         if r['state'] in {'TECH_FAILED', 'STALE', 'FAILED'} and r.get('answer'):
             explanation += '<p>旧回答已失效，仅在原始记录中保留，不作为本轮结论或证据。</p>'
@@ -1320,7 +1273,8 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         citations += '</ol></details>'
         current = ('<div class="story-current"><div class="story-heading"><div><h3>' + esc(name) + '</h3>'
                    + '<span class="location">' + esc(loc(f['definition']) + instance) + '</span></div>'
-                   + f'<span class="tag {group}">{esc(status)}</span></div>' + explanation + citations + '</div>')
+                   + ('<span>变量最终分类：</span>' + decision_tag(group) + ' ' if f.get('symbol_id') else '')
+                   + f'<span class="tag {category(r)}">OpenCode：{esc(status)}</span></div>' + explanation + citations + '</div>')
         audit = ('<details class="story-audit"><summary>原始证据、执行日志与历史复核</summary>' + error
                  + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
                  + '<details class="evidence"><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details>'
@@ -1328,9 +1282,9 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
                  + raw(r, '原始复核记录（含失效回答 / 错误信息）') + '</details>')
         review_rows[bucket].append(row(['<article class="review-story ' + group + '">' + current + audit + '</article>'],
             ident, group, file=f['definition'].get('file')))
-    review_options = [('all', '全部结论'), ('confirmed', '确认存在风险'), ('likely', '疑似，仍需验证'), ('safe', '条件安全 / 误报'), ('unresolved', '未完成 / 证据不足')]
+    review_options = [('all', '全部结论'), ('confirmed', '确认存在风险'), ('likely', '疑似，仍需验证'), ('safe', '条件安全 / 误报'), ('unresolved', '无法判断')]
     conclusion = final_conclusion(report, list(records.values()))
-    counts_by_variable = Counter(assessments.values())
+    counts_by_variable = risk_summary(facts, report, records)['counts']
     content = '<div class="review-reading"><section class="review-verdict"><h2>最终结论：' + esc(conclusion['label']) + '</h2>'
     remaining_variables = sum(counts_by_variable[k] for k in ('likely','unresolved','supplemental','inventory'))
     content += '<p><strong>' + str(counts_by_variable['confirmed']) + ' 个变量确认有风险</strong> · ' + str(counts_by_variable['safe']) + ' 个变量复核安全 / 误报 · ' + str(remaining_variables) + ' 个变量仍需判断。</p>'
@@ -1340,7 +1294,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     content += '<p class="review-coverage"><strong>' + ('复核目标全部完成' if integrity['all_done'] else '复核结果不完整') + '</strong> · OpenCode目标总数 ' + str(integrity['targets']) + ' · 成功完成数 ' + str(integrity['done']) + ' · 复核失败数 ' + str(integrity['failed']) + ' · 待复核数 ' + str(integrity['pending']) + ' · 结果失效数 ' + str(integrity['stale']) + ' · 遗漏数 ' + str(integrity['missing']) + ' · 重复数 ' + str(integrity['duplicate']) + '</p>'
     if integrity['errors']:
         content += '<details><summary>复核结果不完整：查看不变量错误</summary>' + raw(integrity['errors']) + '</details>'
-    content += '<p class="format-summary">并发结论与解释由 OpenCode 生成，工具负责完整事实、源码引用校验和归档。review 重新复核全部静态疑似/未知变量；review-failed 只重新复核技术失败项。</p>'
+    content += '<p class="format-summary">最终分类合并静态证据与有效 OpenCode 复核；证据不足、待复核、技术失败或失效不会降低静态疑似风险。OpenCode 原始结论和解释单独展示。review 重新复核全部静态疑似/未知变量；review-failed 只重新复核技术失败项。</p>'
     content += '<nav class="tabs" aria-label="复核栏目">' + ''.join('<a href="#reviews' + ('-' + key if key != 'risks' else '') + '">' + label + ' ' + str(len(review_rows[key])) + '</a>'
         for key, label in [('risks', '风险变量'), ('safe', '安全 / 误报'), ('gaps', '独立证据缺口')]) + '</nav><!--controls-->'
     for key, title, description in [
@@ -1367,7 +1321,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         content += '<section id="safe-samples"><h2>筛除项独立抽样审计</h2><p>SAFE_PROVEN 与 SHARED_NO_REVIEW 分别抽样；不计入风险队列，也不改变静态分类。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
     content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'
     content += '<p>主循环：CPU 正常轮询执行的代码。中断 / ISR：事件触发后，CPU 暂停当前代码并执行处理函数，返回后继续原来的位置。DMA：独立于 CPU 搬运数据的硬件。读改写 / RMW：读出旧值、计算、写回；中间若被另一写入者打断，可能覆盖对方的新值。</p>'
-    content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('尚未完成项', counts['unresolved'])])
+    content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('待复核 / 证据不足项', counts['unresolved'])])
     content += raw(cov, '本轮静态覆盖范围') + raw(report['limitations'], '结论适用范围与限制') + '</details></div>'
     review_page = page('并发复核：原因、过程与结论', content, report, review_options, reading=True)
     quality_page = classification_quality_html(facts, report)
