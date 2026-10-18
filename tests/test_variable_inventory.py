@@ -416,7 +416,7 @@ class TestEngineChangeInvalidation(InventoryFixture):
         self.project({"a.c": "int g; void ISR(void){g++;} void Task(void){g++;}"})
         self.assertEqual(run(self.root, no_review=True), 2)
         with patch('ecra.workflow.engine_digest', return_value='stale-engine-digest'):
-            with self.assertRaisesRegex(ValueError, '分析实现或分析配置已变化'):
+            with self.assertRaisesRegex(ValueError, '静态分析实现已变化'):
                 saved_run(self.root, render_only=True)
         # The matching engine still allows an ordinary report refresh.
         self.assertIn(saved_run(self.root, render_only=True), (1, 2))
@@ -429,7 +429,7 @@ class TestEngineChangeInvalidation(InventoryFixture):
         self.project({"a.c": "int g; void ISR(void){g++;} void Task(void){g++;}"})
         self.assertEqual(run(self.root, no_review=True), 2)
         with patch('ecra.workflow.engine_digest', return_value='stale-engine-digest'):
-            with self.assertRaisesRegex(ValueError, '分析实现或分析配置已变化'):
+            with self.assertRaisesRegex(ValueError, '静态分析实现已变化'):
                 saved_run(self.root)
         self.assertFalse((self.root / '.ecra/scan.lock').exists())
 

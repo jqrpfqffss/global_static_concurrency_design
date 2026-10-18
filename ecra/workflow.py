@@ -22,12 +22,20 @@ def file_digest(path):
     return h.hexdigest()
 
 
+ENGINE_SCOPE = 'static-v1'
+# These modules consume existing facts; they do not recover accesses, calls or
+# static classifications. Unknown/new modules remain included by default.
+REVIEW_REPORT_MODULES = frozenset({
+    'case_library.py', 'decisions.py', 'html_report.py', 'report.py',
+    'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
+    'review_presentation.py', 'workflow.py',
+})
+
+
 def engine_digest():
     package = Path(__file__).parent
-    # Every package module can change a scan's facts, verdict, or evidence.
-    # A fixed hand-maintained list previously omitted evidence/initialization
-    # and allowed review resumption against a different classifier revision.
-    return digest({path.name: file_digest(path) for path in sorted(package.glob('*.py'))})
+    return digest({path.name: file_digest(path) for path in sorted(package.glob('*.py'))
+                   if path.name not in REVIEW_REPORT_MODULES})
 
 
 def analysis_config(cfg):
@@ -57,7 +65,7 @@ def save_scan(root, out, cfg, config_file, report):
     write_json(out/'review/queue.json', queue)
     write_json(out/'scan_state.json', dict(schema=1, project_root=str(root),
         config_file=relative(config_file, root), config_digest=digest(analysis_config(cfg)),
-        engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),
+        engine_scope=ENGINE_SCOPE, engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),
         manifest_sha256=file_digest(out/'input_manifest.json'),
         report_digest=digest(clean_report(report)), fingerprint=report['fingerprint']))
 
@@ -72,8 +80,15 @@ def checked_scan(root, out, cfg, config_file):
         raise ValueError('扫描检查点损坏；请重新运行 run')
     if state.get('schema') != 1 or state.get('project_root') != str(root):
         raise ValueError('扫描检查点不属于当前工程；请重新运行 run')
-    if state['engine_digest'] != engine_digest() or state['config_digest'] != digest(analysis_config(cfg)):
-        raise ValueError('分析实现或分析配置已变化；请重新运行 run，不能复用旧调用链')
+    rescan = '请先执行 py -3.10 run_ecra.py --no-review 刷新静态扫描，再执行复核命令'
+    if state['config_digest'] != digest(analysis_config(cfg)):
+        raise ValueError('分析配置已变化，不能复用旧调用链；' + rescan)
+    if state.get('engine_scope') != ENGINE_SCOPE:
+        # The old aggregate digest cannot establish which modules changed.
+        # Refresh once rather than bless unknown old facts by replacing a hash.
+        raise ValueError('旧扫描检查点使用全程序指纹，需一次性更新为静态分析指纹；' + rescan)
+    if state['engine_digest'] != engine_digest():
+        raise ValueError('静态分析实现已变化，不能复用旧调用链；' + rescan)
     if (state['facts_sha256'] != file_digest(out/'facts.json') or
             state['manifest_sha256'] != file_digest(out/'input_manifest.json')):
         raise ValueError('扫描事实或输入清单已变化/损坏；请重新运行 run')

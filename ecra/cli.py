@@ -266,8 +266,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             report['review_safe_samples'] = samples
             cfg['review']['prepare_packets'] = True
         cov['file_coverage'] = build_file_coverage(facts, units, all_supplemental_tus, scope, root, output_dir=out)
-        # Local fixes to extraction/review code must invalidate prior conclusions
-        # even before a packaged release changes the version number.
+        # Static extraction/classification changes require a fresh scan.
+        # Review prompts and presentation changes use the saved facts directly.
         from .workflow import engine_digest, analysis_config
         if engine_digest() != engine_at_start:
             raise ValueError('扫描期间分析实现已变化；请重新运行 run，不能保存混用版本的证据')

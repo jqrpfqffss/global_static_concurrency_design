@@ -337,6 +337,8 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 每个变量的相关风险合并为一个复核包；无法归属于变量的覆盖盲区仍独立保留，不减少候选。日常完整运行：`py -3.10 run_ecra.py`；全部重评：`py -3.10 run_ecra.py review`；仅技术失败重试：`py -3.10 run_ecra.py review-failed`。后两者使用经一致性检查的静态扫描，不重新运行 Clang。
 
+修改复核提示词、`concurrency_cases.md`、案例库读取逻辑或报告页面后，可直接执行 `review`，无需重扫。固件源码、编译数据库、静态提取/分类实现或分析配置变化时，须先执行 `py -3.10 run_ecra.py --no-review` 刷新静态事实，再执行 `review`。升级前的旧检查点使用全程序指纹，也需要这样刷新一次；旧报告与模型记录会归档到 `.ecra/snapshots/`，不通过替换指纹强行复用旧事实。
+
 同一文件中的同类盲区合并成复核项，所有具体位置仍保存在原始事实和该项证据中。队列从开始就列出全部项，处理中断也能看到尚未处理的项目。`--no-review` 默认保存两个 HTML、静态报告与完整待办清单，证据包在实际复核时生成；需要提前导出全部包时可设置 `review.prepare_packets: true`。
 
 通过 `opencode run --format json` 获取事件，Parser 兼容纯 JSON、前后解释、fenced JSON 和最后一个匹配 finding_id 的完整对象。最小 Validator 只硬校验 finding_id、五种 status、非空 reason、evidence 列表及源码位置；CONFIRMED/REVIEWED_SAFE/FALSE_POSITIVE 至少一处证据，LIKELY/NEED_MORE_CONTEXT 至少一个明确 missing_context。文字长度及可选展示字段不导致技术失败。
