@@ -19,7 +19,10 @@ compile_commands.json
 .cache/
 .vscode
 .tools-cache.txt
-
+.codex
+.chart*
+ECRA_客户赋能培训交付包_20261018
+ECRA-Portable_培训配套.zip
 
 # ECRA generated state, reports, and browser-test artifacts
 .ecra/
