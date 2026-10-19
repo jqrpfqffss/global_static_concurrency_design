@@ -14,6 +14,20 @@ def irq_key(name):
 
 
 def priority_model(facts, cfg):
+    if 'nvic_priorities' in facts:
+        model = {}
+        for row in facts['nvic_priorities']:
+            if row['effective_validity'] != 'CONFIRMED' or row.get('preemption_validity', 'CONFIRMED') != 'CONFIRMED':
+                continue
+            info = dict(logical=row['logical_priority'], preemption=row['preemption_priority'],
+                        bits=row['priority_bits'], sub_bits=row['subpriority_bits'], evidence=row)
+            model['SLOT:' + str(row['irq_number'] + 16)] = info
+            for name in row['irqn'] + row['vectors']:
+                key = irq_key(name)
+                # One C dispatcher can occupy several physical vector slots.
+                # Its name alone cannot select one of their priorities.
+                model[key] = info if key not in model or model[key] == info else None
+        return model, '已沿当前构建的实际调用链恢复 NVIC 源码配置，并分别核对初始化及运行期有效性。'
     bits = cfg.get('project', {}).get('nvic_priority_bits')
     events = facts.get('irq_priority_events', [])
     widths = [(e.get('argument_values') or [None])[0] for e in events
@@ -80,12 +94,24 @@ def priority_model(facts, cfg):
     return result, '已核对 MAIN 初始化位置、NVIC 位数、分组及唯一优先级配置。'
 
 
-def context_priorities(facts, model):
+def context_priorities(facts, model, contexts=None):
     funcs = {f['function_id']: f for f in facts['functions']}
+    contexts = contexts or {c['id']: c for c in facts.get('contexts', [])}
     result = defaultdict(list)
     for b in facts.get('context_bindings', []):
         if b['call_depth'] == 0:
-            key = irq_key(funcs.get(b['function_id'], {}).get('name'))
+            context = contexts.get(b['context_id'], {})
+            vector = context.get('vector') or context.get('irq')
+            if isinstance(vector, str) and vector.startswith('slot:'):
+                key = 'SLOT:' + vector.split(':', 1)[1]
+            elif b['context_id'].startswith('vector:slot:'):
+                key = 'SLOT:' + b['context_id'].split(':')[-1]
+            elif type(vector) is int:
+                key = 'SLOT:' + str(vector + 16)
+            elif vector:
+                key = irq_key(vector)
+            else:
+                key = irq_key(funcs.get(b['function_id'], {}).get('name'))
             result[b['context_id']].append(model.get(key))
     return {cid: items[0] for cid, items in result.items()
             if items and all(item is not None and item == items[0] for item in items)}
@@ -94,7 +120,7 @@ def context_priorities(facts, model):
 def relations(facts, contexts, cfg):
     from itertools import combinations
     model, reason = priority_model(facts, cfg)
-    priorities = context_priorities(facts, model)
+    priorities = context_priorities(facts, model, contexts)
     rows = []
     for a, b in combinations(sorted(contexts), 2):
         kinds = (contexts[a]['kind'], contexts[b]['kind'])

@@ -39,7 +39,7 @@ def write_database(path, facts, report):
 
 
 def generate(out, facts, report, reviews):
-    from .html_report import category, review_records, write_html, risk_summary, final_conclusion
+    from .html_report import category, review_records, write_html, risk_summary, final_conclusion, localized_records
     from .decisions import decision_label, effective_decision
     from .scope import validate_selection
     from .analysis import compact_conflict_pair_storage
@@ -121,6 +121,15 @@ def generate(out, facts, report, reviews):
     write_json(out / "reports/global_static_concurrency.json", report)
     write_database(out / "facts.db", facts, report)
     funcs = {f["function_id"]: f for f in facts["functions"]}
+    from .html_report import to_display_text, KINDS, RULES
+    from .review_language import is_english_prose
+    def zh(value):
+        if value in KINDS:
+            return KINDS[value]
+        return to_display_text(value)
+
+    def number(value):
+        return str(value) if value is not None else '尚未确定'
 
     def chain(path):
         return " → ".join(funcs[fid]["name"] + " (" + location(funcs[fid]) + ")" if fid in funcs else fid for fid in path)
@@ -131,53 +140,53 @@ def generate(out, facts, report, reviews):
     variable_risks = {v['symbol_id']: v for v in report['risk_summary']['variables']}
     inventory += ["| 变量 | 类别 | 定义 | 读上下文 | 写上下文 | 静态分类 / 覆盖率 | 最终分类 |", "|---|---|---|---|---|---|---|"]
     for v in facts["variables"]:
-        inventory.append("| " + " | ".join(map(cell, [v["qualified_name"], v["kind"], f"{v.get('definition_file')}:{v.get('definition_line')}",
-                         ", ".join(v.get("readers", [])), ", ".join(v.get("writers", [])),
-                         f"{v.get('static_classification', 'UNKNOWN')} / {v.get('analysis_coverage', 'PARTIAL')}",
+        inventory.append("| " + " | ".join(map(cell, [v["qualified_name"], zh(v["kind"]), f"{v.get('definition_file')}:{v.get('definition_line')}",
+                         ", ".join('`' + c + '`' for c in v.get("readers", [])), ", ".join('`' + c + '`' for c in v.get("writers", [])),
+                         f"{zh(v.get('static_classification', 'UNKNOWN'))} / {zh(v.get('analysis_coverage', 'PARTIAL'))}",
                          variable_risks.get(v['symbol_id'], {}).get('label', '不计入风险统计')])) + " |")
     for v in facts["variables"]:
         inventory += ["", f"## {v['qualified_name']}", "", f"- ID: `{v['symbol_id']}`", f"- 类型: `{v.get('type')}`；大小: {v.get('size_bytes')}；对齐: {v.get('alignment_bytes')}",
                       f"- const: {v.get('is_const')}；volatile: {v.get('is_volatile')}；翻译单元: {', '.join(v.get('translation_units', []))}", ""]
-        inventory += [f"- 静态分类：{v.get('static_classification', 'UNKNOWN')}；依据：{v.get('classification_reason', '尚未证明')}",
+        inventory += [f"- 静态分类：{zh(v.get('static_classification', 'UNKNOWN'))}；依据：{v.get('classification_reason', '尚未证明')}",
                       f"- 最终分类：{variable_risks.get(v['symbol_id'], {}).get('label', '不计入风险统计')}",
-                      f"- 分析覆盖率：{v.get('analysis_coverage', 'PARTIAL')}；缺口：{', '.join(v.get('coverage_reasons', [])) or '无'}",
-                      f"- 保护：{v.get('protection_status', 'NOT_FOUND')}；说明：{v.get('protection_note', '无')}",
+                      f"- 分析覆盖率：{zh(v.get('analysis_coverage', 'PARTIAL'))}；缺口：{', '.join(v.get('coverage_reasons', [])) or '无'}",
+                      f"- 保护：{zh(v.get('protection_status', 'NOT_FOUND'))}；说明：{v.get('protection_note', '无')}",
                       f"- 安全筛除依据：{v.get('safe_reason_code') or v.get('screening_reason') or '尚未证明'}；阻塞项：{', '.join(v.get('screening_blockers', [])) or '无'}",
                       f"- 不可达函数中的访问：{v.get('unreachable_access_count', 0)} 处（保留原始证据）"]
         for a in v.get("accesses", []):
-            inventory.append(f"- {a['access_kind']} {location(a)} `{a['source_text']}`")
+            inventory.append(f"- {zh(a['access_kind'])} {location(a)} `{a['source_text']}`")
             complete = a.get('all_call_chains') or {cid: [path] for cid, path in a.get("call_chains", {}).items()}
             for cid, routes in complete.items():
                 for path in routes:
-                    inventory.append(f"  - {cid}: {chain(path)}")
+                    inventory.append(f"  - `{cid}: {chain(path)}`")
             if a.get('reachability') == 'PROVEN_UNREACHABLE':
                 inventory.append('  - PROVEN_UNREACHABLE：当前构建入口不可达')
             elif not a.get("contexts"):
-                inventory.append("  - UNKNOWN-CONTEXT")
+                inventory.append("  - 执行上下文尚未确定")
     (out / "inventory/global_static_inventory.md").write_text("\n".join(inventory), encoding="utf-8")
     cov = report["coverage"]
-    md = ["# 全局变量与 static 变量并发排查报告", "", f"- 分析状态：**{report['analysis_status']}**", f"- 本轮状态：**{report.get('run_status', 'SCANNED')}**",
+    md = ["# 全局变量与 static 变量并发排查报告", "", f"- 分析状态：**{zh(report['analysis_status'])}**", f"- 本轮状态：**{zh(report.get('run_status', 'SCANNED'))}**",
           f"- 变量：{len(facts['variables'])}；候选及盲区复核项：{len(report['findings'])}",
           f"- 编译单元：完整 {cov['translation_units_parsed']}；部分 {cov.get('translation_units_partial', 0)}；失败 {cov['translation_units_failed']}；可分析覆盖 {cov['parse_coverage_percent']}%（总计 {cov['translation_units_total']}）",
           f"- 函数上下文覆盖：{cov['context_coverage_percent']}%；未知访问：{cov['unknown_accesses']}",
-          f"- 工程版本：{report.get('git_commit', 'unknown')}；源码指纹：{report.get('fingerprint', 'unknown')}", "",
+          f"- 工程版本：{report.get('git_commit') if report.get('git_commit') not in {None, 'unknown'} else '未记录'}；源码指纹：{report.get('fingerprint') or '未记录'}", "",
           "本报告是风险候选和覆盖证据，不是全工程无风险证明。OpenCode 结论仍需工程/硬件验证。", "",
           "[变量完整清单](../inventory/global_static_inventory.md) · [未知项](unknown_contexts.md) · [OpenCode 复核](opencode_global_static_review.md)", ""]
     static = cov.get('static_classification', {})
     if static:
-        md[2:2] = [f"- 静态归账：TOTAL {static.get('total', 0)} = SAFE_PROVEN {static.get('safe_proven', 0)} + SHARED_NO_REVIEW {static.get('shared_no_review', 0)} + SUSPECT {static.get('suspect', 0)} + UNKNOWN {static.get('unknown', 0)}", ""]
+        md[2:2] = [f"- 静态归账：总数 {static.get('total', 0)} = 静态安全 {static.get('safe_proven', 0)} + 共享无需复核 {static.get('shared_no_review', 0)} + 疑似风险 {static.get('suspect', 0)} + 无法判断 {static.get('unknown', 0)}", ""]
     rates = cov.get('review_rates', {})
     if rates:
         build, all_inventory = rates['rr_build'], rates['rr_all']
         md[2:2] = [
-            f"- RR_build：{build['numerator']}/{build['denominator']} = {build['percent']}%（当前构建变量）",
-            f"- RR_all：{all_inventory['numerator']}/{all_inventory['denominator']} = {all_inventory['percent']}%（含 {rates['variant_inventory']} 个未分析的补充盘点声明）", ""]
-    causes = ["# 变量相关 UNKNOWN 根因", "",
-              f"UNKNOWN 比例：{cov.get('unknown_percent', 0)}%；诊断阈值 10% 仅触发分析，不改变判定标准。", "",
+            f"- 当前构建复核比例（`RR_build`）：{build['numerator']}/{build['denominator']} = {build['percent']}%",
+            f"- 全部盘点复核比例（`RR_all`）：{all_inventory['numerator']}/{all_inventory['denominator']} = {all_inventory['percent']}%（含 {rates['variant_inventory']} 个未分析的补充盘点声明）", ""]
+    causes = ["# 无法判断的变量根因", "",
+              f"无法判断的变量比例：{cov.get('unknown_percent', 0)}%；诊断阈值 10% 仅触发分析，不改变判定标准。", "",
               "| 原因 | 变量数 |", "|---|---:|"]
     causes += [f"| {cell(code)} | {count} |" for code, count in
                sorted(cov.get('unknown_reason_distribution', {}).items(), key=lambda pair: (-pair[1], pair[0]))]
-    causes += ["", "## 阻塞项传播", "", "| blocker | 位置 | fanout | 诊断 |", "|---|---|---:|---|"]
+    causes += ["", "## 阻塞项传播", "", "| 阻塞项 | 位置 | 影响变量数 | 诊断 |", "|---|---|---:|---|"]
     causes += [f"| {cell(item['kind'])} | {cell(location(item))} | {item['blocker_fanout']} | {cell(item['diagnostic'])} |"
                for item in cov.get('blocker_fanout', [])]
     causes += ["", "完整变量、源码位置和相关性解释保存在 facts.json 的 variable_evidence_slice / blocking_evidence。"]
@@ -190,67 +199,84 @@ def generate(out, facts, report, reviews):
         'risk_summary 是风险分类；review_summary 是模型复核进度，二者不能相互替代。“已排查不存在并发风险”仅适用于无盲区且没有读写冲突的当前建模范围。', '']
     for limit in report["limitations"]:
         md.append("- " + limit)
+    if facts.get('nvic_priorities'):
+        md += ['', '## 中断优先级与源码证据', '', '源码配置、初始化结果和运行期有效性分别记录。子优先级不产生中断嵌套，共享向量内部串行；具体屏蔽条件按访问窗口核对。', '']
+        for irq in facts['nvic_priorities']:
+            md += ['- ' + ' / '.join(irq['irqn']) + ' → ' + ' / '.join(irq['vectors']),
+                   '  - 有效位数：' + number(irq.get('priority_bits')) + '；初始化分组：' + number(irq.get('grouping')) + '；源码分组：' + str(irq.get('source_groupings', [])),
+                   '  - ' + irq.get('reason', '有效性尚待核实')]
+            for event in irq.get('source_configurations', []):
+                md.append('  - 源码配置：抢占 ' + number(event.get('configured_preemption')) + '，子优先级 ' + number(event.get('configured_subpriority'))
+                          + '；' + location(event) + '；调用链：' + ' → '.join(p.get('function') or p['function_id'] for p in event.get('call_chain', [])))
     md += ["", "## 编译覆盖与排除", ""]
     for key in ("unlisted_sources", "unlisted_headers", "excluded_sources"):
-        md.append(f"- {key}: " + (", ".join(cov.get(key, [])) or "无"))
+        label={'unlisted_sources':'未列入编译的源文件','unlisted_headers':'未列入编译的头文件','excluded_sources':'已排除的源文件'}[key]
+        md.append(f"- {label}：" + (", ".join(cov.get(key, [])) or "无"))
     for u in facts["translation_units"]:
         if u["parse_status"] != "PARSED":
-            md += [f"- {u['parse_status']}：{u['source_file']}"] + ["  - " + cell(d["message"]) for d in u["diagnostics"]]
+            md += [f"- {zh(u['parse_status'])}：{u['source_file']}"] + ["  - " + cell(
+                '解析器返回错误；原文保留在 facts.json 中该编译单元的原始诊断。' if is_english_prose(d['message']) else d['message']) for d in u['diagnostics']]
     review_map = records_by_id
     for f in report["findings"]:
         r = review_map.get(f["finding_id"], {})
-        md += ["", f"## {f['finding_id']} — {f['variable_name']}", "", f"- 风险：{f['risk_level']}；置信度：{f['confidence']}",
-               f"- 静态分类：{f.get('static_classification', 'UNKNOWN')}；本项分类：{f['decision_label']}（{f['effective_decision']}）",
-               *([f"- 变量最终分类：{variable_risks[f['symbol_id']]['label']}（{variable_risks[f['symbol_id']]['decision']}）"]
+        confidence={'HIGH':'高','MEDIUM':'中','LOW':'低'}.get(f['confidence'],zh(f['confidence']))
+        md += ["", f"## {f['finding_id']} — {f['variable_name']}", "", f"- 排查优先级：{zh(f['risk_level'])}；置信度：{confidence}",
+               f"- 静态分类：{zh(f.get('static_classification', 'UNKNOWN'))}；本项分类：{f['decision_label']}（`{f['effective_decision']}`）",
+               *([f"- 变量最终分类：{variable_risks[f['symbol_id']]['label']}（`{variable_risks[f['symbol_id']]['decision']}`）"]
                  if f.get('symbol_id') in variable_risks else []),
                f"- 规则：{', '.join(f['rules'])}", f"- 定义：{location(f['definition'])}；ID: `{f.get('symbol_id')}`",
-               f"- 保护：{f['protection_status']}；复核：{r.get('state', 'PENDING')} / {r.get('status') or '—'}",
+               f"- 保护：{zh(f['protection_status'])}；复核：{zh(r.get('state', 'PENDING'))} / {zh(r.get('status'))}",
                f"- 依据：{f.get('concurrency_reason', '分析盲区需要补充源码/配置证据')}", ""]
         for a in f["accesses"]:
-            md.append(f"- **{a['access_kind']}** {location(a)} `{a['source_text']}`")
+            md.append(f"- **{zh(a['access_kind'])}** {location(a)} `{a['source_text']}`")
             complete = a.get('all_call_chains') or {cid: [path] for cid, path in a["call_chains"].items()}
             for cid, routes in complete.items():
                 for path in routes:
-                    md.append(f"  - {cid}: {chain(path)}")
+                    md.append(f"  - `{cid}: {chain(path)}`")
             if not a["contexts"]:
-                md.append("  - UNKNOWN-CONTEXT")
+                md.append("  - 执行上下文尚未确定")
         md += ["", "复核动作：核对所有调用入口、真实抢占与临界区；构造最短交错时序，检查旧值覆盖、事件丢失、重入和 DMA 生命周期。修复建议与验证方法见复核报告。"]
     (out / "reports/global_static_concurrency.md").write_text("\n".join(md), encoding="utf-8")
     unknown = ["# 未知上下文与分析盲区", ""]
     for a in facts["accesses"]:
         if not a["contexts"]:
-            unknown.append(f"- UNKNOWN-CONTEXT {a['symbol_id']} {location(a)}")
+            unknown.append(f"- 执行上下文尚未确定 {a['symbol_id']} {location(a)}")
     for u in facts["unknowns"]:
-        unknown.append(f"- {u['kind']} {location(u)}: {cell(u)}")
+        detail = u.get('reason') or u.get('hint') or RULES.get(u['kind'], ('该分析缺口尚待核实', ''))[0]
+        if is_english_prose(detail):
+            detail = '该分析缺口尚待核实；请按位置核对 facts.json 中保留的原始诊断。'
+        unknown.append(f"- {u['kind']} {location(u)}: {cell(detail)}")
     (out / "reports/unknown_contexts.md").write_text("\n".join(unknown), encoding="utf-8")
     conclusion = report['final_conclusion']
     review_md = ["# OpenCode 逐项复核结果", "", '**最终结论：' + conclusion['label'] + '**', '',
                  conclusion['scope'], '', f"已返回回答 {conclusion['reviewed']}/{conclusion['total']}；仍未决 {len(conclusion['unresolved_findings'])} 项。", '',
-                 "状态统计：" + str(dict(Counter(r["state"] for r in reviews))), "",
+                 "状态统计：" + '；'.join(zh(k) + ' ' + str(v) for k, v in Counter(r["state"] for r in reviews).items()), "",
                  "覆盖完整性：" + ("通过" if report['review_integrity']['complete'] else "复核结果不完整"), "",
                  "目标 {targets}；归档 {archived}；完成 {done}；失败 {failed}；待复核 {pending}；失效 {stale}；遗漏 {missing}；重复 {duplicate}".format(**report['review_integrity']), ""]
     review_md += ['- ' + error for error in report['review_integrity']['errors']]
     patches = ["# 最小修复建议（未修改固件）", ""]
     findings_by_id = {f['finding_id']: f for f in report['findings']}
-    for r in report['review_records']:
-        review_md += [f"## {r['finding_id']}", "", f"- {r['state']} / {r['status']}"]
+    for r in localized_records(report['review_records']):
+        review_md += [f"## {r['finding_id']}", "", f"- {zh(r['state'])} / {zh(r['status'])}"]
         finding = findings_by_id.get(r['finding_id'])
         if finding:
-            review_md += [f"- 静态分类：{finding.get('static_classification', 'UNKNOWN')}；本项分类：{finding['decision_label']}（{finding['effective_decision']}）"]
+            review_md += [f"- 静态分类：{zh(finding.get('static_classification', 'UNKNOWN'))}；本项分类：{finding['decision_label']}（`{finding['effective_decision']}`）"]
             if finding.get('symbol_id') in variable_risks:
                 variable = variable_risks[finding['symbol_id']]
-                review_md += [f"- 变量最终分类：{variable['label']}（{variable['decision']}）"]
+                review_md += [f"- 变量最终分类：{variable['label']}（`{variable['decision']}`）"]
         if r.get("error"):
-            review_md.append("- " + r["error"])
+            review_md.append("- " + ('复核执行或校验未完成，请查看原始执行日志。' if is_english_prose(r['error']) else r['error']))
             review_md += [f"- 失败阶段：{r.get('failure_stage', 'unknown')}；错误类型：{r.get('error_type', 'unknown')}",
-                          f"- 历次尝试：{json.dumps(r.get('attempts', []), ensure_ascii=False)}"]
-            for key, label in (('prompt_file', 'Prompt'), ('packet_file', 'Packet'),
-                               ('stdout_file', 'stdout'), ('stderr_file', 'stderr')):
+                          '- 历次尝试：[查看原始归档](../review/queue.json)']
+            for key, label in (('prompt_file', '提示词'), ('packet_file', '证据包'),
+                               ('stdout_file', '原始输出'), ('stderr_file', '原始错误')):
                 name = r.get('execution', {}).get(key) or r.get(key)
                 if name:
                     review_md.append(f'- {label}：[{name}](../review/{name})')
         if r.get('state') == 'DONE':
             from .review_presentation import review_markdown
+            if r.get('language_correction'):
+                review_md += ['本条已完成独立中文修正；原始结论、数值、工程标识符和源码位置保持一致。原始回答与修正记录分别保存在复核归档中。', '']
             review_md += review_markdown(r.get('answer', {}))
         elif r.get('answer'):
             review_md.append('- 旧回答已失效，不作为本轮结论；原始收据保留在 review/queue.json。')

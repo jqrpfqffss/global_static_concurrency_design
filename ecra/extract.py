@@ -147,6 +147,7 @@ class Extractor:
         self.accesses, self.calls, self.unknowns = [], [], []
         self.events, self.irq_priority_events, self.registrations, self.snapshots = [], [], [], []
         self.control_flow = []
+        self.nvic_programs = []
         self.source_cache = {}
         self.relative_paths = {}
         self.local_counts = {}
@@ -490,6 +491,8 @@ class Extractor:
             '__set_BASEPRI_MAX': ('basepri_set', 'basepri'),
             '__disable_fault_irq': ('lock_enter', 'faultmask'),
             '__enable_fault_irq': ('lock_exit', 'faultmask'),
+            '__get_FAULTMASK': ('faultmask_get', 'faultmask'),
+            '__set_FAULTMASK': ('faultmask_set', 'faultmask'),
             '__DMB': ('barrier', 'barrier'),
             '__DSB': ('barrier', 'barrier'),
             '__ISB': ('barrier', 'barrier'),
@@ -610,7 +613,7 @@ class Extractor:
                                         self.issue('UNRESOLVED_DMA_BUFFER', c, fid,
                                             symbol_id=sid, access_path=path,
                                             mmio_address=peripheral_addresses[0],
-                                            reason='Object address published to a peripheral register; hardware access direction and lifetime are unresolved')
+                                            reason='对象地址已发布至外设寄存器；硬件访问方向和生命周期尚未确定')
                             for index, child in enumerate(node.get_children()):
                                 published(child, parents + [(node, index)])
                         published(source, [])
@@ -722,16 +725,18 @@ class Extractor:
                                 if variable['name'] in identifiers)
                 for sid in sorted(explicit):
                     self.issue('INLINE_ASSEMBLY', c, fid, symbol_id=sid,
-                               reason='Inline assembly explicitly references this storage or operand')
+                               reason='内联汇编明确引用此存储对象或操作数')
                 for target, function in self.functions.items():
                     if function['name'] in identifiers:
                         self.issue('ASSEMBLY_FUNCTION_REFERENCE', c, fid, target_function_id=target,
-                                   reason='Inline assembly explicitly names this function')
+                                   reason='内联汇编明确引用此函数名')
             for i, ch in enumerate(c.get_children()):
                 visit(ch, ancestors + [(c, i)])
         visit(fn, [])
         from .controlflow import build_cfg
         self.control_flow.append(build_cfg(self, fn))
+        from .nvic_extract import program
+        self.nvic_programs.append(program(self, fn))
 
     def run(self):
         os.chdir(self.unit["directory"])
@@ -867,7 +872,8 @@ class Extractor:
         for c in tu.cursor.get_children():
             if c.kind.name == 'MACRO_DEFINITION' and c.spelling == '__NVIC_PRIO_BITS':
                 raw = tokens(c)[1:]
-                value = macro_integer(c.spelling, definition=raw)
+                from .nvic_extract import macro_value
+                value = macro_value(macro_definitions, c.spelling)
                 self.irq_priority_events.append(dict(function_id='', api_name='CMSIS_NVIC_PRIO_BITS',
                     arguments=[' '.join(raw)], argument_values=[value],
                     translation_unit=self.tu_name, conditional_ancestor=False, **self.loc(c)))
@@ -891,10 +897,14 @@ class Extractor:
             a["access_id"] = "A-" + digest([self.tu_name, a])[:20]
         from .pointer_extract import PointerExtractor
         pointer_facts = PointerExtractor(self).run(tu.cursor)
+        from .nvic_extract import declarations
+        nvic_globals, nvic_irqs = declarations(self, tu.cursor)
         return dict(variables=list(self.variables.values()), functions=list(self.functions.values()),
                     accesses=self.accesses, calls=self.calls, unknowns=self.unknowns,
                     protection_events=self.events, irq_priority_events=self.irq_priority_events,
                     control_flow=self.control_flow,
+                    nvic_programs=self.nvic_programs, nvic_globals=nvic_globals,
+                    nvic_irq_definitions=nvic_irqs,
                     registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
                     parse_status=parse_status)

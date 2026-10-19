@@ -10,6 +10,7 @@ from .decisions import (CONCURRENT_SIGNALS, DECISIONS, RISK_PRIORITY, aggregate_
                         effective_decision as decision, review_category as category,
                         variable_decisions)
 from .review_presentation import explanation as story_explanation
+from .review_language import display_answer, is_english_prose
 
 
 REVIEW_PAGE = "opencode_review.html"
@@ -37,6 +38,8 @@ DISPLAY_TEXT = {
     'CONTAINER': '结构体容器（成员分别判定）', 'INCOMPLETE': '分析不完整',
     'MODELED_SCOPE_COMPLETE': '已完成当前建模范围分析', 'PARSED': '解析成功',
     'FAILED': '解析失败', 'DONE': '已完成', 'STALE': '结果已失效',
+    'TECH_FAILED': '复核执行失败', 'RUNNING': '执行中', 'SCANNED': '静态扫描完成',
+    'REVIEW_COMPLETE': '复核完成', 'OUT_OF_BUILD': '当前构建之外的声明',
     'ADDRESS_TAKEN': '取地址（不等于读写）',
 }
 PROTECTION_DISPLAY_TEXT = {
@@ -159,6 +162,12 @@ LABELS = {
     "protection_details": "保护区间与访问点证据", "protection_note": "保护结论说明",
     "reason": "结论依据", "interleaving": "最短交错时序 / 不发生交错的条件",
     "protection": "保护范围及不足", "impact": "影响", "fix": "修复建议", "verification": "验证方法",
+    'number': '尝试次数', 'stage': '执行阶段', 'started': '开始时间', 'finished': '结束时间',
+    'model': '复核模型', 'command': '执行参数', 'input_method': '输入方式', 'state': '执行状态',
+    'error_type': '错误类型', 'error_message': '错误说明', 'exit_code': '退出码', 'timeout': '是否超时',
+    'stdout_file': '原始输出文件', 'stderr_file': '原始错误文件', 'prompt_file': '提示词文件',
+    'packet_file': '证据包文件', 'stdout_sha256': '原始输出校验值', 'stderr_sha256': '原始错误校验值',
+    'prompt_sha256': '提示词校验值', 'packet_sha256': '证据包校验值',
 }
 
 # The first sentence describes a static signal, not a confirmed execution bug.
@@ -193,7 +202,9 @@ PRIORITIES = {'CRITICAL': '最高优先', 'HIGH': '优先排查', 'MEDIUM': '常
 KINDS = {'FILE_STATIC': '文件 static', 'LOCAL_STATIC': '函数内 static', 'GLOBAL': '全局变量',
          'HEADER_STATIC': '头文件 static', 'INACTIVE': '非活动分支变量',
          'READ': '读取', 'WRITE': '写入', 'RMW': '读改写',
-         'ADDRESS_TAKEN': '取地址（不等于读写）'}
+         'ADDRESS_TAKEN': '取地址（不等于读写）', 'STRUCT_MEMBER': '结构体成员',
+         'ARRAY_ELEMENT': '数组元素', 'STRUCT_MEMBER_CONTAINER': '结构体成员容器',
+         'ARRAY_CONTAINER': '数组容器'}
 
 
 def rule_summary(finding):
@@ -237,7 +248,20 @@ def raw(value, title="完整原始证据字段"):
 
 
 def fields(value):
-    return "<dl>" + "".join(f"<dt>{esc(LABELS.get(k, k))}</dt><dd><pre>{esc(v)}</pre></dd>" for k, v in value.items()) + "</dl>"
+    def display(key, item):
+        if key in {'error_message', 'validation_error'} and is_english_prose(item):
+            return '执行或校验未完成，错误原文保存在原始日志中。'
+        if key == 'stage':
+            return {'ANALYZE': '源码复核', 'FORMAT_FIX': '格式修正', 'LANGUAGE_FIX': '中文表达修正',
+                    'NVIC_FACT_CHALLENGE': 'NVIC 事实核实', 'STALE_WRITEBACK_CHALLENGE': '旧值写回安全核实'}.get(item, item)
+        if key == 'state':
+            return to_display_text(item)
+        if key == 'model' and item == 'OpenCode configured default':
+            return 'OpenCode 默认配置模型'
+        if key == 'input_method':
+            return {'stdin': '标准输入', 'argument': '命令参数'}.get(item, item)
+        return item
+    return "<dl>" + "".join(f"<dt>{esc(LABELS.get(k, k))}</dt><dd><pre>{esc(display(k, v))}</pre></dd>" for k, v in value.items()) + "</dl>"
 
 
 def table(headers, rows, ident=None, searchable=False):
@@ -316,6 +340,41 @@ def review_records(report, reviews):
                  status=(by_id.get(f["finding_id"], {}).get("status")
                          if by_id.get(f["finding_id"], {}).get("state") == "DONE" else None))
             for f in report["findings"]]
+
+
+def localized_records(reviews):
+    """Presentation copies only; JSON receipts and semantic statuses stay raw."""
+    return [dict(r, answer=display_answer(r['answer'])) if r.get('answer') else dict(r) for r in reviews]
+
+
+def nvic_summary(facts):
+    rows = []
+    def number(value):
+        return str(value) if value is not None else '尚未确定'
+    for item in facts.get('nvic_priorities', []):
+        sources = item.get('source_configurations', [])
+        configurations = []
+        for event in sources:
+            pre, sub = event.get('configured_preemption'), event.get('configured_subpriority')
+            value = ('抢占优先级 ' + number(pre) + '，子优先级 ' + number(sub) if pre is not None
+                     else '编码优先级 ' + number(event.get('logical_priority')))
+            chain = ' → '.join(c.get('function') or c['function_id'] for c in event.get('call_chain', []))
+            configurations.append('<p>' + esc(value + '；' + loc(event)) + '<br>' + esc(chain) + '</p>')
+        group = item.get('grouping')
+        group_text = str(group) if group is not None else '有效分组待核实；源码分组 ' + str(item.get('source_groupings', []))
+        if group is not None:
+            group_text += '；抢占位数 ' + str(item.get('preemption_bits')) + '，子优先级位数 ' + str(item.get('subpriority_bits'))
+        effective = ('已确认初始化结果：抢占 ' + str(item.get('preemption_priority')) + '，子优先级 ' + str(item.get('subpriority'))
+                     if item.get('effective_validity') == 'CONFIRMED' else item.get('reason', '有效优先级尚待证明'))
+        enabled = {True: '初始化末端已使能', False: '初始化末端已禁用', None: '初始化末端启停状态尚待证明'}[item.get('enabled')]
+        rows.append(row([esc(' / '.join(item['irqn']) + ' → ' + ' / '.join(item['vectors'])),
+                         ''.join(configurations) or '未发现可达的优先级配置证据',
+                         esc('有效位数 ' + number(item.get('priority_bits')) + '；分组 ' + group_text),
+                         esc(effective + '；' + enabled + '。' + item.get('enable_scope', ''))]))
+    if not rows:
+        return ''
+    return ('<details class="nvic-evidence"><summary>中断优先级、分组及配置调用链</summary><p>源码配置与运行期有效性分别记录。IRQ 使能不代表已触发；共享向量内部串行，子优先级不产生嵌套。屏蔽有效性按具体访问窗口判定。</p>'
+            + table(['IRQn 与实际向量', '源码配置与证据', '优先级位数及分组', '有效性与启停范围'], rows) + '</details>')
 
 
 def reviewed_variable_summary(findings, records, variable=None):
@@ -684,6 +743,7 @@ def classification_quality_html(facts, report):
 
 
 def write_html(out, facts, report, reviews):
+    reviews = localized_records(reviews)
     from .scope import validate_selection
     validate_selection(facts, report)
     funcs = {f['function_id']: f for f in facts['functions']}
@@ -1065,7 +1125,7 @@ def write_html(out, facts, report, reviews):
                                                                 f.get('protection_status', 'NOT_FOUND'), pair_prefix))
         detail_body += '<p>完整、不重复的机器事实在同目录 <a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>；候选 ID：<code>' + esc(f['finding_id']) + '</code>。</p>'
         detail_body += raw(compact_debug_fields(f, {
-            'accesses', 'conflict_pairs', 'concurrency_relations', 'context_pairs', 'review',
+            'accesses', 'conflict_pairs', 'concurrency_relations', 'context_pairs', 'review', 'review_result',
         }), '候选调试 JSON（不重复嵌入访问事实）') + '</details>'
         note = '\n'.join([f"变量 / 项目：{f['variable_name']}", f"定义：{loc(f['definition'])}",
                           f"候选 ID：{f['finding_id']}", '静态线索：' + '；'.join(t for _, t, _ in summary),
@@ -1177,7 +1237,7 @@ def write_html(out, facts, report, reviews):
     coverage += '<h2>任务、中断与硬件上下文</h2>' + table(['上下文', '入口、优先级、注册与发现依据'],
         [row([esc(context(c['id'])), raw(c)]) for c in facts['contexts']])
     counts = Counter(category(r) for r in records.values())
-    content = risk_overview(facts, report, records, assessments)
+    content = risk_overview(facts, report, records, assessments) + nvic_summary(facts)
     content += '<nav class="tabs" aria-label="排查栏目">' + ''.join(f'<a href="#{key}">{label} {number}</a>' for key, label, number in [
         ('risks', '变量风险结论', len(risks)), ('inventory', '全部目标变量', len(inventory_rows)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'
     decision_options = [('decision:' + key, value[0]) for key, value in DECISIONS.items()]
@@ -1238,9 +1298,14 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         source_evidence = table(['文件', '行号', '引用处源码及邻近语句'], evidence_rows)
         explanation = story_explanation(answer, category(r), bool(f.get('symbol_id')),
                                         lambda i: '#' + anchor('citation-', f['finding_id'] + ':' + str(i)))
+        if r.get('language_correction') and answer:
+            explanation = ('<p class="notice">本条中文表达经过独立修正，原始结论、数值、工程标识符和源码位置已通过一致性校验；原始回答及修正日志分别保留。</p>' + explanation)
         if r['state'] in {'TECH_FAILED', 'STALE', 'FAILED'} and r.get('answer'):
             explanation += '<p>旧回答已失效，仅在原始记录中保留，不作为本轮结论或证据。</p>'
-        error = '<details><summary>复核未完成的原因</summary><p>' + esc(r['error']) + '</p></details>' if r.get('error') and not local_pending(r) else ''
+        message = r.get('error', '')
+        if is_english_prose(message):
+            message = '复核执行或校验未完成，请查看下方原始日志中的错误详情。'
+        error = '<details><summary>复核未完成的原因</summary><p>' + esc(message) + '</p></details>' if message and not local_pending(r) else ''
         execution = r.get('execution', {})
         for key, label in (('prompt_file', 'Prompt'), ('packet_file', '证据包'),
                            ('stderr_file', 'stderr')):
@@ -1253,7 +1318,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         if r.get('previous_reviews'):
             error += '<p>保留 ' + str(len(r['previous_reviews'])) + ' 次先前回答，当前状态：' + esc(r['status']) + '。</p>'
             for attempt, previous in enumerate(r['previous_reviews'], 1):
-                error += '<details><summary>第 ' + str(attempt) + ' 轮历史回答（不作为当前结论）</summary>' + raw(previous)
+                error += '<details><summary>第 ' + str(attempt) + ' 轮历史回答（不作为当前结论）</summary><p>历史原文保留在原始归档中；未经中文复核不混入当前说明。</p>'
                 if previous.get('execution',{}).get('stdout_file'):
                     error += '<a href="review/' + esc(previous['execution']['stdout_file']) + '">该轮 OpenCode 日志</a>'
                 error += '</details>'
@@ -1279,7 +1344,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
                  + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
                  + '<details class="evidence"><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details>'
                  + '<details><summary>静态读写与上下文调用链</summary>' + accesses(f.get('accesses', []), 'review-' + f['finding_id']) + '</details>'
-                 + raw(r, '原始复核记录（含失效回答 / 错误信息）') + '</details>')
+                 + '<p><a href="review/queue.json">原始复核记录与历史回答归档</a>（保留原文，不混入当前中文结论）</p></details>')
         review_rows[bucket].append(row(['<article class="review-story ' + group + '">' + current + audit + '</article>'],
             ident, group, file=f['definition'].get('file')))
     review_options = [('all', '全部结论'), ('confirmed', '确认存在风险'), ('likely', '疑似，仍需验证'), ('safe', '条件安全 / 误报'), ('unresolved', '无法判断')]
@@ -1321,6 +1386,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         content += '<section id="safe-samples"><h2>筛除项独立抽样审计</h2><p>SAFE_PROVEN 与 SHARED_NO_REVIEW 分别抽样；不计入风险队列，也不改变静态分类。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
     content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'
     content += '<p>主循环：CPU 正常轮询执行的代码。中断 / ISR：事件触发后，CPU 暂停当前代码并执行处理函数，返回后继续原来的位置。DMA：独立于 CPU 搬运数据的硬件。读改写 / RMW：读出旧值、计算、写回；中间若被另一写入者打断，可能覆盖对方的新值。</p>'
+    content += nvic_summary(facts)
     content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('待复核 / 证据不足项', counts['unresolved'])])
     content += raw(cov, '本轮静态覆盖范围') + raw(report['limitations'], '结论适用范围与限制') + '</details></div>'
     review_page = page('并发复核：原因、过程与结论', content, report, review_options, reading=True)

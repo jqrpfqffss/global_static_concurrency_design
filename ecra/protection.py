@@ -72,6 +72,8 @@ class MaskAnalysis:
             '__get_PRIMASK': ('irq', 'get', None), '__set_PRIMASK': ('irq', 'restore', None),
             '__get_BASEPRI': ('base', 'get', None), '__set_BASEPRI': ('base', 'restore', None),
             '__set_BASEPRI_MAX': ('base', 'max', None),
+            '__disable_fault_irq': ('fault', 'set', 1), '__enable_fault_irq': ('fault', 'set', 0),
+            '__get_FAULTMASK': ('fault', 'get', None), '__set_FAULTMASK': ('fault', 'restore', None),
         }
         for section in cfg.get('critical_sections', []):
             if section['type'] not in {'irq_mask', 'primask'}:
@@ -130,12 +132,12 @@ class MaskAnalysis:
         interruption = False
         if node['op'] == 'unknown':
             state = {key: None for key in state}
-            state.update(irq=None, base=None)
+            state.update(irq=None, base=None, fault=None)
             interruption = True
         elif node['op'] == 'assign':
             state[node['local']] = self.value(node['value'], before)
         elif node['op'] == 'invalidate_locals':
-            state = {key: value if key in {'irq','base'} else None for key,value in state.items()}
+            state = {key: value if key in {'irq','base','fault'} else None for key,value in state.items()}
         elif node['op'] == 'call':
             api = self.api.get(node['name'])
             if api:
@@ -144,27 +146,27 @@ class MaskAnalysis:
                 if action in {'set', 'save'}:
                     state[register] = literal
                 elif action == 'restore':
-                    state[register] = (argument & 1) if register == 'irq' and argument is not None else argument
+                    state[register] = (argument & 1) if register in {'irq', 'fault'} and argument is not None else argument
                 elif action == 'max':
                     previous = state.get('base')
                     state['base'] = (None if previous is None or argument is None else
                                      argument if previous == 0 else previous if argument == 0 else min(previous, argument))
             elif node['name'] in NEUTRAL:
                 if node['name'] in {'memset','memcpy','memmove'}:
-                    state = {key: value if key in {'irq','base'} else None for key,value in state.items()}
+                    state = {key: value if key in {'irq','base','fault'} else None for key,value in state.items()}
             elif node.get('callee') in self.graphs and node['callee'] not in stack and len(stack) < 48:
                 graph = self.graphs[node['callee']]
-                initial = dict(irq=before.get('irq'), base=before.get('base'))
+                initial = dict(irq=before.get('irq'), base=before.get('base'), fault=before.get('fault'))
                 for parameter, argument in zip(graph['parameters'], node['arguments']):
                     initial[parameter] = self.value(argument, before)
                 result, interruption = self.evaluate(node['callee'], initial, cid, stack)
                 # A pointer parameter may modify a saved key. Until local
                 # pointee effects are modeled, do not reuse pre-call values.
                 state = {key: None for key in state}
-                state.update(irq=result.get('irq'), base=result.get('base'))
+                state.update(irq=result.get('irq'), base=result.get('base'), fault=result.get('fault'))
             else:
                 state = {key: None for key in state}
-                state.update(irq=None, base=None)
+                state.update(irq=None, base=None, fault=None)
                 interruption = True
         return state, interruption
 
@@ -189,7 +191,7 @@ class MaskAnalysis:
             region.get('offset', -1) <= node.get('offset', -2) < region.get('end_offset', -1)
             for region in regions)} if complete_flow and not graph['complete'] else set()
         if not complete_flow:
-            initial = dict(initial, irq=None, base=None)
+            initial = dict(initial, irq=None, base=None, fault=None)
         incoming, outgoing, interruptible = {}, {}, {}
         incoming[graph['entry']] = initial
         pending = deque([graph['entry']])
@@ -199,10 +201,10 @@ class MaskAnalysis:
             before = incoming[ident]
             if ident in unordered:
                 before = {name: None for name in before}
-                before.update(irq=None, base=None)
+                before.update(irq=None, base=None, fault=None)
             after, broken = self.transfer(nodes[ident], before, cid, stack + (fid,))
             if not complete_flow or ident in unordered:
-                after.update(irq=None, base=None)
+                after.update(irq=None, base=None, fault=None)
                 broken = True
             outgoing[ident] = after
             interruptible[ident] = broken
@@ -214,7 +216,7 @@ class MaskAnalysis:
             steps += 1
             if steps > max(1000, len(nodes) * 100):
                 for state in incoming.values():
-                    state.update(irq=None, base=None)
+                    state.update(irq=None, base=None, fault=None)
                 break
         by_symbol = defaultdict(set)
         for access in self.by_function[fid]:
@@ -230,9 +232,9 @@ class MaskAnalysis:
                 ident = chosen['id']
                 state = incoming.get(ident, {})
                 if ident in unordered:
-                    state = dict(state, irq=None, base=None)
+                    state = dict(state, irq=None, base=None, fault=None)
                 observation = dict(context_id=cid, irq_state={0:'ENABLED', 1:'DISABLED'}.get(state.get('irq'), 'UNKNOWN'),
-                                   basepri=state.get('base'), cfg_id=graph['cfg_id'], node_id=ident,
+                                   basepri=state.get('base'), faultmask=state.get('fault'), cfg_id=graph['cfg_id'], node_id=ident,
                                    reachable=ident in incoming, complete=bool(complete_flow and ident not in unordered))
                 if access['access_kind'] in {'READ', 'WRITE', 'RMW'} and ident in incoming:
                     by_symbol[access['symbol_id']].add(ident)
@@ -282,11 +284,13 @@ class MaskAnalysis:
                 node_ids=sorted(between), complete=complete_window,
                 primask=complete_window and all(s.get('irq') == 1 for s in mask_states)
                         and not any(interruptible.get(i, False) for i in between),
+                faultmask=complete_window and all(s.get('fault') == 1 for s in mask_states)
+                        and not any(interruptible.get(i, False) for i in between),
                 basepri_values=sorted({s['base'] for s in mask_states if s.get('base') is not None}),
                 basepri_known=complete_window and all(s.get('base') is not None for s in mask_states)
                               and not any(interruptible.get(i, False) for i in between)))
         final = outgoing.get(graph['exit'], dict(irq=None, base=None))
-        broken = any(interruptible.values()) or any(state.get('irq') != 1 for state in incoming.values())
+        broken = any(interruptible.values()) or any(state.get('irq') != 1 and state.get('fault') != 1 for state in incoming.values())
         result = (final, broken)
         self.memo[key] = result
         return result
@@ -294,7 +298,7 @@ class MaskAnalysis:
     def run(self):
         for binding in self.facts['context_bindings']:
             if binding['call_depth'] == 0 and binding['function_id'] in self.graphs:
-                self.evaluate(binding['function_id'], dict(irq=0, base=0), binding['context_id'])
+                self.evaluate(binding['function_id'], dict(irq=0, base=0, fault=0), binding['context_id'])
         for access in self.facts['accesses']:
             access['mask_states'] = self.observations.get(access['access_id'], [])
         self.facts['mask_windows'] = [dict(symbol_id=sid, context_id=cid, **row)
@@ -334,6 +338,13 @@ def assess(accesses, events, contexts, facts, cfg):
     isr_pairs = [r for r in facts.get('preemption_relations', []) if set(r['contexts']) <= isrs]
     participants = bool(mains and isrs) and ids == mains | isrs and not unmaskable
     participants &= all(r['relation'] == 'SERIAL' for r in isr_pairs)
+    nmi = any(funcs.get(b['function_id'], {}).get('name') == 'NMI_Handler'
+              for b in facts['context_bindings'] if b['call_depth'] == 0 and b['context_id'] in isrs)
+    if (complete and mains and isrs and ids == mains | isrs and not nmi
+            and not any(contexts[c].get('unmaskable') for c in isrs)
+            and all(r['relation'] == 'SERIAL' for r in isr_pairs)
+            and windows and all(w.get('faultmask') for w in windows)):
+        return 'EFFECTIVE', details, 'CFG 完整访问窗口持续 FAULTMASK=1；竞争方不含 NMI。'
     primask = bool(windows) and all(w['primask'] for w in windows)
     if complete and participants and primask:
         return 'EFFECTIVE', details, 'CFG 全路径和被调函数证明完整访问窗口持续 PRIMASK=DISABLED；竞争方仅为可屏蔽 ISR。'

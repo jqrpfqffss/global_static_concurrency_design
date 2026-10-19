@@ -113,7 +113,7 @@ def recover_assembly_vectors(source, file, functions_by_name):
             entries.extend(state['entries'])
         else:
             gaps.extend(dict(reference, kind='UNRESOLVED_VECTOR_ENTRY', section=section,
-                reason='Assembler layout or preprocessing prevents proving the physical vector slot')
+                reason='汇编布局或预处理条件使物理向量槽位无法证明')
                 for reference in state['references'])
     return entries, gaps
 
@@ -144,7 +144,7 @@ def recover_vector_entries(facts):
                         facts['unknowns'].append(dict(kind='UNRESOLVED_VECTOR_ENTRY',
                             target_function_id=target[3:], file=variable.get('definition_file'),
                             line=variable.get('definition_line'), storage_symbol_id=sid,
-                            reason='Vector-table index or layout is not statically known'))
+                            reason='中断向量表索引或布局尚无法静态确定'))
                 continue
             if slot == 0:
                 continue

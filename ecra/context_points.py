@@ -78,7 +78,7 @@ class ContextSolver(Solver):
             a, b = {self.symbol(value) for value in possible}, {self.symbol(value) for value in expected}
             if None not in a | b and a.isdisjoint(b):
                 proofs.append(dict(context_id=record.get('_context_id'), file=condition.get('file'),
-                    line=condition.get('line'), reason='Immutable pointer parameter targets disjoint storage objects',
+                    line=condition.get('line'), reason='不可变指针实参指向互不重叠的存储对象',
                     possible_targets=sorted(possible), compared_targets=sorted(expected)))
         return proofs
 
@@ -276,7 +276,7 @@ def refine(facts, cfg, contexts, paths):
     if facts.get('context_pointer_model_applied'):
         return True
     if not contexts or not facts.get('points_to_stats', {}).get('complete', False):
-        facts['context_points_to_stats'] = dict(complete=False, reason='Initial pointer/context coverage is incomplete')
+        facts['context_points_to_stats'] = dict(complete=False, reason='初始指针与上下文覆盖不完整')
         return False
     roots = defaultdict(set)
     for binding in facts.get('context_bindings', []):
@@ -289,7 +289,7 @@ def refine(facts, cfg, contexts, paths):
         result = _pass(facts, cfg, domains)
         if result is None:
             facts['context_points_to_stats'] = dict(complete=False, iterations=iteration,
-                reason='Context pointer equations exceeded their explicit limit; original solution retained')
+                reason='上下文指针约束超过显式上限；保留原始解')
             return False
         temporary, accesses, calls = result
         current_registrations = {(reg['function_id'], reg.get('kind'), reg.get('file'), reg.get('offset'))
@@ -345,5 +345,5 @@ def refine(facts, cfg, contexts, paths):
         facts['context_pointer_model_applied'] = True
         return True
     facts['context_points_to_stats'] = dict(complete=False, iterations=8,
-        reason='Execution-context fixed point did not stabilize; original solution retained')
+        reason='执行上下文不动点未收敛；保留原始解')
     return False

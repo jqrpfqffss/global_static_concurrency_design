@@ -37,7 +37,7 @@ def resolve_linkage(parts):
         part['functions'] = [f for f in part.get('functions', []) if f['function_id'] not in overridden]
         for table in ('accesses', 'unknowns', 'protection_events', 'irq_priority_events',
                       'snapshots', 'control_flow', 'pointer_constraints', 'semantic_calls', 'indirect_accesses', 'pointer_storage',
-                      'constant_regions'):
+                      'constant_regions', 'nvic_programs'):
             part[table] = [r for r in part.get(table, []) if r.get('function_id') not in overridden]
         part['calls'] = [r for r in part.get('calls', []) if r.get('caller_function_id') not in overridden]
         part['registrations'] = [r for r in part.get('registrations', []) if r.get('registered_by') not in overridden]
@@ -711,7 +711,7 @@ class Solver:
                         self.facts['unknowns'].append(dict(kind='UNRESOLVED_POINTEE', symbol_id=sid,
                             access_path='' if target.endswith('/$overlap') else target[len('obj:' + sid):], function_id=item['function_id'],
                             file=item['file'], line=item['line'], offset=item.get('offset'),
-                            reason='Known may-target shares pointer provenance with an opaque target'))
+                            reason='已知候选目标与不透明目标具有共同的指针来源'))
         self.resolve_evidence(calls)
         rows, sets, identifiers = [], {}, {}
         compressed = self.facts['points_to_stats']['targets'] > 100000
@@ -968,7 +968,7 @@ class Solver:
             if sid:
                 self.facts['unknowns'].append(dict(kind='DMA_SHARED_REVIEW', symbol_id=sid,
                     function_id=call['function_id'], file=call['file'], line=call['line'], api=call['name'],
-                    hint='DMA contract identifies memory direction; lifetime/cache/ownership require review'))
+                    hint='DMA 语义已确定内存访问方向；生命周期、缓存与所有权仍需复核'))
 
 
 def enrich(facts, cfg=None):

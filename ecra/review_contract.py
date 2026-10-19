@@ -22,6 +22,7 @@ FALSE_POSITIVE：静态疑点因不可达、不同存储、互斥上下文或访
 NEED_MORE_CONTEXT：已检查源码但证据不足以判风险或安全；missing_context 必须列具体缺失事实，禁止猜测。
 evidence 是列表，每项 file 为真实工程内文件、line 为有效行号、claim 说明该位置支持什么。
 reason 必须非空。其余说明字段可按已有证据简洁描述，无需逐访问/逐组合复述，不限制文字长度。
+所有面向用户的自然语言字段必须使用专业、准确的简体中文，包括 reason、interleaving、protection、impact、fix、verification、missing_context 和 evidence.claim。技术标识符、API、宏、IRQn、寄存器、字段名、状态枚举、数值和源码引用必须保持原样；不得输出整段英文分析。
 所有五种 status 都是正常语义结论。无法执行或输出故障不能冒充 NEED_MORE_CONTEXT。
 仅当 Packet 存在 READ_THEN_WRITEBACK，安全/误报结论还须返回：
 "stale_writeback_assessment": {"applicable": true, "blocked": true,
@@ -34,6 +35,27 @@ reason 必须非空。其余说明字段可按已有证据简洁描述，无需�
 
 class StaleWritebackSafetyError(ValueError):
     """A semantic safety claim needs one focused challenge, never FORMAT_FIX."""
+
+
+class NVICFactConflictError(ValueError):
+    """A generic missing-priority claim contradicts recovered source facts."""
+
+
+def validate_nvic_missing_facts(answer, packet):
+    rows = [r for r in (packet or {}).get('nvic_priorities', [])
+            if r.get('source_configurations') and r.get('configured_preemption') is not None]
+    if not rows:
+        return
+    for text in answer.get('missing_context', []):
+        if not re.search(r'优先级|priority|priorities|分组|grouping', text, re.I):
+            continue
+        # Runtime validity is genuinely separate from the source assignment.
+        if re.search(r'运行|生命周期|窗口|屏蔽|使能|触发|重配置|不可见|runtime|mask|enabl|trigger|window|reconfig|bootloader', text, re.I):
+            continue
+        mentioned = [r for r in rows if any(name in text for name in r.get('irqn', []) + r.get('vectors', []))]
+        relevant = mentioned or rows if len(rows) == len((packet or {}).get('nvic_priorities', [])) else mentioned
+        if relevant and re.search(r'缺|未知|未核|未确|无法|待核|missing|unknown|unverified|unresolved|actual.*priority', text, re.I):
+            raise NVICFactConflictError('缺失事实与已恢复的 NVIC 源码配置冲突；须引用配置位置并区分数值与运行期有效性：' + text)
 
 
 def stale_writeback_hints(packet):

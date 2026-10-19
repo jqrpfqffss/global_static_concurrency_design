@@ -172,11 +172,12 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(all('src' not in s for s in inventory.scripts + review.scripts))
         graph = json.loads(first.split('<script type="application/json" id="call-graph">')[1].split('</script>')[0])
         self.assertEqual(graph['calls'], calls)
-        # Stale/failed answers remain auditable in the collapsed raw receipt,
-        # but never populate a current explanation or cited-source table.
+        # Historical receipts stay on disk, outside the current Chinese page.
         for index, sentinel in [(4, 'FAILED_OLD_REASON_MUST_NOT_BE_CURRENT'), (5, 'STALE_SAFE_REASON_MUST_NOT_BE_CURRENT')]:
             section = second.split('id="' + anchor('review-', 'F'+str(index)) + '"')[1].split('id="' + anchor('review-', 'F'+str(index+1)) + '"')[0]
-            self.assertEqual(section.count(sentinel), 1)
+            self.assertNotIn(sentinel, section)
+            self.assertIn('review/queue.json', section)
+            self.assertEqual(reviews[index]['answer']['reason'], sentinel)
             self.assertNotIn('<p>' + sentinel, section)
             self.assertIn('有效复核引用的源码（0 处）', section)
             self.assertIn('旧回答已失效', section)

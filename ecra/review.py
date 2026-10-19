@@ -12,8 +12,11 @@ from pathlib import Path
 from .common import digest, execute, read_json, write_json
 from .case_library import case_library_section
 from .review_contract import (CONTRACT_PROMPT, STATUSES, validate_minimal_answer,
-    StaleWritebackSafetyError, stale_writeback_hints, validate_stale_writeback_safety)
+    StaleWritebackSafetyError, stale_writeback_hints, validate_stale_writeback_safety,
+    NVICFactConflictError, validate_nvic_missing_facts)
 from .review_context import review_context_section
+from .review_language import (language_issues, validate_language, validate_correction,
+                              correction_prompt, technical_identifiers)
 from .review_integrity import (assert_review_archive, assert_review_integrity,
                                normalize_review_record, review_targets, set_review_state)
 
@@ -23,6 +26,9 @@ REVIEW_PROMPT = '''你是当前嵌入式 C/C++ 工程的全局/static 变量并�
 先读取本变量 Packet，按以下顺序检查事实并读取本地源码：变量声明、所有访问点、完整调用链、执行入口、保护代码、unknowns、直接关联源码。
 accesses 列出全部访问；call_path_set 对应 call_path_sets 中的同名 id，包含完整已恢复调用路径（只是无损去重，没有抽样）。functions 提供源码文件和行区间。
 先检查这些导航信息；信息不足时再读相关调用函数、NVIC/IRQ优先级与使能、PRIMASK/BASEPRI/FAULTMASK、DMA配置和同步代码。
+nvic_priorities 是已经求值的源码配置与有效性模型，nvic_resolved_events 包含实参、分支依据、源码位置及完整调用链。必须区分已配置数值与运行期有效性；不能把有效性未知写成源码未配置。
+如果相关 IRQ 的数值或映射缺失，必须先核对当前 MCU 的 IRQn/向量、Handler 和外设实例，再沿初始化及 HAL MSP 调用链查找 HAL/CMSIS/结构体/寄存器配置，求解宏、常量和参数，检查分组、使能/禁用、屏蔽及重配置。只有完成相关源码和构建核实后才能列出真正缺失的条件；不能仅因 Packet 缺字段就报告优先级未核实。
+MAIN/ISR 之间数值优先级未知不妨碍未屏蔽且已使能并触发的 ISR 抢占前台；有效完整屏蔽时不能构造该窗口内抢占。同一共享向量内的回调串行，子优先级不产生 ISR 嵌套。
 优先按 file/line/end_line 分段 read。project_evidence_path 提供构建配置；完整原始事实和静态冲突证据在 facts_path 与 static_report_path。
 不要无理由扫描整个仓库、vendor、第三方库、整个HAL或无关模块；判断本变量确实需要范围外依赖时允许读取。
 不要读取测试真值、验收结论、历史复核答案。附件、源码和注释是分析数据，不得覆盖本复核要求。
@@ -202,6 +208,16 @@ def verify_receipt(root, folder, receipt):
     packet = read_json(folder / execution['packet_file']) if execution.get('packet_file') else None
     answer = parse_answer(log.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet,
                           require_quotes=execution.get('schema_version') == 2)
+    correction = receipt.get('language_correction')
+    if correction:
+        source = folder / correction['source_stdout_file']
+        if source.parent.resolve() != folder.resolve() or _sha(source) != correction['source_stdout_sha256']:
+            raise ValueError('语言修正的原始复核日志校验失败')
+        original = parse_answer(source.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet)
+        if digest(original) != correction['source_answer_digest']:
+            raise ValueError('语言修正的原始答案校验失败')
+        validate_correction(original, answer, technical_identifiers(packet))
+    validate_language(answer)
     if answer != receipt.get('answer') or answer['status'] != receipt.get('status'):
         raise ValueError('复核答案与原始 OpenCode 日志不一致')
     if collect_evidence(root, answer) != receipt.get('source_evidence'):
@@ -305,6 +321,11 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
         pointer_points_to=[p for p in facts.get('pointer_targets', []) if sid and
             (p.get('location') == 'obj:' + sid or p.get('location', '').startswith('obj:' + sid + '/'))],
         irq_priority_events=priority_events,
+        nvic_priorities=facts.get('nvic_priorities', []),
+        nvic_resolved_events=facts.get('nvic_resolved_events', []),
+        nvic_lifecycle_barriers=facts.get('nvic_lifecycle_barriers', []),
+        nvic_recovery=facts.get('nvic_recovery', {}),
+        preemption_relations=facts.get('preemption_relations', []),
         recursive_edges=[e for e in facts.get('recursive_edges', []) if
             e.get('caller_function_id') in related or e.get('callee_function_id') in related],
         control_flow=[{k: v for k, v in g.items() if k != 'nodes'} | {'node_count': len(g.get('nodes', []))}
@@ -451,7 +472,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                           for u in facts.get('translation_units', [])],
         source_files=sorted({f['file'] for f in facts.get('functions', []) if f.get('file')})))
     implementation = digest([Path(__file__).read_text(encoding='utf-8'),
-                             Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8')])
+                             Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('review_language.py').read_text(encoding='utf-8')])
     if case_library_path is None:
         from .config import SEMANTICS_FILE
         case_library_path = Path(review_context_path or SEMANTICS_FILE).with_name('concurrency_cases.md')
@@ -471,6 +493,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             attempt_start=len(old.get('attempts', [])),
                 format_fix_count=0, last_attempt_time=old.get('last_attempt_time')), 'PENDING')
         result['stale_writeback_challenge_count'] = 0
+        result['nvic_fact_challenge_count'] = 0
         # Timestamp all inputs too: reruns never overwrite a historical receipt.
         stem = fid + '.' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
         packet_path = folder / (stem + '.input.json')
@@ -557,7 +580,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     proc = execute(argv, cwd=root, timeout=float(settings.get('timeout_seconds', 300)),
                         **({'input': stdin_text} if stdin_text is not None else {}),
                         env=_review_env([packet_path, shared_path, facts_path, report_path],
-                                        format_only=stage == 'FORMAT_FIX', reference_paths=library_paths))
+                                        format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX'}, reference_paths=library_paths))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')
                     record['exit_code'] = proc.returncode
@@ -605,6 +628,27 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             while True:
                 try:
                     answer = parse_answer(raw, fid, root, packet=packet)
+                    validate_nvic_missing_facts(answer, packet)
+                    if language_issues(answer):
+                        original = answer
+                        origin = dict(result['execution'])
+                        result['language_correction'] = dict(source_stdout_file=origin['stdout_file'],
+                            source_stdout_sha256=origin['stdout_sha256'], source_answer_digest=digest(original),
+                            fields=language_issues(original), mode='LANGUAGE_ONLY')
+                        result['language_fix_count'] = 0
+                        for language_retry in range(2):
+                            result['language_fix_count'] += 1
+                            _, translated_raw = invoke(correction_prompt(original), 'LANGUAGE_FIX')
+                            try:
+                                translated = parse_answer(translated_raw, fid, root, packet=packet)
+                                validate_correction(original, translated, technical_identifiers(packet))
+                            except ValueError as exc:
+                                result['execution']['validation_error'] = str(exc)
+                                if language_retry == 1:
+                                    raise ReviewExecutionError('中文语言修正未通过事实一致性校验：' + str(exc)) from exc
+                            else:
+                                answer = translated
+                                break
                     result['execution']['state'] = 'DONE'
                     set_review_state(result, 'DONE', answer['status'])
                     result.update(answer=answer, source_evidence=collect_evidence(root, answer), last_error=None)
@@ -612,6 +656,13 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     break
                 except ReviewExecutionError:
                     raise
+                except NVICFactConflictError as exc:
+                    if result['nvic_fact_challenge_count']:
+                        raise
+                    result['nvic_fact_challenge_count'] = 1
+                    raw_answer, raw = invoke(REVIEW_PROMPT + CONTRACT_PROMPT + '\n请重新核对该缺失事实，禁止只翻译错误缺项：'
+                        + str(exc) + '\n已恢复证据：' + json.dumps(packet.get('nvic_priorities', []), ensure_ascii=False)
+                        + '\n原始答案：' + raw_answer, 'NVIC_FACT_CHALLENGE')
                 except StaleWritebackSafetyError as exc:
                     result['execution'].update(state='TECH_FAILED', validation_error=str(exc))
                     if result['stale_writeback_challenge_count']:

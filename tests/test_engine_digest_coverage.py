@@ -69,8 +69,8 @@ class ReviewResumeDigestTests(unittest.TestCase):
             fid = packet['finding_id']
             calls.append(fid)
             prompts.append(kwargs.get('input') or argv[-1])
-            answer = dict(finding_id=fid, status='FALSE_POSITIVE', reason='Synthetic protocol fixture.',
-                          evidence=[dict(file='a.c', line=1, claim='Fixture source location.')])
+            answer = dict(finding_id=fid, status='FALSE_POSITIVE', reason='模拟协议测试。',
+                          evidence=[dict(file='a.c', line=1, claim='测试源码位置。')])
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 
         original_digest = workflow.file_digest

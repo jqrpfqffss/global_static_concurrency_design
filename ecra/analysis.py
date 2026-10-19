@@ -10,7 +10,7 @@ from .common import digest
 
 TABLES = ("variables", "functions", "accesses", "calls", "unknowns", "protection_events", "registrations", "snapshots",
           "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow", "pointer_storage",
-          "constant_regions")
+          "constant_regions", "nvic_programs", "nvic_globals", "nvic_irq_definitions")
 CONFLICT_PAIR_INLINE_LIMIT = 4096
 
 
@@ -169,7 +169,7 @@ def context_graph(facts, cfg):
             if reg.get('kind') in {'TIMER', 'DEFERRED'} or kernel_timer_task:
                 cid = 'auto:freertos:timer_daemon'
                 contexts.setdefault(cid, dict(id=cid, kind='TASK', discovery='freertos_timer_daemon',
-                    reentrant=False, registrations=[], execution_note='FreeRTOS timer callbacks and pended functions share one serial daemon task'))
+                    reentrant=False, registrations=[], execution_note='FreeRTOS 定时器回调与延后执行函数共享同一个串行守护任务'))
                 contexts[cid]['registrations'].append(reg)
                 roots[cid].add(fid)
                 continue
@@ -872,6 +872,8 @@ def analyze(facts, cfg, coverage, root=None):
         path_lists_complete=facts['context_call_graph']['path_lists_complete'],
         evidence='facts.json: context_call_graph, call_graph_slices, calls',
         note=facts['context_call_graph']['note'])
+    from .nvic import recover as recover_nvic
+    recover_nvic(facts, cfg)
     relations = preemption_relations(facts, contexts, cfg)
     facts['assembly_references'] = facts.get('resolved_assembly_references', []) + [
         u for u in facts['unknowns'] if u['kind'] in

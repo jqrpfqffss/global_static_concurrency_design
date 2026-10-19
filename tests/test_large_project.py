@@ -210,8 +210,8 @@ class ReviewScaleTests(unittest.TestCase):
             packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
             fid = packet['finding_id']
             seen.append(fid)
-            answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='Synthetic source proof.',
-                          evidence=[dict(file='app.c', line=1, claim='Synthetic fixture')])
+            answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='模拟的源码证明，仅用于协议测试。',
+                          evidence=[dict(file='app.c', line=1, claim='模拟测试源码')])
             return CompletedProcess(argv, 0, json.dumps(answer), '')
         with patch('ecra.review.resolve_command', return_value=['synthetic-only']), patch('ecra.review.execute', side_effect=execute):
             first = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)

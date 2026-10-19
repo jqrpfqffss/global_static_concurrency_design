@@ -12,12 +12,12 @@ from ecra.review_presentation import explanation, review_markdown
 
 
 def answer_for(status='CONFIRMED', fid='F'):
-    return dict(finding_id=fid, status=status, reason='Checked the current source.',
-        interleaving='main reads; IRQ updates; main writes old copy.',
-        protection='No complete protection.', impact='A count may be lost.',
-        evidence=[dict(file='app.c', line=2, claim='The IRQ updates shared.')],
-        fix='Protect the whole RMW window.', verification='Exercise an IRQ inside that window.',
-        missing_context=['Actual NVIC preemption priority.'] if status in {'LIKELY', 'NEED_MORE_CONTEXT'} else [])
+    return dict(finding_id=fid, status=status, reason='已检查当前源码。',
+        interleaving='main 读取；IRQ 更新；main 写回旧副本。',
+        protection='未完整保护。', impact='计数更新可能丢失。',
+        evidence=[dict(file='app.c', line=2, claim='IRQ 更新 shared。')],
+        fix='保护整个 RMW 窗口。', verification='在该窗口内触发 IRQ。',
+        missing_context=['尚需核实 NVIC 实际抢占优先级。'] if status in {'LIKELY', 'NEED_MORE_CONTEXT'} else [])
 
 
 class ContractTests(unittest.TestCase):

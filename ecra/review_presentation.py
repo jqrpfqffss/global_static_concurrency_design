@@ -151,11 +151,11 @@ def _legacy_markdown(answer):
     def refs(values):
         return '源码依据：' + '、'.join('[' + str(i) + ']' for i in values)
     for actor in actors.values():
-        result += ['- **' + actor['label'] + '**（' + actor['eligibility'] + '）：' + actor['access'],
+        result += ['- **' + actor['label'] + '**（' + {'ACTUAL': '真实访问者', 'EXCLUDED': '已排除实际访问', 'UNKNOWN': '是否访问尚未确定'}.get(actor['eligibility'], actor['eligibility']) + '）：' + actor['access'],
                    '  - 路径：' + actor['entry'], '  - ' + refs(actor['evidence_refs'])]
     result += ['', '### 执行关系与具体原因', '', story['scheduling'], '', story['cause'], '', refs(story['evidence_refs']), '']
     for scenario in story['scenarios']:
-        result += ['### ' + scenario['title'], '', '场景类型：' + scenario['kind'], '', '前提：' + scenario['precondition'], '']
+        result += ['### ' + scenario['title'], '', '场景类型：' + {'CONFLICT': '可成立的冲突', 'BLOCKED': '已排除的冲突路径', 'UNRESOLVED': '尚待核实的路径'}.get(scenario['kind'], scenario['kind']), '', '前提：' + scenario['precondition'], '']
         for i, step in enumerate(scenario['steps'], 1):
             result += [f"{i}. **{actors[step['actor_id']]['label']}**：{step['action']}",
                        '   - 操作前：' + step['state_before'], '   - 操作后：' + step['state_after'],

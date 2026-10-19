@@ -70,7 +70,7 @@ class DeepReviewTests(unittest.TestCase):
                 status = ('REVIEWED_SAFE' if 'safe_irq_protected' in filename else
                           'NEED_MORE_CONTEXT' if 'unknown' in filename or '/dma.' in filename else 'CONFIRMED')
                 value = answer_for(status, packet['finding_id'])
-                value['evidence'] = [dict(file='app.c', line=2, claim='Current fixture declaration.')]
+                value['evidence'] = [dict(file='app.c', line=2, claim='当前测试声明。')]
                 if status == 'REVIEWED_SAFE':
                     value.update(reason='整个 READ 到 WRITEBACK 窗口都在 __disable_irq 保护内，阻止 HIGH 抢占。',
                                  interleaving='LOW 读实参和写回都在关中断范围内；HIGH 不能插入。',
@@ -130,7 +130,7 @@ class DeepReviewTests(unittest.TestCase):
             if fail:
                 return CompletedProcess(argv, 1, '', 'synthetic transport error')
             answer = answer_for('REVIEWED_SAFE', packet['finding_id'])
-            answer['evidence'] = [dict(file='app.c', line=2, claim='Synthetic protocol fixture')]
+            answer['evidence'] = [dict(file='app.c', line=2, claim='模拟协议测试')]
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 
         with contextlib.redirect_stdout(io.StringIO()), patch('ecra.review.resolve_command',

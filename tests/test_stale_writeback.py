@@ -90,7 +90,7 @@ class StaleWritebackTests(unittest.TestCase):
 
     def test_atomic_safe_is_challenged_then_corrected(self):
         row, calls, packet = self.run_answer('unsafe_direct_writeback', [self.answer(),
-            self.answer('CONFIRMED', interleaving='LOW read 100; HIGH write 200; LOW write back 100')])
+            self.answer('CONFIRMED', interleaving='LOW 读取 100；HIGH 写入 200；LOW 写回 100')])
         self.assertEqual((row['state'], row['status']), ('DONE', 'CONFIRMED'))
         self.assertEqual([a['stage'] for a in row['attempts']], ['ANALYZE', 'STALE_WRITEBACK_CHALLENGE'])
         self.assertEqual(len(calls), 2)
