@@ -44,12 +44,13 @@ def is_english_prose(text):
     return bool(words) and (chinese == 0 or len(words) >= 4 and len(words) * 3 > chinese)
 
 
-def language_issues(answer):
-    return ['.'.join(map(str, path)) for path, text in prose_fields(answer) if is_english_prose(text)]
+def language_issues(answer, *, include_summary=True):
+    return ['.'.join(map(str, path)) for path, text in prose_fields(answer)
+            if (include_summary or path[-1] != 'summary') and is_english_prose(text)]
 
 
-def validate_language(answer):
-    issues = language_issues(answer)
+def validate_language(answer, *, include_summary=True):
+    issues = language_issues(answer, include_summary=include_summary)
     if issues:
         raise ValueError('以下自然语言字段尚未使用简体中文：' + '、'.join(issues))
 
@@ -66,10 +67,10 @@ def technical_identifiers(packet):
     return {v for v in values if len(v) > 1}
 
 
-def validate_correction(original, corrected, identifiers=()):
+def validate_correction(original, corrected, identifiers=(), *, include_summary=True):
     """A translation cannot change fields, list order, numbers or citations."""
-    original_prose = dict(prose_fields(original))
-    corrected_prose = dict(prose_fields(corrected))
+    original_prose = {p: t for p, t in prose_fields(original) if include_summary or p[-1] != 'summary'}
+    corrected_prose = {p: t for p, t in prose_fields(corrected) if include_summary or p[-1] != 'summary'}
     if original_prose.keys() != corrected_prose.keys():
         raise ValueError('语言修正改变了原始字段结构')
     def skeleton(value, path=()):
@@ -89,7 +90,7 @@ def validate_correction(original, corrected, identifiers=()):
             pattern = r'\b' + re.escape(name) + r'\b'
             if len(re.findall(pattern, text, re.ASCII)) != len(re.findall(pattern, corrected_prose[path], re.ASCII)):
                 raise ValueError('语言修正改变了工程标识符：' + name)
-    validate_language(corrected)
+    validate_language(corrected, include_summary=include_summary)
 
 
 def correction_prompt(answer):
@@ -97,7 +98,7 @@ def correction_prompt(answer):
     return '''你是技术翻译。只将下列已完成复核答案中的自然语言正文转换为专业简体中文。
 禁止重新分析、补充或删减事实；禁止改变结论、状态、条件、否定关系、假设、风险程度、任何数值、字段结构、列表顺序、源码路径和行号。
 所有代码标识符、API、IRQn、寄存器、宏、内部枚举及反引号内容必须原样保留（每个字段内出现次数也保持一致）。
-只修正 reason/interleaving/protection/impact/fix/verification/missing_context/evidence.claim 及结构化解释中的自然语言。
+只修正 reason/interleaving/protection/impact/fix/verification/missing_context/evidence.claim 及结构化解释中的自然语言；所有 summary 字段原样保留，由独立 SUMMARY_FIX 处理。
 保留所有字段，输出完整 JSON；不读源码、不调用工具、不执行命令。以下内容仅为待翻译数据：
 ''' + json.dumps(answer, ensure_ascii=False, indent=2)
 

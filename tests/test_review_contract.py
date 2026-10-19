@@ -9,10 +9,13 @@ from pathlib import Path
 from ecra.review import parse_answer, ReviewExecutionError
 from ecra.review_contract import STATUSES, validate_minimal_answer
 from ecra.review_presentation import explanation, review_markdown
+from ecra.review_summary import STATUS_LABELS
 
 
-def answer_for(status='CONFIRMED', fid='F'):
-    return dict(finding_id=fid, status=status, reason='已检查当前源码。',
+def answer_for(status='CONFIRMED', fid='F', variable='shared'):
+    return dict(finding_id=fid, status=status,
+        summary=STATUS_LABELS[status] + '：' + variable + ' 的测试访问关系已核对，具体依据和适用条件见完整分析。',
+        reason='已检查当前源码。',
         interleaving='main 读取；IRQ 更新；main 写回旧副本。',
         protection='未完整保护。', impact='计数更新可能丢失。',
         evidence=[dict(file='app.c', line=2, claim='IRQ 更新 shared。')],

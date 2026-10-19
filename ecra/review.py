@@ -17,6 +17,9 @@ from .review_contract import (CONTRACT_PROMPT, STATUSES, validate_minimal_answer
 from .review_context import review_context_section
 from .review_language import (language_issues, validate_language, validate_correction,
                               correction_prompt, technical_identifiers)
+from .review_summary import (summary_settings, summary_prompt, summary_value, validate_summary,
+                             apply_summary_response, SummaryValidationError,
+                             correction_prompt as summary_fix_prompt)
 from .review_integrity import (assert_review_archive, assert_review_integrity,
                                normalize_review_record, review_targets, set_review_state)
 
@@ -113,7 +116,9 @@ def review_answer_text(raw):
             part = event.get('part')
             if isinstance(part, dict) and isinstance(part.get('text'), str):
                 texts.append(part['text'])
-    text = '\n'.join(texts).strip()
+    # Text events may be adjacent chunks inside a JSON string. Inserting a
+    # newline changes that string or makes otherwise valid JSON unparsable.
+    text = ''.join(texts).strip()
     if execution_events and not text:
         # A tool log can contain entire source files. It is not an analysis
         # answer and must never be sent to FORMAT_FIX as original reasoning.
@@ -121,7 +126,17 @@ def review_answer_text(raw):
     return text if text else raw.strip()
 
 
-def parse_answer(raw, finding_id, root, require_quotes=False, packet=None, **_legacy_options):
+def parse_answer(raw, finding_id, root, require_quotes=False, packet=None, expected_status=None, **_legacy_options):
+    value = parse_answer_object(raw, finding_id)
+    if (expected_status is not None and isinstance(value, dict)
+            and isinstance(value.get('status'), str) and value['status'] in STATUSES
+            and value['status'] != expected_status):
+        raise ReviewExecutionError('FORMAT_FIX 改变了原始合法 status；拒绝将格式修正作为风险重新判定')
+    validate_stale_writeback_safety(value, packet, root)
+    return validate_minimal_answer(value, finding_id, root, require_quotes=require_quotes)
+
+
+def parse_answer_object(raw, finding_id):
     """Recover a final object, preferring the last matching finding identity."""
     text = review_answer_text(raw).lstrip('\ufeff')
     candidates = []
@@ -136,7 +151,7 @@ def parse_answer(raw, finding_id, root, require_quotes=False, packet=None, **_le
             pass
     # raw_decode handles braces inside strings and arbitrary surrounding prose.
     decoder, position = json.JSONDecoder(), 0
-    objects = []
+    objects, object_ends = [], []
     while position < len(text):
         start = text.find('{', position)
         if start < 0:
@@ -148,17 +163,21 @@ def parse_answer(raw, finding_id, root, require_quotes=False, packet=None, **_le
             continue
         if isinstance(value, dict):
             objects.append(value)
+            object_ends.append(end)
         position = end
     candidates.extend(objects)
     matching = [v for v in candidates if isinstance(v, dict) and v.get('finding_id') == finding_id]
     if matching:
         value = matching[-1]
+        ends = [end for obj, end in zip(objects, object_ends) if obj.get('finding_id') == finding_id]
+        if ends and re.search(r'"finding_id"\s*:\s*' + re.escape(json.dumps(finding_id, ensure_ascii=False)),
+                              text[ends[-1]:]):
+            raise ValueError('最终 finding_id 回答不完整；不能回退到较早的完整答案')
     elif candidates:
         value = candidates[-1]
     else:
         raise ValueError('OpenCode 未返回有效的最终 JSON 对象')
-    validate_stale_writeback_safety(value, packet, root)
-    return validate_minimal_answer(value, finding_id, root, require_quotes=require_quotes)
+    return value
 
 
 def collect_evidence(root, answer):
@@ -181,7 +200,7 @@ def collect_evidence(root, answer):
     return evidence
 
 
-def verify_receipt(root, folder, receipt):
+def verify_receipt(root, folder, receipt, *, summary_config=None):
     """Verify archive integrity independently of the model's output protocol."""
     execution = receipt.get('execution') or {}
     # All calls, including the original analysis before FORMAT_FIX, remain bound.
@@ -206,8 +225,23 @@ def verify_receipt(root, folder, receipt):
             if path.parent.resolve() != folder.resolve() or not path.is_file() or _sha(path) != expected:
                 raise ValueError(f'OpenCode {stream} 日志/证据包校验失败')
     packet = read_json(folder / execution['packet_file']) if execution.get('packet_file') else None
-    answer = parse_answer(log.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet,
-                          require_quotes=execution.get('schema_version') == 2)
+    summary_check = receipt.get('summary_validation') or {}
+    config = summary_config if summary_config is not None else summary_check.get('settings')
+    variable_name = summary_check.get('variable_name', '')
+    summary_correction = receipt.get('summary_correction')
+    if summary_correction:
+        source = folder / summary_correction['source_stdout_file']
+        if source.parent.resolve() != folder.resolve() or _sha(source) != summary_correction['source_stdout_sha256']:
+            raise ValueError('摘要修正的原始复核日志校验失败')
+        before_summary = parse_answer(source.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet)
+        if digest(before_summary) != summary_correction['source_answer_digest']:
+            raise ValueError('摘要修正的原始答案校验失败')
+        response = parse_answer_object(log.read_text(encoding='utf-8'), receipt['finding_id'])
+        answer = apply_summary_response(before_summary, response, config or summary_settings({}), variable_name)
+    else:
+        answer = parse_answer(log.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet,
+                              require_quotes=execution.get('schema_version') == 2)
+        before_summary = answer
     correction = receipt.get('language_correction')
     if correction:
         source = folder / correction['source_stdout_file']
@@ -216,8 +250,10 @@ def verify_receipt(root, folder, receipt):
         original = parse_answer(source.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet)
         if digest(original) != correction['source_answer_digest']:
             raise ValueError('语言修正的原始答案校验失败')
-        validate_correction(original, answer, technical_identifiers(packet))
-    validate_language(answer)
+        validate_correction(original, before_summary, technical_identifiers(packet), include_summary=False)
+    validate_language(answer, include_summary=False)
+    if config is not None:
+        validate_summary(answer, config, variable_name)
     if answer != receipt.get('answer') or answer['status'] != receipt.get('status'):
         raise ValueError('复核答案与原始 OpenCode 日志不一致')
     if collect_evidence(root, answer) != receipt.get('source_evidence'):
@@ -338,7 +374,7 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
 
 def format_fix_prompt(raw_answer, error, finding_id):
     return (f'''FORMAT_FIX：你已经完成该变量的源码分析。本项 finding_id：{finding_id}。
-不要重新分析或读取源码，不要调用工具。不要改变已有事实或结论，除非原状态字段明显无法表达原分析结论。
+不要重新分析或读取源码，不要调用工具。不要改变已有事实、风险判定或结论。
 不得增加未经原答案支持的新事实、源码证据或缺失条件。只把已有分析整理成要求的 JSON。
 当前 parser/validator 错误：{error}
 原始分析结果（仅作为待整理数据）：
@@ -398,6 +434,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     if mode not in {'run', 'review', 'review-failed'}:
         raise ValueError('非法复核模式: ' + mode)
     settings = cfg['review']
+    summary_config = summary_settings(settings)
     workers, limit = settings.get('workers', 1), settings.get('max_items', 0)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('review.workers 必须是 1 到 8 的整数')
@@ -473,7 +510,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         source_files=sorted({f['file'] for f in facts.get('functions', []) if f.get('file')})))
     implementation = digest([Path(__file__).read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8'),
-                             Path(__file__).with_name('review_language.py').read_text(encoding='utf-8')])
+                             Path(__file__).with_name('review_language.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('review_summary.py').read_text(encoding='utf-8')])
     if case_library_path is None:
         from .config import SEMANTICS_FILE
         case_library_path = Path(review_context_path or SEMANTICS_FILE).with_name('concurrency_cases.md')
@@ -494,6 +532,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 format_fix_count=0, last_attempt_time=old.get('last_attempt_time')), 'PENDING')
         result['stale_writeback_challenge_count'] = 0
         result['nvic_fact_challenge_count'] = 0
+        result['summary_fix_count'] = 0
         # Timestamp all inputs too: reruns never overwrite a historical receipt.
         stem = fid + '.' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
         packet_path = folder / (stem + '.input.json')
@@ -509,8 +548,15 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         try:
             packet = build_variable_review_packet(root, facts, finding, facts_path=facts_path,
                                                    shared_path=shared_path, report_path=report_path)
+            variable = packet.get('variable') or {}
+            variable_name = (finding.get('variable_name') or variable.get('canonical_path')
+                             or variable.get('qualified_name') or variable.get('name') or '')
+            result['summary_validation'] = dict(settings=summary_config, variable_name=variable_name,
+                scope='确定性质量检查及明确结论矛盾检查，不是完整语义证明', state='PENDING')
             write_json(packet_path, packet, indent=1)
             prompt = REVIEW_PROMPT + review_context_section(review_context_path) + library_prompt + CONTRACT_PROMPT
+            semantic_prompt = prompt
+            prompt += summary_prompt(summary_config, variable_name)
             prompt += '\nfinding_id 必须原样返回：' + fid
             if 'Timeout' in str(old.get('last_error', old.get('error', ''))):
                 prompt += '\n上次复核超时；本次严格按 Packet 导航检查全部访问及直接关联源码，避免无关全仓扫描。'
@@ -518,17 +564,32 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             # Stable names are latest-input conveniences, never receipt links.
             write_json(folder / (fid + '.input.json'), packet, indent=1)
             (folder / (fid + '.prompt.txt')).write_text(prompt, encoding='utf-8')
-            key_settings = {k: v for k, v in settings.items() if k in {'command', 'model'}}
+            key_settings = dict({k: v for k, v in settings.items() if k in {'command', 'model'}}, summary=summary_config)
             result.update(cache_key=digest([fingerprint, packet, prompt, key_settings, implementation]),
+                semantic_cache_key=digest([fingerprint, packet, semantic_prompt,
+                    {k: v for k, v in key_settings.items() if k != 'summary'}, implementation]),
                 packet_file=packet_path.name, packet_sha256=_sha(packet_path),
                 prompt_file=prompt_path.name, prompt_sha256=_sha(prompt_path))
+            cached_analysis = None
             if mode == 'run' and enabled and old.get('state') == 'DONE' and old.get('cache_key') == result['cache_key']:
                 try:
-                    verify_receipt(root, folder, old)
+                    verify_receipt(root, folder, old, summary_config=summary_config)
                 except (OSError, ValueError, KeyError, TypeError) as exc:
                     result['cache_error'] = str(exc)
                 else:
                     return dict(old, cached=True)
+            if (mode == 'run' and enabled and old.get('state') == 'DONE'
+                    and old.get('semantic_cache_key') == result['semantic_cache_key']):
+                try:
+                    cached_analysis = verify_receipt(root, folder, old)
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    result['cache_error'] = str(exc)
+                else:
+                    result['analysis_cached'] = True
+                    result['execution'] = dict(old['execution'])
+                    for key in ('language_correction', 'language_fix_count', 'summary_correction'):
+                        if key in old:
+                            result[key] = old[key]
             if old.get('answer'):
                 result['previous_reviews'] = list(old.get('previous_reviews', [])) + [
                     {k: v for k, v in old.items() if k not in {'previous_reviews', 'attempts'}}]
@@ -541,14 +602,15 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             if command_error:
                 raise command_error
 
-            def invoke(text, stage):
+            def invoke(text, stage, metadata=None):
                 """A single audited, read-only process invocation."""
                 number = len(result['attempts']) + 1
                 attempt_stem = stem + f'.attempt{number}.{stage}'
-                record = dict(number=number, stage=stage, started=_now(),
+                record = dict(number=number, finding_id=fid, stage=stage, started=_now(),
                     model=settings.get('model', 'OpenCode configured default'),
                     prompt_file=attempt_stem + '.prompt.txt', stdout_file=attempt_stem + '.jsonl',
                     stderr_file=attempt_stem + '.stderr.txt', state='PENDING')
+                record.update(metadata or {})
                 if stage == 'ANALYZE':
                     record.update(packet_file=packet_path.name, packet_sha256=_sha(packet_path))
                 result['attempts'].append(record)
@@ -570,7 +632,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     stdin_text = text
                     message = f'{stage}：按标准输入中的完整提示词执行。本项 finding_id：{fid}。'
                 argv += ['--', message]
-                record['command'] = argv[:-1]
+                record['command'] = argv
                 record['input_method'] = 'stdin' if stdin_text is not None else 'argument'
                 if stdin_text is not None:
                     record['message'] = message
@@ -580,7 +642,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     proc = execute(argv, cwd=root, timeout=float(settings.get('timeout_seconds', 300)),
                         **({'input': stdin_text} if stdin_text is not None else {}),
                         env=_review_env([packet_path, shared_path, facts_path, report_path],
-                                        format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX'}, reference_paths=library_paths))
+                                        format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')
                     record['exit_code'] = proc.returncode
@@ -593,7 +655,9 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                             raise ReviewExecutionError(f'OpenCode exit={proc.returncode}: {exc}') from exc
                         raise ReviewExecutionError(f'OpenCode exit={proc.returncode}: {proc.stderr}')
                     # Provider errors must not be mistaken for malformed JSON.
-                    return review_answer_text(proc.stdout), proc.stdout
+                    extracted = review_answer_text(proc.stdout)
+                    record['state'] = 'EXECUTED'
+                    return extracted, proc.stdout
                 except BaseException as exc:
                     for stream in ('stdout', 'stderr'):
                         partial = getattr(exc, stream, None)
@@ -612,9 +676,93 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                         record[stream + '_sha256'] = _sha(folder / record[stream + '_file'])
                     write_json(cache, result)
 
+            def repair_summary(answer):
+                check = result['summary_validation']
+                try:
+                    validate_summary(answer, summary_config, variable_name)
+                except SummaryValidationError as exc:
+                    error = str(exc)
+                else:
+                    check.update(state='PASSED' if summary_config['enabled'] else 'DISABLED')
+                    return answer
+                origin = dict(result['execution'])
+                source_answer = answer
+                if cached_analysis is not None and result.get('summary_correction'):
+                    previous_correction = result['summary_correction']
+                    origin = dict(stdout_file=previous_correction['source_stdout_file'],
+                                  stdout_sha256=previous_correction['source_stdout_sha256'])
+                    source_answer = parse_answer((folder / origin['stdout_file']).read_text(encoding='utf-8'),
+                                                 fid, root, packet=packet)
+                result['execution']['state'] = 'DONE'
+                check.update(state='FAILED', initial_error=error)
+                before = summary_value(answer)
+
+                def repair_call(text, stage, metadata):
+                    # Transport retries are separate from summary rewrites.
+                    for retry in range(settings.get('retries', 1) + 1):
+                        try:
+                            return invoke(text, stage, dict(metadata, technical_retry=retry))
+                        except Exception as exc:
+                            result['execution']['validation_result'] = 'EXECUTION_FAILED'
+                            if (not isinstance(exc, (OSError, ValueError, TimeoutError))
+                                    and type(exc).__name__ != 'TimeoutExpired'
+                                    or retry == settings.get('retries', 1)
+                                    or 'Configuration is invalid at ' in str(exc)):
+                                raise ReviewExecutionError('摘要修复执行失败：' + str(exc)) from exc
+
+                for attempt in range(1, summary_config['fix_retries'] + 1):
+                    result['summary_fix_count'] = attempt
+                    metadata = dict(summary_attempt=attempt, trigger_reason=error,
+                        before_summary=before, before_chars=len(before) if isinstance(before, str) else None,
+                        after_summary=None, after_chars=None, max_chars=summary_config['max_chars'],
+                        validation_result='PENDING')
+                    progress(f'OpenCode SUMMARY_FIX {fid}: {attempt}/{summary_config["fix_retries"]}；{error}')
+                    repair_text, repair_raw = repair_call(
+                        summary_fix_prompt(answer, error, summary_config, variable_name), 'SUMMARY_FIX', metadata)
+                    try:
+                        while True:
+                            try:
+                                corrected = parse_answer_object(repair_raw, fid)
+                                break
+                            except ReviewExecutionError:
+                                raise
+                            except ValueError as exc:
+                                result['execution'].update(state='TECH_FAILED', validation_error=str(exc),
+                                                           validation_result='INVALID_JSON')
+                                if result['format_fix_count'] >= 2:
+                                    raise SummaryValidationError('摘要修复 JSON 无效，FORMAT_FIX 次数已耗尽：' + str(exc)) from exc
+                                result['format_fix_count'] += 1
+                                format_prompt = format_fix_prompt(repair_text, str(exc), fid)
+                                format_prompt += '\n' + summary_fix_prompt(answer, error, summary_config, variable_name)
+                                repair_text, repair_raw = repair_call(format_prompt, 'FORMAT_FIX',
+                                    dict(metadata, repair_for='SUMMARY_FIX'))
+                        after = summary_value(corrected) if isinstance(corrected, dict) else None
+                        result['execution'].update(after_summary=after,
+                            after_chars=len(after) if isinstance(after, str) else None)
+                        response_format = ('SUMMARY_PATCH' if isinstance(corrected, dict)
+                                           and corrected.keys() == {'summary'} else 'FULL_ANSWER')
+                        corrected = apply_summary_response(answer, corrected, summary_config, variable_name)
+                    except ReviewExecutionError:
+                        raise
+                    except SummaryValidationError as exc:
+                        error = str(exc)
+                        result['execution'].update(state='TECH_FAILED', validation_result='FAILED', validation_error=error)
+                        check['last_error'] = error
+                    else:
+                        result['execution'].update(state='DONE', validation_result='PASSED')
+                        result['summary_correction'] = dict(source_stdout_file=origin['stdout_file'],
+                            source_stdout_sha256=origin['stdout_sha256'], source_answer_digest=digest(source_answer),
+                            mode='SUMMARY_ONLY', response_format=response_format)
+                        check.update(state='PASSED', chars=len(corrected['summary']))
+                        write_json(cache, result)
+                        return corrected
+                    write_json(cache, result)
+                raise SummaryValidationError('摘要质量校验失败，修复次数已耗尽：' + error)
+
             progress(f'OpenCode 复核 {index + 1}/{len(selected)}: {fid}')
             raw_answer, raw = '', ''
-            for retry in range(settings.get('retries', 1) + 1):
+            format_status = None
+            for retry in range(0 if cached_analysis is not None else settings.get('retries', 1) + 1):
                 try:
                     raw_answer, raw = invoke(prompt, 'ANALYZE')
                     break
@@ -627,21 +775,22 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             # Safety challenges are semantic, independent of formatting fixes.
             while True:
                 try:
-                    answer = parse_answer(raw, fid, root, packet=packet)
+                    answer = cached_analysis if cached_analysis is not None else parse_answer(
+                        raw, fid, root, packet=packet, expected_status=format_status)
                     validate_nvic_missing_facts(answer, packet)
-                    if language_issues(answer):
+                    if language_issues(answer, include_summary=False):
                         original = answer
                         origin = dict(result['execution'])
                         result['language_correction'] = dict(source_stdout_file=origin['stdout_file'],
                             source_stdout_sha256=origin['stdout_sha256'], source_answer_digest=digest(original),
-                            fields=language_issues(original), mode='LANGUAGE_ONLY')
+                            fields=language_issues(original, include_summary=False), mode='LANGUAGE_ONLY')
                         result['language_fix_count'] = 0
                         for language_retry in range(2):
                             result['language_fix_count'] += 1
                             _, translated_raw = invoke(correction_prompt(original), 'LANGUAGE_FIX')
                             try:
                                 translated = parse_answer(translated_raw, fid, root, packet=packet)
-                                validate_correction(original, translated, technical_identifiers(packet))
+                                validate_correction(original, translated, technical_identifiers(packet), include_summary=False)
                             except ValueError as exc:
                                 result['execution']['validation_error'] = str(exc)
                                 if language_retry == 1:
@@ -649,14 +798,16 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                             else:
                                 answer = translated
                                 break
+                    answer = repair_summary(answer)
                     result['execution']['state'] = 'DONE'
                     set_review_state(result, 'DONE', answer['status'])
                     result.update(answer=answer, source_evidence=collect_evidence(root, answer), last_error=None)
                     result.pop('error', None)
                     break
-                except ReviewExecutionError:
+                except (ReviewExecutionError, SummaryValidationError):
                     raise
                 except NVICFactConflictError as exc:
+                    format_status = None
                     if result['nvic_fact_challenge_count']:
                         raise
                     result['nvic_fact_challenge_count'] = 1
@@ -664,6 +815,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                         + str(exc) + '\n已恢复证据：' + json.dumps(packet.get('nvic_priorities', []), ensure_ascii=False)
                         + '\n原始答案：' + raw_answer, 'NVIC_FACT_CHALLENGE')
                 except StaleWritebackSafetyError as exc:
+                    format_status = None
                     result['execution'].update(state='TECH_FAILED', validation_error=str(exc))
                     if result['stale_writeback_challenge_count']:
                         raise
@@ -675,10 +827,22 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     if result['format_fix_count'] == 2:
                         raise
                     result['format_fix_count'] += 1
-                    _, raw = invoke(format_fix_prompt(raw_answer, str(exc), fid), 'FORMAT_FIX')
+                    if format_status is None:
+                        try:
+                            malformed = parse_answer_object(raw, fid)
+                        except ValueError:
+                            pass
+                        else:
+                            if (isinstance(malformed, dict) and isinstance(malformed.get('status'), str)
+                                    and malformed['status'] in STATUSES):
+                                format_status = malformed['status']
+                    raw_answer, raw = invoke(format_fix_prompt(raw_answer, str(exc), fid), 'FORMAT_FIX')
             result['execution'].update(packet_file=packet_path.name, packet_sha256=_sha(packet_path))
         except Exception as exc:
-            fail(exc, (result.get('execution') or {}).get('stage', 'prepare' if not command_error else 'launch'))
+            stage = (result.get('execution') or {}).get('stage', 'prepare' if not command_error else 'launch')
+            if isinstance(exc, SummaryValidationError):
+                stage = 'SUMMARY_FIX' if result['summary_fix_count'] else 'SUMMARY_VALIDATION'
+            fail(exc, stage)
             if isinstance(exc, TimeoutError) or type(exc).__name__ == 'TimeoutExpired':
                 message = f'OpenCode 单次调用超过 {settings.get("timeout_seconds", 300)} 秒'
                 result.update(error=message, last_error=dict(type=type(exc).__name__, message=message))

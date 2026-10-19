@@ -70,6 +70,7 @@ class ReviewResumeDigestTests(unittest.TestCase):
             calls.append(fid)
             prompts.append(kwargs.get('input') or argv[-1])
             answer = dict(finding_id=fid, status='FALSE_POSITIVE', reason='模拟协议测试。',
+                          summary='已确认静态误报：value 的模拟互斥访问条件已核实，仅用于协议测试。',
                           evidence=[dict(file='a.c', line=1, claim='测试源码位置。')])
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 

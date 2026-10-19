@@ -280,6 +280,15 @@ def generate(out, facts, report, reviews):
             review_md += review_markdown(r.get('answer', {}))
         elif r.get('answer'):
             review_md.append('- 旧回答已失效，不作为本轮结论；原始收据保留在 review/queue.json。')
+        for attempt in r.get('attempts', [])[r.get('attempt_start', 0):]:
+            if attempt.get('stage') != 'SUMMARY_FIX' and attempt.get('repair_for') != 'SUMMARY_FIX':
+                continue
+            review_md += ['', '### 摘要修复调用 ' + str(attempt.get('number', '')), '']
+            review_md += ['```json', json.dumps(attempt, ensure_ascii=False, indent=2), '```', '']
+            for stream, title in [('prompt', '完整提示词'), ('stdout', '原始响应'), ('stderr', '标准错误')]:
+                name = attempt.get(stream + '_file')
+                if name:
+                    review_md.append(f'- {title}：[{name}](../review/{name})')
         review_md.append("")
         if r['state'] == 'DONE' and r["status"] in {"CONFIRMED", "LIKELY"}:
             patches += [f"## {r['finding_id']}", "", str(r['answer'].get('fix') or '未提供修复建议'), "",

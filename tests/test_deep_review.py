@@ -17,6 +17,8 @@ from ecra.common import read_json, write_json
 from ecra.review import build_variable_review_packet, review_all, verify_receipt
 from tests import test_ecra as fixtures
 from tests.test_review_contract import answer_for
+from ecra.review_summary import summary_value
+from tests.live_review_archive import archive_sources
 
 
 BASE = Path(__file__).parent / 'fixtures'
@@ -69,7 +71,7 @@ class DeepReviewTests(unittest.TestCase):
                 # the unmodified parser, not that a model reasons this way.
                 status = ('REVIEWED_SAFE' if 'safe_irq_protected' in filename else
                           'NEED_MORE_CONTEXT' if 'unknown' in filename or '/dma.' in filename else 'CONFIRMED')
-                value = answer_for(status, packet['finding_id'])
+                value = answer_for(status, packet['finding_id'], variable=report['findings'][0]['variable_name'])
                 value['evidence'] = [dict(file='app.c', line=2, claim='当前测试声明。')]
                 if status == 'REVIEWED_SAFE':
                     value.update(reason='整个 READ 到 WRITEBACK 窗口都在 __disable_irq 保护内，阻止 HIGH 抢占。',
@@ -129,7 +131,7 @@ class DeepReviewTests(unittest.TestCase):
             prompts.append(kwargs.get('input') or argv[-1])
             if fail:
                 return CompletedProcess(argv, 1, '', 'synthetic transport error')
-            answer = answer_for('REVIEWED_SAFE', packet['finding_id'])
+            answer = answer_for('REVIEWED_SAFE', packet['finding_id'], variable=packet['variable'].get('canonical_path', packet['variable']['qualified_name']))
             answer['evidence'] = [dict(file='app.c', line=2, claim='模拟协议测试')]
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 
@@ -165,13 +167,22 @@ class DeepReviewTests(unittest.TestCase):
                 cfg, facts, report, packet, out = self.prepare_case(filename)
                 if os.environ.get('ECRA_DEEP_REVIEW_MODEL'):
                     cfg['review']['model'] = os.environ['ECRA_DEEP_REVIEW_MODEL']
+                if os.environ.get('ECRA_REVIEW_LIVE_TIMEOUT'):
+                    cfg['review']['timeout_seconds'] = float(os.environ['ECRA_REVIEW_LIVE_TIMEOUT'])
                 row = review_all(self.root, out, cfg, facts, report, 'fixture',
                     mode='review', case_library_path=LIBRARY)[0]
+                baseline = row.get('answer')
+                if filename == CASES[0][0] and row['state'] == 'DONE':
+                    # Exercise the real SUMMARY_FIX on authenticated model output,
+                    # without editing the answer, status, source, or receipt.
+                    limit = min(60, len(summary_value(baseline)) - 1)
+                    cfg['review']['summary'].update(max_chars=limit)
+                    row = review_all(self.root, out, cfg, facts, report, 'fixture',
+                        mode='run', case_library_path=LIBRARY)[0]
                 target = archive / Path(filename).stem
                 shutil.copytree(out, target, dirs_exist_ok=True)
-                # Keep source evidence for inspection after TemporaryDirectory cleanup.
-                for source in ('app.c', 'fixture.h'):
-                    shutil.copy2(self.root/source, target/source)
+                # Include generated files if cited, preserving their relative paths.
+                archive_sources(self.root, target, row)
                 raw = '\n'.join(p.read_text(encoding='utf-8') for p in (target/'review').glob('*.ANALYZE.jsonl'))
                 tool_reads = []
                 for line in raw.splitlines():
@@ -189,13 +200,20 @@ class DeepReviewTests(unittest.TestCase):
                     case_body_read=case_body_read, source_read=any(p.endswith('app.c') for p in tool_reads),
                     model=(row.get('execution') or {}).get('model'),
                     prompt_chars=len((out/'review'/row['prompt_file']).read_text(encoding='utf-8')),
-                    attempts=row.get('attempt_count'))
+                    attempts=row.get('attempt_count'), summary_fix_count=row.get('summary_fix_count', 0),
+                    summary_before=summary_value(baseline) if baseline else None,
+                    summary_after=summary_value(row['answer']) if row.get('answer') else None)
                 observations.append(observation)
                 write_json(archive/'observations.json', observations)
                 self.assertEqual(row['state'], 'DONE', row.get('error'))
                 self.assertIn(row['status'], expected, row.get('answer'))
                 self.assertTrue(case_body_read, 'real tool log must show a completed case-body read')
                 verify_receipt(self.root, out/'review', row)
+                if filename == CASES[0][0]:
+                    self.assertTrue(row.get('analysis_cached'), 'length changes must reuse the real analysis')
+                    self.assertGreaterEqual(row['summary_fix_count'], 1)
+                    self.assertEqual({k:v for k,v in baseline.items() if k != 'summary'},
+                                     {k:v for k,v in row['answer'].items() if k != 'summary'})
 
 
 if __name__ == '__main__':

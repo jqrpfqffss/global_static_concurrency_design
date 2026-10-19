@@ -2,9 +2,22 @@
 from collections import Counter
 import re
 from .common import read_json, write_json
+from .review_summary import validate_summary, summary_settings
 
 STATES = {'PENDING', 'DONE', 'TECH_FAILED'}
 VERDICTS = {'CONFIRMED', 'LIKELY', 'REVIEWED_SAFE', 'FALSE_POSITIVE', 'NEED_MORE_CONTEXT'}
+
+
+def validate_archived_summary(row):
+    """New receipts carry their policy; historical receipts stay readable."""
+    check = row.get('summary_validation')
+    if check is not None:
+        if check.get('state') not in {'PASSED', 'DISABLED'}:
+            raise ValueError('摘要尚未通过质量校验')
+        settings = summary_settings(dict(summary=check['settings']))
+        if check['state'] != ('PASSED' if settings['enabled'] else 'DISABLED'):
+            raise ValueError('摘要策略与校验状态不一致')
+        validate_summary(row['answer'], settings, check.get('variable_name', ''))
 
 
 def set_review_state(row, state, status=None):
@@ -25,6 +38,12 @@ def normalize_review_record(row):
                 or row.get('status') != answer.get('status')):
             state = 'TECH_FAILED'
             row.update(error='复核收据缺少一致的合法答案；请重新复核', error_type='InvalidReceipt')
+        if state == 'DONE':
+            try:
+                validate_archived_summary(row)
+            except (ValueError, KeyError, TypeError, AttributeError) as exc:
+                state = 'TECH_FAILED'
+                row.update(error='复核摘要收据无效：' + str(exc), error_type='InvalidSummaryReceipt')
     if state != 'DONE' and row.get('answer'):
         row['previous_reviews'] = list(row.get('previous_reviews', [])) + [
             {k: row[k] for k in ('answer', 'status', 'execution', 'source_evidence') if k in row}]
@@ -65,6 +84,11 @@ def review_integrity(report, records, *, require_terminal=False):
             answer = row.get('answer')
             if not isinstance(answer, dict) or answer.get('status') not in VERDICTS or row.get('status') != answer.get('status'):
                 errors.append(f'{fid}: DONE 缺少合法且一致的 answer')
+            else:
+                try:
+                    validate_archived_summary(row)
+                except (ValueError, KeyError, TypeError, AttributeError) as exc:
+                    errors.append(f'{fid}: 摘要校验失败：{exc}')
         elif state == 'TECH_FAILED' and not row.get('error'):
             errors.append(f'{fid}: TECH_FAILED 缺少 error')
         elif state == 'PENDING' and row.get('answer'):

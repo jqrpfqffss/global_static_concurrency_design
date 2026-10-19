@@ -116,6 +116,10 @@ review:
   # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
   max_items: 0
   workers: 1
+  summary:
+    enabled: true
+    max_chars: 120  # Unicode 字符数，不是 token；不截断 reason
+    fix_retries: 2
 """
 
 
@@ -162,6 +166,10 @@ review:
   # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
   max_items: 0
   workers: 1
+  summary:
+    enabled: true
+    max_chars: 120
+    fix_retries: 2
 """
 
 
@@ -209,6 +217,8 @@ def load_config(root=None, path=None):
         cfg.setdefault(key, {})
         if not isinstance(cfg[key], dict):
             raise ValueError(f"{key} 必须是映射")
+    from .review_summary import summary_settings
+    cfg['review']['summary'] = summary_settings(cfg['review'])
     if 'root' in cfg['project'] and (not isinstance(cfg['project']['root'], str) or not cfg['project']['root'].strip()):
         raise ValueError('project.root 必须是非空路径字符串')
     for key in ("contexts", "concurrency", "preemption", "call_edges", "entry_registrations", "async_enable", "resources", "protection", "critical_sections", "known_safe"):

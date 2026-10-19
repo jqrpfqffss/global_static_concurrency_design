@@ -1,6 +1,7 @@
 """Readable, lossless formatting of current review prose; no inferred witnesses."""
 import html
 import re
+from .review_summary import display_summary
 
 
 def paragraphs(text):
@@ -77,7 +78,7 @@ def structured_explanation(answer, citation_link=None):
             for i in values) + '</span>'
 
     result = '<p class="story-origin">解释来源：OpenCode 原始结构化回答 · 统一协议 v2</p>'
-    result += '<section class="story-impact"><h4>一句话结论</h4>' + prose(story['summary']) + '</section>'
+    result += '<section class="story-impact"><h4>一句话结论</h4>' + prose(display_summary(answer)) + '</section>'
     actors = {a['id']: a for a in story['participants']}
     def actor_card(actor):
         return ('<div class="actor-card"><strong>' + escape(actor['label']) + '</strong><p>' + escape(actor['access']) + '</p>'
@@ -122,6 +123,8 @@ def structured_explanation(answer, citation_link=None):
 def _simple_markdown(answer):
     """Export the same model-authored structure for readers of Markdown."""
     result = ['来源：OpenCode 变量级回答', '']
+    if display_summary(answer) != answer.get('reason'):
+        result += ['### 一句话结论', '', display_summary(answer), '']
     for key, title in [('reason', '结论依据'), ('interleaving', '并发时序 / 不发生交错的条件'),
                        ('protection', '保护情况'), ('impact', '影响及证据边界'),
                        ('fix', '修复建议'), ('verification', '验证建议')]:
@@ -147,7 +150,7 @@ def review_markdown(answer):
 def _legacy_markdown(answer):
     story = answer['explanation']
     actors = {a['id']: a for a in story['participants']}
-    result = ['来源：OpenCode 原始结构化回答 · 统一协议 v2', '', '### 一句话结论', '', story['summary'], '', '### 执行入口', '']
+    result = ['来源：OpenCode 原始结构化回答 · 统一协议 v2', '', '### 一句话结论', '', display_summary(answer), '', '### 执行入口', '']
     def refs(values):
         return '源码依据：' + '、'.join('[' + str(i) + ']' for i in values)
     for actor in actors.values():
@@ -186,6 +189,8 @@ def explanation(answer, group, is_variable=True, citation_link=None):
         except (ValueError, KeyError, TypeError, IndexError, AttributeError):
             pass  # Historical display damage cannot invalidate a semantic answer.
     legacy = '<p class="story-origin">解释来源：OpenCode 变量级回答；以下按原文排版。</p>'
+    if display_summary(answer) != answer.get('reason'):
+        legacy += '<section class="story-summary"><h4>一句话结论</h4>' + prose(display_summary(answer)) + '</section>'
     missing = answer.get('missing_context')
     if isinstance(missing, list) and missing:
         legacy += '<section class="notice"><h4>还缺哪些事实</h4>' + ''.join(prose(s) for s in missing) + '</section>'

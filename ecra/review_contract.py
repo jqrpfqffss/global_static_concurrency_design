@@ -7,7 +7,8 @@ from pathlib import Path
 STATUSES = {'CONFIRMED', 'LIKELY', 'REVIEWED_SAFE', 'FALSE_POSITIVE', 'NEED_MORE_CONTEXT'}
 EXAMPLE = dict(
     finding_id='原样复制本项 finding_id', status='CONFIRMED',
-    reason='结论及其源码依据', interleaving='主要交错过程，或不能形成危险交错的原因',
+    summary='独立一句话结论，按本次摘要配置生成',
+    reason='完整结论及其源码依据，不受摘要长度限制', interleaving='主要交错过程，或不能形成危险交错的原因',
     protection='保护机制、范围及有效性', impact='源码支持的影响，不编造业务后果',
     evidence=[dict(file='工程相对路径.c', line=1, claim='该位置支持什么事实')],
     fix='修复建议', verification='验证建议，不代表已实测', missing_context=[])
@@ -22,7 +23,7 @@ FALSE_POSITIVE：静态疑点因不可达、不同存储、互斥上下文或访
 NEED_MORE_CONTEXT：已检查源码但证据不足以判风险或安全；missing_context 必须列具体缺失事实，禁止猜测。
 evidence 是列表，每项 file 为真实工程内文件、line 为有效行号、claim 说明该位置支持什么。
 reason 必须非空。其余说明字段可按已有证据简洁描述，无需逐访问/逐组合复述，不限制文字长度。
-所有面向用户的自然语言字段必须使用专业、准确的简体中文，包括 reason、interleaving、protection、impact、fix、verification、missing_context 和 evidence.claim。技术标识符、API、宏、IRQn、寄存器、字段名、状态枚举、数值和源码引用必须保持原样；不得输出整段英文分析。
+所有面向用户的自然语言字段必须使用专业、准确的简体中文，包括 summary、reason、interleaving、protection、impact、fix、verification、missing_context 和 evidence.claim。技术标识符、API、宏、IRQn、寄存器、字段名、状态枚举、数值和源码引用必须保持原样；不得输出整段英文分析。
 所有五种 status 都是正常语义结论。无法执行或输出故障不能冒充 NEED_MORE_CONTEXT。
 仅当 Packet 存在 READ_THEN_WRITEBACK，安全/误报结论还须返回：
 "stale_writeback_assessment": {"applicable": true, "blocked": true,

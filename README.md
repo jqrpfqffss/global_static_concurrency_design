@@ -113,13 +113,15 @@ py -3.10 run_ecra.py
 
 OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围内未确认问题、或尚不能确定。确认存在一个变量缺陷即可回答“有问题”，但剩余疑似项、失败项和覆盖盲区仍保留，不能宣称全工程排查完成。`LIKELY` 不算最终定论，下次 `review` 会重新复核。
 
-所有工程使用[简单变量级输出格式](docs/opencode-review-format.md)：`finding_id/status/reason/interleaving/protection/impact/evidence/fix/verification/missing_context`。一个变量一个最终状态和结论，不要求逐 pair、investigation、参与者或结构化步骤。页面保留中文栏目，按模型原文展示；旧归档仍可读取。
+所有工程使用[简单变量级输出格式](docs/opencode-review-format.md)：`finding_id/status/summary/reason/interleaving/protection/impact/evidence/fix/verification/missing_context`。`summary` 为独立中文一句话结论，`reason` 保留完整分析。一个变量一个最终状态和结论，不要求逐 pair、investigation、参与者或结构化步骤。页面保留中文栏目，按模型原文展示；旧归档仍可读取。
 
 源码证据仅要求 `file/line/claim`；程序核对工程内文件及有效行号，保存邻近源码、完整文件 SHA-256、执行时间、模型、实际提示词、Packet 和原始 stdout/stderr。归档完整性独立于模型输出协议；日志与源码一致不代表模型推理已由硬件实验验证。
 
 `review.max_items` 是每批最多处理多少项，`0` 表示不限制批次；三个复核入口均自动跑完全部目标。`workers` 为 1–8（默认 1），控制批内独立只读会话数。Packet 保留全部访问、完整调用链、上下文、保护、初始化、别名与未知事实，重复调用链只做无损去重；不再默认附带 1600 行函数正文。OpenCode 按声明、访问点、调用链、入口、保护和 unknowns 导航读取必要源码，避免无关全仓扫描。
 
 只执行一次正常语义复核。输出结构异常时最多两次 `FORMAT_FIX`，只发送原始分析文字、具体错误、简单格式和 finding_id；格式会话无工具权限，不发送 Packet、不重读源码。旧的 `audit_verdicts` 设置不再参与流程，可从项目配置删除。
+
+一句话结论默认启用。在 `config/semantics.yaml` 的 `review` 下配置 `summary: {enabled: true, max_chars: 120, fix_retries: 2}`；缺省使用这些默认值。`max_chars` 为 1–10000 的整数，`fix_retries` 为 0–10 的整数，类型或范围错误会直接报错。长度按 Python `len(str)` 统计 Unicode 码点，包含变量名、空格和标点；它不同于模型 token 数，也不同于组合字形数。程序不通过切片缩短摘要。摘要缺失、超长或出现可检测的残缺/矛盾时，独立调用无工具权限的 `SUMMARY_FIX`，仅允许修改顶层 `summary`，其余字段须完全一致；耗尽次数记 `TECH_FAILED`。关闭 `summary.enabled` 后无需摘要，完整 reason 和证据仍保留。规则只检查可确定的问题，不能证明所有语义都准确；完整配置、日志字段、历史 v2 兼容和根因清单见[摘要修复说明](docs/review-summary.md)。
 
 `timeout_seconds` 是每次 OpenCode 调用的最长时间，`retries` 只用于有限技术重试；格式修正单独限制为两次。真正执行失败或最终格式仍无效记为 `TECH_FAILED`，始终可用 `review-failed` 再试。`--no-review` 覆盖 enabled，保留完整 `PENDING` 队列。所有合法语义状态（包括 `LIKELY` 和 `NEED_MORE_CONTEXT`）均记 `DONE`，证据不足不是执行失败。
 

@@ -177,7 +177,8 @@ class ExportTests(unittest.TestCase):
                         self.assertEqual(packet['variable']['static_classification'],
                                          next(f['static_classification'] for f in report['findings']
                                               if f['finding_id'] == packet['finding_id']))
-                        answer = answer_for('NEED_MORE_CONTEXT', packet['finding_id'])
+                        answer = answer_for('NEED_MORE_CONTEXT', packet['finding_id'],
+                                            variable=packet['variable'].get('canonical_path', packet['variable']['qualified_name']))
                         return CompletedProcess([], 1, '', 'synthetic transport failure') if mode == 'TECH_FAILED' else (
                             CompletedProcess([], 0, json.dumps(answer), ''))
                     with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch(

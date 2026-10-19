@@ -12,6 +12,8 @@ import yaml
 
 from ecra.review import build_variable_review_packet, review_all, verify_receipt, REVIEW_PROMPT
 from ecra.review_contract import validate_stale_writeback_safety, StaleWritebackSafetyError
+from tests.test_review_contract import answer_for
+from tests.live_review_archive import archive_sources
 from ecra.cli import safe_review_samples
 from tests import test_ecra as fixtures
 
@@ -71,6 +73,7 @@ class StaleWritebackTests(unittest.TestCase):
         def respond(argv, **kwargs):
             calls.append((argv, kwargs))
             value = dict(answers[min(len(calls)-1, len(answers)-1)], finding_id=packet['finding_id'])
+            value['summary'] = answer_for(value['status'], variable=variable.get('canonical_path', variable['qualified_name']))['summary']
             return CompletedProcess([], 0, json.dumps(value, ensure_ascii=False), '')
 
         with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
@@ -264,6 +267,12 @@ class StaleWritebackTests(unittest.TestCase):
     def test_live_opencode_reviews_new_fixtures(self):
         # Uses only new fixtures in a temporary project. OpenCode has read
         # permissions only; no coding delegation or business source is used.
+        import tempfile
+        from ecra.common import write_json
+        archive = Path(os.environ.get('ECRA_STALE_WRITEBACK_ARCHIVE', str(
+            Path(tempfile.gettempdir()) / 'ecra-stale-writeback-live'))).resolve()
+        archive.mkdir(parents=True, exist_ok=True)
+        observations = []
         for case, expected in [('unsafe_direct_writeback', {'CONFIRMED', 'LIKELY'}),
                                ('safe_irq_protected', {'REVIEWED_SAFE'}),
                                ('safe_same_context', {'REVIEWED_SAFE'})]:
@@ -271,12 +280,24 @@ class StaleWritebackTests(unittest.TestCase):
                 cfg, facts, report, variable, _, _ = self.scan(case)
                 report['findings'] = [f for f in report['findings'] if f['symbol_id'] == variable['symbol_id']]
                 cfg['review'].update(enabled=True, command=['opencode'], workers=1, retries=0, timeout_seconds=90)
-                from ecra.common import write_json
+                if os.environ.get('ECRA_STALE_WRITEBACK_MODEL'):
+                    cfg['review']['model'] = os.environ['ECRA_STALE_WRITEBACK_MODEL']
+                if os.environ.get('ECRA_REVIEW_LIVE_TIMEOUT'):
+                    cfg['review']['timeout_seconds'] = float(os.environ['ECRA_REVIEW_LIVE_TIMEOUT'])
                 write_json(self.root/'.ecra/facts.json', facts)
-                row = review_all(self.root, self.root/'.ecra'/case, cfg, facts, report, 'live-fixture', print)[0]
+                out = self.root/'.ecra'/case
+                row = review_all(self.root, out, cfg, facts, report, 'live-fixture', print)[0]
+                target = archive/case
+                shutil.copytree(out, target, dirs_exist_ok=True)
+                archive_sources(self.root, target, row)
+                observations.append(dict(fixture=case, state=row['state'], status=row.get('status'),
+                    error=row.get('error'), answer=row.get('answer'),
+                    model=(row.get('execution') or {}).get('model'), attempts=row.get('attempt_count')))
+                write_json(archive/'observations.json', observations)
                 print(case, row['state'], row.get('status'), row.get('error', ''))
                 self.assertEqual(row['state'], 'DONE', row.get('error'))
                 self.assertIn(row['status'], expected)
+                verify_receipt(self.root, out/'review', row)
 
 
 if __name__ == '__main__':

@@ -9,7 +9,8 @@ from .decisions import (CONCURRENT_SIGNALS, DECISIONS, RISK_PRIORITY, aggregate_
                         decision_label,
                         effective_decision as decision, review_category as category,
                         variable_decisions)
-from .review_presentation import explanation as story_explanation
+from .review_presentation import explanation as story_explanation, prose
+from .review_summary import display_summary
 from .review_language import display_answer, is_english_prose
 
 
@@ -39,6 +40,7 @@ DISPLAY_TEXT = {
     'MODELED_SCOPE_COMPLETE': '已完成当前建模范围分析', 'PARSED': '解析成功',
     'FAILED': '解析失败', 'DONE': '已完成', 'STALE': '结果已失效',
     'TECH_FAILED': '复核执行失败', 'RUNNING': '执行中', 'SCANNED': '静态扫描完成',
+    'EXECUTED': '调用已执行，等待校验',
     'REVIEW_COMPLETE': '复核完成', 'OUT_OF_BUILD': '当前构建之外的声明',
     'ADDRESS_TAKEN': '取地址（不等于读写）',
 }
@@ -150,6 +152,11 @@ VERDICTS = {
     "NEED_MORE_CONTEXT": "已完成复核，源码证据仍不足",
 }
 LABELS = {
+    'summary_attempt': '摘要修复序号', 'trigger_reason': '触发原因',
+    'before_summary': '修复前摘要', 'after_summary': '修复后摘要',
+    'before_chars': '修复前字符数', 'after_chars': '修复后字符数',
+    'max_chars': '字符上限', 'validation_result': '校验结果',
+    'technical_retry': '本次技术重试序号',
     "symbol_id": "唯一变量 ID", "name": "名称", "qualified_name": "限定名称", "kind": "变量类别",
     "scope": "作用域", "storage_class": "存储类别", "linkage": "链接属性", "type": "类型",
     "size_bytes": "大小（字节）", "alignment_bytes": "对齐（字节）", "initializer": "初始化表达式",
@@ -253,6 +260,7 @@ def fields(value):
             return '执行或校验未完成，错误原文保存在原始日志中。'
         if key == 'stage':
             return {'ANALYZE': '源码复核', 'FORMAT_FIX': '格式修正', 'LANGUAGE_FIX': '中文表达修正',
+                    'SUMMARY_FIX': '一句话结论修正',
                     'NVIC_FACT_CHALLENGE': 'NVIC 事实核实', 'STALE_WRITEBACK_CHALLENGE': '旧值写回安全核实'}.get(item, item)
         if key == 'state':
             return to_display_text(item)
@@ -386,8 +394,7 @@ def reviewed_variable_summary(findings, records, variable=None):
         return next((r for r in rows if r.get('state') == 'DONE' and r.get('status') == status), None)
     def explanation(row):
         answer = row.get('answer') or {}
-        return ((answer.get('explanation') or {}).get('summary') or answer.get('reason') or
-                review_label(row))[:260]
+        return display_summary(answer) or review_label(row)
     decisions = [decision(f, r, variable=variable) for f, r in zip(findings, rows)]
     merged = aggregate_decisions(decisions)
     if merged == 'confirmed':
@@ -1179,7 +1186,9 @@ def write_html(out, facts, report, reviews):
                 break
         assessment = decision(f, r, variable=variables.get(sid))
         if r.get('state') == 'DONE' and r.get('answer', {}).get('reason'):
-            titles = '<p class="review-brief">' + esc(r['answer']['reason'][:240]) + '</p>' + titles
+            titles = '<p class="review-brief">' + esc(display_summary(r['answer'])) + '</p>' + titles
+            if display_summary(r['answer']) != r['answer']['reason']:
+                titles += '<details><summary>完整技术判断理由</summary>' + prose(r['answer']['reason']) + '</details>'
         state = f'<span class="tag {category(r)}">{esc(review_label(r))}</span>'
         cells = [(('<span>变量结论：</span>' + decision_tag(assessments.get(sid, assessment))
                   + '<br>') if sid else '')
@@ -1315,6 +1324,13 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         if execution.get('stdout_file'):
             error += '<p><a href="review/' + esc(execution['stdout_file']) + '">原始 OpenCode 执行日志</a></p>'
             error += '<details><summary>执行时间、日志 SHA-256 与校验范围</summary>' + fields(execution) + '</details>'
+        for attempt in r.get('attempts', [])[r.get('attempt_start', 0):]:
+            error += '<details class="repair-attempt"><summary>调用 ' + str(attempt.get('number', '')) + ' · ' + esc(attempt.get('stage', '')) + '</summary>'
+            error += fields(attempt)
+            for stream, title in [('prompt', '完整提示词'), ('stdout', '原始响应'), ('stderr', '标准错误')]:
+                if attempt.get(stream + '_file'):
+                    error += '<p><a href="review/' + esc(attempt[stream + '_file']) + '">' + title + '</a></p>'
+            error += '</details>'
         if r.get('previous_reviews'):
             error += '<p>保留 ' + str(len(r['previous_reviews'])) + ' 次先前回答，当前状态：' + esc(r['status']) + '。</p>'
             for attempt, previous in enumerate(r['previous_reviews'], 1):

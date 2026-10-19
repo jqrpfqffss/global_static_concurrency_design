@@ -543,6 +543,7 @@ assert cfg['agent']['ecra-review']['permission']['*']=='deny'
 answer=dict(finding_id=packet['finding']['finding_id'],status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=Path('a.c').read_text().splitlines()[0])])
 answer.update({k:'已核对证据' for k in ('reason','interleaving','protection','impact','fix','verification')})
 answer.update(__V2__)
+answer['summary']='已确认并发风险：'+packet['finding']['variable_name']+' 的模拟访问存在冲突，仅用于协议测试。'
 answer['review_type']='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='协议测试说明'
 answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
@@ -602,6 +603,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                           **{k:'已核对源码证据' for k in
                              ('reason','interleaving','protection','impact','fix','verification')})
             answer.update(structured_fields(review_type='VARIABLE'))
+            answer['summary'] = '已确认并发风险：' + packet['finding']['variable_name'] + ' 的模拟访问存在冲突，仅用于协议测试。'
             answer['investigation'] = [dict(id=r['id'], assessment='仅用于协议测试',
                                             evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
             return CompletedProcess(argv, 0, json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), '')
@@ -627,6 +629,7 @@ finding=packet['finding']
 answer=dict(finding_id=finding['finding_id'],status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=Path('a.c').read_text().splitlines()[0])])
 answer.update({k:'已核对源码' for k in ('reason','interleaving','protection','impact','fix','verification')})
 answer.update(__V2__)
+answer['summary']='已确认并发风险：'+finding['variable_name']+' 的模拟访问存在冲突，仅用于协议测试。'
 answer['review_type']='VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='协议测试说明'
 answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
@@ -660,6 +663,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         answer = dict(finding_id=fid, status='NEED_MORE_CONTEXT', evidence=[],
                       **{k:'尚需补充调度证据' for k in ('reason','interleaving','protection','impact','fix','verification')})
         answer.update(structured_fields('NEED_MORE_CONTEXT'))
+        answer['summary'] = '证据不足，暂无法判断：g 的模拟调度条件尚缺证据，需要进一步核实。'
         result = CompletedProcess([], 0, json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), '')
         with patch('ecra.review.execute', return_value=result) as execute:
             review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None)
@@ -726,6 +730,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             answer=dict(finding_id=fid,status='CONFIRMED',evidence=[dict(file='a.c',line=1,quote=(self.root/'a.c').read_text().splitlines()[0])],
                 **{k:'已核对源码证据' for k in ('reason','interleaving','protection','impact','fix','verification')})
             answer.update(structured_fields(review_type='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'))
+            answer['summary'] = '已确认并发风险：' + packet['finding']['variable_name'] + ' 的模拟访问存在冲突，仅用于协议测试。'
             answer['evidence'][0]['claim']='协议测试说明'
             answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
             return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
@@ -770,6 +775,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             if fail and len(calls) == 2:
                 return CompletedProcess(argv, 1, '', 'synthetic provider error')
             answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='模拟协议回答。',
+                          summary='已验证当前条件下安全：' + packet['finding']['variable_name'] + ' 的模拟访问条件已排除冲突，仅用于协议测试。',
                           evidence=[dict(file='a.c', line=1, claim='模拟测试源码')])
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 

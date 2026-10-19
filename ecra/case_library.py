@@ -118,5 +118,8 @@ def case_library_section(path, folder, progress=print):
             progress('案例库警告：' + warning)
         section += (f'案例库有 {len(warnings)} 项格式/读取警告；索引可能不完整。'
                     '须分段阅读正文中的未索引内容，不能静默忽略。\n')
-    section += '索引和相似案例均不能决定结论；以当前工程证据为准，并检查库外新模式。\n'
+    section += ('案例库可读时，提交最终 JSON 前必须通过 read 至少读取一条最相关案例的正文片段，'
+                '核对其误判陷阱和安全排除条件；安全、误报及证据不足结论同样需要。'
+                '只阅读工程文件或案例索引不满足正文阅读要求。\n'
+                '索引和相似案例均不能决定结论；以当前工程证据为准，并检查库外新模式。\n')
     return section, paths

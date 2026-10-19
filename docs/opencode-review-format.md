@@ -24,6 +24,7 @@ OpenCode 按声明 → 所有访问点 → 完整调用链 → 入口 → 保护
 {
   "finding_id": "原样返回",
   "status": "CONFIRMED",
+  "summary": "已确认并发风险：变量在未保护的读改写窗口可能被抢占，造成更新丢失。",
   "reason": "结论与依据",
   "interleaving": "主要交错，或无法形成危险交错的原因",
   "protection": "保护机制、覆盖范围和有效性",
@@ -47,7 +48,11 @@ OpenCode 按声明 → 所有访问点 → 完整调用链 → 入口 → 保护
 
 ## 最小校验与格式恢复
 
-硬校验：finding_id 相同、合法 status、非空 reason、evidence 为列表；每条证据的文件在工程内且存在、整数行号有效；上述三种明确结论至少一处 evidence；两种不确定结论至少一个非空 missing_context。无字数限制，不要求 quote、schema_version 或结构化解释。
+结构硬校验：finding_id 相同、合法 status、非空 reason、evidence 为列表；每条证据的文件在工程内且存在、整数行号有效；上述三种明确结论至少一处 evidence；两种不确定结论至少一个非空 missing_context。完整 reason 等分析字段无字数限制，不要求 quote、schema_version 或结构化解释。
+
+独立摘要在结构校验与语言修复后另行校验；默认最多 120 个 Unicode 码点，包含变量名、status 对应判定、核心技术机制或关键未确认条件。摘要必须为完整简体中文句子；不能删减 reason 来满足摘要长度。缺失、为空、超长、明显残缺、非中文或可检测的明确矛盾使用 SUMMARY_FIX，默认最多两次；它不读取源码，只可添加或修改顶层 summary，其余字段由程序逐一严格核对。摘要修复 JSON 无效时使用独立计数的 FORMAT_FIX；摘要语言问题也归 SUMMARY_FIX，其他分析正文的英文问题归 LANGUAGE_FIX。全部通过后才归档为 DONE，失败为 TECH_FAILED，不能冒充 NEED_MORE_CONTEXT。配置、边界及完整日志见[摘要修复说明](review-summary.md)。
+
+SUMMARY_FIX 优先返回单字段 JSON 补丁 `{"summary":"修复后的结论"}`，程序保留原始有效回答的其它字段并合并摘要，收据验证时重放相同过程；兼容完整回答，但任何非 summary 字段的改动都会拒绝。主复核仍返回上面的完整变量级 JSON。
 
 Parser 支持整体 JSON、fenced JSON、前后解释、JSONL 和最后一个与 finding_id 匹配的完整对象。输出格式错误最多进行两次 FORMAT_FIX，只传原始分析文字、当前错误、简单格式、finding_id 和枚举。格式会话没有工具权限、不附 Packet、不延续源码分析会话，不得增添事实或改变原结论。两次后仍无有效结果才为 TECH_FAILED；provider 错误、退出异常、启动失败、timeout 直接按技术失败/有限技术重试处理。
 
@@ -55,6 +60,6 @@ Parser 支持整体 JSON、fenced JSON、前后解释、JSONL 和最后一个与
 
 每次执行保存不可覆盖的时间戳 Packet、Prompt、stdout、stderr、解析答案、模型、时间及 SHA-256；格式修正的原始分析也校验。稳定文件名仅为最新输入副本，收据引用时间戳原件。历史失败不阻碍以后重新复核；旧结论进入历史，当前答案只来自本轮有效日志。
 
-index.html 保持变量级清单和中文栏目；简单字段直接映射为原因、时序、保护、影响、证据、修复、验证和缺失事实。旧 v2 解释仅为历史展示兼容，不再进入新答案的硬校验。源码/扫描指纹变化仍使旧答案失效，要求重新扫描。
+index.html 保持变量级清单和中文栏目；简单字段直接映射为摘要、完整原因、时序、保护、影响、证据、修复、验证和缺失事实。摘要优先级为顶层 summary → 历史 explanation.summary → 完整 reason（历史/关闭摘要的显示回退，不是自动摘要）。HTML/Markdown 不裁剪摘要或 reason；完整理由可展开阅读。旧 v2 的其余结构仅为历史展示兼容，摘要遵循同一质量校验，修复时添加顶层 summary 并保留历史 explanation 原文。源码/扫描指纹变化仍使旧答案失效，要求重新扫描。
 
 `max_items` 控制每批大小，命令自动处理完所有目标；`workers` 为 1–8。旧 `audit_verdicts` 配置可删除，当前流程不执行额外反证轮。
