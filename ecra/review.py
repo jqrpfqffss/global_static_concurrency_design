@@ -435,11 +435,9 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         raise ValueError('非法复核模式: ' + mode)
     settings = cfg['review']
     summary_config = summary_settings(settings)
-    workers, limit = settings.get('workers', 1), settings.get('max_items', 0)
+    workers = settings.get('workers', 1)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('review.workers 必须是 1 到 8 的整数')
-    if type(limit) is not int or limit < 0:
-        raise ValueError('review.max_items 必须是非负整数')
     folder = out / 'review'
     folder.mkdir(parents=True, exist_ok=True)
     targets = review_targets(report)
@@ -872,8 +870,6 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         write_json(cache, result)
         return result
 
-    batch_size = limit or len(selected) or 1
-    batch_count = (len(selected) + batch_size - 1) // batch_size
     selected_ids = {f['finding_id'] for f in selected}
     completed_rows = [ledger[f['finding_id']] for f in targets if f['finding_id'] not in selected_ids]
 
@@ -887,20 +883,24 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         if on_result:
             on_result(completed_rows)
 
-    for start in range(0, len(selected), batch_size):
-        batch = list(enumerate(selected[start:start + batch_size], start))
-        number = start // batch_size + 1
-        if enabled:
-            progress(f'OpenCode 复核：共 {len(selected)} 项，当前批次 {number}/{batch_count}，本批 {len(batch)} 项')
-        if workers == 1:
-            for index, finding in batch:
-                completed(process(index, finding))
-        else:
-            with ThreadPoolExecutor(max_workers=min(workers, len(batch))) as executor:
-                for future in as_completed([executor.submit(process, i, f) for i, f in batch]):
+    if enabled:
+        progress(f'OpenCode 复核：共 {len(selected)} 项，并发上限 {min(workers, len(selected))}')
+    if workers == 1:
+        for index, finding in enumerate(selected):
+            completed(process(index, finding))
+    elif selected:
+        # One pool owns the whole queue. Its idle workers pick up the next item
+        # immediately, independently of slower reviews and report checkpoints.
+        with ThreadPoolExecutor(max_workers=min(workers, len(selected))) as executor:
+            futures = [executor.submit(process, i, f) for i, f in enumerate(selected)]
+            try:
+                for future in as_completed(futures):
                     completed(future.result())
-        if enabled and number < batch_count:
-            progress('本批完成，自动进入下一批')
+            finally:
+                # Do not start queued reviews while unwinding an interruption
+                # or a failed checkpoint. Already running items finish normally.
+                for future in futures:
+                    future.cancel()
     rows = save_queue()
     assert_review_integrity(dict(findings=selected), [ledger[f['finding_id']] for f in selected],
                             require_terminal=enabled)

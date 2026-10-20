@@ -198,13 +198,13 @@ class ReviewScaleTests(unittest.TestCase):
         self.assertLess(max(map(len, text.splitlines())), 2000)
         self.assertEqual(packet['access_count'], 30)
 
-    def test_250_variable_batches_cache_and_immutable_packet_binding(self):
+    def test_250_variable_workers_cache_and_immutable_packet_binding(self):
         (self.root/'app.c').write_text('int x;\n', encoding='utf-8')
         findings = [dict(finding_id=f'F{i}', symbol_id=f'x{i}', accesses=[dict(access_id=f'A{i}',
                     function_id='f', file='app.c', line=1, access_kind='WRITE')]) for i in range(250)]
         facts = dict(variables=[], contexts=[], functions=[], calls=[])
         report = dict(findings=findings, coverage={}, limitations=[])
-        cfg = dict(review=dict(enabled=True, workers=4, max_items=73, retries=0), analysis={})
+        cfg = dict(review=dict(enabled=True, workers=4, retries=0), analysis={})
         seen = []
         def execute(argv, **kwargs):
             packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
@@ -216,7 +216,7 @@ class ReviewScaleTests(unittest.TestCase):
             return CompletedProcess(argv, 0, json.dumps(answer), '')
         with patch('ecra.review.resolve_command', return_value=['synthetic-only']), patch('ecra.review.execute', side_effect=execute):
             first = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
-            cfg['review']['max_items'] = 0
+            cfg['review']['workers'] = 3  # Scheduling changes do not invalidate semantic receipts.
             second = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
         self.assertEqual(len(seen), 250)
         self.assertEqual(sum(bool(r.get('cached')) for r in second), 250)

@@ -62,4 +62,4 @@ Parser 支持整体 JSON、fenced JSON、前后解释、JSONL 和最后一个与
 
 index.html 保持变量级清单和中文栏目；简单字段直接映射为摘要、完整原因、时序、保护、影响、证据、修复、验证和缺失事实。摘要优先级为顶层 summary → 历史 explanation.summary → 完整 reason（历史/关闭摘要的显示回退，不是自动摘要）。HTML/Markdown 不裁剪摘要或 reason；完整理由可展开阅读。旧 v2 的其余结构仅为历史展示兼容，摘要遵循同一质量校验，修复时添加顶层 summary 并保留历史 explanation 原文。源码/扫描指纹变化仍使旧答案失效，要求重新扫描。
 
-`max_items` 控制每批大小，命令自动处理完所有目标；`workers` 为 1–8。旧 `audit_verdicts` 配置可删除，当前流程不执行额外反证轮。
+`workers` 为 1–8，控制同时复核的变量数；任何一项结束后，空闲会话立即处理下一项，直到全部目标完成。旧 `audit_verdicts` 配置可删除，当前流程不执行额外反证轮。

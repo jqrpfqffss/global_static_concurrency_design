@@ -113,8 +113,7 @@ review:
   # model: provider/model  # 使用你已配置并登录的 OpenCode 模型
   timeout_seconds: 300
   retries: 1
-  # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
-  max_items: 0
+  # 同时复核的变量数，范围 1–8；任何一项结束后立即补入下一项，直到全部完成。
   workers: 1
   summary:
     enabled: true
@@ -163,8 +162,7 @@ review:
   # model: provider/model
   timeout_seconds: 300
   retries: 1
-  # 每批最多复核的候选项数；0 表示不限制批次大小。自动连续执行全部批次。
-  max_items: 0
+  # 同时复核的变量数，范围 1–8；任何一项结束后立即补入下一项，直到全部完成。
   workers: 1
   summary:
     enabled: true
@@ -331,10 +329,9 @@ def load_config(root=None, path=None):
         value = cfg[section].get(name, 180)
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"{section}.{name} 必须大于 0")
-    for name in ("retries", "max_items"):
-        value = cfg["review"].get(name, 0)
-        if type(value) is not int or value < 0:
-            raise ValueError(f"review.{name} 必须是非负整数")
+    retries = cfg["review"].get("retries", 0)
+    if type(retries) is not int or retries < 0:
+        raise ValueError("review.retries 必须是非负整数")
     for section, key in (("analysis", "auto_contexts"), ("analysis", "auto_configure_cmake"),
                          ('analysis', 'auto_system_includes'), ('analysis', 'open_report'),
                          ('analysis', 'build_closure_only'), ("review", "enabled")):

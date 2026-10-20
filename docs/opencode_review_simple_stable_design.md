@@ -77,7 +77,7 @@ PENDING：尚无当前有效答案（包括禁用复核、未处理或中断的�
 
 ## 11. review-failed 命令
 
-`py -3.10 run_ecra.py review-failed` 仅处理 TECH_FAILED，不重跑 DONE（包括 NEED_MORE_CONTEXT 和 LIKELY）。成功项退出失败集合；仍失败项保留，可无限次显式重试，无永久放弃阈值。max_items 仅限批大小，workers 控制 1–8 个会话，一次命令自动处理全部目标。
+`py -3.10 run_ecra.py review-failed` 仅处理 TECH_FAILED，不重跑 DONE（包括 NEED_MORE_CONTEXT 和 LIKELY）。成功项退出失败集合；仍失败项保留，可无限次显式重试，无永久放弃阈值。workers 控制 1–8 个并发会话，任何一项结束后立即补入下一项，一次命令自动处理全部目标。
 
 ## 12. index.html 兼容方案
 

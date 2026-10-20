@@ -573,7 +573,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         fake = self.root / ".ecra/fake_opencode.py"
         fake.write_text("import time; print('partial-review-evidence',flush=True); time.sleep(5)", encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=[sys.executable, str(fake)], retries=0,
-                             timeout_seconds=0.5, max_items=1)
+                             timeout_seconds=0.5)
         def checkpoint(results):
             queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
             self.assertEqual(len(queue), len(report['findings']))
@@ -584,12 +584,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         log = self.root/'.ecra/review'/results[0]['execution']['stdout_file']
         self.assertIn('partial-review-evidence', log.read_text(encoding='utf-8'))
 
-    def test_run_command_reviews_all_batches_without_manual_review(self):
+    def test_run_command_reviews_all_targets_without_manual_review(self):
         from subprocess import CompletedProcess
         from unittest.mock import patch
         self.project({'a.c': 'int g,h;void ISR(void){g++;h++;}void Task(void){g++;h++;}'},
                      review=dict(enabled=True, command=[sys.executable], workers=1,
-                                 max_items=1, retries=0))
+                                 retries=0))
         called = []
 
         def respond(argv, **kwargs):
@@ -614,7 +614,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.assertEqual(len(called), 2)
         self.assertEqual(len(set(called)), 2)
         self.assertTrue(all(r['state'] == 'DONE' for r in queue))
-        self.assertIn('自动进入下一批', (self.root/'.ecra/run.log').read_text(encoding='utf-8'))
+        self.assertIn('复核成功 2', (self.root/'.ecra/run.log').read_text(encoding='utf-8'))
 
     def test_review_cache_survives_different_process_hash_seeds(self):
         import os
@@ -715,7 +715,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         from unittest.mock import patch
         from ecra.workflow import saved_run, status, checked_scan
         self.project({'a.c': 'int g,h;void ISR(void){g++;h++;}void Task(void){g++;h++;}'},
-                     review=dict(enabled=True,command=[sys.executable],max_items=1,retries=0))
+                     review=dict(enabled=True,command=[sys.executable],retries=0))
         self.assertEqual(run(self.root,no_review=True),2)
         out=self.root/'.ecra'
         calls=[]

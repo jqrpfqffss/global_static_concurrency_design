@@ -55,14 +55,18 @@ def main():
                               text=True, encoding='utf-8', errors='replace')
         return proc.returncode
     status = plan['statuses'][name]
+    labels = dict(CONFIRMED='已确认并发风险', LIKELY='疑似并发风险',
+                  REVIEWED_SAFE='已验证当前条件下安全', FALSE_POSITIVE='已确认静态误报',
+                  NEED_MORE_CONTEXT='证据不足，暂无法判断')
     answer = dict(finding_id=fid, status=status,
-        reason='Deterministic external-process fixture; not an AI judgment.',
-        interleaving='Fixture text for protocol verification only.',
-        protection='Fixture text; no safety claim about a real firmware.',
-        impact='No production assessment is made by this fixture.',
-        evidence=[dict(file='Core/Src/probes.c', line=1, claim='Fixture source exists.')],
-        fix='Not applicable to this transport test.', verification='Inspect the CLI call journal.',
-        missing_context=['Actual IRQ activation is outside this intentionally minimal fixture.']
+        summary=labels[status] + '：' + name + ' 的模拟访问关系已核对，仅用于复核协议测试。',
+        reason='确定性的子进程协议测试响应，仅验证传输机制，未进行模型分析。',
+        interleaving='模拟夹具中的访问顺序，仅用于协议验证。',
+        protection='模拟保护说明，不用于评估真实固件的安全性。',
+        impact='仅验证结果归档，不对生产工程作出判断。',
+        evidence=[dict(file='Core/Src/probes.c', line=1, claim='协议测试的源码文件存在。')],
+        fix='本次传输测试不提供生产修复建议。', verification='核对命令行调用日志与故障计划。',
+        missing_context=['该最小协议夹具未包含实际中断启用条件。']
             if status in {'LIKELY', 'NEED_MORE_CONTEXT'} else [])
     print(json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), flush=True)
     return 0

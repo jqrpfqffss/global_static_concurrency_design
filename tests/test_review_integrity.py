@@ -8,6 +8,7 @@ import time
 import unittest
 from pathlib import Path
 from subprocess import CompletedProcess
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 from ecra.common import read_json, write_json
@@ -167,6 +168,7 @@ class IntegrityTests(unittest.TestCase):
         self.assertNotIn('answer',row)
 
     def test_review_reruns_all_static_candidates_independent_of_previous_semantics(self):
+        self.cfg['review']['workers'] = 3
         statuses = ['CONFIRMED', 'LIKELY', 'REVIEWED_SAFE', 'FALSE_POSITIVE', 'NEED_MORE_CONTEXT'] * 2
         self.report['findings'] = [dict(finding_id=f'F{i}', static_classification='UNKNOWN' if i % 2 else 'SUSPECT', accesses=[])
                                    for i in range(10)]
@@ -187,6 +189,7 @@ class IntegrityTests(unittest.TestCase):
         self.assertTrue(all(r['attempt_count'] == 2 for r in rows))
 
     def test_review_failed_repeats_only_remaining_failures_and_preserves_done_receipts(self):
+        self.cfg['review']['workers'] = 3
         self.report['findings'] = [dict(finding_id=f'F{i}', static_classification='SUSPECT', accesses=[]) for i in range(10)]
         failures = {'F8', 'F9'}
         calls = []
@@ -216,11 +219,11 @@ class IntegrityTests(unittest.TestCase):
         for fid, data in preserved.items():
             self.assertEqual((self.out / 'review' / (fid + '.result.json')).read_bytes(), data)
 
-    def test_batches_run_to_completion_with_bounded_concurrency_and_complete_ordered_ledger(self):
-        self.cfg['review'].update(workers=4, max_items=5)
+    def test_workers_run_to_completion_with_bounded_concurrency_and_complete_ordered_ledger(self):
+        self.cfg['review']['workers'] = 3
         self.report['findings'] = [dict(finding_id=f'F{i}', accesses=[]) for i in range(23)]
         active = peak = 0
-        calls, batches = [], []
+        calls = []
         lock = threading.Lock()
 
         def respond(argv, **kwargs):
@@ -235,25 +238,127 @@ class IntegrityTests(unittest.TestCase):
                 active -= 1
             return self.response(answer_for(fid=fid))
 
-        def progress(message):
-            if '当前批次' in message:
-                self.assertEqual(active, 0)
-                batches.append(message)
-
         def checkpoint(current):
             queue = read_json(self.out / 'review/queue.json')
             self.assertEqual([r['finding_id'] for r in queue], [f'F{i}' for i in range(23)])
             self.assertTrue(review_integrity(self.report, queue)['complete'])
 
-        rows = self.run_review(respond, progress=progress, on_result=checkpoint)
+        rows = self.run_review(respond, on_result=checkpoint)
         self.assertEqual(len(calls), 23)
-        self.assertEqual(len(batches), 5)
-        self.assertLessEqual(peak, 4)
+        self.assertEqual(set(calls), {f'F{i}' for i in range(23)})
+        self.assertLessEqual(peak, 3)
         self.assertGreater(peak, 1)
         self.assertTrue(all(r['state'] == 'DONE' for r in rows))
         calls.clear()
         self.run_review(respond)  # only normal run reuses valid receipts
         self.assertEqual(calls, [])
+
+    def test_idle_worker_starts_next_item_while_first_item_and_checkpoint_are_blocked(self):
+        for failure in (False, True):
+            with self.subTest(transport_failure=failure):
+                self.out = self.root / f'.refill-{failure}'
+                self.cfg['review']['workers'] = 3
+                self.report['findings'] = [dict(finding_id=f'F{i}', accesses=[]) for i in range(7)]
+                first_wave = threading.Barrier(3, timeout=10)
+                next_started = threading.Event()
+                release_first = threading.Event()
+                first_finished = threading.Event()
+                checkpoint_seen = False
+
+                def respond(argv, **kwargs):
+                    fid = read_json(Path(argv[argv.index('--file') + 1]))['finding_id']
+                    if fid in {'F0', 'F1', 'F2'}:
+                        first_wave.wait()
+                    if fid == 'F0':
+                        try:
+                            if not release_first.wait(10):
+                                raise RuntimeError('No refill/checkpoint while first item was blocked')
+                        finally:
+                            first_finished.set()
+                    elif fid == 'F3':
+                        self.assertFalse(first_finished.is_set())
+                        next_started.set()
+                    elif fid == 'F1' and failure:
+                        raise subprocess.TimeoutExpired(['synthetic-cli'], 1)
+                    return self.response(answer_for(fid=fid))
+
+                def checkpoint(current):
+                    nonlocal checkpoint_seen
+                    if not checkpoint_seen:
+                        checkpoint_seen = True
+                        # A slow report writer must not hold up the next review.
+                        try:
+                            self.assertTrue(next_started.wait(5), 'Idle worker did not start F3')
+                            self.assertFalse(first_finished.is_set())
+                        finally:
+                            release_first.set()
+
+                rows = self.run_review(respond, on_result=checkpoint)
+                self.assertTrue(next_started.is_set())
+                self.assertTrue(checkpoint_seen)
+                self.assertEqual([r['finding_id'] for r in rows], [f'F{i}' for i in range(7)])
+                self.assertEqual(CounterStates(rows), {'DONE': 6, 'TECH_FAILED': 1} if failure else {'DONE': 7})
+                assert_review_archive(self.report, rows, self.out / 'review')
+
+    def test_worker_boundaries_and_empty_queue(self):
+        for workers, count in ((1, 5), (3, 0), (8, 2)):
+            with self.subTest(workers=workers, count=count):
+                self.out = self.root / f'.workers-{workers}'
+                self.cfg['review']['workers'] = workers
+                self.report['findings'] = [dict(finding_id=f'F{i}', accesses=[]) for i in range(count)]
+                calls = []
+
+                def respond(argv, **kwargs):
+                    fid = read_json(Path(argv[argv.index('--file') + 1]))['finding_id']
+                    calls.append(fid)
+                    return self.response(answer_for(fid=fid))
+
+                rows = self.run_review(respond)
+                self.assertEqual(len(calls), count)
+                self.assertEqual(len(set(calls)), count)
+                self.assertEqual(len(rows), count)
+                self.assertTrue(all(r['state'] == 'DONE' for r in rows))
+
+        for workers in (0, 9, -1, True, 1.5, '3'):
+            with self.subTest(invalid_workers=workers):
+                self.cfg['review']['workers'] = workers
+                with self.assertRaisesRegex(ValueError, 'review.workers'):
+                    self.run_review(lambda *a, **k: self.fail('Invalid config started a review'))
+
+    def test_checkpoint_failure_or_interrupt_cancels_reviews_that_have_not_started(self):
+        for error in (RuntimeError, KeyboardInterrupt):
+            with self.subTest(error=error.__name__):
+                self.out = self.root / ('.cancel-' + error.__name__)
+                self.cfg['review']['workers'] = 3
+                self.report['findings'] = [dict(finding_id=f'F{i}', accesses=[]) for i in range(10)]
+                first_wave = threading.Barrier(3, timeout=10)
+                release = threading.Event()
+                calls = []
+
+                class ObservedExecutor(ThreadPoolExecutor):
+                    def shutdown(self, wait=True, *, cancel_futures=False):
+                        # Running items finish only after pending cancellation
+                        # has happened and the pool enters its shutdown path.
+                        release.set()
+                        return super().shutdown(wait, cancel_futures=cancel_futures)
+
+                def respond(argv, **kwargs):
+                    fid = read_json(Path(argv[argv.index('--file') + 1]))['finding_id']
+                    calls.append(fid)
+                    if fid in {'F0', 'F1', 'F2'}:
+                        first_wave.wait()
+                    if fid != 'F1' and not release.wait(10):
+                        raise RuntimeError('Pool did not shut down after checkpoint failure')
+                    return self.response(answer_for(fid=fid))
+
+                def checkpoint(current):
+                    raise error('checkpoint stopped')
+
+                with patch('ecra.review.ThreadPoolExecutor', ObservedExecutor):
+                    with self.assertRaisesRegex(error, 'checkpoint stopped'):
+                        self.run_review(respond, on_result=checkpoint)
+                self.assertTrue({'F0', 'F1', 'F2'}.issubset(calls))
+                self.assertTrue(set(calls).issubset({'F0', 'F1', 'F2', 'F3'}), calls)
 
     def test_archive_covers_format_analysis_and_final_answer_and_source(self):
         calls = []

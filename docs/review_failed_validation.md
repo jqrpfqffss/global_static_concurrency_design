@@ -4,7 +4,7 @@
 
 测试使用独立 Cortex-M3 C 工程，真实 Arm GCC 编译、Clang 扫描，然后以真实 `py -3.10 run_ecra.py ...` 子进程执行命令。额外的 `--project`、`--config` 只用于隔离测试工程。没有 monkeypatch，也没有手改 queue 的状态制造结果。正式工程配置、复核队列、扫描检查点的前后 SHA-256 相同。
 
-配置为 workers=1、retries=0、max_items=1；关闭单次内部技术重试，是为了让注入故障确定地留在失败集合，观察多次显式 `review-failed` 的行为。失败项超过一批时仍自动处理全部批次。
+配置为 workers=1、retries=0；关闭单次内部技术重试，是为了让注入故障确定地留在失败集合，观察多次显式 `review-failed` 的行为。单次命令自动处理全部选中的失败项。
 
 ## 真实进程故障：10 个候选
 

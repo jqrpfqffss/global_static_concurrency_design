@@ -182,7 +182,7 @@ review:
   command: [opencode]
   timeout_seconds: 300
   retries: 1
-  max_items: 0
+  workers: 1  # 同时复核的变量数；完成一项后立即补入下一项
 ```
 
 先不要为了让报告“更干净”而跳过 `Core/Src`。工具需要看到中断入口、主循环和业务代码之间的真实调用链。
@@ -379,10 +379,10 @@ review:
   # model: provider/model
   timeout_seconds: 300
   retries: 1
-  max_items: 0
+  workers: 1  # 同时复核的变量数；完成一项后立即补入下一项
 ```
 
-然后仍运行同一条完整命令。工具会把每个候选的相关源码证据交给已配置的模型提供商进行复核，费用、数据政策和模型名称取决于该提供商。`max_items` 表示每批最多处理多少项，`0` 表示不限制批次大小；批次自动连续执行。`workers` 控制批内并发。若只想做少量连通性验证，可先用 `--no-review` 扫描，再准备少量候选的测试工程；`max_items: 1` 仍会逐批处理全部候选。OpenCode 的安装与登录请参阅其[官方 CLI 文档](https://opencode.ai/docs/cli/)。
+然后仍运行同一条完整命令。工具会把每个候选的相关源码证据交给已配置的模型提供商进行复核，费用、数据政策和模型名称取决于该提供商。`workers` 控制同时复核的变量数（1–8，默认 1）；任何一项结束后立即补入下一项，直到全部目标完成。若只想做少量连通性验证，可先用 `--no-review` 扫描，再准备少量候选的测试工程。OpenCode 的安装与登录请参阅其[官方 CLI 文档](https://opencode.ai/docs/cli/)。
 
 模型结论是代码审查辅助，不替代编译、硬件时序验证、代码评审或目标板测试。 `CONFIRMED` / `LIKELY` 需要处理和验证；`REVIEWED_SAFE` 仅在报告列出的条件成立时有效；`PENDING`、`TECH_FAILED`、`NEED_MORE_CONTEXT` 都不能当作安全结论。五种合法语义结论都属于 DONE；NEED_MORE_CONTEXT 表示已完成分析但缺少关键事实，review-failed 不会重跑它。格式错误最多进行两次无源码的轻量 FORMAT_FIX。
 
