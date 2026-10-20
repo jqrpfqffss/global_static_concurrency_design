@@ -161,7 +161,7 @@ analysis:
     # 若 CMakeLists.txt 没有自行加载交叉工具链，取消下一行注释：
     # toolchain_file: cmake/arm-none-eabi.cmake
     args: []
-    clean_before_configure: true # 等价于手工删除 build/manual 后再配置
+    clean_before_configure: true # 仅清理 ECRA 所有的目录；已有未标记目录自动改用相邻专用目录
     build: true
 
   # 使用实际 Arm GCC 自动查找标准头文件路径。

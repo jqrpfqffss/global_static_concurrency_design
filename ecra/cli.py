@@ -10,7 +10,7 @@ import time
 from . import __version__
 from .analysis import analyze, merge
 from .common import digest, execute, read_json, relative, write_json
-from .compilation import excluded, prepare
+from .compilation import cmake_build_directory, excluded, prepare
 from .config import (TEMPLATE, CMAKE_TEMPLATE, TOOL_ROOT, SEMANTICS_FILE,
                      configured_project_root, load_config, resolve_config_path,
                      discover_arm_toolchains)
@@ -378,7 +378,10 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         doctor.update(ready_for_scan=False, error=run_info["error"])
         if doctor_only and cfg['analysis'].get('cmake'):
             from .portable import read_cache
-            cache = read_cache(root/cfg['analysis']['cmake'].get('build_dir', 'build/ecra'))
+            try:
+                cache = read_cache(cmake_build_directory(root, cfg['analysis']))
+            except (OSError, ValueError):
+                cache = {}
             doctor.update(cmake_cache=cache, cmake_make_program=cache.get('CMAKE_MAKE_PROGRAM'),
                           actual_c_compiler=cache.get('CMAKE_C_COMPILER'),
                           actual_cxx_compiler=cache.get('CMAKE_CXX_COMPILER'))

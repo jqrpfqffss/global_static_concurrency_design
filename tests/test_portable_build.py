@@ -1,5 +1,6 @@
 """Portable failures must be observable before a stale database can be scanned."""
 import importlib.util
+import copy
 import json
 import os
 from pathlib import Path
@@ -10,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from ecra.compilation import configure_cmake
+from ecra.compilation import cmake_build_directory, configure_cmake
 from ecra.portable import audit_executable, check_cache, read_cache, tool_environment, tool_path, build_path
 
 
@@ -48,19 +49,133 @@ class PortableCMakeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Portable 外部工具路径'):
                 check_cache(self.build,self.root,'MinGW Makefiles')
 
-    def test_formal_build_cannot_be_cleaned_even_inside_project(self):
+    def configure_stub(self, command, **kwargs):
+        if '-B' in command:
+            build = Path(command[command.index('-B') + 1])
+            (build/'compile_commands.json').write_text('[]')
+        return subprocess.CompletedProcess(command, 0, 'ok', '')
+
+    def test_formal_build_is_preserved_and_isolated_directory_reused(self):
         sentinel = self.build/'formal-IDE-build.txt'
         sentinel.write_text('user data')
+        self.cache(CMAKE_GENERATOR='Ninja', CMAKE_C_COMPILER='X:/old/gcc.exe')
+        original = {p.name: p.read_bytes() for p in self.build.iterdir()}
         self.settings['cmake']['clean_before_configure'] = True
-        with self.assertRaisesRegex(ValueError,'非 ECRA 专用'):
-            configure_cmake(self.root,self.settings,lambda _:None,True)
-        self.assertEqual(sentinel.read_text(),'user data')
+        settings_before = copy.deepcopy(self.settings)
+        isolated = self.build.with_name('ecra-ecra')
+        messages = []
+        with patch('ecra.compilation.execute', side_effect=self.configure_stub) as execute:
+            for _ in range(2):
+                stale = isolated/'stale-cache.txt'
+                if isolated.exists():
+                    stale.write_text('old ECRA output')
+                database, steps = configure_cmake(self.root, self.settings, messages.append, True)
+                self.assertEqual(database, isolated/'compile_commands.json')
+                self.assertEqual([s['stage'] for s in steps], ['clean', 'configure', 'build'])
+                self.assertFalse(stale.exists())
+                self.assertEqual(cmake_build_directory(self.root, self.settings), isolated)
+            self.assertEqual(execute.call_count, 4)
+        self.assertEqual({p.name: p.read_bytes() for p in self.build.iterdir()}, original)
+        self.assertEqual((isolated/'.ecra-build-owner').read_text(), str(self.root))
+        self.assertEqual(self.settings, settings_before)
+        self.assertTrue(any('自动使用独立构建目录' in msg for msg in messages))
 
-    def test_wrong_owner_does_not_authorize_deletion(self):
+    def test_wrong_owner_is_preserved_and_not_adopted_for_deletion(self):
         (self.build/'.ecra-build-owner').write_text('another project')
         self.settings['cmake']['clean_before_configure'] = True
-        with self.assertRaisesRegex(ValueError,'非 ECRA 专用'):
-            configure_cmake(self.root,self.settings,lambda _:None,True)
+        with patch('ecra.compilation.execute', side_effect=self.configure_stub):
+            database, _ = configure_cmake(self.root, self.settings, lambda _: None, True)
+        self.assertEqual((self.build/'.ecra-build-owner').read_text(), 'another project')
+        self.assertEqual(database.parent, self.build.with_name('ecra-ecra'))
+
+    def test_occupied_fallback_is_preserved_and_second_sibling_selected(self):
+        (self.build/'keep.txt').write_text('original')
+        collision = self.build.with_name('ecra-ecra')
+        collision.mkdir()
+        (collision/'keep.txt').write_text('collision')
+        self.settings['cmake']['clean_before_configure'] = True
+        with patch('ecra.compilation.execute', side_effect=self.configure_stub):
+            database, _ = configure_cmake(self.root, self.settings, lambda _: None, True)
+        self.assertEqual(database.parent, self.build.with_name('ecra-ecra-2'))
+        self.assertEqual((self.build/'keep.txt').read_text(), 'original')
+        self.assertEqual((collision/'keep.txt').read_text(), 'collision')
+
+    def test_doctor_uses_same_isolated_directory_without_cleaning_or_building(self):
+        (self.build/'keep.txt').write_text('original')
+        self.settings['cmake']['clean_before_configure'] = True
+        with patch('ecra.compilation.execute', side_effect=self.configure_stub):
+            database, steps = configure_cmake(self.root, self.settings, lambda _: None, False)
+        self.assertEqual([s['stage'] for s in steps], ['configure'])
+        self.assertEqual(database.parent, cmake_build_directory(self.root, self.settings))
+        (database.parent/'keep-doctor.txt').write_text('incremental')
+        with patch('ecra.compilation.execute', side_effect=self.configure_stub):
+            configure_cmake(self.root, self.settings, lambda _: None, False)
+        self.assertTrue((database.parent/'keep-doctor.txt').is_file())
+        self.assertEqual((self.build/'keep.txt').read_text(), 'original')
+
+    def test_explicit_database_in_configured_tree_follows_isolated_build(self):
+        (self.build/'compile_commands.json').write_text('["stale"]')
+        self.settings['cmake']['clean_before_configure'] = True
+        self.settings['compile_database'] = 'build/ecra/compile_commands.json'
+        with patch('ecra.compilation.execute', side_effect=self.configure_stub):
+            database, _ = configure_cmake(self.root, self.settings, lambda _: None, True)
+        self.assertEqual(database.parent, self.build.with_name('ecra-ecra'))
+        self.assertEqual(database.read_text(), '[]')
+        self.assertEqual((self.build/'compile_commands.json').read_text(), '["stale"]')
+
+    def test_isolated_configuration_failure_does_not_use_original_database(self):
+        (self.build/'compile_commands.json').write_text('["stale"]')
+        self.settings['cmake']['clean_before_configure'] = True
+        with patch('ecra.compilation.execute', return_value=subprocess.CompletedProcess([], 1, '', 'failure')) as execute:
+            with self.assertRaisesRegex(ValueError, '停止扫描'):
+                configure_cmake(self.root, self.settings, lambda _: None, True)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual((self.build/'compile_commands.json').read_text(), '["stale"]')
+
+    def test_isolation_still_rejects_mismatched_database_before_cmake(self):
+        (self.build/'keep.txt').write_text('original')
+        self.settings['cmake']['clean_before_configure'] = True
+        self.settings['compile_database'] = 'other/compile_commands.json'
+        with patch('ecra.compilation.execute') as execute:
+            with self.assertRaisesRegex(ValueError, '不匹配'):
+                configure_cmake(self.root, self.settings, lambda _: None, True)
+            execute.assert_not_called()
+        self.assertFalse(self.build.with_name('ecra-ecra').exists())
+        self.assertEqual((self.build/'keep.txt').read_text(), 'original')
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows junction required')
+    def test_owned_build_containing_junction_cannot_be_cleaned(self):
+        source = self.root/'source'
+        source.mkdir()
+        sentinel = source/'keep.c'
+        sentinel.write_text('user source')
+        link = self.build/'linked-source'
+        subprocess.run([os.environ.get('COMSPEC', 'cmd.exe'), '/d', '/c', 'mklink', '/J',
+                        str(link), str(source)], check=True, capture_output=True)
+        self.addCleanup(link.rmdir)
+        (self.build/'.ecra-build-owner').write_text(str(self.root))
+        self.settings['cmake']['clean_before_configure'] = True
+        with patch('ecra.compilation.execute') as execute:
+            with self.assertRaisesRegex(ValueError, '含链接'):
+                configure_cmake(self.root, self.settings, lambda _: None, True)
+            execute.assert_not_called()
+        self.assertEqual(sentinel.read_text(), 'user source')
+
+    def test_constructor_evidence_uses_isolated_build_instead_of_old_map(self):
+        from ecra.initialization import _startup_constructor_proof
+        self.settings['cmake']['clean_before_configure'] = True
+        (self.build/'firmware.map').write_text('.init_array old unrelated build')
+        isolated = self.build.with_name('ecra-ecra')
+        isolated.mkdir()
+        (isolated/'.ecra-build-owner').write_text(str(self.root))
+        (isolated/'firmware.map').write_text('.preinit_array 0x08000000 0x0\n.init_array 0x08000000 0x0\n')
+        (self.root/'startup.s').write_text('Reset_Handler:\n bl __libc_init_array\n bl main\n')
+        facts = dict(vector_entries=[dict(function_id='reset', slot=1, file='startup.s')],
+                     functions=[dict(name='main')])
+        cfg = dict(project=dict(root=str(self.root)), analysis=self.settings)
+        proof = _startup_constructor_proof(facts, cfg, 'reset', 'main')
+        self.assertIsNotNone(proof)
+        self.assertEqual(proof['constructor_map'], str(isolated/'firmware.map'))
 
     def test_explicit_external_compiler_is_diagnosed_and_never_replaced(self):
         outside = self.root/'external/gcc.exe'

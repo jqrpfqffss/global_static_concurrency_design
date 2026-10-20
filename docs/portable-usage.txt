@@ -4,9 +4,12 @@ ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 2. 备份并编辑 config/semantics.yaml 的 project.root、扫描目录、上下文和复核设置。
 3. cmake.generator 应保持工程实际设置：MinGW Makefiles / Ninja / Unix Makefiles。
    STM32 工程必须用其真实 ARM 工具链文件；MinGW GCC 仅用于 Windows 本机构建。
-4. 首次使用选择新的 ECRA 专用 build_dir，例如 build/ecra。
+4. build_dir 可沿用现有配置，例如 build/manual 或 build/ecra。
+   clean_before_configure: true 时，既有目录若没有当前工程的 ECRA 所有权标记，
+   工具会保留原目录，自动使用相邻的 <原目录名>-ecra；若该目录也被占用，则使用
+   <原目录名>-ecra-2 等。后续运行复用并清理同一专用目录，无需改固件源码或配置。
+   doctor 使用同一目录，但不清理或构建。关闭清理时仍在配置目录增量配置，
    旧缓存的 Generator、Make、编译器路径冲突会明确报错。
-   clean_before_configure 只允许清理由 ECRA 创建并带所有权标记的目录。
 5. 在 PowerShell 中运行：
    .\ecra.cmd --help
    .\ecra.cmd doctor

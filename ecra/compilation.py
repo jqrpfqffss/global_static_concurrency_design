@@ -13,25 +13,68 @@ from .portable import (bundle_root, tool_path, tool_environment, check_cache, re
                        audit_executable, probe_tool, build_path)
 
 
-def configure_cmake(root, analysis, progress, build_firmware):
-    """Managed CMake mode refreshes the database on every run, even if present."""
-    settings = analysis['cmake']
-    requested_build = root / settings.get('build_dir', 'build/ecra')
-    for item in (requested_build, *requested_build.parents):
-        if item.exists() and (item.is_symlink() or getattr(item.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT):
+def _is_link(path):
+    return path.is_symlink() or (path.exists() and
+        bool(getattr(path.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT))
+
+
+def _validated_build_directory(root, requested):
+    for item in (requested, *requested.parents):
+        if _is_link(item):
             raise ValueError(f'拒绝使用含链接的构建路径: {item}')
         if item == root:
             break
-    build = requested_build.resolve()
+    build = requested.resolve()
     if build == root.resolve() or not build.is_relative_to(root.resolve()):
         raise ValueError('analysis.cmake.build_dir 必须是工程根目录下的独立构建目录')
-    database = build / 'compile_commands.json'
-    requested = analysis.get('compile_database', 'auto')
-    if requested != 'auto' and (root/requested).resolve() != database:
-        raise ValueError(f'analysis.compile_database 与 cmake.build_dir 不匹配；应为 {database}')
+    return build
+
+
+def _owns_build_directory(build, root):
+    marker = build / '.ecra-build-owner'
+    return (not _is_link(marker) and marker.is_file() and
+            marker.read_text(encoding='utf-8') == str(root.resolve()))
+
+
+def cmake_build_directory(root, analysis):
+    """Select a stable owned build tree without adopting an existing user's tree.
+
+    Older runs and manual builds have no owner marker. When cleaning is enabled,
+    preserve them and configure in a sibling tree instead, including for doctor.
+    Keep the saved analysis configuration unchanged for review/resume digests.
+    """
+    settings = analysis['cmake']
+    configured = _validated_build_directory(root, root / settings.get('build_dir', 'build/ecra'))
     out = (root / analysis.get('output_dir', '.ecra')).resolve()
-    if out == build or out.is_relative_to(build):
-        raise ValueError(f'构建目录不可包含 ECRA 输出目录: {build} / {out}')
+    build = configured
+    suffix = 0
+    while True:
+        build = _validated_build_directory(root, build)
+        if out == build or out.is_relative_to(build):
+            raise ValueError(f'构建目录不可包含 ECRA 输出目录: {build} / {out}')
+        if (not settings.get('clean_before_configure', False) or not build.exists() or
+                (build.is_dir() and (not any(build.iterdir()) or _owns_build_directory(build, root)))):
+            break
+        suffix += 1
+        build = configured.with_name(configured.name + '-ecra' + (f'-{suffix}' if suffix > 1 else ''))
+    return build
+
+
+def configure_cmake(root, analysis, progress, build_firmware):
+    """Managed CMake mode refreshes the database on every run, even if present."""
+    settings = analysis['cmake']
+    build = cmake_build_directory(root, analysis)
+    configured = (root / settings.get('build_dir', 'build/ecra')).resolve()
+    requested = analysis.get('compile_database', 'auto')
+    # Explicit paths referring to the configured tree remain valid after isolation;
+    # managed CMake always returns the freshly generated database in the chosen tree.
+    if requested != 'auto' and (root/requested).resolve() not in {
+            configured / 'compile_commands.json', build / 'compile_commands.json'}:
+        raise ValueError(f'analysis.compile_database 与 cmake.build_dir 不匹配；应为 {build / "compile_commands.json"}')
+    if build != configured:
+        progress(f'保留非 ECRA 专用构建目录: {configured}；自动使用独立构建目录: {build}')
+    database = build / 'compile_commands.json'
+    out = (root / analysis.get('output_dir', '.ecra')).resolve()
     out.mkdir(parents=True, exist_ok=True)
     generator = settings.get('generator', 'Ninja')
     if generator not in {'Ninja', 'MinGW Makefiles', 'Unix Makefiles'}:
@@ -74,7 +117,7 @@ def configure_cmake(root, analysis, progress, build_firmware):
     owner = str(root.resolve())
     # Only ECRA-owned directories may be recursively removed. Existing formal
     # build trees are usable incrementally, but never adopted for deletion.
-    if build.is_symlink() or (hasattr(build, 'is_junction') and build.is_junction()):
+    if _is_link(build):
         raise ValueError(f'拒绝清理链接构建目录: {build}')
     if not build.exists() or not any(build.iterdir()):
         build.mkdir(parents=True, exist_ok=True)
@@ -83,10 +126,10 @@ def configure_cmake(root, analysis, progress, build_firmware):
     if settings.get('clean_before_configure', False) and build_firmware and build.exists():
         progress('清理 CMake 构建目录…')
         previous_cache = read_cache(build)
-        if not marker.is_file() or marker.read_text(encoding='utf-8') != owner:
+        if not _owns_build_directory(build, root):
             raise ValueError(f'拒绝清理非 ECRA 专用构建目录: {build}；请选择新的 build/ecra 目录')
         for item in build.rglob('*'):
-            if item.is_symlink() or (hasattr(item, 'is_junction') and item.is_junction()):
+            if _is_link(item):
                 raise ValueError(f'拒绝清理含链接的目录: {item}')
         for attempt in range(5):
             try:

@@ -297,11 +297,20 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
 ''', encoding='utf-8')
         config = self.work/'fixture-semantics.json'
         data = dict(version=1,project=dict(root=str(firmware),chip='STM32F103',core='Cortex-M3'),
-            analysis=dict(cmake=dict(build_dir='build/ecra',generator='MinGW Makefiles',build=True,
+            analysis=dict(cmake=dict(build_dir='build/ecra',generator='MinGW Makefiles',build=True,clean_before_configure=True,
                 toolchain_file='toolchain.cmake'),include_dirs=['.'],exclude_dirs=['build','.ecra'],
                 auto_system_includes=True,expected_defines=['STM32F103xB','USE_HAL_DRIVER']),
             contexts=[dict(id='main',kind='MAIN',functions=['main'])], review=dict(enabled=False,command=['opencode']))
         config.write_text(json.dumps(data), encoding='utf-8')
+        # Reproduce upgrades from unmarked/manual build trees. These stale paths
+        # must survive both doctor and run while the real build uses a sibling.
+        legacy = firmware/'build/ecra'
+        legacy.mkdir(parents=True)
+        (legacy/'keep.txt').write_text('existing user build', encoding='utf-8')
+        (legacy/'CMakeCache.txt').write_text('CMAKE_GENERATOR:INTERNAL=Ninja\n', encoding='utf-8')
+        (legacy/'compile_commands.json').write_text('["stale database"]', encoding='utf-8')
+        legacy_files = {p.name: p.read_bytes() for p in legacy.iterdir()}
+        build = firmware/'build/ecra-ecra'
         # Test the actual CMD launcher as well, including Chinese/space paths.
         help_text = self.command('ecra.cmd help', [os.environ.get('COMSPEC', r'C:\Windows\System32\cmd.exe'),
             '/d','/s','/c','""'+str(self.bundle/'ecra.cmd')+'" --help"'])
@@ -309,10 +318,17 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
             if command not in help_text:
                 raise ValueError(f'CLI missing: {command}')
         self.command('ecra.cmd doctor configure only', self.ecra('doctor',config))
-        self.inspect_build(firmware/'build/ecra',self.arm,self.make)
+        self.inspect_build(build,self.arm,self.make)
+        doctor = json.loads((firmware/'.ecra/doctor.json').read_text(encoding='utf-8'))
+        if Path(doctor['compile_database']).resolve() != (build/'compile_commands.json').resolve():
+            raise ValueError('Doctor did not use the isolated build database')
+        stale = build/'stale-ecra-output.txt'
+        stale.write_text('remove only ECRA output', encoding='utf-8')
         self.command('ecra.cmd run no review real ARM build and scan', self.ecra('run',config,'--no-review'), allowed=(2,))
-        self.inspect_build(firmware/'build/ecra',self.arm,self.make)
-        image = firmware/'build/ecra/firmware.elf'
+        self.inspect_build(build,self.arm,self.make)
+        if stale.exists() or {p.name: p.read_bytes() for p in legacy.iterdir()} != legacy_files:
+            raise ValueError('Isolated build cleanup did not preserve the existing user build')
+        image = build/'firmware.elf'
         header = image.read_bytes()[:20]
         if header[:4] != b'\x7fELF' or struct.unpack_from('<H',header,18)[0] != 40:
             raise ValueError(f'Not an ARM ELF firmware: {image}')

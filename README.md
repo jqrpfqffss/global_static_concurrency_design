@@ -155,13 +155,15 @@ analysis:
     build_type: Debug
     toolchain_file: cmake/arm-none-eabi.cmake
     args: []
-    clean_before_configure: true  # 只删除上述构建目录，然后重新配置/构建
+    clean_before_configure: true  # 清理 ECRA 专用目录，然后重新配置/构建
     build: true
   auto_system_includes: true
   output_dir: .ecra
 ```
 
 目录相对固件根目录，也可使用绝对路径。包含目录必须存在；空包含列表表示不限制范围。根据变量定义文件归属范围；头文件 static 保留不同编译单元的身份，extern 以实际定义归属。排除目录里的变量不进入清单、候选或模型任务。
+
+开启清理时，若 `build/manual` 已存在且没有当前工程的 ECRA 所有权标记，工具会保留原目录，自动使用 `build/manual-ecra`；若同名目录也被占用，则依次选择 `build/manual-ecra-2` 等。后续运行复用该专用目录，`doctor` 也使用同一目录；无需修改固件源码或现有配置。
 
 **第三方文件可能混在业务目录中**：ST 的 `SystemCoreClock` 等变量定义在 `Core/Src/system_stm32f1xx.c`，只排除 `Drivers` 不会排除它们。用 `exclude_files` 列出这些文件，无需移动源码；最终输出会再次校验排除范围。
 

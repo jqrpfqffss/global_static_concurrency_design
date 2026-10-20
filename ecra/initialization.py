@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .interrupts import irq_key
 from .async_semantics import is_async_enable, async_irq_arg, canonical_cmsis_api
+from .compilation import cmake_build_directory
 
 
 ENABLE = {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ'}
@@ -53,7 +54,8 @@ def _startup_constructor_proof(facts, cfg, reset_id, main_id):
         return None
     if '__libc_init_array' not in calls:
         return dict(source=str(source), calls=calls, constructors='none')
-    build = root / cfg.get('analysis', {}).get('cmake', {}).get('build_dir', 'build/ecra')
+    analysis = cfg.get('analysis', {})
+    build = (cmake_build_directory(root, analysis) if 'cmake' in analysis else root / 'build/ecra')
     maps = list(build.glob('*.map'))
     if len(maps) != 1:
         return None
