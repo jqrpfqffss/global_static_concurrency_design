@@ -107,6 +107,11 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         (out / ("doctor.log" if doctor_only else "run.log")).write_text("\n".join(log_lines), encoding="utf-8")
 
     try:
+        if doctor_only:
+            from .portable import diagnostics
+            doctor.update(diagnostics(cfg['analysis'].get('libclang_file')))
+            for name, info in doctor['tools'].items():
+                progress(f'{name}: ' + json.dumps(info, ensure_ascii=False))
         from .workflow import engine_digest
         engine_at_start = engine_digest()
         previous = {}
@@ -139,7 +144,12 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress('review.enabled 为 false，已跳过 OpenCode；候选项只会保存为 PENDING。')
         from clang import cindex
         if cfg["analysis"].get("libclang_file"):
-            cindex.Config.set_library_file(cfg["analysis"]["libclang_file"])
+            requested_library = Path(cfg['analysis']['libclang_file']).resolve()
+            if cindex.Config.loaded:
+                if Path(cindex.conf.lib._name).resolve() != requested_library:
+                    raise ValueError(f'已加载其他 libclang；请在新进程中使用所配置的 {requested_library}')
+            else:
+                cindex.Config.set_library_file(str(requested_library))
         cindex.Index.create()
         doctor["libclang_found"] = True
         from .scope import AuditScope
@@ -149,6 +159,16 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress('范围外编译依赖只用于恢复调用链和目标变量的访问，不生成第三方变量候选。')
         units, compilation = prepare(root, cfg, progress=progress, build_firmware=not doctor_only)
         doctor.update(compilation, compile_database_found=True, translation_units_total=len(units), ready_for_scan=True)
+        if doctor_only:
+            cache = compilation.get('cmake_cache', {})
+            doctor['acceptance']['cmake_configure'] = 'PASS' if compilation.get('cmake_steps') else 'NOT_RUN'
+            doctor['cmake_make_program'] = cache.get('CMAKE_MAKE_PROGRAM')
+            doctor['actual_c_compiler'] = cache.get('CMAKE_C_COMPILER')
+            doctor['actual_cxx_compiler'] = cache.get('CMAKE_CXX_COMPILER')
+            doctor['generator'] = cache.get('CMAKE_GENERATOR', cfg['analysis'].get('cmake', {}).get('generator'))
+            progress('CMake / 编译器 / 外部依赖: ' + json.dumps(dict(generator=doctor['generator'],
+                make=doctor['cmake_make_program'], c=doctor['actual_c_compiler'], cxx=doctor['actual_cxx_compiler'],
+                database=compilation['compile_database'], external=compilation.get('external_tools', [])), ensure_ascii=False))
         doctor['review_enabled'] = cfg['review'].get('enabled', True)
         if doctor['review_enabled']:
             try:
@@ -159,7 +179,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 progress('源码仍会正常盘点；OpenCode 尚不可用：'+str(exc))
         write_json(out / "doctor.json", doctor)
         if doctor_only:
+            doctor['acceptance']['opencode_review'] = ('COMMAND_FOUND_NOT_TESTED' if doctor.get('opencode_command_found')
+                else 'NOT_TESTED' if doctor['review_enabled'] else 'DISABLED')
+            progress('验收状态: ' + json.dumps(doctor['acceptance'], ensure_ascii=False))
+            write_json(out / 'doctor.json', doctor)
             run_info["state"] = "DOCTOR_READY"
+            if doctor['portable_root'] and any(not info.get('matching', True) for info in doctor['tools'].values()):
+                progress('Portable 工具版本/运行检查失败，详见 doctor.json。')
+                return 3
             if doctor.get('opencode_command_found') is False:
                 progress('源码分析环境可用；请安装 OpenCode 或修正 review.command。')
                 return 2
@@ -186,7 +213,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             if response.exists():
                 response.unlink()
             try:
-                proc = execute([sys.executable, "-m", "ecra.extract", str(request), str(response)],
+                proc = execute([sys.executable, "-B", "-m", "ecra.extract", str(request), str(response)],
                                cwd=tool_root, env=env, timeout=float(cfg["analysis"].get("parse_timeout_seconds", 180)))
                 if proc.returncode or not response.is_file():
                     raise ValueError(f"提取器退出 {proc.returncode}: {proc.stderr[-4000:]}")
@@ -349,6 +376,12 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     except Exception as exc:
         run_info.update(state="FAILED", exit_code=3, error=f"{type(exc).__name__}: {exc}")
         doctor.update(ready_for_scan=False, error=run_info["error"])
+        if doctor_only and cfg['analysis'].get('cmake'):
+            from .portable import read_cache
+            cache = read_cache(root/cfg['analysis']['cmake'].get('build_dir', 'build/ecra'))
+            doctor.update(cmake_cache=cache, cmake_make_program=cache.get('CMAKE_MAKE_PROGRAM'),
+                          actual_c_compiler=cache.get('CMAKE_C_COMPILER'),
+                          actual_cxx_compiler=cache.get('CMAKE_CXX_COMPILER'))
         write_json(out / "doctor.json", doctor)
         if not doctor_only:
             write_failure(out)

@@ -3,16 +3,26 @@ import os
 import shlex
 import shutil
 import subprocess
+import time
+import stat
 from pathlib import Path
 
 from .common import execute, read_json, relative
 from .scope import AuditScope
+from .portable import (bundle_root, tool_path, tool_environment, check_cache, read_cache,
+                       audit_executable, probe_tool, build_path)
 
 
 def configure_cmake(root, analysis, progress, build_firmware):
     """Managed CMake mode refreshes the database on every run, even if present."""
     settings = analysis['cmake']
-    build = (root / settings.get('build_dir', 'build/ecra')).resolve()
+    requested_build = root / settings.get('build_dir', 'build/ecra')
+    for item in (requested_build, *requested_build.parents):
+        if item.exists() and (item.is_symlink() or getattr(item.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT):
+            raise ValueError(f'拒绝使用含链接的构建路径: {item}')
+        if item == root:
+            break
+    build = requested_build.resolve()
     if build == root.resolve() or not build.is_relative_to(root.resolve()):
         raise ValueError('analysis.cmake.build_dir 必须是工程根目录下的独立构建目录')
     database = build / 'compile_commands.json'
@@ -20,35 +30,109 @@ def configure_cmake(root, analysis, progress, build_firmware):
     if requested != 'auto' and (root/requested).resolve() != database:
         raise ValueError(f'analysis.compile_database 与 cmake.build_dir 不匹配；应为 {database}')
     out = (root / analysis.get('output_dir', '.ecra')).resolve()
+    if out == build or out.is_relative_to(build):
+        raise ValueError(f'构建目录不可包含 ECRA 输出目录: {build} / {out}')
     out.mkdir(parents=True, exist_ok=True)
-    command = ['cmake', '-S', str(root), '-B', str(build), '-G', settings.get('generator', 'Ninja')]
+    generator = settings.get('generator', 'Ninja')
+    if generator not in {'Ninja', 'MinGW Makefiles', 'Unix Makefiles'}:
+        raise ValueError(f'不支持导出编译数据库的 Generator: {generator}')
+    cmake = tool_path('cmake') if bundle_root() else 'cmake'
+    make = None
+    if bundle_root():
+        name = {'Ninja': 'ninja', 'MinGW Makefiles': 'mingw32-make', 'Unix Makefiles': 'make'}[generator]
+        make = tool_path(name)
+        if generator == 'Unix Makefiles':
+            make = shutil.which('make', path=tool_environment()['PATH'])
+            if not make:
+                raise ValueError('Unix Makefiles 需要兼容的 make 环境；本包提供 MinGW Makefiles 和 Ninja')
+        lock = read_json(bundle_root()/'portable-lock.json')
+        for tool in ('cmake', name):
+            probe = probe_tool(tool, lock['version_patterns'].get(tool))
+            if not probe.get('matching', probe['running']):
+                raise ValueError(f'Portable 工具版本不匹配: {probe}')
+    source_path = build_path(root) if bundle_root() else str(root)
+    build_command_path = build_path(build) if bundle_root() else str(build)
+    if source_path != str(root) or build_command_path != str(build):
+        progress(f'GNU Make 路径兼容别名（同一目录）: {root} -> {source_path}; {build} -> {build_command_path}')
+    command = [cmake, '-S', source_path, '-B', build_command_path, '-G', generator]
     command += ['-DCMAKE_BUILD_TYPE=' + settings.get('build_type', 'Debug')]
     if settings.get('toolchain_file'):
-        command += ['-DCMAKE_TOOLCHAIN_FILE=' + str((root/settings['toolchain_file']).resolve())]
+        toolchain = (root/settings['toolchain_file']).resolve()
+        command += ['-DCMAKE_TOOLCHAIN_FILE=' + (build_path(toolchain) if bundle_root() else str(toolchain))]
     args = settings.get('args', [])
     if any(x in {'-S', '-B', '-G', '--preset', '--build', '--install'} or x.startswith(('-S', '-B', '-G', '--preset=')) for x in args):
         raise ValueError('cmake.args 不可覆盖源码/构建目录或生成器；请使用对应配置字段')
     command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
+    if make:
+        if any('CMAKE_MAKE_PROGRAM' in arg for arg in args):
+            raise ValueError('Portable 的 CMAKE_MAKE_PROGRAM 由 Generator 选择；不可用 cmake.args 覆盖')
+        command += ['-DCMAKE_MAKE_PROGRAM:FILEPATH=' + make]
     records = []
+
+    allow_external = settings.get('allow_external_toolchain', False)
+    marker = build / '.ecra-build-owner'
+    owner = str(root.resolve())
+    # Only ECRA-owned directories may be recursively removed. Existing formal
+    # build trees are usable incrementally, but never adopted for deletion.
+    if build.is_symlink() or (hasattr(build, 'is_junction') and build.is_junction()):
+        raise ValueError(f'拒绝清理链接构建目录: {build}')
+    if not build.exists() or not any(build.iterdir()):
+        build.mkdir(parents=True, exist_ok=True)
+        marker.write_text(owner, encoding='utf-8')
 
     if settings.get('clean_before_configure', False) and build_firmware and build.exists():
         progress('清理 CMake 构建目录…')
-        shutil.rmtree(build)
-        records.append(dict(stage='clean', command=['remove-directory', str(build)], exit_code=0))
+        previous_cache = read_cache(build)
+        if not marker.is_file() or marker.read_text(encoding='utf-8') != owner:
+            raise ValueError(f'拒绝清理非 ECRA 专用构建目录: {build}；请选择新的 build/ecra 目录')
+        for item in build.rglob('*'):
+            if item.is_symlink() or (hasattr(item, 'is_junction') and item.is_junction()):
+                raise ValueError(f'拒绝清理含链接的目录: {item}')
+        for attempt in range(5):
+            try:
+                shutil.rmtree(build)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.1 * 2**attempt)
+        build.mkdir()
+        marker.write_text(owner, encoding='utf-8')
+        records.append(dict(stage='clean', command=['remove-directory', str(build)], exit_code=0,
+                            previous_cache=previous_cache))
+
+    check_cache(build, root, generator, make, allow_external)
+    if bundle_root():
+        for key in ('CC', 'CXX', 'ASM'):
+            if os.environ.get(key):
+                audit_executable(os.environ[key], root, allow_external=allow_external)
+        for key in ('GCC_EXEC_PREFIX', 'COMPILER_PATH', 'LIBRARY_PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH'):
+            if os.environ.get(key) and not allow_external:
+                raise ValueError(f'Portable 检测到宿主编译环境变量 {key}={os.environ[key]}；'
+                                 '请清除它或明确选择 allow_external_toolchain')
 
     def invoke(argv, name):
         progress('CMake ' + ('配置并刷新编译数据库…' if name == 'configure' else '增量构建固件…'))
-        proc = execute(argv, cwd=root, timeout=settings.get('timeout_seconds', 600))
+        proc = execute(argv, cwd=root, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
         log = out / ('cmake-' + name + '.log')
         log.write_text(proc.stdout + proc.stderr, encoding='utf-8')
         records.append(dict(stage=name, command=argv, exit_code=proc.returncode, log=str(log)))
         if proc.returncode:
             raise ValueError(f'CMake {name} 失败，停止扫描。日志: {log}\n' + (proc.stdout+proc.stderr)[-6000:])
     invoke(command, 'configure')
+    check_cache(build, root, generator, make, allow_external)
     if not database.is_file():
         raise ValueError(f'CMake 未生成 {database}；请使用 Ninja 或 Makefiles 生成器')
+    if bundle_root():
+        for entry in read_json(database):
+            raw = entry.get('arguments') or split_command(entry.get('command', ''))
+            if not raw:
+                raise ValueError(f'空编译命令: {database}')
+            count = 2 if Path(raw[0]).stem.lower() in {'ccache','sccache'} else 1
+            for executable in raw[:count]:
+                audit_executable(executable, entry.get('directory', root), allow_external=allow_external)
     if settings.get('build', True) and build_firmware:
-        invoke(['cmake', '--build', str(build), '--config', settings.get('build_type', 'Debug'),
+        invoke([cmake, '--build', build_command_path, '--config', settings.get('build_type', 'Debug'),
                 *settings.get('build_args', [])], 'build')
     return database, records
 
@@ -60,7 +144,7 @@ def system_includes(unit):
     compiler = raw[compiler_index]
     if Path(compiler).stem.lower() not in {'arm-none-eabi-gcc', 'arm-none-eabi-g++'}:
         return []
-    executable = shutil.which(compiler) or str((Path(unit['directory']) / compiler).resolve())
+    executable = shutil.which(compiler, path=tool_environment().get('PATH')) or str((Path(unit['directory']) / compiler).resolve())
     if not Path(executable).is_file():
         raise ValueError(f'找不到 Arm GCC 以探测标准头文件: {compiler}；修正 PATH 或关闭 auto_system_includes 并填写 extra_args')
     sysroot = []
@@ -71,7 +155,7 @@ def system_includes(unit):
         elif arg in {'--sysroot', '-isysroot'} and i+1 < len(args):
             sysroot.extend([arg, args[i+1]])
     proc = execute([executable, *sysroot, '-E', '-x', 'c', '-v', '-'], stdin=subprocess.DEVNULL,
-                   cwd=unit['directory'], env=dict(os.environ, LC_ALL='C'), timeout=20)
+                   cwd=unit['directory'], env=dict(tool_environment(), LC_ALL='C'), timeout=20)
     paths, capture = [], False
     for line in proc.stderr.splitlines():
         if '#include <...> search starts here:' in line:
@@ -276,6 +360,14 @@ def prepare(root, cfg, progress=None, build_firmware=True):
             raise ValueError("发现多个编译数据库，请显式设置 analysis.compile_database: " + ", ".join(map(str, candidates)))
     cmake_log = None
     if not candidates and a.get("auto_configure_cmake", False):
+        if bundle_root():
+            legacy = dict(a, cmake=dict(build_dir=a.get('cmake_build_dir', 'build/ecra'),
+                generator=a.get('cmake_generator', 'Ninja'), args=a.get('cmake_args', []), build=False))
+            if a.get('cmake_toolchain_file'):
+                legacy['cmake']['toolchain_file'] = a['cmake_toolchain_file']
+            database, cmake_steps = configure_cmake(root, legacy, progress, False)
+            candidates = [database]
+    if not candidates and a.get("auto_configure_cmake", False):
         build = root / a.get("cmake_build_dir", "build")
         generated = (build / 'compile_commands.json').resolve()
         if requested is not None and requested != generated:
@@ -307,10 +399,19 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     source_filter = {absolute(p) for p in linked_sources} if linked_sources is not None else None
     object_filter = {absolute(p) for p in linked_objects} if linked_objects is not None else None
     include_cache = {}
+    compiler_audit = []
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
         unit = normalize(entry, root, a)
+        if bundle_root():
+            raw = unit['original_arguments']
+            index = 1 if Path(raw[0]).stem.lower() in {'ccache', 'sccache'} else 0
+            for compiler in raw[:index+1]:
+                record = audit_executable(compiler, unit['directory'],
+                    allow_external=a.get('cmake', {}).get('allow_external_toolchain', False))
+                if record not in compiler_audit:
+                    compiler_audit.append(record)
         unit["tu_id"] = f"TU-{i:05d}"
         # A target's actual link inputs narrow a multi-target compile database.
         # Paths come from build evidence, never name/path heuristics.
@@ -365,4 +466,6 @@ def prepare(root, cfg, progress=None, build_firmware=True):
                            complete=not bool(closure.get('missing_objects')), missing_objects=closure.get('missing_objects', [])),
                        assembly_sources=sorted(set(assembly_sources)),
                        excluded_sources=sorted(set(ignored + excluded_sources)), cmake_log=cmake_log, cmake_steps=cmake_steps,
-                       dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'])
+                       dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'],
+                       cmake_cache=read_cache(Path(candidates[0]).parent), compilers=compiler_audit,
+                       external_tools=[c for c in compiler_audit if c['external']])

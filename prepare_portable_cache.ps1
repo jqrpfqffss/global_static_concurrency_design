@@ -1,146 +1,133 @@
 ﻿param(
     [string]$CacheDir = (Join-Path $PSScriptRoot '.tools-cache'),
-    [switch]$ForceArchives,
-    [switch]$OfflineCheck
+    [string]$PythonSource, [string]$CMakeSource, [string]$NinjaSource,
+    [string]$MinGWSource, [string]$MinGWMakeSource, [string]$ArmGccSource,
+    [string]$VcRuntimeSource,
+    [switch]$ForceArchives, [switch]$OfflineCheck
 )
-
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-
-if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) {
-    throw '此脚本需要 64 位 Windows。'
-}
+if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) { throw 'Windows x64 required.' }
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $sources = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'config/portable_sources.psd1')
+. (Join-Path $PSScriptRoot 'scripts/portable_common.ps1')
 $cacheRoot = [IO.Path]::GetFullPath($CacheDir)
 $downloadRoot = Join-Path $cacheRoot 'downloads'
 $wheelRoot = Join-Path $cacheRoot 'wheels'
-New-Item -ItemType Directory -Path $downloadRoot, $wheelRoot -Force | Out-Null
-$pythonTag = (($sources.PythonVersion -split '\.')[0..1] -join '')
-$pythonZip = "python$pythonTag.zip"
-$pythonPth = "python$pythonTag._pth"
+New-Item -ItemType Directory -Path $downloadRoot,$wheelRoot -Force | Out-Null
 
-function Assert-CacheChild([string]$Path) {
-    $parent = $cacheRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-    if (-not [IO.Path]::GetFullPath($Path).StartsWith($parent, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "拒绝清理缓存之外的路径: $Path"
-    }
-}
-
-function Test-PinnedArmGcc([string]$Root) {
-    $compiler = Join-Path $Root 'bin/arm-none-eabi-gcc.exe'
-    if (-not (Test-Path -LiteralPath $compiler)) { return $false }
-    try {
-        $firstLine = & $compiler --version 2>&1 | Select-Object -First 1
-        return ($LASTEXITCODE -eq 0 -and
-                $firstLine -match ('\b' + [regex]::Escape($sources.ArmGccVersion) + '\b'))
-    } catch { return $false }
-}
-
-function Test-ExtractedAsset([string]$Kind) {
-    $root = Join-Path $cacheRoot $Kind
-    switch ($Kind) {
-        'python' { return ((Test-Path (Join-Path $root 'python.exe')) -and
-                           (Test-Path (Join-Path $root $pythonZip)) -and
-                           (Test-Path (Join-Path $root $pythonPth))) }
-        'cmake' { return ((Test-Path (Join-Path $root 'bin/cmake.exe')) -and
-                          (Test-Path (Join-Path $root 'share'))) }
-        'ninja' { return (Test-Path (Join-Path $root 'ninja.exe')) }
-        'arm-gcc' { return ((Test-Path (Join-Path $root 'bin/arm-none-eabi-gcc.exe')) -and
-                            (Test-Path (Join-Path $root 'bin/arm-none-eabi-g++.exe')) -and
-                            (Test-Path (Join-Path $root 'bin/arm-none-eabi-ar.exe')) -and
-                            (Test-Path (Join-Path $root 'lib')) -and
-                            (Test-Path (Join-Path $root 'arm-none-eabi')) -and
-                            (Test-PinnedArmGcc $root)) }
-    }
-    throw "未知工具: $Kind"
-}
-
-function Get-Archive([string]$Kind, [string]$Name, [string]$Url) {
-    $path = Join-Path $downloadRoot $Name
-    if (Test-Path -LiteralPath $path) {
-        Write-Host "已有本地归档: $path"
-        return $path
-    }
-    if (-not $ForceArchives -and (Test-ExtractedAsset $Kind)) {
-        Write-Host "已有完整解压缓存: $(Join-Path $cacheRoot $Kind)"
-        return $null
-    }
-    if ($OfflineCheck) { throw "缺少 $Kind 本地归档或完整解压缓存: $path" }
-    $partial = "$path.part"
-    Assert-CacheChild $partial
-    if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
-    Write-Host "下载 $Kind : $Url"
-    try {
-        Invoke-WebRequest -Uri $Url -OutFile $partial -UseBasicParsing -TimeoutSec 1800
-        if ((Get-Item -LiteralPath $partial).Length -eq 0) { throw '下载文件为空' }
-        Move-Item -LiteralPath $partial -Destination $path
-    } catch {
-        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
-        throw "$Kind 下载失败: $_"
-    }
-    return $path
-}
-
-$null = Get-Archive 'python' $sources.PythonArchive $sources.PythonUrl
-$null = Get-Archive 'cmake' $sources.CMakeArchive $sources.CMakeUrl
-$null = Get-Archive 'ninja' $sources.NinjaArchive $sources.NinjaUrl
-$null = Get-Archive 'arm-gcc' $sources.ArmGccArchive $sources.ArmGccUrl
-
-$pipWheel = Join-Path $downloadRoot $sources.PipWheel
-if (-not (Test-Path -LiteralPath $pipWheel)) {
-    if ($OfflineCheck) { throw "缺少本地 pip wheel: $pipWheel" }
-    Write-Host "获取 pip $($sources.PipVersion) wheel"
-    $metadata = Invoke-RestMethod -Uri $sources.PipMetadataUrl -TimeoutSec 120
-    $matches = @($metadata.urls | Where-Object { $_.filename -eq $sources.PipWheel })
-    if ($matches.Count -ne 1) { throw "找不到 pip wheel: $($sources.PipWheel)" }
-    $partial = "$pipWheel.part"
-    Assert-CacheChild $partial
-    try {
-        Invoke-WebRequest -Uri $matches[0].url -OutFile $partial -UseBasicParsing -TimeoutSec 300
-        if ((Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ine $matches[0].digests.sha256) {
-            throw 'pip wheel SHA256 校验失败'
+function Get-Download([string]$Name, [string]$Url, [string]$Expected = '') {
+    $file = Join-Path $downloadRoot $Name
+    if (Test-Path -LiteralPath $file) {
+        if (-not $Expected -and -not (Test-Path -LiteralPath ($file + '.receipt.json'))) {
+            if ($OfflineCheck) { throw "Missing SHA256 receipt: $file. Verify/import online first." }
+            # Never create a receipt for an unverified preexisting download.
+            throw "Unverified existing download: $file. Move it aside, then prepare again (or import explicitly via -...Source)."
         }
-        Move-Item -LiteralPath $partial -Destination $pipWheel
-    } finally {
-        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
+        Assert-Archive $file $Expected
+        if ($Expected -and -not (Test-Path -LiteralPath ($file + '.receipt.json'))) { Write-Receipt $file $Url }
+        return $file
     }
+    if ($OfflineCheck) { throw "Offline asset missing: $file" }
+    $partial = $file + '.part'
+    Assert-ChildPath $cacheRoot $partial
+    try {
+        Save-RemoteFile $Url $partial
+        if ((Get-Item -LiteralPath $partial).Length -eq 0) { throw "Empty download: $Url" }
+        if ($Expected -and (Get-FileHash -LiteralPath $partial).Hash -ine $Expected) { throw "Publisher SHA256 mismatch: $Url" }
+        Move-Item -LiteralPath $partial -Destination $file
+        Write-Receipt $file $Url
+        return $file
+    } finally { Remove-OutputChild $cacheRoot $partial }
 }
 
-$stage = Join-Path $cacheRoot ('.prepare-python-' + [guid]::NewGuid().ToString('N'))
-Assert-CacheChild $stage
+$inventory = @(Get-LocalToolInventory)
+$inventory | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $cacheRoot 'local-tools.json') -Encoding UTF8
+$resolved = @{}
+$errors = @()
+$assets = @(
+    @('python',$PythonSource,$sources.PythonArchive,$sources.PythonUrl,'python.exe'),
+    @('vc-runtime',$VcRuntimeSource,$sources.VcRuntimeArchive,$sources.VcRuntimeUrl,'vc-runtime'),
+    @('cmake',$CMakeSource,$sources.CMakeArchive,$sources.CMakeUrl,'cmake.exe'),
+    @('ninja',$NinjaSource,$sources.NinjaArchive,$sources.NinjaUrl,'ninja.exe'),
+    @('mingw',$MinGWSource,$sources.MinGWArchive,$sources.MinGWUrl,'gcc.exe'),
+    @('arm-gcc',$ArmGccSource,$sources.ArmGccArchive,$sources.ArmGccUrl,'arm-none-eabi-gcc.exe'))
+foreach ($asset in $assets) {
+    $kind,$source,$archive,$url,$command = $asset
+    try {
+        if (-not $source -and -not $OfflineCheck) {
+            $found = @($inventory | Where-Object { $_.ContainsKey('name') -and $_.name -eq $command -and $_.complete_and_matching })
+            if ($found.Count -and $kind -ne 'python') { $source = $found[0].root }
+        }
+        if (-not $source) {
+            # Reuse only complete, version-scoped, hash-verified offline caches.
+            try { $resolved[$kind] = Resolve-Asset $kind '' $archive; if (-not $ForceArchives) { continue } }
+            catch { if ($OfflineCheck) { throw } }
+            $expected = if ($sources.Sha256.ContainsKey($archive)) { $sources.Sha256[$archive] } else { '' }
+            if ($kind -eq 'cmake' -and -not $OfflineCheck) {
+                $checksums = Get-RemoteText $sources.CMakeChecksumUrl
+                $line = @($checksums -split "`n" | Where-Object { $_ -match ([regex]::Escape($archive) + '$') })
+                if ($line.Count -ne 1) { throw "CMake publisher checksum missing: $archive" }
+                $expected = ($line[0] -split '\s+')[0]
+            }
+            $null = Get-Download $archive $url $expected
+        }
+        $resolved[$kind] = Resolve-Asset $kind $source $archive
+    } catch { $errors += "$kind : $_"; Write-Warning $errors[-1] }
+}
 try {
-    New-Item -ItemType Directory -Path $stage | Out-Null
-    $pythonArchive = Join-Path $downloadRoot $sources.PythonArchive
-    if (Test-Path -LiteralPath $pythonArchive) {
-        Expand-Archive -LiteralPath $pythonArchive -DestinationPath $stage
+    if ($MinGWMakeSource) { $resolved['make'] = Resolve-Asset 'make' $MinGWMakeSource $sources.MakeArchive }
+    elseif ($resolved.ContainsKey('mingw') -and (Test-Asset 'make' $resolved['mingw'])) {
+        $null = Assert-Asset 'make' $resolved['mingw']; $resolved['make'] = $resolved['mingw']
     } else {
-        foreach ($item in Get-ChildItem -LiteralPath (Join-Path $cacheRoot 'python') -Force) {
-            Copy-Item -LiteralPath $item.FullName -Destination $stage -Recurse -Force
+        $found = @($inventory | Where-Object { $_.ContainsKey('name') -and $_.name -eq 'mingw32-make.exe' -and $_.complete_and_matching })
+        $source = if ($found.Count) { $found[0].root } else { '' }
+        $resolved['make'] = Resolve-Asset 'make' $source $sources.MakeArchive
+    }
+} catch { $errors += "make : $_"; Write-Warning $errors[-1] }
+
+try {
+    $null = Get-Download $sources.NinjaLicenseArchive $sources.NinjaLicenseUrl
+    $pipWheel = Join-Path $downloadRoot $sources.PipWheel
+    if (-not $OfflineCheck) {
+        $metadata = Get-RemoteText $sources.PipMetadataUrl | ConvertFrom-Json
+        $wheel = @($metadata.urls | Where-Object { $_.filename -eq $sources.PipWheel })[0]
+        $pipWheel = Get-Download $sources.PipWheel $wheel.url $wheel.digests.sha256
+    } else { Assert-Archive $pipWheel }
+    if (-not $resolved.ContainsKey('python')) { throw 'Cannot verify Python wheels until Python 3.10.9 is available.' }
+    $stage = Join-Path $cacheRoot ('.prepare-python-' + [guid]::NewGuid().ToString('N'))
+    try {
+        Copy-DirectoryContents $resolved['python'] $stage
+        $site = Join-Path $stage 'Lib/site-packages'
+        New-Item -ItemType Directory -Path $site -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $stage 'python310._pth'), "python310.zip`r`n.`r`nLib\site-packages`r`n", [Text.Encoding]::ASCII)
+        [IO.Compression.ZipFile]::ExtractToDirectory($pipWheel,$site)
+        $python = Join-Path $stage 'python.exe'
+        $pipArgs = @('-m','pip','--disable-pip-version-check','download','--only-binary',':all:','--dest',$wheelRoot,
+            "libclang==$($sources.LibClangVersion)","PyYAML==$($sources.PyYamlVersion)")
+        foreach ($pattern in @('libclang-18.1.1-*-win_amd64.whl',"pyyaml-$($sources.PyYamlVersion)-cp310-cp310-win_amd64.whl")) {
+            $wheels = @(Get-ChildItem -LiteralPath $wheelRoot -Filter $pattern -File)
+            if (-not $OfflineCheck) {
+                $package = if ($pattern.StartsWith('libclang')) { 'libclang' } else { 'PyYAML' }
+                $pin = if ($package -eq 'libclang') { $sources.LibClangVersion } else { $sources.PyYamlVersion }
+                $meta = Get-RemoteText "https://pypi.org/pypi/$package/$pin/json" | ConvertFrom-Json
+                $entry = @($meta.urls | Where-Object { $_.filename -like $pattern })
+                if ($entry.Count -ne 1) { throw "PyPI wheel missing or ambiguous: $pattern" }
+                $file = Join-Path $wheelRoot $entry[0].filename
+                if (-not (Test-Path -LiteralPath $file)) { Save-RemoteFile $entry[0].url $file }
+                if ((Get-FileHash -LiteralPath $file).Hash -ine $entry[0].digests.sha256) { throw "PyPI wheel SHA256 mismatch: $file" }
+                Write-Receipt $file $entry[0].url
+            } else {
+                if ($wheels.Count -ne 1) { throw "Expected one compatible wheel: $pattern" }
+                Assert-Archive $wheels[0].FullName
+            }
         }
-    }
-    $python = Join-Path $stage 'python.exe'
-    if (-not (Test-Path -LiteralPath $python)) { throw "本地 Python 归档缺少 python.exe: $pythonArchive" }
-    $sitePackages = Join-Path $stage 'Lib/site-packages'
-    New-Item -ItemType Directory -Path $sitePackages -Force | Out-Null
-    $pth = "$pythonZip`r`n.`r`nLib\site-packages`r`n"
-    [IO.File]::WriteAllText((Join-Path $stage $pythonPth), $pth, [Text.Encoding]::ASCII)
-    [IO.Compression.ZipFile]::ExtractToDirectory($pipWheel, $sitePackages)
-    $requirements = Join-Path $PSScriptRoot 'requirements.txt'
-    $offlineArgs = @('-m', 'pip', '--disable-pip-version-check', 'download', '--no-index',
-                     '--find-links', $wheelRoot, '--only-binary', ':all:', '--dest', $wheelRoot,
-                     '-r', $requirements)
-    Write-Host '检查本地 requirements.txt wheel 缓存...'
-    & $python @offlineArgs
-    if ($LASTEXITCODE -ne 0) {
-        if ($OfflineCheck) { throw "缺少 requirements.txt 的本地 wheel: $wheelRoot" }
-        Write-Host '下载 requirements.txt 的全部 wheel...'
-        & $python -m pip --disable-pip-version-check download --only-binary ':all:' --dest $wheelRoot -r $requirements
-        if ($LASTEXITCODE -ne 0) { throw 'Python 依赖 wheel 下载失败' }
-        & $python @offlineArgs
-        if ($LASTEXITCODE -ne 0) { throw '下载后仍无法从本地 wheel 缓存满足 requirements.txt' }
-    }
-} finally {
-    if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
-}
-Write-Host "本地 Portable 缓存已备齐: $cacheRoot"
+        $pipArgs += @('--no-index','--find-links',$wheelRoot)
+        $null = Invoke-Checked 'Python 3.10 compatible wheels' $python $pipArgs
+    } finally { if ($stage) { Remove-OutputChild $cacheRoot $stage } }
+} catch { $errors += "Python dependencies : $_"; Write-Warning $errors[-1] }
+$summary = @{ resolved=$resolved; errors=$errors; offline=[bool]$OfflineCheck; utc=[datetime]::UtcNow.ToString('o') }
+$summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $cacheRoot 'preparation-result.json') -Encoding UTF8
+if ($errors.Count) { throw ("Portable cache NOT ready:`n" + ($errors -join "`n")) }
+Write-Host "Verified Portable cache ready: $cacheRoot"

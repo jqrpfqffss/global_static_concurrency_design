@@ -1,0 +1,56 @@
+ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
+
+1. 解压整个 ECRA-Portable 目录；不要只复制 ecra.cmd 或工具 exe。
+2. 备份并编辑 config/semantics.yaml 的 project.root、扫描目录、上下文和复核设置。
+3. cmake.generator 应保持工程实际设置：MinGW Makefiles / Ninja / Unix Makefiles。
+   STM32 工程必须用其真实 ARM 工具链文件；MinGW GCC 仅用于 Windows 本机构建。
+4. 首次使用选择新的 ECRA 专用 build_dir，例如 build/ecra。
+   旧缓存的 Generator、Make、编译器路径冲突会明确报错。
+   clean_before_configure 只允许清理由 ECRA 创建并带所有权标记的目录。
+5. 在 PowerShell 中运行：
+   .\ecra.cmd --help
+   .\ecra.cmd doctor
+   .\ecra.cmd run --no-review
+   .\ecra.cmd report
+   .\ecra.cmd status
+   GNU Make 4.4.1 的子进程路径接口不支持 CMake 输出的中文 UTF-8 路径。
+   ECRA 自动使用同一目录的 8.3 名称；没有短文件名时，在用户 TEMP/ECRA-paths
+   创建可重复使用的 ASCII junction。它指向原工具/工程，不复制或替换编译器。
+   TEMP 必须可写且能获得 ASCII 路径；路径映射在日志中可诊断。
+   CMake 会将自身路径解析回真实目录，因此还为同一 GNU Make 4.4.1 增加
+   Windows activeCodePage=UTF-8 manifest。所有非资源代码段保持不变，不改变
+   Make 版本或构建逻辑；原始/产物 SHA256 和适配配方在 tools/mingw/make-utf8.json
+   与 portable-make-utf8.py 中保留。不会修改系统全局代码页。
+6. build: false 只配置并导出编译数据库，不执行固件构建。
+   doctor 执行真实配置，但不执行构建/扫描；各验收状态分别报告。
+7. OpenCode 不随包分发。需要复核时，在目标电脑独立安装 OpenCode、配置模型和认证，
+   将其加入 PATH 或在 review.command 填写绝对路径，然后启用 review.enabled 并运行：
+   .\ecra.cmd review
+   doctor 找到命令不代表模型连接或真实复核已通过测试。
+8. 构建子进程只使用内置工具及 Windows 系统目录；OpenCode 保留宿主 PATH。
+   若工程明确需要外部工具链，设置 analysis.cmake.allow_external_toolchain: true。
+   外部路径会被诊断记录，不会悄悄替换工程的编译器、宏或架构参数。
+9. 独立重复验收（工作目录必须尚不存在）：
+   .\runtime\python.exe -B .\validate_portable.py --bundle . --work C:\Temp\ecra-check-new
+   此验收会校验出厂文件 SHA256；编辑用户配置后需使用原始 ZIP 解压副本运行。
+
+构建机打包：
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\prepare_portable_cache.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\build_portable.ps1 -OutputDir .\dist-new
+  离线先执行 prepare_portable_cache.ps1 -OfflineCheck；build_portable.ps1 从不联网。
+  可提供 -PythonSource -CMakeSource -NinjaSource -MinGWSource -MinGWMakeSource -ArmGccSource。
+  -VcRuntimeSource 可指定完整 VC++ x64 运行库目录/ZIP 或锁定的微软官方 redist exe。
+  来源必须为完整目录或 ZIP（上游 MinGW .7z 需要构建机安装 7-Zip）。
+  旧版本缓存不会复用；缺失 DLL、错误版本、外部编译器或真实构建失败会终止打包。
+  已存在输出目录中的包和用户配置不会被覆盖；请改用新的 OutputDir。
+
+验收日志位于 OutputDir/portable-evidence，包含每条命令、退出码及完整日志。
+只有解压后的隔离构建也通过，candidate.zip 才会重命名为 ECRA-Portable.zip。
+portable-lock.json / VERSION.txt 记录版本与来源，FILES.sha256.json 记录逐文件校验。
+保留各工具附带的许可证；转发工具时须遵守对应许可证和源码提供条款。
+ARM 编译器、binutils、头文件、库和标准 GDB 完整保留。上游可选的 gdb-py 和
+gdb-add-index-py 因需要外部 32 位 Python 2.7 而不随 ECRA 包分发，清单中明确记录。
+libclang 所需的 MSVC 运行库以应用目录方式内置，来源为微软签名的官方 x64
+Redistributable 14.44.35211.0；许可证位于 runtime/licenses/msvc/LICENSE.rtf。
+对外再分发须具备 Microsoft Visual Studio 许可赋予的相应运行库分发权利：
+https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files

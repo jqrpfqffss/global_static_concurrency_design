@@ -1,406 +1,217 @@
 ﻿param(
     [string]$OutputDir = (Join-Path $PSScriptRoot 'dist'),
     [string]$CacheDir = (Join-Path $PSScriptRoot '.tools-cache'),
-    [string]$PythonSource,
-    [string]$CMakeSource,
-    [string]$NinjaSource,
-    [string]$ArmGccSource,
-    [string]$PipWheelSource,
-    [switch]$SkipZip
+    [string]$PythonSource, [string]$CMakeSource, [string]$NinjaSource,
+    [string]$MinGWSource, [string]$MinGWMakeSource, [string]$ArmGccSource,
+    [string]$PipWheelSource, [string]$VcRuntimeSource, [switch]$SkipZip
 )
-
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-
-# All network locations live in the optional preparation script's manifest.
-# This build reads only local extracted caches, local archives or *Source paths.
-$sources = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'config/portable_sources.psd1')
-$pythonTag = (($sources.PythonVersion -split '\.')[0..1] -join '')
-$pythonZip = "python$pythonTag.zip"
-$pythonPth = "python$pythonTag._pth"
-
-function Assert-ChildPath([string]$Parent, [string]$Child) {
-    $parentFull = [IO.Path]::GetFullPath($Parent).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-    $childFull = [IO.Path]::GetFullPath($Child)
-    if (-not $childFull.StartsWith($parentFull, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "拒绝操作输出目录之外的路径: $childFull"
-    }
-}
-
-function Remove-OutputChild([string]$Parent, [string]$Child) {
-    Assert-ChildPath $Parent $Child
-    if (Test-Path -LiteralPath $Child) {
-        Remove-Item -LiteralPath $Child -Recurse -Force
-    }
-}
-
-function Test-Asset([string]$Kind, [string]$Directory) {
-    switch ($Kind) {
-        'python' {
-            return ((Test-Path (Join-Path $Directory 'python.exe')) -and
-                    (Test-Path (Join-Path $Directory $pythonZip)) -and
-                    (Test-Path (Join-Path $Directory $pythonPth)))
-        }
-        'cmake' {
-            return ((Test-Path (Join-Path $Directory 'bin/cmake.exe')) -and
-                    (Test-Path (Join-Path $Directory 'share')))
-        }
-        'ninja' { return (Test-Path (Join-Path $Directory 'ninja.exe')) }
-        'arm-gcc' {
-            foreach ($relative in @('bin/arm-none-eabi-gcc.exe', 'bin/arm-none-eabi-g++.exe',
-                                   'bin/arm-none-eabi-ar.exe', 'lib', 'arm-none-eabi')) {
-                if (-not (Test-Path (Join-Path $Directory $relative))) { return $false }
-            }
-            return $true
-        }
-    }
-    throw "未知工具: $Kind"
-}
-
-function Test-PinnedArmGcc([string]$Directory) {
-    $compiler = Join-Path $Directory 'bin/arm-none-eabi-gcc.exe'
-    if (-not (Test-Path -LiteralPath $compiler)) { return $false }
-    try {
-        $firstLine = & $compiler --version 2>&1 | Select-Object -First 1
-        return ($LASTEXITCODE -eq 0 -and
-                $firstLine -match ('\b' + [regex]::Escape($sources.ArmGccVersion) + '\b'))
-    } catch { return $false }
-}
-
-function Find-AssetRoot([string]$Kind, [string]$Directory) {
-    $candidates = @($Directory)
-    $firstLevel = @(Get-ChildItem -LiteralPath $Directory -Directory -Force)
-    $candidates += @($firstLevel | ForEach-Object { $_.FullName })
-    foreach ($child in $firstLevel) {
-        $candidates += @(Get-ChildItem -LiteralPath $child.FullName -Directory -Force |
-                         ForEach-Object { $_.FullName })
-    }
-    foreach ($candidate in $candidates) {
-        if (Test-Asset $Kind $candidate) { return $candidate }
-    }
-    throw "$Kind 来源缺少完整目录结构: $Directory"
-}
-
-function Copy-DirectoryContents([string]$From, [string]$To) {
-    New-Item -ItemType Directory -Path $To -Force | Out-Null
-    foreach ($item in Get-ChildItem -LiteralPath $From -Force) {
-        Copy-Item -LiteralPath $item.FullName -Destination $To -Recurse -Force
-    }
-}
-
-function Resolve-Asset([string]$Kind, [string]$Source, [string]$ArchiveName) {
-    $cached = Join-Path $cacheRoot $Kind
-    if (-not $Source -and (Test-Asset $Kind $cached)) {
-        if ($Kind -ne 'arm-gcc' -or (Test-PinnedArmGcc $cached)) {
-            Write-Host "复用缓存: $cached"
-            return $cached
-        }
-        Write-Host "Arm GCC 缓存版本与固定的 $($sources.ArmGccVersion) 不符，将查找本地归档。"
-    }
-    $stage = Join-Path $cacheRoot ('.extract-' + $Kind + '-' + [guid]::NewGuid().ToString('N'))
-    $replacement = Join-Path $cacheRoot ('.prepared-' + $Kind + '-' + [guid]::NewGuid().ToString('N'))
-    $backup = Join-Path $cacheRoot ('.previous-' + $Kind + '-' + [guid]::NewGuid().ToString('N'))
-    Assert-ChildPath $cacheRoot $stage
-    Assert-ChildPath $cacheRoot $replacement
-    Assert-ChildPath $cacheRoot $backup
-    Assert-ChildPath $cacheRoot $cached
-    try {
-        if ($Source) {
-            $sourcePath = (Resolve-Path -LiteralPath $Source).Path
-            Write-Host "使用本地来源: $sourcePath"
-        } else {
-            $sourcePath = Join-Path $downloadRoot $ArchiveName
-            if (-not (Test-Path -LiteralPath $sourcePath)) {
-                throw "$Kind 缺少本地来源: $sourcePath。先运行 prepare_portable_cache.ps1，或提供对应的 -...Source 本地目录/ZIP。"
-            }
-            Write-Host "使用本地归档: $sourcePath"
-        }
-        $item = Get-Item -LiteralPath $sourcePath
-        if ($item.PSIsContainer) {
-            $root = Find-AssetRoot $Kind $item.FullName
-        } else {
-            New-Item -ItemType Directory -Path $stage | Out-Null
-            if ($Kind -eq 'ninja' -and $item.Name -ieq 'ninja.exe') {
-                Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $stage 'ninja.exe')
-            } elseif ($item.Extension -ieq '.zip') {
-                Expand-Archive -LiteralPath $item.FullName -DestinationPath $stage -Force
-            } else {
-                throw "$Kind 来源必须为完整目录或 ZIP: $sourcePath"
-            }
-            $root = Find-AssetRoot $Kind $stage
-        }
-        if ($Kind -eq 'arm-gcc' -and -not (Test-PinnedArmGcc $root)) {
-            throw "Arm GCC 来源版本不是固定的 $($sources.ArmGccVersion): $root"
-        }
-        Copy-DirectoryContents $root $replacement
-        if (-not (Test-Asset $Kind $replacement)) { throw "$Kind 缓存结构无效: $replacement" }
-        if ($Kind -eq 'arm-gcc' -and -not (Test-PinnedArmGcc $replacement)) {
-            throw "Arm GCC 复制后的版本不是固定的 $($sources.ArmGccVersion): $replacement"
-        }
-        if (Test-Path -LiteralPath $cached) { Move-Item -LiteralPath $cached -Destination $backup }
-        try {
-            Move-Item -LiteralPath $replacement -Destination $cached
-        } catch {
-            if (Test-Path -LiteralPath $backup) { Move-Item -LiteralPath $backup -Destination $cached }
-            throw
-        }
-        Remove-OutputChild $cacheRoot $backup
-        return $cached
-    } finally {
-        Remove-OutputChild $cacheRoot $stage
-        Remove-OutputChild $cacheRoot $replacement
-    }
-}
-
-function Invoke-Checked([string]$Label, [string]$Executable, [string[]]$Arguments) {
-    Write-Host "检查 $Label ..."
-    $result = & $Executable @Arguments 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0) { throw "$Label 失败 (exit $LASTEXITCODE): $result" }
-    $result = $result.Trim()
-    if ($result) { Write-Host $result }
-    return $result
-}
-
-function Get-FirstLine([string]$Text) {
-    return (@($Text -split "`r?`n" | Where-Object { $_.Trim() })[0]).Trim()
-}
-
-function Assert-Launcher([string]$Bundle) {
-    $launcher = Join-Path $Bundle 'ecra.cmd'
-    $help = Invoke-Checked 'ECRA CLI' $launcher @('--help')
-    foreach ($command in @('run', 'init', 'doctor', 'review', 'report', 'status')) {
-        if ($help -notmatch "\b$command\b") { throw "CLI 帮助缺少命令: $command" }
-    }
-}
-
-if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) {
-    throw '此脚本需要 64 位 Windows 构建机。'
-}
+if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) { throw 'Windows x64 required.' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+$sources = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'config/portable_sources.psd1')
+. (Join-Path $PSScriptRoot 'scripts/portable_common.ps1')
 $outputRoot = [IO.Path]::GetFullPath($OutputDir)
 $cacheRoot = [IO.Path]::GetFullPath($CacheDir)
 $separator = [IO.Path]::DirectorySeparatorChar
-if ($outputRoot -eq $cacheRoot -or $outputRoot.StartsWith($cacheRoot.TrimEnd('\', '/') + $separator, [StringComparison]::OrdinalIgnoreCase) -or
-    $cacheRoot.StartsWith($outputRoot.TrimEnd('\', '/') + $separator, [StringComparison]::OrdinalIgnoreCase)) {
-    throw 'OutputDir 与 CacheDir 不得相同或互相包含。'
+if ($outputRoot -eq $cacheRoot -or $outputRoot.StartsWith($cacheRoot.TrimEnd('\','/') + $separator, [StringComparison]::OrdinalIgnoreCase) -or
+    $cacheRoot.StartsWith($outputRoot.TrimEnd('\','/') + $separator, [StringComparison]::OrdinalIgnoreCase)) { throw 'OutputDir/CacheDir must not overlap.' }
+$bundle = Join-Path $outputRoot 'ECRA-Portable'
+$zip = Join-Path $outputRoot 'ECRA-Portable.zip'
+if ((Test-Path -LiteralPath $bundle) -or (Test-Path -LiteralPath $zip)) {
+    throw "Output already exists; preserve its user configuration. Select a new -OutputDir or move the old bundle/ZIP: $outputRoot"
 }
 New-Item -ItemType Directory -Path $outputRoot, $cacheRoot -Force | Out-Null
 $downloadRoot = Join-Path $cacheRoot 'downloads'
 $wheelRoot = Join-Path $cacheRoot 'wheels'
 New-Item -ItemType Directory -Path $downloadRoot, $wheelRoot -Force | Out-Null
-$bundle = Join-Path $outputRoot 'ECRA-Portable'
-$zip = Join-Path $outputRoot 'ECRA-Portable.zip'
-Remove-OutputChild $outputRoot $bundle
-if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
-
+$evidence = Join-Path $outputRoot 'portable-evidence'
+New-Item -ItemType Directory -Path $evidence -Force | Out-Null
+$inventory = @(Get-LocalToolInventory)
+$inventory | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $evidence 'local-tools.json') -Encoding UTF8
+function Select-LocalSource([string]$Explicit, [string]$Name) {
+    if ($Explicit) { return $Explicit }
+    $cacheName = switch ($Name) {
+        'cmake.exe' { 'cmake-' + $sources.CMakeVersion }; 'ninja.exe' { 'ninja-' + $sources.NinjaVersion }
+        'gcc.exe' { 'mingw-' + $sources.MinGWVersion + '-' + $sources.MinGWVariant }
+        'arm-none-eabi-gcc.exe' { 'arm-gcc-10.3-2021.10' }; 'mingw32-make.exe' { 'make-' + $sources.MakeVersion }
+    }
+    if ($cacheName -and (Test-Path -LiteralPath (Join-Path $cacheRoot ($cacheName + '/.portable-receipt.json')))) { return '' }
+    $match = @($inventory | Where-Object { $_.ContainsKey('name') -and $_.name -eq $Name -and $_.complete_and_matching })
+    if ($match.Count) { return $match[0].root }
+    return ''
+}
 try {
     $pythonBase = Resolve-Asset 'python' $PythonSource $sources.PythonArchive
-    $cmakeBase = Resolve-Asset 'cmake' $CMakeSource $sources.CMakeArchive
-    $ninjaBase = Resolve-Asset 'ninja' $NinjaSource $sources.NinjaArchive
-    $armBase = Resolve-Asset 'arm-gcc' $ArmGccSource $sources.ArmGccArchive
-
-    New-Item -ItemType Directory -Path $bundle -Force | Out-Null
+    $vcBase = Resolve-Asset 'vc-runtime' $VcRuntimeSource $sources.VcRuntimeArchive
+    $cmakeBase = Resolve-Asset 'cmake' (Select-LocalSource $CMakeSource 'cmake.exe') $sources.CMakeArchive
+    $ninjaBase = Resolve-Asset 'ninja' (Select-LocalSource $NinjaSource 'ninja.exe') $sources.NinjaArchive
+    $mingwBase = Resolve-Asset 'mingw' (Select-LocalSource $MinGWSource 'gcc.exe') $sources.MinGWArchive
+    $armBase = Resolve-Asset 'arm-gcc' (Select-LocalSource $ArmGccSource 'arm-none-eabi-gcc.exe') $sources.ArmGccArchive
+    $makeBase = $mingwBase
+    if ($MinGWMakeSource) { $makeBase = Resolve-Asset 'make' $MinGWMakeSource $sources.MakeArchive }
+    elseif (-not (Test-Asset 'make' $mingwBase)) {
+        $makeBase = Resolve-Asset 'make' (Select-LocalSource '' 'mingw32-make.exe') $sources.MakeArchive
+    }
+    $null = Assert-Asset 'make' $makeBase
+    New-Item -ItemType Directory -Path $bundle | Out-Null
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run_ecra.py') -Destination $bundle
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements.txt') -Destination $bundle
     $packageOut = Join-Path $bundle 'ecra'
     New-Item -ItemType Directory -Path $packageOut | Out-Null
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'ecra') -File -Filter '*.py') {
         Copy-Item -LiteralPath $file.FullName -Destination $packageOut
     }
-    if (-not (Test-Path (Join-Path $packageOut '__init__.py'))) { throw 'ecra 包不完整' }
     $configOut = Join-Path $bundle 'config'
     New-Item -ItemType Directory -Path $configOut | Out-Null
     foreach ($name in @('semantics.yaml', 'review_context.md', 'concurrency_cases.md')) {
         Copy-Item -LiteralPath (Join-Path (Join-Path $PSScriptRoot 'config') $name) -Destination $configOut
     }
-
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'scripts/validate_portable.py') -Destination (Join-Path $bundle 'validate_portable.py')
     $runtime = Join-Path $bundle 'runtime'
     Copy-DirectoryContents $pythonBase $runtime
     $sitePackages = Join-Path $runtime 'Lib/site-packages'
+    if (Test-Path -LiteralPath $sitePackages) { throw "Expected clean embeddable Python source; unexpected site-packages: $pythonBase" }
     New-Item -ItemType Directory -Path $sitePackages -Force | Out-Null
-    # _pth keeps the runtime independent of registry, user site and host PYTHONPATH.
-    # The last line makes `python.exe -m ecra.extract` work from any cwd.
-    $pth = "$pythonZip`r`n.`r`nLib\site-packages`r`n..`r`n"
-    [IO.File]::WriteAllText((Join-Path $runtime $pythonPth), $pth, [Text.Encoding]::ASCII)
+    [IO.File]::WriteAllText((Join-Path $runtime 'python310._pth'), "python310.zip`r`n.`r`nLib\site-packages`r`n..`r`n", [Text.Encoding]::ASCII)
     $python = Join-Path $runtime 'python.exe'
-
+    foreach ($name in @('msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll')) {
+        Copy-Item -LiteralPath (Join-Path $vcBase $name) -Destination $runtime -Force
+    }
+    $vcLicenceOut = Join-Path $runtime 'licenses/msvc'
+    New-Item -ItemType Directory -Path $vcLicenceOut -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $vcBase 'LICENSE.rtf') -Destination $vcLicenceOut
     $pipWheel = Join-Path $downloadRoot $sources.PipWheel
-    if (-not (Test-Path -LiteralPath $pipWheel)) {
-        if ($PipWheelSource) {
-            Copy-Item -LiteralPath (Resolve-Path -LiteralPath $PipWheelSource).Path -Destination $pipWheel
-        } else {
-            throw "缺少本地 pip wheel: $pipWheel。先运行 prepare_portable_cache.ps1，或提供 -PipWheelSource。"
-        }
-    }
+    if ($PipWheelSource) {
+        $pipWheel = (Resolve-Path -LiteralPath $PipWheelSource).Path
+        if ([IO.Path]::GetFileName($pipWheel) -cne $sources.PipWheel) { throw "Expected $($sources.PipWheel): $pipWheel" }
+    } else { Assert-Archive $pipWheel }
     [IO.Compression.ZipFile]::ExtractToDirectory($pipWheel, $sitePackages)
-    $null = Invoke-Checked 'Python' $python @('--version')
-    $null = Invoke-Checked 'pip' $python @('-m', 'pip', '--version')
-    $requirements = Join-Path $PSScriptRoot 'requirements.txt'
-    if (-not (Test-Path -LiteralPath $requirements)) { throw '缺少 requirements.txt' }
-    $pipArgs = @('-m', 'pip', '--disable-pip-version-check', 'install', '--no-index', '--find-links', $wheelRoot,
-                 '--only-binary', ':all:', '--no-compile', '--target', $sitePackages, '-r', $requirements)
-    Write-Host '从本地 wheel 缓存安装 requirements.txt ...'
-    & $python @pipArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "本地 wheel 缓存不足以安装 requirements.txt: $wheelRoot。先运行 prepare_portable_cache.ps1。"
+    foreach ($pattern in @('libclang-18.1.1-*-win_amd64.whl',"pyyaml-$($sources.PyYamlVersion)-cp310-cp310-win_amd64.whl")) {
+        $wheels = @(Get-ChildItem -LiteralPath $wheelRoot -Filter $pattern -File)
+        if ($wheels.Count -ne 1) { throw "Missing compatible wheel: $pattern in $wheelRoot" }
+        Assert-Archive $wheels[0].FullName
     }
-
+    $pipText = Invoke-Checked 'pip version' $python @('-m','pip','--version')
+    if ($pipText -notmatch ('^pip ' + [regex]::Escape($sources.PipVersion) + ' ')) { throw "pip version mismatch: $pipText" }
+    $constraints = Join-Path $bundle 'requirements-portable.lock.txt'
+    [IO.File]::WriteAllText($constraints, "libclang==$($sources.LibClangVersion)`r`nPyYAML==$($sources.PyYamlVersion)`r`n", [Text.Encoding]::ASCII)
+    $null = Invoke-Checked 'Install local compatible Windows wheels' $python @('-m','pip','--disable-pip-version-check','install',
+        '--no-index','--find-links',$wheelRoot,'--only-binary',':all:','--no-compile','--target',$sitePackages,
+        '-r',(Join-Path $bundle 'requirements.txt'),'-c',$constraints)
+    $null = Invoke-Checked 'Dependency consistency' $python @('-m','pip','check')
     $toolsDir = Join-Path $bundle 'tools'
     New-Item -ItemType Directory -Path $toolsDir | Out-Null
     Copy-DirectoryContents $cmakeBase (Join-Path $toolsDir 'cmake')
     Copy-DirectoryContents $ninjaBase (Join-Path $toolsDir 'ninja')
+    $ninjaLicense = Join-Path $downloadRoot $sources.NinjaLicenseArchive
+    Assert-Archive $ninjaLicense
+    Copy-Item -LiteralPath $ninjaLicense -Destination (Join-Path $toolsDir 'ninja/COPYING.txt')
+    Copy-DirectoryContents $mingwBase (Join-Path $toolsDir 'mingw')
     Copy-DirectoryContents $armBase (Join-Path $toolsDir 'arm-gcc')
-
-    $launcher = '@echo off' + "`r`n" +
-        'setlocal DisableDelayedExpansion' + "`r`n" +
-        'set "ECRA_ROOT=%~dp0"' + "`r`n" +
-        'set "ECRA_CONFIG_HOME=%ECRA_ROOT%config"' + "`r`n" +
-        'set "PATH=%ECRA_ROOT%tools\cmake\bin;%ECRA_ROOT%tools\ninja;%ECRA_ROOT%tools\arm-gcc\bin;%PATH%"' + "`r`n" +
-        '"%ECRA_ROOT%runtime\python.exe" "%ECRA_ROOT%run_ecra.py" %*' + "`r`n" +
-        'exit /b %ERRORLEVEL%' + "`r`n"
-    [IO.File]::WriteAllText((Join-Path $bundle 'ecra.cmd'), $launcher, [Text.Encoding]::ASCII)
-    $readme = @'
-ECRA Windows Full Portable
-
-1. 编辑 config/semantics.yaml，特别是 project.root 和工程的 CMake 设置。
-2. 如需补充工程背景，编辑 config/review_context.md。
-3. 从任意目录运行 ecra.cmd doctor 检查所配置工程。
-4. 运行 ecra.cmd 执行静态排查。
-5. 运行 ecra.cmd review 继续 AI 复核。
-6. 运行 ecra.cmd report 刷新报告。
-7. 运行 ecra.cmd status 查看进度。
-
-入口也支持 run、init、--project、--no-review 等原有参数；可用 ecra.cmd --help 查看。
-config 目录是可编辑的用户配置，更新工具前请自行备份修改。
-OpenCode 未包含在 Portable 包中。需要 AI review 时，目标电脑需自行配置可用的 opencode 命令；静态扫描可通过 review.enabled: false 或 --no-review 独立运行。
-本包自带 Python、PyYAML、libclang、CMake、Ninja 和 ARM GNU Toolchain。
+    # The upstream Python-enabled debugger requires a separately installed
+    # 32-bit Python 2.7. It is not a compiler component. Keep the standard GDB
+    # and the complete compiler/binutils/libraries; do not ship a broken optional
+    # executable or silently depend on the developer PC's Python 2 installation.
+    $omitted = @()
+    foreach ($name in @('arm-none-eabi-gdb-py.exe','arm-none-eabi-gdb-add-index-py')) {
+        $optional = Join-Path $toolsDir ('arm-gcc/bin/' + $name)
+        if (Test-Path -LiteralPath $optional) { Remove-OutputChild $bundle $optional; $omitted += $name }
+    }
+    if ($makeBase -ne $mingwBase) {
+        Copy-DirectoryContents $makeBase (Join-Path $toolsDir 'make-source')
+        foreach ($f in Get-ChildItem -LiteralPath (Join-Path $makeBase 'bin') -File) {
+            $dest = Join-Path $toolsDir ('mingw/bin/' + $f.Name)
+            if ((Test-Path -LiteralPath $dest) -and (Get-FileHash -LiteralPath $dest).Hash -ne (Get-FileHash -LiteralPath $f.FullName).Hash) {
+                throw "Make runtime conflicts with MinGW: $dest vs $($f.FullName)"
+            }
+            Copy-Item -LiteralPath $f.FullName -Destination $dest -Force
+        }
+    }
+    $makeSourceSha = (Get-FileHash -LiteralPath (Join-Path $makeBase 'bin/mingw32-make.exe')).Hash
+    $makeReport = Join-Path $toolsDir 'mingw/make-utf8.json'
+    $makeRecipe = Join-Path $toolsDir 'mingw/portable-make-utf8.py'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'scripts/enable_make_utf8.py') -Destination $makeRecipe
+    $null = Invoke-Checked 'Enable Make per-process UTF-8 manifest; preserve all code sections' $python @('-B',$makeRecipe,
+        '--make',(Join-Path $toolsDir 'mingw/bin/mingw32-make.exe'),'--report',$makeReport,'--expected-source-sha256',$makeSourceSha)
+    $makeAdapter = Get-Content -LiteralPath $makeReport -Raw | ConvertFrom-Json
+    $patterns = @{
+        cmake=('(?m)^cmake version ' + [regex]::Escape($sources.CMakeVersion) + '(\s|$)')
+        ninja=('\A' + [regex]::Escape($sources.NinjaVersion) + '\Z')
+        gcc=('(?i)^gcc\.exe \(' + [regex]::Escape($sources.MinGWVariant) + ', Built by MinGW-Builds project\) ' + [regex]::Escape($sources.MinGWVersion) + '(\s|$)')
+        'g++'= ('(?i)^g\+\+\.exe \(' + [regex]::Escape($sources.MinGWVariant) + ', Built by MinGW-Builds project\) ' + [regex]::Escape($sources.MinGWVersion) + '(\s|$)')
+        'mingw32-make'=('(?m)^GNU Make ' + [regex]::Escape($sources.MakeVersion) + '\nBuilt for ' + $sources.MakePlatform)
+        'arm-none-eabi-gcc'=([regex]::Escape($sources.ArmGccRelease) + '\) ' + [regex]::Escape($sources.ArmGccVersion) + ' 20210824 \(release\)')
+    }
+    $actualVersions = @{}
+    foreach ($entry in @(@('python',$runtime),@('cmake',(Join-Path $toolsDir 'cmake')),@('ninja',(Join-Path $toolsDir 'ninja')),
+            @('mingw',(Join-Path $toolsDir 'mingw')),@('make',(Join-Path $toolsDir 'mingw')),@('arm-gcc',(Join-Path $toolsDir 'arm-gcc')))) {
+        $actualVersions[$entry[0]] = ((Assert-Asset $entry[0] $entry[1]) -split "`n")[0]
+    }
+    $lock = @{ versions=@{python=$sources.PythonVersion;cmake=$sources.CMakeVersion;ninja=$sources.NinjaVersion;
+            mingw=$sources.MinGWVersion;make=$sources.MakeVersion;arm=$sources.ArmGccVersion};
+        version_patterns=$patterns; dependencies=@{libclang=$sources.LibClangVersion;PyYAML=$sources.PyYamlVersion};
+        sources=@{python=$pythonBase;cmake=$cmakeBase;ninja=$ninjaBase;mingw=$mingwBase;make=$makeBase;arm=$armBase;vc_runtime=$vcBase}; actual_versions=$actualVersions;
+        vc_runtime_version=$sources.VcRuntimeVersion;
+        make_adapter=$makeAdapter;
+        omitted_optional_components=$omitted;
+        cmake_distribution_note='Official Kitware 3.29.6 differs from JetBrains IDE bundle build 1; check actual version below.' }
+    $lock | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $bundle 'portable-lock.json') -Encoding UTF8
+    $launcher = @'
+@echo off
+setlocal DisableDelayedExpansion
+set "ECRA_ROOT=%~dp0"
+set "ECRA_PORTABLE_ROOT=%~dp0"
+set "ECRA_CONFIG_HOME=%ECRA_ROOT%config"
+set "PATH=%ECRA_ROOT%runtime;%ECRA_ROOT%tools\cmake\bin;%ECRA_ROOT%tools\ninja;%ECRA_ROOT%tools\mingw\bin;%ECRA_ROOT%tools\mingw\opt\bin;%ECRA_ROOT%tools\arm-gcc\bin;%PATH%"
+set "PYTHONHOME="
+set "PYTHONPATH="
+set "PYTHONDONTWRITEBYTECODE=1"
+"%ECRA_ROOT%runtime\python.exe" -B "%ECRA_ROOT%run_ecra.py" %*
+exit /b %ERRORLEVEL%
 '@
-    [IO.File]::WriteAllText((Join-Path $bundle 'README.txt'), $readme, (New-Object Text.UTF8Encoding($true)))
-
-    # Run acceptance commands from outside the bundle with only bundled tools
-    # and Windows system directories on PATH.
-    $oldPath = $env:PATH
-    $oldPythonPath = $env:PYTHONPATH
-    $oldPythonHome = $env:PYTHONHOME
-    try {
-        $systemPath = @((Join-Path $env:SystemRoot 'System32'), $env:SystemRoot,
-                        (Join-Path $env:SystemRoot 'System32/Wbem')) -join ';'
-        $env:PATH = (Join-Path $toolsDir 'cmake/bin') + ';' + (Join-Path $toolsDir 'ninja') + ';' +
-                    (Join-Path $toolsDir 'arm-gcc/bin') + ';' + $systemPath
-        $env:PYTHONPATH = ''
-        $env:PYTHONHOME = ''
-        $pythonVersionText = Invoke-Checked 'Python 版本' $python @('--version')
-        $probe = "import sys, ecra, yaml; from clang import cindex; from importlib.metadata import version; cindex.Index.create(); print('libclang OK'); print('libclang package ' + version('libclang')); print('python executable ' + sys.executable)"
-        $pythonProbe = Invoke-Checked 'ECRA / PyYAML / libclang' $python @('-c', $probe)
-        if ($pythonProbe -notmatch 'libclang OK' -or $pythonProbe -notmatch 'python executable ') {
-            throw 'Python 依赖自检输出异常'
-        }
-        $actualPython = ($pythonProbe -split "`r?`n" | Where-Object { $_ -like 'python executable *' } | Select-Object -First 1).Substring(18)
-        if ([IO.Path]::GetFullPath($actualPython) -ine [IO.Path]::GetFullPath($python)) {
-            throw "sys.executable 未指向便携解释器: $actualPython"
-        }
-        $cmakeText = Invoke-Checked 'CMake' (Join-Path $toolsDir 'cmake/bin/cmake.exe') @('--version')
-        $ninjaText = Invoke-Checked 'Ninja' (Join-Path $toolsDir 'ninja/ninja.exe') @('--version')
-        $gccText = Invoke-Checked 'ARM GCC' (Join-Path $toolsDir 'arm-gcc/bin/arm-none-eabi-gcc.exe') @('--version')
-        $null = Invoke-Checked 'ARM G++' (Join-Path $toolsDir 'arm-gcc/bin/arm-none-eabi-g++.exe') @('--version')
-        $null = Invoke-Checked 'ARM ar' (Join-Path $toolsDir 'arm-gcc/bin/arm-none-eabi-ar.exe') @('--version')
-        foreach ($name in @('cmake', 'ninja', 'arm-none-eabi-gcc')) {
-            $found = (Get-Command $name -CommandType Application -ErrorAction Stop).Source
-            if (-not $found.StartsWith($toolsDir + [IO.Path]::DirectorySeparatorChar,
-                                       [StringComparison]::OrdinalIgnoreCase)) {
-                throw "$name 被外部 PATH 提供: $found"
-            }
-        }
-        $previousLocation = Get-Location
-        try {
-            Set-Location -LiteralPath $outputRoot
-            Assert-Launcher $bundle
-            $request = Join-Path $cacheRoot 'portable-probe.request.json'
-            $response = Join-Path $cacheRoot 'portable-probe.response.json'
-            [IO.File]::WriteAllText($request, '{}', [Text.Encoding]::ASCII)
-            if (Test-Path -LiteralPath $response) { Remove-Item -LiteralPath $response -Force }
-            $null = Invoke-Checked '提取子进程导入' $python @('-m', 'ecra.extract', $request, $response)
-            if (-not (Test-Path -LiteralPath $response)) { throw 'ecra.extract 未生成子进程输出' }
-            Remove-Item -LiteralPath $request, $response -Force
-        } finally {
-            Set-Location $previousLocation
-        }
-    } finally {
-        $env:PATH = $oldPath
-        $env:PYTHONPATH = $oldPythonPath
-        $env:PYTHONHOME = $oldPythonHome
+    [IO.File]::WriteAllText((Join-Path $bundle 'ecra.cmd'), $launcher.Replace("`r`n","`n").Replace("`n","`r`n") + "`r`n", [Text.Encoding]::ASCII)
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'README.txt')
+    $commit = 'unknown (source archive or Git unavailable)'
+    $git = Get-Command git.exe -ErrorAction SilentlyContinue
+    if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {
+        try { $commit = Invoke-Checked 'Git source revision' $git.Source @('-C',$PSScriptRoot,'rev-parse','HEAD') }
+        catch { $commit = 'unknown (Git could not resolve revision)' }
     }
-
-    $version = (Select-String -LiteralPath (Join-Path $PSScriptRoot 'pyproject.toml') -Pattern '^version\s*=\s*"([^"]+)"' |
-                Select-Object -First 1).Matches.Groups[1].Value
-    $commit = 'unknown'
-    if (Get-Command git -ErrorAction SilentlyContinue) {
-        $value = & git -C $PSScriptRoot rev-parse HEAD 2>$null
-        if ($LASTEXITCODE -eq 0 -and $value) { $commit = ($value | Select-Object -First 1).Trim() }
+    $pyproject = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'pyproject.toml') -Raw
+    $version = [regex]::Match($pyproject, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+    [IO.File]::WriteAllText((Join-Path $bundle 'VERSION.txt'), "ECRA: $version`r`nGit: $commit`r`nUTC: $([datetime]::UtcNow.ToString('o'))`r`n" +
+        ($lock | ConvertTo-Json -Depth 8), [Text.Encoding]::UTF8)
+    foreach ($dir in @(Get-ChildItem -LiteralPath $bundle -Recurse -Directory -Filter '__pycache__' | Sort-Object { $_.FullName.Length } -Descending)) {
+        Remove-OutputChild $bundle $dir.FullName
     }
-    $manifest = @(
-        "ECRA version: $version",
-        "Python version: $(Get-FirstLine $pythonVersionText)",
-        "libclang version: $(($pythonProbe -split "`r?`n" | Where-Object { $_ -like 'libclang package *' } | Select-Object -First 1).Trim())",
-        "CMake version: $(Get-FirstLine $cmakeText)",
-        "Ninja version: $(Get-FirstLine $ninjaText)",
-        "ARM GCC version: $(Get-FirstLine $gccText)",
-        "Built at (UTC): $([datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))",
-        "Git commit: $commit"
-    ) -join "`r`n"
-    [IO.File]::WriteAllText((Join-Path $bundle 'VERSION.txt'), $manifest + "`r`n", [Text.Encoding]::UTF8)
-
-    # Import and pip checks can create bytecode even with pip --no-compile.
-    # Keep generated build-machine artifacts out of the deliverable.
-    $bytecodeDirs = @(Get-ChildItem -LiteralPath $bundle -Recurse -Directory -Filter '__pycache__' |
-                     Sort-Object { $_.FullName.Length } -Descending)
-    foreach ($dir in $bytecodeDirs) { Remove-OutputChild $bundle $dir.FullName }
-    foreach ($file in Get-ChildItem -LiteralPath $bundle -Recurse -File -Filter '*.pyc') {
-        Remove-OutputChild $bundle $file.FullName
-    }
-
+    $null = Invoke-Checked 'Inventory all deliverable files' $python @('-B',(Join-Path $bundle 'validate_portable.py'),'--bundle',$bundle,'--write-hashes')
+    $null = Invoke-Checked 'Uncompressed isolated acceptance' $python @('-B',(Join-Path $bundle 'validate_portable.py'),
+        '--bundle',$bundle,'--work',(Join-Path $evidence 'uncompressed'))
     if (-not $SkipZip) {
-        Write-Host '压缩 ECRA-Portable.zip ...'
-        [IO.Compression.ZipFile]::CreateFromDirectory($bundle, $zip,
-            [IO.Compression.CompressionLevel]::Optimal, $true)
-        $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+        $candidate = Join-Path $outputRoot 'ECRA-Portable.candidate.zip'
+        if (Test-Path -LiteralPath $candidate) { throw "Previous failed candidate exists: $candidate" }
+        [IO.Compression.ZipFile]::CreateFromDirectory($bundle,$candidate,[IO.Compression.CompressionLevel]::Optimal,$true)
+        $zipCheck = Join-Path $outputRoot ('.zip-check 空格 中文-' + [guid]::NewGuid().ToString('N'))
         try {
-            $names = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
-            foreach ($name in @('ecra.cmd', 'run_ecra.py', 'README.txt', 'VERSION.txt',
-                                'config/semantics.yaml', 'config/review_context.md', 'config/concurrency_cases.md',
-                                'runtime/python.exe', 'tools/cmake/bin/cmake.exe',
-                                'tools/ninja/ninja.exe', 'tools/arm-gcc/bin/arm-none-eabi-gcc.exe')) {
-                if ($names -cnotcontains "ECRA-Portable/$name") { throw "ZIP 缺少: $name" }
+            [IO.Compression.ZipFile]::ExtractToDirectory($candidate,$zipCheck)
+            $top = @(Get-ChildItem -LiteralPath $zipCheck -Force)
+            if ($top.Count -ne 1 -or $top[0].Name -cne 'ECRA-Portable' -or -not $top[0].PSIsContainer) {
+                throw "Invalid ZIP root structure: $candidate"
             }
-            if (@($names | Where-Object { -not $_.StartsWith('ECRA-Portable/') }).Count -gt 0) {
-                throw 'ZIP 根目录层级错误'
-            }
-            if (@($names | Where-Object { $_ -match '(^|/)(opencode|node|npm)(\.exe|\.cmd)?(/|$)' }).Count -gt 0) {
-                throw 'ZIP 意外包含 OpenCode/Node/npm'
-            }
-        } finally {
-            $archive.Dispose()
-        }
-        $zipCheck = Join-Path $outputRoot ('.zip-check-' + [guid]::NewGuid().ToString('N'))
-        try {
-            [IO.Compression.ZipFile]::ExtractToDirectory($zip, $zipCheck)
             $extracted = Join-Path $zipCheck 'ECRA-Portable'
-            if (-not (Test-Asset 'python' (Join-Path $extracted 'runtime')) -or
-                -not (Test-Asset 'arm-gcc' (Join-Path $extracted 'tools/arm-gcc'))) {
-                throw 'ZIP 解压后缺少完整运行时或工具链'
-            }
-            $unpackedPython = Join-Path $extracted 'runtime/python.exe'
-            $null = Invoke-Checked 'ZIP Python / ECRA / PyYAML / libclang' $unpackedPython @('-c', $probe)
-            $null = Invoke-Checked 'ZIP CMake' (Join-Path $extracted 'tools/cmake/bin/cmake.exe') @('--version')
-            $null = Invoke-Checked 'ZIP Ninja' (Join-Path $extracted 'tools/ninja/ninja.exe') @('--version')
-            $null = Invoke-Checked 'ZIP ARM GCC' (Join-Path $extracted 'tools/arm-gcc/bin/arm-none-eabi-gcc.exe') @('--version')
-            Assert-Launcher $extracted
-        } finally {
-            Remove-OutputChild $outputRoot $zipCheck
-        }
+            # 'config/concurrency_cases.md' is verified by the full file manifest.
+            $null = Invoke-Checked 'ZIP extracted isolated acceptance' (Join-Path $extracted 'runtime/python.exe') @('-B',
+                (Join-Path $extracted 'validate_portable.py'),'--bundle',$extracted,'--work',(Join-Path $evidence 'zip-extracted'))
+            Move-Item -LiteralPath $candidate -Destination $zip
+            Write-Receipt $zip 'ECRA build; full extracted isolated acceptance passed'
+        } finally { Remove-OutputChild $outputRoot $zipCheck }
     }
-    Write-Host "构建成功: $bundle"
-    if (-not $SkipZip) { Write-Host "ZIP 自检通过: $zip" }
+    Write-Host "Portable acceptance passed: $bundle"
+    if (-not $SkipZip) { Write-Host "ZIP: $zip"; Get-FileHash -LiteralPath $zip -Algorithm SHA256 | Format-List }
 } catch {
-    Write-Host "Portable 构建失败: $_" -ForegroundColor Red
+    $message = "Portable build FAILED: $_"
+    $message | Set-Content -LiteralPath (Join-Path $evidence 'failure.txt') -Encoding UTF8
+    Write-Host $message -ForegroundColor Red
     throw
 }

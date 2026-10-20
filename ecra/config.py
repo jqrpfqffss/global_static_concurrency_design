@@ -308,7 +308,7 @@ def load_config(root=None, path=None):
         if not isinstance(c, dict):
             raise ValueError('analysis.cmake 必须是映射')
         allowed = {'build_dir', 'generator', 'build_type', 'toolchain_file', 'args', 'build', 'build_args',
-                   'clean_before_configure', 'timeout_seconds'}
+                   'clean_before_configure', 'timeout_seconds', 'allow_external_toolchain'}
         if set(c) - allowed:
             raise ValueError('analysis.cmake 未知配置项: ' + ', '.join(sorted(set(c)-allowed)))
         for key in ('args', 'build_args'):
@@ -321,6 +321,8 @@ def load_config(root=None, path=None):
             raise ValueError('analysis.cmake.build 必须是 true/false')
         if 'clean_before_configure' in c and type(c['clean_before_configure']) is not bool:
             raise ValueError('analysis.cmake.clean_before_configure 必须是 true/false')
+        if 'allow_external_toolchain' in c and type(c['allow_external_toolchain']) is not bool:
+            raise ValueError('analysis.cmake.allow_external_toolchain 必须是 true/false')
         if type(c.get('timeout_seconds', 600)) not in (int, float) or not math.isfinite(c.get('timeout_seconds', 600)) or c.get('timeout_seconds', 600) <= 0:
             raise ValueError('analysis.cmake.timeout_seconds 必须大于 0')
         if a.get('auto_configure_cmake') or any(k.startswith('cmake_') for k in a):

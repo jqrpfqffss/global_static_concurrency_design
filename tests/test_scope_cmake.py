@@ -278,6 +278,7 @@ class ScopeCMakeTest(unittest.TestCase):
         (self.root/'App/main.c').write_text('int main(void){return 0;}')
         build = self.root/'build'; build.mkdir()
         marker = build/'stale-cache.txt'; marker.write_text('stale')
+        (build/'.ecra-build-owner').write_text(str(self.root.resolve()), encoding='utf-8')
         cfg = self.managed()
         cfg['analysis']['cmake']['clean_before_configure'] = True
 
