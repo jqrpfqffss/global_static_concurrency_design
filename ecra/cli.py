@@ -1,4 +1,5 @@
 import argparse
+from contextlib import closing
 from datetime import datetime, timezone
 import json
 import os
@@ -15,13 +16,13 @@ from .config import (TEMPLATE, CMAKE_TEMPLATE, TOOL_ROOT, SEMANTICS_FILE,
                      configured_project_root, load_config, resolve_config_path,
                      discover_arm_toolchains)
 from .report import generate
-from .html_report import REVIEW_PAGE, write_failure, write_html, review_records, category
+from .html_report import QUALITY_PAGE, REVIEW_PAGE, write_failure, write_html, review_records, category
 from .review import review_all, resolve_command
 
 
-def file_hashes(root, out, extra=(), audit_roots=()):
+def file_hashes(root, out, extra=(), audit_roots=(), *, exact=False):
     paths = set(Path(p).resolve() for p in extra)
-    roots = [root]
+    roots = [] if exact else [root]
     for folder in sorted(audit_roots, key=lambda p: len(p.parts)):
         if not any(folder.is_relative_to(r) for r in roots):
             roots.append(folder)
@@ -46,6 +47,85 @@ def file_hashes(root, out, extra=(), audit_roots=()):
                     h.update(chunk)
             result[relative(p, root)] = h.hexdigest()
     return result
+
+
+def dependency_inputs(root, unit, cfg, worker_dir, env, tool_root):
+    """Discover with Clang itself; GCC depfiles can miss Clang-specific inputs."""
+    request = worker_dir / (unit['tu_id'] + '.dependencies.request.json')
+    response = worker_dir / (unit['tu_id'] + '.dependencies.response.json')
+    write_json(request, dict(root=str(root), unit=unit, config=cfg,
+                            verify_inputs=True, dependencies_only=True,
+                            diagnostics_dir=str(worker_dir.parent / 'diagnostics/dependencies')))
+    response.unlink(missing_ok=True)
+    proc = execute([sys.executable, '-B', '-m', 'ecra.extract', str(request), str(response)],
+                   cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)))
+    if proc.returncode or not response.is_file():
+        raise ValueError(f"Clang 依赖发现失败 {unit['source_file']}: {proc.returncode} {proc.stderr[-4000:]}")
+    result = read_json(response)
+    if not isinstance(result.get('input_snapshot'), dict):
+        raise ValueError(f"Clang 无法验证输入 {unit['source_file']}: {result.get('diagnostics')}")
+    return result['input_snapshot'], result.get('preprocessor_signature')
+
+
+def dependency_results(root, units, cfg, worker_dir, env, tool_root):
+    from collections import deque
+    from concurrent.futures import ThreadPoolExecutor
+    count = cfg['analysis'].get('extraction_workers', 1)
+    pool = ThreadPoolExecutor(max_workers=count)
+    todo = iter(units)
+    pending = deque()
+    def submit():
+        unit = next(todo, None)
+        if unit is not None:
+            pending.append((unit, pool.submit(dependency_inputs, root, unit, cfg, worker_dir, env, tool_root)))
+    try:
+        for _ in range(count):
+            submit()
+        while pending:
+            unit, future = pending.popleft()
+            inputs, signature = future.result()
+            yield unit, inputs, signature
+            submit()
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
+
+
+def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out):
+    """Run bounded workers; only paths/exit metadata cross thread boundaries.
+
+    Consume in DB order so weak/strong selection, function declaration choice
+    and evidence order remain identical to a sequential scan.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    def job(unit):
+        request = worker_dir / (unit['tu_id'] + '.request.json')
+        response = worker_dir / (unit['tu_id'] + '.response.json')
+        metadata = Path(str(response) + '.metadata.json')
+        write_json(request, dict(root=str(root), unit=unit, config=cfg, verify_inputs=True,
+                   write_metadata=True, diagnostics_dir=str(out / 'diagnostics/workers')))
+        response.unlink(missing_ok=True)
+        metadata.unlink(missing_ok=True)
+        try:
+            proc = execute([sys.executable, '-B', '-m', 'ecra.extract', str(request), str(response)],
+                           cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)))
+        except MemoryError:
+            raise
+        except Exception as exc:
+            write_json(response, dict(parse_status='FAILED', diagnostics=[dict(severity=4,
+                       message=f'{type(exc).__name__}: {exc}')]))
+            return unit, response, metadata
+        if proc.returncode or not response.is_file():
+            # A dead/crashed worker is an infrastructure failure. It must not
+            # become an apparently successful incomplete static report.
+            raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']} 退出 {proc.returncode}: {proc.stderr[-4000:]}")
+        return unit, response, metadata
+    pool = ThreadPoolExecutor(max_workers=cfg['analysis'].get('extraction_workers', 1))
+    futures = [pool.submit(job, unit) for unit in units]
+    try:
+        for future in futures:
+            yield future.result()
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
 
 
 def safe_review_samples(facts, count, shared_count=0):
@@ -80,7 +160,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         review_shared_sample=0):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
-    cfg, config_file = load_config(root, config_path)
+    consumed_config = {}
+    cfg, config_file = load_config(root, config_path, consumed_inputs=consumed_config)
     if no_review:
         cfg["review"]["enabled"] = False
     out = (root / cfg["analysis"].get("output_dir", ".ecra")).resolve()
@@ -99,29 +180,46 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                     ('enabled' if cfg['review'].get('enabled', True) else 'disabled_by_config'))
     doctor = dict(project_root=str(root), python=sys.executable, python_version=sys.version,
                   semantics_found=True, config=str(config_file), ready_for_scan=False)
-    log_lines = []
+    log_started = False
 
     def progress(message):
+        nonlocal log_started
         print(message, flush=True)
-        log_lines.append(datetime.now(timezone.utc).isoformat() + " " + message)
-        (out / ("doctor.log" if doctor_only else "run.log")).write_text("\n".join(log_lines), encoding="utf-8")
+        with (out / ('doctor.log' if doctor_only else 'run.log')).open(
+                'a' if log_started else 'w', encoding='utf-8') as stream:
+            stream.write(datetime.now(timezone.utc).isoformat() + ' ' + message + '\n')
+        log_started = True
 
+    from .scan_diagnostics import ScanDiagnostics
+    diagnostics = ScanDiagnostics(out / ('diagnostics/doctor' if doctor_only else 'diagnostics'), progress)
+    report_can_replace = True
+    source_token = None
     try:
+        # Keep previous logs/diagnostics intact until they have been archived.
+        diagnostics.stage('扫描准备与历史归档', announce=False)
         if doctor_only:
-            from .portable import diagnostics
-            doctor.update(diagnostics(cfg['analysis'].get('libclang_file')))
+            from .portable import diagnostics as portable_diagnostics
+            doctor.update(portable_diagnostics(cfg['analysis'].get('libclang_file')))
             for name, info in doctor['tools'].items():
                 progress(f'{name}: ' + json.dumps(info, ensure_ascii=False))
         from .workflow import engine_digest
         engine_at_start = engine_digest()
-        previous = {}
+        previous_ids = set()
         old_report = out / "reports/global_static_concurrency.json"
         if old_report.is_file():
-            previous = read_json(old_report)
-        if (out / "run.json").is_file() and not doctor_only:
+            report_can_replace = False
+            # Do not retain the last scan's full access/call evidence during a
+            # new scan. Only IDs are needed for the baseline delta.
+            import sqlite3
+            try:
+                with closing(sqlite3.connect(f"{(out / 'facts.db').as_uri()}?mode=ro", uri=True)) as connection:
+                    previous_ids = {row[0] for row in connection.execute('SELECT finding_id FROM findings')}
+            except sqlite3.Error:
+                previous_ids = {f['finding_id'] for f in read_json(old_report).get('findings', [])}
+        if ((out / "run.json").is_file() or old_report.is_file()) and not doctor_only:
             snapshot = out / "snapshots" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
             snapshot.mkdir(parents=True)
-            for name in ("facts.json", "facts.db", "run.json", "scan_state.json", "input_manifest.json", "doctor.json", "run.log", "index.html", REVIEW_PAGE, "inventory", "reports", "review"):
+            for name in ("facts.json", "facts.db", "run.json", "scan_state.json", "input_manifest.json", "input_closure.json", "doctor.json", "run.log", "index.html", REVIEW_PAGE, QUALITY_PAGE, "inventory", "reports", "review", 'diagnostics', 'result_validity.json', 'html_details'):
                 p = out / name
                 if p.is_dir():
                     if name == 'review':
@@ -134,9 +232,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                         shutil.copytree(p, snapshot / name)
                 elif p.is_file():
                     shutil.copy2(p, snapshot / name)
+            report_can_replace = True
         if not doctor_only:
             (out/'scan_state.json').unlink(missing_ok=True)
+            (out/'input_closure.json').unlink(missing_ok=True)
             write_json(out / "run.json", run_info)
+            write_json(out / 'result_validity.json', dict(analysis_valid=False, state='RUNNING', started=started))
+            write_failure(out, state='RUNNING')
+        diagnostics.stage('编译数据库准备')
         progress("检查配置、libclang 和真实编译数据库…")
         if no_review:
             progress('本次命令使用 --no-review，已跳过 OpenCode；候选项只会保存为 PENDING。')
@@ -193,51 +296,115 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress("环境检查通过。尚未进行源码覆盖、模型提供商连接和并发分析。")
             return 0
         # CMake may regenerate headers legitimately before extraction begins.
-        started_ns = time.time_ns()
+        diagnostics.total_units = len(units)
+        diagnostics.stage('扫描输入快照建立')
         response_files = {p for u in units for p in u.get('response_files', [])}
         sources = [u['source'] for u in units]
         sources.extend(str((root / p).resolve()) for p in compilation.get('assembly_sources', []))
-        before = file_hashes(root, out, [config_file, compilation["compile_database"], *sources, *response_files], scope.includes)
         worker_dir = out / "workers"
         worker_dir.mkdir(exist_ok=True)
-        parts, all_includes = [], set()
+        from .fact_parts import FactParts
+        from .input_snapshot import InputSnapshot, SOURCE_READS
+        parts, all_includes = FactParts(), set()
         tool_root = Path(__file__).resolve().parent.parent
         env = os.environ.copy()
         env["PYTHONPATH"] = str(tool_root) + os.pathsep + env.get("PYTHONPATH", "")
-        for i, unit in enumerate(units):
+        explicit = [config_file, compilation['compile_database'], *sources, *response_files]
+        explicit.extend(root / cfg['analysis']['build_closure'][key] for key in ('elf', 'map')
+                        if cfg['analysis'].get('build_closure', {}).get(key))
+        if not cfg['analysis'].get('build_closure_only', True):
+            from .supplemental import selected_files
+            explicit.extend(root / p for p in selected_files(root, scope, out))
+        cache = Path(compilation['compile_database']).parent / 'CMakeCache.txt'
+        if cache.is_file():
+            explicit.append(cache)
+            toolchain = compilation.get('cmake_cache', {}).get('CMAKE_TOOLCHAIN_FILE')
+            if toolchain:
+                explicit.append(toolchain)
+        snapshot_inputs = InputSnapshot(root, out / 'diagnostics', explicit,
+                                       dict(consumed_config, **compilation.get('consumed_inputs', {})))
+        from .initialization import constructor_map_directory
+        constructor_root = Path(cfg.get('project',{}).get('root') or root)
+        snapshot_inputs.register_selection(constructor_map_directory(constructor_root,cfg),'*.map')
+        source_token = SOURCE_READS.set(snapshot_inputs)
+
+        def read_verified_source(path, **kwargs):
+            try:
+                return snapshot_inputs.read_text(path, **kwargs)
+            finally:
+                diagnostics.snapshot_status = snapshot_inputs.status
+
+        snapshot_inputs.save()
+        diagnostics.snapshot_status = snapshot_inputs.status
+        snapshot_inputs.assert_valid()
+        for i, (unit, inputs, signature) in enumerate(dependency_results(root, units, cfg, worker_dir, env, tool_root)):
+            progress(f"依赖快照 {i+1}/{len(units)}: {unit['source_file']}")
+            snapshot_inputs.discover(unit, inputs, signature)
+        snapshot_inputs.seal()
+        diagnostics.snapshot_status = snapshot_inputs.status
+        diagnostics.stage('Clang 翻译单元提取')
+        for i, (unit, response, metadata_file) in enumerate(extraction_responses(
+                root, units, cfg, worker_dir, env, tool_root, out)):
             role = ' [依赖]' if scope.active and unit.get('audit_role') == 'dependency' else ''
             progress(f"Clang {i + 1}/{len(units)}{role}: {unit['source_file']}")
-            request = worker_dir / (unit["tu_id"] + ".request.json")
-            response = worker_dir / (unit["tu_id"] + ".response.json")
-            write_json(request, dict(root=str(root), unit=unit, config=cfg))
-            if response.exists():
-                response.unlink()
             try:
-                proc = execute([sys.executable, "-B", "-m", "ecra.extract", str(request), str(response)],
-                               cwd=tool_root, env=env, timeout=float(cfg["analysis"].get("parse_timeout_seconds", 180)))
-                if proc.returncode or not response.is_file():
-                    raise ValueError(f"提取器退出 {proc.returncode}: {proc.stderr[-4000:]}")
-                part = read_json(response)
+                metadata_only = metadata_file.is_file()
+                part = read_json(metadata_file if metadata_only else response)
             except Exception as exc:
+                if isinstance(exc, MemoryError):
+                    raise
                 part = dict(parse_status="FAILED", diagnostics=[dict(severity=4, message=str(exc))])
+                write_json(response, part)
+                metadata_only = False
+            if part.get('worker_exception'):
+                raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']}: "
+                                   f"{part['worker_exception']}；详见 diagnostics/workers")
             if unit["missing_defines"]:
+                if metadata_only:
+                    part = read_json(response)
+                    metadata_only = False
                 part["parse_status"] = "FAILED"
                 part.setdefault("diagnostics", []).append(dict(severity=4, message="缺少预期宏: " + ", ".join(unit["missing_defines"])))
+                write_json(response, part)
             unit["parse_status"] = part["parse_status"]
             unit["diagnostics"] = part.get("diagnostics", [])
             unit["includes"] = part.get("includes", [])
             for variable in part.get("variables", []):
                 variable["parse_status"] = part["parse_status"]
             all_includes.update(part.get("includes", []))
-            parts.append(part)
+            if isinstance(part.get('input_snapshot'), dict):
+                snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
+            else:
+                # A timed-out/failed extraction supplies no safe facts. Keep
+                # the parse gap; final discovery still verifies its inputs.
+                unit['input_verification'] = 'NO_EXTRACTION_BUFFER_PARSE_FAILED'
+            if metadata_only:
+                parts.append_metadata(response, part)
+            else:
+                parts.append(response, part)
+            diagnostics.completed_units = i+1
+            diagnostics.fact_counts = parts.counts
+            del part
+        diagnostics.stage('输入一致性验证')
+        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+            snapshot_inputs.observe(unit, inputs, phase='FINAL_DISCOVERY', signature=signature)
+        after = snapshot_inputs.verify_disk()
+        snapshot_inputs.save()
+        diagnostics.snapshot_status = snapshot_inputs.status
+        snapshot_inputs.assert_valid()
+        diagnostics.stage('跨翻译单元事实归并')
         facts = merge(parts)
+        diagnostics.fact_source = facts
+        diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
+        diagnostics.fact_counts_scope = 'merged_facts'
         parts.clear()
         facts['translation_units'] = units
         from .supplemental import supplement, selected_files, build_file_coverage
         all_supplemental_tus, supplemental_includes = ([], set())
         if not cfg['analysis'].get('build_closure_only', True):
             all_supplemental_tus, supplemental_includes = supplement(
-                root, out, facts, units, cfg, scope, worker_dir, env, tool_root, progress)
+                root, out, facts, units, cfg, scope, worker_dir, env, tool_root, progress,
+                source_reader=read_verified_source)
         all_includes.update(supplemental_includes)
         facts['translation_units'] = units + all_supplemental_tus
         included_paths = {relative(p, root) for u in units for p in u.get('includes', [])}
@@ -248,14 +415,11 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if unlisted_headers and not cfg['analysis'].get('build_closure_only', True):
             facts['unknowns'].append(dict(kind='HEADERS_NOT_INCLUDED', files=unlisted_headers,
                 hint='已尝试补充声明盘点；这些头文件不属于当前构建的访问证据。'))
-        after = file_hashes(root, out, [config_file, compilation['compile_database'],
-            *sources, *all_includes, *response_files], scope.includes)
-        if any(after.get(p) != h for p, h in before.items()):
-            facts["unknowns"].append(dict(kind="SOURCE_CHANGED_DURING_SCAN"))
-        for include in all_includes:
-            p = Path(include)
-            if p.is_file() and p.stat().st_mtime_ns >= started_ns:
-                facts["unknowns"].append(dict(kind="HEADER_CHANGED_DURING_SCAN", file=relative(p, root)))
+        diagnostics.stage('输入一致性验证')
+        after = snapshot_inputs.verify_disk()
+        snapshot_inputs.save()
+        diagnostics.snapshot_status = snapshot_inputs.status
+        snapshot_inputs.assert_valid()
         # Compiling the same source under multiple flag sets requires separate run variants.
         if len({u["source_file"] for u in units}) != len(units):
             facts["unknowns"].append(dict(kind="MULTIPLE_BUILD_VARIANTS", hint="为每个固件配置分别导出数据库并扫描"))
@@ -284,7 +448,11 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                    **compilation)
         # Build per-file coverage table for source-level accountability
         from .supplemental import build_file_coverage
-        report = analyze(facts, cfg, cov, root=root)
+        diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
+        diagnostics.stage('指针、函数指针及调用图分析')
+        report = analyze(facts, cfg, cov, root=root, source_reader=read_verified_source)
+        snapshot_inputs.finalize_parent_inputs()
+        diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         samples = safe_review_samples(facts, review_safe_sample, review_shared_sample)
         if samples:
             # Samples are deliberately separate from report.findings: they do
@@ -298,23 +466,39 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         from .workflow import engine_digest, analysis_config
         if engine_digest() != engine_at_start:
             raise ValueError('扫描期间分析实现已变化；请重新运行 run，不能保存混用版本的证据')
+        # Static analysis and report construction can be long on large builds.
+        # Recheck the input bytes before publishing the first checkpoint too.
+        diagnostics.stage('发布前输入一致性验证')
+        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+            snapshot_inputs.observe(unit, inputs, phase='PRE_PUBLICATION', signature=signature)
+        snapshot_inputs.verify_disk()
+        snapshot_inputs.save()
+        snapshot_inputs.assert_valid()
         analysis_inputs = {p:h for p,h in after.items() if p != relative(config_file,root)}
-        fingerprint = digest([__version__, engine_digest(), analysis_config(cfg), analysis_inputs, [u["arguments"] for u in units]])
+        fingerprint = digest([__version__, engine_digest(), analysis_config(cfg), analysis_inputs,
+                              snapshot_inputs.preprocessor, [u["arguments"] for u in units],
+                              snapshot_inputs.consumed_selections()])
         report.update(fingerprint=fingerprint, generated_at=started, tool_version=__version__)
         try:
             git = execute(["git", "rev-parse", "HEAD"], cwd=root, timeout=10)
             report["git_commit"] = git.stdout.strip() if git.returncode == 0 else "unknown"
         except OSError:
             report["git_commit"] = "unknown"
-        old_ids = {f["finding_id"] for f in previous.get("findings", [])}
+        old_ids = previous_ids
         new_ids = {f["finding_id"] for f in report["findings"]}
         report["baseline"] = dict(new=sorted(new_ids - old_ids), unchanged=sorted(new_ids & old_ids),
                                   no_longer_observed=sorted(old_ids - new_ids),
                                   note="不再观察到不等于已修复；覆盖变化和证据变化必须复核")
         write_json(out / "input_manifest.json", after)
-        generate(out, facts, report, [])
+        single_publication = (not cfg['review'].get('enabled', True)
+                              and not cfg['review'].get('prepare_packets', False))
         from .workflow import save_scan
-        save_scan(root, out, cfg, config_file, report)
+        if not single_publication:
+            diagnostics.stage('报告生成与存储')
+            generate(out, facts, report, [])
+            save_scan(root, out, cfg, config_file, report)
+        else:
+            progress('未启用自动复核及证据包；完成最终输入校验后单次发布完整报告。')
         progress(f"已盘点 {len(facts['variables'])} 个变量，生成 {len(report['findings'])} 个候选/盲区复核项。")
         last_checkpoint = time.monotonic()
 
@@ -328,10 +512,11 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             write_html(out, facts, report, current)
             last_checkpoint = time.monotonic()
 
+        diagnostics.stage('可选 OpenCode 复核')
         reviews = review_all(root, out, cfg, facts, report, fingerprint, progress, on_result=checkpoint,
                              review_context_path=config_file.parent/'review_context.md',
                              case_library_path=config_file.parent/'concurrency_cases.md')
-        end_hashes = file_hashes(root, out, [config_file, compilation["compile_database"], *sources, *all_includes, *response_files], scope.includes)
+        end_hashes = file_hashes(root, out, [root / p for p in after], exact=True)
         if end_hashes != after:
             report["analysis_status"] = "INCOMPLETE"
             report["limitations"].append("复核期间源码或输入发生变化；本轮证据需重新生成。")
@@ -339,6 +524,13 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             for r in reviews:
                 mark_review_stale(out/'review', r, '复核期间源码或输入发生变化；本轮证据需重新生成。')
             write_json(out/'review/queue.json', reviews)
+        if cfg['review'].get('enabled', True):
+            for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+                snapshot_inputs.observe(unit, inputs, phase='POST_REVIEW', signature=signature)
+        snapshot_inputs.verify_disk()
+        snapshot_inputs.save()
+        diagnostics.snapshot_status = snapshot_inputs.status
+        snapshot_inputs.assert_valid()
         from .review_integrity import review_integrity
         integrity = review_integrity(report, reviews, require_terminal=True)
         pending = sum(r["state"] != "DONE" or r.get("status") in {"NEED_MORE_CONTEXT", "LIKELY"} for r in reviews)
@@ -352,7 +544,32 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 finding["status"] = r["status"]
                 finding["review"] = r["answer"]
         report["run_status"] = "INCOMPLETE" if report["analysis_status"] == "INCOMPLETE" or pending or not integrity['complete'] else "REVIEW_COMPLETE"
+        diagnostics.stage('报告生成与存储（单次发布）' if single_publication else '最终报告生成与存储')
         generate(out, facts, report, reviews)
+        if single_publication:
+            save_scan(root, out, cfg, config_file, report, initialize_queue=False)
+        # Exporting gigabytes can take longer than extraction. Bind the proof
+        # to input bytes/lookup state after every publication/checkpoint write.
+        diagnostics.stage('报告发布后输入一致性验证')
+        if engine_digest() != engine_at_start:
+            raise ValueError('扫描期间静态分析实现已变化；不能发布混用版本的安全证明，请重新运行 run')
+        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+            snapshot_inputs.observe(unit, inputs, phase='POST_PUBLICATION', signature=signature)
+        snapshot_inputs.verify_disk()
+        snapshot_inputs.save()
+        diagnostics.snapshot_status = snapshot_inputs.status
+        snapshot_inputs.assert_valid()
+        diagnostics.stage('最终完整性验收')
+        write_json(out / 'result_validity.json', dict(analysis_valid=True, state='STATIC_SCAN_SAVED',
+                   snapshot_status=snapshot_inputs.status, fingerprint=fingerprint))
+        write_json(out / 'diagnostics/completion.json', dict(fingerprint=fingerprint,
+                   translation_units_total=len(units), parsed=parsed, partial=partial, failed=failed,
+                   fact_counts={key: len(value) for key, value in facts.items() if isinstance(value, list)},
+                   variable_accountability=cov.get('variable_accountability'),
+                   classifications=cov.get('static_classification'), snapshot_status=snapshot_inputs.status,
+                   static_analysis_status=report['analysis_status'], analysis_valid=True,
+                   output_files={str(path.relative_to(out)): path.stat().st_size for path in
+                     [out/'facts.json', out/'facts.db', out/'index.html', out/'reports/global_static_concurrency.json']}))
         code = 2 if report["run_status"] == "INCOMPLETE" else (1 if report["findings"] else 0)
         run_info.update(state=report["run_status"], exit_code=code, fingerprint=fingerprint,
                         report=str(out / "index.html"), review_report=str(out / REVIEW_PAGE), review_summary=report["review_summary"])
@@ -365,15 +582,29 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             except Exception as exc:
                 progress(f'报告已生成，浏览器未打开：{exc}')
         return code
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as exc:
+        if source_token is not None:
+            diagnostics.snapshot_status = snapshot_inputs.status
+        # Release Python pools before allocating a bound call/frame for the
+        # handler; true allocator exhaustion differs from raising a mock OOM.
+        diagnostics.reserve = None
+        diagnostics.failure(exc)
         run_info.update(state='INTERRUPTED', exit_code=130)
         if not doctor_only and (out/'scan_state.json').exists():
             queue=read_json(out/'review/queue.json')
             report['run_status']='INTERRUPTED'
             generate(out, facts, report, queue)
         progress('已中断；完成静态扫描后可用 review 继续复核，否则重新运行 run。')
+        if not doctor_only:
+            write_failure(out, state='INTERRUPTED', write_report=report_can_replace)
+            (out / 'scan_state.json').unlink(missing_ok=True)
+            write_json(out / 'result_validity.json', dict(analysis_valid=False, state='INTERRUPTED'))
         return 130
     except Exception as exc:
+        if source_token is not None:
+            diagnostics.snapshot_status = snapshot_inputs.status
+        diagnostics.reserve = None
+        diagnostics.failure(exc)
         run_info.update(state="FAILED", exit_code=3, error=f"{type(exc).__name__}: {exc}")
         doctor.update(ready_for_scan=False, error=run_info["error"])
         if doctor_only and cfg['analysis'].get('cmake'):
@@ -387,10 +618,15 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                           actual_cxx_compiler=cache.get('CMAKE_CXX_COMPILER'))
         write_json(out / "doctor.json", doctor)
         if not doctor_only:
-            write_failure(out)
+            write_failure(out, write_report=report_can_replace)
+            (out / 'scan_state.json').unlink(missing_ok=True)
+            write_json(out / 'result_validity.json', dict(analysis_valid=False, state='FAILED', error=run_info['error']))
         progress("失败：" + run_info["error"])
         return 3
     finally:
+        if source_token is not None:
+            source_token.var.reset(source_token)
+        diagnostics.close()
         run_info["finished"] = datetime.now(timezone.utc).isoformat()
         if not doctor_only:
             write_json(out / "run.json", run_info)

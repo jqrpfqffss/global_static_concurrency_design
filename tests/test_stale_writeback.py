@@ -14,6 +14,7 @@ from ecra.review import build_variable_review_packet, review_all, verify_receipt
 from ecra.review_contract import validate_stale_writeback_safety, StaleWritebackSafetyError
 from tests.test_review_contract import answer_for
 from tests.live_review_archive import archive_sources
+from tests.temporary_files import remove_generated_file
 from ecra.cli import safe_review_samples
 from tests import test_ecra as fixtures
 
@@ -258,6 +259,9 @@ class StaleWritebackTests(unittest.TestCase):
         for name in ('fixture.h', 'unsafe_direct_writeback.c', 'replay.c'):
             (self.root / name).write_bytes((FIXTURES / name).read_bytes())
         executable = self.root / ('replay.exe' if os.name == 'nt' else 'replay')
+        # Run before TemporaryDirectory cleanup: a transient Windows file lock
+        # must not make Python 3.10 retry a locked executable as a directory.
+        self.addCleanup(remove_generated_file, executable, self.root)
         subprocess.run([compiler, '-std=c11', str(self.root/'replay.c'), '-o', str(executable)],
                        check=True, capture_output=True, text=True, timeout=30)
         replay = subprocess.run([str(executable)], check=True, capture_output=True, text=True, timeout=10)

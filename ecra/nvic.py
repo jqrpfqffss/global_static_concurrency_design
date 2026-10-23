@@ -16,6 +16,35 @@ DISABLE = {'HAL_NVIC_DisableIRQ', 'NVIC_DisableIRQ'}
 APIS = PRIORITY | GROUP | ENABLE | DISABLE
 
 
+_STATE_TABLES = ('mem', 'priority', 'enabled', 'masks')
+_STATE_SCALARS = {int, str, float, bool, bytes, type(None)}
+
+
+def copy_state(state):
+    """Copy branch containers without walking each immutable scalar twice.
+
+    Retain deepcopy and its shared memo for extended values and nested exits,
+    preserving aliases/cycles and isolation exactly as a full deepcopy.
+    """
+    result = state.copy()
+    memo = {id(state): result}
+    for name in _STATE_TABLES:
+        if name not in state:
+            continue
+        table = state[name]
+        if (type(table) is dict and set(map(type, table)).issubset(_STATE_SCALARS)
+                and set(map(type, table.values())).issubset(_STATE_SCALARS)):
+            if id(table) not in memo:
+                memo[id(table)] = table.copy()
+            result[name] = memo[id(table)]
+        else:
+            result[name] = copy.deepcopy(table, memo)
+    for name, value in state.items():
+        if name not in _STATE_TABLES:
+            result[name] = copy.deepcopy(value, memo)
+    return result
+
+
 def recover(facts, cfg):
     if 'nvic_programs' not in facts or not facts['nvic_programs']:
         return
@@ -54,7 +83,7 @@ class Interpreter:
 
     @staticmethod
     def join(a, b):
-        result = copy.deepcopy(a)
+        result = copy_state(a)
         for table in ('mem', 'priority', 'enabled', 'masks'):
             result[table] = {k: a[table].get(k) if a[table].get(k) == b[table].get(k) else None
                              for k in a[table].keys() | b[table].keys()}
@@ -125,10 +154,10 @@ class Interpreter:
             cond = self.value(args[0], state)
             if cond is not None:
                 return self.value(args[1] if cond else args[2], state)
-            before = copy.deepcopy(state)
+            before = copy_state(state)
             self.conditions = self.conditions + [dict(conditional_expression=True, proven=False)]
             left = self.value(args[1], state)
-            left_state = copy.deepcopy(state)
+            left_state = copy_state(state)
             state.update(before)
             right = self.value(args[2], state)
             state.update(self.join(left_state, state))
@@ -142,7 +171,7 @@ class Interpreter:
                     return 1
                 right = self.value(args[1], state)
                 return int(bool(right)) if right is not None else None
-            before = copy.deepcopy(state)
+            before = copy_state(state)
             self.conditions = self.conditions + [dict(short_circuit=True, proven=False)]
             right = self.value(args[1], state)
             state.update(self.join(before, state))
@@ -338,11 +367,11 @@ class Interpreter:
                 return self.configure('NVIC_EnableIRQ' if enabled else 'NVIC_DisableIRQ', [irq], node, state)
             # In the standard peripheral library only the enabled branch
             # programs priority. An unresolved command must join both paths.
-            original = copy.deepcopy(state)
+            original = copy_state(state)
             self.conditions = conditions + [dict(nvic_init_command_unknown=True)]
             self.configure('HAL_NVIC_SetPriority', [irq, pre, sub], node, state)
             self.configure('NVIC_EnableIRQ', [irq], node, state)
-            disabled = copy.deepcopy(original)
+            disabled = copy_state(original)
             self.configure('NVIC_DisableIRQ', [irq], node, disabled)
             state.update(self.join(state, disabled))
             return None
@@ -429,8 +458,8 @@ class Interpreter:
                     event.setdefault('proven_guards', []).append(guard)
                 return result
             guard = dict(file=node.get('file'), line=node.get('line'), outcome=True, proven=False)
-            a, ar, av = self.execute(node['yes'], copy.deepcopy(state), chain, conditions + [guard], phase)
-            b, br, bv = self.execute(node['no'], copy.deepcopy(state), chain, conditions + [dict(guard, outcome=False)], phase)
+            a, ar, av = self.execute(node['yes'], copy_state(state), chain, conditions + [guard], phase)
+            b, br, bv = self.execute(node['no'], copy_state(state), chain, conditions + [dict(guard, outcome=False)], phase)
             if ar != br:
                 continuing, terminated = (b, a) if ar else (a, b)
                 continuing.setdefault('possible_exits', []).append(terminated)
@@ -442,13 +471,13 @@ class Interpreter:
                 return self.execute(node['body'], state, chain, conditions, phase)
             if cond != 0:
                 loop_phase = 'RUNTIME' if self.functions.get(chain[-1]['function_id'], {}).get('name') == 'main' else phase
-                other, _, _ = self.execute(node['body'], copy.deepcopy(state), chain,
+                other, _, _ = self.execute(node['body'], copy_state(state), chain,
                     conditions + [dict(file=node.get('file'), line=node.get('line'), loop=True)], loop_phase)
                 if loop_phase == 'RUNTIME':
                     return state, True, None
                 state = self.join(state, other)
         elif op == 'unsupported':
-            other = copy.deepcopy(state)
+            other = copy_state(state)
             for child in node['body']:
                 other, _, _ = self.execute(child, other, chain, conditions + [dict(unsupported=True)], phase)
             state = self.join(state, other)
@@ -473,7 +502,7 @@ class Interpreter:
                 if self.programs[fid].get('incomplete_control_flow'):
                     self.barriers.append(dict(callee='异步入口存在尚未完全建模的控制流或汇编', phase='RUNTIME',
                         function_id=fid, file=self.functions[fid]['file'], line=self.functions[fid]['line'], call_chain=[]))
-                self.execute(self.programs[fid]['body'], copy.deepcopy(state),
+                self.execute(self.programs[fid]['body'], copy_state(state),
                     [dict(function_id=fid, function=self.functions[fid]['name'], file=self.functions[fid]['file'], line=self.functions[fid]['line'])], [], 'RUNTIME')
         self.facts['nvic_resolved_events'] = list({digest(e): e for e in self.events}.values())
         self.facts['nvic_lifecycle_barriers'] = list({digest(e): e for e in self.barriers}.values())

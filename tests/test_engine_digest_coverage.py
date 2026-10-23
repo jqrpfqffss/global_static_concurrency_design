@@ -75,19 +75,31 @@ class ReviewResumeDigestTests(unittest.TestCase):
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 
         original_digest = workflow.file_digest
+        saved_facts = (self.out/'facts.json').read_bytes()
+        from ecra.cli import execute as real_execute
+        validations = []
+
+        def dependency_only(argv, **kwargs):
+            self.assertIn('ecra.extract', argv, 'Review must not configure or build')
+            request = read_json(argv[-2])
+            self.assertTrue(request.get('dependencies_only'), 'Review must not extract facts again')
+            validations.append(request['unit']['tu_id'])
+            return real_execute(argv, **kwargs)
 
         def changed_review_only(path):
             return 'updated-review-module' if Path(path).name in REVIEW_REPORT_MODULES else original_digest(path)
 
         with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), \
                 patch('ecra.review.execute', side_effect=respond), \
-                patch('ecra.cli.execute', side_effect=AssertionError('review must not build or reparse')):
+                patch('ecra.cli.execute', side_effect=dependency_only):
             self.assertIn(workflow.saved_run(self.root), (1, 2))
             self.assertEqual(read_json(self.out / 'review/queue.json')[0]['state'], 'DONE')
             cases.write_text('## CASE-0001｜UPDATED_CASE\nUpdated reference only.\n', encoding='utf-8')
             with patch('ecra.workflow.file_digest', side_effect=changed_review_only):
                 self.assertIn(workflow.saved_run(self.root), (1, 2))
         self.assertEqual(len(calls), 2)
+        self.assertTrue(validations)
+        self.assertEqual((self.out/'facts.json').read_bytes(), saved_facts)
         self.assertEqual(calls[0], calls[1])
         self.assertIn('ORIGINAL_CASE', prompts[0])
         self.assertIn('UPDATED_CASE', prompts[1])

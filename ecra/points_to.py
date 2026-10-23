@@ -11,9 +11,84 @@ import fnmatch
 import re
 import os
 import sys
+import weakref
 
 from .common import digest
 from .target_set import TargetPool, TargetSet
+from .block_bitmap import BLOCK_BITS
+
+
+def instance_cache(owner, name, maxsize=65536):
+    """Memoize an instance method without retaining its complete Solver."""
+    reference = weakref.ref(owner)
+    function = getattr(type(owner), name)
+
+    @lru_cache(maxsize=maxsize)
+    def cached(*args, **kwargs):
+        instance = reference()
+        if instance is None:
+            raise ReferenceError('Pointer solver cache owner has been released')
+        return function(instance, *args, **kwargs)
+
+    return cached
+
+
+def weak_callback(method):
+    reference = weakref.WeakMethod(method)
+
+    def call(*args, **kwargs):
+        callback = reference()
+        if callback is not None:
+            return callback(*args, **kwargs)
+
+    return call
+
+
+def storage_definition_index(rows, pruned_functions=()):
+    """Exact location-to-layout index without millions of copied IR records.
+
+    Locations/owners remain in the complete pointer_storage facts. This lookup
+    consumes only paths and array bounds. Equal immutable layouts can be shared
+    across locations; multiple declarations still merge in their original order.
+    """
+    from types import MappingProxyType
+
+    @lru_cache(maxsize=8192)
+    def layout(paths, extents, size):
+        return MappingProxyType(dict(paths=frozenset(paths),
+            array_extents=MappingProxyType({path: value[1] for path, value in extents}),
+            array_size=size[1]))
+
+    def canonical(paths, extents, size):
+        paths = tuple(sorted({path[:end] for path in paths
+            for end in [len(path)] + [i for i, char in enumerate(path) if char == '/' and i]}))
+        return layout(paths, tuple(sorted((path, (type(value), value)) for path, value in extents.items())),
+                      (type(size), size))
+
+    definitions = {}
+    for row in rows:
+        if row.get('function_id') in pruned_functions:
+            continue
+        location = row['location']
+        previous = definitions.get(location)
+        if previous is None:
+            definitions[location] = canonical(row['paths'], row.get('array_extents', {}), row.get('array_size'))
+            continue
+        paths = previous['paths'] | set(row['paths'])
+        extents = dict(previous['array_extents'])
+        for prefix, size in row.get('array_extents', {}).items():
+            if size is not None or prefix not in extents:
+                extents[prefix] = size
+        size = row.get('array_size')
+        definitions[location] = canonical(paths, extents,
+            size if size is not None else previous['array_size'])
+    return definitions
+
+WEAK_BODY_OWNERS = dict.fromkeys(
+    ('functions', 'accesses', 'unknowns', 'protection_events', 'irq_priority_events',
+     'snapshots', 'control_flow', 'pointer_constraints', 'semantic_calls', 'indirect_accesses',
+     'pointer_storage', 'constant_regions', 'nvic_programs'), 'function_id')
+WEAK_BODY_OWNERS.update(variables='owner_function_id', calls='caller_function_id', registrations='registered_by')
 
 
 def resolve_linkage(parts):
@@ -24,26 +99,53 @@ def resolve_linkage(parts):
     execute both implementations in the call graph. Resolve by linkage only,
     independent of project, callback name, and input-file ordering.
     """
-    strong = {f['function_id'] for part in parts for f in part.get('functions', [])
-              if not f.get('is_weak')}
-    result = []
+    strong = getattr(parts, 'strong_functions', None)
+    if strong is None:
+        # Normal callers pass a list; disk-backed callers supply this index
+        # while each TU is extracted, avoiding a second deserialization pass.
+        if iter(parts) is parts:
+            parts = list(parts)
+        strong = {f['function_id'] for part in parts for f in part.get('functions', [])
+                  if not f.get('is_weak')}
+    streamed = getattr(parts, 'iter_linked_parts', None)
+    if streamed is not None:
+        yield from streamed(strong)
+        return
     for source in parts:
         overridden = {f['function_id'] for f in source.get('functions', [])
                       if f.get('is_weak') and f['function_id'] in strong}
         if not overridden:
-            result.append(source)
+            yield source
             continue
-        part = copy.deepcopy(source)
-        part['functions'] = [f for f in part.get('functions', []) if f['function_id'] not in overridden]
-        for table in ('accesses', 'unknowns', 'protection_events', 'irq_priority_events',
-                      'snapshots', 'control_flow', 'pointer_constraints', 'semantic_calls', 'indirect_accesses', 'pointer_storage',
-                      'constant_regions', 'nvic_programs'):
-            part[table] = [r for r in part.get(table, []) if r.get('function_id') not in overridden]
-        part['calls'] = [r for r in part.get('calls', []) if r.get('caller_function_id') not in overridden]
-        part['registrations'] = [r for r in part.get('registrations', []) if r.get('registered_by') not in overridden]
-        part['variables'] = [v for v in part.get('variables', []) if v.get('owner_function_id') not in overridden]
-        result.append(part)
-    return result
+        # Filtering does not mutate nested rows. A deep copy replicated whole
+        # CFGs and pointer expressions for each overridden startup weak body.
+        part = dict(source)
+        for table, owner in WEAK_BODY_OWNERS.items():
+            part[table] = [row for row in part.get(table, []) if row.get(owner) not in overridden]
+        yield part
+
+
+class _DependencyUsers(set):
+    __slots__ = ('name',)
+
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+
+class _DependencyIndex(dict):
+    """Existing dependency graph vertices also own their immutable names.
+
+    A name is stored once per graph vertex, rather than once per incoming
+    load edge. No reader, dependency, or cached load result is discarded.
+    """
+    def __missing__(self, name):
+        users = _DependencyUsers(name)
+        self[name] = users
+        return users
+
+    def canonical(self, name):
+        return self[name].name
 
 
 class Solver:
@@ -53,14 +155,14 @@ class Solver:
         self.target_pool = TargetPool()
         self.recent_targets = deque(maxlen=12)
         if os.environ.get('ECRA_SOLVER_TRACE_HOT'):
-            self.target_pool.on_new_target = self.trace_new_target
+            self.target_pool.on_new_target = weak_callback(self.trace_new_target)
         self.points = defaultdict(self.target_pool.make)
         self.slots_by_shape = defaultdict(set)
         self.descendant_slots = defaultdict(set)
         self.unknown_points = defaultdict(self.target_pool.make)
         self.readers = defaultdict(set)
         self.load_cache = {}
-        self.load_dependencies = defaultdict(set)
+        self.load_dependencies = _DependencyIndex()
         # Pointer offsets are pure functions of their exact input target set,
         # index, and this solver's immutable storage layout.  A large call
         # graph can revisit the same offset after an unrelated slot changes;
@@ -85,27 +187,7 @@ class Solver:
         self.functions = {f['function_id']: f for f in facts['functions']}
         self.variables = {v['symbol_id']: v for v in facts['variables']}
         self.objects = {'obj:' + s: s for s in self.variables}
-        self.storage_definitions = {}
-        for row in facts.get('pointer_storage', []):
-            if row.get('function_id') in self.pruned_functions:
-                continue
-            location = row['location']
-            if location not in self.storage_definitions:
-                self.storage_definitions[location] = dict(row, paths=set(row['paths']),
-                    array_extents=dict(row.get('array_extents', {})))
-            else:
-                # An incomplete extern declaration must not erase the actual
-                # definition's layout, regardless of worker completion order.
-                definition = self.storage_definitions[location]
-                definition['paths'].update(row['paths'])
-                for prefix, size in row.get('array_extents', {}).items():
-                    if size is not None or prefix not in definition['array_extents']:
-                        definition['array_extents'][prefix] = size
-                if row.get('array_size') is not None:
-                    definition['array_size'] = row['array_size']
-        self.storage_definitions = {location: dict(row, paths={path[:end] for path in row['paths']
-            for end in [len(path)] + [i for i, char in enumerate(path) if char == '/' and i]})
-            for location, row in self.storage_definitions.items()}
+        self.storage_definitions = storage_definition_index(facts.get('pointer_storage', []), self.pruned_functions)
         self.storage_paths = {}
         for base, sid in self.objects.items():
             variable = self.variables[sid]
@@ -118,9 +200,9 @@ class Solver:
         # Instance caches must die with a solution. A class-level lru_cache
         # retains old Solver instances (and their complete facts/points sets)
         # across context-refinement passes.
-        self.storage_base = lru_cache(maxsize=65536)(self.storage_base)
-        self.storage_location = lru_cache(maxsize=65536)(self.storage_location)
-        self.symbol = lru_cache(maxsize=65536)(self.symbol)
+        self.storage_base = instance_cache(self, 'storage_base')
+        self.storage_location = instance_cache(self, 'storage_location')
+        self.symbol = instance_cache(self, 'symbol')
         self.escape_closures = {}
         for sid, variable in self.variables.items():
             if variable['name'].startswith('__start_'):
@@ -213,6 +295,12 @@ class Solver:
         no field offset is proven. Represent that view by one may-overlap
         location, retaining the original object and an explicit alias gap.
         """
+        # The overlap element is absorbing even when a partial/dependent C++
+        # declaration supplied no storage layout. Appending another suffix to
+        # that element cannot identify another C object. Checking only after
+        # storage_base() used to create an infinite /$overlap/$overlap/... .
+        if '/$overlap' in location:
+            return location.partition('/$overlap')[0] + '/$overlap'
         base = self.storage_base(location)
         if base is None:
             return location
@@ -245,6 +333,22 @@ class Solver:
                 return base + '/$overlap'
         return location
 
+    def project_locations(self, base, suffix):
+        """Project a declared subobject, or conservatively join opaque views.
+
+        Missing layout is not evidence for disjoint or recursively nested
+        storage. Keep its named overlap slot for stored known targets and an
+        opaque target for the unresolved alias relation. Both are stable under
+        further field, index and arithmetic projections; no depth/count cap is
+        involved. Plain, unprojected scalar identifiers keep their identity.
+        """
+        if base.startswith('unknown:'):
+            return (base,)
+        if self.storage_base(base) is None:
+            root = base.partition('/$overlap')[0]
+            return (root + '/$overlap', 'unknown:storage-layout:' + root)
+        return (self.storage_location(base + suffix),)
+
     def locations(self, e):
         op = e.get('op')
         if op == 'loc':
@@ -262,7 +366,7 @@ class Solver:
                     continue
                 array = (base in self.objects and self.variables[self.objects[base]].get('array_element_is_struct')
                          or '/[*]' in self.storage_definitions.get(base, {}).get('paths', ()))
-                result.add(self.storage_location(base + ('/[0]' if array else '') + '/' + e['field']))
+                result.update(self.project_locations(base, ('/[0]' if array else '') + '/' + e['field']))
             self.location_images[id(e)] = (e, bases.bits, result.bits)
             return result
         if op == 'index':
@@ -280,6 +384,9 @@ class Solver:
                     # logical table although every registration has its own
                     # C declaration. Its dynamic index may select any record.
                     result.add(base)
+                    continue
+                if self.storage_base(base) is None:
+                    result.update(self.project_locations(base, '/[' + e['index'] + ']'))
                     continue
                 match = re.search(r'/\[(-?\d+|\*)\]$', base)
                 index = e['index']
@@ -355,6 +462,10 @@ class Solver:
                         result.add(base)
                     result.add('unknown:function-offset:' + base[3:])
                     continue
+                if self.storage_base(base) is None:
+                    result.add(base)
+                    result.update(self.project_locations(base, ''))
+                    continue
                 match = re.search(r'/\[(-?\d+|\*)\]$', base)
                 sid = self.objects.get(base)
                 if match:
@@ -391,6 +502,7 @@ class Solver:
         return self.target_pool.make()
 
     def load_location(self, location, decay=False):
+        location = self.load_dependencies.canonical(location)
         key = ('load', location, decay)
         self.watch(key)
         if key not in self.load_cache:
@@ -401,30 +513,56 @@ class Solver:
         return self.load_cache[key][0]
 
     def compute_load(self, location, decay=False):
+        canonical = self.load_dependencies.canonical
+        location = canonical(location)
         result = self.target_pool.make()
         dependencies = {location}
         if location.startswith('unknown:'):
             result.add(location)
         base = self.storage_base(location)
         if base:
-            summary = base + '/$overlap'
+            summary = canonical(base + '/$overlap')
             dependencies.add(summary)
             result.update(self.points.get(summary, ()))
             if location == summary:
                 result.add('unknown:overlap:' + self.objects.get(base, base))
-                dependencies.add('descendants:' + base)
+                dependencies.add(canonical('descendants:' + base))
                 for child in self.descendant_slots.get(base, ()):
-                    dependencies.add(child)
+                    dependencies.add(canonical(child))
                     result.update(self.points[child])
+        elif not location.startswith('unknown:'):
+            # Opaque subobject views still carry every known value stored in
+            # the root and its syntactic descendants (including late writes).
+            # Subscribe before those slots exist so the worklist reaches the
+            # same conservative fixed point as a complete equation rescan.
+            root = location.partition('/$overlap')[0]
+            summary = canonical(root + '/$overlap')
+            dependencies.add(summary)
+            result.update(self.points.get(summary, ()))
+            if location == summary:
+                result.add('unknown:storage-layout:' + root)
+                dependencies.update((canonical(root), canonical('descendants:' + root)))
+                result.update(self.points.get(root, ()))
+                for child in self.descendant_slots.get(root, ()):
+                    dependencies.add(canonical(child))
+                    result.update(self.points[child])
+            elif summary in self.points:
+                result.add('unknown:storage-layout:' + root)
         if decay and location in self.objects and self.variables[self.objects[location]].get('is_array'):
-            location += '/[0]'
+            location = canonical(location + '/[0]')
             dependencies.add(location)
         result.update(self.points.get(location, ()))
         ancestor = location
         while '/' in ancestor:
-            ancestor = ancestor.rpartition('/')[0]
+            ancestor = canonical(ancestor.rpartition('/')[0])
             dependencies.add(ancestor)
             result.update(self.unknown_points.get(ancestor, ()))
+            if base is None and not location.startswith('unknown:'):
+                summary = canonical(ancestor + '/$overlap')
+                dependencies.add(summary)
+                if summary in self.points:
+                    result.update(self.points[summary])
+                    result.add('unknown:storage-layout:' + ancestor)
         if '/[' in location:
             indices = list(re.finditer(r'/\[-?\d+\]', location))
             if indices and '/[*]' not in location and len(indices) <= 5:
@@ -435,7 +573,7 @@ class Solver:
                 # not repeatedly wake its readers in a large table.
                 candidates = {location}
                 for match in reversed(indices):
-                    candidates.update(candidate[:match.start()] + '/[*]' + candidate[match.end():]
+                    candidates.update(canonical(candidate[:match.start()] + '/[*]' + candidate[match.end():])
                                       for candidate in tuple(candidates))
                 dependencies.update(candidates)
                 for other in candidates - {location}:
@@ -443,7 +581,7 @@ class Solver:
             else:
                 # A wildcard query can overlap arbitrarily many concrete
                 # elements, including ones created after this load.
-                dependencies.add('shape:' + self.shape(location))
+                dependencies.add(canonical('shape:' + self.shape(location)))
                 for other in self.slots_by_shape.get(self.shape(location), ()):
                     if other != location and self.overlaps(location, other):
                         result.update(self.points[other])
@@ -715,6 +853,7 @@ class Solver:
         self.resolve_evidence(calls)
         rows, sets, identifiers = [], {}, {}
         compressed = self.facts['points_to_stats']['targets'] > 100000
+        blocked = len(self.target_pool.values) > BLOCK_BITS
         for location, values in sorted(self.points.items()):
             if not values:
                 continue
@@ -722,15 +861,18 @@ class Solver:
                 rows.append(dict(location=location, targets=sorted(values)))
                 continue
             if values.bits not in identifiers:
-                encoded = format(values.bits, 'x')
-                ident = 'PTS-' + digest(encoded)[:20]
+                encoded = ([[index, format(value, 'x')] for index, value in values.bits.blocks]
+                           if blocked else format(values.bits, 'x'))
+                ident = values.bits.evidence_identifier()
                 identifiers[values.bits] = ident
                 sets[ident] = encoded
             rows.append(dict(location=location, target_set_id=identifiers[values.bits], target_count=len(values)))
         self.facts['pointer_targets'] = rows
         if sets:
-            self.facts.update(pointer_target_encoding='INTERNED_BITMAP_V1',
+            self.facts.update(pointer_target_encoding='INTERNED_BLOCK_BITMAP_V2' if blocked else 'INTERNED_BITMAP_V1',
                               pointer_target_atoms=self.target_pool.values, pointer_target_sets=sets)
+            if blocked:
+                self.facts['pointer_target_block_bits'] = BLOCK_BITS
         # Exact direct calls are retained; resolved edges augment their evidence.
         self.facts['accesses'] = list({a['access_id']: a for a in self.facts['accesses']}.values())
 

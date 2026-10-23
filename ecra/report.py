@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import closing
 from collections import Counter, defaultdict
 
 from .common import write_json, replace_file
@@ -18,23 +19,34 @@ def write_database(path, facts, report):
     temp = path.with_suffix(".db.tmp")
     if temp.exists():
         temp.unlink()
-    conn = sqlite3.connect(temp)
     rows_by_table = {k: v for k, v in facts.items() if isinstance(v, list) and (not v or isinstance(v[0], dict))}
     rows_by_table["findings"] = report["findings"]
     rows_by_table['review_safe_samples'] = report.get('review_safe_samples', [])
-    with conn:
+    with closing(sqlite3.connect(temp)) as conn, conn:
         for table, rows in rows_by_table.items():
             columns = sorted({key for row in rows for key in row}) or ["empty"]
             # All identifiers originate from our own fact schema, never from source text.
             conn.execute(f'CREATE TABLE "{table}" (' + ",".join(f'"{c}"' for c in columns) + ")")
-            values = []
-            for row in rows:
-                values.append([json.dumps(row.get(c), ensure_ascii=False) if isinstance(row.get(c), (dict, list)) else row.get(c) for c in columns])
+            # sqlite3 consumes the iterator incrementally. Never materialize
+            # a second serialized copy of an entire table in Python memory.
+            values = ([json.dumps(row.get(c), ensure_ascii=False) if isinstance(row.get(c), (dict, list)) else row.get(c)
+                       for c in columns] for row in rows)
             conn.executemany(f'INSERT INTO "{table}" VALUES (' + ",".join("?" for _ in columns) + ")", values)
+        if facts.get('pointer_target_sets'):
+            # Encoded target references must be usable from SQLite as well as
+            # facts.json. Dict/string-list pools are not ordinary fact tables.
+            conn.execute('CREATE TABLE pointer_target_atoms (target_index INTEGER PRIMARY KEY, target TEXT)')
+            conn.executemany('INSERT INTO pointer_target_atoms VALUES (?,?)',
+                             enumerate(facts['pointer_target_atoms']))
+            conn.execute('CREATE TABLE pointer_target_sets '
+                         '(target_set_id TEXT PRIMARY KEY, encoding TEXT, block_bits INTEGER, data TEXT)')
+            conn.executemany('INSERT INTO pointer_target_sets VALUES (?,?,?,?)',
+                ((ident, facts['pointer_target_encoding'], facts.get('pointer_target_block_bits'),
+                  json.dumps(value, ensure_ascii=False, separators=(',', ':')))
+                 for ident, value in facts['pointer_target_sets'].items()))
         if facts["accesses"]:
             conn.execute("CREATE INDEX access_symbol ON accesses(symbol_id)")
             conn.execute("CREATE INDEX access_function ON accesses(function_id)")
-    conn.close()
     replace_file(temp, path)
 
 
@@ -113,12 +125,12 @@ def generate(out, facts, report, reviews):
     quality['root_cause_reason_counts'] = diagnostic['reason_counts']
     quality['root_cause_hotspots'] = diagnostic['hotspots'][:50]
     quality['counterfactual_upper_bounds'] = diagnostic['counterfactual_upper_bounds']
-    write_json(out / 'reports/root_cause_v2.json', diagnostic)
+    write_json(out / 'reports/root_cause_v2.json', diagnostic, indent=None)
     (out / 'reports/classification_root_causes.md').write_text(
         root_causes_markdown(diagnostic), encoding='utf-8')
-    write_json(out / "facts.json", facts)
-    write_json(out / "inventory/global_static_inventory.json", facts["variables"])
-    write_json(out / "reports/global_static_concurrency.json", report)
+    write_json(out / "facts.json", facts, indent=None)
+    write_json(out / "inventory/global_static_inventory.json", facts["variables"], indent=None)
+    write_json(out / "reports/global_static_concurrency.json", report, indent=None)
     write_database(out / "facts.db", facts, report)
     funcs = {f["function_id"]: f for f in facts["functions"]}
     from .html_report import to_display_text, KINDS, RULES

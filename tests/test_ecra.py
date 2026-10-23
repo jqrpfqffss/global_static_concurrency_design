@@ -643,7 +643,10 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             env = dict(os.environ, PYTHONHASHSEED=seed)
             command = 'run' if index == 1 else 'review'
             proc = execute([sys.executable, str(ROOT/'run_ecra.py'), command, '--project', str(self.root)],
-                           env=env, timeout=30)
+                           # This tests cache identity, not scan latency. Full
+                           # Clang input verification starts extra processes;
+                           # allow loaded Windows CI hosts to finish them.
+                           env=env, timeout=120)
             self.assertEqual(proc.returncode, 1, proc.stdout+proc.stderr)
             queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
             self.assertTrue(queue)
@@ -710,7 +713,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         results = review_all(self.root, self.root / ".ecra", cfg, facts, report, "x", lambda _: None)
         self.assertTrue(all(r["state"] == "TECH_FAILED" for r in results))
 
-    def test_review_does_not_parse_again_and_reruns_completed_candidates(self):
+    def test_review_reuses_facts_and_reruns_completed_candidates(self):
         from subprocess import CompletedProcess
         from unittest.mock import patch
         from ecra.workflow import saved_run, status, checked_scan
@@ -718,6 +721,14 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                      review=dict(enabled=True,command=[sys.executable],retries=0))
         self.assertEqual(run(self.root,no_review=True),2)
         out=self.root/'.ecra'
+        saved_facts = (out/'facts.json').read_bytes()
+        from ecra.cli import execute as real_execute
+        validations = []
+        def dependency_only(argv, **kwargs):
+            request = json.loads(Path(argv[-2]).read_text(encoding='utf-8'))
+            self.assertTrue(request.get('dependencies_only'), 'Resume must not extract facts again')
+            validations.append(request['unit']['tu_id'])
+            return real_execute(argv, **kwargs)
         calls=[]
         interrupt_after_first = True
         def respond(argv, **kwargs):
@@ -734,7 +745,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             answer['evidence'][0]['claim']='协议测试说明'
             answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
             return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
-        with patch('ecra.cli.execute',side_effect=AssertionError('Resume must not reparse Clang')), patch('ecra.review.execute',side_effect=respond):
+        with patch('ecra.cli.execute',side_effect=dependency_only), patch('ecra.review.execute',side_effect=respond):
             self.assertEqual(saved_run(self.root),130)
             self.assertEqual(len(calls),1)
             self.assertEqual(status(self.root)['unresolved'],1)
@@ -747,11 +758,13 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             self.assertEqual(saved_run(self.root,render_only=True),1)
             self.assertEqual(len(calls),3)
             self.assertEqual(status(self.root)['unresolved'],0)
+        self.assertTrue(validations)
+        self.assertEqual((out/'facts.json').read_bytes(), saved_facts)
         self.assertEqual(len(set(calls)),2)
         cfg,path=load_config(self.root)
         cfg['review']['timeout_seconds']=600
         path.write_text(json.dumps(cfg),encoding='utf-8')
-        checked_scan(self.root,out,cfg,path)  # review-only settings do not force Clang
+        checked_scan(self.root,out,cfg,path)  # review-only settings do not re-extract or reclassify facts
         (self.root/'a.c').write_text('int changed;',encoding='utf-8')
         self.assertEqual(saved_run(self.root), 2)
         stale=json.loads((out/'review/queue.json').read_text(encoding='utf-8'))
@@ -826,7 +839,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         failure = json.loads((self.root/'.ecra/run.json').read_text(encoding='utf-8'))
         self.assertIn('扫描期间分析实现已变化', failure['error'])
 
-    def test_resume_rejects_changed_nested_response_file_and_new_sources(self):
+    def test_resume_rejects_changed_response_file_but_accepts_unbuilt_source(self):
         from ecra.workflow import saved_run
         self.project({'a.c': 'int g;void ISR(void){g++;}void Task(void){g++;}'})
         (self.root/'outer.rsp').write_text('@inner.rsp',encoding='utf-8')
@@ -842,8 +855,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.assertTrue(all(r['state']=='TECH_FAILED' for r in json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))))
         (self.root/'inner.rsp').write_text('-DFEATURE=1',encoding='utf-8')
         (self.root/'new.c').write_text('int missed;',encoding='utf-8')
-        self.assertEqual(saved_run(self.root,render_only=True), 2)
-        self.assertIn('new.c', json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))[0]['error'])
+        from ecra.workflow import checked_scan
+        cfg, config_file = load_config(self.root)
+        checked_scan(self.root, self.root/'.ecra', cfg, config_file)
+        # A file outside the selected firmware's compile closure is not a new
+        # input. Adding its DB entry would change the manifest and fail closed.
+        self.assertNotIn('new.c', manifest)
 
     def test_doctor_preserves_previous_run_and_reports_even_on_failure(self):
         from unittest.mock import patch

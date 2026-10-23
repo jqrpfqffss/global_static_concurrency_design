@@ -45,6 +45,8 @@ def declaration_section(cursor, section_macros=None):
             values = [value.strip() for value in use.group(1).split(',')]
             if argument < len(values) and re.fullmatch(r'"[^"\\]*"', values[argument]):
                 return values[argument][1:-1]
+    except MemoryError:
+        raise
     except Exception:
         # Attribute metadata is optional; an incompatible binding must not
         # abort the semantic AST/access extraction of this translation unit.
@@ -155,6 +157,8 @@ class Extractor:
         self.coverage_source = request.get("coverage_source", "compile_database")
         self.source_overrides = request.get("source_overrides", {})
         self.declaration_only = request.get("declaration_only", False)
+        self.request_snapshot = request.get('verify_inputs', False)
+        self.dependencies_only = request.get('dependencies_only', False)
 
     def loc(self, c):
         loc = c.location
@@ -167,13 +171,22 @@ class Extractor:
     def source(self, c):
         loc = self.loc(c)
         p = self.root / loc["file"]
+        lines = self.source_lines(p)
+        return lines[loc["line"] - 1][:500] if 0 < loc["line"] <= len(lines) else ""
+
+    def source_lines(self, p):
         if str(p) not in self.source_cache:
             try:
-                self.source_cache[str(p)] = p.read_text(encoding="utf-8", errors="replace").splitlines()
+                from .input_snapshot import clang_file_contents
+                data = clang_file_contents(self.translation_unit, p)
+                if data is None:
+                    if self.request_snapshot:
+                        raise ValueError(f'Clang source buffer unavailable: {p}')
+                    data = p.read_bytes()
+                self.source_cache[str(p)] = data.decode('utf-8', errors='replace').splitlines()
             except OSError:
                 self.source_cache[str(p)] = []
-        lines = self.source_cache[str(p)]
-        return lines[loc["line"] - 1][:500] if 0 < loc["line"] <= len(lines) else ""
+        return self.source_cache[str(p)]
 
     def key(self, c):
         return c.get_usr() or f"{c.kind.name}:{self.loc(c)}:{c.spelling}"
@@ -739,6 +752,8 @@ class Extractor:
         self.nvic_programs.append(program(self, fn))
 
     def run(self):
+        from .scan_diagnostics import start_stage
+        start_stage('Clang 解析', self.tu_name)
         os.chdir(self.unit["directory"])
         if self.cfg["analysis"].get("libclang_file"):
             ci.Config.set_library_file(self.cfg["analysis"]["libclang_file"])
@@ -750,7 +765,17 @@ class Extractor:
         clang_args = [*self.unit["arguments"], '-Wno-error=incompatible-function-pointer-types']
         tu = index.parse(self.unit["source"], args=clang_args,
                          unsaved_files=unsaved,
-                         options=ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+                         options=(ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD |
+                                  (ci.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES if self.dependencies_only else 0)))
+        self.translation_unit = tu
+        input_snapshot = None
+        signature = None
+        if self.request_snapshot:
+            from .input_snapshot import clang_inputs, preprocessor_signature
+            input_snapshot = clang_inputs(tu, self.unit['source'])
+            signature = preprocessor_signature(tu)
+        if self.dependencies_only:
+            return dict(parse_status='DEPENDENCIES', input_snapshot=input_snapshot, preprocessor_signature=signature)
         diagnostics = [dict(severity=d.severity, message=str(d),
                             file=(relative(d.location.file.name, self.root)
                                   if d.location.file else None),
@@ -762,6 +787,8 @@ class Extractor:
                 continue
             try:
                 spelling = [token.spelling for token in islice(macro.get_tokens(), 128)]
+            except MemoryError:
+                raise
             except Exception:
                 continue
             if 'section' not in spelling or len(spelling) < 5 or spelling[1] != '(':
@@ -771,6 +798,7 @@ class Extractor:
             match = re.search(r'\bsection\s*\(\s*([A-Za-z_]\w*)\s*\)', ' '.join(spelling))
             if match and match.group(1) in parameters:
                 self.section_macros[macro.spelling] = parameters.index(match.group(1))
+        start_stage('Clang 声明提取', self.tu_name)
         self.declare(tu.cursor)
         # A Clang error can coexist with a traversable AST. Its affected
         # declarations/calls remain explicit evidence gaps; it is not a
@@ -790,6 +818,7 @@ class Extractor:
             for ch in c.get_children():
                 if self.interesting(ch):
                     bodies(ch)
+        start_stage('Clang 函数体提取', self.tu_name)
         bodies(tu.cursor)
         # A recoverable parser error may leave only one function's body
         # incomplete. Attach its coverage gap to variables actually named in
@@ -808,7 +837,7 @@ class Extractor:
                      if owners else None)
             source_path = self.root / diagnostic['file']
             try:
-                lines = source_path.read_text(encoding='utf-8', errors='replace').splitlines()
+                lines = self.source_lines(source_path)
                 body = ('\n'.join(lines[owner['line'] - 1:owner['end_line']])
                         if owner else '\n'.join(lines))
             except OSError:
@@ -896,6 +925,7 @@ class Extractor:
             a["parse_confidence"] = a.pop("parse_confidence_override", a["parse_confidence"])
             a["access_id"] = "A-" + digest([self.tu_name, a])[:20]
         from .pointer_extract import PointerExtractor
+        start_stage('Clang 指针事实提取', self.tu_name)
         pointer_facts = PointerExtractor(self).run(tu.cursor)
         from .nvic_extract import declarations
         nvic_globals, nvic_irqs = declarations(self, tu.cursor)
@@ -907,16 +937,42 @@ class Extractor:
                     nvic_irq_definitions=nvic_irqs,
                     registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
-                    parse_status=parse_status)
+                    parse_status=parse_status, input_snapshot=input_snapshot, preprocessor_signature=signature)
 
 
 def main():
     request = read_json(sys.argv[1])
+    diagnostics = None
+    if request.get('diagnostics_dir'):
+        from .scan_diagnostics import ScanDiagnostics
+        diagnostics = ScanDiagnostics(Path(request['diagnostics_dir']) / request['unit']['tu_id'])
     try:
         result = Extractor(request).run()
     except Exception as exc:
-        result = dict(parse_status="FAILED", diagnostics=[dict(severity=4, message=f"{type(exc).__name__}: {exc}")])
-    write_json(sys.argv[2], result)
+        if diagnostics:
+            diagnostics.reserve = None
+            diagnostics.failure(exc, origin='WORKER')
+        result = dict(parse_status="FAILED", worker_exception=dict(type=type(exc).__name__, message=str(exc)),
+                      diagnostics=[dict(severity=4, message=f"{type(exc).__name__}: {exc}")])
+    try:
+        if diagnostics:
+            diagnostics.stage('Worker 事实持久化')
+        write_json(sys.argv[2], result, indent=None)
+        if request.get('write_metadata'):
+            metadata = {key: result[key] for key in ('parse_status', 'diagnostics', 'includes',
+                        'input_snapshot', 'worker_exception', 'preprocessor_signature') if key in result}
+            metadata.update(strong_functions=[f['function_id'] for f in result.get('functions', []) if not f.get('is_weak')],
+                            weak_functions=[f['function_id'] for f in result.get('functions', []) if f.get('is_weak')],
+                            counts={key: len(value) for key, value in result.items() if isinstance(value, list)})
+            write_json(str(sys.argv[2]) + '.metadata.json', metadata, indent=None)
+    except BaseException as exc:
+        if diagnostics:
+            diagnostics.reserve = None
+            diagnostics.failure(exc, origin='WORKER')
+        raise
+    finally:
+        if diagnostics:
+            diagnostics.close()
 
 
 if __name__ == "__main__":

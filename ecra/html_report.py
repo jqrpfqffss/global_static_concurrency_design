@@ -12,6 +12,7 @@ from .decisions import (CONCURRENT_SIGNALS, DECISIONS, RISK_PRIORITY, aggregate_
 from .review_presentation import explanation as story_explanation, prose
 from .review_summary import display_summary
 from .review_language import display_answer, is_english_prose
+from .html_evidence import CURRENT, EXTERNAL_SCRIPT, HtmlEvidence, large
 
 
 REVIEW_PAGE = "opencode_review.html"
@@ -251,6 +252,9 @@ def loc(row):
 
 
 def raw(value, title="完整原始证据字段"):
+    evidence = CURRENT.get()
+    if evidence is not None and large(value):
+        return evidence.raw(value, title)
     return f"<details class=\"raw-evidence\"><summary>高级调试：{esc(title)}</summary><pre>{esc(value)}</pre></details>"
 
 
@@ -305,6 +309,11 @@ def deferred_detail(summary, contents, classes="evidence"):
     template is inert, while keeping the report completely offline and its
     evidence source-preserving for tool-based audit.
     """
+    evidence = CURRENT.get()
+    if evidence is not None:
+        external = evidence.detail(summary, contents, classes)
+        if external is not None:
+            return external
     return ('<details class="' + esc(classes) + '" data-deferred-detail="1"><summary>'
             + summary + '</summary><template data-detail-template="1">' + contents
             + '</template></details>')
@@ -381,8 +390,9 @@ def nvic_summary(facts):
                          esc(effective + '；' + enabled + '。' + item.get('enable_scope', ''))]))
     if not rows:
         return ''
-    return ('<details class="nvic-evidence"><summary>中断优先级、分组及配置调用链</summary><p>源码配置与运行期有效性分别记录。IRQ 使能不代表已触发；共享向量内部串行，子优先级不产生嵌套。屏蔽有效性按具体访问窗口判定。</p>'
-            + table(['IRQn 与实际向量', '源码配置与证据', '优先级位数及分组', '有效性与启停范围'], rows) + '</details>')
+    return deferred_detail('中断优先级、分组及配置调用链',
+        '<p>源码配置与运行期有效性分别记录。IRQ 使能不代表已触发；共享向量内部串行，子优先级不产生嵌套。屏蔽有效性按具体访问窗口判定。</p>'
+        + table(['IRQn 与实际向量', '源码配置与证据', '优先级位数及分组', '有效性与启停范围'], rows), 'nvic-evidence')
 
 
 def reviewed_variable_summary(findings, records, variable=None):
@@ -576,6 +586,9 @@ def page(title, content, report, options, script="", reading=False):
     content = content.replace('<!--controls-->', controls)
     if report.get('presentation_notice'):
         content = '<p class="notice">' + esc(report['presentation_notice']) + '</p>' + content
+    if CURRENT.get() is not None:
+        script = EXTERNAL_SCRIPT + script
+        content += '<script src="html_details/anchors.js"></script>'
     return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><a href="' + QUALITY_PAGE + '">分类质量</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
 
 
@@ -706,8 +719,8 @@ def classification_quality_html(facts, report):
             '<a href="index.html#' + anchor('var-', variable['symbol_id']) + '">' + esc(variable['name']) + '</a>',
             esc(variable['classification']), esc(variable['symbol_id'])])
             for variable in item.get('variables', [])]
-        details = '<details><summary>查看 ' + str(item.get('variable_count', 0)) + ' 个变量</summary>'
-        details += table(['变量', '分类', 'symbol_id'], variable_rows) + '</details>'
+        details = deferred_detail('查看 ' + str(item.get('variable_count', 0)) + ' 个变量',
+                                  table(['变量', '分类', 'symbol_id'], variable_rows))
         elimination_rows.append(row([esc(item.get('code')), esc(item.get('description')),
                                      str(item.get('variable_count', 0)), details],
                                     search_text=' '.join(str(variable.get('name', ''))
@@ -750,6 +763,13 @@ def classification_quality_html(facts, report):
 
 
 def write_html(out, facts, report, reviews):
+    if len(facts.get('variables', [])) >= 1000 or len(facts.get('accesses', [])) >= 50000:
+        with HtmlEvidence(out, report.get('fingerprint'), STYLE):
+            return _write_html(out, facts, report, reviews)
+    return _write_html(out, facts, report, reviews)
+
+
+def _write_html(out, facts, report, reviews):
     reviews = localized_records(reviews)
     from .scope import validate_selection
     validate_selection(facts, report)
@@ -1100,9 +1120,9 @@ def write_html(out, facts, report, reviews):
             '<p>' + esc(why) + '</p>',
             decision_tag(assessments[sid]) + '<p>' + esc(conclusion) + '</p>' + detail],
             anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files,
-            search_text=' '.join([v.get('qualified_name', ''), v.get('name', ''), v.get('type', ''), *files,
+            search_text=' '.join(dict.fromkeys([v.get('qualified_name', ''), v.get('name', ''), v.get('type', ''), *files,
                                   *(function_name(a.get('function_id')) for a in v.get('accesses', [])),
-                                  *(str(a.get('source_text', '')) for a in v.get('accesses', []))])))
+                                  *(str(a.get('source_text', '')) for a in v.get('accesses', []))]))))
 
     risks, gaps = [], []
     for f in sorted(report['findings'], key=lambda f: (RISK_PRIORITY.index(decision(f, records[f['finding_id']],
@@ -1164,7 +1184,9 @@ def write_html(out, facts, report, reviews):
                 contexts.get(cid, {}).get('kind') != 'MAIN', distances.get(cid, 999), cid))
             actors = '<p class="entry-summary">分析到的入口：<br>' + ('<br>'.join(esc(context(cid)) for cid in entry_ids[:2]) or '尚未确定')
             actors += (f'<br>另有 {len(entry_ids)-2} 个入口' if len(entry_ids) > 2 else '') + '</p>'
-            actors += f'<details><summary>全部入口：读 {len(readers)} / 写 {len(writers)}</summary><strong>读取</strong><br>' + context_list(readers) + '<br><strong>写入</strong><br>' + context_list(writers) + '</details>'
+            actors += deferred_detail(f'全部入口：读 {len(readers)} / 写 {len(writers)}',
+                                      '<strong>读取</strong><br>' + context_list(readers)
+                                      + '<br><strong>写入</strong><br>' + context_list(writers))
         titles = '<ul class="signal-list">' + ''.join('<li>' + esc(t) + '</li>' for _, t, _ in summary[:2]) + '</ul>'
         if len(summary) > 2:
             titles += '<span class="muted">另有 ' + str(len(summary)-2) + ' 条线索，展开可看全部</span>'
@@ -1274,8 +1296,11 @@ def write_html(out, facts, report, reviews):
     graph_script = """
 const graph=JSON.parse(document.getElementById('call-graph').textContent), incoming=new Map();
 for(const edge of graph.calls){const k=edge.callee_function_id;if(!incoming.has(k))incoming.set(k,[]);incoming.get(k).push(edge);}
-for(const d of document.querySelectorAll('details.graph'))d.addEventListener('toggle',()=>{if(!d.open||d.dataset.loaded)return;d.dataset.loaded='1';let seen=new Set(), edges=[], todo=[...(graph.accesses[d.dataset.symbol]||[])];while(todo.length){let f=todo.pop();if(seen.has(f))continue;seen.add(f);for(const e of incoming.get(f)||[]){edges.push(e);todo.push(e.caller_function_id);}}d.querySelector('pre').textContent=edges.map(e=>(graph.functions[e.caller_function_id]||e.caller_function_id)+' → '+(graph.functions[e.callee_function_id]||e.callee_name)+' ['+e.call_kind+'] @ '+e.file+':'+e.line).join('\\n')||'没有已解析调用边；入口直接访问或上下文未知。';});
+document.addEventListener('toggle',event=>{const d=event.target;if(!d.matches('details.graph')||!d.open||d.dataset.loaded)return;d.dataset.loaded='1';let seen=new Set(), edges=[], todo=[...(graph.accesses[d.dataset.symbol]||[])];while(todo.length){let f=todo.pop();if(seen.has(f))continue;seen.add(f);for(const e of incoming.get(f)||[]){edges.push(e);todo.push(e.caller_function_id);}}d.querySelector('pre').textContent=edges.map(e=>(graph.functions[e.caller_function_id]||e.caller_function_id)+' → '+(graph.functions[e.callee_function_id]||e.callee_name)+' ['+e.call_kind+'] @ '+e.file+':'+e.line).join('\\n')||'没有已解析调用边；入口直接访问或上下文未知。';},true);
 """
+    evidence = CURRENT.get()
+    if evidence is not None:
+        evidence.graph(graph, graph_script)
     content += '<script type="application/json" id="call-graph">' + data + '</script>'
     inventory_page = page('并发变量排查报告', content, report, priority_options, graph_script)
 
@@ -1359,7 +1384,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
         audit = ('<details class="story-audit"><summary>原始证据、执行日志与历史复核</summary>' + error
                  + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
                  + '<details class="evidence"><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details>'
-                 + '<details><summary>静态读写与上下文调用链</summary>' + accesses(f.get('accesses', []), 'review-' + f['finding_id']) + '</details>'
+                 + deferred_detail('静态读写与上下文调用链', accesses(f.get('accesses', []), 'review-' + f['finding_id']))
                  + '<p><a href="review/queue.json">原始复核记录与历史回答归档</a>（保留原文，不混入当前中文结论）</p></details>')
         review_rows[bucket].append(row(['<article class="review-story ' + group + '">' + current + audit + '</article>'],
             ident, group, file=f['definition'].get('file')))
@@ -1397,7 +1422,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
                            else '共享免复核门禁与全部访问')
             sample_rows.append(row([esc(sample['variable_name']), esc(review_label(receipt)),
                 '<a href="index.html#' + anchor('var-',sample['symbol_id']) + '">' + proof_label + '</a>'
-                + raw(receipt, '抽样复核记录') + accesses(sample.get('accesses', []), 'sample-' + sample['finding_id'])],
+                + raw(receipt, '抽样复核记录') + deferred_detail('全部静态访问', accesses(sample.get('accesses', []), 'sample-' + sample['finding_id']))],
                 anchor('review-',sample['finding_id'])))
         content += '<section id="safe-samples"><h2>筛除项独立抽样审计</h2><p>SAFE_PROVEN 与 SHARED_NO_REVIEW 分别抽样；不计入风险队列，也不改变静态分类。</p>' + table(['变量','复核状态','证据'],sample_rows) + '</section>'
     content += '<details class="review-scope"><summary>覆盖范围、复核进度与术语说明</summary>'
@@ -1409,13 +1434,26 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     quality_page = classification_quality_html(facts, report)
     for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page),
                            (QUALITY_PAGE, quality_page)]:
+        if evidence is not None:
+            evidence.register(name, contents)
         temporary = out / (name + '.tmp')
         temporary.write_text(contents, encoding='utf-8')
         from .common import replace_file
         replace_file(temporary, out / name)
+    if evidence is not None:
+        evidence.finish()
 
 
-def write_failure(out):
-    contents = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>本次扫描失败</title><h1>本次扫描失败，不能使用旧结论</h1><p>请查看 run.json / run.log。已有事实及复核缓存可能来自旧版本，不能作为本次结论。</p></html>'
+def write_failure(out, state='FAILED', *, write_report=True):
+    title = {'RUNNING': '本次扫描正在运行', 'INTERRUPTED': '本次扫描已中断'}.get(state, '本次扫描失败')
+    contents = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + title + '</title><h1>' + title + '，不能使用旧结论</h1><p>请查看 run.json / run.log 和 diagnostics/exception.log。已有事实及复核缓存可能来自旧版本，不能作为本次结论。</p></html>'
     for name in ('index.html', REVIEW_PAGE, QUALITY_PAGE):
         (out / name).write_text(contents, encoding='utf-8')
+    # The previous complete report is already archived by run(). A consumer
+    # opening JSON directly must also see invalidity, not last run's SAFE rows.
+    from .common import write_json
+    if write_report:
+        write_json(out / 'reports/global_static_concurrency.json', dict(
+            analysis_status='INVALID', analysis_valid=False, run_status=state, findings=[],
+            coverage={}, limitations=[title + '；旧结论不可作为本次扫描结果。'],
+            diagnostic_files=['run.json', 'diagnostics/exception.log', 'diagnostics/source_changes.json']))

@@ -314,7 +314,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         # Test the actual CMD launcher as well, including Chinese/space paths.
         help_text = self.command('ecra.cmd help', [os.environ.get('COMSPEC', r'C:\Windows\System32\cmd.exe'),
             '/d','/s','/c','""'+str(self.bundle/'ecra.cmd')+'" --help"'])
-        for command in ('run','doctor','review','report','status','init'):
+        for command in ('run','doctor','review','review-failed','report','status','init'):
             if command not in help_text:
                 raise ValueError(f'CLI missing: {command}')
         self.command('ecra.cmd doctor configure only', self.ecra('doctor',config))
@@ -336,8 +336,13 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         shared = next((v for v in facts['variables'] if v['name'] == 'shared_count'), None)
         if not shared or len(shared.get('writers',[])) < 2:
             raise ValueError('AST/global-variable/concurrent writer extraction regression')
+        static_facts_sha256 = sha256(firmware/'.ecra/facts.json')
         self.command('ecra.cmd review disabled interface', self.ecra('review',config),allowed=(2,))
+        self.command('ecra.cmd review-failed disabled interface', self.ecra('review-failed',config),allowed=(2,))
         self.command('ecra.cmd report', self.ecra('report',config),allowed=(2,))
+        if sha256(firmware/'.ecra/facts.json') != static_facts_sha256:
+            raise ValueError('Saved review/report commands changed the complete static facts')
+        self.report['saved_commands_static_facts_unchanged'] = True
         status = json.loads(self.command('ecra.cmd status', self.ecra('status',config,'--json')))
         if not status.get('resumable'):
             raise ValueError(f'Scan not resumable: {status}')

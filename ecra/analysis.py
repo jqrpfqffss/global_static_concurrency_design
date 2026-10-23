@@ -19,12 +19,14 @@ def merge(parts):
     parts = resolve_linkage(parts)
     facts = {t: [] for t in TABLES}
     variables, functions = {}, {}
+    unique_rows = {t: {} for t in TABLES[2:]}
     for part in parts:
         if part.get('parse_status') == 'FAILED':
             failed_sources = {tu for v in part.get('variables', []) for tu in v.get('translation_units', [])}
             failed_sources.update(f.get('translation_unit') or f.get('file') for f in part.get('functions', []))
             for source in sorted(failed_sources - {None}):
-                facts['unknowns'].append(dict(kind='PARSE_FAILED', file=source, diagnostics=part.get('diagnostics', [])))
+                issue = dict(kind='PARSE_FAILED', file=source, diagnostics=part.get('diagnostics', []))
+                unique_rows['unknowns'][digest(issue)] = issue
         for v in part.get("variables", []):
             if part.get('parse_status') == 'FAILED':
                 v['parse_status'] = 'FAILED'
@@ -48,15 +50,18 @@ def merge(parts):
                         if field not in {'declarations', 'definitions', 'translation_units', 'parse_status'}:
                             old[field] = value
                 if previous_type != v["type"] and not compatible_array_declaration:
-                    facts["unknowns"].append(dict(kind="TYPE_VARIANT", symbol_id=sid, types=[previous_type, v["type"]]))
+                    issue = dict(kind="TYPE_VARIANT", symbol_id=sid, types=[previous_type, v["type"]])
+                    unique_rows['unknowns'][digest(issue)] = issue
         for f in part.get("functions", []):
             functions[f["function_id"]] = f
-        for t in TABLES[2:]:
-            facts[t].extend(part.get(t, []))
+        for t in ([part['_table']] if part.get('_table') in TABLES[2:] else
+                  () if part.get('_table') else TABLES[2:]):
+            for row in part.get(t, []):
+                unique_rows[t][digest(row)] = row
     facts["variables"] = sorted(variables.values(), key=lambda x: x["symbol_id"])
     facts["functions"] = sorted(functions.values(), key=lambda x: x["function_id"])
     for t in TABLES[2:]:
-        facts[t] = list({digest(row): row for row in facts[t]}.values())
+        facts[t] = list(unique_rows.pop(t).values())
     regions = defaultdict(list)
     for row in facts['constant_regions']:
         regions[(row['function_id'], row['file'])].append(row)
@@ -751,9 +756,13 @@ def compact_conflict_pair_storage(records):
             not pair.get('may_concurrent'), not pair.get('has_write_conflict'), pair['conflict_id']))
 
 
-def analyze(facts, cfg, coverage, root=None):
+def analyze(facts, cfg, coverage, root=None, source_reader=None):
+    if any(u['kind'] in {'SOURCE_CHANGED_DURING_SCAN', 'HEADER_CHANGED_DURING_SCAN'} for u in facts['unknowns']):
+        raise ValueError('源码在扫描期间发生变化；无法对不一致快照作安全证明，请重新扫描。')
+    from .scan_diagnostics import start_stage
     from pathlib import Path
     project_root = Path(root or coverage.get('project_root', Path.cwd()))
+    read_source = source_reader or Path.read_text
     from .missing_source import preprocess_failed_units, complete_identifiers
     preprocess_failed_units(facts)
     # Assembly startup/vector references are possible entries, not C callers.
@@ -769,7 +778,7 @@ def analyze(facts, cfg, coverage, root=None):
             functions_by_name[f['name']].append(f['function_id'])
     for file in coverage.get('assembly_sources', []):
         try:
-            source = (project_root / file).read_text(encoding='utf-8')
+            source = read_source(project_root / file,encoding='utf-8')
         except (OSError, UnicodeError) as exc:
             facts['unknowns'].append(dict(kind='ASSEMBLY_SOURCE_REVIEW', file=file, message=str(exc)))
             continue
@@ -801,6 +810,7 @@ def analyze(facts, cfg, coverage, root=None):
     facts['build_closure'] = coverage.get('build_closure', {})
     from .solver_reachability import prepare as prepare_pointer_solver_reachability
     prepare_pointer_solver_reachability(facts, cfg, coverage)
+    start_stage('跨翻译单元指针与函数指针求解')
     enrich(facts, cfg)
     if any(u['kind'] == 'POINTS_TO_LIMIT' for u in facts['unknowns']):
         raise ValueError('POINTS_TO_LIMIT：别名求解未收敛，扫描失败；不对截断的访问集合生成安全结论。')
@@ -818,7 +828,7 @@ def analyze(facts, cfg, coverage, root=None):
         text = ''
         if names is None:
             try:
-                text = (project_root / file).read_text(encoding='utf-8', errors='replace')
+                text = read_source(project_root / file,encoding='utf-8',errors='replace')
             except OSError:
                 continue
             text = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"',
@@ -840,15 +850,18 @@ def analyze(facts, cfg, coverage, root=None):
     # remain shared, including foreground registration consumed by an IRQ.
     from .context_points import refine as refine_context_pointers
     seed_contexts, seed_paths, _ = context_graph(facts, cfg)
+    start_stage('执行上下文指针与调用图分析')
     refine_context_pointers(facts, cfg, seed_contexts, seed_paths)
     # Pointer solving and missing-source checks intentionally work with storage
     # roots.  Only now promote record accesses to canonical member resources so
     # no field is confused with a similarly named identifier in unparsed code.
     from .storage import canonicalize_arrays, expand_member_arrays, propagate_overlapping_members
+    start_stage('结构体字段、数组与重叠存储分析')
     canonicalize_arrays(facts)
     expand_member_arrays(facts)
     canonicalize_member_resources(facts)
     propagate_overlapping_members(facts)
+    start_stage('调用图上下文恢复')
     known = {f['function_id'] for f in facts['functions']}
     summarized = {'memcpy', 'memmove', 'memset', 'memcmp', 'xTaskCreate', 'xTaskCreateStatic',
                   'osThreadNew', 'xTaskCreatePinnedToCore', '__disable_irq', '__enable_irq',
@@ -873,8 +886,10 @@ def analyze(facts, cfg, coverage, root=None):
         evidence='facts.json: context_call_graph, call_graph_slices, calls',
         note=facts['context_call_graph']['note'])
     from .nvic import recover as recover_nvic
+    start_stage('NVIC 优先级与抢占关系分析')
     recover_nvic(facts, cfg)
     relations = preemption_relations(facts, contexts, cfg)
+    start_stage('可达性与不完整证据关联')
     facts['assembly_references'] = facts.get('resolved_assembly_references', []) + [
         u for u in facts['unknowns'] if u['kind'] in
         {'ASSEMBLY_FUNCTION_REFERENCE', 'ASSEMBLY_SYMBOL_REFERENCE'}]
@@ -884,8 +899,6 @@ def analyze(facts, cfg, coverage, root=None):
     graph = defaultdict(set)
     for call in facts['calls']:
         graph[call['caller_function_id']].add(call.get('callee_function_id'))
-    if any(u['kind'] in {'SOURCE_CHANGED_DURING_SCAN', 'HEADER_CHANGED_DURING_SCAN'} for u in facts['unknowns']):
-        raise ValueError('源码在扫描期间发生变化；无法对不一致快照作安全证明，请重新扫描。')
     failed_files = {u.get('file') for u in facts['unknowns'] if u['kind'] == 'PARSE_FAILED'}
     possible = set(paths)
     for issue in facts['unknowns'] + facts.get('resolved_pointer_facts', []):
@@ -955,6 +968,7 @@ def analyze(facts, cfg, coverage, root=None):
         f['reachability'] = ('REACHABLE' if f['function_id'] in paths else
                              'PROVEN_UNREACHABLE' if f['function_id'] in unreachable else 'UNKNOWN_ENTRY')
     from .scope import AuditScope, select_facts
+    start_stage('并发风险分类与保护证据')
     scope = AuditScope(project_root, cfg['analysis'])
     select_facts(facts, scope, coverage)
     by_var, events = defaultdict(list), defaultdict(list)

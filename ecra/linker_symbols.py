@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 import re
 import struct
+from .input_snapshot import read_analysis_bytes, iter_analysis_lines, assert_active_source_inputs
 
 
 _ASSIGNMENT = re.compile(
@@ -19,7 +20,7 @@ _ASSIGNMENT = re.compile(
 
 
 def _symbols_in_elf(path):
-    data = path.read_bytes()
+    data = read_analysis_bytes(path)
     if len(data) < 64 or data[:4] != b'\x7fELF':
         raise ValueError('not an ELF file')
     elf_class, encoding = data[4:6]
@@ -74,12 +75,10 @@ def _symbols_in_elf(path):
 
 def _assignments_in_map(path):
     assignments = defaultdict(list)
-    with path.open(encoding='utf-8', errors='replace') as stream:
-        for line_number, line in enumerate(stream, 1):
-            match = _ASSIGNMENT.match(line)
-            if match:
-                assignments[match.group(2)].append(dict(address=int(match.group(1), 16),
-                                                        line=line_number))
+    for line_number,line in enumerate(iter_analysis_lines(path,encoding='utf-8',errors='replace'),1):
+        match = _ASSIGNMENT.match(line)
+        if match:
+            assignments[match.group(2)].append(dict(address=int(match.group(1),16),line=line_number))
     return assignments
 
 
@@ -99,6 +98,7 @@ def linker_definitions(build_closure, project_root=None):
         symbols = _symbols_in_elf(elf)
         assignments = _assignments_in_map(link_map)
     except (OSError, ValueError, struct.error):
+        assert_active_source_inputs()
         return {}
     verified = {}
     for name, map_rows in assignments.items():
@@ -131,6 +131,7 @@ def linked_symbol_names(build_closure, project_root=None):
         symbols = _symbols_in_elf((root / elf_name).resolve())
         _assignments_in_map((root / map_name).resolve())
     except (OSError, ValueError, struct.error):
+        assert_active_source_inputs()
         return None
     if not symbols:
         # A stripped ELF supplies no negative symbol evidence.

@@ -6,6 +6,12 @@ from pathlib import Path
 from .interrupts import irq_key
 from .async_semantics import is_async_enable, async_irq_arg, canonical_cmsis_api
 from .compilation import cmake_build_directory
+from .input_snapshot import read_analysis_text, select_analysis_files
+
+
+def constructor_map_directory(root,cfg):
+    analysis = cfg.get('analysis',{})
+    return cmake_build_directory(root,analysis) if 'cmake' in analysis else Path(root)/'build/ecra'
 
 
 ENABLE = {'NVIC_EnableIRQ', 'HAL_NVIC_EnableIRQ'}
@@ -42,7 +48,7 @@ def _startup_constructor_proof(facts, cfg, reset_id, main_id):
     root = Path(root_name)
     source = root / entry['file']
     try:
-        assembly = source.read_text(encoding='utf-8', errors='replace')
+        assembly = read_analysis_text(source,encoding='utf-8',errors='replace')
     except OSError:
         return None
     before_main = assembly.split('bl main', 1)[0]
@@ -54,13 +60,12 @@ def _startup_constructor_proof(facts, cfg, reset_id, main_id):
         return None
     if '__libc_init_array' not in calls:
         return dict(source=str(source), calls=calls, constructors='none')
-    analysis = cfg.get('analysis', {})
-    build = (cmake_build_directory(root, analysis) if 'cmake' in analysis else root / 'build/ecra')
-    maps = list(build.glob('*.map'))
+    build = constructor_map_directory(root,cfg)
+    maps = select_analysis_files(build,'*.map')
     if len(maps) != 1:
         return None
     try:
-        map_text = maps[0].read_text(encoding='utf-8', errors='replace')
+        map_text = read_analysis_text(maps[0],encoding='utf-8',errors='replace')
     except OSError:
         return None
     sections = {}

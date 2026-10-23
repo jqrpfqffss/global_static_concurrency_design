@@ -39,6 +39,7 @@ def _run_extractor(root, unit, cfg, worker_dir, env, tool_root, timeout, coverag
     request = dict(root=str(root), unit=unit, config=cfg, coverage_source=coverage_source,
                    declaration_only=True, source_overrides=source_overrides or {})
     key = digest([unit, coverage_source, source_overrides])[:24]
+    request['diagnostics_dir'] = str(worker_dir.parent / 'diagnostics/supplemental' / key)
     req, resp = worker_dir / (key + '.request.json'), worker_dir / (key + '.response.json')
     write_json(req, request)
     resp.unlink(missing_ok=True)
@@ -48,8 +49,12 @@ def _run_extractor(root, unit, cfg, worker_dir, env, tool_root, timeout, coverag
         if proc.returncode or not resp.is_file():
             raise ValueError(f'提取器退出 {proc.returncode}: {proc.stderr[-2000:]}')
         part = read_json(resp)
+    except MemoryError:
+        raise
     except Exception as exc:
         part = dict(parse_status='FAILED', diagnostics=[dict(severity=4, message=str(exc))], variables=[], includes=[])
+    if part.get('worker_exception'):
+        raise RuntimeError(f"Supplemental Worker {unit['source_file']}: {part['worker_exception']}")
     return part
 
 
@@ -248,7 +253,7 @@ def merge_supplemental_variables(facts, supplemental_vars):
     facts['variables'].sort(key=lambda v: v['symbol_id'])
 
 
-def supplement(root, out, facts, units, cfg, scope, worker_dir, env, tool_root, progress):
+def supplement(root, out, facts, units, cfg, scope, worker_dir, env, tool_root, progress, source_reader=None):
     """Visit all selected files in their real TU context, or explicit fallback context."""
     files = selected_files(root, scope, out)
     timeout = float(cfg['analysis'].get('parse_timeout_seconds', 180))
@@ -272,7 +277,7 @@ def supplement(root, out, facts, units, cfg, scope, worker_dir, env, tool_root, 
                                      file=file, diagnostics=fallback['diagnostics']))
             contexts = [fallback]
         try:
-            source = (root / file).read_text(encoding='utf-8', errors='strict')
+            source = ((source_reader or Path.read_text)(root / file,encoding='utf-8',errors='strict'))
         except (OSError, UnicodeError) as exc:
             failures.append(dict(kind='INVENTORY_SOURCE_UNREADABLE', file=file, message=str(exc)))
             continue

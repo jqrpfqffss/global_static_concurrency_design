@@ -138,11 +138,16 @@ def tool_path(name):
     return shutil.which(name, path=tool_environment().get('PATH')) or name
 
 
-def read_cache(build):
+def read_cache(build, *, consumed_inputs=None):
     result = {}
+    def text(file):
+        if consumed_inputs is None:
+            return file.read_text(encoding='utf-8-sig',errors='replace')
+        from .input_snapshot import read_consumed_text
+        return read_consumed_text(file,consumed_inputs,errors='replace')
     path = Path(build)/'CMakeCache.txt'
     if path.is_file():
-        for line in path.read_text(encoding='utf-8-sig', errors='replace').splitlines():
+        for line in text(path).splitlines():
             if line.startswith(('#', '//')) or '=' not in line or ':' not in line.split('=', 1)[0]:
                 continue
             key, value = line.split('=', 1)
@@ -155,7 +160,7 @@ def read_cache(build):
                                for part in ('MAJOR','MINOR','PATCH'))
         if re.fullmatch(r'\d+\.\d+\.\d+', version_dir):
             for file in sorted((Path(build)/'CMakeFiles'/version_dir).glob('CMake*Compiler.cmake')):
-                for line in file.read_text(encoding='utf-8-sig',errors='replace').splitlines():
+                for line in text(file).splitlines():
                     match = re.fullmatch(r'set\((CMAKE_(?:C|CXX|ASM)_COMPILER(?:_VERSION)?) "([^"]*)"\)',line.strip())
                     if match:
                         result.setdefault(match[1],match[2])
@@ -175,7 +180,8 @@ def audit_executable(value, cwd, *, allow_external=False):
     external = bool(root and not path.is_relative_to(root))
     if external and not allow_external:
         raise ValueError(f'检测到 Portable 外部工具路径: {path}。未替换编译器或编译参数；'
-                         '请修正工程工具链/旧缓存，或明确设置 analysis.cmake.allow_external_toolchain: true')
+                         '请修正工程工具链/旧缓存，或明确设置 analysis.allow_external_toolchain: true'
+                         '（兼容 analysis.cmake.allow_external_toolchain）')
     if root and not path.is_file():
         raise ValueError(f'工具路径不存在: {path}')
     return dict(path=str(path), external=external)

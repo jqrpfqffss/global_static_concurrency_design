@@ -26,9 +26,14 @@ class UniqueKeyLoader(yaml.SafeLoader):
         return result
 
 
-def read_yaml(path):
+def read_yaml(path, consumed_inputs=None):
     try:
-        return yaml.load(Path(path).read_text(encoding='utf-8-sig'), Loader=UniqueKeyLoader)
+        if consumed_inputs is None:
+            text = Path(path).read_text(encoding='utf-8-sig')
+        else:
+            from .input_snapshot import read_consumed_text
+            text = read_consumed_text(path, consumed_inputs)
+        return yaml.load(text, Loader=UniqueKeyLoader)
     except yaml.YAMLError as exc:
         raise ValueError(f'YAML 格式错误 {path}: {exc}') from exc
 
@@ -204,11 +209,11 @@ def configured_project_root(path=None):
     return (root if root.is_absolute() else config_path.parent / root).resolve()
 
 
-def load_config(root=None, path=None):
+def load_config(root=None, path=None, *, consumed_inputs=None):
     path = resolve_config_path(root, path)
     if not path.is_file():
         raise ValueError(f"缺少工具侧项目配置 {path}；先运行 run_ecra.py init --project \"{root}\"")
-    cfg = read_yaml(path)
+    cfg = read_yaml(path) if consumed_inputs is None else read_yaml(path, consumed_inputs)
     if not isinstance(cfg, dict) or cfg.get("version") != 1:
         raise ValueError("配置必须是 YAML 映射，且 version: 1")
     for key in ("project", "analysis", "review", "api_patterns"):
@@ -293,6 +298,9 @@ def load_config(root=None, path=None):
         if key in {'include_dirs', 'exclude_dirs', 'exclude_files'} and any(not x.strip() or any(c in x for c in '*?[]') for x in value):
             raise ValueError(f'analysis.{key} 请填写非空目录路径，不使用通配符；目录自动递归匹配')
     a = cfg['analysis']
+    workers = a.get('extraction_workers', 1)
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError('analysis.extraction_workers 必须是 1–8 的整数')
     a.setdefault('build_closure_only', True)
     closure = a.get('build_closure', {})
     if not isinstance(closure, dict):
@@ -336,6 +344,7 @@ def load_config(root=None, path=None):
         raise ValueError("review.retries 必须是非负整数")
     for section, key in (("analysis", "auto_contexts"), ("analysis", "auto_configure_cmake"),
                          ('analysis', 'auto_system_includes'), ('analysis', 'open_report'),
+                         ('analysis', 'allow_external_toolchain'),
                          ('analysis', 'build_closure_only'), ("review", "enabled")):
         if key in cfg[section] and type(cfg[section][key]) is not bool:
             raise ValueError(f"{section}.{key} 必须是 true/false")

@@ -45,9 +45,9 @@ class PointerWorklistTests(unittest.TestCase):
         self.assertNotIn('External:param:0', solver.points)
         self.assertTrue(any(value.startswith('unknown:') for value in solver.points['return']))
 
-    def check_fixed_point(self, constraints):
+    def check_fixed_point(self, constraints, pointer_storage=()):
         facts = dict(variables=[], functions=[], accesses=[], calls=[], unknowns=[],
-                     pointer_constraints=constraints)
+                     pointer_constraints=constraints, pointer_storage=list(pointer_storage))
         fast, oracle = Solver(copy.deepcopy(facts)), FullRescanSolver(copy.deepcopy(facts))
         fast.solve()
         oracle.solve()
@@ -92,21 +92,30 @@ class PointerWorklistTests(unittest.TestCase):
         self.assertEqual(result.points['result'], {'first', 'second'})
 
     def test_location_projection_cache_includes_late_field_and_index_targets(self):
-        solver = Solver(dict(variables=[], functions=[]))
+        solver = Solver(dict(variables=[], functions=[], pointer_storage=[
+            dict(location=name, paths=['/member'], array_size=None)
+            for name in ('first', 'second')]))
+        arrays = Solver(dict(variables=[], functions=[], pointer_storage=[
+            dict(location=name, paths=['/[*]'], array_size=4)
+            for name in ('first', 'second')]))
         field = dict(op='field', base=dict(op='deref', value=loc('pointer')), field='member')
         index = dict(op='index', base=dict(op='deref', value=loc('pointer')), index='2')
         solver.add_points('pointer', {'first', 'fn:NotStorage'})
+        arrays.add_points('pointer', {'first', 'fn:NotStorage'})
         self.assertEqual(solver.locations(field), {'first/member'})
-        self.assertEqual(solver.locations(index), {'first/[2]'})
+        self.assertEqual(arrays.locations(index), {'first/[2]'})
         self.assertEqual(solver.locations(field), {'first/member'})
         solver.add_points('pointer', {'second', 'unknown:external'})
+        arrays.add_points('pointer', {'second', 'unknown:external'})
         self.assertEqual(solver.locations(field),
                          {'first/member', 'second/member', 'unknown:external'})
-        self.assertEqual(solver.locations(index),
+        self.assertEqual(arrays.locations(index),
                          {'first/[2]', 'second/[2]', 'unknown:external'})
 
     def test_nested_location_projection_keeps_all_new_pointees(self):
-        solver = Solver(dict(variables=[], functions=[]))
+        solver = Solver(dict(variables=[], functions=[], pointer_storage=[
+            dict(location=name, paths=['/child', '/child/leaf'], array_size=None)
+            for name in ('first', 'second')]))
         expression = dict(op='field', field='leaf', base=dict(op='field', field='child',
                           base=dict(op='deref', value=loc('pointer'))))
         solver.add_points('pointer', {'first'})
@@ -124,7 +133,9 @@ class PointerWorklistTests(unittest.TestCase):
             dict(left=loc('values'), right=addr('value_two')),
             dict(left=loc('pointer'), right=addr('second')),
         ]
-        result = self.check_fixed_point(constraints)
+        result = self.check_fixed_point(constraints, pointer_storage=[
+            dict(location=name, paths=['/member'], array_size=None)
+            for name in ('first', 'second')])
         self.assertEqual(result.points['first/member'], {'value_one', 'value_two'})
         self.assertEqual(result.points['second/member'], {'value_one', 'value_two'})
 

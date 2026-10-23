@@ -185,6 +185,27 @@ def propagate_overlapping_members(facts):
                     and field['array_element_size_bytes'] > 0):
                 flexible[root['symbol_id']].append(field)
 
+    # Index the exact fixed-storage predicates. Flexible storage still uses
+    # all members, since it can extend beyond the declared field size.
+    group_members = defaultdict(lambda: defaultdict(list))
+    bitfield_members = defaultdict(list)
+    for root_sid, rows in members.items():
+        for ordinal, member in enumerate(rows):
+            if member.get('is_bitfield_container'):
+                bitfield_members[root_sid].append(ordinal)
+            for group in member.get('overlap_groups', ()):
+                group_members[root_sid][group].append(ordinal)
+
+    def candidates(member, root):
+        root_sid = root['symbol_id']
+        if root.get('is_union') or flexible.get(root_sid):
+            return members[root_sid]
+        selected = set(bitfield_members[root_sid]) if member.get('is_bitfield_container') else set()
+        for group in member.get('overlap_groups', ()):
+            selected.update(group_members[root_sid].get(group, ()))
+        # Preserve member order, including members sharing multiple groups.
+        return (members[root_sid][ordinal] for ordinal in sorted(selected))
+
     def member_interval(member):
         start, size = member.get('offset_bits'), member.get('size_bytes')
         if isinstance(start, int) and isinstance(size, int) and size > 0:
@@ -231,7 +252,7 @@ def propagate_overlapping_members(facts):
         root = variables.get(member.get('root_symbol_id'), {})
         if not root or member.get('resource_kind') != 'STRUCT_MEMBER':
             continue
-        for other in members[root['symbol_id']]:
+        for other in candidates(member, root):
             if other['symbol_id'] == member['symbol_id']:
                 continue
             if not overlaps(member, other, root):
@@ -250,7 +271,7 @@ def propagate_overlapping_members(facts):
         root = variables.get(member.get('root_symbol_id'), {})
         if not root or member.get('resource_kind') != 'STRUCT_MEMBER':
             continue
-        for other in members[root['symbol_id']]:
+        for other in candidates(member, root):
             if other['symbol_id'] != member['symbol_id'] and overlaps(member, other, root):
                 gaps.append(dict(issue, symbol_id=other['symbol_id'], canonical_path=other['canonical_path'],
                                  inherited_object_uncertainty=True))

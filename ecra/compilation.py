@@ -1,4 +1,5 @@
 import fnmatch
+import json
 import os
 import shlex
 import shutil
@@ -112,7 +113,7 @@ def configure_cmake(root, analysis, progress, build_firmware):
         command += ['-DCMAKE_MAKE_PROGRAM:FILEPATH=' + make]
     records = []
 
-    allow_external = settings.get('allow_external_toolchain', False)
+    allow_external = analysis.get('allow_external_toolchain', settings.get('allow_external_toolchain', False))
     marker = build / '.ecra-build-owner'
     owner = str(root.resolve())
     # Only ECRA-owned directories may be recursively removed. Existing formal
@@ -193,11 +194,12 @@ def system_includes(unit):
     sysroot = []
     args = unit['arguments']
     for i, arg in enumerate(args):
-        if arg.startswith('--sysroot='):
+        if arg.startswith(('--sysroot=', '-mcpu=', '-march=', '-mfpu=', '-mfloat-abi=', '-mabi=')) or arg in {'-mthumb', '-marm'}:
             sysroot.append(arg)
         elif arg in {'--sysroot', '-isysroot'} and i+1 < len(args):
             sysroot.extend([arg, args[i+1]])
-    proc = execute([executable, *sysroot, '-E', '-x', 'c', '-v', '-'], stdin=subprocess.DEVNULL,
+    language = system_include_language(unit)
+    proc = execute([executable, *sysroot, '-E', '-x', language, '-v', '-'], stdin=subprocess.DEVNULL,
                    cwd=unit['directory'], env=dict(tool_environment(), LC_ALL='C'), timeout=20)
     paths, capture = [], False
     for line in proc.stderr.splitlines():
@@ -212,6 +214,18 @@ def system_includes(unit):
     if proc.returncode or not paths:
         raise ValueError(f'Arm GCC 标准头文件探测失败: {compiler}\n{proc.stderr[-2000:]}')
     return list(dict.fromkeys(paths))
+
+
+def system_include_language(unit):
+    language = None
+    for index, arg in enumerate(unit['arguments']):
+        if arg == '-x' and index+1 < len(unit['arguments']):
+            language = unit['arguments'][index+1]
+        elif arg.startswith('-x') and len(arg) > 2:
+            language = arg[2:]
+    if language and language != 'none':
+        return 'c++' if '++' in language else 'c'
+    return 'c++' if Path(unit.get('source', '')).suffix.lower() in {'.cc','.cpp','.cxx','.c++'} else 'c'
 
 
 def system_include_args(paths):
@@ -246,7 +260,7 @@ def split_command(command):
         ctypes.windll.kernel32.LocalFree(ctypes.cast(ptr, ctypes.c_void_p))
 
 
-def expand_response(args, directory, seen=None, files=None):
+def expand_response(args, directory, seen=None, files=None, consumed_inputs=None):
     seen = set() if seen is None else seen
     result = []
     for arg in args:
@@ -258,15 +272,19 @@ def expand_response(args, directory, seen=None, files=None):
                 raise ValueError(f"响应文件循环/过深: {path}")
             # Windows gives argv[0] special quote rules; response files contain
             # options only, so supply a dummy executable before tokenizing.
-            content = path.read_text(encoding="utf-8-sig")
+            if consumed_inputs is None:
+                content = path.read_text(encoding="utf-8-sig")
+            else:
+                from .input_snapshot import read_consumed_text
+                content = read_consumed_text(path, consumed_inputs)
             parsed = split_command("ecra-dummy " + content)[1:]
-            result.extend(expand_response(parsed, directory, seen | {path}, files))
+            result.extend(expand_response(parsed, directory, seen | {path}, files, consumed_inputs))
         else:
             result.append(arg)
     return result
 
 
-def normalize(entry, root, analysis):
+def normalize(entry, root, analysis, consumed_inputs=None):
     directory = Path(entry.get("directory", root))
     if not directory.is_absolute():
         directory = root / directory
@@ -276,7 +294,7 @@ def normalize(entry, root, analysis):
     if not raw or not isinstance(raw, list):
         raise ValueError(f"空编译命令: {source}")
     response_files = set()
-    args = expand_response(raw, directory, files=response_files)
+    args = expand_response(raw, directory, files=response_files, consumed_inputs=consumed_inputs)
     if Path(args[0]).stem.lower() in {"ccache", "sccache"}:
         args = args[1:]
     compiler, args = args[0], args[1:]
@@ -343,6 +361,15 @@ def normalize_clang_arguments(args, directory, source, remove_args=()):
             count = 2 if arg in paired_drop and index + 1 < len(args) else 1
             removed.extend(args[index:index + count])
             index += count
+            continue
+        if (arg.startswith('-flto=') and arg[6:].isascii() and arg[6:].isdecimal()
+                and int(arg[6:]) > 0):
+            # GCC's numeric suffix selects link-time parallel jobs. Clang
+            # accepts plain LTO, not this job count. Preserve LTO and retain
+            # the original option in the audit trail; no ABI/macro flag moves.
+            removed.append(arg)
+            filtered.append('-flto')
+            index += 1
             continue
         if (arg in single_drop or arg in gcc_codegen or arg.startswith('-mapcs-')
                 or arg.startswith(joined_drop) or arg.startswith('-Werror=')
@@ -430,7 +457,9 @@ def prepare(root, cfg, progress=None, build_firmware=True):
         candidates = [generated]
     if not candidates:
         raise ValueError("没有 compile_commands.json；导出真实固件编译数据库，或开启 auto_configure_cmake")
-    entries = read_json(candidates[0])
+    from .input_snapshot import read_consumed_text
+    consumed_inputs = {}
+    entries = json.loads(read_consumed_text(candidates[0], consumed_inputs))
     if not isinstance(entries, list) or not entries:
         raise ValueError("编译数据库必须是非空数组")
     units, ignored, assembly_sources = [], [], []
@@ -446,13 +475,14 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
-        unit = normalize(entry, root, a)
+        unit = normalize(entry, root, a, consumed_inputs)
         if bundle_root():
             raw = unit['original_arguments']
             index = 1 if Path(raw[0]).stem.lower() in {'ccache', 'sccache'} else 0
             for compiler in raw[:index+1]:
                 record = audit_executable(compiler, unit['directory'],
-                    allow_external=a.get('cmake', {}).get('allow_external_toolchain', False))
+                    allow_external=a.get('allow_external_toolchain',
+                                         a.get('cmake', {}).get('allow_external_toolchain', False)))
                 if record not in compiler_audit:
                     compiler_audit.append(record)
         unit["tu_id"] = f"TU-{i:05d}"
@@ -474,7 +504,10 @@ def prepare(root, cfg, progress=None, build_firmware=True):
             if a.get('auto_system_includes', 'cmake' in a):
                 # Keep sysroot and working-directory differences in the key.
                 key = (unit['directory'], tuple(unit['original_arguments'][:2]),
-                       tuple(x for x in unit['arguments'] if 'sysroot' in x or x == '-isysroot'))
+                       system_include_language(unit),
+                       tuple(x for x in unit['arguments'] if 'sysroot' in x or x == '-isysroot'
+                             or x.startswith(('-mcpu=', '-march=', '-mfpu=', '-mfloat-abi=', '-mabi='))
+                             or x in {'-mthumb', '-marm'}))
                 # Arguments following a separated --sysroot are also relevant.
                 for j, arg in enumerate(unit['arguments'][:-1]):
                     if arg in {'--sysroot', '-isysroot'}:
@@ -510,5 +543,5 @@ def prepare(root, cfg, progress=None, build_firmware=True):
                        assembly_sources=sorted(set(assembly_sources)),
                        excluded_sources=sorted(set(ignored + excluded_sources)), cmake_log=cmake_log, cmake_steps=cmake_steps,
                        dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'],
-                       cmake_cache=read_cache(Path(candidates[0]).parent), compilers=compiler_audit,
-                       external_tools=[c for c in compiler_audit if c['external']])
+                       cmake_cache=read_cache(Path(candidates[0]).parent,consumed_inputs=consumed_inputs), compilers=compiler_audit,
+                       external_tools=[c for c in compiler_audit if c['external']], consumed_inputs=consumed_inputs)
