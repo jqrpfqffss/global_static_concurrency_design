@@ -90,7 +90,7 @@ def dependency_results(root, units, cfg, worker_dir, env, tool_root):
         pool.shutdown(wait=True, cancel_futures=True)
 
 
-def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out):
+def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cache=None):
     """Run bounded workers; only paths/exit metadata cross thread boundaries.
 
     Consume in DB order so weak/strong selection, function declaration choice
@@ -105,6 +105,8 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out):
                    write_metadata=True, diagnostics_dir=str(out / 'diagnostics/workers')))
         response.unlink(missing_ok=True)
         metadata.unlink(missing_ok=True)
+        if cache is not None and cache.restore(unit, response, metadata):
+            return unit, response, metadata
         try:
             proc = execute([sys.executable, '-B', '-m', 'ecra.extract', str(request), str(response)],
                            cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)))
@@ -126,6 +128,27 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out):
             yield future.result()
     finally:
         pool.shutdown(wait=True, cancel_futures=True)
+
+
+def add_build_unknowns(facts, cfg, units, compilation):
+    """Identical coverage preparation for cached and independent full scans."""
+    if len({u['source_file'] for u in units}) != len(units):
+        facts['unknowns'].append(dict(kind='MULTIPLE_BUILD_VARIANTS', hint='为每个固件配置分别导出数据库并扫描'))
+    known = {f['function_id'] for f in facts['functions']}
+    from .protection import NEUTRAL
+    summarized = set(NEUTRAL) | {'memcpy', 'memmove', 'memset', 'memcmp', 'xTaskCreate', 'xTaskCreateStatic',
+        'osThreadNew', 'xTaskCreatePinnedToCore', '__disable_irq', '__enable_irq', '__get_PRIMASK', '__set_PRIMASK',
+        '__get_BASEPRI', '__set_BASEPRI', '__set_BASEPRI_MAX', '__disable_fault_irq', '__enable_fault_irq'}
+    summarized.update(s[k] for s in cfg.get('critical_sections', []) for k in ('enter', 'exit', 'save', 'restore') if k in s)
+    for call in facts['calls']:
+        if call['call_kind'] == 'DIRECT' and call['callee_function_id'] not in known and call['callee_name'] not in summarized:
+            facts['unknowns'].append(dict(kind='EXTERNAL_CALLEE', function_id=call['caller_function_id'],
+                callee=call['callee_name'], file=call['file'], line=call['line']))
+    for path in compilation['unlisted_sources']:
+        facts['unknowns'].append(dict(kind='SOURCE_NOT_IN_DATABASE', file=path))
+    for unit in units:
+        if unit['parse_status'] == 'FAILED':
+            facts['unknowns'].append(dict(kind='PARSE_FAILED', file=unit['source_file'], diagnostics=unit['diagnostics']))
 
 
 def safe_review_samples(facts, count, shared_count=0):
@@ -157,11 +180,15 @@ def safe_review_samples(facts, count, shared_count=0):
 
 
 def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-        review_shared_sample=0):
+        review_shared_sample=0, scan_mode=None, _cache_enabled=False):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     consumed_config = {}
     cfg, config_file = load_config(root, config_path, consumed_inputs=consumed_config)
+    if scan_mode is not None:
+        if scan_mode not in ('full', 'diff'):
+            raise ValueError('scan_mode 必须是 full/diff')
+        cfg['analysis']['git_diff']['enabled'] = scan_mode == 'diff'
     if no_review:
         cfg["review"]["enabled"] = False
     out = (root / cfg["analysis"].get("output_dir", ".ecra")).resolve()
@@ -194,6 +221,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     diagnostics = ScanDiagnostics(out / ('diagnostics/doctor' if doctor_only else 'diagnostics'), progress)
     report_can_replace = True
     source_token = None
+    diff_pin = base_summary_file = None
+    tu_cache = None
     try:
         # Keep previous logs/diagnostics intact until they have been archived.
         diagnostics.stage('扫描准备与历史归档', announce=False)
@@ -239,6 +268,13 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             write_json(out / "run.json", run_info)
             write_json(out / 'result_validity.json', dict(analysis_valid=False, state='RUNNING', started=started))
             write_failure(out, state='RUNNING')
+        if cfg['analysis']['git_diff']['enabled']:
+            from .git_diff import pin, prepare_base
+            diff_pin = pin(root, cfg)
+            doctor['git_diff'] = diff_pin
+            if not doctor_only:
+                diagnostics.stage('Git 基准版本完整分析')
+                base_summary_file = prepare_base(root, out, cfg, diff_pin, progress)
         diagnostics.stage('编译数据库准备')
         progress("检查配置、libclang 和真实编译数据库…")
         if no_review:
@@ -341,10 +377,16 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress(f"依赖快照 {i+1}/{len(units)}: {unit['source_file']}")
             snapshot_inputs.discover(unit, inputs, signature)
         snapshot_inputs.seal()
+        if _cache_enabled or (diff_pin and cfg['analysis']['git_diff']['cache_enabled']):
+            from .tu_cache import TUCache
+            tu_cache = TUCache(out/'cache/tu-v1', cfg, snapshot_inputs)
+            # Fix keys before workers mutate live unit dictionaries.
+            for unit in units:
+                tu_cache.key(unit)
         diagnostics.snapshot_status = snapshot_inputs.status
         diagnostics.stage('Clang 翻译单元提取')
         for i, (unit, response, metadata_file) in enumerate(extraction_responses(
-                root, units, cfg, worker_dir, env, tool_root, out)):
+                root, units, cfg, worker_dir, env, tool_root, out, cache=tu_cache)):
             role = ' [依赖]' if scope.active and unit.get('audit_role') == 'dependency' else ''
             progress(f"Clang {i + 1}/{len(units)}{role}: {unit['source_file']}")
             try:
@@ -369,11 +411,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             unit["parse_status"] = part["parse_status"]
             unit["diagnostics"] = part.get("diagnostics", [])
             unit["includes"] = part.get("includes", [])
+            unit['semantic_macros_digest'] = part.get('semantic_macros_digest')
             for variable in part.get("variables", []):
                 variable["parse_status"] = part["parse_status"]
             all_includes.update(part.get("includes", []))
             if isinstance(part.get('input_snapshot'), dict):
                 snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
+                if tu_cache is not None:
+                    tu_cache.store(unit, response, part)
             else:
                 # A timed-out/failed extraction supplies no safe facts. Keep
                 # the parse gap; final discovery still verifies its inputs.
@@ -420,25 +465,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         snapshot_inputs.save()
         diagnostics.snapshot_status = snapshot_inputs.status
         snapshot_inputs.assert_valid()
-        # Compiling the same source under multiple flag sets requires separate run variants.
-        if len({u["source_file"] for u in units}) != len(units):
-            facts["unknowns"].append(dict(kind="MULTIPLE_BUILD_VARIANTS", hint="为每个固件配置分别导出数据库并扫描"))
-        known_functions = {f["function_id"] for f in facts["functions"]}
-        summarized = {"memcpy", "memmove", "memset", "memcmp", "xTaskCreate", "xTaskCreateStatic", "osThreadNew", "xTaskCreatePinnedToCore",
-                      "__disable_irq", "__enable_irq", "__get_PRIMASK", "__set_PRIMASK", "__get_BASEPRI", "__set_BASEPRI",
-                      "__set_BASEPRI_MAX", "__disable_fault_irq", "__enable_fault_irq"}
-        from .protection import NEUTRAL
-        summarized.update(NEUTRAL)
-        summarized.update(s[k] for s in cfg.get('critical_sections', []) for k in ('enter','exit','save','restore') if k in s)
-        for call in facts["calls"]:
-            if call["call_kind"] == "DIRECT" and call["callee_function_id"] not in known_functions and call["callee_name"] not in summarized:
-                facts["unknowns"].append(dict(kind="EXTERNAL_CALLEE", function_id=call["caller_function_id"],
-                                              callee=call["callee_name"], file=call["file"], line=call["line"]))
-        for path in compilation["unlisted_sources"]:
-            facts["unknowns"].append(dict(kind="SOURCE_NOT_IN_DATABASE", file=path))
-        for unit in units:
-            if unit["parse_status"] == "FAILED":
-                facts["unknowns"].append(dict(kind="PARSE_FAILED", file=unit["source_file"], diagnostics=unit["diagnostics"]))
+        add_build_unknowns(facts, cfg, units, compilation)
         parsed = sum(u["parse_status"] == "PARSED" for u in units)
         partial = sum(u["parse_status"] == "PARTIAL" for u in units)
         failed = sum(u["parse_status"] == "FAILED" for u in units)
@@ -451,6 +478,18 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         diagnostics.stage('指针、函数指针及调用图分析')
         report = analyze(facts, cfg, cov, root=root, source_reader=read_verified_source)
+        if diff_pin:
+            from .git_diff import summarize, compare
+            diagnostics.stage('双版本完整证据比较与语义影响传播')
+            report['git_diff'] = compare(read_json(base_summary_file), summarize(facts, report), diff_pin)
+            report['git_diff']['tu_cache'] = tu_cache.stats() if tu_cache else dict(total=len(units), hits=0, extracted=len(units), corrupt=0)
+            for variable in facts['variables']:
+                if variable['symbol_id'] in report['git_diff']['impacts']:
+                    variable['impact'] = report['git_diff']['impacts'][variable['symbol_id']]
+            if cfg['analysis']['git_diff']['verify_against_full']:
+                from .git_diff import verify_full
+                report['git_diff']['full_verification'] = verify_full(root, out, cfg, units, cov, facts, report,
+                                                                       worker_dir, env, tool_root, read_verified_source)
         snapshot_inputs.finalize_parent_inputs()
         diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         samples = safe_review_samples(facts, review_safe_sample, review_shared_sample)
@@ -459,6 +498,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             # not turn a SAFE result into a risk candidate or alter TOTAL
             # accounting.  Packets/queue records remain fully auditable.
             report['review_safe_samples'] = samples
+            if diff_pin:
+                selected = set(report['git_diff']['selected_symbol_ids'])
+                report['review_safe_samples'] = [s for s in samples if s.get('symbol_id') in selected]
             cfg['review']['prepare_packets'] = True
         cov['file_coverage'] = build_file_coverage(facts, units, all_supplemental_tus, scope, root, output_dir=out)
         # Static extraction/classification changes require a fresh scan.
@@ -474,10 +516,13 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         snapshot_inputs.verify_disk()
         snapshot_inputs.save()
         snapshot_inputs.assert_valid()
+        if diff_pin:
+            from .git_diff import assert_pin
+            assert_pin(root, cfg, diff_pin)
         analysis_inputs = {p:h for p,h in after.items() if p != relative(config_file,root)}
         fingerprint = digest([__version__, engine_digest(), analysis_config(cfg), analysis_inputs,
                               snapshot_inputs.preprocessor, [u["arguments"] for u in units],
-                              snapshot_inputs.consumed_selections()])
+                              snapshot_inputs.consumed_selections(), diff_pin])
         report.update(fingerprint=fingerprint, generated_at=started, tool_version=__version__)
         try:
             git = execute(["git", "rev-parse", "HEAD"], cwd=root, timeout=10)
@@ -559,6 +604,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         snapshot_inputs.save()
         diagnostics.snapshot_status = snapshot_inputs.status
         snapshot_inputs.assert_valid()
+        if diff_pin:
+            assert_pin(root, cfg, diff_pin)
         diagnostics.stage('最终完整性验收')
         write_json(out / 'result_validity.json', dict(analysis_valid=True, state='STATIC_SCAN_SAVED',
                    snapshot_status=snapshot_inputs.status, fingerprint=fingerprint))
@@ -647,6 +694,7 @@ def main(argv=None):
     parser.add_argument("--model", help="init 时写入已配置的 OpenCode provider/model")
     parser.add_argument('--toolchain-file', help='init 时指定 CMake Arm 工具链文件（相对固件根目录）')
     parser.add_argument("--no-review", action="store_true", help="只生成静态报告与待复核清单，不调用 OpenCode")
+    parser.add_argument('--scan-mode', choices=['full', 'diff'], help='覆盖本次全量/分支差异模式，不修改 YAML')
     parser.add_argument("--review-safe-sample", type=int, default=0, metavar='N',
                         help='额外抽取 N 个 SAFE_PROVEN 项生成质量复核证据包；不改变风险队列')
     parser.add_argument("--review-shared-sample", type=int, default=0, metavar='N',
@@ -654,6 +702,8 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true", help="status 输出可供脚本读取的 JSON")
     args = parser.parse_args(argv)
     try:
+        if args.scan_mode is not None and args.command not in {'run', 'doctor'}:
+            raise ValueError('--scan-mode 仅用于 run/doctor；恢复命令沿用已保存范围')
         if args.json and args.command != 'status':
             raise ValueError('--json 仅用于 status')
         if args.review_safe_sample < 0:
@@ -746,7 +796,7 @@ def main(argv=None):
             print('一键排查：' + launcher)
             return 0
         return run(root, str(config_path), args.no_review, args.command == "doctor",
-                   args.review_safe_sample, args.review_shared_sample)
+                   args.review_safe_sample, args.review_shared_sample, scan_mode=args.scan_mode)
     except (ValueError, OSError, ImportError) as exc:
         print(f"ECRA: {exc}", file=sys.stderr)
         return 3

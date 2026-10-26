@@ -179,6 +179,10 @@ def save_scan(root, out, cfg, config_file, report, *, initialize_queue=True):
         manifest_sha256=file_digest(out/'input_manifest.json'),
         input_closure_sha256=file_digest(out/'input_closure.json') if (out/'input_closure.json').is_file() else None,
         report_digest=saved_report_digest(clean_report(report)), fingerprint=report['fingerprint']))
+    state = read_json(out/'scan_state.json')
+    state['scan_mode'] = 'diff' if report.get('git_diff') else 'full'
+    state['git_diff_pin'] = report.get('git_diff', {}).get('pin')
+    write_json(out/'scan_state.json', state)
 
 
 def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
@@ -280,6 +284,9 @@ def verify_saved_publication(root, out, cfg, state, config_file):
     from .scan_diagnostics import memory
     reserve = bytearray(128 * 1024)
     try:
+        if state.get('git_diff_pin'):
+            from .git_diff import assert_pin
+            assert_pin(root, cfg, state['git_diff_pin'])
         if (file_digest(out/'input_manifest.json') != state['manifest_sha256']
                 or file_digest(out/'facts.json') != state['facts_sha256']):
             raise ValueError('恢复发布期间事实或输入清单已变化；请重新运行 run')
@@ -333,6 +340,11 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True):
     if state.get('schema') != 1 or state.get('project_root') != str(root):
         raise ValueError('扫描检查点不属于当前工程；请重新运行 run')
     rescan = '请先执行 py -3.10 run_ecra.py --no-review 刷新静态扫描，再执行复核命令'
+    if state.get('scan_mode'):
+        cfg['analysis']['git_diff']['enabled'] = state['scan_mode'] == 'diff'
+    if state.get('git_diff_pin'):
+        from .git_diff import assert_pin
+        assert_pin(root, cfg, state['git_diff_pin'])
     if state['config_digest'] != digest(analysis_config(cfg)):
         raise ValueError('分析配置已变化，不能复用旧调用链；' + rescan)
     if state.get('engine_scope') != ENGINE_SCOPE:
@@ -408,6 +420,7 @@ def read_queue(out):
 
 
 def status(root, config_path=None):
+    from .git_diff import selected_findings
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
     info = dict(project=str(root), output=str(out), scan_lock=(out/'scan.lock').exists())
@@ -416,7 +429,7 @@ def status(root, config_path=None):
     else:
         report = read_saved_json(out/'reports/global_static_concurrency.json')
         queue = read_queue(out)
-        records = review_records(report, queue)
+        records = review_records(dict(findings=selected_findings(report)), queue)
         from .review_integrity import review_integrity
         integrity = review_integrity(report, queue)
         info.update(state=report.get('run_status', 'SCANNED'), analysis_status=report['analysis_status'],
@@ -424,6 +437,8 @@ def status(root, config_path=None):
                     unresolved=sum(category(r)=='unresolved' for r in records),
                     review_integrity=integrity, review_complete=integrity['all_done'],
                     inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))
+        if report.get('git_diff'):
+            info['variables'] = report.get('risk_summary', {}).get('total_variables', len(report['git_diff']['selected_symbol_ids']))
         if info['scan_lock']:
             info.update(resumable=False, next_action='存在运行锁：等待扫描/复核结束；若进程已退出，确认后移除过期 scan.lock。当前数量来自已保存的结果。')
             return info
@@ -446,7 +461,7 @@ def status(root, config_path=None):
                     row.pop('answer', None)
             if receipt_errors:
                 integrity = review_integrity(report, verified_queue)
-                records = review_records(report, verified_queue)
+                records = review_records(dict(findings=selected_findings(report)), verified_queue)
                 info.update(review_integrity=integrity, review_complete=False,
                             unresolved=sum(category(r) == 'unresolved' for r in records),
                             review_receipt_errors=receipt_errors)
@@ -472,6 +487,7 @@ def status(root, config_path=None):
 
 
 def saved_run(root, config_path=None, render_only=False, failed_only=False):
+    from .git_diff import selected_findings
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
     if not out.is_dir():
@@ -545,13 +561,13 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False):
                 mark_review_stale(out/'review', r, '恢复期间输入发生变化；请重新扫描。')
             report['analysis_status']='INCOMPLETE'
             report['limitations'].append('恢复期间输入发生变化；请重新扫描。')
-        records = review_records(report, reviews)
+        records = review_records(dict(findings=selected_findings(report)), reviews)
         from .review_integrity import review_integrity
         integrity = review_integrity(report, reviews, require_terminal=True)
         report['run_status'] = 'INCOMPLETE' if (report['analysis_status']=='INCOMPLETE' or
             not integrity['complete'] or any(category(r) in {'unresolved', 'likely'} for r in records)) else 'REVIEW_COMPLETE'
         mapping={r['finding_id']:r for r in records}
-        for f in report['findings']:
+        for f in selected_findings(report):
             r=mapping[f['finding_id']]
             f['review_state']=r['state']
             f['review_status']=r.get('status')
@@ -562,7 +578,7 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False):
         write_json(queue_file, reviews)
         if inputs_current:
             verify_saved_publication(root, out, cfg, state, config_file)
-        code=2 if report['run_status']=='INCOMPLETE' else (1 if report['findings'] else 0)
+        code=2 if report['run_status']=='INCOMPLETE' else (1 if selected_findings(report) else 0)
         write_json(out/'resume.json', dict(command='report' if render_only else ('review-failed' if failed_only else 'review'), state=report['run_status'],
                                          finished=datetime.now(timezone.utc).isoformat(), exit_code=code,
                                          review_integrity=integrity))

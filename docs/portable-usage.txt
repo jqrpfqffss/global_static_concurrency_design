@@ -1,5 +1,11 @@
 ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 
+可选 Git 差异模式：配置 analysis.git_diff 或执行 ecra.cmd --scan-mode diff。
+target_ref 属于 project.root 的固件仓库。离线打包时使用
+build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/git/cmd/git.exe。
+未打包 Git 时全量模式不变，差异模式和差异 doctor 会明确报错。首次比较需独立构建基准；
+结果仍在 index.html，范围之外不代表安全。不要单独删除报告引用的基准 worktree/事实。
+
 1. 解压整个 ECRA-Portable 目录；不要只复制 ecra.cmd 或工具 exe。
 2. 备份并编辑 config/semantics.yaml 的 project.root、扫描目录、上下文和复核设置。
 3. cmake.generator 应保持工程实际设置：MinGW Makefiles / Ninja / Unix Makefiles。

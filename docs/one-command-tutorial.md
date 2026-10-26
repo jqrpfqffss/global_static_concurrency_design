@@ -1,5 +1,30 @@
 # 从零接入：在新的 STM32 CMake 工程中排查全局 / static 变量并发问题
 
+## 可选：只核对本次 Git 修改影响的变量
+
+在原 `config/semantics.yaml` 的 `analysis` 下配置：
+
+```yaml
+git_diff:
+  enabled: false
+  target_ref: origin/master
+  compare_mode: merge_base
+  include_uncommitted: false
+  cache_enabled: true
+  verify_against_full: false
+  uncertain_impact_policy: expand_or_full_scan
+```
+
+`target_ref` 属于 `project.root` 固件仓库。先把构建目录和 `.ecra/` 加入固件 `.gitignore`；默认要求工作区干净，需要包含暂存/未暂存/未跟踪输入时设置 `include_uncommitted: true`。命令行只覆盖本次模式，不改 YAML：
+
+```powershell
+py -3.10 run_ecra.py
+py -3.10 run_ecra.py --scan-mode full
+py -3.10 run_ecra.py --scan-mode diff
+```
+
+仍打开 `.ecra/index.html`。差异变量有影响原因、基准/当前变化路径；未修改路径默认收起，继续参与并发分析和复核。范围之外不代表安全。旧版需能在隔离目录独立构建；失败会明确停止。`review` 与 `review-failed` 使用已保存范围，源码/引用变化后须重扫。Portable 差异模式需要打包完整 MinGit。详情和验证命令见 [技术验收记录](git-diff-concurrency-validation.md)。
+
 本教程面向一个**刚创建或刚迁移到 CMake 的 STM32 固件工程**。完成一次接入后，日常只需一条命令：工具会重新配置 CMake、生成真实的编译数据库、增量构建、分析变量访问，并生成可离线阅读的报告。
 
 它关注的是容易被中断、主循环、RTOS 任务、回调和 DMA 同时访问的**全局变量和 `static` 变量**。工具不会修改源代码、CMake 配置或烧录开发板；它只使用工程原有的编译参数来理解源码。

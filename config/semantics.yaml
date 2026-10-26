@@ -31,6 +31,16 @@ project:
   native_word_bits: 32       # STM32 通常为 32；必须是 8 的正整数倍。
 
 analysis:
+  # 比较 project.root 固件仓库中的 Git 引用；默认保持原有全量扫描。
+  git_diff:
+    enabled: false
+    target_ref: origin/master
+    compare_mode: merge_base
+    include_uncommitted: false
+    cache_enabled: true
+    verify_against_full: false
+    uncertain_impact_policy: expand_or_full_scan
+
   # ---------------------------------------------------------------------------
   # 变量排查范围
   # ---------------------------------------------------------------------------

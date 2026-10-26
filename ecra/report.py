@@ -65,7 +65,8 @@ def generate(out, facts, report, reviews):
     # not a completed review when any record is still PENDING or RUNNING.
     report['review_integrity'] = review_integrity(report, reviews, require_terminal=True)
     report['review_records'] = review_records(dict(findings=review_targets(report)), reviews)
-    records = review_records(report, reviews)
+    from .git_diff import selected_findings, presentation_view
+    records = review_records(dict(findings=selected_findings(report)), reviews)
     records_by_id = {r['finding_id']: r for r in records}
     variables_by_id = {v['symbol_id']: v for v in facts['variables']}
     sample_records = review_records(dict(findings=report.get('review_safe_samples', [])), reviews)
@@ -80,7 +81,7 @@ def generate(out, facts, report, reviews):
                                   and sample_findings.get(record['finding_id'], {}).get('static_classification') == state
                                   for record in sample_records))
         for state in ('SAFE_PROVEN', 'SHARED_NO_REVIEW')}
-    for finding in report['findings']:
+    for finding in selected_findings(report):
         record = records_by_id[finding['finding_id']]
         finding['review_state'] = record['state']
         finding['review_status'] = record.get('status')
@@ -104,17 +105,25 @@ def generate(out, facts, report, reviews):
     report['review_summary']['all_done'] = report['review_integrity']['all_done']
     report['review_summary']['basis'] = '仅统计 OpenCode 原始复核结果与进度；最终风险分类见 risk_summary。'
     by_symbol = defaultdict(list)
-    for f in report['findings']:
+    for f in selected_findings(report):
         if f.get('symbol_id'):
             by_symbol[f['symbol_id']].append(records_by_id[f['finding_id']])
     terminal = sum(all(category(r) in {'confirmed', 'safe'} for r in group) for group in by_symbol.values())
     report['review_summary']['variable_coverage'] = dict(
-        total=report.get('coverage', {}).get('static_classification', {}).get('total', len(facts['variables'])),
+        total=(sum(v.get('static_classification') not in {'CONTAINER', 'OUT_OF_BUILD'}
+                   and v.get('resource_kind') not in {'STRUCT_MEMBER_CONTAINER', 'STRUCT_CONTAINER', 'ARRAY_CONTAINER'}
+                   for v in facts['variables'] if v['symbol_id'] in report['git_diff']['selected_symbol_ids']) if report.get('git_diff') else
+               report.get('coverage', {}).get('static_classification', {}).get('total', len(facts['variables']))),
         statically_screened=sum(v.get('static_classification') in {'SAFE_PROVEN', 'SHARED_NO_REVIEW'}
-                                for v in facts['variables']),
+                                for v in facts['variables'] if not report.get('git_diff')
+                                or v['symbol_id'] in report['git_diff']['selected_symbol_ids']),
         queued=len(by_symbol), terminal=terminal, remaining=len(by_symbol)-terminal)
-    report['risk_summary'] = risk_summary(facts, report, records_by_id)
-    report['final_conclusion'] = final_conclusion(report, records)
+    view_facts, view_report = presentation_view(facts, report)
+    report['risk_summary'] = risk_summary(view_facts, view_report, records_by_id)
+    if report.get('git_diff'):
+        report['risk_summary']['scope'] = 'CURRENT_GIT_DIFF'
+        report['review_summary']['basis'] = '当前差异范围的原始复核结果与进度；完整构建静态分类保留在 coverage 与 findings。'
+    report['final_conclusion'] = final_conclusion(view_report, records)
     if (counts['unresolved'] or counts['likely'] or not report['review_integrity']['complete']) and report.get('run_status') == 'REVIEW_COMPLETE':
         report['run_status'] = 'INCOMPLETE'
     for folder in ("inventory", "reports"):
@@ -185,6 +194,9 @@ def generate(out, facts, report, reviews):
           "本报告是风险候选和覆盖证据，不是全工程无风险证明。OpenCode 结论仍需工程/硬件验证。", "",
           "[变量完整清单](../inventory/global_static_inventory.md) · [未知项](unknown_contexts.md) · [OpenCode 复核](opencode_global_static_review.md)", ""]
     static = cov.get('static_classification', {})
+    if report.get('git_diff'):
+        md[2:2] = ['- 扫描模式：分支差异。以上覆盖、变量总数、静态归账和 RR 指标采用完整构建范围；下方风险条目、最终风险分类与复核队列采用当前差异范围。',
+                   '- 当前差异清单行数（含容器）：' + str(len(report['git_diff']['selected_symbol_ids'])) + '；本轮复核项：' + str(len(review_targets(report))) + '。范围之外不代表安全。', '']
     if static:
         md[2:2] = [f"- 静态归账：总数 {static.get('total', 0)} = 静态安全 {static.get('safe_proven', 0)} + 共享无需复核 {static.get('shared_no_review', 0)} + 疑似风险 {static.get('suspect', 0)} + 无法判断 {static.get('unknown', 0)}", ""]
     rates = cov.get('review_rates', {})
@@ -229,7 +241,7 @@ def generate(out, facts, report, reviews):
             md += [f"- {zh(u['parse_status'])}：{u['source_file']}"] + ["  - " + cell(
                 '解析器返回错误；原文保留在 facts.json 中该编译单元的原始诊断。' if is_english_prose(d['message']) else d['message']) for d in u['diagnostics']]
     review_map = records_by_id
-    for f in report["findings"]:
+    for f in selected_findings(report):
         r = review_map.get(f["finding_id"], {})
         confidence={'HIGH':'高','MEDIUM':'中','LOW':'低'}.get(f['confidence'],zh(f['confidence']))
         md += ["", f"## {f['finding_id']} — {f['variable_name']}", "", f"- 排查优先级：{zh(f['risk_level'])}；置信度：{confidence}",

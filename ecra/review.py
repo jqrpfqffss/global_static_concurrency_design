@@ -316,7 +316,7 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
             hint['static_assessments'].append(assessment)
     repeated = {'accesses', 'conflict_pairs', 'whole_object_accesses', 'variable_evidence_slice',
                 'protection_details', 'blocking_evidence', 'concurrency_relations', 'concurrency_hints'}
-    variable_info = {k: v for k, v in variable.items() if k not in repeated}
+    variable_info = {k: v for k, v in variable.items() if k not in repeated | {'impact'}}
     # A slice's address/protection records already occur in accesses/protection.
     evidence_slice = dict(variable.get('variable_evidence_slice') or finding.get('variable_evidence_slice') or {})
     evidence_slice.pop('protection', None)
@@ -340,6 +340,7 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
         if isinstance(event, dict) and event.get('file'):
             files.add(event['file'])
     return dict(finding_id=finding['finding_id'], access_count=len(packed_accesses),
+        git_diff_impact=variable.get('impact'),
         call_path_set_count=len(paths), variable=variable_info or None,
         static_classification=finding.get('static_classification', variable.get('static_classification', 'UNKNOWN')),
         finding=static_finding, accesses=packed_accesses, call_path_sets=paths,
@@ -553,6 +554,10 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 scope='确定性质量检查及明确结论矛盾检查，不是完整语义证明', state='PENDING')
             write_json(packet_path, packet, indent=1)
             prompt = REVIEW_PROMPT + review_context_section(review_context_path) + library_prompt + CONTRACT_PROMPT
+            if packet.get('git_diff_impact'):
+                prompt += ('\n本项属于分支差异范围。git_diff_impact 提供影响原因、基准事实路径和代码差异路径；'
+                    '请读取这些已授权证据，并结合全部当前访问、上下文和调用边核对变化。'
+                    '未修改路径仍参与并发判断，不得只复核新增或删除的显示路径；结论针对当前存储对象。\n')
             semantic_prompt = prompt
             prompt += summary_prompt(summary_config, variable_name)
             prompt += '\nfinding_id 必须原样返回：' + fid
@@ -639,7 +644,9 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 try:
                     proc = execute(argv, cwd=root, timeout=float(settings.get('timeout_seconds', 300)),
                         **({'input': stdin_text} if stdin_text is not None else {}),
-                        env=_review_env([packet_path, shared_path, facts_path, report_path],
+                        env=_review_env([packet_path, shared_path, facts_path, report_path,
+                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'diff_patch_path')
+                              if (packet.get('git_diff_impact') or {}).get(key)]],
                                         format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')

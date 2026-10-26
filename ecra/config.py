@@ -298,6 +298,8 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
         if key in {'include_dirs', 'exclude_dirs', 'exclude_files'} and any(not x.strip() or any(c in x for c in '*?[]') for x in value):
             raise ValueError(f'analysis.{key} 请填写非空目录路径，不使用通配符；目录自动递归匹配')
     a = cfg['analysis']
+    from .git_diff import settings as git_diff_settings
+    a['git_diff'] = git_diff_settings(a.get('git_diff', {}))
     workers = a.get('extraction_workers', 1)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('analysis.extraction_workers 必须是 1–8 的整数')

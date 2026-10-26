@@ -676,7 +676,8 @@ def risk_overview(facts, report, records, assessments):
                     for key in ['confirmed', 'likely', 'unresolved', 'safe', 'screened_safe', 'screened_shared'])
     cov = report['coverage']
     gap_count = sum(not f.get('symbol_id') for f in report['findings'])
-    inventory_by_kind = cov.get('inventory_by_kind', {})
+    inventory_by_kind = (dict(Counter(v['kind'] for v in facts['variables'])) if report.get('git_diff')
+                         else cov.get('inventory_by_kind', {}))
     mode = '模型复核未启用；当前分类依据静态证据。' if records and all(local_pending(r) for r in records.values()) else '分类结合静态证据与有效复核；失败或过期回答不算当前结论。'
     kind_line = ' · '.join(f'{KINDS.get(k, k)} {n}' for k, n in sorted(inventory_by_kind.items())) or '无变量'
     return ('<section class="risk-overview"><div class="verdict-head ' + color + '"><span>并发风险结论</span><h2 id="risk-verdict">'
@@ -714,12 +715,13 @@ def classification_quality_html(facts, report):
         ('RR_all', str(all_inventory.get('percent', 0)) + '%'),
     ])
     elimination_rows = []
+    visible_ids = set(report['git_diff']['selected_symbol_ids']) if report.get('git_diff') else None
     for item in quality.get('eliminations', []):
         variable_rows = [row([
             '<a href="index.html#' + anchor('var-', variable['symbol_id']) + '">' + esc(variable['name']) + '</a>',
             esc(variable['classification']), esc(variable['symbol_id'])])
-            for variable in item.get('variables', [])]
-        details = deferred_detail('查看 ' + str(item.get('variable_count', 0)) + ' 个变量',
+            for variable in item.get('variables', []) if visible_ids is None or variable['symbol_id'] in visible_ids]
+        details = deferred_detail('查看 ' + str(len(variable_rows)) + ' 个当前范围变量',
                                   table(['变量', '分类', 'symbol_id'], variable_rows))
         elimination_rows.append(row([esc(item.get('code')), esc(item.get('description')),
                                      str(item.get('variable_count', 0)), details],
@@ -734,6 +736,8 @@ def classification_quality_html(facts, report):
         raw(item.get('relevance_proofs', []), '逐变量相关性证明')])
         for item in quality.get('blocker_fanout', [])]
     content = '<section class="overview"><h2>Pre-OpenCode 四分类质量</h2>' + headline
+    if visible_ids is not None:
+        content += '<p class="notice">分类质量统计使用完整构建范围；下方变量导航只列当前差异范围，避免链接到未展示变量。当前差异范围变量数：' + str(len(visible_ids)) + '。</p>'
     content += '<p>RR_build = 构建变量复核队列 / 构建变量总数；RR_all = (复核队列 + 未分析的补充盘点声明) / (构建变量 + 补充盘点声明)。补充声明保留在清单中，须扫描对应构建变体才能完成访问分析。</p>'
     content += '<p>' + esc(quality.get('note', '')) + '</p></section>'
     content += '<nav class="tabs"><a href="#eliminations">排除贡献</a><a href="#remaining">剩余原因</a><a href="#fanout">UNKNOWN fanout</a><a href="#hotspots">源码热点</a></nav><!--controls-->'
@@ -773,6 +777,8 @@ def _write_html(out, facts, report, reviews):
     reviews = localized_records(reviews)
     from .scope import validate_selection
     validate_selection(facts, report)
+    from .git_diff import presentation_view
+    facts, report = presentation_view(facts, report)
     funcs = {f['function_id']: f for f in facts['functions']}
     variables = {v['symbol_id']: v for v in facts['variables']}
     contexts = {c['id']: c for c in facts['contexts']}
@@ -1065,6 +1071,19 @@ def _write_html(out, facts, report, reviews):
         is_supplemental = v.get('coverage_source') in ('supplemental', 'inactive_branch')
         is_container = v.get('resource_kind') in {'STRUCT_CONTAINER', 'ARRAY_CONTAINER', 'STRUCT_MEMBER_CONTAINER'}
         detail_body = '<p>类型：' + esc(v.get('type')) + ' · 大小：' + esc(v.get('size_bytes')) + ' 字节 · volatile：' + ('是' if v.get('is_volatile') else '否') + ' · const：' + ('是' if v.get('is_const') else '否') + '</p>'
+        impact = v.get('impact') if report.get('git_diff') else None
+        if impact:
+            detail_body += '<h3>本次影响依据</h3><p>' + esc('；'.join(impact['reason_labels'])) + '</p>'
+            detail_body += '<p>风险变化：' + esc(impact['risk_change']) + '；影响覆盖：' + esc({'COMPLETE': '完整', 'CONSERVATIVE': '保守扩大'}.get(impact['impact_coverage'], '未完成')) + '</p>'
+            for key, label, source_root in [('removed_paths', '基准版本删除路径的最短代表证据', impact.get('base_source_root')), ('added_paths', '当前版本新增路径的最短代表证据', None)]:
+                detail_body += '<h4>' + label + '</h4><pre>' + esc('\n'.join(' → '.join(function_name(fid) for fid in edge) for edge in impact[key]) or '没有调用边变化') + '</pre>'
+            detail_body += '<p>未变化调用边：' + str(impact['unchanged_edges_count']) + ' 条，默认收起。其他未修改路径参与并发分析；完整访问和上下文保留在下方证据及 OpenCode Packet。</p>'
+            if impact.get('base'):
+                from pathlib import Path
+                base = impact['base']
+                if impact.get('base_source_root') and base.get('file'):
+                    detail_body += '<p><a href="' + esc((Path(impact['base_source_root'])/(base.get('original_file') or base['file'])).as_uri()) + '">基准源码</a>：' + esc(base.get('original_file') or base['file']) + ':' + esc(base.get('line')) + '</p>'
+            detail_body += '<details><summary>展开完整当前证据（含未修改路径）</summary>'
         if is_supplemental:
             detail_body += '<p class="notice">补充声明盘点：来自未编译文件或条件分支变体，不代表当前构建中已分析其并发访问。</p>'
         if is_container:
@@ -1101,6 +1120,8 @@ def _write_html(out, facts, report, reviews):
             detail_body += scenario_section(candidates[sid][0] if candidates[sid] else None)
             detail_body += protection_section(v)
             detail_body += advanced_static_info(v, candidates[sid], views, 'inventory-' + sid)
+        if impact:
+            detail_body += '</details>'
         detail = deferred_detail('查看结构体成员汇总' if is_container else '查看变量详情、源码访问与调用链', detail_body)
         group = 'supplemental' if is_supplemental else ('candidate' if candidates[sid] else 'inventory')
         list_views = source_access_views(v.get('accesses', []))
@@ -1117,7 +1138,7 @@ def _write_html(out, facts, report, reviews):
         inventory_rows.append(row(['<a class="item-name" href="#' + anchor('var-', sid) + '">' + esc(v['qualified_name'])
             + '</a><span class="location">' + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
             + esc(KINDS.get(v['kind'], v['kind'])) + ' · ' + esc(v.get('type')),
-            '<p>' + esc(why) + '</p>',
+            '<p>' + esc(why) + '</p>' + ('<p>影响：' + esc('；'.join(impact['reason_labels'])) + '</p>' if impact else ''),
             decision_tag(assessments[sid]) + '<p>' + esc(conclusion) + '</p>' + detail],
             anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files,
             search_text=' '.join(dict.fromkeys([v.get('qualified_name', ''), v.get('name', ''), v.get('type', ''), *files,
@@ -1224,7 +1245,8 @@ def _write_html(out, facts, report, reviews):
 
     cov = report['coverage']
     coverage = scope_summary(cov)
-    inventory_by_kind = cov.get('inventory_by_kind', {})
+    inventory_by_kind = (dict(Counter(v['kind'] for v in facts['variables'])) if report.get('git_diff')
+                         else cov.get('inventory_by_kind', {}))
     if inventory_by_kind:
         coverage += '<h3>变量盘点分类</h3>' + table(['变量类别', '数量'], [row([esc(KINDS.get(k, k)), str(n)]) for k, n in sorted(inventory_by_kind.items())])
     coverage += metrics([('源码解析完整 / 总数', f'{cov.get("translation_units_parsed", "?")} / {cov.get("translation_units_total", "?")}'),
@@ -1269,6 +1291,20 @@ def _write_html(out, facts, report, reviews):
         [row([esc(context(c['id'])), raw(c)]) for c in facts['contexts']])
     counts = Counter(category(r) for r in records.values())
     content = risk_overview(facts, report, records, assessments) + nvic_summary(facts)
+    if report.get('git_diff'):
+        diff = report['git_diff']
+        pinned = diff['pin']
+        classes = Counter(v.get('static_classification') for v in facts['variables'])
+        summary = '<section class="overview"><h2>扫描模式：分支差异</h2><p>当前版本：' + esc(pinned['current_ref']) + '（' + esc(pinned['head_sha'][:12]) + '）；比较基准：' + esc(pinned['target_ref']) + '（' + esc(pinned['base_sha'][:12]) + '）；比较方式：' + esc(pinned['compare_mode']) + '</p>'
+        storage_count = risk_summary(facts, report, records)['total_variables']
+        summary += metrics([('变更文件', len(pinned['files'])), ('变更函数', len(diff['modified_function_ids'])), ('受影响分析对象', storage_count), ('疑似并发风险', classes['SUSPECT']), ('无法判断', classes['UNKNOWN']), ('静态已判安全', classes['SAFE_PROVEN']), ('共享访问，无需复核', classes['SHARED_NO_REVIEW'])])
+        summary += '<p>当前差异清单共 ' + str(len(diff['selected_symbol_ids'])) + ' 行（含结构体/数组容器汇总）；上述静态分类按实际分析对象统计，容器不重复计入风险分母。</p>'
+        summary += '<p>影响分析状态：' + ('保守扩大（' + esc('；'.join(diff['fallback_reasons'])) + '）' if diff['fallback_reasons'] else '完整') + '。未列出变量不代表安全。覆盖栏目使用完整构建范围。</p>'
+        if not diff['selected_symbol_ids']:
+            summary += '<p>本次比较未识别到需要核对的差异变量。</p>'
+        if diff['deleted_variables']:
+            summary += '<details><summary>已删除存储对象（不计入当前风险统计）</summary>' + raw(diff['deleted_variables'], '删除证据') + '</details>'
+        content = summary + '</section>' + content
     content += '<nav class="tabs" aria-label="排查栏目">' + ''.join(f'<a href="#{key}">{label} {number}</a>' for key, label, number in [
         ('risks', '变量风险结论', len(risks)), ('inventory', '全部目标变量', len(inventory_rows)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'
     decision_options = [('decision:' + key, value[0]) for key, value in DECISIONS.items()]

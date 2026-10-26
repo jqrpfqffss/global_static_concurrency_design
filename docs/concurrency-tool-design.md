@@ -1,5 +1,9 @@
 # ECRA：STM32 全局变量与 static 变量并发排查工具设计
 
+## Git 差异模式扩展
+
+`ecra/git_diff.py` 负责固定固件 Git 比较、隔离基准事实、语义身份匹配、完整图比较和不动点影响传播；`ecra/tu_cache.py` 只缓存经过原始 InputSnapshot 校验的完整原始 TU 事实。两种模式共用全局 points-to、上下文、NVIC、保护和分类。差异范围独立保存于 `report.git_diff`，不删除完整 facts/findings；报告浅层视图与 `review_targets()` 使用同一范围，Packet 保留未修改路径。实现、缓存失效、回退、实际验证及已知限制见 [技术验收记录](git-diff-concurrency-validation.md)。
+
 本文档是本仓库中并发排查工具的设计基线。它说明工具解决什么问题、从哪个配置开始运行、如何形成结论，以及 STM32 裸机大型工程中的适用边界。实现、配置模板、测试和本文件必须一起维护；当行为变化时，优先更新本文件和对应回归用例。
 
 ## 1. 目标、范围与非目标

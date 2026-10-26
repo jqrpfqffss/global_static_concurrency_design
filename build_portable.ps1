@@ -3,7 +3,7 @@
     [string]$CacheDir = (Join-Path $PSScriptRoot '.tools-cache'),
     [string]$PythonSource, [string]$CMakeSource, [string]$NinjaSource,
     [string]$MinGWSource, [string]$MinGWMakeSource, [string]$ArmGccSource,
-    [string]$PipWheelSource, [string]$VcRuntimeSource, [switch]$SkipZip
+    [string]$PipWheelSource, [string]$VcRuntimeSource, [string]$GitSource, [switch]$SkipZip
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -109,6 +109,49 @@ try {
     Copy-Item -LiteralPath $ninjaLicense -Destination (Join-Path $toolsDir 'ninja/COPYING.txt')
     Copy-DirectoryContents $mingwBase (Join-Path $toolsDir 'mingw')
     Copy-DirectoryContents $armBase (Join-Path $toolsDir 'arm-gcc')
+    # Optional, strictly offline MinGit distribution. Copy the complete tree,
+    # including libexec, DLLs and licences; a lone git.exe is insufficient.
+    $gitVersion = $null
+    $gitOmitted = @()
+    if ($GitSource) {
+        $gitRoot = (Resolve-Path -LiteralPath $GitSource).Path
+        if (-not (Test-Path -LiteralPath (Join-Path $gitRoot 'cmd/git.exe'))) {
+            throw "GitSource 必须是包含 cmd/git.exe 的完整 MinGit 分发目录：$gitRoot"
+        }
+        Copy-DirectoryContents $gitRoot (Join-Path $toolsDir 'git')
+        # GCM is a separate optional authentication/UI component. Official
+        # MinGit can include its .NET Framework/Avalonia distribution, which
+        # is not an offline runtime for the local-only comparison feature.
+        # Remove the complete component, never exempt missing DLLs from QA.
+        $gcmPatterns = @('git-credential-manager*','git-credential-helper-selector.exe',
+            'Atlassian.Bitbucket.dll','GitHub.dll','GitLab.dll','gcmcore.dll',
+            'Avalonia*.dll','MicroCom.Runtime.dll','HarfBuzzSharp.dll','libHarfBuzzSharp.dll',
+            'SkiaSharp.dll','libSkiaSharp.dll','av_libglesv2.dll','msalruntime.dll',
+            'Microsoft*.dll','System.*.dll')
+        $gitOut = Join-Path $toolsDir 'git'
+        foreach ($nativeDir in @('mingw64/bin','ucrt64/bin')) {
+            $nativeRoot = Join-Path $gitOut $nativeDir
+            if (-not (Test-Path -LiteralPath $nativeRoot)) { continue }
+            foreach ($component in Get-ChildItem -LiteralPath $nativeRoot -File) {
+                if (@($gcmPatterns | Where-Object { $component.Name -like $_ }).Count) {
+                    $gitOmitted += @{path=($nativeDir + '/' + $component.Name);
+                        sha256=(Get-FileHash -LiteralPath $component.FullName -Algorithm SHA256).Hash;
+                        reason='本地差异扫描不使用的 GCM 凭据管理与界面组件'}
+                    Remove-OutputChild $bundle $component.FullName
+                }
+            }
+        }
+        # Keep the portable Git's configuration independent of other installed
+        # Git distributions and of an omitted authentication component.
+        $gitConfig = Join-Path $gitOut 'etc/gitconfig'
+        if (Test-Path -LiteralPath $gitConfig) {
+            $configText = [IO.File]::ReadAllText($gitConfig)
+            $configText = [regex]::Replace($configText, '(?ms)^\[credential\]\r?\n.*?(?=^\[|\z)', '')
+            $configText = [regex]::Replace($configText, '(?ms)^\[include\]\r?\n.*?(?=^\[|\z)', '')
+            [IO.File]::WriteAllText($gitConfig, $configText, (New-Object Text.UTF8Encoding($false)))
+        }
+        $gitVersion = Invoke-Checked '离线 Git 运行时' (Join-Path $toolsDir 'git/cmd/git.exe') @('--version')
+    }
     # The upstream Python-enabled debugger requires a separately installed
     # 32-bit Python 2.7. It is not a compiler component. Keep the standard GDB
     # and the complete compiler/binutils/libraries; do not ship a broken optional
@@ -153,6 +196,8 @@ try {
         version_patterns=$patterns; dependencies=@{libclang=$sources.LibClangVersion;PyYAML=$sources.PyYamlVersion};
         sources=@{python=$pythonBase;cmake=$cmakeBase;ninja=$ninjaBase;mingw=$mingwBase;make=$makeBase;arm=$armBase;vc_runtime=$vcBase}; actual_versions=$actualVersions;
         vc_runtime_version=$sources.VcRuntimeVersion;
+        git_runtime_version=$gitVersion;
+        git_omitted_optional_components=$gitOmitted;
         make_adapter=$makeAdapter;
         omitted_optional_components=$omitted;
         cmake_distribution_note='Official Kitware 3.29.6 differs from JetBrains IDE bundle build 1; check actual version below.' }

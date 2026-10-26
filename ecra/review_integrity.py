@@ -56,7 +56,10 @@ def normalize_review_record(row):
 
 
 def review_targets(report):
-    return list(report.get('findings', ())) + list(report.get('review_safe_samples', ()))
+    from .git_diff import selected_findings
+    ids = set(report['git_diff']['selected_symbol_ids']) if report.get('git_diff') else None
+    return selected_findings(report) + [f for f in report.get('review_safe_samples', ())
+                                       if ids is None or f.get('symbol_id') in ids]
 
 
 def review_integrity(report, records, *, require_terminal=False):

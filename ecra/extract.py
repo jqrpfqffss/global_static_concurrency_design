@@ -226,6 +226,7 @@ class Extractor:
                          is_variadic=c.type.kind.name == 'FUNCTIONPROTO' and c.type.is_function_variadic(),
                          **self.loc(c), end_line=c.extent.end.line, end_offset=c.extent.end.offset)
                 self.functions[f["function_id"]] = f
+                f['semantic_digest'] = digest([t.spelling for t in c.get_tokens() if t.kind.name != 'COMMENT'])
                 if k != "FUNCTION_DECL":
                     self.issue("CPP_SEMANTICS_REVIEW", c, f["function_id"])
         if k == "VAR_DECL":
@@ -277,6 +278,7 @@ class Extractor:
                                   declarations=[], definitions=[], translation_units=[self.tu_name],
                                   definition_file=None, definition_line=None, initializer=" ".join(tokens(c))[:500],
                                   coverage_source=self.coverage_source)
+                    record['semantic_digest'] = digest([t.spelling for t in c.get_tokens() if t.kind.name != 'COMMENT'])
                     if record['is_struct']:
                         # The inventory owns storage at the root symbol, while
                         # concurrency evidence must be attached to the concrete
@@ -302,6 +304,7 @@ class Extractor:
                 if defining:
                     size, align = typ.get_size(), typ.get_align()
                     record.update(type=c.type.spelling, initializer=' '.join(tokens(c))[:500],
+                                  semantic_digest=digest([t.spelling for t in c.get_tokens() if t.kind.name != 'COMMENT']),
                                   size_bytes=size if size >= 0 else None,
                                   alignment_bytes=align if align >= 0 else None)
                     if 'ARRAY' in typ.kind.name:
@@ -782,9 +785,17 @@ class Extractor:
                             line=d.location.line, column=d.location.column)
                        for d in tu.diagnostics]
         self.section_macros = {}
+        import hashlib
+        semantic_macros = hashlib.sha256()
+        macro_function_like = ci.conf.lib.clang_Cursor_isMacroFunctionLike
+        macro_function_like.argtypes = [ci.Cursor]
+        macro_function_like.restype = ctypes.c_uint
         for macro in tu.cursor.get_children():
             if macro.kind.name != 'MACRO_DEFINITION':
                 continue
+            if macro.location.file:
+                semantic_macros.update(digest([bool(macro_function_like(macro)),
+                    [t.spelling for t in macro.get_tokens() if t.kind.name != 'COMMENT']]).encode('ascii'))
             try:
                 spelling = [token.spelling for token in islice(macro.get_tokens(), 128)]
             except MemoryError:
@@ -809,6 +820,7 @@ class Extractor:
             v["parse_status"] = parse_status
         if self.declaration_only:
             return dict(variables=list(self.variables.values()), parse_status=parse_status,
+                        semantic_macros_digest=semantic_macros.hexdigest(),
                         diagnostics=diagnostics,
                         includes=sorted({str(Path(i.include.name).resolve()) for i in tu.get_includes()}))
         def bodies(c):
@@ -937,6 +949,7 @@ class Extractor:
                     nvic_irq_definitions=nvic_irqs,
                     registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
+                    semantic_macros_digest=semantic_macros.hexdigest(),
                     parse_status=parse_status, input_snapshot=input_snapshot, preprocessor_signature=signature)
 
 
@@ -960,7 +973,7 @@ def main():
         write_json(sys.argv[2], result, indent=None)
         if request.get('write_metadata'):
             metadata = {key: result[key] for key in ('parse_status', 'diagnostics', 'includes',
-                        'input_snapshot', 'worker_exception', 'preprocessor_signature') if key in result}
+                        'input_snapshot', 'worker_exception', 'preprocessor_signature', 'semantic_macros_digest') if key in result}
             metadata.update(strong_functions=[f['function_id'] for f in result.get('functions', []) if not f.get('is_weak')],
                             weak_functions=[f['function_id'] for f in result.get('functions', []) if f.get('is_weak')],
                             counts={key: len(value) for key, value in result.items() if isinstance(value, list)})

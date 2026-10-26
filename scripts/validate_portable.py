@@ -80,13 +80,16 @@ def pe_imports(path):
 
 def verify_pe_dependencies(bundle):
     system = Path(os.environ.get('SystemRoot', r'C:\Windows'))
-    windows_dlls = set(('kernel32 kernelbase ntdll user32 advapi32 shell32 ole32 oleaut32 ws2_32 crypt32 bcrypt '
+    # BCryptPrimitives/ProcessPrng is an OS component since Windows 8, within
+    # the supported Windows 10+ floor (Microsoft Win32 ProcessPrng contract).
+    windows_dlls = set(('kernel32 kernelbase ntdll user32 advapi32 shell32 ole32 oleaut32 ws2_32 crypt32 bcrypt bcryptprimitives '
         'winhttp wininet secur32 version shlwapi gdi32 comdlg32 comctl32 rpcrt4 usp10 psapi dbghelp imagehlp '
         'netapi32 userenv normaliz dwmapi uxtheme oleacc setupapi winmm iphlpapi wldap32 mswsock propsys mpr '
         'winspool urlmon dxgi d3d11 dbgeng dbgcore cabinet cryptbase powrprof msvcrt ucrtbase wintrust authz '
         'advpack ncrypt hid dnsapi pdh wtsapi32 cfgmgr32 imm32 netutils msi').split())
     shared = [bundle/'runtime', bundle/'tools/cmake/bin', bundle/'tools/ninja',
-              bundle/'tools/mingw/bin', bundle/'tools/mingw/opt/bin', bundle/'tools/arm-gcc/bin']
+              bundle/'tools/mingw/bin', bundle/'tools/mingw/opt/bin', bundle/'tools/arm-gcc/bin',
+              bundle/'tools/git/usr/bin', bundle/'tools/git/ucrt64/bin', bundle/'tools/git/mingw64/bin']
     evidence = {}
     for path in sorted(bundle.rglob('*')):
         if path.suffix.lower() not in {'.exe', '.dll', '.pyd'}:
