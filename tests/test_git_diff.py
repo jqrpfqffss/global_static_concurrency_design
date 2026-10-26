@@ -266,6 +266,52 @@ class GitIntegrationTests(unittest.TestCase):
         third = self.scan()
         self.assertEqual(third['git_diff']['full_verification']['state'], 'PASSED')
 
+    def test_baseline_summary_reuse_and_corruption_rebuild(self):
+        self.repository()
+        first = self.scan()
+        with patch('ecra.git_diff.summarize', wraps=summarize) as build:
+            second = self.scan()
+        self.assertEqual(first['git_diff']['selected_symbol_ids'], second['git_diff']['selected_symbol_ids'])
+        self.assertEqual(build.call_count, 1, 'Only HEAD needs normalization after complete baseline validation')
+        summaries = list((self.root/'.ecra/git_diff/summary-cache').glob('*.summary.json'))
+        self.assertEqual(len(summaries), 1)
+        summaries[0].write_text('corrupt')
+        with patch('ecra.git_diff.summarize', wraps=summarize) as build:
+            repaired = self.scan()
+        self.assertEqual(build.call_count, 2)
+        self.assertEqual(repaired['git_diff']['selected_symbol_ids'], first['git_diff']['selected_symbol_ids'])
+        manifest = summaries[0].with_suffix('.manifest.json')
+        manifest.write_text('[]')
+        with patch('ecra.git_diff.summarize', wraps=summarize) as build:
+            repaired = self.scan()
+        self.assertEqual(build.call_count, 2)
+        self.assertEqual(repaired['git_diff']['selected_symbol_ids'], first['git_diff']['selected_symbol_ids'])
+
+    def test_summary_mutation_after_validation_blocks_publication(self):
+        self.repository()
+        from ecra.analysis import analyze
+        def tamper(facts, cfg, *args, **kwargs):
+            report = analyze(facts, cfg, *args, **kwargs)
+            if cfg['analysis']['git_diff']['enabled']:
+                path = next((self.root/'.ecra/git_diff/summary-cache').glob('*.summary.json'))
+                summary = read_json(path)
+                summary['variables']['c:@g']['dimensions']['declaration'] = 'tampered'
+                write_json(path, summary)
+            return report
+        with patch('ecra.cli.analyze', side_effect=tamper), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run(self.root, no_review=True), 3)
+        self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+
+    def test_summary_cache_does_not_bypass_baseline_input_validation(self):
+        self.repository()
+        self.scan()
+        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+        base = __import__('pathlib').Path(report['git_diff']['pin']['base_source_root'])
+        (base/'a.c').write_text('int corrupted;')
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run(self.root, no_review=True), 3)
+        self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+
     def test_T31_git_snapshot_changes_block_resume(self):
         self.repository()
         cfg, _ = __import__('ecra.config', fromlist=['load_config']).load_config(self.root)

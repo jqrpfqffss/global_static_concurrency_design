@@ -880,6 +880,25 @@ class Solver:
         returned = function + ':return'
         return {returned} | self.descendant_slots.get(returned, set())
 
+    def overlapping_slots(self, location):
+        """Exact existing aliases, without scanning concrete array siblings.
+
+        A concrete subobject overlaps only itself and wildcard substitutions
+        of its indices. The general scan remains for wildcard/deep queries;
+        the small substitution threshold selects an algorithm, never drops
+        a target or limits storage/propagation depth.
+        """
+        shape = self.shape(location)
+        existing = self.slots_by_shape.get(shape, ())
+        indices = list(re.finditer(r'/\[-?\d+\]', location))
+        if '/[*]' not in location and len(indices) <= 5:
+            candidates = {location}
+            for match in reversed(indices):
+                candidates.update(candidate[:match.start()] + '/[*]' + candidate[match.end():]
+                                  for candidate in tuple(candidates))
+            return candidates.intersection(existing)
+        return {slot for slot in existing if self.overlaps(slot, location)}
+
     def reachable_pointer_values(self, initial):
         """Follow pointers/aggregate fields that an opaque consumer can read."""
         pending = self.target_pool.make(initial)
@@ -899,7 +918,7 @@ class Solver:
                     continue
                 if loc.startswith('unknown:'):
                     continue
-                candidates = {loc} | self.descendant_slots.get(loc, set()) | self.slots_by_shape.get(self.shape(loc), set())
+                candidates = {loc} | self.descendant_slots.get(loc, set()) | self.overlapping_slots(loc)
                 for slot in candidates:
                     if slot == loc or slot.startswith(loc + '/') or self.overlaps(slot, loc):
                         pending.update(self.points.get(slot, ()))
@@ -913,7 +932,7 @@ class Solver:
         """Values copied out of storage, excluding its uncopied address."""
         values = self.target_pool.make()
         for source in sources:
-            candidates = {source} | self.descendant_slots.get(source, set()) | self.slots_by_shape.get(self.shape(source), set())
+            candidates = {source} | self.descendant_slots.get(source, set()) | self.overlapping_slots(source)
             for slot in candidates:
                 if slot == source or slot.startswith(source + '/') or self.overlaps(slot, source):
                     values.update(self.points.get(slot, ()))

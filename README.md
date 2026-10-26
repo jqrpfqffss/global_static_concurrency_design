@@ -2,6 +2,8 @@
 
 新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。仍在原 `.ecra/index.html` 展示受影响变量，完整后台并发证据和静态归账保留。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败，未知影响会说明保守扩大范围。
 
+真实工程的后续性能优化、无复核实测及完整事实对照见 [2026-10-26 优化记录](docs/real-project-optimization-validation.md)。可用 `scripts/benchmark_project_scan.py` 对自己的工程记录全量/差异耗时、内存和语义一致性；该脚本要求关闭自动复核与证据包。
+
 先盘点变量，再追踪“谁在什么任务/中断里读写”，生成本地报告；可选启用 OpenCode 逐项复核。用户不需要手工填写变量列表，默认无需模型账户。源码不会被工具修改。
 
 第一次使用请看 [详细操作教程：简单配置后，一条命令完成并发排查](docs/one-command-tutorial.md)。以 `serial - continue` 裸机工程为例，包含多个排查/排除目录、自动 CMake 构建、报告阅读与故障处理。工具整体架构、风险判定与 STM32 分层中断/回调适配见[设计文档](docs/concurrency-tool-design.md)。详细源码排查另见 [变量案例](docs/variable-investigation-guide.md)。

@@ -1,0 +1,3671 @@
+{
+  "complete": true,
+  "branch": "optimize_ccc",
+  "base_tool_commit": "a1ea2076df76cc906383f4b04c5ebe10eaa88f98",
+  "committed": false,
+  "engine_digest": "ce31da1f921864b82a7fc1331a9b5bfcfcae976f5cee6eda1dafbfc5eab5d8ad",
+  "review_executed": false,
+  "tests": {
+    "complete": true,
+    "command": "py -3.10 -m unittest discover -s tests -q",
+    "log": "git_diff_optimization_release_regression_retry.log",
+    "count": 912,
+    "seconds": 751.499,
+    "skipped": 2,
+    "earlier_full_run": "912 tests, 1 setup-timeout failure, 2 skips",
+    "repaired_memory_suite": "4 passed; ready timeout 180 seconds; actual 192 MiB limit unchanged",
+    "passed": 910,
+    "failures": 0,
+    "errors": 0
+  },
+  "smartfarm": {
+    "scope": "真实 STM32F103/FreeRTOS 隔离副本，仅全量；原始事实重新规范化后完整语义对照",
+    "result": {
+      "complete": true,
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "--project",
+        "H:\\ecra_stm32_validation\\git-diff-smartfarm-62tu",
+        "--config",
+        "H:\\ecra_stm32_validation\\git-diff-smartfarm-62tu-semantics.yaml",
+        "--scan-mode",
+        "full",
+        "--no-review"
+      ],
+      "engine_digest": "ce31da1f921864b82a7fc1331a9b5bfcfcae976f5cee6eda1dafbfc5eab5d8ad",
+      "config_sha256": "affbf2759a1e66f8c9dbf156171d044abe7327b31c25d980f1b44b66324da8cd",
+      "scan_mode": "full",
+      "review_executed": false,
+      "memory_sampling_errors": 0,
+      "seconds": 2362.0319999996573,
+      "peak_tree_rss_bytes": 4079824896,
+      "exit_code": 2,
+      "validity": {
+        "analysis_valid": true,
+        "state": "STATIC_SCAN_SAVED",
+        "snapshot_status": "VERIFIED",
+        "fingerprint": "206d25b4c61ee99552d573308a3a06b0bf2cc8ba8287e432b87034c5493d41a0"
+      },
+      "translation_units": 61,
+      "functions": 3935,
+      "inventory_rows": 327,
+      "classifications": {
+        "CONTAINER": 34,
+        "SAFE_PROVEN": 168,
+        "SUSPECT": 106,
+        "null": 16,
+        "UNKNOWN": 3
+      },
+      "variable_accountability": {
+        "total": 277,
+        "screened": 168,
+        "queued": 109,
+        "missing": 0,
+        "duplicate_ids": 0
+      },
+      "selected_variables": 0,
+      "tu_cache": null,
+      "baseline_summary_cache": null,
+      "fallback_reasons": null,
+      "verification": null,
+      "static_status": "INCOMPLETE",
+      "review_candidates": 109,
+      "facts_sha256": "32ef2ae853bf6e018d18ca76d80013c36763d65af9ed76566ef61a76457a9516",
+      "summary_sha256": "48fecabfce79fec3ca0ea12c06ca5bbc7b3a9716a83eb9038aae3224ede710d9",
+      "semantic_mismatches": [],
+      "classification_mismatches": [],
+      "stage_timings": [
+        {
+          "stage": "扫描准备与历史归档",
+          "seconds": 3.360000000335276,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 28377088,
+          "peak_process_commit_bytes": 28729344
+        },
+        {
+          "stage": "编译数据库准备",
+          "seconds": 1.7339999992400408,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 33030144,
+          "peak_process_commit_bytes": 30539776
+        },
+        {
+          "stage": "扫描输入快照建立",
+          "seconds": 13.561999999918044,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 38080512,
+          "peak_process_commit_bytes": 35074048
+        },
+        {
+          "stage": "Clang 翻译单元提取",
+          "seconds": 106.96899999957532,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 38080512,
+          "peak_process_commit_bytes": 35074048
+        },
+        {
+          "stage": "输入一致性验证",
+          "seconds": 39.21800000034273,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 38752256,
+          "peak_process_commit_bytes": 36016128
+        },
+        {
+          "stage": "跨翻译单元事实归并",
+          "seconds": 17.125,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 185978880,
+          "peak_process_commit_bytes": 182943744
+        },
+        {
+          "stage": "输入一致性验证",
+          "seconds": 0.6720000002533197,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 185978880,
+          "peak_process_commit_bytes": 182943744
+        },
+        {
+          "stage": "指针、函数指针及调用图分析",
+          "seconds": 0.5630000000819564,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 185978880,
+          "peak_process_commit_bytes": 182943744
+        },
+        {
+          "stage": "跨翻译单元指针与函数指针求解",
+          "seconds": 182.28199999965727,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 416501760,
+          "peak_process_commit_bytes": 414445568
+        },
+        {
+          "stage": "执行上下文指针与调用图分析",
+          "seconds": 1758.938000000082,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 856784896,
+          "peak_process_commit_bytes": 859365376
+        },
+        {
+          "stage": "结构体字段、数组与重叠存储分析",
+          "seconds": 102.09399999957532,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4052684800,
+          "peak_process_commit_bytes": 4137504768
+        },
+        {
+          "stage": "调用图上下文恢复",
+          "seconds": 0.32799999974668026,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4052684800,
+          "peak_process_commit_bytes": 4137504768
+        },
+        {
+          "stage": "NVIC 优先级与抢占关系分析",
+          "seconds": 7.890999999828637,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4057546752,
+          "peak_process_commit_bytes": 4137504768
+        },
+        {
+          "stage": "可达性与不完整证据关联",
+          "seconds": 1.0930000003427267,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4079828992,
+          "peak_process_commit_bytes": 4153630720
+        },
+        {
+          "stage": "并发风险分类与保护证据",
+          "seconds": 7.57799999974668,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4101361664,
+          "peak_process_commit_bytes": 4177485824
+        },
+        {
+          "stage": "发布前输入一致性验证",
+          "seconds": 14.34400000050664,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4101361664,
+          "peak_process_commit_bytes": 4177485824
+        },
+        {
+          "stage": "可选 OpenCode 复核",
+          "seconds": 0.5779999997466803,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4101361664,
+          "peak_process_commit_bytes": 4177485824
+        },
+        {
+          "stage": "报告生成与存储（单次发布）",
+          "seconds": 72.78100000042468,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4101361664,
+          "peak_process_commit_bytes": 4177485824
+        },
+        {
+          "stage": "报告发布后输入一致性验证",
+          "seconds": 28.968000000342727,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4101361664,
+          "peak_process_commit_bytes": 4177485824
+        },
+        {
+          "stage": "最终完整性验收",
+          "seconds": 0.2189999995753169,
+          "status": "COMPLETE",
+          "peak_working_set_bytes": 4101361664,
+          "peak_process_commit_bytes": 4177485824
+        }
+      ]
+    }
+  },
+  "real_st_cdc": {
+    "complete": true,
+    "source": "H:\\global_static_concurrency_design\\validation\\stm32_cube_cdc_20261018\\projects\\p00",
+    "project": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release",
+    "base_sha": "17f408d1ac8097f6aca8286e2a44b3e203e073c4",
+    "engine_digest": "ce31da1f921864b82a7fc1331a9b5bfcfcae976f5cee6eda1dafbfc5eab5d8ad",
+    "review_executed": false,
+    "head_sha": "b86b41b12eb43bdb0e459b8afede32cb29feb4b7",
+    "classification_mismatches": 0,
+    "semantic_mismatches": 0,
+    "scope": "ST STM32CubeF4 CDC/USART/DMA 实应用隔离副本；修改真实业务源码；未烧录目标板",
+    "runs": [
+      {
+        "name": "full-base",
+        "exit_code": 2,
+        "seconds": 397.4850000003353,
+        "peak_rss_bytes": 964943872,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-full-base.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "1c6e5f10b6cc0f6e9ab676df85d26d917e323e80887adcaa9662be44497afda1"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 0,
+        "cache": null,
+        "fallback": null,
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 0.375,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 27504640,
+            "peak_process_commit_bytes": 28475392
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 25.156000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 31956992,
+            "peak_process_commit_bytes": 30605312
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 26.843000000342727,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 37363712,
+            "peak_process_commit_bytes": 36229120
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 197.60900000017136,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 37703680,
+            "peak_process_commit_bytes": 36229120
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 19.20299999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 39710720,
+            "peak_process_commit_bytes": 37691392
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 23.843999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300244992,
+            "peak_process_commit_bytes": 299040768
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.3119999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300244992,
+            "peak_process_commit_bytes": 299040768
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.5159999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300244992,
+            "peak_process_commit_bytes": 299040768
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 2.0930000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 305991680,
+            "peak_process_commit_bytes": 304664576
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 4.453999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.23500000033527613,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.20299999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 1.6559999994933605,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.06300000008195639,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 8.21900000050664,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 16.79700000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.9689999995753169,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 360894464,
+            "peak_process_commit_bytes": 359448576
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 49.046999999322,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 893702144,
+            "peak_process_commit_bytes": 892100608
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 17.671999999321997,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 893702144,
+            "peak_process_commit_bytes": 892100608
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.04700000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 893702144,
+            "peak_process_commit_bytes": 892100608
+          }
+        ]
+      },
+      {
+        "name": "diff-first",
+        "exit_code": 2,
+        "seconds": 785.875,
+        "peak_rss_bytes": 1281515520,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-diff-first.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "54ff5460ac013e5fd3bfb75ba08af7705698d92855acb8b78a1726f2c468948e"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 244,
+        "cache": {
+          "hits": 0,
+          "extracted": 39,
+          "corrupt": 0,
+          "total": 39
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 0.0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 3.875,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28868608,
+            "peak_process_commit_bytes": 28962816
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 414.68800000008196,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 2.4369999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 18.781000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 204.11000000033528,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 16.171999999321997,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 20.734999999403954,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.20300000067800283,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.32799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 1.531000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 3.328999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 1.031000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.04700000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 4.07799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 8.015000000596046,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 19.79700000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.6409999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 900419584,
+            "peak_process_commit_bytes": 907669504
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 49.73400000017136,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 968192000,
+            "peak_process_commit_bytes": 966668288
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 14.75,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 968192000,
+            "peak_process_commit_bytes": 966668288
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.046999999321997166,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 968192000,
+            "peak_process_commit_bytes": 966668288
+          }
+        ]
+      },
+      {
+        "name": "diff-cached",
+        "exit_code": 2,
+        "seconds": 219.453000000678,
+        "peak_rss_bytes": 845877248,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-diff-cached.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "54ff5460ac013e5fd3bfb75ba08af7705698d92855acb8b78a1726f2c468948e"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 244,
+        "cache": {
+          "hits": 39,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 39
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 1.0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 2.5940000005066395,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 29966336,
+            "peak_process_commit_bytes": 30461952
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 38.188000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63770624,
+            "peak_process_commit_bytes": 64376832
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 1.9680000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 64147456,
+            "peak_process_commit_bytes": 64376832
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 18.17200000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 67674112,
+            "peak_process_commit_bytes": 65241088
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 4.7650000005960464,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 75087872,
+            "peak_process_commit_bytes": 72290304
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 13.718000000342727,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 75087872,
+            "peak_process_commit_bytes": 72290304
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 22.78099999949336,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 301072384,
+            "peak_process_commit_bytes": 298790912
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.29700000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 301072384,
+            "peak_process_commit_bytes": 298790912
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.5159999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 301072384,
+            "peak_process_commit_bytes": 298790912
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 1.5630000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 307261440,
+            "peak_process_commit_bytes": 304234496
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 4.04700000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.13999999966472387,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.625,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 1.625,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.1880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 6.17200000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 13.110000000335276,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 19.406000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.8440000005066395,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362491904,
+            "peak_process_commit_bytes": 360411136
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 50.57799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 950804480,
+            "peak_process_commit_bytes": 949207040
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 16.17200000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 950804480,
+            "peak_process_commit_bytes": 949207040
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.10999999940395355,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 950804480,
+            "peak_process_commit_bytes": 949207040
+          }
+        ]
+      },
+      {
+        "name": "full-head",
+        "exit_code": 2,
+        "seconds": 279.9529999997467,
+        "peak_rss_bytes": 965464064,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-full-head.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "545ad3cb9969a877db80a864a6c95ddaa3f26a0b0066dc41555d5f1f9fef95fe"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 0,
+        "cache": null,
+        "fallback": null,
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 0.7659999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28344320,
+            "peak_process_commit_bytes": 28696576
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 1.3590000001713634,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 32972800,
+            "peak_process_commit_bytes": 30633984
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 12.25,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 37412864,
+            "peak_process_commit_bytes": 35110912
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 167.95299999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40124416,
+            "peak_process_commit_bytes": 37834752
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 9.640999999828637,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40124416,
+            "peak_process_commit_bytes": 37834752
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 16.686999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300654592,
+            "peak_process_commit_bytes": 299368448
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.17200000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300654592,
+            "peak_process_commit_bytes": 299368448
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.3440000005066395,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300654592,
+            "peak_process_commit_bytes": 299368448
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 1.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 307236864,
+            "peak_process_commit_bytes": 305631232
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 3.0630000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.10999999940395355,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 1.0159999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.03199999965727329,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 5.735000000335276,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 10.17200000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.5619999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361521152,
+            "peak_process_commit_bytes": 359407616
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 38.10899999924004,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 898318336,
+            "peak_process_commit_bytes": 896663552
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 9.860000000335276,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 898318336,
+            "peak_process_commit_bytes": 896663552
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.014999999664723873,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 898318336,
+            "peak_process_commit_bytes": 896663552
+          }
+        ]
+      },
+      {
+        "name": "diff-header",
+        "exit_code": 2,
+        "seconds": 178.5,
+        "peak_rss_bytes": 853061632,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-diff-header.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "b2e15f8db046441f890bc89d8d93fd63ed89dcd4ab124ea5c14639e441bc9996"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 244,
+        "cache": {
+          "hits": 35,
+          "extracted": 4,
+          "corrupt": 0,
+          "total": 39
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 0.8974358974358975,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 1.906000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 29683712,
+            "peak_process_commit_bytes": 29913088
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 27.75,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 61820928,
+            "peak_process_commit_bytes": 62226432
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 2.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63787008,
+            "peak_process_commit_bytes": 62226432
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 11.781000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 66359296,
+            "peak_process_commit_bytes": 64077824
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 27.45299999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 71864320,
+            "peak_process_commit_bytes": 69361664
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 9.938000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 71864320,
+            "peak_process_commit_bytes": 69361664
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 16.5,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300949504,
+            "peak_process_commit_bytes": 299438080
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.1880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300949504,
+            "peak_process_commit_bytes": 299438080
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.2810000004246831,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300949504,
+            "peak_process_commit_bytes": 299438080
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 1.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 308064256,
+            "peak_process_commit_bytes": 306262016
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 3.0930000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362291200,
+            "peak_process_commit_bytes": 360022016
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.10900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362291200,
+            "peak_process_commit_bytes": 360022016
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362291200,
+            "peak_process_commit_bytes": 360022016
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 1.5,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362291200,
+            "peak_process_commit_bytes": 360022016
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.03099999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362291200,
+            "peak_process_commit_bytes": 360022016
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 3.8900000005960464,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 362291200,
+            "peak_process_commit_bytes": 360022016
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 7.7809999994933605,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363016192,
+            "peak_process_commit_bytes": 360247296
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 11.968999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363016192,
+            "peak_process_commit_bytes": 360247296
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.5310000004246831,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363016192,
+            "peak_process_commit_bytes": 360247296
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 37.78100000042468,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 951975936,
+            "peak_process_commit_bytes": 951173120
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 11.92200000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 951975936,
+            "peak_process_commit_bytes": 951173120
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.03199999965727329,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 951975936,
+            "peak_process_commit_bytes": 951173120
+          }
+        ]
+      },
+      {
+        "name": "diff-nvic",
+        "exit_code": 2,
+        "seconds": 161.26499999966472,
+        "peak_rss_bytes": 841547776,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-diff-nvic.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "8d7783e73b876d4941bf95e8ec90849e411b28c9df95f496435ff1c8a98594a1"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 244,
+        "cache": {
+          "hits": 38,
+          "extracted": 1,
+          "corrupt": 0,
+          "total": 39
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 0.9743589743589743,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 1.9380000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 30621696,
+            "peak_process_commit_bytes": 30687232
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 26.640999999828637,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 61681664,
+            "peak_process_commit_bytes": 62283776
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 2.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63328256,
+            "peak_process_commit_bytes": 62283776
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 11.95299999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 66572288,
+            "peak_process_commit_bytes": 64143360
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 20.281000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 74350592,
+            "peak_process_commit_bytes": 72265728
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 9.171000000089407,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 74350592,
+            "peak_process_commit_bytes": 72265728
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 15.093999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 301006848,
+            "peak_process_commit_bytes": 298917888
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.17199999932199717,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 301006848,
+            "peak_process_commit_bytes": 298917888
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.3130000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 301006848,
+            "peak_process_commit_bytes": 298917888
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.9689999995753169,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 307539968,
+            "peak_process_commit_bytes": 305274880
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 2.7809999994933605,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.10900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.07800000067800283,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.9689999995753169,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 3.7970000002533197,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 7.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 10.514999999664724,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.4839999992400408,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 363012096,
+            "peak_process_commit_bytes": 360730624
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 35.76600000075996,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 950886400,
+            "peak_process_commit_bytes": 950222848
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 10.265999999828637,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 950886400,
+            "peak_process_commit_bytes": 950222848
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 950886400,
+            "peak_process_commit_bytes": 950222848
+          }
+        ]
+      },
+      {
+        "name": "full-nvic",
+        "exit_code": 2,
+        "seconds": 263.75,
+        "peak_rss_bytes": 962838528,
+        "log": "H:\\ecra_stm32_validation\\optimization-20261026\\st-cdc-release-full-nvic.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "44021a4fa45b95130641eb33615b353c3c25b28de3429e19bcca74821171f8b3"
+        },
+        "translation_units": 39,
+        "variables": 244,
+        "selected": 0,
+        "cache": null,
+        "fallback": null,
+        "static_status": "INCOMPLETE",
+        "review_targets": 205,
+        "verification": null,
+        "cache_hit_rate": 0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 0.6869999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28233728,
+            "peak_process_commit_bytes": 28626944
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 1.0149999996647239,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 32735232,
+            "peak_process_commit_bytes": 30572544
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 15.703999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 37449728,
+            "peak_process_commit_bytes": 35360768
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 164.875,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 38420480,
+            "peak_process_commit_bytes": 35958784
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 7.5309999994933605,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40587264,
+            "peak_process_commit_bytes": 37842944
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 13.843000000342727,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300441600,
+            "peak_process_commit_bytes": 299220992
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.1569999996572733,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300441600,
+            "peak_process_commit_bytes": 299220992
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.2819999996572733,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 300441600,
+            "peak_process_commit_bytes": 299220992
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.9529999997466803,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 306814976,
+            "peak_process_commit_bytes": 305188864
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 2.7349999994039536,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.10900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.06199999991804361,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.8119999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.03099999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 4.766000000759959,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 8.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.4839999992400408,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 361517056,
+            "peak_process_commit_bytes": 359546880
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 33.26600000075996,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 894672896,
+            "peak_process_commit_bytes": 893022208
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 7.640999999828637,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 894672896,
+            "peak_process_commit_bytes": 893022208
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015000000596046448,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 894672896,
+            "peak_process_commit_bytes": 893022208
+          }
+        ]
+      }
+    ],
+    "cross_check_scope": [
+      "index update: diff-first/diff-cached/full-head",
+      "final priority+header version: diff-nvic/full-nvic"
+    ],
+    "header_only_independent_full": false
+  },
+  "h743_fixture": {
+    "complete": true,
+    "scope": "生成的真实 ARM GCC/CMSIS 集成夹具；不是生产工程或硬件时序验证",
+    "classification_mismatches": 0,
+    "semantic_mismatches": 0,
+    "head": "f69a96d9a4b9418e1147e6a145af4a2f34f14531",
+    "runs": [
+      {
+        "name": "full-base",
+        "exit_code": 2,
+        "seconds": 277.921999999322,
+        "peak_rss_bytes": 450756608,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-full-base.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "c4d81f9ecc1b33e6728ed0ff2fa21be46542dfcd3c74410b507d47041822135f"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 0,
+        "cache": null,
+        "fallback": null,
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 0.3119999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 27549696,
+            "peak_process_commit_bytes": 28426240
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 16.781000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 31973376,
+            "peak_process_commit_bytes": 30396416
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 34.10900000017136,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35364864,
+            "peak_process_commit_bytes": 33054720
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 65.046999999322,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35364864,
+            "peak_process_commit_bytes": 33882112
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 51.39099999982864,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35364864,
+            "peak_process_commit_bytes": 33882112
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 4.8599999994039536,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44027904,
+            "peak_process_commit_bytes": 41807872
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.5310000004246831,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44933120,
+            "peak_process_commit_bytes": 41979904
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.06300000008195639,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44933120,
+            "peak_process_commit_bytes": 41979904
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.2180000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44933120,
+            "peak_process_commit_bytes": 42987520
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.35900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50393088,
+            "peak_process_commit_bytes": 47951872
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50393088,
+            "peak_process_commit_bytes": 47951872
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.0939999995753169,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50393088,
+            "peak_process_commit_bytes": 47951872
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.14099999982863665,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50393088,
+            "peak_process_commit_bytes": 47951872
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50393088,
+            "peak_process_commit_bytes": 47951872
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 1.781000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 61313024,
+            "peak_process_commit_bytes": 58793984
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 46.53100000042468,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 62672896,
+            "peak_process_commit_bytes": 60874752
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 1.25,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63361024,
+            "peak_process_commit_bytes": 60874752
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 8.375,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 185454592,
+            "peak_process_commit_bytes": 182226944
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 44.15600000042468,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 185454592,
+            "peak_process_commit_bytes": 182226944
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 185454592,
+            "peak_process_commit_bytes": 182226944
+          }
+        ]
+      },
+      {
+        "name": "diff-first",
+        "exit_code": 2,
+        "seconds": 244.68800000008196,
+        "peak_rss_bytes": 481583104,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-diff-first.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "c33bd7fac4bf4d168aa2ed2b60dc884e6fe00e2518e6640056e37cbe28ae28e9"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 0,
+          "extracted": 129,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 0.0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 3.171999999321997,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28618752,
+            "peak_process_commit_bytes": 29753344
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 117.31300000008196,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 2.453999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 15.421000000089407,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 30.234000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 13.593999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.843999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.1560000004246831,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.06199999991804361,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.14099999982863665,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.014999999664723873,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.03099999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.9380000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 1.6880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 14.70299999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.9529999997466803,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190816256,
+            "peak_process_commit_bytes": 196751360
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 9.906000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 238190592,
+            "peak_process_commit_bytes": 235073536
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 29.390999999828637,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 238190592,
+            "peak_process_commit_bytes": 235073536
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.25,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 238190592,
+            "peak_process_commit_bytes": 235073536
+          }
+        ]
+      },
+      {
+        "name": "diff-cached",
+        "exit_code": 2,
+        "seconds": 224.671999999322,
+        "peak_rss_bytes": 420675584,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-diff-cached.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "c33bd7fac4bf4d168aa2ed2b60dc884e6fe00e2518e6640056e37cbe28ae28e9"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 129,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 1.0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 6.578000000678003,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28815360,
+            "peak_process_commit_bytes": 29384704
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 57.046999999322,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 36012032,
+            "peak_process_commit_bytes": 37044224
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 5.188000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 39186432,
+            "peak_process_commit_bytes": 37044224
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 52.17200000025332,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40435712,
+            "peak_process_commit_bytes": 38354944
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 11.031999999657273,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41381888,
+            "peak_process_commit_bytes": 38567936
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 39.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41381888,
+            "peak_process_commit_bytes": 38567936
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 3.5630000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44969984,
+            "peak_process_commit_bytes": 42500096
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.2180000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46120960,
+            "peak_process_commit_bytes": 43286528
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46120960,
+            "peak_process_commit_bytes": 43286528
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.10899999924004078,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47689728,
+            "peak_process_commit_bytes": 44331008
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.1880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50491392,
+            "peak_process_commit_bytes": 47624192
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50491392,
+            "peak_process_commit_bytes": 48381952
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50503680,
+            "peak_process_commit_bytes": 48381952
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.06199999991804361,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51425280,
+            "peak_process_commit_bytes": 48644096
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51425280,
+            "peak_process_commit_bytes": 48644096
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 1.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 62922752,
+            "peak_process_commit_bytes": 59863040
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 1.8600000003352761,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 75554816,
+            "peak_process_commit_bytes": 72548352
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 21.811999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77340672,
+            "peak_process_commit_bytes": 74002432
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.6560000004246831,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77340672,
+            "peak_process_commit_bytes": 74002432
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 8.063000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 235925504,
+            "peak_process_commit_bytes": 232861696
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 14.311999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 235925504,
+            "peak_process_commit_bytes": 232861696
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015000000596046448,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 235925504,
+            "peak_process_commit_bytes": 232861696
+          }
+        ]
+      },
+      {
+        "name": "full-head",
+        "exit_code": 2,
+        "seconds": 102.15600000042468,
+        "peak_rss_bytes": 446345216,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-full-head.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "000031cb8ccebdfa03e93d675c096b85b617971c17de08a32aad7c8975ec4c67"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 0,
+        "cache": null,
+        "fallback": null,
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 1.6090000001713634,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28401664,
+            "peak_process_commit_bytes": 28647424
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 1.3280000006780028,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 32903168,
+            "peak_process_commit_bytes": 30470144
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 12.625,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35819520,
+            "peak_process_commit_bytes": 33320960
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 30.32799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35868672,
+            "peak_process_commit_bytes": 34398208
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 11.75,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 36012032,
+            "peak_process_commit_bytes": 34398208
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.610000000335276,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44777472,
+            "peak_process_commit_bytes": 42606592
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.1569999996572733,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 45871104,
+            "peak_process_commit_bytes": 42606592
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 45871104,
+            "peak_process_commit_bytes": 42606592
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.09300000034272671,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46641152,
+            "peak_process_commit_bytes": 43966464
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.15599999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50442240,
+            "peak_process_commit_bytes": 47099904
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50442240,
+            "peak_process_commit_bytes": 47099904
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50442240,
+            "peak_process_commit_bytes": 47099904
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.03199999965727329,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50442240,
+            "peak_process_commit_bytes": 47099904
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51429376,
+            "peak_process_commit_bytes": 48967680
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 1.0159999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63393792,
+            "peak_process_commit_bytes": 60334080
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 13.281000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63393792,
+            "peak_process_commit_bytes": 60575744
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.4369999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 64081920,
+            "peak_process_commit_bytes": 60866560
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 7.593000000342727,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 185712640,
+            "peak_process_commit_bytes": 183263232
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 18.063000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 185712640,
+            "peak_process_commit_bytes": 183263232
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.06199999991804361,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 185712640,
+            "peak_process_commit_bytes": 183263232
+          }
+        ]
+      },
+      {
+        "name": "diff-header",
+        "exit_code": 2,
+        "seconds": 268.7970000002533,
+        "peak_rss_bytes": 459296768,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-diff-header.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "52263bf45e72a8835cb9c1355883da4841b5cf562f191d9580daa6356ab2720a"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 0,
+          "extracted": 129,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 0.0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 3.0779999997466803,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28434432,
+            "peak_process_commit_bytes": 29782016
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 27.625,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35086336,
+            "peak_process_commit_bytes": 35819520
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 9.07799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 38023168,
+            "peak_process_commit_bytes": 35819520
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 30.875,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41234432,
+            "peak_process_commit_bytes": 38285312
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 73.671999999322,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41234432,
+            "peak_process_commit_bytes": 38285312
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 49.078000000678,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41234432,
+            "peak_process_commit_bytes": 38285312
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 4.421999999321997,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 45535232,
+            "peak_process_commit_bytes": 43782144
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.5,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47124480,
+            "peak_process_commit_bytes": 44359680
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.09300000034272671,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47124480,
+            "peak_process_commit_bytes": 44359680
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.1880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47722496,
+            "peak_process_commit_bytes": 44859392
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.3589999992400408,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50765824,
+            "peak_process_commit_bytes": 47960064
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.06300000008195639,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50765824,
+            "peak_process_commit_bytes": 47960064
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.10900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50765824,
+            "peak_process_commit_bytes": 47960064
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.1880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50819072,
+            "peak_process_commit_bytes": 47992832
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.06300000008195639,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50819072,
+            "peak_process_commit_bytes": 47992832
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 1.3909999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 61898752,
+            "peak_process_commit_bytes": 59416576
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 3.093999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 74928128,
+            "peak_process_commit_bytes": 72757248
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 35.186999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77234176,
+            "peak_process_commit_bytes": 74678272
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.5470000002533197,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77463552,
+            "peak_process_commit_bytes": 74858496
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 7.546000000089407,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 236027904,
+            "peak_process_commit_bytes": 233938944
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 20.203999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 236027904,
+            "peak_process_commit_bytes": 233938944
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.06300000008195639,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 236027904,
+            "peak_process_commit_bytes": 233938944
+          }
+        ]
+      },
+      {
+        "name": "diff-nvic",
+        "exit_code": 2,
+        "seconds": 130.92200000025332,
+        "peak_rss_bytes": 403464192,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-diff-nvic.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "85056832869ab3e47db1af15c61fe2e4dba6036a81883bc30420410ef0ab0ba1"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 128,
+          "extracted": 1,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 0.9922480620155039,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 2.4220000002533197,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28594176,
+            "peak_process_commit_bytes": 28901376
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 32.311999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 36712448,
+            "peak_process_commit_bytes": 36642816
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 2.1090000001713634,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 38166528,
+            "peak_process_commit_bytes": 36642816
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 20.860000000335276,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40288256,
+            "peak_process_commit_bytes": 37969920
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 18.139999999664724,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 42336256,
+            "peak_process_commit_bytes": 39911424
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 13.828999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 42336256,
+            "peak_process_commit_bytes": 39911424
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.625,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 44863488,
+            "peak_process_commit_bytes": 42160128
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.13999999966472387,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46063616,
+            "peak_process_commit_bytes": 43241472
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46063616,
+            "peak_process_commit_bytes": 43241472
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46686208,
+            "peak_process_commit_bytes": 43823104
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.17200000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50786304,
+            "peak_process_commit_bytes": 47828992
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.014999999664723873,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50786304,
+            "peak_process_commit_bytes": 47828992
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50786304,
+            "peak_process_commit_bytes": 47882240
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51634176,
+            "peak_process_commit_bytes": 48697344
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51634176,
+            "peak_process_commit_bytes": 48697344
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.6880000000819564,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 61595648,
+            "peak_process_commit_bytes": 58576896
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 1.2969999993219972,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 75395072,
+            "peak_process_commit_bytes": 72929280
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 13.188000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77078528,
+            "peak_process_commit_bytes": 74498048
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.7189999995753169,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77078528,
+            "peak_process_commit_bytes": 74498048
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 8.156999999657273,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 236494848,
+            "peak_process_commit_bytes": 233791488
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 13.313000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 236494848,
+            "peak_process_commit_bytes": 233791488
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 236494848,
+            "peak_process_commit_bytes": 233791488
+          }
+        ]
+      },
+      {
+        "name": "diff-full-verification",
+        "exit_code": 2,
+        "seconds": 241.98400000017136,
+        "peak_rss_bytes": 508227584,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-diff-full-verification.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "5cdfef68e0b0d3f71234114f0215a263ec9e8591b39441b09bfe239d883db8fb"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 0,
+          "extracted": 129,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": {
+          "state": "PASSED",
+          "variables": 653,
+          "reextracted_units": 129,
+          "classification_mismatches": 0,
+          "semantic_mismatches": 0
+        },
+        "cache_hit_rate": 0.0,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 2.9680000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28901376,
+            "peak_process_commit_bytes": 29528064
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 108.59399999957532,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 1.2349999994039536,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 13.875,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 26.25,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 16.984000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.7809999994933605,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.15599999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.06199999991804361,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.14099999982863665,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.03199999965727329,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.046999999321997166,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.7649999996647239,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 27.98399999924004,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.046999999321997166,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.14099999982863665,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.03099999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.03099999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.04700000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 3.375,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 13.093999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.42100000008940697,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190287872,
+            "peak_process_commit_bytes": 195944448
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 7.640999999828637,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 257007616,
+            "peak_process_commit_bytes": 253788160
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 14.234000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 257007616,
+            "peak_process_commit_bytes": 253788160
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 257007616,
+            "peak_process_commit_bytes": 253788160
+          }
+        ]
+      }
+    ],
+    "cross_check_scope": [
+      "first current version: diff-cached/full-head",
+      "final current version: independent uncached verify_against_full"
+    ]
+  },
+  "serial_performance": {
+    "complete": true,
+    "engine_digest": "ce31da1f921864b82a7fc1331a9b5bfcfcae976f5cee6eda1dafbfc5eab5d8ad",
+    "python_hash_seed": "0",
+    "other_ecra_validation_idle": true,
+    "note": "同一提交常规差异模式与全量的串行对照；机器并非独占；恢复 verify=false 后先预热",
+    "classification_mismatches": 0,
+    "semantic_mismatches": 0,
+    "runs": [
+      {
+        "name": "serial-warm",
+        "exit_code": 2,
+        "seconds": 99.48400000017136,
+        "peak_rss_bytes": 419508224,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-serial-warm.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "a4afe1c50c2e2d2ecba357a95618d6a412f8709b17596eda7dc3c6fbee5a5925"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 129,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 1.0,
+        "baseline_summary_cache": {
+          "hit": false,
+          "corrupt": false
+        },
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 1.593999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28495872,
+            "peak_process_commit_bytes": 28848128
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 48.936999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 0.9220000002533197,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 9.15599999949336,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 1.2190000005066395,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 8.625,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.093999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.014999999664723873,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.04700000025331974,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.10900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.014999999664723873,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.046999999321997166,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.015000000596046448,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.6090000001713634,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 1.1409999998286366,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 8.531000000424683,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.3589999992400408,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 190361600,
+            "peak_process_commit_bytes": 195878912
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 7.014999999664724,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 238088192,
+            "peak_process_commit_bytes": 234930176
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 8.359000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 238088192,
+            "peak_process_commit_bytes": 234930176
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 238088192,
+            "peak_process_commit_bytes": 234930176
+          }
+        ]
+      },
+      {
+        "name": "serial-cached-1",
+        "exit_code": 2,
+        "seconds": 85.43800000008196,
+        "peak_rss_bytes": 384528384,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-serial-cached-1.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "a4afe1c50c2e2d2ecba357a95618d6a412f8709b17596eda7dc3c6fbee5a5925"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 129,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 1.0,
+        "baseline_summary_cache": {
+          "hit": true,
+          "corrupt": false
+        },
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 1.6410000007599592,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28889088,
+            "peak_process_commit_bytes": 29581312
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 34.811999999918044,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 35966976,
+            "peak_process_commit_bytes": 36089856
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 0.9840000001713634,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 38162432,
+            "peak_process_commit_bytes": 36089856
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 10.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40611840,
+            "peak_process_commit_bytes": 37941248
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 1.1869999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41975808,
+            "peak_process_commit_bytes": 40906752
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 7.859000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 41975808,
+            "peak_process_commit_bytes": 40906752
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.0930000003427267,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 45158400,
+            "peak_process_commit_bytes": 42958848
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47153152,
+            "peak_process_commit_bytes": 44425216
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47153152,
+            "peak_process_commit_bytes": 44425216
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47153152,
+            "peak_process_commit_bytes": 44425216
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50937856,
+            "peak_process_commit_bytes": 48001024
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.015000000596046448,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50937856,
+            "peak_process_commit_bytes": 48001024
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50937856,
+            "peak_process_commit_bytes": 48066560
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51064832,
+            "peak_process_commit_bytes": 48197632
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.014999999664723873,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51068928,
+            "peak_process_commit_bytes": 48197632
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.6100000003352761,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 62062592,
+            "peak_process_commit_bytes": 59232256
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 1.203999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 75210752,
+            "peak_process_commit_bytes": 73080832
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 8.46900000050664,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 78372864,
+            "peak_process_commit_bytes": 75870208
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.375,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 78372864,
+            "peak_process_commit_bytes": 75870208
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 6.639999999664724,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 237010944,
+            "peak_process_commit_bytes": 233730048
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 8.421999999321997,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 237010944,
+            "peak_process_commit_bytes": 233730048
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015000000596046448,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 237010944,
+            "peak_process_commit_bytes": 233730048
+          }
+        ]
+      },
+      {
+        "name": "serial-full",
+        "exit_code": 2,
+        "seconds": 62.67200000025332,
+        "peak_rss_bytes": 449916928,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-serial-full.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "e7f3154a7c583fd30b2a207aa9f18701ada8a5af5d16f057f708169eeec6d1fa"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 0,
+        "cache": null,
+        "fallback": null,
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 0,
+        "baseline_summary_cache": null,
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 2.046999999321997,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28192768,
+            "peak_process_commit_bytes": 28413952
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 0.9529999997466803,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 33484800,
+            "peak_process_commit_bytes": 30310400
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 8.139999999664724,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 36429824,
+            "peak_process_commit_bytes": 33783808
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 19.60899999924004,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 36429824,
+            "peak_process_commit_bytes": 33947648
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 7.733999999240041,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 36442112,
+            "peak_process_commit_bytes": 34500608
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.078000000678003,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 45043712,
+            "peak_process_commit_bytes": 42287104
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46850048,
+            "peak_process_commit_bytes": 43347968
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46850048,
+            "peak_process_commit_bytes": 43347968
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.06300000008195639,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 46850048,
+            "peak_process_commit_bytes": 43888640
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.10900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50520064,
+            "peak_process_commit_bytes": 47386624
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50520064,
+            "peak_process_commit_bytes": 47509504
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50520064,
+            "peak_process_commit_bytes": 47509504
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50520064,
+            "peak_process_commit_bytes": 47509504
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.0,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50606080,
+            "peak_process_commit_bytes": 47509504
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.7810000004246831,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63406080,
+            "peak_process_commit_bytes": 59899904
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 7.82799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 63877120,
+            "peak_process_commit_bytes": 60772352
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.35900000017136335,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 64020480,
+            "peak_process_commit_bytes": 60772352
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 4.359000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 186433536,
+            "peak_process_commit_bytes": 184045568
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 7.718000000342727,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 186433536,
+            "peak_process_commit_bytes": 184045568
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 186433536,
+            "peak_process_commit_bytes": 184045568
+          }
+        ]
+      },
+      {
+        "name": "serial-cached-2",
+        "exit_code": 2,
+        "seconds": 79.93699999991804,
+        "peak_rss_bytes": 372076544,
+        "log": "H:\\ecra_stm32_validation\\git-diff-h743-129tu-v11-serial-cached-2.log",
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "a4afe1c50c2e2d2ecba357a95618d6a412f8709b17596eda7dc3c6fbee5a5925"
+        },
+        "translation_units": 129,
+        "variables": 653,
+        "selected": 653,
+        "cache": {
+          "hits": 129,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 129
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界",
+          "头文件或构建输入变化，重新评估完整构建范围"
+        ],
+        "static_status": "INCOMPLETE",
+        "review_targets": 129,
+        "verification": null,
+        "cache_hit_rate": 1.0,
+        "baseline_summary_cache": {
+          "hit": true,
+          "corrupt": false
+        },
+        "stage_timings": [
+          {
+            "stage": "扫描准备与历史归档",
+            "seconds": 2.093999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 28385280,
+            "peak_process_commit_bytes": 29810688
+          },
+          {
+            "stage": "Git 基准版本完整分析",
+            "seconds": 28.188000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 37113856,
+            "peak_process_commit_bytes": 37326848
+          },
+          {
+            "stage": "编译数据库准备",
+            "seconds": 0.953999999910593,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 38227968,
+            "peak_process_commit_bytes": 37326848
+          },
+          {
+            "stage": "扫描输入快照建立",
+            "seconds": 9.32799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 40636416,
+            "peak_process_commit_bytes": 38203392
+          },
+          {
+            "stage": "Clang 翻译单元提取",
+            "seconds": 0.9219999993219972,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 42176512,
+            "peak_process_commit_bytes": 41238528
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 8.32799999974668,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 42176512,
+            "peak_process_commit_bytes": 41238528
+          },
+          {
+            "stage": "跨翻译单元事实归并",
+            "seconds": 2.0619999999180436,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 45731840,
+            "peak_process_commit_bytes": 43413504
+          },
+          {
+            "stage": "输入一致性验证",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47562752,
+            "peak_process_commit_bytes": 45133824
+          },
+          {
+            "stage": "指针、函数指针及调用图分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 47562752,
+            "peak_process_commit_bytes": 45133824
+          },
+          {
+            "stage": "跨翻译单元指针与函数指针求解",
+            "seconds": 0.07799999974668026,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 48029696,
+            "peak_process_commit_bytes": 45133824
+          },
+          {
+            "stage": "执行上下文指针与调用图分析",
+            "seconds": 0.125,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50933760,
+            "peak_process_commit_bytes": 48152576
+          },
+          {
+            "stage": "结构体字段、数组与重叠存储分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50933760,
+            "peak_process_commit_bytes": 48152576
+          },
+          {
+            "stage": "调用图上下文恢复",
+            "seconds": 0.015999999828636646,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 50966528,
+            "peak_process_commit_bytes": 48312320
+          },
+          {
+            "stage": "NVIC 优先级与抢占关系分析",
+            "seconds": 0.031000000424683094,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51236864,
+            "peak_process_commit_bytes": 48414720
+          },
+          {
+            "stage": "可达性与不完整证据关联",
+            "seconds": 0.03099999949336052,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 51236864,
+            "peak_process_commit_bytes": 48414720
+          },
+          {
+            "stage": "并发风险分类与保护证据",
+            "seconds": 0.5940000005066395,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 61915136,
+            "peak_process_commit_bytes": 58880000
+          },
+          {
+            "stage": "双版本完整证据比较与语义影响传播",
+            "seconds": 1.1100000003352761,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 75780096,
+            "peak_process_commit_bytes": 73379840
+          },
+          {
+            "stage": "发布前输入一致性验证",
+            "seconds": 9.093999999575317,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77066240,
+            "peak_process_commit_bytes": 74952704
+          },
+          {
+            "stage": "可选 OpenCode 复核",
+            "seconds": 0.375,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 77561856,
+            "peak_process_commit_bytes": 74973184
+          },
+          {
+            "stage": "报告生成与存储（单次发布）",
+            "seconds": 7.563000000081956,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 237023232,
+            "peak_process_commit_bytes": 234356736
+          },
+          {
+            "stage": "报告发布后输入一致性验证",
+            "seconds": 8.359000000171363,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 237023232,
+            "peak_process_commit_bytes": 234356736
+          },
+          {
+            "stage": "最终完整性验收",
+            "seconds": 0.015000000596046448,
+            "status": "COMPLETE",
+            "peak_working_set_bytes": 237023232,
+            "peak_process_commit_bytes": 234356736
+          }
+        ]
+      }
+    ]
+  },
+  "portable": {
+    "acceptance": "PASS",
+    "commands": 22,
+    "opencode": "NOT_TESTED: external installation/provider required; review disabled interface passed",
+    "pe_files": 419,
+    "unicode_diff": {
+      "complete": true,
+      "review_executed": false,
+      "runs": [
+        {
+          "name": "first",
+          "seconds": 11.843999999575317,
+          "exit_code": 2,
+          "validity": {
+            "analysis_valid": true,
+            "state": "STATIC_SCAN_SAVED",
+            "snapshot_status": "VERIFIED",
+            "fingerprint": "e9ba0b36fd56482c9bd42ac9f9aa792f3e71a16da9125acfa27b08bd1a37f177"
+          },
+          "selected": [
+            "c:@g_mfcInterface::member::msgSp"
+          ],
+          "tu_cache": {
+            "hits": 0,
+            "extracted": 1,
+            "corrupt": 0,
+            "total": 1
+          },
+          "baseline_summary_cache": {
+            "hit": false,
+            "corrupt": false
+          },
+          "verification": {
+            "state": "PASSED",
+            "variables": 3,
+            "reextracted_units": 1,
+            "classification_mismatches": 0,
+            "semantic_mismatches": 0
+          }
+        },
+        {
+          "name": "cached",
+          "seconds": 6.546000000089407,
+          "exit_code": 2,
+          "validity": {
+            "analysis_valid": true,
+            "state": "STATIC_SCAN_SAVED",
+            "snapshot_status": "VERIFIED",
+            "fingerprint": "e9ba0b36fd56482c9bd42ac9f9aa792f3e71a16da9125acfa27b08bd1a37f177"
+          },
+          "selected": [
+            "c:@g_mfcInterface::member::msgSp"
+          ],
+          "tu_cache": {
+            "hits": 1,
+            "extracted": 0,
+            "corrupt": 0,
+            "total": 1
+          },
+          "baseline_summary_cache": {
+            "hit": true,
+            "corrupt": false
+          },
+          "verification": {
+            "state": "PASSED",
+            "variables": 3,
+            "reextracted_units": 1,
+            "classification_mismatches": 0,
+            "semantic_mismatches": 0
+          }
+        }
+      ]
+    },
+    "runtime_unit_tests": {
+      "count": 18,
+      "passed": true,
+      "python": "3.10.9"
+    },
+    "zip_tested": false
+  },
+  "graph_witness_microbenchmark": {
+    "scope": "4096-node display-witness algorithm microbenchmark; not a firmware scan",
+    "engine_digest": "ce31da1f921864b82a7fc1331a9b5bfcfcae976f5cee6eda1dafbfc5eab5d8ad",
+    "nodes": 4096,
+    "records": [
+      {
+        "name": "before",
+        "seconds": 0.1904408996924758,
+        "peak_traced_bytes": 137105848
+      },
+      {
+        "name": "after",
+        "seconds": 0.03930140007287264,
+        "peak_traced_bytes": 2435648
+      }
+    ],
+    "equal_witness": true
+  },
+  "rejected_experiment": {
+    "adopted": false,
+    "engine_digest": "6456875ada5725a0ed7487139031821ecff1e88a4fa6f5b154c26fa6bcdf2ce8",
+    "seconds": 2174.078,
+    "semantic_mismatches": 0,
+    "classification_mismatches": 0,
+    "reason": "未显示总体性能收益，撤回表达式值缓存"
+  },
+  "incomplete_runs_not_counted": [
+    "H:\\ecra_stm32_validation\\optimization-20261026\\cdc-expression-cache-operator-stop.json",
+    "H:\\ecra_stm32_validation\\optimization-20261026\\first-optimization-operator-stop.json",
+    "H:\\ecra_stm32_validation\\optimization-20261026\\pre-unicode-fix-operator-stop.json"
+  ],
+  "limits": [
+    "主矩阵计时有并行验证负载；串行对照也不是整机独占",
+    "真实 CDC 的影响边界因未解析依赖而 L1 扩大到完整目标范围",
+    "未证明 SmartFarm 总耗时下降；未烧录目标板、未做真实模型复核、未验收 ZIP"
+  ]
+}

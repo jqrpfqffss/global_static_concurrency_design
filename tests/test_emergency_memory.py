@@ -61,7 +61,8 @@ class EmergencyMemoryTests(unittest.TestCase):
             evidence = Path(folder)/'cli'
             proc = subprocess.run([sys.executable, str(root/'scripts/probe_diagnostic_memory.py'),
                 '--engine', str(root), '--python', sys.executable, '--evidence', str(evidence),
-                '--cli', '--limit-mib', '192'], capture_output=True, text=True, encoding='utf-8', timeout=60)
+                '--cli', '--limit-mib', '192', '--setup-timeout-seconds', '180'],
+                capture_output=True, text=True, encoding='utf-8', timeout=240)
             self.assertEqual(proc.returncode, 0, proc.stdout+proc.stderr)
             result = json.loads((evidence/'result.json').read_text(encoding='utf-8'))
             self.assertTrue(result['actual_clang_fixture'])

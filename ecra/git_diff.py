@@ -126,7 +126,8 @@ def assert_pin(root, cfg, expected):
     if any(current[k] != expected.get(k) for k in current):
         raise ValueError('Git 引用或工作区快照已变化；差异结果失效，请重新扫描')
     from .workflow import file_digest
-    for path_key, hash_key in (('base_facts_path', 'base_facts_sha256'), ('diff_patch_path', 'diff_patch_sha256')):
+    for path_key, hash_key in (('base_facts_path', 'base_facts_sha256'), ('diff_patch_path', 'diff_patch_sha256'),
+                               ('base_summary_path', 'base_summary_sha256')):
         if expected.get(path_key) and file_digest(expected[path_key]) != expected[hash_key]:
             raise ValueError('基准事实或本轮代码差异已变化/损坏；请重新扫描')
     if expected.get('base_source_root'):
@@ -173,6 +174,62 @@ def normalize(value, renames=None):
 
 def row_hashes(rows, renames):
     return sorted(digest(normalize(row, renames)) for row in rows)
+
+
+def pointer_hashes(facts, renames):
+    """Compare exact pointees independently of bitmap encoding/atom order."""
+    from .target_set import point_targets
+    pooled, result = {}, []
+    for row in facts.get('pointer_targets', []):
+        reference = row.get('target_set_id')
+        if reference is not None and reference in pooled:
+            targets = pooled[reference]
+        else:
+            targets = digest(sorted({canonical_id(value, renames) for value in point_targets(facts, row)}))
+            if reference is not None:
+                pooled[reference] = targets
+        content = {key: value for key, value in row.items()
+                   if key not in {'targets', 'target_set_id', 'target_count'}}
+        content['targets_digest'] = targets
+        result.append(digest(normalize(content, renames)))
+    return sorted(result)
+
+
+def build_arguments(unit, root):
+    """Canonical project path identity, including Portable's ASCII junctions.
+
+    The real compile command and cache keys remain untouched. Only arguments
+    proven to resolve inside this snapshot's root are relocated for comparison;
+    compiler driver spelling and macro/literal values retain their semantics.
+    """
+    root = Path(root).resolve() if root else None
+    result = []
+    prefixes = ('-isystem', '-iquote', '-idirafter', '-include', '-imacros',
+                '-isysroot', '--sysroot=', '-I', '-L', '@', '')
+    for index, value in enumerate(unit.get('original_arguments', [])):
+        value = str(value)
+        normalized = None
+        if root is not None and index:
+            for prefix in prefixes:
+                if not value.startswith(prefix):
+                    continue
+                path = Path(value[len(prefix):])
+                if not path.is_absolute():
+                    continue
+                try:
+                    actual = path.resolve()
+                    if actual.is_relative_to(root):
+                        normalized = prefix + '<工程>/' + actual.relative_to(root).as_posix()
+                    else:
+                        normalized = value  # external aliases are not project relocation proofs
+                except (OSError, ValueError):
+                    normalized = value
+                break
+        if normalized is None:
+            normalized = (value.replace(str(root), '<工程>').replace(root.as_posix(), '<工程>')
+                          if root is not None else value)
+        result.append(normalized)
+    return result
 
 
 def summarize(facts, report, renames=None):
@@ -234,16 +291,16 @@ def summarize(facts, report, renames=None):
                                    for f in by_symbol[sid]], renames))
     global_semantics = {k: row_hashes(facts.get(k, []), renames) for k in
         ('contexts', 'irq_priority_events', 'nvic_resolved_events', 'protection_events', 'registrations',
-         'hardware_contexts', 'preemption_relations', 'pointer_targets', 'address_escapes')}
-    return dict(schema=1, variables=variables, functions=functions, edges=edges,
+         'hardware_contexts', 'preemption_relations', 'address_escapes')}
+    global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
+    return dict(schema=2, variables=variables, functions=functions, edges=edges,
         macros={cid(u['source_file']): u.get('semantic_macros_digest') for u in facts.get('translation_units', [])},
         dependencies=sorted({canonical_id(str(Path(p).resolve().relative_to(Path(report['coverage']['project_root']).resolve())).replace('\\', '/'), renames)
             if report.get('coverage', {}).get('project_root') and Path(p).resolve().is_relative_to(Path(report['coverage']['project_root']).resolve())
             else str(p) for u in facts.get('translation_units', []) for p in u.get('includes', [])}),
         semantics=global_semantics, unknowns=row_hashes(facts.get('unknowns', []), renames),
-        build=sorted(digest([u.get('source_file'), [str(a).replace(str(report.get('coverage', {}).get('project_root') or '\0'), '<工程>')
-                    .replace(str(report.get('coverage', {}).get('project_root') or '\0').replace('\\', '/'), '<工程>')
-                    for a in u.get('original_arguments', [])]]) for u in facts.get('translation_units', [])),
+        build=sorted(digest([u.get('source_file'), build_arguments(u, report.get('coverage', {}).get('project_root'))])
+                     for u in facts.get('translation_units', [])),
         analysis_status=report['analysis_status'])
 
 
@@ -387,22 +444,40 @@ def representative_paths(variable, changed_edges):
         reverse[b].add(a)
     before, after = {}, {}
     queue = deque(variable['graph'].get('roots', []))
-    before.update((f, [f]) for f in queue)
+    # Store one predecessor/successor per vertex. Keeping a copied path at
+    # every BFS vertex costs quadratic memory on long firmware call chains;
+    # only the requested display witnesses need complete path lists.
+    before.update((f, None) for f in queue)
     while queue:
         f = queue.popleft()
         for child in sorted(graph[f]):
             if child not in before:
-                before[child] = before[f] + [child]
+                before[child] = f
                 queue.append(child)
     queue = deque(variable['accessors'])
-    after.update((f, [f]) for f in queue)
+    after.update((f, None) for f in queue)
     while queue:
         f = queue.popleft()
         for parent in sorted(reverse[f]):
             if parent not in after:
-                after[parent] = [parent] + after[f]
+                after[parent] = f
                 queue.append(parent)
-    return [before.get(a, [a]) + after.get(b, [b]) for a, b in sorted(changed_edges)]
+    def prefix(vertex):
+        path = [vertex]
+        while before.get(vertex) is not None:
+            vertex = before[vertex]
+            path.append(vertex)
+        path.reverse()
+        return path
+
+    def suffix(vertex):
+        path = [vertex]
+        while after.get(vertex) is not None:
+            vertex = after[vertex]
+            path.append(vertex)
+        return path
+
+    return [prefix(a) + suffix(b) for a, b in sorted(changed_edges)]
 
 
 def selected_findings(report):
@@ -425,10 +500,10 @@ def presentation_view(facts, report):
     return view, result
 
 
-def prepare_base(root, out, cfg, pinned, progress):
+def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     """Persistent detached worktree: no checkout/reset/clean in user workspace."""
     from .cli import run
-    from .workflow import read_saved_json, file_digest, checked_scan
+    from .workflow import read_saved_json, file_digest, checked_scan, engine_digest, clean_report, saved_report_digest
     repo = Path(pinned['repository_root'])
     directory = out/'git_diff'/('base-' + pinned['base_sha'])
     if not directory.exists():
@@ -475,33 +550,58 @@ def prepare_base(root, out, cfg, pinned, progress):
     write_json(config, baseline)
     progress('建立基准版本完整事实：' + pinned['base_sha'])
     base_out = base_root/'.ecra-diff-base'
-    base_facts = None
+    base_report = None
     if cfg['analysis']['git_diff']['cache_enabled']:
         from .config import load_config
         try:
             validated, _ = load_config(base_root, config)
-            base_facts, base_report, _ = checked_scan(base_root, base_out, validated, config)
+            _, base_report, _ = checked_scan(base_root, base_out, validated, config, with_facts=False)
             progress('基准完整事实缓存通过源码、预处理闭包和引擎校验。')
         except (ValueError, OSError, KeyError, TypeError):
             pass
-    if base_facts is None:
+    if base_report is None:
         code = run(base_root, str(config), no_review=True, _cache_enabled=cfg['analysis']['git_diff']['cache_enabled'])
         if code == 3 or not read_json(base_out/'result_validity.json').get('analysis_valid'):
             raise ValueError('基准版本分析失败，差异扫描未完成；详见 ' + str(base_out))
-        base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
         base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
-    if any(u.get('parse_status') != 'PARSED' for u in base_facts.get('translation_units', [])):
-        raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
     prefix = pinned['project_subdir'].rstrip('/')
     def local(path):
         return Path(os.path.relpath(path, prefix)).as_posix() if prefix and prefix != '.' and path else path
     renames = {local(f['old_path']): local(f['new_path']) for f in pinned['files'] if f['status'].startswith('R')}
-    summary = summarize(base_facts, base_report, renames)
-    summary_file = out/'git_diff/base-summary.json'
-    write_json(summary_file, summary, indent=None)
+    sha = file_digest(base_out/'facts.json')
+    key = digest(dict(schema=2, engine=engine_digest(), facts=sha,
+                      report=saved_report_digest(clean_report(base_report)), renames=renames))
+    summary_file = out/'git_diff/summary-cache'/(key + '.summary.json')
+    manifest_file = summary_file.with_suffix('.manifest.json')
+    reused, corrupt = False, False
+    if cfg['analysis']['git_diff']['cache_enabled']:
+        try:
+            manifest = read_json(manifest_file)
+            if (not isinstance(manifest, dict) or manifest.get('key') != key or manifest.get('schema') != 2
+                    or manifest.get('complete_tus') is not True
+                    or manifest.get('sha256') != file_digest(summary_file)):
+                raise ValueError('基准摘要缓存内容不一致')
+            reused = True
+            progress('基准规范化证据摘要通过内容校验，复用已验证的完整摘要。')
+        except FileNotFoundError:
+            pass
+        except (ValueError, KeyError, TypeError, OSError):
+            corrupt = True
+    if not reused:
+        base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
+        units = base_facts.get('translation_units', [])
+        if not units or any(u.get('parse_status') != 'PARSED' for u in units):
+            raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
+        summary = summarize(base_facts, base_report, renames)
+        write_json(summary_file, summary, indent=None)
+        write_json(manifest_file, dict(schema=2, key=key, complete_tus=True, sha256=file_digest(summary_file)))
+        del base_facts, summary
+    pinned['base_summary_path'] = str(summary_file)
+    pinned['base_summary_sha256'] = file_digest(summary_file)
+    if cache_stats is not None:
+        cache_stats.update(hit=reused, corrupt=corrupt)
     pinned['base_source_root'] = str(base_root)
     pinned['base_database_path'] = allowed_database
-    sha = file_digest(base_out/'facts.json')
     evidence = out/'git_diff/evidence'/sha
     evidence.mkdir(parents=True, exist_ok=True)
     immutable = evidence/'facts.json'

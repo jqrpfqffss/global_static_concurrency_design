@@ -150,12 +150,16 @@ def main():
     for field in ('engine', 'python', 'evidence'):
         parser.add_argument('--'+field, type=Path, required=True)
     parser.add_argument('--limit-mib', type=int, default=192)
+    parser.add_argument('--setup-timeout-seconds', type=float, default=30,
+                        help='建立实际 Clang 夹具的就绪时限；不改变注入后的内存额度')
     parser.add_argument('--origin', choices=('MAIN', 'WORKER'), default='MAIN')
     parser.add_argument('--cli', action='store_true', help='Actually scan a disposable Clang fixture, then exhaust merge commit and verify prior-report invalidation')
     parser.add_argument('--experimental-reserve', '--mapped-reserve', dest='mapped_reserve', action='store_true',
                         help='Add test-only Python/private reserves; never claim native engine handling from this mode')
     parser.add_argument('--inside', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if not 0 < args.setup_timeout_seconds <= 600:
+        parser.error('准备阶段时限必须大于 0 且不超过 600 秒')
     if args.cli and (args.mapped_reserve or args.origin != 'MAIN'):
         parser.error('--cli uses the engine native MAIN handling only')
     if args.inside:
@@ -172,7 +176,7 @@ def main():
             if child.poll() is not None:
                 raise RuntimeError('Child failed before test limit:\n' +
                                    (args.evidence/'console.log').read_text(encoding='utf-8', errors='replace'))
-            if time.monotonic()-begin > 30:
+            if time.monotonic()-begin > args.setup_timeout_seconds:
                 child.terminate()
                 raise RuntimeError('Child setup timed out')
             time.sleep(0.05)

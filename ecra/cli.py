@@ -274,7 +274,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             doctor['git_diff'] = diff_pin
             if not doctor_only:
                 diagnostics.stage('Git 基准版本完整分析')
-                base_summary_file = prepare_base(root, out, cfg, diff_pin, progress)
+                base_summary_cache = {}
+                base_summary_file = prepare_base(root, out, cfg, diff_pin, progress, base_summary_cache)
         diagnostics.stage('编译数据库准备')
         progress("检查配置、libclang 和真实编译数据库…")
         if no_review:
@@ -482,6 +483,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             from .git_diff import summarize, compare
             diagnostics.stage('双版本完整证据比较与语义影响传播')
             report['git_diff'] = compare(read_json(base_summary_file), summarize(facts, report), diff_pin)
+            report['git_diff']['baseline_summary_cache'] = base_summary_cache
             report['git_diff']['tu_cache'] = tu_cache.stats() if tu_cache else dict(total=len(units), hits=0, extracted=len(units), corrupt=0)
             for variable in facts['variables']:
                 if variable['symbol_id'] in report['git_diff']['impacts']:
