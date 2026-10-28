@@ -89,7 +89,45 @@ def _startup_constructor_proof(facts, cfg, reset_id, main_id):
                 constructors='GCC crtbegin frame_dummy only')
 
 
-def _phase_entries_closed(accesses, facts, contexts, cfg):
+class InitializationIndex:
+    """Per-analysis indexes over the completed, read-only execution facts."""
+    def __init__(self, facts, cfg):
+        self.facts, self.cfg = facts, cfg
+        self.functions = {row['function_id']: row for row in facts.get('functions', ())}
+        self.main_ids = {fid for fid, row in self.functions.items() if row.get('name') == 'main'}
+        self.function_ids = set(self.functions)
+        self.reset_ids = {row.get('function_id') for row in facts.get('vector_entries', ())
+                          if row.get('kind') == 'MAIN' and row.get('slot') == 1}
+        self.roots = [row for row in facts.get('context_bindings', ()) if row.get('call_depth') == 0]
+        self.call_graph = defaultdict(set)
+        for call in facts.get('calls', ()):
+            if call.get('callee_function_id'):
+                self.call_graph[call['caller_function_id']].add(call['callee_function_id'])
+        self.enable_functions = {event.get('function_id') for event in facts.get('irq_priority_events', ())
+                                 if is_async_enable(event.get('api_name', ''), cfg)}
+        self.opaque_callers = {row.get('caller_function_id') for row in facts.get('calls', ())
+                              if not row.get('callee_function_id')
+                              or row.get('callee_function_id') not in self.function_ids}
+        self.closures = {}
+
+    def validate(self, facts, cfg):
+        if self.facts is not facts or self.cfg is not cfg:
+            raise ValueError('初始化证据索引属于另一轮分析，禁止复用')
+
+    def closure(self, start):
+        if start not in self.closures:
+            seen, pending = set(), [start]
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(self.call_graph.get(current, ()))
+            self.closures[start] = frozenset(seen)
+        return self.closures[start]
+
+
+def _phase_entries_closed(accesses, facts, contexts, cfg, index=None):
     """Reject phase proofs with an unmodelled executor before IRQ activation.
 
     A source access ID is shared by every invocation of its function.  Seeing
@@ -104,46 +142,23 @@ def _phase_entries_closed(accesses, facts, contexts, cfg):
         return True
     target_irq_contexts = {cid for row in accesses for cid in row.get('contexts', ())
                            if contexts.get(cid, {}).get('physical_kind') == 'IRQ'}
-    roots = [row for row in facts.get('context_bindings', ()) if row.get('call_depth') == 0]
-    call_graph = defaultdict(set)
-    for call in facts.get('calls', ()):
-        if call.get('callee_function_id'):
-            call_graph[call['caller_function_id']].add(call['callee_function_id'])
+    index = index or InitializationIndex(facts, cfg)
+    index.validate(facts, cfg)
+    roots = index.roots
 
     def reaches(start, target):
-        seen, pending = set(), [start]
-        while pending:
-            fid = pending.pop()
-            if fid == target:
-                return True
-            if fid in seen:
-                continue
-            seen.add(fid)
-            pending.extend(call_graph.get(fid, set()) - seen)
-        return False
+        return target in index.closure(start)
 
-    functions = {row['function_id']: row for row in facts.get('functions', ())}
-    main_ids = {fid for fid, row in functions.items() if row.get('name') == 'main'}
+    main_ids = index.main_ids
     if len(main_ids) != 1:
         return False
-    reset_ids = {row.get('function_id') for row in facts.get('vector_entries', ())
-                 if row.get('kind') == 'MAIN' and row.get('slot') == 1}
+    reset_ids = index.reset_ids
     allowed = main_ids | reset_ids
     writer_functions = {row.get('function_id') for row in writers}
-    enable_functions = {event.get('function_id') for event in facts.get('irq_priority_events', ())
-                        if is_async_enable(event.get('api_name', ''), cfg)}
-    function_ids = {row['function_id'] for row in facts.get('functions', ())}
-    opaque_callers = {row.get('caller_function_id') for row in facts.get('calls', ())
-                      if not row.get('callee_function_id') or row.get('callee_function_id') not in function_ids}
+    enable_functions = index.enable_functions
+    opaque_callers = index.opaque_callers
     def closure(start):
-        seen, pending = set(), [start]
-        while pending:
-            current = pending.pop()
-            if current in seen:
-                continue
-            seen.add(current)
-            pending.extend(call_graph.get(current, set()) - seen)
-        return seen
+        return index.closure(start)
     for call in facts.get('calls', ()):
         callee = call.get('callee_function_id')
         if (call.get('call_kind') == 'ASSEMBLY_LITERAL_CALL'
@@ -191,7 +206,7 @@ def _node_for(site, nodes, operation=None):
     return min(candidates, key=lambda node: (node['end_offset'] - node['offset'], node['id']))['id']
 
 
-def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
+def _interprocedural_initialization(variable, accesses, facts, contexts, cfg, index=None):
     """Prove a one-way INIT -> IRQ runtime phase across ordinary helpers.
 
     The abstract state is deliberately small: for every competing external
@@ -209,7 +224,9 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
     if any(not access.get('contexts') for access in runtime):
         return None
 
-    functions = {function['function_id']: function for function in facts.get('functions', [])}
+    index = index or InitializationIndex(facts, cfg)
+    index.validate(facts, cfg)
+    functions = index.functions
     ids = {context_id for access in runtime for context_id in access['contexts']}
     if any(contexts.get(context_id, {}).get('reentrant') for context_id in ids):
         return None
@@ -527,15 +544,17 @@ def _interprocedural_initialization(variable, accesses, facts, contexts, cfg):
                 limitation='Configurable external NVIC IRQ consumers; no DMA, SysTick, fault, or opaque pre-write path')
 
 
-def prove_initialization(variable, accesses, facts, contexts, cfg):
+def prove_initialization(variable, accesses, facts, contexts, cfg, index=None):
     """Prove every target write occurs before competing async activation.
 
     Prefer the interprocedural CFG phase interpreter. The legacy direct-main
     dominance proof remains a conservative fallback for supported NVIC cases.
     """
-    if not _phase_entries_closed(accesses, facts, contexts, cfg):
+    index = index or InitializationIndex(facts, cfg)
+    index.validate(facts, cfg)
+    if not _phase_entries_closed(accesses, facts, contexts, cfg, index):
         return None
-    interprocedural = _interprocedural_initialization(variable, accesses, facts, contexts, cfg)
+    interprocedural = _interprocedural_initialization(variable, accesses, facts, contexts, cfg, index)
     if interprocedural:
         return interprocedural
     runtime = [access for access in accesses if access.get('access_kind') in READS | WRITES]
@@ -544,7 +563,7 @@ def prove_initialization(variable, accesses, facts, contexts, cfg):
         return None
     if any(not access.get('contexts') for access in runtime):
         return None
-    functions = {function['function_id']: function for function in facts.get('functions', [])}
+    functions = index.functions
     writer_functions = {access['function_id'] for access in writers}
     if len(writer_functions) != 1:
         return None

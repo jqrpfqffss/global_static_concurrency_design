@@ -248,6 +248,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if ((out / "run.json").is_file() or old_report.is_file()) and not doctor_only:
             snapshot = out / "snapshots" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
             snapshot.mkdir(parents=True)
+            from functools import partial
+            from .history_archive import copy_snapshot_file
+            archive_file = partial(copy_snapshot_file, root=out)
             for name in ("facts.json", "facts.db", "run.json", "scan_state.json", "input_manifest.json", "input_closure.json", "doctor.json", "run.log", "index.html", REVIEW_PAGE, QUALITY_PAGE, "inventory", "reports", "review", 'diagnostics', 'result_validity.json', 'html_details'):
                 p = out / name
                 if p.is_dir():
@@ -256,11 +259,11 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                         def derived_packets(directory, names):
                             return [n for n in names if any(n.endswith(suffix) and n[:-len(suffix)] not in reviewed
                                     for suffix in ('.input.json','.prompt.txt'))]
-                        shutil.copytree(p, snapshot / name, ignore=derived_packets)
+                        shutil.copytree(p, snapshot / name, ignore=derived_packets, copy_function=archive_file)
                     else:
-                        shutil.copytree(p, snapshot / name)
+                        shutil.copytree(p, snapshot / name, copy_function=archive_file)
                 elif p.is_file():
-                    shutil.copy2(p, snapshot / name)
+                    archive_file(p, snapshot / name)
             report_can_replace = True
         if not doctor_only:
             (out/'scan_state.json').unlink(missing_ok=True)
@@ -413,6 +416,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             unit["diagnostics"] = part.get("diagnostics", [])
             unit["includes"] = part.get("includes", [])
             unit['semantic_macros_digest'] = part.get('semantic_macros_digest')
+            unit['dynamic_predefined_inputs'] = part.get('dynamic_predefined_inputs', [])
             for variable in part.get("variables", []):
                 variable["parse_status"] = part["parse_status"]
             all_includes.update(part.get("includes", []))

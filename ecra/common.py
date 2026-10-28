@@ -69,7 +69,9 @@ def replace_file(source, destination):
 
 
 def read_json(path):
-    return json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    from .shared_json import encoded_stream, read_stream
+    with Path(path).open(encoding='utf-8-sig') as stream:
+        return read_stream(stream) if encoded_stream(stream) else json.load(stream)
 
 
 def relative(path, root):

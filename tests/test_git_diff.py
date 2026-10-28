@@ -173,6 +173,27 @@ class SemanticDiffTests(unittest.TestCase):
         diff, _, _ = self.delta({'a.c': src}, {'a.c': '// 注释\n\n' + src})
         self.assertEqual(diff['selected_symbol_ids'], [])
 
+    def test_T24_escaped_storage_and_anonymous_type_positions_are_not_impacts(self):
+        cases = [
+            'int g;void external(int*);\nvoid Task(void){external(&g);}\nvoid ISR(void){g++;}\n',
+            'int g[4];void external(int*);\nvoid Task(void){external(g);}\nvoid ISR(void){g[0]++;}\n',
+            'struct {int a,b;}g;\nvoid Task(void){g.a++;}\nvoid ISR(void){g.a++;}\n',
+        ]
+        for source in cases:
+            with self.subTest(source=source):
+                diff, facts, report = self.delta({'a.c': source}, {'a.c': '// 注释\n\n'+source})
+                self.assertEqual(diff['selected_symbol_ids'], [])
+                self.assertTrue(facts['variables'])
+                if 'external' in source:
+                    self.assertTrue(facts['unknowns'])
+                    self.assertTrue(any(v.get('blocking_evidence') for v in facts['variables']))
+
+    def test_anonymous_layout_change_remains_a_semantic_impact(self):
+        source = 'struct {int a,b;}g;void Task(void){g.a++;}void ISR(void){g.a++;}'
+        diff, facts, _ = self.delta({'a.c':source},{'a.c':source.replace('int a,b;', 'int a;short b;')})
+        self.assertIn('c:@g', diff['selected_symbol_ids'])
+        self.assertIn('DIRECT_CHANGED', diff['impacts']['c:@g']['reasons'])
+
     def test_disjoint_struct_fields_do_not_spread_through_ui_container(self):
         # Calls may legitimately share a function; isolate readers so only the
         # modified field's independent accessor component should be selected.
@@ -446,8 +467,13 @@ class GitIntegrationTests(unittest.TestCase):
         def check_permissions(argv, **kwargs):
             permissions = json.loads(kwargs['env']['OPENCODE_PERMISSION'])['read']
             pin = report['git_diff']['pin']
-            for key in ('base_facts_path', 'diff_patch_path'):
+            for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path'):
                 self.assertEqual(permissions[str(Path(pin[key]))], 'allow')
+            baseline = read_json(pin['base_summary_path'])
+            for impact in report['git_diff']['impacts'].values():
+                self.assertEqual(impact['base_summary_path'], pin['base_summary_path'])
+                self.assertEqual(impact['base_summary_sha256'], pin['base_summary_sha256'])
+                self.assertIn(impact['base']['graph_id'], baseline['graphs'])
             seen.append(True)
             # Deliberate protocol-only failure; no model is executed.
             return subprocess.CompletedProcess(argv, 1, '', '仅校验读取权限')

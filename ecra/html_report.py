@@ -297,7 +297,11 @@ def row(cells, ident=None, group=None, level=None, file=None, scope=None, decisi
     if search_text:
         # Search must not force the browser to walk inactive detail templates.
         # Keep a compact index on the visible row instead.
-        attrs += ' data-search="' + esc(search_text) + '"'
+        evidence = CURRENT.get()
+        if evidence is not None and len(search_text) > 16384:
+            attrs += ' data-search-ref="' + evidence.search(search_text) + '"'
+        else:
+            attrs += ' data-search="' + esc(search_text) + '"'
     return "<tr" + attrs + ">" + "".join("<td>" + c + "</td>" for c in cells) + "</tr>"
 
 
@@ -552,7 +556,9 @@ const searchText=new Map(rows.map(r=>[r,(r.dataset.search||(r.querySelector('.st
 const pageSize=document.getElementById('page-size'), views=[...document.querySelectorAll('.pager')].map(p=>({pager:p,page:0,rows:rows.filter(r=>r.closest('table').id===p.dataset.table),matches:[]}));
 for(const v of views){const t=document.getElementById(v.pager.dataset.table),labels=[...t.tHead.rows[0].cells].map(c=>c.textContent);for(const r of v.rows)[...r.cells].forEach((c,i)=>c.dataset.label=labels[i]);}
 function matchesFilter(r){const [kind,value]=filter.value.split(':');return filter.value==='all'||(value?r.dataset[kind]===value:r.dataset.group===filter.value);}
-function search(reset=true){let n=0,shown=0;const size=Number(pageSize.value);for(const v of views){if(reset)v.page=0;v.matches=v.rows.filter(r=>searchText.get(r).includes(q.value.trim().toLowerCase())&&matchesFilter(r)&&(fileFilter.value==='all'||JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file])).includes(fileFilter.value)));const count=Math.max(1,Math.ceil(v.matches.length/size));v.page=Math.max(0,Math.min(v.page,count-1));const visible=new Set(v.matches.slice(v.page*size,(v.page+1)*size));for(const r of v.rows)r.hidden=!visible.has(r);if(v.pager.closest('.panel')===active){n+=v.matches.length;shown+=visible.size;}v.pager.querySelector('span').textContent=v.matches.length+' 条 · 第 '+(v.page+1)+' / '+count+' 页';v.pager.nextElementSibling.hidden=!!v.matches.length;v.pager.querySelector('[data-step="-1"]').disabled=v.page===0;v.pager.querySelector('[data-step="1"]').disabled=v.page+1>=count;}document.getElementById('visible').textContent=(document.querySelector('.review-reading')?'搜索当前有效解释与引用（不含历史回答）：':'仅搜索当前栏目（含折叠证据）：')+n+' 条匹配，当前展示 '+shown+' 条';}
+let fullSearchReady=false,fullSearchPending=null;
+function search(reset=true){if(q.value.trim()&&!fullSearchReady&&rows.some(r=>r.dataset.searchRef)){document.getElementById('visible').textContent='正在载入完整源码搜索索引…';if(!fullSearchPending)fullSearchPending=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='html_details/search-index.js';s.onload=()=>{const index=window.ECRA_SEARCH_INDEX||{};if(rows.some(r=>r.dataset.searchRef&&typeof index[r.dataset.searchRef]!=='string')){reject(new Error('incomplete index'));return;}for(const r of rows)if(r.dataset.searchRef)searchText.set(r,index[r.dataset.searchRef].toLowerCase());fullSearchReady=true;resolve();};s.onerror=reject;document.head.append(s);});fullSearchPending.then(()=>applySearch(reset)).catch(()=>{fullSearchPending=null;document.getElementById('visible').textContent='完整源码搜索索引未能载入，尚未应用本次搜索；请检查 html_details 文件。';});return;}applySearch(reset);}
+function applySearch(reset=true){let n=0,shown=0;const size=Number(pageSize.value);for(const v of views){if(reset)v.page=0;v.matches=v.rows.filter(r=>searchText.get(r).includes(q.value.trim().toLowerCase())&&matchesFilter(r)&&(fileFilter.value==='all'||JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file])).includes(fileFilter.value)));const count=Math.max(1,Math.ceil(v.matches.length/size));v.page=Math.max(0,Math.min(v.page,count-1));const visible=new Set(v.matches.slice(v.page*size,(v.page+1)*size));for(const r of v.rows)r.hidden=!visible.has(r);if(v.pager.closest('.panel')===active){n+=v.matches.length;shown+=visible.size;}v.pager.querySelector('span').textContent=v.matches.length+' 条 · 第 '+(v.page+1)+' / '+count+' 页';v.pager.nextElementSibling.hidden=!!v.matches.length;v.pager.querySelector('[data-step="-1"]').disabled=v.page===0;v.pager.querySelector('[data-step="1"]').disabled=v.page+1>=count;}document.getElementById('visible').textContent=(document.querySelector('.review-reading')?'搜索当前有效解释与引用（不含历史回答）：':'仅搜索当前栏目（含折叠证据）：')+n+' 条匹配，当前展示 '+shown+' 条';}
 function activate(panel,clear=false){active=panel;for(const p of panels)p.hidden=p!==panel;for(const a of tabs){if(a.hash==='#'+panel.id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}if(clear)q.value='';filter.replaceChildren(...JSON.parse(panel.dataset.options||'[]').map(([k,v])=>new Option(v,k)));const files=[...new Set(rows.filter(r=>r.closest('.panel')===panel).flatMap(r=>JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file]))).filter(Boolean))].sort();fileFilter.replaceChildren(new Option('全部文件','all'),...files.map(f=>new Option(f,f)));document.querySelector('.toolbar').hidden=!panel.querySelector('.searchable');search();}
 for(const v of views)for(const b of v.pager.querySelectorAll('button'))b.addEventListener('click',()=>{v.page+=Number(b.dataset.step);search(false);});
 q.addEventListener('input',()=>search());filter.addEventListener('change',()=>search());fileFilter.addEventListener('change',()=>search());pageSize.addEventListener('change',()=>search());
@@ -588,7 +594,6 @@ def page(title, content, report, options, script="", reading=False):
         content = '<p class="notice">' + esc(report['presentation_notice']) + '</p>' + content
     if CURRENT.get() is not None:
         script = EXTERNAL_SCRIPT + script
-        content += '<script src="html_details/anchors.js"></script>'
     return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><a href="' + QUALITY_PAGE + '">分类质量</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
 
 
@@ -768,7 +773,9 @@ def classification_quality_html(facts, report):
 
 def write_html(out, facts, report, reviews):
     if len(facts.get('variables', [])) >= 1000 or len(facts.get('accesses', [])) >= 50000:
-        with HtmlEvidence(out, report.get('fingerprint'), STYLE):
+        # Individually small templates still create millions of inert DOM
+        # nodes in a large project. Load every deferred detail independently.
+        with HtmlEvidence(out, report.get('fingerprint'), STYLE, threshold=0):
             return _write_html(out, facts, report, reviews)
     return _write_html(out, facts, report, reviews)
 
@@ -1043,7 +1050,8 @@ def _write_html(out, facts, report, reviews):
                     '静态分析证据概览') + '</details>'
         body += '<details><summary>查看调试字段与完整机器事实的位置</summary>'
         body += '<p>源码访问、调用证据和并发组合已在本变量详情中展示。大图展示见证路径，全部入口和调用边保存在图证据中。完整机器事实保存在同目录 '
-        body += '<a href="facts.json">facts.json</a>，可按变量 ID 查找：<code>' + esc(variable['symbol_id']) + '</code>。</p>'
+        body += '<a href="facts.json">facts.json</a>，可按变量 ID 查找：<code>' + esc(variable['symbol_id']) + '</code>。'
+        body += '完整变量证据切片与多字段一致性来源保存在该事实文件中。</p>'
         body += raw(dict(source_access_views=[dict(key=view['key'], access_ids=view['access_ids'],
                                                contexts=view['context_ids'],
                                                access_metadata=[dict(
@@ -1055,9 +1063,12 @@ def _write_html(out, facts, report, reviews):
                                                    call_chain_cycle_count=len(access.get('call_chain_cycles', [])),
                                                ) for access in view['accesses']])
                                            for view in views],
+                    完整证据定位=dict(file='facts.json',symbol_id=variable['symbol_id'],
+                        fields=['variable_evidence_slice','multi_field_coherence']),
                     variable=compact_debug_fields(variable, {
                         'accesses', 'whole_object_accesses', 'conflict_pairs',
                         'concurrency_relations', 'protection_details', 'blocking_evidence',
+                        'variable_evidence_slice', 'multi_field_coherence',
                     })), '调试 JSON（不重复嵌入访问事实）') + '</details>'
         return deferred_detail('高级静态分析信息', body, 'advanced')
 
@@ -1117,6 +1128,9 @@ def _write_html(out, facts, report, reviews):
             detail_body += '<h3>执行上下文摘要</h3>' + context_summary(views)
             detail_body += '<h3>全部源码访问与调用链（' + str(len(views)) + ' 处源码访问）</h3>'
             detail_body += accesses(v.get('accesses', []), 'inventory-' + sid, validate_member=v)
+            detail_body += ('<details class="graph" data-symbol="' + esc(sid)
+                            + '"><summary>展开完整调用图边证据（含其他未修改路径）</summary>'
+                            '<pre>完整调用图按需载入，包含全部相关调用边。</pre></details>')
             detail_body += scenario_section(candidates[sid][0] if candidates[sid] else None)
             detail_body += protection_section(v)
             detail_body += advanced_static_info(v, candidates[sid], views, 'inventory-' + sid)
@@ -1325,10 +1339,12 @@ def _write_html(out, facts, report, reviews):
 
     # Preserve every relevant edge without enumerating infinitely many recursive
     # paths. The reverse traversal is lazy and includes alternate call sites.
-    graph = dict(functions={fid: function(fid) for fid in funcs},
+    graph_ids = {fid for call in facts['calls'] for fid in
+                 (call.get('caller_function_id'), call.get('callee_function_id')) if fid}
+    graph_ids.update(a['function_id'] for v in facts['variables'] for a in v.get('accesses', []))
+    graph = dict(functions={fid: function(fid) for fid in sorted(graph_ids)},
                  calls=[{k: c.get(k) for k in ('caller_function_id', 'callee_function_id', 'callee_name', 'call_kind', 'file', 'line')} for c in facts['calls']],
                  accesses={v['symbol_id']: sorted({a['function_id'] for a in v.get('accesses', [])}) for v in facts['variables']})
-    data = json.dumps(graph, ensure_ascii=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     graph_script = """
 const graph=JSON.parse(document.getElementById('call-graph').textContent), incoming=new Map();
 for(const edge of graph.calls){const k=edge.callee_function_id;if(!incoming.has(k))incoming.set(k,[]);incoming.get(k).push(edge);}
@@ -1336,8 +1352,15 @@ document.addEventListener('toggle',event=>{const d=event.target;if(!d.matches('d
 """
     evidence = CURRENT.get()
     if evidence is not None:
+        graph_script = """
+let graphPromise=null;
+function completeGraph(){if(window.ECRA_CALL_GRAPH)return Promise.resolve(window.ECRA_CALL_GRAPH);if(!graphPromise)graphPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=(document.documentElement.dataset.ecraRoot||'')+'html_details/graph-data.js';s.onload=()=>window.ECRA_CALL_GRAPH?resolve(window.ECRA_CALL_GRAPH):reject(new Error('missing graph'));s.onerror=reject;document.head.append(s);}).catch(error=>{graphPromise=null;throw error;});return graphPromise;}
+document.addEventListener('toggle',async event=>{const d=event.target;if(!d.matches('details.graph')||!d.open||d.dataset.loaded)return;d.dataset.loaded='loading';const pre=d.querySelector('pre');pre.textContent='正在载入完整调用关系…';try{const graph=await completeGraph(),incoming=new Map();for(const edge of graph.calls){const k=edge.callee_function_id;if(!incoming.has(k))incoming.set(k,[]);incoming.get(k).push(edge);}const seen=new Set(),edges=[],todo=[...(graph.accesses[d.dataset.symbol]||[])];while(todo.length){const f=todo.pop();if(seen.has(f))continue;seen.add(f);for(const e of incoming.get(f)||[]){edges.push(e);todo.push(e.caller_function_id);}}pre.textContent=edges.map(e=>(graph.functions[e.caller_function_id]||e.caller_function_id)+' → '+(graph.functions[e.callee_function_id]||e.callee_name)+' ['+e.call_kind+'] @ '+e.file+':'+e.line).join('\\n')||'没有已解析调用边；入口直接访问或上下文未知。';d.dataset.loaded='1';}catch{delete d.dataset.loaded;pre.textContent='完整调用图未能载入，不能将其解释为没有调用关系；请检查 html_details 文件。';}},true);
+"""
         evidence.graph(graph, graph_script)
-    content += '<script type="application/json" id="call-graph">' + data + '</script>'
+    else:
+        data = json.dumps(graph, ensure_ascii=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+        content += '<script type="application/json" id="call-graph">' + data + '</script>'
     inventory_page = page('并发变量排查报告', content, report, priority_options, graph_script)
 
     counts = Counter(category(r) for r in records.values())

@@ -34,7 +34,7 @@ def main():
         parser.error('实测配置必须关闭 review.enabled 和 review.prepare_packets')
     evidence = args.evidence.resolve()
     evidence.mkdir(parents=True, exist_ok=False)
-    out = project / cfg['analysis']['output_dir']
+    out = project / cfg['analysis'].get('output_dir', '.ecra')
     command = [sys.executable, '-B', str(TOOL/'run_ecra.py'), '--project', str(project),
                '--config', str(config), '--scan-mode', args.scan_mode, '--no-review']
     result = dict(complete=False, command=command, engine_digest=engine_digest(),
@@ -62,12 +62,16 @@ def main():
     validity = read_json(out/'result_validity.json')
     if not validity.get('analysis_valid') or engine_digest() != result['engine_digest']:
         raise RuntimeError('结果或分析实现无效，不能记录为验收通过')
+    post_started = time.monotonic()
     facts = read_saved_json(out/'facts.json', canonical_accesses=True)
     report = read_saved_json(out/'reports/global_static_concurrency.json')
     summary = summarize(facts, report)
     write_json(evidence/'summary.json', summary, indent=None)
     delta = report.get('git_diff', {})
+    selected = set(delta.get('selected_symbol_ids', []))
+    write_json(evidence/'selection.json', sorted(selected), indent=None)
     result.update(validity=validity, translation_units=len(facts['translation_units']),
+                  parse_status_counts=dict(Counter(u.get('parse_status') for u in facts['translation_units'])),
                   functions=len(facts['functions']), inventory_rows=len(facts['variables']),
                   classifications=dict(Counter(v.get('static_classification') for v in facts['variables'])),
                   variable_accountability=report['coverage'].get('variable_accountability'),
@@ -75,6 +79,14 @@ def main():
                   baseline_summary_cache=delta.get('baseline_summary_cache'),
                   fallback_reasons=delta.get('fallback_reasons'), verification=delta.get('full_verification'),
                   static_status=report['analysis_status'], review_candidates=report['review_integrity']['targets'],
+                  selected_classifications=dict(Counter(v.get('static_classification') for v in facts['variables'] if v['symbol_id'] in selected)),
+                  impact_reason_counts=dict(Counter(reason for item in delta.get('impacts', {}).values() for reason in item['reasons'])),
+                  modified_functions=len(delta.get('modified_function_ids', [])),
+                  unknown_kinds=dict(Counter(item['kind'] for item in facts.get('unknowns', []))),
+                  points_to_stats=facts.get('points_to_stats'), context_points_to_stats=facts.get('context_points_to_stats'),
+                  contexts=len(facts.get('contexts', [])), accesses=len(facts.get('accesses', [])), calls=len(facts.get('calls', [])),
+                  summary_graphs=len(summary.get('graphs', {})),
+                  selection_sha256=file_digest(evidence/'selection.json'),
                   stage_timings=read_json(out/'diagnostics/scan_stages.json'),
                   facts_sha256=file_digest(out/'facts.json'), summary_sha256=file_digest(evidence/'summary.json'))
     # Disabled scans still save PENDING queue records for later resumption.
@@ -92,7 +104,21 @@ def main():
         if result['semantic_mismatches']:
             write_json(evidence/'execution.json', result)
             raise RuntimeError('完整语义对照不一致：' + '、'.join(result['semantic_mismatches']))
-    result['complete'] = True
+    # The next matrix scan replaces the published report. Audit this exact
+    # snapshot now, after releasing the complete analysis objects.
+    del facts, report, delta
+    import gc
+    import shutil
+    gc.collect()
+    from scripts.validate_large_report import audit
+    artifact = audit(out, node=shutil.which('node'))
+    write_json(evidence/'artifact-audit.json', artifact)
+    result['artifact_audit'] = dict(passed=artifact['passed'], checks=artifact['checks'],
+                                  seconds=artifact['seconds'])
+    if not artifact['passed']:
+        write_json(evidence/'execution.json', result)
+        raise RuntimeError('本轮产物审计失败，禁止继续矩阵：'+str(evidence/'artifact-audit.json'))
+    result.update(complete=True, postprocessing_seconds=time.monotonic()-post_started)
     write_json(evidence/'execution.json', result)
     print(f"已完成：{result['seconds']:.3f} 秒，进程树 RSS 峰值 {peak / 1024**2:.1f} MiB；未执行复核。")
 

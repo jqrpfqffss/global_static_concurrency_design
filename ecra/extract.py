@@ -787,6 +787,7 @@ class Extractor:
         self.section_macros = {}
         import hashlib
         semantic_macros = hashlib.sha256()
+        macro_dependencies = []
         macro_function_like = ci.conf.lib.clang_Cursor_isMacroFunctionLike
         macro_function_like.argtypes = [ci.Cursor]
         macro_function_like.restype = ctypes.c_uint
@@ -794,8 +795,16 @@ class Extractor:
             if macro.kind.name != 'MACRO_DEFINITION':
                 continue
             if macro.location.file:
+                macro_tokens = [t for t in macro.get_tokens() if t.kind.name != 'COMMENT']
                 semantic_macros.update(digest([bool(macro_function_like(macro)),
-                    [t.spelling for t in macro.get_tokens() if t.kind.name != 'COMMENT']]).encode('ascii'))
+                    [t.spelling for t in macro_tokens]]).encode('ascii'))
+                macro_dependencies.append((macro.spelling, {
+                    t.spelling for t in macro_tokens[1:] if t.kind.name == 'IDENTIFIER'}))
+                if bool(macro_function_like(macro)) and len(macro_tokens) > 2:
+                    end_parameters = next((i for i, token in enumerate(macro_tokens[2:], 2)
+                                           if token.spelling == ')'), len(macro_tokens))
+                    macro_dependencies[-1][1].difference_update(
+                        token.spelling for token in macro_tokens[2:end_parameters])
             try:
                 spelling = [token.spelling for token in islice(macro.get_tokens(), 128)]
             except MemoryError:
@@ -809,6 +818,9 @@ class Extractor:
             match = re.search(r'\bsection\s*\(\s*([A-Za-z_]\w*)\s*\)', ' '.join(spelling))
             if match and match.group(1) in parameters:
                 self.section_macros[macro.spelling] = parameters.index(match.group(1))
+        from .macro_semantics import update_signature, dynamic_input_abstraction
+        update_signature(semantic_macros, tu.cursor.get_children(), macro_dependencies, self.root, self.tu_name)
+        dynamic_inputs = dynamic_input_abstraction(tu, macro_dependencies, self.root)
         start_stage('Clang 声明提取', self.tu_name)
         self.declare(tu.cursor)
         # A Clang error can coexist with a traversable AST. Its affected
@@ -820,6 +832,7 @@ class Extractor:
             v["parse_status"] = parse_status
         if self.declaration_only:
             return dict(variables=list(self.variables.values()), parse_status=parse_status,
+                        dynamic_predefined_inputs=dynamic_inputs,
                         semantic_macros_digest=semantic_macros.hexdigest(),
                         diagnostics=diagnostics,
                         includes=sorted({str(Path(i.include.name).resolve()) for i in tu.get_includes()}))
@@ -950,7 +963,8 @@ class Extractor:
                     registrations=self.registrations, snapshots=self.snapshots,
                     diagnostics=diagnostics, includes=includes, **pointer_facts,
                     semantic_macros_digest=semantic_macros.hexdigest(),
-                    parse_status=parse_status, input_snapshot=input_snapshot, preprocessor_signature=signature)
+                    parse_status=parse_status, input_snapshot=input_snapshot, preprocessor_signature=signature,
+                    dynamic_predefined_inputs=dynamic_inputs)
 
 
 def main():
@@ -973,7 +987,8 @@ def main():
         write_json(sys.argv[2], result, indent=None)
         if request.get('write_metadata'):
             metadata = {key: result[key] for key in ('parse_status', 'diagnostics', 'includes',
-                        'input_snapshot', 'worker_exception', 'preprocessor_signature', 'semantic_macros_digest') if key in result}
+                        'input_snapshot', 'worker_exception', 'preprocessor_signature', 'semantic_macros_digest',
+                        'dynamic_predefined_inputs') if key in result}
             metadata.update(strong_functions=[f['function_id'] for f in result.get('functions', []) if not f.get('is_weak')],
                             weak_functions=[f['function_id'] for f in result.get('functions', []) if f.get('is_weak')],
                             counts={key: len(value) for key, value in result.items() if isinstance(value, list)})

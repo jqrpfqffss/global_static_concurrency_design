@@ -16,8 +16,34 @@ CURRENT = ContextVar('ecra_html_evidence', default=None)
 _IDS = re.compile(r'(?<![\w-])id=["\']([^"\']+)["\']')
 
 EXTERNAL_SCRIPT = r"""
-document.addEventListener('toggle',e=>{const d=e.target;if(d.tagName!=='DETAILS'||!d.open)return;for(const f of d.querySelectorAll(':scope > iframe[data-ecra-src]'))if(!f.hasAttribute('src'))f.src=f.dataset.ecraSrc;},true);
-document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;const id=a.getAttribute('href').slice(1);if(document.getElementById(id))return;const destination=(window.ECRA_EVIDENCE_ANCHORS||{})[id];if(destination){e.preventDefault();const root=document.documentElement.dataset.ecraRoot||'';const url=root+destination+'#'+id;if(destination==='index.html')window.top.location.href=url;else location.href=url;}});
+function syncEvidenceFrame(d){
+let visible=d.open;for(let p=d;visible&&p;p=p.parentElement)if(p.hidden||(p!==d&&p.tagName==='DETAILS'&&!p.open))visible=false;
+if(visible){const t=d.querySelector(':scope > template[data-ecra-frame="1"]');if(t){d.append(t.content);t.remove();}}
+for(const f of d.querySelectorAll(':scope > iframe[data-ecra-src]')){
+ if(visible){if(!f.hasAttribute('src')){f.loading='eager';f.src=f.dataset.ecraSrc;}}
+ else{const t=document.createElement('template');t.dataset.ecraFrame='1';t.content.append(f);f.removeAttribute('src');d.append(t);}
+}}
+document.addEventListener('toggle',e=>{const d=e.target;if(d.tagName!=='DETAILS')return;
+if(d.dataset.externalDetail==='1')syncEvidenceFrame(d);
+for(const child of d.querySelectorAll('details[data-external-detail="1"][open]'))syncEvidenceFrame(child);},true);
+new MutationObserver(()=>{for(const d of document.querySelectorAll('details[data-external-detail="1"][open]'))syncEvidenceFrame(d);})
+ .observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['hidden']});
+let evidenceAnchorsPromise;
+async function evidenceDestination(id){
+ if(!window.ECRA_EVIDENCE_ANCHORS){
+  if(!evidenceAnchorsPromise)evidenceAnchorsPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=(document.documentElement.dataset.ecraRoot||'')+'html_details/anchors.js';s.onload=()=>window.ECRA_EVIDENCE_ANCHORS?resolve():reject(Error('证据导航索引无效'));s.onerror=()=>reject(Error('完整证据导航索引载入失败'));document.head.append(s);});
+  await evidenceAnchorsPromise;
+ }
+ return window.ECRA_EVIDENCE_ANCHORS[id];
+}
+async function routeEvidence(id){
+ if(!id||document.getElementById(id))return;
+ try{const destination=await evidenceDestination(id);if(!destination)return;const root=document.documentElement.dataset.ecraRoot||'';const url=root+destination+'#'+encodeURIComponent(id);if(destination==='index.html')window.top.location.href=url;else location.href=url;}
+ catch(error){let note=document.getElementById('ecra-navigation-error');if(!note){note=document.createElement('p');note.id='ecra-navigation-error';note.setAttribute('role','alert');document.body.prepend(note);}note.textContent=error.message+'；请从首页变量详情重新打开完整证据。';}
+}
+document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;let id;try{id=decodeURIComponent(a.getAttribute('href').slice(1));}catch{return;}if(document.getElementById(id))return;e.preventDefault();routeEvidence(id);});
+function routeEvidenceHash(){let id;try{id=decodeURIComponent(location.hash.slice(1));}catch{return;}routeEvidence(id);}
+window.addEventListener('hashchange',routeEvidenceHash);routeEvidenceHash();
 """
 
 DETAIL_SCRIPT = r"""
@@ -58,6 +84,7 @@ class HtmlEvidence:
         self.folder = self.out/'html_details'
         self.folder.mkdir(parents=True, exist_ok=True)
         self.files, self.anchors = {}, {}
+        self.searches = {}
         self.max_detail_chars = 0
         self.style_name = self.put('css', [style])
 
@@ -109,6 +136,11 @@ class HtmlEvidence:
         return ('<details class="raw-evidence"><summary>高级调试：'+html.escape(title)+'</summary>'
                 '<p><a download href="html_details/'+name+'">下载完整 JSON 证据</a>（完整保留，按需读取）</p></details>')
 
+    def search(self, text):
+        ident = hashlib.sha256(text.encode('utf-8')).hexdigest()
+        self.searches.setdefault(ident, text)
+        return ident
+
     def detail(self, summary, contents, classes):
         if len(contents) < self.threshold:
             return None
@@ -123,14 +155,14 @@ class HtmlEvidence:
                   '<meta name="viewport" content="width=device-width,initial-scale=1"><title>'+html.escape(title)
                   +'</title><link rel="stylesheet" href="'+self.style_name+'"><main><p><a target="_top" href="../index.html">返回完整报告</a>'
                   ' · 证据片段；完整性与有效性以首页为准。指纹：<code>'+html.escape(str(self.fingerprint))+'</code></p>')
-        tail = '</main><script src="graph-data.js"></script><script src="anchors.js"></script><script src="detail.js"></script></html>'
+        tail = '</main><script src="detail.js"></script></html>'
         name = self.put('html', [header, contents, tail])
         self.register('html_details/'+name, contents)
         url = 'html_details/'+name
         return ('<details class="'+html.escape(classes)+'" data-external-detail="1"><summary>'+summary+'</summary>'
                 '<p><a target="_blank" href="'+url+'">独立打开全部证据</a></p>'
-                '<iframe loading="lazy" title="'+html.escape(title, quote=True)+'" data-ecra-src="'+url
-                +'" style="width:100%;height:75vh;border:1px solid #d6e0eb"></iframe></details>')
+                '<template data-ecra-frame="1"><iframe loading="lazy" title="'+html.escape(title, quote=True)+'" data-ecra-src="'+url
+                +'" style="width:100%;height:75vh;border:1px solid #d6e0eb"></iframe></template></details>')
 
     def register(self, name, contents):
         for ident in _IDS.findall(contents):
@@ -152,7 +184,11 @@ class HtmlEvidence:
             stream.write('window.ECRA_EVIDENCE_ANCHORS=')
             json.dump(self.anchors, stream, ensure_ascii=True, separators=(',', ':'))
             stream.write(';')
-        for name in ('graph-data.js', 'anchors.js', 'detail.js'):
+        with (self.folder/'search-index.js').open('w', encoding='utf-8') as stream:
+            stream.write('window.ECRA_SEARCH_INDEX=')
+            json.dump(self.searches, stream, ensure_ascii=True, separators=(',', ':'))
+            stream.write(';')
+        for name in ('graph-data.js', 'anchors.js', 'detail.js', 'search-index.js'):
             path = self.folder/name
             sha = hashlib.sha256()
             with path.open('rb') as stream:

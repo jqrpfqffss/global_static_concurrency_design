@@ -96,7 +96,7 @@ class RowReader:
             self.fill(amount)
             amount *= 2
 
-    def rows(self):
+    def rows(self, wrapped=False):
         self.take('{')
         seen = set()
         if self.peek() != '}':
@@ -116,15 +116,27 @@ class RowReader:
                             self.take(',')
                     self.take(']')
                 else:
-                    yield key, self.value(), False
+                    value = self.value()
+                    if isinstance(value, list):
+                        for row in value:
+                            yield key, row, True
+                    else:
+                        yield key, value, False
                 if self.peek() == '}':
                     break
                 self.take(',')
         self.take('}')
+        if wrapped:
+            self.take('}')
         if self.peek():
             raise ValueError('Trailing data in worker JSON')
 
 
 def rows(path, object_hook=None, chunk_size=65536):
+    from .shared_json import encoded_stream, prepare_reader
     with open(path, encoding='utf-8-sig') as stream:
-        yield from RowReader(stream, object_hook, chunk_size).rows()
+        reader = RowReader(stream, object_hook, chunk_size)
+        wrapped = encoded_stream(stream)
+        if wrapped:
+            prepare_reader(reader, object_hook)
+        yield from reader.rows(wrapped=wrapped)

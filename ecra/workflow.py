@@ -56,6 +56,9 @@ def read_saved_json(path, *, canonical_accesses=False):
     strings = lru_cache(maxsize=131072)(lambda value: value)
     records = RecordDicts()
     access_rows, access_count = OrderedDict(), 0
+    shared_ids = set()
+    scalar_lists, scalar_list_bytes = OrderedDict(), 0
+    coherence_rows = OrderedDict()
     def identical(first, second):
         if first is second:
             return True
@@ -70,11 +73,30 @@ def read_saved_json(path, *, canonical_accesses=False):
             return first.hex() == second.hex()
         return first == second
     def share(value):
+        nonlocal scalar_list_bytes
+        if id(value) in shared_ids:
+            return value
         if isinstance(value, str):
             return strings(value) if len(value) <= 1024 else value
         if isinstance(value, list):
             for index, item in enumerate(value):
                 value[index] = share(item)
+            if len(value) >= 8 and (all(type(item) is str for item in value)
+                                   or all(type(item) is int for item in value)):
+                import sys
+                key = type(value[0]), tuple(value)
+                previous = scalar_lists.get(key)
+                if previous is not None:
+                    scalar_lists.move_to_end(key)
+                    return previous
+                weight = sys.getsizeof(key[1]) + sys.getsizeof(value)
+                scalar_lists[key] = value
+                scalar_list_bytes += weight
+                # Only the acceleration index is bounded. Evicted complete
+                # lists remain in their original result locations.
+                while scalar_list_bytes > 64*1024*1024 and scalar_lists:
+                    expired, values = scalar_lists.popitem(last=False)
+                    scalar_list_bytes -= sys.getsizeof(expired[1]) + sys.getsizeof(values)
         return value
     def object_hook(value):
         nonlocal access_count
@@ -83,6 +105,19 @@ def read_saved_json(path, *, canonical_accesses=False):
         value = records(keys)
         for key, item in zip(keys, source.values()):
             value[key] = share(item)
+        if isinstance(value.get('coherence_id'), str) and 'member_symbol_ids' in value:
+            key = value['coherence_id'], keys
+            bucket = coherence_rows.get(key, ())
+            for previous in bucket:
+                if identical(previous, value):
+                    coherence_rows.move_to_end(key)
+                    return previous
+            if not bucket:
+                coherence_rows[key] = bucket = []
+            bucket.append(value)
+            coherence_rows.move_to_end(key)
+            while len(coherence_rows) > 200000:
+                coherence_rows.popitem(last=False)
         if canonical_accesses and all(key in value for key in
                 ('access_id', 'access_kind', 'symbol_id', 'function_id', 'file', 'offset')):
             key = value['access_id'], value['symbol_id'], value.get('access_path')
@@ -107,8 +142,11 @@ def read_saved_json(path, *, canonical_accesses=False):
                 _, evicted = access_rows.popitem(last=False)
                 access_count -= len(evicted)
         return value
+    from .shared_json import encoded_stream, read_stream
     result = {}
     with Path(path).open(encoding='utf-8-sig') as stream:
+        if encoded_stream(stream):
+            return read_stream(stream, object_hook, shared_ids=shared_ids, normalize=share)
         reader = RowReader(stream, object_hook)
         reader.take('{')
         if reader.peek() != '}':
@@ -138,8 +176,13 @@ def read_saved_json(path, *, canonical_accesses=False):
     return result
 
 
-def saved_report_digest(report):
-    """Exactly common.digest's JSON bytes, emitted incrementally."""
+def saved_report_digest(report, *, encoding='LEGACY_JSON_V1'):
+    """Hash all static values without re-expanding shared evidence billions of times."""
+    if encoding == 'ECRA_MERKLE_V1':
+        from .shared_json import logical_digest
+        return logical_digest(report)
+    if encoding != 'LEGACY_JSON_V1':
+        raise ValueError('不支持的完整证据摘要版本')
     sha = hashlib.sha256()
     for chunk in json.JSONEncoder(sort_keys=True, ensure_ascii=False).iterencode(report):
         sha.update(chunk.encode('utf-8'))
@@ -178,7 +221,8 @@ def save_scan(root, out, cfg, config_file, report, *, initialize_queue=True):
         engine_scope=ENGINE_SCOPE, engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),
         manifest_sha256=file_digest(out/'input_manifest.json'),
         input_closure_sha256=file_digest(out/'input_closure.json') if (out/'input_closure.json').is_file() else None,
-        report_digest=saved_report_digest(clean_report(report)), fingerprint=report['fingerprint']))
+        report_digest=saved_report_digest(clean_report(report), encoding='ECRA_MERKLE_V1'),
+        report_digest_encoding='ECRA_MERKLE_V1', fingerprint=report['fingerprint']))
     state = read_json(out/'scan_state.json')
     state['scan_mode'] = 'diff' if report.get('git_diff') else 'full'
     state['git_diff_pin'] = report.get('git_diff', {}).get('pin')
@@ -359,7 +403,9 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True):
     report = read_saved_json(out/'reports/global_static_concurrency.json')
     if not isinstance(report,dict) or not isinstance(report.get('findings'),list):
         raise ValueError('静态报告格式损坏；请重新运行 run')
-    if saved_report_digest(clean_report(report)) != state['report_digest']:
+    if state.get('report_digest_encoding') != 'ECRA_MERKLE_V1':
+        raise ValueError('旧扫描缺少完整共享证据摘要版本，请重新运行 run')
+    if saved_report_digest(clean_report(report), encoding=state['report_digest_encoding']) != state['report_digest']:
         raise ValueError('静态报告已变化/损坏；请重新运行 run')
     manifest = read_json(out/'input_manifest.json')
     from .scope import AuditScope

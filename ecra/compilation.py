@@ -8,7 +8,7 @@ import time
 import stat
 from pathlib import Path
 
-from .common import execute, read_json, relative
+from .common import execute, read_json, relative, write_json
 from .scope import AuditScope
 from .portable import (bundle_root, tool_path, tool_environment, check_cache, read_cache,
                        audit_executable, probe_tool, build_path)
@@ -61,9 +61,37 @@ def cmake_build_directory(root, analysis):
     return build
 
 
+def cmake_input_records(root, build):
+    """Bind the selected target's actual configure inputs to InputSnapshot."""
+    from .input_snapshot import read_consumed_text
+    reply = build/'.cmake/api/v1/reply'
+    try:
+        index = read_json(max(reply.glob('index-*.json'), key=lambda path: path.name))
+        ref = index['reply']['client-ecra']['cmakeFiles-v1']
+        file = reply/ref['jsonFile']
+        if not file.resolve().is_relative_to(reply.resolve()):
+            raise ValueError('CMake 输入索引引用越界')
+        data = read_json(file)
+        if (ref['kind'] != 'cmakeFiles' or ref['version']['major'] != 1
+                or Path(data['paths']['source']).resolve() != root.resolve()
+                or Path(data['paths']['build']).resolve() != build.resolve()):
+            raise ValueError('CMake 输入索引的工程身份不一致')
+        records = {}
+        for row in data['inputs']:
+            read_consumed_text(root/row['path'], records, errors='replace')
+        if not records:
+            raise ValueError('缺少 CMake 配置输入')
+        return records
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ValueError('所选目标的 CMake 构建输入无法校验，禁止发布分析结果') from exc
+
+
 def configure_cmake(root, analysis, progress, build_firmware):
     """Managed CMake mode refreshes the database on every run, even if present."""
     settings = analysis['cmake']
+    target = settings.get('target')
+    if target and settings.get('generator', 'Ninja') != 'Ninja':
+        raise ValueError('analysis.cmake.target 当前需要 Ninja Generator')
     build = cmake_build_directory(root, analysis)
     configured = (root / settings.get('build_dir', 'build/ecra')).resolve()
     requested = analysis.get('compile_database', 'auto')
@@ -163,21 +191,67 @@ def configure_cmake(root, analysis, progress, build_firmware):
         records.append(dict(stage=name, command=argv, exit_code=proc.returncode, log=str(log)))
         if proc.returncode:
             raise ValueError(f'CMake {name} 失败，停止扫描。日志: {log}\n' + (proc.stdout+proc.stderr)[-6000:])
+    if target:
+        query = build/'.cmake/api/v1/query/client-ecra/cmakeFiles-v1'
+        query.parent.mkdir(parents=True, exist_ok=True)
+        query.touch()
     invoke(command, 'configure')
+    if target:
+        records[-1]['consumed_inputs'] = cmake_input_records(root, build)
     check_cache(build, root, generator, make, allow_external)
     if not database.is_file():
         raise ValueError(f'CMake 未生成 {database}；请使用 Ninja 或 Makefiles 生成器')
-    if bundle_root():
-        for entry in read_json(database):
-            raw = entry.get('arguments') or split_command(entry.get('command', ''))
-            if not raw:
-                raise ValueError(f'空编译命令: {database}')
-            count = 2 if Path(raw[0]).stem.lower() in {'ccache','sccache'} else 1
-            for executable in raw[:count]:
-                audit_executable(executable, entry.get('directory', root), allow_external=allow_external)
+    def audit_database():
+        if bundle_root():
+            for entry in read_json(database):
+                raw = entry.get('arguments') or split_command(entry.get('command', ''))
+                if not raw:
+                    raise ValueError(f'空编译命令: {database}')
+                count = 2 if Path(raw[0]).stem.lower() in {'ccache','sccache'} else 1
+                for executable in raw[:count]:
+                    audit_executable(executable, entry.get('directory', root), allow_external=allow_external)
+    if not target:
+        audit_database()
+    if target:
+        # Ask the build graph itself, including object libraries and generated
+        # sources. A source-name/path filter would mix hardware variants.
+        ninja = make or read_cache(build).get('CMAKE_MAKE_PROGRAM')
+        if not ninja:
+            raise ValueError('指定 cmake.target 时无法确定实际 Ninja 程序')
+        # Expand graph-bound response contents; Ninja deletes transient .rsp
+        # files after compilation, so later AST extraction cannot read them.
+        argv = [ninja, '-C', build_command_path, '-t', 'compdb-targets', '-x', target]
+        progress('从 Ninja 完整依赖图读取目标编译闭包：' + target)
+        def target_entries():
+            proc = execute(argv, cwd=root, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
+            if proc.returncode:
+                raise ValueError('目标编译闭包读取失败；需要支持 compdb-targets 的 Ninja 和有效目标：'
+                                 + target + '\n' + proc.stderr[-4000:])
+            try:
+                rows = json.loads(proc.stdout)
+                if not isinstance(rows, list) or any(not isinstance(row, dict) or not row.get('file')
+                                                     or not row.get('command') or not row.get('output') for row in rows):
+                    raise ValueError('无效目标编译数据库')
+                # Exclude link/settings-generator commands, retain all C/C++/ASM.
+                rows = [row for row in rows if Path(row['file']).suffix.lower() in {'.c', '.cc', '.cpp', '.cxx', '.s'}]
+                if not rows:
+                    raise ValueError('目标没有可解析编译单元')
+                return rows
+            except (ValueError, TypeError) as exc:
+                raise ValueError('目标编译闭包无效，禁止回退混用全目标数据库：' + target) from exc
+        rows = target_entries()
+        database = build/'ecra-target-compile_commands.json'
+        write_json(database, rows)
+        records.append(dict(stage='target-closure', command=argv, exit_code=0,
+                            target=target, translation_units=len(rows), database=str(database)))
+    if target:
+        audit_database()
     if settings.get('build', True) and build_firmware:
         invoke([cmake, '--build', build_command_path, '--config', settings.get('build_type', 'Debug'),
+                *(['--target', target] if target else []),
                 *settings.get('build_args', [])], 'build')
+        if target and target_entries() != rows:
+            raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
     return database, records
 
 
@@ -458,7 +532,7 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     if not candidates:
         raise ValueError("没有 compile_commands.json；导出真实固件编译数据库，或开启 auto_configure_cmake")
     from .input_snapshot import read_consumed_text
-    consumed_inputs = {}
+    consumed_inputs = {path: row for step in cmake_steps for path, row in step.get('consumed_inputs', {}).items()}
     entries = json.loads(read_consumed_text(candidates[0], consumed_inputs))
     if not isinstance(entries, list) or not entries:
         raise ValueError("编译数据库必须是非空数组")

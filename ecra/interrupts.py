@@ -95,6 +95,10 @@ def priority_model(facts, cfg):
 
 
 def context_priorities(facts, model, contexts=None):
+    # Every binding maps to None in an empty model and is rejected below.
+    # Keep that unresolved result without rebuilding the entire function index.
+    if not model:
+        return {}
     funcs = {f['function_id']: f for f in facts['functions']}
     contexts = contexts or {c['id']: c for c in facts.get('contexts', [])}
     result = defaultdict(list)

@@ -120,6 +120,8 @@ def inside(args):
     source = {p.name.split('.')[0]: p for p in source_files}
     replayed = []
     reached = False
+    analysis_complete = False
+    render_complete = False
     probe_reached = False
     analysis_facts = None
     solver_summaries = {}
@@ -131,7 +133,9 @@ def inside(args):
                 if field in data}
     class ReplayBoundary(Exception):
         pass
-    def responses(root, units, cfg, worker_dir, env, tool_root, out):
+    def responses(root, units, cfg, worker_dir, env, tool_root, out, cache=None):
+        if cache is not None:
+            raise ValueError('受控事实回放不允许写入或复用生产 TU 缓存')
         if len(source) != len(units):
             raise ValueError('Replay collection must contain the entire real target')
         for unit in units:
@@ -208,12 +212,14 @@ def inside(args):
             python_backup = None
             reserve.close()
     def measured(*a, **kw):
-        nonlocal analysis_facts
+        nonlocal analysis_facts, analysis_complete
         analysis_facts = a[0]
         reserve = CommitReserve()
         python_backup = python_reserve()
         try:
-            return original_analyze(*a, **kw)
+            result = original_analyze(*a, **kw)
+            analysis_complete = True
+            return result
         except MemoryError as exc:
             python_backup = None
             reserve.close()
@@ -310,8 +316,24 @@ def inside(args):
             reached = True
             capture_solver_stats(analysis_facts)
             raise ReplayBoundary('Controlled stop after both complete pointer solvers; not a full scan')
-    def stop_render(*a, **kw):
-        nonlocal reached
+    original_generate = cli.generate
+    def stop_render(out, facts, report, reviews):
+        nonlocal reached, render_complete
+        if args.render_report:
+            rendered = args.evidence/'rendered'
+            original_generate(rendered, facts, report, reviews)
+            from ecra.shared_json import logical_digest
+            from ecra.workflow import clean_report
+            dump(rendered/'result_validity.json', dict(analysis_valid=False,
+                state='CONTROLLED_REPLAY_ONLY', full_scan_acceptance=False))
+            dump(args.evidence/'render-proof.json', dict(complete=True,
+                full_scan_acceptance=False, safety_report_valid=False,
+                facts_logical_digest=logical_digest(facts),
+                static_report_logical_digest=logical_digest(clean_report(report)),
+                fact_counts={key:len(value) for key,value in facts.items() if isinstance(value,list)},
+                classifications=dict(Counter(v.get('static_classification') for v in facts['variables'])),
+                variable_accountability=report['coverage'].get('variable_accountability')))
+            render_complete = True
         reached = True
         raise ReplayBoundary('Controlled stop after complete analysis; no safety report')
     cli.extraction_responses = responses
@@ -346,9 +368,10 @@ def inside(args):
     fixed_points_complete = all(solver_summaries.get(key, {}).get('complete') is True
         for key in ('points_to_stats', 'context_points_to_stats'))
     result = dict(controlled_replay=True, full_scan_acceptance=False, safety_report_valid=False,
-        pointer_stages_reached=reached, solver_fixed_points_complete=fixed_points_complete,
-        pointer_stages_complete=reached and fixed_points_complete,
-        full_analysis_complete=reached and fixed_points_complete and not args.stop_after_pointers,
+        pointer_stages_reached=bool(solver_summaries), solver_fixed_points_complete=fixed_points_complete,
+        pointer_stages_complete=fixed_points_complete,
+        full_analysis_complete=analysis_complete,
+        report_generation_requested=args.render_report, report_generation_complete=render_complete,
         solver_summaries=solver_summaries,
         pointer_cardinality_probe_complete=probe_reached,
         fresh_clang_dependency_discovery=not args.captured_dependencies,
@@ -366,6 +389,8 @@ def main():
         parser.add_argument('--'+name, type=Path, required=True)
     parser.add_argument('--limit-gib', type=float, default=24)
     parser.add_argument('--stop-after-pointers', action='store_true')
+    parser.add_argument('--render-report', action='store_true',
+        help='CONTROLLED replay only: generate complete artifacts in evidence/rendered; never publish a valid safety report')
     parser.add_argument('--captured-dependencies',action='store_true',
         help='IR replay only: validate captured dependency hashes without rediscovering includes; never full-scan acceptance')
     parser.add_argument('--merged-cache-out',type=Path,help='Persist complete merged IR for separately labelled replay')
@@ -384,6 +409,8 @@ def main():
         parser.error('Pointer sampling thresholds cannot be negative')
     if args.merged_cache_in and args.merged_cache_out:
         parser.error('Choose either merged-cache-in or merged-cache-out')
+    if args.render_report and args.stop_after_pointers:
+        parser.error('Report rendering requires the complete analysis, not stop-after-pointers')
     if args.inside:
         return inside(args)
     import psutil

@@ -33,20 +33,59 @@ def settings(value):
     return result
 
 
-def git(root, *args):
+def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=False):
     from .portable import bundle_root
     bundle = bundle_root()
     exe = str(bundle/'tools/git/cmd/git.exe') if bundle else 'git'
     if bundle and not Path(exe).is_file():
         raise ValueError('Portable 差异模式缺少离线 Git：请将完整 MinGit 解压到 tools/git（包含 cmd/git.exe）')
     try:
-        proc = subprocess.run([exe, '-C', str(root), *args], stdout=subprocess.PIPE,
+        proc = subprocess.run([exe, '-C', str(root), *args], stdout=_stdout,
                               stderr=subprocess.PIPE, timeout=300)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError(f'Git 无法运行，差异扫描未完成：{exc}') from exc
-    if proc.returncode:
+    if proc.returncode not in _returncodes or (_reject_stderr and proc.stderr):
         raise ValueError('Git 比较失败，差异扫描未完成：' + proc.stderr.decode('utf-8', 'replace'))
     return proc.stdout
+
+
+def write_comparison_patch(pinned, destination):
+    """Archive tracked and untracked bytes without changing Git's real index.
+
+    no-index returns 1 for a successful difference. Its stderr must be empty:
+    an I/O failure can also return 1 and must never become a complete patch.
+    All subprocess output streams to a private pending file, then publishes
+    atomically. Unicode paths, empty files, symlinks and binary payloads use
+    Git's own patch representation.
+    """
+    import tempfile
+    from .common import replace_file
+    repo = Path(pinned['repository_root'])
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    pending = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='wb', buffering=0, prefix='.patch-',
+                suffix='.pending', dir=destination.parent, delete=False) as output:
+            pending = Path(output.name)
+            git(repo, 'diff', '--no-relative', '--binary', '--no-color', '--no-ext-diff', '--no-textconv',
+                '--src-prefix=a/', '--dst-prefix=b/', pinned['base_sha'], '--', _stdout=output)
+            for change in sorted(pinned['files'], key=lambda row: row['new_path']):
+                if change['status'] != '?':
+                    continue
+                # Keep repository-relative paths even when project.root is a
+                # subdirectory. -- prevents a leading dash becoming an option.
+                start = output.tell()
+                git(repo, '-c', 'core.safecrlf=false', 'diff', '--no-index', '--binary', '--no-color',
+                    '--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/',
+                    '--', '/dev/null', change['new_path'], _stdout=output,
+                    _returncodes=(0, 1), _reject_stderr=True)
+                if output.tell() <= start:
+                    raise ValueError('未跟踪文件没有形成完整新增补丁，差异扫描未完成：' + change['new_path'])
+        replace_file(pending, destination)
+    finally:
+        if pending is not None:
+            pending.unlink(missing_ok=True)
 
 
 def text(root, *args):
@@ -159,14 +198,23 @@ def canonical_id(value, renames):
 POSITIONAL = frozenset(('line', 'column', 'offset', 'end_line', 'end_offset', 'definition_line',
     'source_text', 'access_id', 'call_id', 'event_id', 'node_id', 'conflict_id', 'source_access_id',
     'call_chains', 'all_call_chains', 'call_path_set', 'resolved_call_path_count', 'call_path_count',
-    'evidence_id', 'cfg_node_id', 'cfg_node', 'instance_id', 'id', 'generated_at', 'call_depth',
+    'evidence_id', 'blocker_id', 'inherited_from_access_id',
+    'cfg_node_id', 'cfg_node', 'instance_id', 'id', 'generated_at', 'call_depth',
     'access_ids', 'instance_ids'))
 
 
 def normalize(value, renames=None):
     renames = renames or {}
     if isinstance(value, dict):
-        return {k: normalize(v, renames) for k, v in value.items() if k not in POSITIONAL}
+        result = {k: normalize(v, renames) for k, v in value.items() if k not in POSITIONAL}
+        for key in ('type', 'canonical_type', 'type_spelling'):
+            if isinstance(result.get(key), str):
+                # Clang's human-readable anonymous type spelling embeds a
+                # source coordinate. Declaration tokens and complete field
+                # layout still distinguish actual type/storage changes.
+                result[key] = re.sub(r'(\((?:unnamed|anonymous)(?: (?:struct|union|enum))? at )[^\r\n]*?:\d+:\d+\)',
+                                     r'\1<source>)', result[key])
+        return result
     if isinstance(value, (list, tuple)):
         return [normalize(v, renames) for v in value]
     return canonical_id(value, renames)
@@ -174,6 +222,16 @@ def normalize(value, renames=None):
 
 def row_hashes(rows, renames):
     return sorted(digest(normalize(row, renames)) for row in rows)
+
+
+def evidence_digest(value, renames):
+    """Compare independent evidence records as a multiset, retaining duplicates.
+
+    Only the explicitly selected outer collection is unordered. Ordered lists
+    inside a record (arguments, arrays, execution steps) retain their order.
+    Raw facts and static classifications are never modified.
+    """
+    return digest(row_hashes(value, renames) if isinstance(value, (list, tuple)) else normalize(value, renames))
 
 
 def pointer_hashes(facts, renames):
@@ -242,7 +300,7 @@ def summarize(facts, report, renames=None):
     incoming = defaultdict(set)
     for a, b in edges:
         incoming[b].add(a)
-    slices = {}
+    slices, graphs = {}, {}
     context_graph = facts.get('context_call_graph', {})
 
     def graph_for(accessors):
@@ -254,10 +312,13 @@ def summarize(facts, report, renames=None):
                     if parent not in related:
                         related.add(parent)
                         pending.append(parent)
-            slices[key] = dict(functions=sorted(related), edges=[list(e) for e in edges if e[1] in related],
+            graph = dict(functions=sorted(related), edges=[list(e) for e in edges if e[1] in related],
                 roots=sorted({cid(f) for entries in context_graph.get('roots', {}).values() for f in entries if cid(f) in related}),
                 context_edges={context: sorted([cid(a), cid(b)] for a, b in graph if cid(b) in related)
                                for context, graph in context_graph.get('edges', {}).items()})
+            graph_id = digest(graph)
+            graphs.setdefault(graph_id, graph)
+            slices[key] = graph_id
         return slices[key]
 
     variables = {}
@@ -274,26 +335,30 @@ def summarize(facts, report, renames=None):
                 'owner_function_id', 'field_path', 'array_size', 'size_bytes', 'initializer', 'member_definitions')}, renames)),
             accesses=row_hashes(accesses, renames),
             contexts=row_hashes([c for c in facts.get('context_bindings', []) if cid(c.get('function_id')) in accessors], renames),
-            protection=digest(normalize(v.get('protection_details', []), renames)),
-            coverage=digest(normalize([v.get(k) for k in ('analysis_coverage', 'blocking_evidence', 'screening_blockers', 'safe_evidence')], renames)),
+            protection=evidence_digest(v.get('protection_details', []), renames),
+            coverage=digest(dict(analysis_coverage=v.get('analysis_coverage'),
+                blocking_evidence=evidence_digest(v.get('blocking_evidence'), renames),
+                screening_blockers=evidence_digest(v.get('screening_blockers'), renames),
+                safe_evidence=evidence_digest(v.get('safe_evidence'), renames))),
             conflicts=row_hashes(v.get('conflict_pairs', []), renames),
-            classification=v.get('static_classification'), graph=digest(graph))
+            classification=v.get('static_classification'), graph=graph)
         variables[cid(sid)] = dict(symbol_id=sid, name=v.get('qualified_name', v.get('name')),
             file=cid(v.get('definition_file')), original_file=v.get('definition_file'), line=v.get('definition_line'), dimensions=dimensions,
-            accessors=sorted(accessors), graph=graph,
+            accessors=sorted(accessors), graph_id=graph,
             reads=sorted({cid(a['function_id']) for a in accesses if a.get('access_kind') in ('READ', 'RMW')}),
             writes=sorted({cid(a['function_id']) for a in accesses if a.get('access_kind') in ('WRITE', 'RMW')}),
             root=cid(v.get('root_symbol_id') or sid),
             field_path=v.get('field_path'), is_union=v.get('is_union'),
             offset_bits=v.get('offset_bits'), size_bytes=v.get('size_bytes'), overlap_groups=v.get('overlap_groups', []),
             container=v.get('static_classification') == 'CONTAINER',
-            findings=row_hashes([{k: f.get(k) for k in ('rules', 'static_classification', 'conflict_pairs', 'uncertainties')}
-                                   for f in by_symbol[sid]], renames))
+            findings=row_hashes([dict(static_classification=f.get('static_classification'),
+                **{key: evidence_digest(f.get(key), renames) for key in ('rules', 'conflict_pairs', 'uncertainties')})
+                for f in by_symbol[sid]], {}))
     global_semantics = {k: row_hashes(facts.get(k, []), renames) for k in
         ('contexts', 'irq_priority_events', 'nvic_resolved_events', 'protection_events', 'registrations',
          'hardware_contexts', 'preemption_relations', 'address_escapes')}
     global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
-    return dict(schema=2, variables=variables, functions=functions, edges=edges,
+    return dict(schema=3, variables=variables, graphs=graphs, functions=functions, edges=edges,
         macros={cid(u['source_file']): u.get('semantic_macros_digest') for u in facts.get('translation_units', [])},
         dependencies=sorted({canonical_id(str(Path(p).resolve().relative_to(Path(report['coverage']['project_root']).resolve())).replace('\\', '/'), renames)
             if report.get('coverage', {}).get('project_root') and Path(p).resolve().is_relative_to(Path(report['coverage']['project_root']).resolve())
@@ -310,6 +375,14 @@ REASONS = dict(DIRECT_CHANGED='声明、初始化或存储定义变化', CALL_GR
     CONFLICT_CHANGED='并发冲突证据变化', STATIC_CHANGED='静态结论变化',
     SEMANTIC_IMPACT='上下游数据或控制语义影响', CANNOT_EXCLUDE_IMPACT='无法排除影响，保守扩大',
     BUILD_SEMANTICS_CHANGED='头文件、宏或构建语义变化', MATCH_UNCERTAIN='跨版本存储身份无法可靠匹配')
+
+
+def variable_graph(summary, variable):
+    if not variable:
+        return dict(edges=[], roots=[])
+    if 'graph_id' in variable:
+        return summary['graphs'][variable['graph_id']]
+    return variable['graph']  # Legacy in-memory callers; persisted caches use schema 3.
 
 
 def compare(base, head, pinned):
@@ -403,11 +476,21 @@ def compare(base, head, pinned):
     if fallback:
         for sid in bv.keys() | hv.keys():
             reasons[sid].add('BUILD_SEMANTICS_CHANGED' if build_changed else 'CANNOT_EXCLUDE_IMPACT')
+    from functools import lru_cache
     impacts, deleted = {}, []
+    @lru_cache(maxsize=32)
+    def indexed_edges(is_base, graph_id):
+        # Only an acceleration cache is bounded; every graph is still compared.
+        return frozenset(tuple(e) for e in (base if is_base else head)['graphs'][graph_id]['edges'])
+    def edges_of(summary, variable):
+        if not variable:
+            return frozenset()
+        if 'graph_id' in variable:
+            return indexed_edges(summary is base, variable['graph_id'])
+        return frozenset(tuple(e) for e in variable_graph(summary, variable)['edges'])
     for sid, why in sorted(reasons.items()):
         old, new = bv.get(sid), hv.get(sid)
-        old_edges = {tuple(e) for e in old['graph']['edges']} if old else set()
-        new_edges = {tuple(e) for e in new['graph']['edges']} if new else set()
+        old_edges, new_edges = edges_of(base, old), edges_of(head, new)
         old_class = old['dimensions']['classification'] if old else None
         new_class = new['dimensions']['classification'] if new else None
         risk = ('无法判断变化结果' if old is None or new is None or 'UNKNOWN' in (old_class, new_class)
@@ -420,9 +503,10 @@ def compare(base, head, pinned):
             unchanged_edges_count=len(old_edges & new_edges), impact_coverage='CONSERVATIVE' if fallback else 'COMPLETE',
             risk_change=risk, base=old, head_classification=new_class,
             base_source_root=pinned.get('base_source_root'), head_sha=pinned['head_sha'], base_sha=pinned['base_sha'])
-        impact.update(added_paths=representative_paths(new, new_edges-old_edges),
-                      removed_paths=representative_paths(old, old_edges-new_edges),
+        impact.update(added_paths=representative_paths(new, new_edges-old_edges, variable_graph(head, new)),
+                      removed_paths=representative_paths(old, old_edges-new_edges, variable_graph(base, old)),
                       base_facts_path=pinned.get('base_facts_path'), base_facts_sha256=pinned.get('base_facts_sha256'),
+                      base_summary_path=pinned.get('base_summary_path'), base_summary_sha256=pinned.get('base_summary_sha256'),
                       diff_patch_path=pinned.get('diff_patch_path'))
         if new:
             impacts[new['symbol_id']] = impact
@@ -434,16 +518,17 @@ def compare(base, head, pinned):
         note='仅回答本次修改的影响；范围之外不代表安全。完整并发分析保留未修改路径。')
 
 
-def representative_paths(variable, changed_edges):
+def representative_paths(variable, changed_edges, evidence_graph=None):
     """One finite shortest graph witness per changed edge, never all paths."""
     if not variable or not changed_edges:
         return []
+    evidence_graph = evidence_graph if evidence_graph is not None else variable['graph']
     graph, reverse = defaultdict(set), defaultdict(set)
-    for a, b in variable['graph']['edges']:
+    for a, b in evidence_graph['edges']:
         graph[a].add(b)
         reverse[b].add(a)
     before, after = {}, {}
-    queue = deque(variable['graph'].get('roots', []))
+    queue = deque(evidence_graph.get('roots', []))
     # Store one predecessor/successor per vertex. Keeping a copied path at
     # every BFS vertex costs quadratic memory on long firmware call chains;
     # only the requested display witnesses need complete path lists.
@@ -500,6 +585,61 @@ def presentation_view(facts, report):
     return view, result
 
 
+def _relative_worktree_gitdir(repository, directory, expected_sha):
+    """Keep private linked snapshots compatible with legacy CMake Git readers."""
+    from .common import replace_file
+    repository, directory = Path(repository).resolve(), Path(directory).resolve()
+    reference = directory / '.git'
+    if reference.is_symlink() or not reference.is_file():
+        raise ValueError('隔离基准缺少普通工作树 Git 引用文件，禁止改写')
+
+    def resolved_git_path(root, option):
+        path = Path(text(root, 'rev-parse', option))
+        return (root / path).resolve()
+
+    common = resolved_git_path(repository, '--git-common-dir')
+    gitdir = resolved_git_path(directory, '--absolute-git-dir')
+    if (resolved_git_path(directory, '--git-common-dir') != common
+            or not gitdir.is_relative_to(common / 'worktrees')
+            or Path(text(directory, 'rev-parse', '--show-toplevel')).resolve() != directory
+            or text(directory, 'rev-parse', 'HEAD') != expected_sha):
+        raise ValueError('隔离基准不属于当前仓库的指定工作树，禁止改写 Git 引用')
+    registered = Path((gitdir / 'gitdir').read_text(encoding='utf-8').strip())
+    if (gitdir / registered).resolve() != reference.resolve():
+        raise ValueError('隔离基准工作树登记路径不一致，禁止改写 Git 引用')
+    original = reference.read_bytes()
+    if not original.decode('utf-8').startswith('gitdir: '):
+        raise ValueError('隔离基准 Git 引用格式无效')
+    try:
+        relative = Path(os.path.relpath(gitdir, directory)).as_posix()
+    except ValueError:
+        # Different Windows volumes cannot be expressed as a relative path.
+        # Preserve the valid absolute reference; ordinary build validation must
+        # still succeed before facts can be reused or a result published.
+        return 'ABSOLUTE_CROSS_VOLUME'
+    replacement = ('gitdir: ' + relative + '\n').encode('utf-8')
+    if original == replacement:
+        return 'RELATIVE'
+    temp = reference.with_name('.git.ecra-relative.tmp')
+    replaced = False
+    try:
+        temp.write_bytes(replacement)
+        replace_file(temp, reference)
+        replaced = True
+        if (resolved_git_path(directory, '--absolute-git-dir') != gitdir
+                or resolved_git_path(directory, '--git-common-dir') != common
+                or text(directory, 'rev-parse', 'HEAD') != expected_sha):
+            raise ValueError('隔离基准 Git 引用转换后身份不一致')
+    except BaseException:
+        if replaced:
+            temp.write_bytes(original)
+            replace_file(temp, reference)
+        raise
+    finally:
+        temp.unlink(missing_ok=True)
+    return 'RELATIVE'
+
+
 def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     """Persistent detached worktree: no checkout/reset/clean in user workspace."""
     from .cli import run
@@ -511,6 +651,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
         git(repo, 'worktree', 'add', '--detach', str(directory), pinned['base_sha'])
     if text(directory, 'rev-parse', 'HEAD') != pinned['base_sha']:
         raise ValueError('基准工作树身份不一致；禁止复用')
+    pinned['base_gitdir_reference'] = _relative_worktree_gitdir(repo, directory, pinned['base_sha'])
     base_root = directory/pinned['project_subdir']
     baseline = copy.deepcopy(cfg)
     baseline['analysis']['git_diff']['enabled'] = False
@@ -569,15 +710,15 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
         return Path(os.path.relpath(path, prefix)).as_posix() if prefix and prefix != '.' and path else path
     renames = {local(f['old_path']): local(f['new_path']) for f in pinned['files'] if f['status'].startswith('R')}
     sha = file_digest(base_out/'facts.json')
-    key = digest(dict(schema=2, engine=engine_digest(), facts=sha,
-                      report=saved_report_digest(clean_report(base_report)), renames=renames))
+    key = digest(dict(schema=3, engine=engine_digest(), facts=sha,
+                      report=saved_report_digest(clean_report(base_report), encoding='ECRA_MERKLE_V1'), renames=renames))
     summary_file = out/'git_diff/summary-cache'/(key + '.summary.json')
     manifest_file = summary_file.with_suffix('.manifest.json')
     reused, corrupt = False, False
     if cfg['analysis']['git_diff']['cache_enabled']:
         try:
             manifest = read_json(manifest_file)
-            if (not isinstance(manifest, dict) or manifest.get('key') != key or manifest.get('schema') != 2
+            if (not isinstance(manifest, dict) or manifest.get('key') != key or manifest.get('schema') != 3
                     or manifest.get('complete_tus') is not True
                     or manifest.get('sha256') != file_digest(summary_file)):
                 raise ValueError('基准摘要缓存内容不一致')
@@ -594,7 +735,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
             raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
         summary = summarize(base_facts, base_report, renames)
         write_json(summary_file, summary, indent=None)
-        write_json(manifest_file, dict(schema=2, key=key, complete_tus=True, sha256=file_digest(summary_file)))
+        write_json(manifest_file, dict(schema=3, key=key, complete_tus=True, sha256=file_digest(summary_file)))
         del base_facts, summary
     pinned['base_summary_path'] = str(summary_file)
     pinned['base_summary_sha256'] = file_digest(summary_file)
@@ -619,7 +760,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     pinned['base_facts_path'] = str(immutable)
     pinned['base_facts_sha256'] = sha
     patch = out/'git_diff'/(digest({k: v for k, v in pinned.items() if not k.startswith('base_facts')}) + '.patch')
-    patch.write_bytes(git(root, 'diff', '--binary', '--no-ext-diff', '--no-textconv', pinned['base_sha'], '--'))
+    write_comparison_patch(pinned, patch)
     pinned['diff_patch_path'] = str(patch)
     pinned['diff_patch_sha256'] = file_digest(patch)
     return summary_file

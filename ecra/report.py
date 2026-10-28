@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from contextlib import closing
+from contextlib import closing, ExitStack
 from collections import Counter, defaultdict
 
 from .common import write_json, replace_file
@@ -14,7 +14,7 @@ def location(row):
     return f"{row.get('file') or '未知'}:{row.get('line') or '?'}"
 
 
-def write_database(path, facts, report):
+def write_database(path, facts, report, shared_threshold=None):
     # Replace a complete temporary DB atomically; never leave partially refreshed facts.
     temp = path.with_suffix(".db.tmp")
     if temp.exists():
@@ -22,16 +22,31 @@ def write_database(path, facts, report):
     rows_by_table = {k: v for k, v in facts.items() if isinstance(v, list) and (not v or isinstance(v[0], dict))}
     rows_by_table["findings"] = report["findings"]
     rows_by_table['review_safe_samples'] = report.get('review_safe_samples', [])
+    from .shared_json import Plan, DEFAULT_THRESHOLD
+    plan = Plan(dict(facts=facts, findings=report['findings'],
+                     review_safe_samples=report.get('review_safe_samples', [])))
+    shared = plan.logical_bytes >= (DEFAULT_THRESHOLD if shared_threshold is None else shared_threshold)
+    serialize = plan.dumps if shared else lambda value: json.dumps(value, ensure_ascii=False)
     with closing(sqlite3.connect(temp)) as conn, conn:
+        if shared:
+            conn.execute('CREATE TABLE ecra_shared_json_metadata (version INTEGER, reference_key TEXT)')
+            conn.execute('INSERT INTO ecra_shared_json_metadata VALUES (?,?)', (1, plan.marker))
+            conn.execute('CREATE TABLE ecra_shared_json_pool (node_id INTEGER PRIMARY KEY, data TEXT NOT NULL)')
+            conn.executemany('INSERT INTO ecra_shared_json_pool VALUES (?,?)',
+                             ((i, plan.dumps(node, force=True)) for i, node in enumerate(plan.nodes)))
         for table, rows in rows_by_table.items():
             columns = sorted({key for row in rows for key in row}) or ["empty"]
             # All identifiers originate from our own fact schema, never from source text.
             conn.execute(f'CREATE TABLE "{table}" (' + ",".join(f'"{c}"' for c in columns) + ")")
             # sqlite3 consumes the iterator incrementally. Never materialize
             # a second serialized copy of an entire table in Python memory.
-            values = ([json.dumps(row.get(c), ensure_ascii=False) if isinstance(row.get(c), (dict, list)) else row.get(c)
+            values = ([serialize(row.get(c)) if isinstance(row.get(c), (dict, list)) else row.get(c)
                        for c in columns] for row in rows)
             conn.executemany(f'INSERT INTO "{table}" VALUES (' + ",".join("?" for _ in columns) + ")", values)
+            if table == 'findings' and 'finding_id' in columns:
+                # Covering index avoids reading enormous evidence overflow
+                # pages merely to recover previous IDs at the next startup.
+                conn.execute('CREATE INDEX finding_identity ON findings(finding_id)')
         if facts.get('pointer_target_sets'):
             # Encoded target references must be usable from SQLite as well as
             # facts.json. Dict/string-list pools are not ordinary fact tables.
@@ -50,7 +65,65 @@ def write_database(path, facts, report):
     replace_file(temp, path)
 
 
+class AtomicLines:
+    """Write exactly join(lines, '\\n') without retaining all report text."""
+    def __init__(self, path, initial=()):
+        self.path, self.initial = path, initial
+        self.temp = path.with_suffix(path.suffix+'.tmp')
+        self.stream, self.count = None, 0
+        self.finished = False
+
+    def __enter__(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.stream = self.temp.open('w', encoding='utf-8')
+        try:
+            self.extend(self.initial)
+        except BaseException:
+            self.__exit__(*__import__('sys').exc_info())
+            raise
+        self.initial = ()
+        return self
+
+    def append(self, line):
+        if not isinstance(line, str):
+            raise TypeError('报告行必须是字符串')
+        if self.finished:
+            raise ValueError('报告已完成原子发布')
+        if self.count:
+            self.stream.write('\n')
+        self.stream.write(line)
+        self.count += 1
+
+    def extend(self, lines):
+        for line in lines:
+            self.append(line)
+
+    def __iadd__(self, lines):
+        self.extend(lines)
+        return self
+
+    def finish(self):
+        if not self.finished:
+            self.stream.close()
+            replace_file(self.temp, self.path)
+            self.finished = True
+
+    def __exit__(self, kind, value, traceback):
+        try:
+            if kind is None:
+                self.finish()
+            elif self.stream:
+                self.stream.close()
+        finally:
+            self.temp.unlink(missing_ok=True)
+
+
 def generate(out, facts, report, reviews):
+    with ExitStack() as files:
+        return _generate(out, facts, report, reviews, files)
+
+
+def _generate(out, facts, report, reviews, files):
     from .html_report import category, review_records, write_html, risk_summary, final_conclusion, localized_records
     from .decisions import decision_label, effective_decision
     from .scope import validate_selection
@@ -134,12 +207,14 @@ def generate(out, facts, report, reviews):
     quality['root_cause_reason_counts'] = diagnostic['reason_counts']
     quality['root_cause_hotspots'] = diagnostic['hotspots'][:50]
     quality['counterfactual_upper_bounds'] = diagnostic['counterfactual_upper_bounds']
-    write_json(out / 'reports/root_cause_v2.json', diagnostic, indent=None)
+    from .shared_json import write as write_shared_json
+    write_shared_json(out / 'reports/root_cause_v2.json', diagnostic)
     (out / 'reports/classification_root_causes.md').write_text(
         root_causes_markdown(diagnostic), encoding='utf-8')
-    write_json(out / "facts.json", facts, indent=None)
-    write_json(out / "inventory/global_static_inventory.json", facts["variables"], indent=None)
-    write_json(out / "reports/global_static_concurrency.json", report, indent=None)
+    del diagnostic
+    write_shared_json(out / "facts.json", facts)
+    write_shared_json(out / "inventory/global_static_inventory.json", facts["variables"])
+    write_shared_json(out / "reports/global_static_concurrency.json", report)
     write_database(out / "facts.db", facts, report)
     funcs = {f["function_id"]: f for f in facts["functions"]}
     from .html_report import to_display_text, KINDS, RULES
@@ -155,7 +230,8 @@ def generate(out, facts, report, reviews):
     def chain(path):
         return " → ".join(funcs[fid]["name"] + " (" + location(funcs[fid]) + ")" if fid in funcs else fid for fid in path)
 
-    inventory = ["# 全局变量与 static 变量完整清单", "", "清单覆盖全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）及补充声明；普通局部变量、参数和结构体字段不作为共享对象盘点。完整性受报告覆盖门槛约束。", ""]
+    inventory = files.enter_context(AtomicLines(out / 'inventory/global_static_inventory.md',
+        ["# 全局变量与 static 变量完整清单", "", "清单覆盖全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）及补充声明；普通局部变量、参数和结构体字段不作为共享对象盘点。完整性受报告覆盖门槛约束。", ""]))
     if not facts.get('context_call_graph', {}).get('path_lists_complete', True):
         inventory += ["调用路径以下仅列最短见证，条数不是全部路径数；完整调用证据包含全部入口、调用边与上下文，见 [facts.json](../facts.json) 的 context_call_graph、call_graph_slices 和 calls。保护与分类证明使用完整图。", ""]
     variable_risks = {v['symbol_id']: v for v in report['risk_summary']['variables']}
@@ -184,7 +260,7 @@ def generate(out, facts, report, reviews):
                 inventory.append('  - PROVEN_UNREACHABLE：当前构建入口不可达')
             elif not a.get("contexts"):
                 inventory.append("  - 执行上下文尚未确定")
-    (out / "inventory/global_static_inventory.md").write_text("\n".join(inventory), encoding="utf-8")
+    inventory.finish()
     cov = report["coverage"]
     md = ["# 全局变量与 static 变量并发排查报告", "", f"- 分析状态：**{zh(report['analysis_status'])}**", f"- 本轮状态：**{zh(report.get('run_status', 'SCANNED'))}**",
           f"- 变量：{len(facts['variables'])}；候选及盲区复核项：{len(report['findings'])}",
@@ -221,6 +297,7 @@ def generate(out, facts, report, reviews):
         '|---|---|---|---|---|---|---|', '| ' + ' | '.join(str(summary['counts'][key]) for key in summary['labels']) + ' |', '',
         f"以上按 {summary['total_variables']} 个变量去重；另有 {summary['independent_gaps']} 项覆盖 / 依赖缺口。",
         'risk_summary 是风险分类；review_summary 是模型复核进度，二者不能相互替代。“已排查不存在并发风险”仅适用于无盲区且没有读写冲突的当前建模范围。', '']
+    md = files.enter_context(AtomicLines(out / 'reports/global_static_concurrency.md', md))
     for limit in report["limitations"]:
         md.append("- " + limit)
     if facts.get('nvic_priorities'):
@@ -260,8 +337,8 @@ def generate(out, facts, report, reviews):
             if not a["contexts"]:
                 md.append("  - 执行上下文尚未确定")
         md += ["", "复核动作：核对所有调用入口、真实抢占与临界区；构造最短交错时序，检查旧值覆盖、事件丢失、重入和 DMA 生命周期。修复建议与验证方法见复核报告。"]
-    (out / "reports/global_static_concurrency.md").write_text("\n".join(md), encoding="utf-8")
-    unknown = ["# 未知上下文与分析盲区", ""]
+    md.finish()
+    unknown = files.enter_context(AtomicLines(out / 'reports/unknown_contexts.md', ["# 未知上下文与分析盲区", ""]))
     for a in facts["accesses"]:
         if not a["contexts"]:
             unknown.append(f"- 执行上下文尚未确定 {a['symbol_id']} {location(a)}")
@@ -270,7 +347,7 @@ def generate(out, facts, report, reviews):
         if is_english_prose(detail):
             detail = '该分析缺口尚待核实；请按位置核对 facts.json 中保留的原始诊断。'
         unknown.append(f"- {u['kind']} {location(u)}: {cell(detail)}")
-    (out / "reports/unknown_contexts.md").write_text("\n".join(unknown), encoding="utf-8")
+    unknown.finish()
     conclusion = report['final_conclusion']
     review_md = ["# OpenCode 逐项复核结果", "", '**最终结论：' + conclusion['label'] + '**', '',
                  conclusion['scope'], '', f"已返回回答 {conclusion['reviewed']}/{conclusion['total']}；仍未决 {len(conclusion['unresolved_findings'])} 项。", '',

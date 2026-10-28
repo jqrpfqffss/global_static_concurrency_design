@@ -146,6 +146,8 @@ analysis:
   cmake:
     build_dir: build/ecra
     generator: Ninja
+    # 多目标工程可指定实际固件目标；仅支持带 compdb-targets 的 Ninja。
+    # target: firmware.elf
     build_type: Debug
     # toolchain_file: cmake/arm-none-eabi.cmake
     args: []  # 原工程需要的 -D 选项；每项是一个参数
@@ -318,7 +320,7 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
         if not isinstance(c, dict):
             raise ValueError('analysis.cmake 必须是映射')
         allowed = {'build_dir', 'generator', 'build_type', 'toolchain_file', 'args', 'build', 'build_args',
-                   'clean_before_configure', 'timeout_seconds', 'allow_external_toolchain'}
+                   'clean_before_configure', 'timeout_seconds', 'allow_external_toolchain', 'target'}
         if set(c) - allowed:
             raise ValueError('analysis.cmake 未知配置项: ' + ', '.join(sorted(set(c)-allowed)))
         for key in ('args', 'build_args'):
@@ -327,6 +329,14 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
         for key in ('build_dir', 'generator', 'build_type', 'toolchain_file'):
             if key in c and (not isinstance(c[key], str) or not c[key].strip()):
                 raise ValueError(f'analysis.cmake.{key} 必须是非空字符串')
+        if 'target' in c:
+            if (not isinstance(c['target'], str) or not c['target'].strip()
+                    or c['target'].startswith('-') or any(ch in c['target'] for ch in '\r\n\x00')):
+                raise ValueError('analysis.cmake.target 必须是有效的非空目标名称')
+            if c.get('generator', 'Ninja') != 'Ninja':
+                raise ValueError('analysis.cmake.target 当前需要 Ninja Generator')
+            if any(arg in {'--target', '-t', '--'} or arg.startswith('--target=') for arg in c.get('build_args', [])):
+                raise ValueError('指定 cmake.target 后不可在 build_args 中覆盖构建目标或原生工具参数')
         if 'build' in c and type(c['build']) is not bool:
             raise ValueError('analysis.cmake.build 必须是 true/false')
         if 'clean_before_configure' in c and type(c['clean_before_configure']) is not bool:

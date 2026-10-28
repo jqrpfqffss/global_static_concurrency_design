@@ -554,8 +554,15 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 scope='确定性质量检查及明确结论矛盾检查，不是完整语义证明', state='PENDING')
             write_json(packet_path, packet, indent=1)
             prompt = REVIEW_PROMPT + review_context_section(review_context_path) + library_prompt + CONTRACT_PROMPT
+            prompt += ('\n大型事实可能采用无损共享存储：JSON 根含 _ecra_shared_json=1 时，'
+                'reference_key 指定引用字段，pool 按子节点在前排列，value 是完整逻辑对象；'
+                '先还原池引用，再读取变量、访问和调用边。SQLite 的 ecra_shared_json_metadata/'
+                'ecra_shared_json_pool 使用相同规则。引用不表示缺失、截断或无访问。'
+                '当前 Packet 仍包含完整变量证据，不能将显示过滤用于风险判断。\n')
             if packet.get('git_diff_impact'):
                 prompt += ('\n本项属于分支差异范围。git_diff_impact 提供影响原因、基准事实路径和代码差异路径；'
+                    'base_summary_path 中的 graphs 保存完整基准调用子图，可用 base.graph_id 查找；'
+                    '摘要及原始事实均绑定内容哈希。'
                     '请读取这些已授权证据，并结合全部当前访问、上下文和调用边核对变化。'
                     '未修改路径仍参与并发判断，不得只复核新增或删除的显示路径；结论针对当前存储对象。\n')
             semantic_prompt = prompt
@@ -645,7 +652,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     proc = execute(argv, cwd=root, timeout=float(settings.get('timeout_seconds', 300)),
                         **({'input': stdin_text} if stdin_text is not None else {}),
                         env=_review_env([packet_path, shared_path, facts_path, report_path,
-                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'diff_patch_path')
+                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
                               if (packet.get('git_diff_impact') or {}).get(key)]],
                                         format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths))
                     for stream in ('stdout', 'stderr'):

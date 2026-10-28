@@ -27,6 +27,16 @@ from ecra.json_rows import RowReader
 
 def fact_values(path):
     """Stream rows and pool entries; a large pool dict is never decoded whole."""
+    from ecra.shared_json import encoded
+    if encoded(path):
+        from ecra.json_rows import rows
+        for key, value, is_array in rows(path):
+            if key == 'pointer_target_sets':
+                for item in value.items():
+                    yield key, item, False
+            else:
+                yield key, value, is_array
+        return
     with path.open(encoding='utf-8-sig') as stream:
         reader = RowReader(stream)
         reader.take('{')
@@ -87,7 +97,9 @@ def audit_fact_database(path, source, index):
                 counts[table] += 1
     tables = {r[0] for r in source.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     differences = {}
-    for table in tables - {'findings', 'review_safe_samples', 'pointer_target_atoms', 'pointer_target_sets'}:
+    from ecra.shared_json import DatabasePool
+    database_pool = DatabasePool(source)
+    for table in tables - {'findings', 'review_safe_samples', 'pointer_target_atoms', 'pointer_target_sets'} - DatabasePool.TABLES:
         actual = source.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
         if actual != counts[table]:
             differences[table] = dict(json=counts[table], sqlite=actual)
@@ -158,7 +170,8 @@ def audit_fact_database(path, source, index):
     return dict(row_counts=dict(counts), differences=differences, solver_summaries=solver_summaries,
                 solver_fixed_points_complete=all(solver_summaries.get(key, {}).get('complete') is True
                     for key in ('points_to_stats', 'context_points_to_stats')),
-                pools=dict(atoms=atom_count, sets=pool_count, error_count=error_count, errors=errors))
+                pools=dict(atoms=atom_count, sets=pool_count, error_count=error_count, errors=errors),
+                shared_json_pool_nodes=len(database_pool.nodes))
 
 
 class Document(HTMLParser):
@@ -202,6 +215,30 @@ class Document(HTMLParser):
         self.ids.clear(); self.links.clear()
 
 
+def report_selection(folder):
+    """Read the persisted, version-bound presentation scope, never infer it from HTML."""
+    state_file = folder/'scan_state.json'
+    state = json.loads(state_file.read_text(encoding='utf-8')) if state_file.is_file() else {}
+    if state.get('scan_mode', 'full') == 'full':
+        return None
+    if state.get('scan_mode') != 'diff':
+        raise ValueError('无法识别保存的扫描模式')
+    from ecra.json_rows import rows
+    delta, fingerprint = None, None
+    for key, value, is_array in rows(folder/'reports/global_static_concurrency.json'):
+        if key == 'git_diff':
+            delta = value
+        elif key == 'fingerprint':
+            fingerprint = value
+    selected = delta.get('selected_symbol_ids') if isinstance(delta, dict) else None
+    if (not isinstance(selected, list) or any(not isinstance(sid, str) for sid in selected)
+            or len(set(selected)) != len(selected)
+            or fingerprint != state.get('fingerprint')
+            or digest(delta.get('pin')) != digest(state.get('git_diff_pin'))):
+        raise ValueError('保存的差异范围或比较版本无效，禁止推断为全量或空差异')
+    return set(selected)
+
+
 def audit(folder, *, check_json=True, node=None):
     folder = Path(folder).resolve()
     begin = time.monotonic()
@@ -235,8 +272,12 @@ def audit(folder, *, check_json=True, node=None):
         index.execute('CREATE TABLE variable_rows (id TEXT PRIMARY KEY)')
         index.execute('CREATE TABLE resources (target TEXT, source TEXT, PRIMARY KEY(target,source))')
         index.execute('CREATE TABLE expected_rows (id TEXT PRIMARY KEY)')
+        selected = report_selection(folder)
+        inventory_ids = {row[0] for row in source.execute('SELECT symbol_id FROM variables')}
+        checks['selected_scope_valid'] = selected is None or selected <= inventory_ids
+        expected_ids = inventory_ids if selected is None else selected
         index.executemany('INSERT INTO expected_rows VALUES (?)',
-                          (('var-'+digest(row[0])[:20],) for row in source.execute('SELECT symbol_id FROM variables')))
+                          (('var-'+digest(sid)[:20],) for sid in expected_ids))
         paths = [folder/name for name in ('index.html', 'opencode_review.html', 'classification_quality.html')]
         if manifest:
             paths += [folder/'html_details'/name for name in manifest['files'] if name.endswith('.html')]
@@ -273,7 +314,8 @@ def audit(folder, *, check_json=True, node=None):
         extra = index.execute('SELECT COUNT(*) FROM (SELECT id FROM variable_rows EXCEPT SELECT id FROM expected_rows)').fetchone()[0]
         checks['every_variable_present'] = absent == extra == 0
         result['html'] = dict(documents=len(paths), missing_documents=missing_documents, missing_resources=missing_resources,
-                              variables=source.execute('SELECT COUNT(*) FROM variables').fetchone()[0], absent=absent, extra=extra,
+                              variables=len(inventory_ids), expected_visible_variables=len(expected_ids),
+                              scope='FULL_BUILD' if selected is None else 'CURRENT_GIT_DIFF', absent=absent, extra=extra,
                               javascript_checks=script_count, javascript_errors=script_errors)
         if node:
             checks['javascript_syntax'] = not script_errors

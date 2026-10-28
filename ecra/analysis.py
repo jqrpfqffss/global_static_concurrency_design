@@ -620,12 +620,30 @@ def multi_field_coherence(variables, accesses_by_symbol, contexts, calls=(), bin
     caller_contexts = defaultdict(set)
     for binding in bindings:
         caller_contexts[binding['function_id']].add(binding['context_id'])
+    def transactions(items, sites):
+        # Equal physical domains and member sets have exactly the same
+        # cross-field predicate for every function pair. Keep the full source
+        # sets and count their Cartesian product without visiting each pair.
+        buckets = {}
+        for key, members in items.items():
+            if len(members) < 2:
+                continue
+            signature = (key[0], frozenset(members))
+            if signature not in buckets:
+                buckets[signature] = dict(physical=key[0], members=signature[1],
+                                         functions=set(), sites=defaultdict(set))
+            bucket = buckets[signature]
+            bucket['functions'].add(key[1])
+            for sid in members:
+                bucket['sites'][sid].update(sites[key][sid])
+        for bucket in buckets.values():
+            bucket['first'] = min(bucket['functions'])
+        return buckets.values()
     roots = defaultdict(list)
     for variable in variables:
         if variable.get('root_symbol_id'):
             roots[variable['root_symbol_id']].append(variable)
     result = defaultdict(list)
-    grouped = {}
     for root_id, members in roots.items():
         writes, reads = defaultdict(set), defaultdict(set)
         sites = defaultdict(lambda: defaultdict(list))
@@ -653,13 +671,15 @@ def multi_field_coherence(variables, accesses_by_symbol, contexts, calls=(), bin
                                 caller_key = (physical, caller)
                                 reads[caller_key].add(sid)
                                 sites[caller_key][sid].append(access['access_id'])
-        for writer, written in writes.items():
-            if len(written) < 2:
-                continue
-            for reader, observed in reads.items():
-                if writer[0] == reader[0]:
+        write_groups = tuple(transactions(writes, sites))
+        read_groups = tuple(transactions(reads, sites))
+        grouped = {}
+        del writes, reads, sites
+        for wi, writer in enumerate(write_groups):
+            for ri, reader in enumerate(read_groups):
+                if writer['physical'] == reader['physical']:
                     continue
-                common = written & observed
+                common = writer['members'] & reader['members']
                 if len(common) < 2:
                     continue
                 # A large cooperative call graph can have thousands of writer
@@ -667,37 +687,48 @@ def multi_field_coherence(variables, accesses_by_symbol, contexts, calls=(), bin
                 # set.  The cross product is an audit presentation detail, not
                 # a new coherence fact.  Keep one source-backed group and its
                 # exact pair count, functions, accesses and one concrete pair.
-                key = (root_id, writer[0], reader[0], tuple(sorted(common)))
+                key = (root_id, writer['physical'], reader['physical'], tuple(sorted(common)))
                 evidence = grouped.get(key)
                 if evidence is None:
                     evidence = grouped[key] = dict(kind='MULTI_FIELD_COHERENCE',
                         coherence_id='MC-' + digest(key)[:20],
-                        root_symbol_id=root_id, writer_physical_context=writer[0],
-                        reader_physical_context=reader[0], member_symbol_ids=list(key[3]),
-                        writer_function_ids=set(), reader_function_ids=set(),
-                        writer_access_ids=set(), reader_access_ids=set(),
+                        root_symbol_id=root_id, writer_physical_context=writer['physical'],
+                        reader_physical_context=reader['physical'], member_symbol_ids=list(key[3]),
+                        writer_groups=set(), reader_groups=set(),
                         function_pair_count=0,
-                        witness=dict(writer_function_id=writer[1], reader_function_id=reader[1]),
+                        witness=dict(writer_function_id=writer['first'], reader_function_id=reader['first']),
                         reason='同一写入函数发布多个成员，另一物理上下文中的同一调用过程直接或经一层访问器读取这些成员。')
-                evidence['function_pair_count'] += 1
-                evidence['writer_function_ids'].add(writer[1])
-                evidence['reader_function_ids'].add(reader[1])
-                candidate = (writer[1], reader[1])
+                evidence['function_pair_count'] += len(writer['functions']) * len(reader['functions'])
+                evidence['writer_groups'].add(wi)
+                evidence['reader_groups'].add(ri)
+                candidate = (writer['first'], reader['first'])
                 previous = (evidence['witness']['writer_function_id'],
                             evidence['witness']['reader_function_id'])
                 if candidate < previous:
-                    evidence['witness'] = dict(writer_function_id=writer[1],
-                                               reader_function_id=reader[1])
-                evidence['writer_access_ids'].update(
-                    ident for sid in common for ident in sites[writer][sid])
-                evidence['reader_access_ids'].update(
-                    ident for sid in common for ident in sites[reader][sid])
-    for evidence in grouped.values():
-        for name in ('writer_function_ids', 'reader_function_ids',
-                     'writer_access_ids', 'reader_access_ids'):
-            evidence[name] = sorted(evidence[name])
-        for sid in evidence['member_symbol_ids']:
-            result[sid].append(evidence)
+                    evidence['witness'] = dict(writer_function_id=writer['first'],
+                                               reader_function_id=reader['first'])
+        # Collect group references first. Repeated physical-context pairs can
+        # otherwise hold millions of copies of identical complete source sets.
+        # Materialized lists are shared read-only; JSON still contains every ID.
+        def materialize(groups, indices, members, function_pool, access_pool):
+            indices = frozenset(indices)
+            if indices not in function_pool:
+                function_pool[indices] = sorted({fid for i in indices for fid in groups[i]['functions']})
+            key = (indices, tuple(members))
+            if key not in access_pool:
+                access_pool[key] = sorted({ident for i in indices for sid in members
+                                          for ident in groups[i]['sites'][sid]})
+            return function_pool[indices], access_pool[key]
+
+        writer_functions, reader_functions, writer_sites, reader_sites = {}, {}, {}, {}
+        for evidence in grouped.values():
+            fields = evidence['member_symbol_ids']
+            evidence['writer_function_ids'], evidence['writer_access_ids'] = materialize(
+                write_groups, evidence.pop('writer_groups'), fields, writer_functions, writer_sites)
+            evidence['reader_function_ids'], evidence['reader_access_ids'] = materialize(
+                read_groups, evidence.pop('reader_groups'), fields, reader_functions, reader_sites)
+            for sid in fields:
+                result[sid].append(evidence)
     return {sid: sorted(rows, key=lambda row: (
                 row['root_symbol_id'], row['writer_physical_context'],
                 row['reader_physical_context'], row['member_symbol_ids']))
@@ -1091,6 +1122,27 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
                                                 facts['calls'], facts['context_bindings'])
     facts['multi_field_coherence'] = list({id(row): row for rows in
         coherence_by_symbol.values() for row in rows}.values())
+    from .initialization import prove_initialization, InitializationIndex
+    initialization_index = InitializationIndex(facts, cfg)
+    coherence_summaries = {}
+
+    def summarize_coherence(row):
+        ident = id(row)
+        if ident not in coherence_summaries:
+            coherence_summaries[ident] = dict(
+                coherence_id=row['coherence_id'], root_symbol_id=row['root_symbol_id'],
+                writer_physical_context=row['writer_physical_context'],
+                reader_physical_context=row['reader_physical_context'],
+                member_symbol_ids=row['member_symbol_ids'],
+                function_pair_count=row['function_pair_count'],
+                writer_access_count=len(row['writer_access_ids']),
+                reader_access_count=len(row['reader_access_ids']),
+                writer_access_ids=row['writer_access_ids'][:8],
+                reader_access_ids=row['reader_access_ids'][:8],
+                witness=row['witness'],
+                full_evidence_reference='facts.json:multi_field_coherence')
+        return coherence_summaries[ident]
+
     for v in analyzed_variables:
         sid = v["symbol_id"]
         all_accesses = by_var[sid]
@@ -1137,19 +1189,7 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
             if v["is_struct"] or v["is_bitfield_container"]:
                 rules.add("GS-STRUCT-INCONSISTENT")
         coherence_evidence = coherence_by_symbol.get(sid, [])
-        coherence_summary = [dict(
-            coherence_id=row['coherence_id'], root_symbol_id=row['root_symbol_id'],
-            writer_physical_context=row['writer_physical_context'],
-            reader_physical_context=row['reader_physical_context'],
-            member_symbol_ids=row['member_symbol_ids'],
-            function_pair_count=row['function_pair_count'],
-            writer_access_count=len(row['writer_access_ids']),
-            reader_access_count=len(row['reader_access_ids']),
-            writer_access_ids=row['writer_access_ids'][:8],
-            reader_access_ids=row['reader_access_ids'][:8],
-            witness=row['witness'],
-            full_evidence_reference='facts.json:multi_field_coherence')
-            for row in coherence_evidence]
+        coherence_summary = [summarize_coherence(row) for row in coherence_evidence]
         if coherence_evidence:
             rules.add('GS-MULTI-FIELD-COHERENCE')
         annotations = [r for r in cfg["resources"] if r.get("symbol_id", r.get("name")) in {sid, v["name"], v["qualified_name"]}]
@@ -1161,8 +1201,7 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
             protection = 'DETECTED'
             protection_note = '配置中声明了保护措施，但当前源码未找到可关联的保护操作，不能证明其覆盖访问窗口。'
         member_conflicts = conflict_pairs(accesses, variable_relations, contexts)
-        from .initialization import prove_initialization
-        init_proof = prove_initialization(v, accesses, facts, contexts, cfg)
+        init_proof = prove_initialization(v, accesses, facts, contexts, cfg, index=initialization_index)
         evidence = evidence_index.build(v, accesses, contexts, protection_details, init_proof)
         verdict = classify(evidence, accesses, contexts, member_conflicts, protection, protection_note,
             init_proof, variable=v, cfg=cfg, snapshots=snapshots[sid], coherence_evidence=coherence_evidence)

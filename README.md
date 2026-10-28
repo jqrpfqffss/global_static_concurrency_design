@@ -1,6 +1,12 @@
 # STM32 全局变量与 static 变量并发排查工具（ECRA）
 
+大型 STM32H743 飞控工程的目标构建、问题修正与实测状态见 [INAV H743 验收记录](docs/inav-h743-git-diff-validation.md)。多目标 CMake 工程可配置可选的 `analysis.cmake.target`，由 Ninja 实际依赖图选择完整固件闭包。
+
+大型事实与报告使用自包含的无损共享存储，Python 可通过 `ecra.workflow.read_saved_json(path)` 还原完整原结构；小结果保持原 JSON 格式。编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。页面继续使用 `.ecra/index.html`，完整图和长源码搜索按需加载。
+
 新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。仍在原 `.ecra/index.html` 展示受影响变量，完整后台并发证据和静态归账保留。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败，未知影响会说明保守扩大范围。
+
+缓存还会核对预定义宏的语义影响。`__DATE__`、`__TIME__`、`__TIMESTAMP__` 仅在已证明不消费字符串值的不可变构建元数据场景中允许复用，字符串内容仍记录为未知；参与运行逻辑、存储布局或同 TU 派生常量时明确停止提取。这类用途目前不支持，可由工程提供纳入快照的确定生成输入后重扫；真实预处理构建输入导入仍待实现。不能关闭检查后宣称结果完整。
 
 真实工程的后续性能优化、无复核实测及完整事实对照见 [2026-10-26 优化记录](docs/real-project-optimization-validation.md)。可用 `scripts/benchmark_project_scan.py` 对自己的工程记录全量/差异耗时、内存和语义一致性；该脚本要求关闭自动复核与证据包。
 

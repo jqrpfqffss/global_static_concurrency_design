@@ -14,6 +14,20 @@ from ecra.workflow import clean_report, read_saved_json, saved_report_digest, st
 
 
 class SavedJsonTests(unittest.TestCase):
+    def test_complete_coherence_rows_and_scalar_lists_share_only_equal_values(self):
+        row = dict(coherence_id='MC-1', member_symbol_ids=['g.a', 'g.b'],
+                   writer_access_ids=[str(i) for i in range(80)], count=True)
+        different = dict(row, count=1)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'facts.json'
+            path.write_text(json.dumps(dict(variables=[row, row, different])), encoding='utf-8')
+            actual = read_saved_json(path)['variables']
+        self.assertIs(actual[0], actual[1])
+        self.assertIsNot(actual[0], actual[2])
+        self.assertIs(actual[0]['writer_access_ids'], actual[2]['writer_access_ids'])
+        self.assertIs(type(actual[0]['count']), bool)
+        self.assertIs(type(actual[2]['count']), int)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
