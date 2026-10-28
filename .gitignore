@@ -23,6 +23,7 @@ compile_commands.json
 .chart*
 ECRA_客户赋能培训交付包_20261018
 ECRA-Portable_培训配套.zip
+.tools*
 
 # ECRA generated state, reports, and browser-test artifacts
 .ecra/

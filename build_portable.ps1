@@ -172,6 +172,7 @@ exit /b %ERRORLEVEL%
 '@
     [IO.File]::WriteAllText((Join-Path $bundle 'ecra.cmd'), $launcher.Replace("`r`n","`n").Replace("`n","`r`n") + "`r`n", [Text.Encoding]::ASCII)
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'README.txt')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/manual-review.md') -Destination (Join-Path $bundle 'manual-review.md')
     $commit = 'unknown (source archive or Git unavailable)'
     $git = Get-Command git.exe -ErrorAction SilentlyContinue
     if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {

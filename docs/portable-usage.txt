@@ -1,5 +1,9 @@
 ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 
+人工确认：完成 run 后执行 .\ecra.cmd serve，浏览器中确认风险并保存进度。
+下次再次执行 serve，点击“继续确认”；详细操作与备份说明见 manual-review.md。
+人工数据保存在被扫描工程的 .ecra/manual_review 中，重扫和 report 不会清空。
+
 1. 解压整个 ECRA-Portable 目录；不要只复制 ecra.cmd 或工具 exe。
 2. 备份并编辑 config/semantics.yaml 的 project.root、扫描目录、上下文和复核设置。
 3. cmake.generator 应保持工程实际设置：MinGW Makefiles / Ninja / Unix Makefiles。

@@ -388,3 +388,7 @@ python scripts/verify_design.py --all
 
 接口依据：[Clang libclang](https://clang.llvm.org/docs/LibClang.html)、[OpenCode CLI](https://opencode.ai/docs/cli/)、[OpenCode 权限](https://opencode.ai/docs/permissions/)。
 # global_static_concurrency_design
+## 人工确认与断点续审
+
+扫描后运行 `py -3.10 run_ecra.py serve`，即可在原报告中分批确认风险、保存依据并继续未完成队列。
+参见 [操作与备份指南](docs/manual-review.md) 和 [开发与验收记录](docs/manual-review-development.md)。

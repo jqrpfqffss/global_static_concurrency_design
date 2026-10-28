@@ -134,6 +134,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                         shutil.copytree(p, snapshot / name)
                 elif p.is_file():
                     shutil.copy2(p, snapshot / name)
+            # Copy committed WAL pages with SQLite's online backup API. The
+            # primary audit ledger remains outside regenerated scan outputs.
+            if (out / 'manual_review/manual_review.sqlite3').is_file():
+                from .manual_review import Ledger
+                backup_dir = snapshot / 'manual_review'
+                backup_dir.mkdir()
+                Ledger(out, digest(['ecra-project-v1', str(root.resolve()).casefold()])).backup(
+                    backup_dir / 'manual_review.sqlite3')
         if not doctor_only:
             (out/'scan_state.json').unlink(missing_ok=True)
             write_json(out / "run.json", run_info)
@@ -403,7 +411,7 @@ def main(argv=None):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="STM32 全局/static 清单、读写调用链与 OpenCode 并发复核")
-    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "review-failed", "report", "status"], default="run",
+    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "review-failed", "report", "status", "serve"], default="run",
                         help='run 全流程；review 重跑全部疑似/未知；review-failed 仅重跑技术失败；report 刷新报告；status 查看进度；doctor 环境检查')
     parser.add_argument("--project", type=Path, help="临时覆盖 semantics.yaml 中的 project.root")
     parser.add_argument("--config", help="显式配置文件路径；正常使用唯一的 config/semantics.yaml")
@@ -416,8 +424,14 @@ def main(argv=None):
     parser.add_argument("--review-shared-sample", type=int, default=0, metavar='N',
                         help='额外抽取 N 个 SHARED_NO_REVIEW 项生成质量复核证据包；不改变风险队列')
     parser.add_argument("--json", action="store_true", help="status 输出可供脚本读取的 JSON")
+    parser.add_argument('--port', type=int, default=0, help='serve 本地端口；默认自动选择空闲端口')
+    parser.add_argument('--no-browser', action='store_true', help='serve 不自动打开浏览器')
     args = parser.parse_args(argv)
     try:
+        if not 0 <= args.port <= 65535:
+            raise ValueError('--port 必须在 0 到 65535 之间')
+        if args.command != 'serve' and (args.port or args.no_browser):
+            raise ValueError('--port / --no-browser 仅用于 serve')
         if args.json and args.command != 'status':
             raise ValueError('--json 仅用于 status')
         if args.review_safe_sample < 0:
@@ -433,6 +447,11 @@ def main(argv=None):
             root = args.project.resolve() if args.project else configured_project_root(config_path)
             if not root.is_dir():
                 raise ValueError(f"工程目录不存在: {root}")
+        if args.command == 'serve':
+            if args.no_review:
+                raise ValueError('serve 不执行扫描或模型复核，无需 --no-review')
+            from .manual_server import serve
+            return serve(root, str(config_path), args.port, not args.no_browser)
         if args.command in {'review', 'review-failed', 'report', 'status'}:
             from .workflow import saved_run, status
             if args.no_review:

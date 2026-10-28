@@ -541,7 +541,7 @@ const rows=[...document.querySelectorAll('table.searchable > tbody > tr[data-gro
 const searchText=new Map(rows.map(r=>[r,(r.dataset.search||(r.querySelector('.story-current')||r).textContent).toLowerCase()]));
 const pageSize=document.getElementById('page-size'), views=[...document.querySelectorAll('.pager')].map(p=>({pager:p,page:0,rows:rows.filter(r=>r.closest('table').id===p.dataset.table),matches:[]}));
 for(const v of views){const t=document.getElementById(v.pager.dataset.table),labels=[...t.tHead.rows[0].cells].map(c=>c.textContent);for(const r of v.rows)[...r.cells].forEach((c,i)=>c.dataset.label=labels[i]);}
-function matchesFilter(r){const [kind,value]=filter.value.split(':');return filter.value==='all'||(value?r.dataset[kind]===value:r.dataset.group===filter.value);}
+function matchesFilter(r){const [kind,value]=filter.value.split(':');return filter.value==='all'||(filter.value==='unfinished'?['UNCONFIRMED','NEEDS_RECHECK'].includes(r.dataset.group):(value?r.dataset[kind]===value:r.dataset.group===filter.value));}
 function search(reset=true){let n=0,shown=0;const size=Number(pageSize.value);for(const v of views){if(reset)v.page=0;v.matches=v.rows.filter(r=>searchText.get(r).includes(q.value.trim().toLowerCase())&&matchesFilter(r)&&(fileFilter.value==='all'||JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file])).includes(fileFilter.value)));const count=Math.max(1,Math.ceil(v.matches.length/size));v.page=Math.max(0,Math.min(v.page,count-1));const visible=new Set(v.matches.slice(v.page*size,(v.page+1)*size));for(const r of v.rows)r.hidden=!visible.has(r);if(v.pager.closest('.panel')===active){n+=v.matches.length;shown+=visible.size;}v.pager.querySelector('span').textContent=v.matches.length+' 条 · 第 '+(v.page+1)+' / '+count+' 页';v.pager.nextElementSibling.hidden=!!v.matches.length;v.pager.querySelector('[data-step="-1"]').disabled=v.page===0;v.pager.querySelector('[data-step="1"]').disabled=v.page+1>=count;}document.getElementById('visible').textContent=(document.querySelector('.review-reading')?'搜索当前有效解释与引用（不含历史回答）：':'仅搜索当前栏目（含折叠证据）：')+n+' 条匹配，当前展示 '+shown+' 条';}
 function activate(panel,clear=false){active=panel;for(const p of panels)p.hidden=p!==panel;for(const a of tabs){if(a.hash==='#'+panel.id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}if(clear)q.value='';filter.replaceChildren(...JSON.parse(panel.dataset.options||'[]').map(([k,v])=>new Option(v,k)));const files=[...new Set(rows.filter(r=>r.closest('.panel')===panel).flatMap(r=>JSON.parse(r.dataset.files||JSON.stringify([r.dataset.file]))).filter(Boolean))].sort();fileFilter.replaceChildren(new Option('全部文件','all'),...files.map(f=>new Option(f,f)));document.querySelector('.toolbar').hidden=!panel.querySelector('.searchable');search();}
 for(const v of views)for(const b of v.pager.querySelectorAll('button'))b.addEventListener('click',()=>{v.page+=Number(b.dataset.step);search(false);});
@@ -758,6 +758,9 @@ def write_html(out, facts, report, reviews):
     contexts = {c['id']: c for c in facts['contexts']}
     records = {r['finding_id']: r for r in review_records(report, reviews)}
     assessments = variable_decisions(facts, report, records)
+    from .manual_ui import render as manual_render, entry as manual_entry
+    from .manual_review import targets as manual_targets
+    manual_ids = {v['symbol_id'] for v in manual_targets(facts, report)}
     candidates = defaultdict(list)
     for finding in report['findings']:
         if finding.get('symbol_id'):
@@ -1098,7 +1101,7 @@ def write_html(out, facts, report, reviews):
             + '</a><span class="location">' + esc(f"{primary.get('file') or '缺少位置'}:{primary.get('line') or '?'}") + '</span>'
             + esc(KINDS.get(v['kind'], v['kind'])) + ' · ' + esc(v.get('type')),
             '<p>' + esc(why) + '</p>',
-            decision_tag(assessments[sid]) + '<p>' + esc(conclusion) + '</p>' + detail],
+            decision_tag(assessments[sid]) + '<p>' + esc(conclusion) + '</p>' + (manual_entry(sid) if sid in manual_ids else '') + detail],
             anchor('var-', sid), group, file=primary.get('file'), decision=assessments[sid], files=files,
             search_text=' '.join([v.get('qualified_name', ''), v.get('name', ''), v.get('type', ''), *files,
                                   *(function_name(a.get('function_id')) for a in v.get('accesses', [])),
@@ -1196,7 +1199,8 @@ def write_html(out, facts, report, reviews):
                  + '<span class="tag priority-' + esc(f['risk_level']) + '">' + esc(PRIORITIES.get(f['risk_level'], f['risk_level'])) + '</span>' + actors,
                  titles + '<div class="source-previews">' + ''.join(previews) + '</div>' + scenario_html + detail,
                  '<p class="step">' + esc(summary[0][2] if summary else '查看证据，补充未知信息。') + '</p>'
-                 + f'<a href="{REVIEW_PAGE}#{anchor("review-", f["finding_id"])}">{state}</a>']
+                 + f'<a href="{REVIEW_PAGE}#{anchor("review-", f["finding_id"])}">{state}</a>'
+                 + (manual_entry(sid) if sid in manual_ids else '')]
         (risks if sid else gaps).append(row(cells, ident, 'candidate' if sid else 'gap',
             f['risk_level'], f['definition'].get('file'), 'dependency' if dependency else 'target', assessment))
 
@@ -1246,9 +1250,11 @@ def write_html(out, facts, report, reviews):
     coverage += '<h2>任务、中断与硬件上下文</h2>' + table(['上下文', '入口、优先级、注册与发现依据'],
         [row([esc(context(c['id'])), raw(c)]) for c in facts['contexts']])
     counts = Counter(category(r) for r in records.values())
-    content = risk_overview(facts, report, records, assessments) + nvic_summary(facts)
+    manual_banner, manual_panel, manual_script = manual_render(facts, report, records)
+    content = risk_overview(facts, report, records, assessments) + manual_banner + nvic_summary(facts)
     content += '<nav class="tabs" aria-label="排查栏目">' + ''.join(f'<a href="#{key}">{label} {number}</a>' for key, label, number in [
-        ('risks', '变量风险结论', len(risks)), ('inventory', '全部目标变量', len(inventory_rows)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'
+        ('risks', '变量风险结论', len(risks)), ('inventory', '全部目标变量', len(inventory_rows)), ('manual', '人工确认', len(manual_ids)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'
+    content += manual_panel
     decision_options = [('decision:' + key, value[0]) for key, value in DECISIONS.items()]
     priority_options = [('all', '全部结论')] + decision_options[:-1] + [('level:' + k, v) for k, v in PRIORITIES.items()]
     content += panel('risks', '变量风险结论与关键证据',
@@ -1277,7 +1283,7 @@ for(const edge of graph.calls){const k=edge.callee_function_id;if(!incoming.has(
 for(const d of document.querySelectorAll('details.graph'))d.addEventListener('toggle',()=>{if(!d.open||d.dataset.loaded)return;d.dataset.loaded='1';let seen=new Set(), edges=[], todo=[...(graph.accesses[d.dataset.symbol]||[])];while(todo.length){let f=todo.pop();if(seen.has(f))continue;seen.add(f);for(const e of incoming.get(f)||[]){edges.push(e);todo.push(e.caller_function_id);}}d.querySelector('pre').textContent=edges.map(e=>(graph.functions[e.caller_function_id]||e.caller_function_id)+' → '+(graph.functions[e.callee_function_id]||e.callee_name)+' ['+e.call_kind+'] @ '+e.file+':'+e.line).join('\\n')||'没有已解析调用边；入口直接访问或上下文未知。';});
 """
     content += '<script type="application/json" id="call-graph">' + data + '</script>'
-    inventory_page = page('并发变量排查报告', content, report, priority_options, graph_script)
+    inventory_page = page('并发变量排查报告', content, report, priority_options, graph_script + manual_script)
 
     counts = Counter(category(r) for r in records.values())
     review_rows = defaultdict(list)
@@ -1356,6 +1362,8 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
                    + '<span class="location">' + esc(loc(f['definition']) + instance) + '</span></div>'
                    + ('<span>变量最终分类：</span>' + decision_tag(group) + ' ' if f.get('symbol_id') else '')
                    + f'<span class="tag {category(r)}">OpenCode：{esc(status)}</span></div>' + explanation + citations + '</div>')
+        if f.get('symbol_id') in manual_ids:
+            current += manual_entry(f['symbol_id'])
         audit = ('<details class="story-audit"><summary>原始证据、执行日志与历史复核</summary>' + error
                  + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
                  + '<details class="evidence"><summary>有效复核引用的源码（' + str(len(evidence_rows)) + ' 处）</summary>' + source_evidence + '</details>'
@@ -1405,7 +1413,7 @@ for(const d of document.querySelectorAll('details.graph'))d.addEventListener('to
     content += nvic_summary(facts)
     content += overview(report, records.values(), [('确认项（含缺口）', counts['confirmed']), ('疑似项', counts['likely']), ('安全 / 误报项', counts['safe']), ('待复核 / 证据不足项', counts['unresolved'])])
     content += raw(cov, '本轮静态覆盖范围') + raw(report['limitations'], '结论适用范围与限制') + '</details></div>'
-    review_page = page('并发复核：原因、过程与结论', content, report, review_options, reading=True)
+    review_page = page('并发复核：原因、过程与结论', manual_banner + content, report, review_options, manual_script, reading=True)
     quality_page = classification_quality_html(facts, report)
     for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page),
                            (QUALITY_PAGE, quality_page)]:

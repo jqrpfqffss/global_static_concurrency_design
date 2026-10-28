@@ -186,11 +186,18 @@ class Acceptance:
             text = self.command(name, [exe, '--version']).strip().replace('\r\n','\n')
             if not re.search(pattern.replace('\\Z', '\\Z'), text):
                 raise ValueError(f'Version/distribution mismatch: {name}: {text}')
-        probe = """import sys, struct, json, sqlite3, ssl, multiprocessing, yaml
+        probe = """import sys, struct, json, sqlite3, ssl, multiprocessing, yaml, tempfile
+from pathlib import Path
+from ecra.manual_review import Ledger
+from ecra.manual_server import make_server
 from importlib.metadata import version
 from clang import cindex
 cindex.Index.create()
 assert struct.calcsize('P') == 8
+with tempfile.TemporaryDirectory() as folder:
+    ledger = Ledger(Path(folder), 'portable-probe')
+    assert ledger.history() == []
+    ledger.backup(Path(folder)/'backup.sqlite3')
 print(json.dumps({'python':sys.version.split()[0], 'PyYAML':version('PyYAML'), 'libclang':version('libclang'), 'libclang_loaded':True}))
 """
         text = self.command('Python dependencies and AST', [self.python, '-B','-c',probe])
@@ -314,7 +321,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         # Test the actual CMD launcher as well, including Chinese/space paths.
         help_text = self.command('ecra.cmd help', [os.environ.get('COMSPEC', r'C:\Windows\System32\cmd.exe'),
             '/d','/s','/c','""'+str(self.bundle/'ecra.cmd')+'" --help"'])
-        for command in ('run','doctor','review','report','status','init'):
+        for command in ('run','doctor','review','report','status','init','serve'):
             if command not in help_text:
                 raise ValueError(f'CLI missing: {command}')
         self.command('ecra.cmd doctor configure only', self.ecra('doctor',config))
@@ -336,6 +343,34 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         shared = next((v for v in facts['variables'] if v['name'] == 'shared_count'), None)
         if not shared or len(shared.get('writers',[])) < 2:
             raise ValueError('AST/global-variable/concurrent writer extraction regression')
+        manual_probe = '''import sys, json, threading, http.client
+from pathlib import Path
+from ecra.manual_server import make_server
+root, config = map(Path, sys.argv[1:])
+with make_server(root, str(config)) as server:
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    conn = http.client.HTTPConnection(*server.server_address, timeout=30)
+    conn.request('GET', '/api/state')
+    state = json.loads(conn.getresponse().read())
+    assert state['valid'] and state['rows']
+    record = state['rows'][0]
+    data = dict(record, decision='CONFIRMED_RISK', reason='Portable acceptance', reviewer='validator', report_fingerprint=state['report_fingerprint'])
+    conn.close()
+    conn = http.client.HTTPConnection(*server.server_address, timeout=30)
+    conn.request('POST', '/api/decision', json.dumps(data).encode(), {'Content-Type':'application/json', 'Origin':'http://'+server.authority, 'X-ECRA-Token':state['token']})
+    response = conn.getresponse()
+    saved = json.loads(response.read())
+    assert response.status == 200, saved
+    assert saved['progress']['counts']['CONFIRMED_RISK'] >= 1
+    conn.close()
+    server.shutdown()
+    thread.join()
+with make_server(root, str(config)) as restarted:
+    assert any(row['decision']=='CONFIRMED_RISK' for row in restarted.app.refresh())
+print('Manual review HTTP, SQLite WAL and restart: PASS')
+'''
+        self.command('Manual review persistence and HTTP', [self.python, '-B', '-c', manual_probe, str(firmware), str(config)])
         self.command('ecra.cmd review disabled interface', self.ecra('review',config),allowed=(2,))
         self.command('ecra.cmd report', self.ecra('report',config),allowed=(2,))
         status = json.loads(self.command('ecra.cmd status', self.ecra('status',config,'--json')))
@@ -359,6 +394,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         try:
             for name in ('ecra.cmd','run_ecra.py','README.txt','VERSION.txt','portable-lock.json',
                          'config/semantics.yaml','config/review_context.md','config/concurrency_cases.md',
+                         'manual-review.md','ecra/manual_review.py','ecra/manual_server.py','ecra/manual_ui.py',
                          'runtime/python.exe','runtime/python310.zip','runtime/python310._pth',
                          'runtime/msvcp140.dll','tools/cmake/bin/cmake.exe','tools/ninja/ninja.exe',
                          'tools/mingw/bin/gcc.exe','tools/mingw/bin/g++.exe','tools/mingw/bin/mingw32-make.exe',
