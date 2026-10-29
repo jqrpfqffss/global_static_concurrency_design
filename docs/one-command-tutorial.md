@@ -27,6 +27,12 @@ py -3.10 run_ecra.py --scan-mode diff
 
 只做静态实测时同时设置 `review.enabled: false`、`review.prepare_packets: false`，并加 `--no-review`。`scripts/benchmark_project_scan.py --project <工程> --config <配置> --scan-mode diff --evidence <新的证据目录>` 可记录真实 CLI 的耗时、内存和完整语义摘要；增加 `--reference <另一轮>/summary.json` 可核对同一源码的全量与差异结果。方法与实际边界见 [真实工程优化记录](real-project-optimization-validation.md)。
 
+若上述测量中的 CLI 已结束、但产物审计中断，可用相同参数和相同证据目录增加 `--audit-saved`。工具先验证原命令、引擎、配置、对照摘要、输入闭包和既定基准审计选项；只有仍属于同一未完成扫描才补跑审计，不重新提取 AST，不改写原始 CLI 耗时、峰值及退出码。存在扫描锁、源码变化或已经完成时会拒绝；旧格式测量缺少必要身份字段时需重新执行，不能补填指纹来认可旧证据。
+
+差异详情的“新旧变化摘要”可以核对 WRITE→RMW、临界区移除、执行入口及布局变化；摘要条目数相同也不表示证据内容相同，应结合本轮代码差异和收起的完整证据核对。标量与容器转换、缺失匹配或任一版本 UNKNOWN 时会说明风险变化无法判断，不能将容器根对象的分类变化理解为成员竞争已经消除。升级至摘要 Schema 4 后，原有完整快照与引擎校验仍保留，工具会重新建立失效缓存。
+
+INAV 专用 `scripts/validate_inav_git_diff.py --start-at-diff` 可省去重复的独立 full-base 轮；首次差异仍建立两版完整事实，并额外审计其内建完整基准，后续保留三种修改对应的独立当前版本全量对照。此方式是八个外层轮次加内建基准，不是九次独立外层扫描，也不能同时指定 `--baseline-reference`。
+
 本教程面向一个**刚创建或刚迁移到 CMake 的 STM32 固件工程**。完成一次接入后，日常只需一条命令：工具会重新配置 CMake、生成真实的编译数据库、增量构建、分析变量访问，并生成可离线阅读的报告。
 
 它关注的是容易被中断、主循环、RTOS 任务、回调和 DMA 同时访问的**全局变量和 `static` 变量**。工具不会修改源代码、CMake 配置或烧录开发板；它只使用工程原有的编译参数来理解源码。

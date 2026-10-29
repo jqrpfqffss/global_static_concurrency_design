@@ -1,0 +1,427 @@
+{
+  "kind": "真实大型工程验收进度",
+  "updated_utc": "2026-10-29T07:32:11.784238+00:00",
+  "branch": "optimize_ccc",
+  "tool_head": "db52f3231235336fb39c9e5795a78d30f95b643b",
+  "changes_committed": false,
+  "engine_digest": "45d3ba477c5547c42c8b884689d93a7c123426da3c537be57ef9874e609a55ef",
+  "review_executed": false,
+  "project": {
+    "name": "INAV 7.1.2",
+    "repository": "https://github.com/iNavFlight/inav",
+    "upstream_commit": "ed7fb3bb3216f8215150b42b52cb7b724e1dfae8",
+    "validation_base": "f25434a9e2e58db1ad2ce3b87529a78393cad139",
+    "target": "MATEKH743.elf",
+    "c_translation_units": 388,
+    "assembly_units": 2,
+    "c_source_lines": 233878,
+    "hardware_execution": false
+  },
+  "regression": {
+    "executed": 1010,
+    "passed": 1008,
+    "skipped_live_model": 2,
+    "failed": 0,
+    "seconds": 741.574,
+    "command": "py -3.10 -B -m unittest discover -s tests -v",
+    "working_directory": "H:\\global_static_concurrency_design\\.tools-cache\\risk-shape-candidate",
+    "log": "H:\\global_static_concurrency_design\\.tools-cache\\inav-final-1010-regression.log",
+    "log_sha256": "f1858ecb4e5f0074440f9e11c591920e463c7bdf000797a347e6acfabd5088ac",
+    "frozen_files_verified": 232,
+    "adopted_sources_byte_equal": true,
+    "resource_warning_retained": true
+  },
+  "portable": {
+    "directory": "I:\\ecra_stm32_validation\\inav-h743-20261029-portable-final-v7\\ECRA-Portable",
+    "directory_checks": 22,
+    "zip_extracted_checks": 22,
+    "all_checks_passed": true,
+    "zip_sha256": "d0c7e7b8c643835ec5b8c7488918ac90cc276478a4cbdfcdba8a0f070810e5eb",
+    "small_arm_diff_validation": {
+      "complete": true,
+      "bundle": "I:\\ecra_stm32_validation\\inav-h743-20261029-portable-final-v7\\ECRA-Portable",
+      "project": "I:\\ecra_stm32_validation\\目标差异 最终 中文 空格-45d3",
+      "review_executed": false,
+      "runs": [
+        {
+          "name": "full",
+          "seconds": 4.9210000000020955,
+          "exit_code": 2,
+          "valid": true,
+          "tu_cache": null,
+          "baseline_summary_cache": null,
+          "verification": null
+        },
+        {
+          "name": "diff-first",
+          "seconds": 11.937999999994645,
+          "exit_code": 2,
+          "valid": true,
+          "tu_cache": {
+            "hits": 0,
+            "extracted": 1,
+            "corrupt": 0,
+            "total": 1
+          },
+          "baseline_summary_cache": {
+            "hit": false,
+            "corrupt": false
+          },
+          "verification": {
+            "state": "PASSED",
+            "variables": 2,
+            "reextracted_units": 1,
+            "classification_mismatches": 0,
+            "semantic_mismatches": 0
+          }
+        },
+        {
+          "name": "diff-cached",
+          "seconds": 6.671999999991385,
+          "exit_code": 2,
+          "valid": true,
+          "tu_cache": {
+            "hits": 1,
+            "extracted": 0,
+            "corrupt": 0,
+            "total": 1
+          },
+          "baseline_summary_cache": {
+            "hit": true,
+            "corrupt": false
+          },
+          "verification": {
+            "state": "PASSED",
+            "variables": 2,
+            "reextracted_units": 1,
+            "classification_mismatches": 0,
+            "semantic_mismatches": 0
+          }
+        }
+      ]
+    },
+    "untracked_patch_validation": {
+      "complete": true,
+      "bundle": "I:\\ecra_stm32_validation\\inav-h743-20261029-portable-final-v7\\ECRA-Portable",
+      "review_executed": false,
+      "native_scan": false,
+      "safety_report_valid": false,
+      "git_executable": "I:\\ecra_stm32_validation\\inav-h743-20261029-portable-final-v7\\ECRA-Portable\\tools\\git\\cmd\\git.exe",
+      "implementation_sha256": "bd144b61d861bf919fe845c7a2f19138497e7e91f30e2c955dbf242ea37830d6",
+      "runtime_executable": "I:\\ecra_stm32_validation\\inav-h743-20261029-portable-final-v7\\ECRA-Portable\\runtime\\python.exe",
+      "runtime_version": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+      "git_version": "git version 2.56.0.windows.3",
+      "untracked_files": 5,
+      "unicode_space_path": true,
+      "leading_dash_path": true,
+      "empty_file": true,
+      "binary_payload": true,
+      "symlink": true,
+      "index_unchanged": true,
+      "independent_apply_equal": true,
+      "patch": "I:\\ecra_stm32_validation\\inav-h743-20261029-portable-untracked-45d3.patch",
+      "patch_sha256": "06d53d89f0143aa84f261ed408cac1d144a068a903d7cb868848e6fd553b6917"
+    },
+    "html_static_validation": {
+      "complete": true,
+      "kind": "ACTUAL_PORTABLE_DIFF_HTML_STATIC_CHECK",
+      "browser_executed": false,
+      "http_browser_combination_rejected": true,
+      "rejection_reason": "自动审批仅返回 blocked by policy；组合命令未执行，未重试。",
+      "inventory_rows": 1,
+      "unrelated_in_main_inventory": false,
+      "readable_access_changes": true,
+      "valid_patch_links": [
+        "git_diff/a2f69ea3ff5c9ed23ec041f2d14bb90cedc1d25fe3ebcb490cb536104c2c76bf.patch"
+      ],
+      "review_executed": false
+    }
+  },
+  "previous_audited_native_full": {
+    "engine_digest": "6e3b665ef28b0b2ef894220629b4ac0029ed3963b5a8ff5d2410fb4e839b21ae",
+    "complete": true,
+    "seconds": 13153.203000000009,
+    "peak_tree_rss_bytes": 29497737216,
+    "classifications": {
+      "SAFE_PROVEN": 8632,
+      "CONTAINER": 3197,
+      "null": 1144,
+      "UNKNOWN": 2222,
+      "NON_STORAGE": 53,
+      "SUSPECT": 1318
+    },
+    "variable_accountability": {
+      "total": 12172,
+      "screened": 8632,
+      "queued": 3540,
+      "missing": 0,
+      "duplicate_ids": 0
+    },
+    "artifact_audit": {
+      "passed": true,
+      "checks": {
+        "analysis_valid": true,
+        "snapshot_verified": true,
+        "fingerprint": true,
+        "sidecars_complete": true,
+        "sidecar_fingerprint": true,
+        "sidecar_hashes": true,
+        "selected_scope_valid": true,
+        "html_documents": true,
+        "local_resources": true,
+        "every_variable_present": true,
+        "javascript_syntax": true,
+        "json_sqlite_counts": true,
+        "pointer_pool_integrity": true,
+        "solver_fixed_points": true,
+        "sqlite_integrity": true
+      },
+      "seconds": 1709.0309999999881
+    }
+  },
+  "indexed_native_full": {
+    "engine_digest": "0f3ff1a00faf928cdff3794166f1aca15b1b12e71781aeb81630a9069d955199",
+    "cli_seconds": 12050.608999999997,
+    "cli_exit_code": 2,
+    "peak_tree_rss_bytes": 29510447104,
+    "cli_completed": true,
+    "static_status": "INCOMPLETE",
+    "artifact_audit_complete": true,
+    "full_normalized_summary_comparison": {
+      "kind": "COMPLETE_NORMALIZED_SUMMARY_BYTE_COMPARISON",
+      "baseline": "I:\\ecra_stm32_validation\\inav-h743-20261028-evidence-v20\\full-base\\summary.json",
+      "current": "I:\\ecra_stm32_validation\\inav-h743-20261029-evidence-v21\\full-base\\summary.json",
+      "baseline_sha256": "33ec220b6135a27ab8e6b3baaf24f02af86c5f333330e02a9082c8fa05ce1f2c",
+      "current_sha256": "33ec220b6135a27ab8e6b3baaf24f02af86c5f333330e02a9082c8fa05ce1f2c",
+      "equal": true,
+      "new_native_artifact_audit_complete": false,
+      "review_executed": false
+    },
+    "original_cli_command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "H:\\global_static_concurrency_design\\run_ecra.py",
+      "--project",
+      "I:\\ecra_stm32_validation\\inav-h743-20261026",
+      "--config",
+      "H:\\ecra_stm32_validation\\inav-h743-20261026-semantics.yaml",
+      "--scan-mode",
+      "full",
+      "--no-review"
+    ],
+    "stage_timings": [
+      {
+        "stage": "扫描准备与历史归档",
+        "seconds": 0.030999999988125637
+      },
+      {
+        "stage": "编译数据库准备",
+        "seconds": 128.28100000001723
+      },
+      {
+        "stage": "扫描输入快照建立",
+        "seconds": 104.53100000001723
+      },
+      {
+        "stage": "Clang 翻译单元提取",
+        "seconds": 2336.8439999999828
+      },
+      {
+        "stage": "输入一致性验证",
+        "seconds": 91.51600000000326
+      },
+      {
+        "stage": "跨翻译单元事实归并",
+        "seconds": 442.0779999999795
+      },
+      {
+        "stage": "输入一致性验证",
+        "seconds": 1.2190000000118744
+      },
+      {
+        "stage": "指针、函数指针及调用图分析",
+        "seconds": 7.217999999993481
+      },
+      {
+        "stage": "跨翻译单元指针与函数指针求解",
+        "seconds": 27.937999999994645
+      },
+      {
+        "stage": "执行上下文指针与调用图分析",
+        "seconds": 129.40600000001723
+      },
+      {
+        "stage": "结构体字段、数组与重叠存储分析",
+        "seconds": 22.71899999998277
+      },
+      {
+        "stage": "调用图上下文恢复",
+        "seconds": 2.7190000000118744
+      },
+      {
+        "stage": "NVIC 优先级与抢占关系分析",
+        "seconds": 31.46899999998277
+      },
+      {
+        "stage": "可达性与不完整证据关联",
+        "seconds": 1.0940000000118744
+      },
+      {
+        "stage": "并发风险分类与保护证据",
+        "seconds": 765.0149999999849
+      },
+      {
+        "stage": "发布前输入一致性验证",
+        "seconds": 88.76600000000326
+      },
+      {
+        "stage": "可选 OpenCode 复核",
+        "seconds": 3.1410000000032596
+      },
+      {
+        "stage": "报告生成与存储（单次发布）",
+        "seconds": 7766.5
+      },
+      {
+        "stage": "报告发布后输入一致性验证",
+        "seconds": 86.96799999999348
+      },
+      {
+        "stage": "最终完整性验收",
+        "seconds": 0.01600000000325963
+      }
+    ],
+    "artifact_audit": {
+      "passed": true,
+      "checks": {
+        "analysis_valid": true,
+        "snapshot_verified": true,
+        "fingerprint": true,
+        "sidecars_complete": true,
+        "sidecar_fingerprint": true,
+        "sidecar_hashes": true,
+        "selected_scope_valid": true,
+        "html_documents": true,
+        "local_resources": true,
+        "every_variable_present": true,
+        "javascript_syntax": true,
+        "json_sqlite_counts": true,
+        "pointer_pool_integrity": true,
+        "solver_fixed_points": true,
+        "sqlite_integrity": true
+      },
+      "seconds": 1793.5780000000086
+    },
+    "postprocessing_seconds": 3699.8129999999946,
+    "semantic_mismatches": [],
+    "classification_mismatches": [],
+    "classifications": {
+      "SAFE_PROVEN": 8632,
+      "CONTAINER": 3197,
+      "null": 1144,
+      "UNKNOWN": 2222,
+      "NON_STORAGE": 53,
+      "SUSPECT": 1318
+    },
+    "variable_accountability": {
+      "total": 12172,
+      "screened": 8632,
+      "queued": 3540,
+      "missing": 0,
+      "duplicate_ids": 0
+    },
+    "output_archive": "I:\\ecra_stm32_validation\\inav-h743-20261029-evidence-v21\\full-base\\published-original",
+    "preservation": {
+      "complete": true,
+      "method": "SAME_VOLUME_DIRECTORY_RENAME",
+      "source": "I:\\ecra_stm32_validation\\inav-h743-20261026\\.ecra",
+      "destination": "I:\\ecra_stm32_validation\\inav-h743-20261029-evidence-v21\\full-base\\published-original",
+      "directory_id": 1125899907712982,
+      "artifact_ids": {
+        "facts.json": 562949954296438,
+        "facts.db": 1407374884423676,
+        "index.html": 281474977640583
+      },
+      "facts_sha256": "3498ed194cf95f48aab995333776819ef2869ceb5f424432ef4217158c49f0c1",
+      "fingerprint": "2aeec24d492ad7cf0d0f591c415c97c9e3867fdb9a0492f7981836cd61814bbe"
+    },
+    "auxiliary_post_audit_print_failure": {
+      "error": "NameError(\"name 'peak' is not defined\")",
+      "review_executed": false,
+      "complete": false
+    },
+    "auxiliary_failure_resolution": {
+      "audit_integrity_verified": true,
+      "auxiliary_exit_failure_preserved": true,
+      "failure_stage": "AFTER_AUDIT_DURABLE_COMPLETION_PRINT_ONLY",
+      "reviewed_error": "NameError(\"name 'peak' is not defined\")",
+      "reviewed_utc": "2026-10-29T07:27:47.349925+00:00",
+      "execution_sha256": "81d8d9ac96f3e369be73ef5a31e578b528e74eb256ff66c6083047b578ac203e",
+      "artifact_audit_sha256": "80ef3e185b4c6d251ebdd9d6b31e06823d84a8636717d0ab3fda4e093fda6fbb",
+      "error_file_sha256": "b3917db092267d95ab8cea0ec9d95da40f5dc0cc27e7da699132304dd344df9c",
+      "original_stderr_sha256": "e62358e0959266c7f89c5768f93b89fea73e0f3ae646397a93f233af14040d91",
+      "source_script_sha256": "28ddd302bbed951e6e7a2a812d86266dc5e1931e93e6b602c1a0c0c1662c7841",
+      "helper_fix": "补设 peak，仅修正最后打印；不重跑或改写已完成审计。",
+      "review_executed": false
+    },
+    "byte_comparison_recorded_before_artifact_audit": true
+  },
+  "latest_large_matrix": {
+    "complete": false,
+    "state": "RUNNING",
+    "engine_digest": "45d3ba477c5547c42c8b884689d93a7c123426da3c537be57ef9874e609a55ef",
+    "review_executed": false,
+    "runtime_source": "I:\\ecra_stm32_validation\\inav-h743-20261029-engine-45d3",
+    "development_branch": "optimize_ccc",
+    "requested_utc": "2026-10-29T07:28:07.846089+00:00",
+    "baseline_strategy": "EMBEDDED_FULL_WITH_AUDIT",
+    "planned_outer_scans": 8,
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-u",
+      "-B",
+      "I:\\ecra_stm32_validation\\inav-h743-20261029-engine-45d3\\scripts\\validate_inav_git_diff.py",
+      "--project",
+      "I:\\ecra_stm32_validation\\inav-h743-20261026",
+      "--config",
+      "H:\\ecra_stm32_validation\\inav-h743-20261026-semantics.yaml",
+      "--evidence",
+      "I:\\ecra_stm32_validation\\inav-h743-20261029-evidence-v23",
+      "--ruby-bin",
+      "H:/ecra_stm32_validation/tools/rubyinstaller-2.7.8-1-x64/bin",
+      "--start-at-diff"
+    ],
+    "started_utc": "2026-10-29T07:28:21.154932+00:00",
+    "pid": 25640,
+    "created": 1793258901.1578467
+  },
+  "overall_large_diff_acceptance": false,
+  "limitations": [
+    "大型最新差异矩阵尚未完成，不能报告大型缓存提速或全量等价门禁全部通过。",
+    "未知依赖会保守扩大到完整构建范围，不能宣称大型工程已精确筛小。",
+    "0f3f 与 6e3b 的同源码全量摘要及15项产物审计通过，不冒充45d3大型差异/全量对照。",
+    "本轮 HTTP 服务加浏览器组合验证被自动审批拒绝，静态 HTML 检查不是浏览器测试。",
+    "测试仅证明已建模和覆盖场景，不能证明所有实际硬件行为零漏报。"
+  ],
+  "frozen_runtime_relocation": {
+    "executed": 2,
+    "passed": 2,
+    "failed": 0,
+    "seconds": 11.952,
+    "command": "py -3.10 -B -m unittest tests.test_benchmark_project_scan -v",
+    "working_directory": "I:\\ecra_stm32_validation\\inav-h743-20261029-engine-45d3",
+    "log": "H:/global_static_concurrency_design/.tools-cache/inav-frozen-runtime-relocation.log"
+  },
+  "prior_matrix_launch_failure": {
+    "complete": false,
+    "state": "FAILED",
+    "engine_digest": "45d3ba477c5547c42c8b884689d93a7c123426da3c537be57ef9874e609a55ef",
+    "review_executed": false,
+    "runtime_source": "I:\\ecra_stm32_validation\\inav-h743-20261029-engine-45d3",
+    "development_branch": "optimize_ccc",
+    "requested_utc": "2026-10-29T06:55:16.247276+00:00",
+    "baseline_strategy": "EMBEDDED_FULL_WITH_AUDIT",
+    "planned_outer_scans": 8,
+    "error": "RuntimeError('旧轮审计失败；不移动产物或启动新矩阵')"
+  }
+}

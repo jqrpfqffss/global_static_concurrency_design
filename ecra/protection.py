@@ -305,7 +305,34 @@ class MaskAnalysis:
             for (sid, cid), rows in self.windows.items() for row in rows]
 
 
-def assess(accesses, events, contexts, facts, cfg):
+class ProtectionIndex:
+    """单次分析的只读索引；必须在 MaskAnalysis.run 后构造。
+
+    保留原行引用、窗口顺序和重复记录，以及函数映射的最后一条优先规则。
+    不能跨 facts 快照使用，索引存活期间不能修改函数身份或窗口所属对象。
+    不写回事实、不序列化，也不在进程全局缓存。
+    """
+    def __init__(self, facts):
+        self._facts = facts
+        self._function_rows = facts['functions']
+        self._window_rows = facts.get('mask_windows', ())
+        self._lengths = len(self._function_rows), len(self._window_rows)
+        self.functions = {f['function_id']: f for f in self._function_rows}
+        self.windows_by_symbol = defaultdict(list)
+        for window in self._window_rows:
+            self.windows_by_symbol[window['symbol_id']].append(window)
+
+    def validate(self, facts):
+        if (facts is not self._facts
+                or facts['functions'] is not self._function_rows
+                or facts.get('mask_windows', ()) is not self._window_rows
+                or (len(self._function_rows), len(self._window_rows)) != self._lengths):
+            raise ValueError('保护证据索引与当前事实快照不一致，必须重新建立索引。')
+
+
+def assess(accesses, events, contexts, facts, cfg, *, index=None):
+    if index is not None:
+        index.validate(facts)
     relevant = [a for a in accesses if a['access_kind'] in {'READ', 'WRITE', 'RMW'}]
     ids = {c for a in relevant for c in a.get('contexts', [])}
     mains = {c for c in ids if contexts[c]['kind'] == 'MAIN'}
@@ -325,9 +352,14 @@ def assess(accesses, events, contexts, facts, cfg):
         return 'NOT_FOUND', details, '未发现关联路径上的同步或中断屏蔽操作。'
     if all(e.get('protection_type') == 'barrier' for e in detected):
         return 'INEFFECTIVE', details, 'DMB/DSB/ISB 只约束内存或指令顺序，不屏蔽中断，也不提供互斥。'
-    windows = [w for w in facts.get('mask_windows', []) if relevant and
-               w['symbol_id'] == relevant[0]['symbol_id'] and w['context_id'] in mains]
-    funcs = {f['function_id']: f for f in facts['functions']}
+    if index is None:
+        windows = [w for w in facts.get('mask_windows', []) if relevant and
+                   w['symbol_id'] == relevant[0]['symbol_id'] and w['context_id'] in mains]
+        funcs = {f['function_id']: f for f in facts['functions']}
+    else:
+        windows = ([w for w in index.windows_by_symbol.get(relevant[0]['symbol_id'], ())
+                    if w['context_id'] in mains] if relevant else [])
+        funcs = index.functions
     unmaskable = any(funcs.get(b['function_id'], {}).get('name') in {'NMI_Handler', 'HardFault_Handler'}
                      for b in facts['context_bindings'] if b['call_depth'] == 0 and b['context_id'] in isrs)
     unmaskable |= any(contexts[c].get('unmaskable') for c in isrs)

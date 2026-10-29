@@ -32,6 +32,7 @@ project:
 
 analysis:
   # 比较 project.root 固件仓库中的 Git 引用；默认保持原有全量扫描。
+  # 未确定影响边界时保守扩大；差异范围之外不代表安全，缓存升级后重新校验。
   git_diff:
     enabled: false
     target_ref: origin/master

@@ -19,7 +19,7 @@ class DiffGraphIndexTests(unittest.TestCase):
         facts = self.facts()
         report = dict(findings=[], analysis_status='INCOMPLETE')
         summary = json.loads(json.dumps(summarize(facts, report)))
-        self.assertEqual(summary['schema'], 3)
+        self.assertEqual(summary['schema'], 4)
         self.assertEqual(len(summary['variables']), 600)
         self.assertEqual(len(summary['graphs']), 1)
         for variable in summary['variables'].values():

@@ -3,7 +3,7 @@
 Static facts are never filtered here. Summaries are persisted between the two
 sequential analyses, so two complete fact graphs need not coexist in memory.
 """
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from pathlib import Path
 import copy
 import os
@@ -11,6 +11,8 @@ import re
 import subprocess
 
 from .common import digest, read_json, write_json
+
+SUMMARY_SCHEMA = 4
 
 DEFAULTS = dict(enabled=False, target_ref='origin/master', compare_mode='merge_base',
                 include_uncommitted=False, cache_enabled=True, verify_against_full=False,
@@ -290,6 +292,36 @@ def build_arguments(unit, root):
     return result
 
 
+def variable_change_summary(variable, contexts, renames):
+    """紧凑展示摘要，不参与筛选、风险证明或完整证据的替代。"""
+    irq_states, fault_states, base_values = Counter(), Counter(), set()
+    base_unknown = observations = 0
+    for detail in variable.get('protection_details', []):
+        for state in detail.get('states', []):
+            observations += 1
+            irq_states[state.get('irq_state', 'UNKNOWN')] += 1
+            value = state.get('faultmask')
+            fault_states[str(int(value)) if value in (0, 1) else 'UNKNOWN'] += 1
+            value = state.get('basepri')
+            if type(value) is int:
+                base_values.add(value)
+            else:
+                base_unknown += 1
+    return dict(
+        declaration=normalize({key: variable.get(key) for key in
+            ('type', 'size_bytes', 'alignment_bytes', 'offset_bits', 'field_path', 'array_size',
+             'is_const', 'is_volatile')}, renames),
+        accesses=dict(sorted(Counter(a['access_kind'] for a in variable.get('accesses', [])).items())),
+        contexts=[dict(id=canonical_id(cid, renames), kind=contexts.get(cid, {}).get('kind'))
+                  for cid in sorted(variable.get('contexts', []))],
+        protection=dict(status=variable.get('protection_status'), observations=observations,
+                        primask=dict(sorted(irq_states.items())), faultmask=dict(sorted(fault_states.items())),
+                        basepri_values=sorted(base_values), basepri_unknown=base_unknown),
+        coverage=dict(status=variable.get('analysis_coverage'),
+                      blocking_records=len(variable.get('blocking_evidence', []))),
+        conflicts=dict(records=len(variable.get('conflict_pairs', []))))
+
+
 def summarize(facts, report, renames=None):
     renames = renames or {}
     cid = lambda value: canonical_id(value, renames)
@@ -302,6 +334,7 @@ def summarize(facts, report, renames=None):
         incoming[b].add(a)
     slices, graphs = {}, {}
     context_graph = facts.get('context_call_graph', {})
+    context_rows = {row['id']: row for row in facts.get('contexts', [])}
 
     def graph_for(accessors):
         key = tuple(sorted(accessors))
@@ -353,12 +386,17 @@ def summarize(facts, report, renames=None):
             container=v.get('static_classification') == 'CONTAINER',
             findings=row_hashes([dict(static_classification=f.get('static_classification'),
                 **{key: evidence_digest(f.get(key), renames) for key in ('rules', 'conflict_pairs', 'uncertainties')})
-                for f in by_symbol[sid]], {}))
+                for f in by_symbol[sid]], {}),
+            evidence_summary=variable_change_summary(v, context_rows, renames))
+        variables[cid(sid)]['evidence_summary'].update(
+            classification=v.get('static_classification'),
+            graph=dict(functions=len(graphs[graph]['functions']), edges=len(graphs[graph]['edges']),
+                       roots=len(graphs[graph]['roots'])))
     global_semantics = {k: row_hashes(facts.get(k, []), renames) for k in
         ('contexts', 'irq_priority_events', 'nvic_resolved_events', 'protection_events', 'registrations',
          'hardware_contexts', 'preemption_relations', 'address_escapes')}
     global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
-    return dict(schema=3, variables=variables, graphs=graphs, functions=functions, edges=edges,
+    return dict(schema=SUMMARY_SCHEMA, variables=variables, graphs=graphs, functions=functions, edges=edges,
         macros={cid(u['source_file']): u.get('semantic_macros_digest') for u in facts.get('translation_units', [])},
         dependencies=sorted({canonical_id(str(Path(p).resolve().relative_to(Path(report['coverage']['project_root']).resolve())).replace('\\', '/'), renames)
             if report.get('coverage', {}).get('project_root') and Path(p).resolve().is_relative_to(Path(report['coverage']['project_root']).resolve())
@@ -382,7 +420,27 @@ def variable_graph(summary, variable):
         return dict(edges=[], roots=[])
     if 'graph_id' in variable:
         return summary['graphs'][variable['graph_id']]
-    return variable['graph']  # Legacy in-memory callers; persisted caches use schema 3.
+    return variable['graph']  # Legacy in-memory callers; persisted caches use SUMMARY_SCHEMA.
+
+
+def risk_comparison(old, new):
+    """变量风险只能在同一分析粒度、两版均有结论时比较。"""
+    if old is None or new is None:
+        return 'UNMATCHED', '缺少同一存储对象的双版本证据；新增或删除记录不等于风险新增或修复。'
+    old_class = old['dimensions']['classification']
+    new_class = new['dimensions']['classification']
+    old_container = old.get('container', old_class == 'CONTAINER')
+    new_container = new.get('container', new_class == 'CONTAINER')
+    if old_container != new_container:
+        return ('STORAGE_SHAPE_CHANGED',
+                '存储对象在标量与容器间转换，根对象与成员的风险需要分别核对，不能据容器分类判断风险新增或消除。')
+    if 'UNKNOWN' in (old_class, new_class):
+        return 'UNKNOWN_CLASSIFICATION', '至少一个版本的静态结论为无法判断，不能据此确定风险新增或消除。'
+    comparable = {'SUSPECT', 'SAFE_PROVEN', 'SHARED_NO_REVIEW'}
+    if old_container or old_class not in comparable or new_class not in comparable:
+        return ('AGGREGATE_OR_UNASSESSED',
+                '容器、非存储对象或尚未分析的记录不是可直接比较的变量风险结论，需核对实际存储对象及其成员。')
+    return 'COMPARABLE', None
 
 
 def compare(base, head, pinned):
@@ -399,6 +457,8 @@ def compare(base, head, pinned):
         if old is None or new is None:
             reasons[sid].update(('DIRECT_CHANGED', 'MATCH_UNCERTAIN'))
             continue
+        if risk_comparison(old, new)[0] == 'STORAGE_SHAPE_CHANGED':
+            reasons[sid].add('MATCH_UNCERTAIN')
         for key, reason in mapping.items():
             if old['dimensions'][key] != new['dimensions'][key]:
                 reasons[sid].add(reason)
@@ -493,7 +553,8 @@ def compare(base, head, pinned):
         old_edges, new_edges = edges_of(base, old), edges_of(head, new)
         old_class = old['dimensions']['classification'] if old else None
         new_class = new['dimensions']['classification'] if new else None
-        risk = ('无法判断变化结果' if old is None or new is None or 'UNKNOWN' in (old_class, new_class)
+        comparison_status, comparison_note = risk_comparison(old, new)
+        risk = ('无法判断变化结果' if comparison_status != 'COMPARABLE'
             else '新增疑似风险' if old_class != 'SUSPECT' and new_class == 'SUSPECT'
             else '风险可能已消除' if old_class == 'SUSPECT' and new_class != 'SUSPECT'
             else '风险证据发生变化' if old['dimensions'] != new['dimensions']
@@ -501,8 +562,13 @@ def compare(base, head, pinned):
         impact = dict(selected=True, reasons=sorted(why), reason_labels=[REASONS[r] for r in sorted(why)],
             added_edges=[list(e) for e in sorted(new_edges-old_edges)], removed_edges=[list(e) for e in sorted(old_edges-new_edges)],
             unchanged_edges_count=len(old_edges & new_edges), impact_coverage='CONSERVATIVE' if fallback else 'COMPLETE',
-            risk_change=risk, base=old, head_classification=new_class,
+            risk_change=risk, risk_comparison_status=comparison_status, risk_comparison_note=comparison_note,
+            base=old, head_classification=new_class,
             base_source_root=pinned.get('base_source_root'), head_sha=pinned['head_sha'], base_sha=pinned['base_sha'])
+        impact['evidence_changes'] = {dimension: dict(
+            base=old.get('evidence_summary', {}).get(dimension) if old else None,
+            head=new.get('evidence_summary', {}).get(dimension) if new else None)
+            for dimension, reason in mapping.items() if reason in why}
         impact.update(added_paths=representative_paths(new, new_edges-old_edges, variable_graph(head, new)),
                       removed_paths=representative_paths(old, old_edges-new_edges, variable_graph(base, old)),
                       base_facts_path=pinned.get('base_facts_path'), base_facts_sha256=pinned.get('base_facts_sha256'),
@@ -710,7 +776,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
         return Path(os.path.relpath(path, prefix)).as_posix() if prefix and prefix != '.' and path else path
     renames = {local(f['old_path']): local(f['new_path']) for f in pinned['files'] if f['status'].startswith('R')}
     sha = file_digest(base_out/'facts.json')
-    key = digest(dict(schema=3, engine=engine_digest(), facts=sha,
+    key = digest(dict(schema=SUMMARY_SCHEMA, engine=engine_digest(), facts=sha,
                       report=saved_report_digest(clean_report(base_report), encoding='ECRA_MERKLE_V1'), renames=renames))
     summary_file = out/'git_diff/summary-cache'/(key + '.summary.json')
     manifest_file = summary_file.with_suffix('.manifest.json')
@@ -718,7 +784,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     if cfg['analysis']['git_diff']['cache_enabled']:
         try:
             manifest = read_json(manifest_file)
-            if (not isinstance(manifest, dict) or manifest.get('key') != key or manifest.get('schema') != 3
+            if (not isinstance(manifest, dict) or manifest.get('key') != key or manifest.get('schema') != SUMMARY_SCHEMA
                     or manifest.get('complete_tus') is not True
                     or manifest.get('sha256') != file_digest(summary_file)):
                 raise ValueError('基准摘要缓存内容不一致')
@@ -735,7 +801,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
             raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
         summary = summarize(base_facts, base_report, renames)
         write_json(summary_file, summary, indent=None)
-        write_json(manifest_file, dict(schema=3, key=key, complete_tus=True, sha256=file_digest(summary_file)))
+        write_json(manifest_file, dict(schema=SUMMARY_SCHEMA, key=key, complete_tus=True, sha256=file_digest(summary_file)))
         del base_facts, summary
     pinned['base_summary_path'] = str(summary_file)
     pinned['base_summary_sha256'] = file_digest(summary_file)

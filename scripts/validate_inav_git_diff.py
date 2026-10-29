@@ -20,7 +20,13 @@ def main():
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True, help='工程外、必须不存在的新证据目录')
     parser.add_argument('--ruby-bin', type=Path, required=True)
+    parser.add_argument('--baseline-reference', type=Path,
+                        help='同一干净基准的已验收全量 summary.json，用于优化前后完整语义对照')
+    parser.add_argument('--start-at-diff', action='store_true',
+                        help='从首次差异开始；独立审计其内建完整基准，保留后续三轮独立全量对照')
     args = parser.parse_args()
+    if args.start_at_diff and args.baseline_reference:
+        parser.error('--start-at-diff 不执行独立 full-base，不能同时指定该轮的 --baseline-reference')
     root, evidence, config = args.project.resolve(), args.evidence.resolve(), args.config.resolve()
     if evidence.is_relative_to(root) or evidence.exists():
         parser.error('证据目录必须在工程外且尚未存在')
@@ -35,11 +41,24 @@ def main():
     base = cfg['analysis']['git_diff']['target_ref']
     if git('status', '--porcelain') or git('rev-parse', base) != git('rev-parse', 'HEAD'):
         parser.error('需要专用副本的干净基准 HEAD；禁止覆盖已有修改')
+    reference = args.baseline_reference.resolve() if args.baseline_reference else None
+    if reference:
+        previous = read_json(reference.parent/'execution.json')
+        if (not reference.is_file() or not previous.get('complete')
+                or previous.get('scan_mode') != 'full'
+                or previous.get('config_sha256') != file_digest(config)
+                or previous.get('summary_sha256') != file_digest(reference)
+                or not previous.get('artifact_audit', {}).get('passed')):
+            parser.error('基准对照必须来自已完成且配置、摘要指纹及产物审计有效的全量扫描')
     evidence.mkdir(parents=True)
     receipt = evidence/'acceptance.json'
     result = dict(complete=False, project=str(root), config=str(config), engine_digest=engine_digest(),
                   config_sha256=file_digest(config), base_sha=git('rev-parse', base),
-                  review_executed=False, mutations=[], runs=[], comparisons=[])
+                  review_executed=False, mutations=[], runs=[], comparisons=[],
+                  baseline_strategy='EMBEDDED_FULL_WITH_AUDIT' if args.start_at_diff else 'STANDALONE_FULL')
+    if reference:
+        result['baseline_reference'] = dict(path=str(reference), sha256=file_digest(reference),
+                                          engine_digest=previous['engine_digest'])
     watched = [Path(__file__), TOOL/'scripts/benchmark_project_scan.py', TOOL/'scripts/validate_large_report.py']
     result['validation_scripts'] = {str(path):file_digest(path) for path in watched}
     write_json(receipt, result)
@@ -57,6 +76,8 @@ def main():
             '--project', str(root), '--config', str(config), '--evidence', str(folder), '--scan-mode', mode]
         if reference:
             command.extend(['--reference', str(reference)])
+        if args.start_at_diff and name == 'diff-first':
+            command.append('--audit-baseline')
         print('开始真实工程验证：'+name, flush=True)
         proc = subprocess.run(command, cwd=TOOL, env=env)
         assert_frozen()
@@ -98,7 +119,8 @@ def main():
         path.write_bytes(data.replace(old_bytes, new_bytes))
         result['mutations'].append(dict(file=file, old=old, new=new, sha256=file_digest(path)))
         write_json(receipt, result)
-    scan('full-base', 'full')
+    if not args.start_at_diff:
+        scan('full-base', 'full', reference)
     change('src/main/drivers/serial_uart_stm32h7xx.c',
            's->port.txBufferTail = (s->port.txBufferTail + 1) % s->port.txBufferSize;',
            's->port.txBufferTail = (s->port.txBufferTail + 2) % s->port.txBufferSize;')

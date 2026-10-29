@@ -601,6 +601,54 @@ def metrics(values):
     return '<div class="metrics">' + "".join(f'<div class="metric"><strong>{esc(n)}</strong>{esc(label)}</div>' for label, n in values) + '</div>'
 
 
+def diff_evidence_table(impact):
+    """只概述已变化维度；完整新旧事实和未修改路径仍在后台。"""
+    labels = dict(declaration='声明与布局', accesses='访问类型（分析记录数）', graph='完整调用子图',
+                  contexts='执行上下文', protection='保护状态与屏蔽观测',
+                  coverage='覆盖状态', conflicts='冲突证据条目（含聚合项）', classification='静态分类')
+
+    def formatted(dimension, value, side):
+        if side == 'base' and not impact.get('base'):
+            return '该版本未匹配到对应存储对象'
+        if value is None:
+            return '未提供该项摘要，请查看完整证据'
+        if dimension == 'classification':
+            return to_display_text(value, {**DISPLAY_TEXT, 'CONTAINER': '容器汇总（成员或元素分别判定）'})
+        if dimension == 'declaration':
+            return ('类型：' + str(value.get('type') or '未提供') + '；大小：' +
+                    str(value.get('size_bytes') if value.get('size_bytes') is not None else '未知') +
+                    ' 字节；对齐：' + str(value.get('alignment_bytes') if value.get('alignment_bytes') is not None else '未知') + ' 字节')
+        if dimension == 'accesses':
+            names = {**DISPLAY_TEXT, 'WHOLE_OBJECT_READ': '整个对象读取', 'WHOLE_OBJECT_WRITE': '整个对象写入'}
+            kinds = ['READ', 'WRITE', 'RMW'] + sorted(set(value) - {'READ', 'WRITE', 'RMW'})
+            return '；'.join(to_display_text(k, names) + '：' + str(value.get(k, 0)) for k in kinds)
+        if dimension == 'contexts':
+            return '；'.join(to_display_text(c.get('kind')) + '：' + c['id'] for c in value) or '未记录已解析执行入口'
+        if dimension == 'protection':
+            irq, fault = value.get('primask', {}), value.get('faultmask', {})
+            return ('状态：' + to_display_text(value.get('status'), PROTECTION_DISPLAY_TEXT) +
+                    '；PRIMASK 已屏蔽/未屏蔽/未知：' + '/'.join(str(irq.get(k, 0)) for k in ('DISABLED', 'ENABLED', 'UNKNOWN')) +
+                    '；BASEPRI 记录值：' + ('、'.join(map(str, value.get('basepri_values', []))) or '无') +
+                    '，未知：' + str(value.get('basepri_unknown', 0)) +
+                    '；FAULTMASK 已屏蔽/未屏蔽/未知：' + '/'.join(str(fault.get(k, 0)) for k in ('1', '0', 'UNKNOWN')))
+        if dimension == 'graph':
+            return '函数节点：' + str(value['functions']) + '；调用边：' + str(value['edges']) + '；执行入口：' + str(value['roots'])
+        if dimension == 'coverage':
+            return to_display_text(value.get('status')) + '；相关阻断证据条目：' + str(value.get('blocking_records', 0))
+        if dimension == 'conflicts':
+            return str(value.get('records', 0))
+        return '请查看完整证据'
+
+    changes = impact.get('evidence_changes', {})
+    if not changes:
+        return ''
+    rows = [row([esc(labels.get(key, '其他证据变化')),
+                 esc(formatted(key, change.get('base'), 'base')),
+                 esc(formatted(key, change.get('head'), 'head'))]) for key, change in changes.items()]
+    return ('<h4>新旧变化摘要</h4>' + table(['变化证据', '基准版本', '当前版本'], rows) +
+            '<p>条目数相同不代表证据内容相同；请结合代码差异和完整证据核对访问表达式、完整保护窗口及具体冲突关系。</p>')
+
+
 def next_actions(report, records):
     records = list(records)
     cov=report['coverage']; actions=[]
@@ -1086,6 +1134,14 @@ def _write_html(out, facts, report, reviews):
         if impact:
             detail_body += '<h3>本次影响依据</h3><p>' + esc('；'.join(impact['reason_labels'])) + '</p>'
             detail_body += '<p>风险变化：' + esc(impact['risk_change']) + '；影响覆盖：' + esc({'COMPLETE': '完整', 'CONSERVATIVE': '保守扩大'}.get(impact['impact_coverage'], '未完成')) + '</p>'
+            if impact.get('risk_comparison_note'):
+                detail_body += '<p>' + esc(impact['risk_comparison_note']) + '</p>'
+            detail_body += diff_evidence_table(impact)
+            if impact.get('diff_patch_path'):
+                from pathlib import Path
+                patch_path = Path(impact['diff_patch_path']).resolve()
+                patch_link = patch_path.relative_to(out.resolve()).as_posix() if patch_path.is_relative_to(out.resolve()) else patch_path.as_uri()
+                detail_body += '<p><a href="' + esc(patch_link) + '">查看本轮代码差异</a></p>'
             for key, label, source_root in [('removed_paths', '基准版本删除路径的最短代表证据', impact.get('base_source_root')), ('added_paths', '当前版本新增路径的最短代表证据', None)]:
                 detail_body += '<h4>' + label + '</h4><pre>' + esc('\n'.join(' → '.join(function_name(fid) for fid in edge) for edge in impact[key]) or '没有调用边变化') + '</pre>'
             detail_body += '<p>未变化调用边：' + str(impact['unchanged_edges_count']) + ' 条，默认收起。其他未修改路径参与并发分析；完整访问和上下文保留在下方证据及 OpenCode Packet。</p>'

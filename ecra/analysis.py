@@ -244,9 +244,9 @@ def context_graph(facts, cfg):
     return contexts, paths, facts["all_call_paths"]
 
 
-def protection_assessment(accesses, events, contexts, facts, cfg):
+def protection_assessment(accesses, events, contexts, facts, cfg, *, index=None):
     from .protection import assess
-    return assess(accesses, events, contexts, facts, cfg)
+    return assess(accesses, events, contexts, facts, cfg, index=index)
 
 
 def canonical_member_path(path):
@@ -1034,8 +1034,9 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
         by_var[a["symbol_id"]].append(a)
     facts['call_graph_slices'] = access_graph.cache
     snapshots = defaultdict(list)
-    from .protection import MaskAnalysis
+    from .protection import MaskAnalysis, ProtectionIndex
     MaskAnalysis(facts, cfg).run()
+    protection_index = ProtectionIndex(facts)
     from .stale_writeback import read_then_writeback_hints
     writeback_hints = defaultdict(list)
     for hint in read_then_writeback_hints(facts):
@@ -1196,7 +1197,8 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
         if any(r.get("owner_context") and writers - {r["owner_context"]} for r in annotations):
             rules.add("GS-OWNER-VIOLATION")
         declared = [p for p in cfg["protection"] if p.get("resource") in {sid, v["name"], v["qualified_name"]}]
-        protection, protection_details, protection_note = protection_assessment(accesses, events, contexts, facts, cfg)
+        protection, protection_details, protection_note = protection_assessment(
+            accesses, events, contexts, facts, cfg, index=protection_index)
         if protection == 'NOT_FOUND' and declared:
             protection = 'DETECTED'
             protection_note = '配置中声明了保护措施，但当前源码未找到可关联的保护操作，不能证明其覆盖访问窗口。'

@@ -1,10 +1,5 @@
-import importlib.util
-from pathlib import Path
 import unittest
-
-SPEC=importlib.util.spec_from_file_location('stm32_acceptance',Path(__file__).resolve().parents[1]/'validation/stm32_concurrency/verify_acceptance.py')
-acceptance=importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(acceptance)
+from tests import acceptance_evidence as acceptance
 
 
 class EvidenceTests(unittest.TestCase):

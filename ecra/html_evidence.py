@@ -148,7 +148,7 @@ class HtmlEvidence:
         # Sidecar documents share a folder; root-relative report links move up
         # one level. Hash-only links are resolved through the full anchor map.
         contents = re.sub(r'((?:href|src|data-ecra-src)=["\'])html_details/', r'\1', contents)
-        contents = re.sub(r'(href=["\'])((?:index|opencode_review|classification_quality)\.html|facts\.json|inventory/|reports/|review/)',
+        contents = re.sub(r'(href=["\'])((?:index|opencode_review|classification_quality)\.html|facts\.json|inventory/|reports/|review/|git_diff/)',
                           r'\1../\2', contents)
         title = re.sub(r'<[^>]*>', '', summary)
         header = ('<!doctype html><html lang="zh-CN" data-ecra-root="../"><meta charset="utf-8">'
