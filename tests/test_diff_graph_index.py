@@ -3,7 +3,7 @@ import copy
 import json
 import unittest
 
-from ecra.git_diff import summarize, compare, variable_graph
+from ecra.git_diff import SUMMARY_SCHEMA, summarize, compare, variable_graph
 
 
 class DiffGraphIndexTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class DiffGraphIndexTests(unittest.TestCase):
         facts = self.facts()
         report = dict(findings=[], analysis_status='INCOMPLETE')
         summary = json.loads(json.dumps(summarize(facts, report)))
-        self.assertEqual(summary['schema'], 4)
+        self.assertEqual(summary['schema'], SUMMARY_SCHEMA)
         self.assertEqual(len(summary['variables']), 600)
         self.assertEqual(len(summary['graphs']), 1)
         for variable in summary['variables'].values():

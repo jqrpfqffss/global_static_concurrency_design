@@ -36,8 +36,8 @@ analysis:
   # current_ref: HEAD 表示当前检出版本；填写其它分支时自动建立隔离工作树，无需切换分支。
   # 缓存自动启用且校验有效性，影响不明确时自动保守扩大；差异范围之外不代表安全。
   git_diff:
-    enabled: false
-    base_ref: origin/master
+    enabled: true
+    base_ref: ecra/diff-baseline-20261030
     current_ref: HEAD
     # 可选：仅 current_ref 为 HEAD 时可包含未提交修改，默认 false。
     # include_uncommitted: true
@@ -73,6 +73,9 @@ analysis:
 
   # 每个翻译单元交给 Clang 解析的最长时间；大型工程可适当增大。
   parse_timeout_seconds: 180
+
+  # 独立 TU 并行提取；全局指针/并发分析仍使用完整合并后的事实。
+  extraction_workers: 8
 
   # 排查输出目录，相对固件根目录。必须是根目录下的独立子目录。
   # 它包含报告、日志、缓存和扫描状态；建议加入固件工程 .gitignore。
@@ -177,7 +180,7 @@ contexts:
 review:
   # false：只做本地静态排查，生成待复核清单；推荐新项目首次接入时保持 false。
   # true：在静态扫描后调用下方 command，对每个候选执行 OpenCode 复核。
-  enabled: true
+  enabled: false
 
   # 复核命令必须是参数数组，而不是带空格的一整条 shell 字符串。
   command: [opencode]

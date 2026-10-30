@@ -571,6 +571,25 @@ class Extractor:
         def value_source(node):
             while node.kind.name in WRAPPERS and len(children(node)) == 1:
                 node = children(node)[0]
+            if node.type.get_canonical().kind.name in {
+                    'POINTER', 'RECORD', 'INCOMPLETEARRAY', 'CONSTANTARRAY', 'VOID'}:
+                return None
+            if node.kind.name == 'CALL_EXPR':
+                ref = node.referenced
+                if ref is not None and ref.kind.name in FUNCTIONS:
+                    return dict(return_call=dict(callee_function_id=self.fid(ref), **self.loc(node)))
+                return None
+            # A constant adjustment still depends on the old snapshot. Keep
+            # this as a possible value-flow hint, never an atomicity verdict.
+            if node.kind.name == 'BINARY_OPERATOR' and operator(node) in {'+', '-', '^'}:
+                operands = children(node)
+                if len(operands) == 2:
+                    for index in (0, 1):
+                        if constant_value(operands[1-index]) is not None:
+                            source = value_source(operands[index])
+                            if source is not None:
+                                return dict(source, derived_value=True)
+                return None
             if node.kind.name == 'DECL_REF_EXPR' and node.referenced:
                 index = parameters.get(self.key(node.referenced))
                 if index is not None:
@@ -583,6 +602,10 @@ class Extractor:
             if len(refs) == 1:
                 return dict(read_site=self.loc(refs[0][1]))
             return None
+        returns = [source for node in all_nodes if node.kind.name == 'RETURN_STMT'
+                   for expression in children(node) if (source := value_source(expression)) is not None]
+        if returns:
+            self.functions[fid]['scalar_return_sources'] = returns
         # Snapshot facts describe value copies used later in a writeback or
         # decision. Pointer aliases are deliberately excluded here: the
         # PointerExtractor/Solver is the single source of indirect accesses,
@@ -712,6 +735,8 @@ class Extractor:
                                 source = value_source(children(parent)[1])
                                 if source and 'parameter_index' in source:
                                     value_flow['writeback_parameter_index'] = source['parameter_index']
+                                    if source.get('derived_value'):
+                                        value_flow['writeback_derived_value'] = True
                                 break
                             if parent.kind.name not in WRAPPERS | {'MEMBER_REF_EXPR', 'ARRAY_SUBSCRIPT_EXPR'}:
                                 break
@@ -797,7 +822,7 @@ class Extractor:
             if macro.location.file:
                 macro_tokens = [t for t in macro.get_tokens() if t.kind.name != 'COMMENT']
                 semantic_macros.update(digest([bool(macro_function_like(macro)),
-                    [t.spelling for t in macro_tokens]]).encode('ascii'))
+                    [t.spelling.replace('\r\n', '\n') for t in macro_tokens]]).encode('ascii'))
                 macro_dependencies.append((macro.spelling, {
                     t.spelling for t in macro_tokens[1:] if t.kind.name == 'IDENTIFIER'}))
                 if bool(macro_function_like(macro)) and len(macro_tokens) > 2:

@@ -12,7 +12,7 @@ import subprocess
 
 from .common import digest, read_json, write_json
 
-SUMMARY_SCHEMA = 4
+SUMMARY_SCHEMA = 5
 
 DEFAULTS = dict(enabled=False, base_ref='origin/master', current_ref='HEAD',
                 include_uncommitted=False, cache_enabled=True, verify_against_full=False)
@@ -382,7 +382,23 @@ def summarize(facts, report, renames=None):
                 safe_evidence=evidence_digest(v.get('safe_evidence'), renames))),
             conflicts=row_hashes(v.get('conflict_pairs', []), renames),
             classification=v.get('static_classification'), graph=graph)
+        # A global conservative fallback need not pull in a private scalar
+        # whose complete direct accesses and isolated graph are unchanged.
+        # Address-taking, aliases, aggregate overlap and incomplete evidence
+        # deliberately disqualify the proof. Ordinary dependency propagation
+        # still wins over this exemption whenever it selected the variable.
+        private_isolation = (
+            v.get('kind') in {'FILE_STATIC', 'LOCAL_STATIC'} and v.get('storage_class') == 'STATIC'
+            and v.get('static_classification') == 'SAFE_PROVEN'
+            and v.get('analysis_coverage') == 'COMPLETE' and not v.get('blocking_evidence')
+            and not any(v.get(k) for k in ('is_pointer', 'is_struct', 'is_array', 'field_path', 'overlap_groups'))
+            and bool(accesses) and len(v.get('contexts', [])) == 1
+            and all(a.get('access_kind') in {'READ', 'WRITE', 'RMW'}
+                    and a.get('parse_confidence') == 'exact'
+                    and not any(a.get(k) for k in ('via_alias', 'via_api', 'inherited_from_access_id'))
+                    for a in accesses))
         variables[cid(sid)] = dict(symbol_id=sid, name=v.get('qualified_name', v.get('name')),
+            private_storage_isolation=private_isolation,
             file=cid(v.get('definition_file')), original_file=v.get('definition_file'), line=v.get('definition_line'), dimensions=dimensions,
             accessors=sorted(accessors), graph_id=graph,
             reads=sorted({cid(a['function_id']) for a in accesses if a.get('access_kind') in ('READ', 'RMW')}),
@@ -540,8 +556,15 @@ def compare(base, head, pinned):
             and Path(os.path.relpath(f['new_path'], prefix)).as_posix() in dependencies) for f in pinned['files'] if not f.get('comment_only'))
     if build_changed:
         fallback.append('头文件或构建输入变化，重新评估完整构建范围')
+    fallback_exemptions = {}
     if fallback:
         for sid in bv.keys() | hv.keys():
+            old, new = bv.get(sid), hv.get(sid)
+            if (not build_changed and sid not in reasons and old and new
+                    and old.get('private_storage_isolation') and new.get('private_storage_isolation')
+                    and old['dimensions'] == new['dimensions']):
+                fallback_exemptions[new['symbol_id']] = '未逃逸私有标量，两版完整直接访问、上下文及调用子图一致，且不在语义影响闭包内'
+                continue
             reasons[sid].add('BUILD_SEMANTICS_CHANGED' if build_changed else 'CANNOT_EXCLUDE_IMPACT')
     from functools import lru_cache
     impacts, deleted = {}, []
@@ -587,6 +610,7 @@ def compare(base, head, pinned):
             deleted.append(dict(symbol_id=old['symbol_id'], name=old['name'], impact=impact))
     return dict(pin=pinned, selected_symbol_ids=sorted(impacts), impacts=impacts, deleted_variables=deleted,
         modified_function_ids=sorted(modified), fallback_level='L1' if fallback else 'L0', fallback_reasons=fallback,
+        fallback_exemptions=fallback_exemptions,
         impact_coverage='CONSERVATIVE' if fallback else 'COMPLETE',
         note='仅回答本次修改的影响；范围之外不代表安全。完整并发分析保留未修改路径。')
 

@@ -6,6 +6,8 @@
 
 新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。仍在原 `.ecra/index.html` 展示受影响变量，完整后台并发证据和静态归账保留。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败，未知影响会说明保守扩大范围。
 
+真实串口工程的已提交差异分支、21 项常规/隐蔽并发/安全对照矩阵及复现命令见 [serial 差异压力验收](docs/serial-diff-stress-validation.md)。当前本地配置默认比较该测试分支与其测试基准，外部自动复核已关闭。
+
 日常差异配置只需 `enabled`、`base_ref`、`current_ref`：直接比较任意两个分支、标签或提交。`current_ref: HEAD` 扫描当前检出版本；指定其它分支时自动在隔离工作树分析，报告仍保存到原输出目录。旧 `target_ref` / `compare_mode` 配置需按[参数取舍与迁移说明](docs/git-diff-concurrency-validation.md#参数取舍与迁移)修改；缓存与保守影响扩大自动处理。
 
 变量详情对照基准与当前版本的访问类型、布局、执行上下文、保护屏蔽观测、调用子图及覆盖变化，并链接代码差异。未变化的完整证据默认收起，继续参与并发分析。标量与结构体/数组容器转换时保留匹配不确定性，不能把根对象的容器汇总类别当作“风险新增”或“风险消除”的依据。

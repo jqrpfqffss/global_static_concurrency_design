@@ -74,5 +74,22 @@ class MacroSemanticsTests(unittest.TestCase):
         sensitive=sensitive_macros(definitions)
         self.assertEqual(sensitive['M3999'],{'__LINE__'})
 
+    def test_multiline_macro_signature_ignores_git_checkout_line_endings(self):
+        source = '#define STEP(x) \\\n((x)+1)\nint g;void Task(void){g=STEP(g);}\nvoid ISR(void){g++;}\n'
+        cfg = self.project({'a.c': source})
+
+        def extract_bytes(data):
+            (self.root/'a.c').write_bytes(data)
+            units, _ = prepare(self.root, cfg)
+            part = Extractor(dict(root=str(self.root), unit=units[0], config=cfg)).run()
+            self.assertEqual(part['parse_status'], 'PARSED')
+            return part['semantic_macros_digest']
+
+        baseline = extract_bytes(source.replace('\n', '\r\n').encode())
+        current = extract_bytes(source.encode())
+        changed = extract_bytes(source.replace('(x)+1', '(x)+2').encode())
+        self.assertEqual(baseline, current)
+        self.assertNotEqual(current, changed)
+
 
 if __name__=='__main__':unittest.main()

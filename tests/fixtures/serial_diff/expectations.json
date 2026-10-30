@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {"id":"D01", "name":"新增共享变量", "variables":["probe_added"], "head":"SUSPECT", "absent_base":true},
+    {"id":"D02", "name":"store 改为非原子 RMW", "variables":["probe_rmw"], "head":"SUSPECT", "access_kind":"RMW"},
+    {"id":"D03", "name":"删除完整 PRIMASK 保护", "variables":["probe_lock_removed"], "base":"SAFE_PROVEN", "head":"SUSPECT"},
+    {"id":"D04", "name":"移除 IRQ 写入消除竞争", "variables":["probe_race_removed"], "base":"SUSPECT", "head":"SAFE_PROVEN"},
+    {"id":"D05", "name":"删除存储对象", "variables":["probe_deleted"], "deleted":true},
+    {"id":"H01", "name":"跨 TU 七层调用和指针的指针", "variables":["probe_indirect"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true, "min_chain":9},
+    {"id":"H02", "name":"返回函数内 static 地址并经双重指针修改", "variables":["Probe_LocalSlot::hidden_epoch"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true},
+    {"id":"H03", "name":"只读描述符中的 callback 与 void* payload", "variables":["probe_callback"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true, "min_chain":7},
+    {"id":"H04", "name":"未修改函数的局部 static 被 IRQ 重入", "variables":["Probe_Reentrant::hidden_scratch"], "base":"SAFE_PROVEN", "head":"SUSPECT"},
+    {"id":"H05", "name":"跨函数快照后仅保护写回的伪安全", "variables":["probe_stale"], "base":"SAFE_PROVEN", "head":"SUSPECT", "hint":"READ_THEN_WRITEBACK"},
+    {"id":"H06", "name":"memcpy 隐藏结构体多字段读取", "variables":["probe_frame.sequence","probe_frame.value"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true},
+    {"id":"H07", "name":"64 位计数的动态字节视图读取", "variables":["probe_wide"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true},
+    {"id":"H08", "name":"动态数组索引与 IRQ 固定元素相交", "variables":["probe_array[2]"], "base":"SAFE_PROVEN", "head":"SUSPECT"},
+    {"id":"H09", "name":"union 整字与 byte cast 重叠", "variables":["probe_overlay.word"], "base":"SAFE_PROVEN", "head":"SUSPECT"},
+    {"id":"H10", "name":"相邻位域共享底层存储的 RMW", "variables":["probe_bits.low","probe_bits.high"], "base":"SAFE_PROVEN", "head":"SUSPECT"},
+    {"id":"S01", "name":"完整保护窗口的共享计数", "variables":["probe_masked"], "base":"SAFE_PROVEN", "head":"SAFE_PROVEN"},
+    {"id":"S02", "name":"不同上下文写不重叠成员", "variables":["probe_disjoint.foreground","probe_disjoint.irq"], "base":"SAFE_PROVEN", "head":"SAFE_PROVEN"},
+    {"id":"S03", "name":"头文件 static 的独立 TU 实例，仅两个有运行访问", "variables":["probe_header_private"], "active_instances":2, "head":"SAFE_PROVEN"},
+    {"id":"S04", "name":"两个 TU 同名 static 独立存储", "variables":["probe_same_name"], "instances":2, "head":"SAFE_PROVEN"},
+    {"id":"S05", "name":"跨上下文只读常量", "variables":["probe_readonly"], "head":"SAFE_PROVEN"},
+    {"id":"S06", "name":"独立真实向量的未改变私有变量", "variables":["probe_untouched"], "head":"SAFE_PROVEN", "unchanged":true}
+  ]
+}

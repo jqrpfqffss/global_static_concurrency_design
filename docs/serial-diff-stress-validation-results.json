@@ -1,0 +1,1721 @@
+{
+  "branches": {
+    "project": "H:\\stm32_RAG\\code\\serial - opencode",
+    "original_branch": "main",
+    "original_sha": "00b16f75d8edeeb2cbc02b600b2719eb686a314c",
+    "baseline_branch": "ecra/diff-baseline-20261030",
+    "baseline_sha": "399e68a45b57d36d894bb9273ab7735ae57e4077",
+    "current_branch": "ecra/diff-stress-20261030",
+    "current_sha": "c7faf3b9b33c629c7d5158b5c8bfeb7c57af7e52"
+  },
+  "matrix": {
+    "engine_digest": "7a7927e5e2b6e8030695ac3d4a3039f2162919acd738b37f155d24b6c2104ab5",
+    "config_sha256": "f47eb1eacf76881df6ede7fdeee1a2b9c313e631f53f7039583faa52006a742d",
+    "head": "c7faf3b9b33c629c7d5158b5c8bfeb7c57af7e52",
+    "base": "399e68a45b57d36d894bb9273ab7735ae57e4077",
+    "scripts": {
+      "H:\\global_static_concurrency_design\\scripts\\validate_serial_diff.py": "d8217f3e19402a0570606326edc27fa3a42d2005783ea80c5b045e623c92df96",
+      "H:\\global_static_concurrency_design\\tests\\fixtures\\serial_diff\\expectations.json": "e884cebda5f92442182c54f96f33ecd2243024262bd7442976f245946394a866"
+    },
+    "complete": true,
+    "review_executed": false,
+    "hardware_executed": false,
+    "runs": [
+      {
+        "name": "diff-first",
+        "exit_code": 2,
+        "seconds": 142.5779999999795,
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "eb2d57cbffe3fc5e8dd871e339beaeff861f10ce763f86bafbbf9de4b0c9d108"
+        },
+        "tus": 23,
+        "parse_statuses": {
+          "PARSED": 23
+        },
+        "classifications": {
+          "CONTAINER": 11,
+          "SAFE_PROVEN": 41,
+          "SUSPECT": 40
+        },
+        "case_audit_passed": true,
+        "passed_cases": 21,
+        "cache": {
+          "hits": 0,
+          "extracted": 23,
+          "corrupt": 0,
+          "total": 23
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "selected": 95
+      },
+      {
+        "name": "full-independent",
+        "exit_code": 2,
+        "seconds": 70.5,
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "496d7d2598d53e99529b01ecd11f80620fbe09d85be0153e35f30672a6de0001"
+        },
+        "tus": 23,
+        "parse_statuses": {
+          "PARSED": 23
+        },
+        "classifications": {
+          "CONTAINER": 11,
+          "SAFE_PROVEN": 41,
+          "SUSPECT": 40
+        }
+      },
+      {
+        "name": "diff-cached",
+        "exit_code": 2,
+        "seconds": 48.65600000001723,
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "eb2d57cbffe3fc5e8dd871e339beaeff861f10ce763f86bafbbf9de4b0c9d108"
+        },
+        "tus": 23,
+        "parse_statuses": {
+          "PARSED": 23
+        },
+        "classifications": {
+          "CONTAINER": 11,
+          "SAFE_PROVEN": 41,
+          "SUSPECT": 40
+        },
+        "case_audit_passed": true,
+        "passed_cases": 21,
+        "cache": {
+          "hits": 23,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 23
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "selected": 95
+      }
+    ],
+    "full_vs_diff_equal": true
+  },
+  "initial_audit": {
+    "passed_cases": 19,
+    "total": 21,
+    "failed_cases": [
+      "H05",
+      "S06"
+    ]
+  },
+  "case_audits": {
+    "diff-first": {
+      "passed": true,
+      "cases": [
+        {
+          "id": "D01",
+          "name": "新增共享变量",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_added",
+              "symbol_id": "c:@probe_added",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "DIRECT_CHANGED",
+                "MATCH_UNCERTAIN",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "D02",
+          "name": "store 改为非原子 RMW",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_rmw",
+              "symbol_id": "c:@probe_rmw",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "D03",
+          "name": "删除完整 PRIMASK 保护",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_lock_removed",
+              "symbol_id": "c:@probe_lock_removed",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "D04",
+          "name": "移除 IRQ 写入消除竞争",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_race_removed",
+              "symbol_id": "c:@probe_race_removed",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "D05",
+          "name": "删除存储对象",
+          "passed": true,
+          "errors": [],
+          "variables": []
+        },
+        {
+          "id": "H01",
+          "name": "跨 TU 七层调用和指针的指针",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_indirect",
+              "symbol_id": "c:@probe_indirect",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 10,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H02",
+          "name": "返回函数内 static 地址并经双重指针修改",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "Probe_LocalSlot::hidden_epoch",
+              "symbol_id": "local::c:@F@Probe_LocalSlot::hidden_epoch::0",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 10,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H03",
+          "name": "只读描述符中的 callback 与 void* payload",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_callback",
+              "symbol_id": "c:@probe_callback",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 10,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H04",
+          "name": "未修改函数的局部 static 被 IRQ 重入",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "Probe_Reentrant::hidden_scratch",
+              "symbol_id": "local::c:@F@Probe_Reentrant::hidden_scratch::0",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 4,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H05",
+          "name": "跨函数快照后仅保护写回的伪安全",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_stale",
+              "symbol_id": "c:@probe_stale",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 4,
+              "hints": [
+                "READ_THEN_WRITEBACK"
+              ],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "H06",
+          "name": "memcpy 隐藏结构体多字段读取",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_frame.sequence",
+              "symbol_id": "c:@probe_frame::member::sequence",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            },
+            {
+              "name": "probe_frame.value",
+              "symbol_id": "c:@probe_frame::member::value",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "H07",
+          "name": "64 位计数的动态字节视图读取",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_wide",
+              "symbol_id": "c:@probe_wide",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H08",
+          "name": "动态数组索引与 IRQ 固定元素相交",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_array[2]",
+              "symbol_id": "c:@probe_array::element::[2]",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 4
+            }
+          ]
+        },
+        {
+          "id": "H09",
+          "name": "union 整字与 byte cast 重叠",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_overlay.word",
+              "symbol_id": "c:@probe_overlay::member::word",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "H10",
+          "name": "相邻位域共享底层存储的 RMW",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_bits.low",
+              "symbol_id": "c:@probe_bits::member::low",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 3
+            },
+            {
+              "name": "probe_bits.high",
+              "symbol_id": "c:@probe_bits::member::high",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 3
+            }
+          ]
+        },
+        {
+          "id": "S01",
+          "name": "完整保护窗口的共享计数",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_masked",
+              "symbol_id": "c:@probe_masked",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "S02",
+          "name": "不同上下文写不重叠成员",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_disjoint.foreground",
+              "symbol_id": "c:@probe_disjoint::member::foreground",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_disjoint.irq",
+              "symbol_id": "c:@probe_disjoint::member::irq",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 2,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S03",
+          "name": "头文件 static 的独立 TU 实例，仅两个有运行访问",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/ecra_diff_foreground.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 4,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/ecra_diff_irq.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/ecra_diff_storage.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 0,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/main.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 0,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/stm32f1xx_it.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 0,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S04",
+          "name": "两个 TU 同名 static 独立存储",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_same_name",
+              "symbol_id": "tu::Core/Src/ecra_diff_foreground.c::c:ecra_diff_foreground.c@probe_same_name",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_same_name",
+              "symbol_id": "tu::Core/Src/ecra_diff_irq.c::c:ecra_diff_irq.c@probe_same_name",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 2,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S05",
+          "name": "跨上下文只读常量",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_readonly",
+              "symbol_id": "c:@probe_readonly",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S06",
+          "name": "独立真实向量的未改变私有变量",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_untouched",
+              "symbol_id": "tu::Core/Src/ecra_diff_storage.c::c:ecra_diff_storage.c@probe_untouched",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:26"
+              ],
+              "selected": false,
+              "alias": false,
+              "longest_chain": 1,
+              "hints": [],
+              "reasons": [],
+              "conflict_pairs": 0
+            }
+          ]
+        }
+      ],
+      "total": 21,
+      "passed_cases": 21,
+      "inventory": 92,
+      "selected": 95,
+      "classifications": {
+        "CONTAINER": 11,
+        "SAFE_PROVEN": 41,
+        "SUSPECT": 40
+      },
+      "fallback": [
+        "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+        "存在未解析依赖，无法证明局部影响边界"
+      ],
+      "baseline_sha": "399e68a45b57d36d894bb9273ab7735ae57e4077",
+      "current_sha": "c7faf3b9b33c629c7d5158b5c8bfeb7c57af7e52",
+      "cache": {
+        "hits": 0,
+        "extracted": 23,
+        "corrupt": 0,
+        "total": 23
+      }
+    },
+    "diff-cached": {
+      "passed": true,
+      "cases": [
+        {
+          "id": "D01",
+          "name": "新增共享变量",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_added",
+              "symbol_id": "c:@probe_added",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "DIRECT_CHANGED",
+                "MATCH_UNCERTAIN",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "D02",
+          "name": "store 改为非原子 RMW",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_rmw",
+              "symbol_id": "c:@probe_rmw",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "D03",
+          "name": "删除完整 PRIMASK 保护",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_lock_removed",
+              "symbol_id": "c:@probe_lock_removed",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "D04",
+          "name": "移除 IRQ 写入消除竞争",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_race_removed",
+              "symbol_id": "c:@probe_race_removed",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "D05",
+          "name": "删除存储对象",
+          "passed": true,
+          "errors": [],
+          "variables": []
+        },
+        {
+          "id": "H01",
+          "name": "跨 TU 七层调用和指针的指针",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_indirect",
+              "symbol_id": "c:@probe_indirect",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 10,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H02",
+          "name": "返回函数内 static 地址并经双重指针修改",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "Probe_LocalSlot::hidden_epoch",
+              "symbol_id": "local::c:@F@Probe_LocalSlot::hidden_epoch::0",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 10,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H03",
+          "name": "只读描述符中的 callback 与 void* payload",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_callback",
+              "symbol_id": "c:@probe_callback",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 10,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H04",
+          "name": "未修改函数的局部 static 被 IRQ 重入",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "Probe_Reentrant::hidden_scratch",
+              "symbol_id": "local::c:@F@Probe_Reentrant::hidden_scratch::0",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 4,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H05",
+          "name": "跨函数快照后仅保护写回的伪安全",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_stale",
+              "symbol_id": "c:@probe_stale",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 4,
+              "hints": [
+                "READ_THEN_WRITEBACK"
+              ],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "H06",
+          "name": "memcpy 隐藏结构体多字段读取",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_frame.sequence",
+              "symbol_id": "c:@probe_frame::member::sequence",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            },
+            {
+              "name": "probe_frame.value",
+              "symbol_id": "c:@probe_frame::member::value",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "H07",
+          "name": "64 位计数的动态字节视图读取",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_wide",
+              "symbol_id": "c:@probe_wide",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "H08",
+          "name": "动态数组索引与 IRQ 固定元素相交",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_array[2]",
+              "symbol_id": "c:@probe_array::element::[2]",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 4
+            }
+          ]
+        },
+        {
+          "id": "H09",
+          "name": "union 整字与 byte cast 重叠",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_overlay.word",
+              "symbol_id": "c:@probe_overlay::member::word",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": true,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 2
+            }
+          ]
+        },
+        {
+          "id": "H10",
+          "name": "相邻位域共享底层存储的 RMW",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_bits.low",
+              "symbol_id": "c:@probe_bits::member::low",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 3
+            },
+            {
+              "name": "probe_bits.high",
+              "symbol_id": "c:@probe_bits::member::high",
+              "classification": "SUSPECT",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CALL_GRAPH_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "CONFLICT_CHANGED",
+                "COVERAGE_CHANGED",
+                "EXECUTION_CONTEXT_CHANGED",
+                "PROTECTION_CHANGED",
+                "SEMANTIC_IMPACT",
+                "STATIC_CHANGED"
+              ],
+              "conflict_pairs": 3
+            }
+          ]
+        },
+        {
+          "id": "S01",
+          "name": "完整保护窗口的共享计数",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_masked",
+              "symbol_id": "c:@probe_masked",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 1
+            }
+          ]
+        },
+        {
+          "id": "S02",
+          "name": "不同上下文写不重叠成员",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_disjoint.foreground",
+              "symbol_id": "c:@probe_disjoint::member::foreground",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_disjoint.irq",
+              "symbol_id": "c:@probe_disjoint::member::irq",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 2,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S03",
+          "name": "头文件 static 的独立 TU 实例，仅两个有运行访问",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/ecra_diff_foreground.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 4,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/ecra_diff_irq.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/ecra_diff_storage.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 0,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/main.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 0,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_header_private",
+              "symbol_id": "tu::Core/Src/stm32f1xx_it.c::c:ecra_diff_probe.h@probe_header_private",
+              "classification": "SAFE_PROVEN",
+              "contexts": [],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 0,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S04",
+          "name": "两个 TU 同名 static 独立存储",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_same_name",
+              "symbol_id": "tu::Core/Src/ecra_diff_foreground.c::c:ecra_diff_foreground.c@probe_same_name",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            },
+            {
+              "name": "probe_same_name",
+              "symbol_id": "tu::Core/Src/ecra_diff_irq.c::c:ecra_diff_irq.c@probe_same_name",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 2,
+              "hints": [],
+              "reasons": [
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S05",
+          "name": "跨上下文只读常量",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_readonly",
+              "symbol_id": "c:@probe_readonly",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:1",
+                "vector:slot:54"
+              ],
+              "selected": true,
+              "alias": false,
+              "longest_chain": 3,
+              "hints": [],
+              "reasons": [
+                "ACCESS_CHANGED",
+                "CANNOT_EXCLUDE_IMPACT",
+                "SEMANTIC_IMPACT"
+              ],
+              "conflict_pairs": 0
+            }
+          ]
+        },
+        {
+          "id": "S06",
+          "name": "独立真实向量的未改变私有变量",
+          "passed": true,
+          "errors": [],
+          "variables": [
+            {
+              "name": "probe_untouched",
+              "symbol_id": "tu::Core/Src/ecra_diff_storage.c::c:ecra_diff_storage.c@probe_untouched",
+              "classification": "SAFE_PROVEN",
+              "contexts": [
+                "vector:slot:26"
+              ],
+              "selected": false,
+              "alias": false,
+              "longest_chain": 1,
+              "hints": [],
+              "reasons": [],
+              "conflict_pairs": 0
+            }
+          ]
+        }
+      ],
+      "total": 21,
+      "passed_cases": 21,
+      "inventory": 92,
+      "selected": 95,
+      "classifications": {
+        "CONTAINER": 11,
+        "SAFE_PROVEN": 41,
+        "SUSPECT": 40
+      },
+      "fallback": [
+        "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+        "存在未解析依赖，无法证明局部影响边界"
+      ],
+      "baseline_sha": "399e68a45b57d36d894bb9273ab7735ae57e4077",
+      "current_sha": "c7faf3b9b33c629c7d5158b5c8bfeb7c57af7e52",
+      "cache": {
+        "hits": 23,
+        "extracted": 0,
+        "corrupt": 0,
+        "total": 23
+      }
+    }
+  },
+  "artifacts": {
+    "output\\serial-diff-20261030\\final-matrix\\diff-cached\\summary.json": "4ee2d77650727c553da5966fd889defecaaebfc20eb8daa5e58093ed20a209ce",
+    "output\\serial-diff-20261030\\final-matrix\\diff-first\\summary.json": "4ee2d77650727c553da5966fd889defecaaebfc20eb8daa5e58093ed20a209ce",
+    "output\\serial-diff-20261030\\final-matrix\\full-independent\\summary.json": "4ee2d77650727c553da5966fd889defecaaebfc20eb8daa5e58093ed20a209ce"
+  },
+  "limits": [
+    "No hardware or external agent review executed.",
+    "Whole-project conservative fallback remains; only the isolated private scalar is exempt.",
+    "All constructed cases passed; this is not a proof of absence of arbitrary future concurrency defects."
+  ],
+  "regressions": {
+    "full_initial": {
+      "command": "py -3.10 -m unittest discover -s tests -v",
+      "tests": 1030,
+      "seconds": 882.741,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 2,
+      "reason": "Old test hardcoded summary schema 4; upgraded schema is 5."
+    },
+    "corrected_schema": {
+      "tests": 2,
+      "passed": true,
+      "seconds": 0.136
+    },
+    "final_changed_modules": {
+      "tests": 23,
+      "passed": true,
+      "seconds": 3.906
+    },
+    "unresolved_failures": 0,
+    "logs": {
+      "output\\serial-diff-20261030\\full-regression.log": "9e1c217c8bc4a654b11b89c796c4783c571b0d41ea49b673e6795e147144230b",
+      "output\\serial-diff-20261030\\schema-regression.log": "da008b101bca18ac89e61849d7de9587d64aced9cf71fd1a0fb692eaff93b356",
+      "output\\serial-diff-20261030\\final-targeted.log": "8c30944db51cbe9d9981d045c7a6c87e94276a5287dcf836ab4ac4c8e4ce7bdc",
+      "output\\serial-diff-20261030\\focused-regressions.log": "4366198768e68208eaa449ee398ee14db8c1813d1bf02778e4d2c4180a3c8d1b"
+    }
+  }
+}
