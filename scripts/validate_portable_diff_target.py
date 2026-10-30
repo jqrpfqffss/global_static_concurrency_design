@@ -58,7 +58,7 @@ def main():
             auto_system_includes=True, build_closure_only=True, extraction_workers=1,
             cmake=dict(build_dir='build/ecra', generator='Ninja', target='firmware.elf', build=True,
                        args=['-DCMAKE_NINJA_FORCE_RESPONSE_FILE=ON']),
-            git_diff=dict(enabled=False, target_ref='base', compare_mode='direct', cache_enabled=True,
+            git_diff=dict(enabled=False, base_ref='base', cache_enabled=True,
                           verify_against_full=True)),
         contexts=[dict(id='main', kind='MAIN', functions=['main']),
                   dict(id='irq', kind='IRQ', functions=['TIM4_IRQHandler'], priority=1)],

@@ -47,7 +47,7 @@ def main():
     cfg['analysis']['cmake'] = dict(build_dir='build/ecra', generator='Ninja',
         toolchain_file='cmake/arm.cmake', build=True, clean_before_configure=False)
     cfg['analysis']['extraction_workers'] = 8
-    cfg['analysis']['git_diff'] = dict(enabled=False, target_ref='base', compare_mode='direct')
+    cfg['analysis']['git_diff'] = dict(enabled=False, base_ref='base')
     cfg['review'].update(enabled=False, prepare_packets=False)
     config = root.parent/(root.name+'-semantics.yaml')
     write_json(config, cfg)

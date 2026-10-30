@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix='Portable 新增补丁 中文 空格-', 
     for path, value in additions.items():
         (root/path).write_bytes(value)
     os.symlink('新 文件.h', root/'link.h')
-    cfg = {'analysis': {'git_diff': settings(dict(target_ref='HEAD', compare_mode='direct', include_uncommitted=True))}}
+    cfg = {'analysis': {'git_diff': settings(dict(base_ref='HEAD', include_uncommitted=True))}}
     pinned = pin(root, cfg)
     index = (root/'.git/index').read_bytes()
     destination = root/'.ecra/untracked.patch'

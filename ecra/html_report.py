@@ -1365,7 +1365,7 @@ def _write_html(out, facts, report, reviews):
         diff = report['git_diff']
         pinned = diff['pin']
         classes = Counter(v.get('static_classification') for v in facts['variables'])
-        summary = '<section class="overview"><h2>扫描模式：分支差异</h2><p>当前版本：' + esc(pinned['current_ref']) + '（' + esc(pinned['head_sha'][:12]) + '）；比较基准：' + esc(pinned['target_ref']) + '（' + esc(pinned['base_sha'][:12]) + '）；比较方式：' + esc(pinned['compare_mode']) + '</p>'
+        summary = '<section class="overview"><h2>扫描模式：分支差异</h2><p>当前版本：' + esc(pinned['current_ref']) + '（' + esc(pinned['head_sha'][:12]) + '）；比较基准：' + esc(pinned['base_ref']) + '（' + esc(pinned['base_sha'][:12]) + '）；比较方式：两个版本直接比较</p>'
         storage_count = risk_summary(facts, report, records)['total_variables']
         summary += metrics([('变更文件', len(pinned['files'])), ('变更函数', len(diff['modified_function_ids'])), ('受影响分析对象', storage_count), ('疑似并发风险', classes['SUSPECT']), ('无法判断', classes['UNKNOWN']), ('静态已判安全', classes['SAFE_PROVEN']), ('共享访问，无需复核', classes['SHARED_NO_REVIEW'])])
         summary += '<p>当前差异清单共 ' + str(len(diff['selected_symbol_ids'])) + ' 行（含结构体/数组容器汇总）；上述静态分类按实际分析对象统计，容器不重复计入风险分母。</p>'

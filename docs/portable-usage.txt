@@ -1,7 +1,8 @@
 ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 
 可选 Git 差异模式：配置 analysis.git_diff 或执行 ecra.cmd --scan-mode diff。
-target_ref 属于 project.root 的固件仓库。离线打包时使用
+base_ref/current_ref 指定 project.root 固件仓库中直接比较的两个分支、标签或提交。
+current_ref 默认 HEAD；指定其它引用时自动隔离分析，无需切换分支。离线打包时使用
 build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/git/cmd/git.exe。
 未打包 Git 时全量模式不变，差异模式和差异 doctor 会明确报错。首次比较需独立构建基准；
 结果仍在 index.html，范围之外不代表安全。不要单独删除报告引用的基准 worktree/事实。

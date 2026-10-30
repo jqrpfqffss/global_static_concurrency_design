@@ -21,19 +21,52 @@
 
 ```yaml
 enabled: false
-target_ref: origin/master
-compare_mode: merge_base
-include_uncommitted: false
-cache_enabled: true
-verify_against_full: false
-uncertain_impact_policy: expand_or_full_scan
+base_ref: origin/master
+current_ref: HEAD
 ```
 
 引用属于 `project.root` 的固件仓库。默认关闭。`--scan-mode full|diff` 仅改变本次内存配置；恢复沿用检查点模式。配置严格检查类型、允许值和未知键；构建前检查 Git 与引用。
 
-固定目标 SHA、HEAD SHA、merge-base（适用时）、实际基准、仓库根、项目子目录、工作区内容摘要和文件增删改/重命名。`direct` 使用目标 SHA，`merge_base` 使用共同祖先。路径采用 NUL 分隔，不通过 shell 拼接执行 Git。
+固定 `base_ref` 与 `current_ref` 的 SHA、仓库根、项目子目录，以及文件增删改/重命名。直接比较两个引用的提交内容，不自动计算 merge-base。支持本地分支、远端跟踪分支、标签和提交 SHA，不自动 fetch。路径采用 NUL 分隔，不通过 shell 拼接执行 Git。
 
-未包含工作区时，未提交文件导致明确失败，不将工作区冒充 HEAD。启用后同时绑定暂存、未暂存、未跟踪文件；构建和报告输出须由固件 `.gitignore` 排除。忽略的生成头文件仍受 InputSnapshot 校验。发布前后和恢复时重查引用及内容。用户固件工作区不执行 checkout/reset/clean。
+`current_ref: HEAD` 使用当前检出工作区：未启用 `include_uncommitted` 时，未提交文件导致明确失败；启用后同时绑定暂存、未暂存、未跟踪文件。指定其它 `current_ref` 时，在输出目录 `git_diff/current-<SHA>` 建立 detached worktree，独立重建当前版本；原工作区可以有未提交修改，这些内容不会被纳入比较。`include_uncommitted: true` 与非 `HEAD` 引用组合会报错，避免混合两个版本。构建和报告输出须由固件 `.gitignore` 排除。忽略的生成头文件仍受 InputSnapshot 校验。发布前后和恢复时重查引用、隔离源码及输入内容。用户固件工作区不执行 checkout/reset/clean，报告仍在原输出目录。
+
+### 参数取舍与迁移
+
+日常配置从八个字段缩减为三个。这里的精简针对 `analysis.git_diff`，其它分析、构建和复核配置不变。
+
+| 参数 | 是否需要用户配置 | 处理与理由 |
+|---|---|---|
+| `enabled` | 日常展示，默认 false | 决定一键运行采用全量还是差异扫描；命令行 `--scan-mode` 可临时覆盖。仅用命令行切换时也可以省略。 |
+| `base_ref` | 比较基准，默认 origin/master | 指定变化之前的版本，是比较方向的一部分。应按实际仓库填写。 |
+| `current_ref` | 待检查版本，默认 HEAD | 指定变化之后的版本；可填写任意分支，无需手动 checkout。 |
+| 原 `compare_mode` | 删除 | 当前固定直接比较两个版本，与“任意两个分支比较”一致，避免用户再选择比较语义。 |
+| `include_uncommitted` | 可选，默认 false | 是否把本地开发修改加入 HEAD 扫描是用户意图，不能自动猜测；仅在需要时添加。 |
+| `cache_enabled` | 高级可选，默认 true | 有效性由内容、构建、引擎和输入闭包校验决定，用户无需管理；故障定位或性能验收可设 false，不影响完整性检查。 |
+| `verify_against_full` | 高级可选，默认 false | 独立重新提取全量事实并核对结果，额外耗时、占用内存；用于引擎升级验收与排查，不是日常扫描前提，也不关闭已有完整性检查。 |
+| 原 `uncertain_impact_policy` | 删除 | 过去只有 `expand_or_full_scan` 一个合法值，没有实际选择空间；固定保守扩大，不能配置成忽略未知影响。 |
+
+两个可选高级字段继续受严格类型检查，但不再出现在日常 YAML 中。默认缓存复用失败时重新提取，不需要用户手动更改参数。
+
+旧配置会给出迁移错误，不会悄悄改变扫描范围：原 `target_ref` 改成 `base_ref`，添加 `current_ref: HEAD`，删除 `compare_mode` 与 `uncertain_impact_policy`。原 `direct` 行为保持。原 `merge_base` 若要保留同样的比较基准，先在固件仓库执行 `git merge-base <原target_ref> <current_ref>`，将输出 SHA 填入 `base_ref`；改为分支名直接比较意味着采用新语义。
+
+例如任意双分支比较：
+
+```yaml
+analysis:
+  git_diff:
+    enabled: true
+    base_ref: release/v1
+    current_ref: feature/control
+```
+
+### 2026-10-29 双分支配置精简验证
+
+`py -3.10 -m unittest tests.test_git_diff tests.test_git_diff_patch tests.test_relative_worktree_gitdir tests.test_benchmark_project_scan -q`：57 项全部通过，205.763 秒，日志 `output/two-branch-targeted-tests.log`。
+
+`py -3.10 -m unittest discover -s tests -q`：1015 项，1013 通过、2 项真实模型测试默认跳过、0 失败/错误，773.747 秒，日志 `output/two-branch-full-tests.log`。专项包含于全套，不累加为独立测试数。Python 编译检查和 `git diff --check` 通过。全套日志保留一条 subprocess ResourceWarning；对应 PID 25768 已核对退出。
+
+新增场景覆盖：未检出目标分支且原工作区有未提交修改、分叉但内容相同的提交、分支指向变化、隔离当前源码污染、中文工程子目录、标签引用和 CLI 临时模式的保存恢复。真实 ARM GCC + CMake/Ninja 场景分别构建两个隔离版本，在原输出目录发布报告并通过独立全量事实对照；原检出版本没有 CMake 工程也不会被误用为当前分支。未运行实际模型复核或目标板验证。
 
 ## 双版本事实和变量匹配
 

@@ -305,6 +305,10 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
         if row.get('status') != 'OK' or row.get('sha256') != expected:
             changes.append(dict(file=path, reason='INPUT_CHANGED_DURING_RESUME', before=expected, after=row))
     live_cfg, _ = load_config(root, config_file)
+    from .git_diff import current_context
+    _, live_cfg = current_context(root, live_cfg, state.get('git_diff_pin'))
+    if state.get('scan_mode'):
+        live_cfg['analysis']['git_diff']['enabled'] = state['scan_mode'] == 'diff'
     live_digest = digest(analysis_config(live_cfg))
     if live_digest != state['config_digest']:
         changes.append(dict(file=relative(config_file, root), reason='ANALYSIS_CONFIGURATION_CHANGED',
@@ -381,6 +385,8 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True):
     required=('project_root','config_file','config_digest','engine_digest','facts_sha256','manifest_sha256','report_digest','fingerprint')
     if not isinstance(state,dict) or any(not isinstance(state.get(k),str) for k in required):
         raise ValueError('扫描检查点损坏；请重新运行 run')
+    from .git_diff import current_context
+    root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
     if state.get('schema') != 1 or state.get('project_root') != str(root):
         raise ValueError('扫描检查点不属于当前工程；请重新运行 run')
     rescan = '请先执行 py -3.10 run_ecra.py --no-review 刷新静态扫描，再执行复核命令'
@@ -490,6 +496,8 @@ def status(root, config_path=None):
             return info
         try:
             checked_scan(root, out, cfg, config_file, with_facts=False)
+            from .git_diff import current_context
+            root, cfg = current_context(root, cfg, read_json(out/'scan_state.json').get('git_diff_pin'))
             # A DONE label in queue.json is not enough to claim completion.
             # Check the immutable prompt, transcript, answer and cited source
             # before reporting a review as finished, without changing files.
@@ -548,6 +556,10 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False):
     try:
         try:
             facts, report, state = checked_scan(root, out, cfg, config_file)
+            from .git_diff import current_context
+            root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
+            if state.get('scan_mode'):
+                cfg['analysis']['git_diff']['enabled'] = state['scan_mode'] == 'diff'
         except ValueError as exc:
             if '源码/头文件/编译数据库已变化' not in str(exc):
                 raise

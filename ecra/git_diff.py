@@ -14,24 +14,28 @@ from .common import digest, read_json, write_json
 
 SUMMARY_SCHEMA = 4
 
-DEFAULTS = dict(enabled=False, target_ref='origin/master', compare_mode='merge_base',
-                include_uncommitted=False, cache_enabled=True, verify_against_full=False,
-                uncertain_impact_policy='expand_or_full_scan')
+DEFAULTS = dict(enabled=False, base_ref='origin/master', current_ref='HEAD',
+                include_uncommitted=False, cache_enabled=True, verify_against_full=False)
 
 
 def settings(value):
+    if isinstance(value, dict) and set(value) & {'target_ref', 'compare_mode', 'uncertain_impact_policy'}:
+        raise ValueError('analysis.git_diff 配置已简化：用 base_ref/current_ref 指定直接比较的两个版本；'
+                         '删除 target_ref、compare_mode、uncertain_impact_policy。'
+                         '旧 merge_base 语义请先用 git merge-base 求出基准提交，再填入 base_ref')
     if not isinstance(value, dict) or set(value) - DEFAULTS.keys():
         raise ValueError('analysis.git_diff 必须是映射且不能包含未知字段')
     result = dict(DEFAULTS, **value)
     for key in ('enabled', 'include_uncommitted', 'cache_enabled', 'verify_against_full'):
         if type(result[key]) is not bool:
             raise ValueError(f'analysis.git_diff.{key} 必须是 true/false')
-    if not isinstance(result['target_ref'], str) or not result['target_ref'].strip() or result['target_ref'].startswith('-'):
-        raise ValueError('analysis.git_diff.target_ref 必须是非空 Git 引用')
-    if result['compare_mode'] not in ('merge_base', 'direct'):
-        raise ValueError('analysis.git_diff.compare_mode 必须是 merge_base/direct')
-    if result['uncertain_impact_policy'] != 'expand_or_full_scan':
-        raise ValueError('analysis.git_diff.uncertain_impact_policy 仅支持 expand_or_full_scan')
+    for key in ('base_ref', 'current_ref'):
+        if (not isinstance(result[key], str) or not result[key].strip()
+                or result[key] != result[key].strip() or result[key].startswith('-')
+                or '\0' in result[key]):
+            raise ValueError(f'analysis.git_diff.{key} 必须是非空 Git 引用')
+    if result['include_uncommitted'] and result['current_ref'] != 'HEAD':
+        raise ValueError('include_uncommitted: true 仅适用于 current_ref: HEAD（当前工作区）')
     return result
 
 
@@ -71,7 +75,8 @@ def write_comparison_patch(pinned, destination):
                 suffix='.pending', dir=destination.parent, delete=False) as output:
             pending = Path(output.name)
             git(repo, 'diff', '--no-relative', '--binary', '--no-color', '--no-ext-diff', '--no-textconv',
-                '--src-prefix=a/', '--dst-prefix=b/', pinned['base_sha'], '--', _stdout=output)
+                '--src-prefix=a/', '--dst-prefix=b/', pinned['base_sha'],
+                *([] if pinned.get('include_uncommitted') else [pinned['head_sha']]), '--', _stdout=output)
             for change in sorted(pinned['files'], key=lambda row: row['new_path']):
                 if change['status'] != '?':
                     continue
@@ -94,8 +99,9 @@ def text(root, *args):
     return git(root, *args).decode('utf-8', 'strict').strip()
 
 
-def changes(root, base):
-    fields = git(root, 'diff', '--no-relative', '--name-status', '-z', '--find-renames', base, '--').split(b'\0')
+def changes(root, base, current=None):
+    fields = git(root, 'diff', '--no-relative', '--name-status', '-z', '--find-renames', base,
+                 *([current] if current else []), '--').split(b'\0')
     result = []
     i = 0
     while i < len(fields) and fields[i]:
@@ -110,39 +116,37 @@ def changes(root, base):
 def pin(root, cfg):
     options = cfg['analysis']['git_diff']
     repo = Path(text(root, 'rev-parse', '--show-toplevel')).resolve()
-    head = text(root, 'rev-parse', '--verify', 'HEAD^{commit}')
-    target = text(root, 'rev-parse', '--verify', options['target_ref'] + '^{commit}')
-    ancestor = text(root, 'merge-base', target, head) if options['compare_mode'] == 'merge_base' else None
-    base = ancestor or target
-    dirty = git(repo, 'status', '--porcelain=v1', '-z', '--untracked-files=all')
+    head = text(root, 'rev-parse', '--verify', options['current_ref'] + '^{commit}')
+    base = text(root, 'rev-parse', '--verify', options['base_ref'] + '^{commit}')
+    workspace_mode = options['current_ref'] == 'HEAD'
+    dirty = git(repo, 'status', '--porcelain=v1', '-z', '--untracked-files=all') if workspace_mode else b''
     # Build/report outputs must be ignored by the firmware repository. Refuse
     # dirty tracked/untracked inputs rather than accidentally analysing bytes
     # other than the pinned HEAD when workspace inclusion is disabled.
-    if dirty and not options['include_uncommitted']:
+    if workspace_mode and dirty and not options['include_uncommitted']:
         raise ValueError('固件工作区存在未提交文件；请提交、忽略构建/报告输出，或启用 include_uncommitted')
-    files = changes(repo, base)
-    untracked = git(repo, 'ls-files', '--others', '--exclude-standard', '-z').split(b'\0')
+    files = changes(repo, base, None if options['include_uncommitted'] else head)
     if options['include_uncommitted']:
+        untracked = git(repo, 'ls-files', '--others', '--exclude-standard', '-z').split(b'\0')
         files.extend(dict(status='?', old_path=None, new_path=p.decode('utf-8')) for p in untracked if p)
     for change in files:
         change['comment_only'] = False
         if change['status'].startswith('M') and Path(change['new_path']).suffix.lower() in ('.h', '.hh', '.hpp', '.hxx', '.inc'):
             before = git(repo, 'show', base + ':' + change['old_path'])
             path = repo/change['new_path']
-            if path.is_file():
-                old, new = comment_insensitive(before), comment_insensitive(path.read_bytes())
+            if not options['include_uncommitted'] or path.is_file():
+                after = path.read_bytes() if options['include_uncommitted'] else git(repo, 'show', head + ':' + change['new_path'])
+                old, new = comment_insensitive(before), comment_insensitive(after)
                 change['comment_only'] = old is not None and old == new
     # Full input contents (not mtimes) bind the workspace. Ignored generated
     # compiler inputs are additionally bound by InputSnapshot.
-    paths = git(repo, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0')
+    paths = git(repo, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0') if workspace_mode else []
     from .workflow import file_digest
     workspace = {p.decode('utf-8'): file_digest(repo/p.decode('utf-8')) if (repo/p.decode('utf-8')).is_file() else None
-                 for p in paths if p}
-    return dict(schema=1, repository_root=str(repo), project_subdir=Path(root).resolve().relative_to(repo).as_posix(),
-        current_ref=text(root, 'rev-parse', '--abbrev-ref', 'HEAD'), target_ref=options['target_ref'],
-        target_sha=target, head_sha=head, merge_base_sha=ancestor, base_sha=base,
-        compare_mode=options['compare_mode'], include_uncommitted=options['include_uncommitted'],
-        workspace_digest=digest(workspace), files=files)
+                 for p in paths if p} if workspace_mode else None
+    return dict(schema=2, repository_root=str(repo), project_subdir=Path(root).resolve().relative_to(repo).as_posix(),
+        current_ref=options['current_ref'], base_ref=options['base_ref'], head_sha=head, base_sha=base,
+        include_uncommitted=options['include_uncommitted'], workspace_digest=digest(workspace), files=files)
 
 
 def comment_insensitive(data):
@@ -163,7 +167,8 @@ def comment_insensitive(data):
 
 
 def assert_pin(root, cfg, expected):
-    current = pin(root, cfg)
+    origin_root = Path(expected['repository_root']) / expected['project_subdir']
+    current = pin(origin_root, cfg)
     if any(current[k] != expected.get(k) for k in current):
         raise ValueError('Git 引用或工作区快照已变化；差异结果失效，请重新扫描')
     from .workflow import file_digest
@@ -177,6 +182,8 @@ def assert_pin(root, cfg, expected):
         allowed = expected.get('base_database_path')
         if any(p and p.decode('utf-8') != allowed for p in changed):
             raise ValueError('隔离基准源码已变化；本轮差异证据失效')
+    if expected.get('current_source_root'):
+        check_current_tree(expected)
 
 
 def canonical_id(value, renames):
@@ -706,6 +713,82 @@ def _relative_worktree_gitdir(repository, directory, expected_sha):
     return 'RELATIVE'
 
 
+def relocate_paths(value, old_root, new_root):
+    """Relocate project-local paths once, retaining external sibling paths."""
+    replacements = {str(old_root): str(new_root), old_root.as_posix(): new_root.as_posix()}
+    pattern = '(?:' + '|'.join(re.escape(path) for path in replacements) + r')(?=$|[/\\\s"\x27])'
+    def relocate(value):
+        if isinstance(value, dict):
+            return {key: relocate(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [relocate(item) for item in value]
+        return re.sub(pattern, lambda match: replacements[match[0]], value) if isinstance(value, str) else value
+    return relocate(value)
+
+
+def relocate_config(cfg, old_root, new_root):
+    """Use the same analysis settings with version-local absolute paths."""
+    result = relocate_paths(cfg, old_root, new_root)
+    result['project']['root'] = str(new_root)
+    return result
+
+
+def current_context(root, cfg, pinned):
+    """Restore a saved analysis context without creating or repairing inputs."""
+    if not pinned or not pinned.get('current_source_root'):
+        return root, cfg
+    source = Path(pinned['current_source_root'])
+    origin = Path(pinned['repository_root']) / pinned['project_subdir']
+    if root.resolve() not in (origin.resolve(), source.resolve()):
+        raise ValueError('分支比较检查点不属于当前工程；请重新扫描')
+    if cfg.get('project', {}).get('root') == str(source):
+        return source, cfg
+    output = (origin/cfg['analysis'].get('output_dir', '.ecra')).resolve()
+    current_cfg = relocate_config(cfg, origin, source)
+    current_cfg['analysis']['output_dir'] = str(output)
+    return source, current_cfg
+
+
+def check_current_tree(pinned):
+    source = Path(pinned['current_source_root'])
+    if text(source, 'rev-parse', 'HEAD') != pinned['head_sha']:
+        raise ValueError('隔离当前版本工作树身份已变化；请重新扫描')
+    modified = git(source, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')
+    allowed = pinned.get('current_database_path')
+    if any(path and path.decode('utf-8') != allowed for path in modified):
+        raise ValueError('隔离当前版本源码已变化；拒绝使用污染的事实')
+
+
+def prepare_current(root, out, cfg, pinned, progress):
+    """Materialize an arbitrary comparison ref without switching the user's HEAD."""
+    if pinned['current_ref'] == 'HEAD':
+        return root, cfg
+    directory = out/'git_diff'/('current-' + pinned['head_sha'])
+    if not directory.exists():
+        directory.parent.mkdir(parents=True, exist_ok=True)
+        git(root, 'worktree', 'add', '--detach', str(directory), pinned['head_sha'])
+    pinned['current_gitdir_reference'] = _relative_worktree_gitdir(root, directory, pinned['head_sha'])
+    source = directory/pinned['project_subdir']
+    pinned['current_source_root'] = str(source)
+    source, current_cfg = current_context(root, cfg, pinned)
+    allowed = None
+    if 'cmake' not in current_cfg['analysis']:
+        db = current_cfg['analysis'].get('compile_database', 'auto')
+        if db == 'auto':
+            raise ValueError('任意分支比较的非 CMake 工程必须显式配置版本内的 compile_database')
+        database = source/db
+        allowed = database.relative_to(directory).as_posix()
+    pinned['current_database_path'] = allowed
+    check_current_tree(pinned)
+    if allowed:
+        import json
+        entries = json.loads(git(root, 'show', pinned['head_sha'] + ':' + allowed))
+        entries = relocate_paths(entries, root, source)
+        write_json(database, entries)
+    progress('当前版本独立工作树：' + pinned['current_ref'] + '（' + pinned['head_sha'] + '）')
+    return source, current_cfg
+
+
 def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     """Persistent detached worktree: no checkout/reset/clean in user workspace."""
     from .cli import run
@@ -727,14 +810,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     baseline['analysis']['output_dir'] = '.ecra-diff-base'
     # Absolute in-project config paths are remapped. External toolchains remain
     # explicit inputs and are checked by the ordinary snapshot mechanism.
-    def relocate(value):
-        if isinstance(value, dict):
-            return {k: relocate(v) for k, v in value.items()}
-        if isinstance(value, list):
-            return [relocate(v) for v in value]
-        return value.replace(str(root), str(base_root)).replace(root.as_posix(), base_root.as_posix()) if isinstance(value, str) else value
-    baseline = relocate(baseline)
-    baseline['project']['root'] = str(base_root)
+    baseline = relocate_config(baseline, root, base_root)
     allowed_database = None
     if 'cmake' not in baseline['analysis']:
         allowed_database = (base_root/baseline['analysis'].get('compile_database', 'auto')).relative_to(directory).as_posix()
@@ -751,7 +827,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
         # Never copy the HEAD database/build products into the baseline.
         relative_db = database.relative_to(directory).as_posix()
         import json
-        entries = relocate(json.loads(git(repo, 'show', pinned['base_sha'] + ':' + relative_db)))
+        entries = relocate_paths(json.loads(git(repo, 'show', pinned['base_sha'] + ':' + relative_db)), root, base_root)
         write_json(database, entries)
     config = out/'git_diff/base-semantics.yaml'
     write_json(config, baseline)

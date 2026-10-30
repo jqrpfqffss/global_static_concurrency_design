@@ -36,7 +36,7 @@ def configuration(root, ruby):
                        build=True, build_args=['--parallel', '6'], timeout_seconds=1200,
                        args=['-DRUBY_EXECUTABLE='+ruby.as_posix()]),
             build_closure=dict(elf='build/ecra/bin/MATEKH743.elf', map='build/ecra/bin/MATEKH743.elf.map'),
-            git_diff=dict(enabled=False, target_ref='ecra-validation-base', compare_mode='direct',
+            git_diff=dict(enabled=False, base_ref='ecra-validation-base',
                           include_uncommitted=True, cache_enabled=True, verify_against_full=False)),
         contexts=[dict(id='main', kind='MAIN', functions=['main'])],
         review=dict(enabled=False, prepare_packets=False))

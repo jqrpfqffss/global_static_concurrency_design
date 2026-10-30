@@ -141,7 +141,7 @@ def main():
     cfg = dict(version=1, project=dict(root=str(root), chip='STM32H743xx', core='Cortex-M7'),
         analysis=dict(cmake=dict(build_dir='build/ecra', generator='Ninja', build=True, clean_before_configure=False),
             build_closure_only=True, auto_system_includes=True, extraction_workers=8, output_dir='.ecra',
-            git_diff=dict(target_ref='base', compare_mode='direct', verify_against_full=False)),
+            git_diff=dict(base_ref='base', verify_against_full=False)),
         contexts=[dict(id='main', kind='MAIN', functions=['main'])], review=dict(enabled=False, prepare_packets=False))
     config = root.parent/(root.name+'-semantics.yaml')
     write_json(config, cfg)

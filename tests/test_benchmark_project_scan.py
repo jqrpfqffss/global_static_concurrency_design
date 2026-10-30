@@ -23,7 +23,7 @@ class BenchmarkAuditTests(unittest.TestCase):
                      review=dict(enabled=False, prepare_packets=False))
         config = self.root/'.ecra/semantics.yaml'
         cfg = json.loads(config.read_text(encoding='utf-8'))
-        cfg['analysis']['git_diff'] = dict(enabled=True, target_ref='HEAD', compare_mode='direct', include_uncommitted=True)
+        cfg['analysis']['git_diff'] = dict(enabled=True, base_ref='HEAD', include_uncommitted=True)
         config.write_text(json.dumps(cfg), encoding='utf-8')
         (self.root/'.gitignore').write_text('.ecra/\n', encoding='utf-8')
         def git(*args):

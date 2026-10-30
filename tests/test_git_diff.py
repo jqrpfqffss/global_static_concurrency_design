@@ -4,6 +4,7 @@ import io
 import json
 from pathlib import Path
 import subprocess
+import shutil
 import unittest
 from unittest.mock import patch
 
@@ -232,7 +233,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('commit', '-m', 'base')
         self.command('branch', 'base')
         cfg = read_json(self.root/'.ecra/semantics.yaml')
-        cfg['analysis']['git_diff'] = dict(enabled=True, target_ref='base', compare_mode='direct')
+        cfg['analysis']['git_diff'] = dict(enabled=True, base_ref='base')
         write_json(self.root/'.ecra/semantics.yaml', cfg)
         return cfg
 
@@ -261,7 +262,7 @@ class GitIntegrationTests(unittest.TestCase):
     def test_T29_bad_ref_and_missing_git(self):
         self.repository()
         cfg, _ = __import__('ecra.config', fromlist=['load_config']).load_config(self.root)
-        cfg['analysis']['git_diff']['target_ref'] = 'not-existing'
+        cfg['analysis']['git_diff']['base_ref'] = 'not-existing'
         with self.assertRaises(ValueError):
             pin(self.root, cfg)
         with patch('ecra.git_diff.subprocess.run', side_effect=FileNotFoundError):
@@ -342,9 +343,18 @@ class GitIntegrationTests(unittest.TestCase):
             assert_pin(self.root, cfg, before)
 
     def test_settings_strict_types(self):
-        for bad in (dict(enabled=1), dict(compare_mode='x'), dict(target_ref='-x'), dict(cache_enabled='false'), dict(unknown=True)):
+        for bad in (dict(enabled=1), dict(base_ref='-x'), dict(current_ref=''),
+                    dict(current_ref=' -x'), dict(base_ref='base\0x'),
+                    dict(cache_enabled='false'), dict(unknown=True),
+                    dict(current_ref='feature', include_uncommitted=True)):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 settings(bad)
+
+    def test_legacy_settings_require_explicit_migration(self):
+        for value in ({'target_ref': 'main'}, {'compare_mode': 'merge_base'},
+                      {'uncertain_impact_policy': 'expand_or_full_scan'}):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'base_ref/current_ref'):
+                settings(value)
 
     def test_T35_chinese_paths(self):
         self.root = self.root/'中文 固件'
@@ -352,7 +362,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.repository()
         self.assertEqual(self.scan()['git_diff']['selected_symbol_ids'], [])
 
-    def test_merge_base_and_direct_are_pinned_separately(self):
+    def test_diverged_refs_compare_tips_without_automatic_merge_base(self):
         self.repository()
         (self.root/'a.c').write_text('int changed;')
         self.command('add', 'a.c')
@@ -362,13 +372,124 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('update-ref', 'refs/heads/target', target)
         from ecra.config import load_config
         cfg, _ = load_config(self.root)
-        cfg['analysis']['git_diff'].update(target_ref='target', compare_mode='direct')
+        cfg['analysis']['git_diff'].update(base_ref='target')
         direct = pin(self.root, cfg)
-        cfg['analysis']['git_diff']['compare_mode'] = 'merge_base'
-        ancestor = pin(self.root, cfg)
         self.assertEqual(direct['base_sha'], target)
-        self.assertEqual(ancestor['base_sha'], self.command('rev-parse', 'base'))
-        self.assertNotEqual(direct['base_sha'], ancestor['base_sha'])
+        self.assertNotEqual(direct['base_sha'], self.command('rev-parse', 'base'))
+        self.assertEqual(direct['files'], [], 'Equal trees have no difference despite divergent history')
+
+    def test_arbitrary_two_branches_preserve_workspace_and_saved_commands(self):
+        cfg = self.repository()
+        (self.root/'a.c').write_text('int g;void Task(void){g=2;}void ISR(void){g++;}')
+        self.command('add', 'a.c')
+        self.command('commit', '-m', 'feature')
+        self.command('branch', 'feature')
+        feature_sha = self.command('rev-parse', 'feature')
+        self.command('checkout', '-b', 'unrelated', 'base')
+        # An unrelated checkout and dirty workspace must not supply either version.
+        (self.root/'a.c').write_text('int workspace_only;')
+        (self.root/'untracked.h').write_text('/* unrelated */')
+        cfg['analysis']['git_diff']['current_ref'] = 'feature'
+        write_json(self.root/'.ecra/semantics.yaml', cfg)
+        before = self.command('status', '--porcelain=v1')
+        report = self.scan()
+        self.assertIn('c:@g', report['git_diff']['selected_symbol_ids'])
+        self.assertEqual(report['git_diff']['pin']['head_sha'], feature_sha)
+        self.assertEqual(self.command('symbolic-ref', '--short', 'HEAD'), 'unrelated')
+        self.assertEqual(self.command('status', '--porcelain=v1'), before)
+        self.assertEqual((self.root/'a.c').read_text(), 'int workspace_only;')
+        self.assertNotIn('workspace_only', (self.root/'.ecra/facts.json').read_text(encoding='utf-8'))
+        patch_text = Path(report['git_diff']['pin']['diff_patch_path']).read_text(encoding='utf-8')
+        self.assertIn('g=2', patch_text)
+        self.assertNotIn('workspace_only', patch_text)
+        from ecra.workflow import status, saved_run
+        self.assertTrue(status(self.root)['resumable'])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertIn(saved_run(self.root, render_only=True), (1, 2))
+        self.assertTrue(status(self.root)['resumable'])
+        # Moving an explicitly selected branch invalidates the old evidence.
+        self.command('update-ref', 'refs/heads/feature', 'base')
+        self.assertFalse(status(self.root)['resumable'])
+
+    @unittest.skipUnless(all(shutil.which(tool) for tool in ('cmake', 'ninja', 'arm-none-eabi-gcc')),
+                         'Requires CMake, Ninja and ARM GCC')
+    def test_arbitrary_branch_uses_its_own_cmake_build_and_original_output(self):
+        cfg = self.repository()
+        (self.root/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.20)\n'
+            'project(branch_comparison C)\nadd_library(firmware STATIC a.c b.c)\n'
+            'target_compile_options(firmware PRIVATE -mcpu=cortex-m7 -mthumb)\n')
+        (self.root/'.gitignore').write_text('.ecra/\nbuild/\n')
+        self.command('add', '.')
+        self.command('commit', '-m', 'CMake base')
+        self.command('branch', 'cmake-base')
+        (self.root/'a.c').write_text('int g;void Task(void){g=3;}void ISR(void){g++;}')
+        self.command('add', 'a.c')
+        self.command('commit', '-m', 'CMake current')
+        self.command('branch', 'cmake-current')
+        self.command('checkout', 'base')
+        cfg['analysis'].update(compile_database='auto', cmake=dict(build_dir='build/ecra',
+            generator='Ninja', build_type='Debug', clean_before_configure=True, build=True,
+            args=['-DCMAKE_SYSTEM_NAME=Generic', '-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
+                  '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
+        cfg['analysis']['git_diff'].update(base_ref='cmake-base', current_ref='cmake-current',
+                                         verify_against_full=True)
+        write_json(self.root/'.ecra/semantics.yaml', cfg)
+        report = self.scan()
+        pinned = report['git_diff']['pin']
+        source = Path(pinned['current_source_root'])
+        self.assertTrue((source/'build/ecra/libfirmware.a').is_file())
+        self.assertFalse((self.root/'build').exists())
+        self.assertFalse((source/'.ecra').exists())
+        self.assertTrue((self.root/'.ecra/cmake-build.log').is_file())
+        self.assertEqual(report['git_diff']['full_verification']['state'], 'PASSED')
+        self.assertIn('c:@g', report['git_diff']['selected_symbol_ids'])
+        from ecra.workflow import status, saved_run
+        self.assertTrue(status(self.root)['resumable'])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertIn(saved_run(self.root, render_only=True), (1, 2))
+
+    def test_explicit_refs_in_project_subdirectory_and_cli_mode_override(self):
+        cfg = self.repository()
+        sub = self.root/'固件 子目录'
+        sub.mkdir()
+        for name in ('a.c', 'b.c', 'compile_commands.json'):
+            self.command('mv', name, '固件 子目录/' + name)
+        entries = read_json(sub/'compile_commands.json')
+        for entry in entries:
+            entry['directory'] = str(sub)
+        write_json(sub/'compile_commands.json', entries)
+        self.command('add', '.')
+        self.command('commit', '-m', 'subdirectory base')
+        self.command('branch', 'sub-base')
+        (sub/'a.c').write_text('int g;void Task(void){g=4;}void ISR(void){g++;}')
+        self.command('add', '.')
+        self.command('commit', '-m', 'subdirectory current')
+        self.command('tag', 'sub-current')
+        cfg['analysis']['git_diff'].update(enabled=False, base_ref='sub-base', current_ref='sub-current')
+        cfg.setdefault('project', {})['root'] = str(sub)
+        config = self.root/'.ecra/semantics.yaml'
+        write_json(config, cfg)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertIn(run(sub, str(config), no_review=True, scan_mode='diff'), (1, 2))
+        report = read_json(sub/'.ecra/reports/global_static_concurrency.json')
+        self.assertIn('c:@g', report['git_diff']['selected_symbol_ids'])
+        self.assertEqual(report['git_diff']['pin']['project_subdir'], sub.name)
+        from ecra.workflow import status, saved_run
+        self.assertTrue(status(sub, str(config))['resumable'])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertIn(saved_run(sub, str(config), render_only=True), (1, 2))
+
+    def test_arbitrary_current_tree_tampering_blocks_resume(self):
+        cfg = self.repository()
+        cfg['analysis']['git_diff']['current_ref'] = 'base'
+        write_json(self.root/'.ecra/semantics.yaml', cfg)
+        report = self.scan()
+        source = Path(report['git_diff']['pin']['current_source_root'])
+        (source/'a.c').write_text('int corrupted;')
+        from ecra.workflow import status
+        self.assertFalse(status(self.root)['resumable'])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run(self.root, no_review=True), 3)
 
     def test_staged_unstaged_untracked_workspace_snapshot(self):
         self.repository()
@@ -436,7 +557,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('branch', 'independent-base')
         cfg = read_json(self.root/'.ecra/semantics.yaml')
         cfg['contexts'] = []
-        cfg['analysis']['git_diff']['target_ref'] = 'independent-base'
+        cfg['analysis']['git_diff']['base_ref'] = 'independent-base'
         write_json(self.root/'.ecra/semantics.yaml', cfg)
         (self.root/'a.c').write_text(src.replace('g=1', 'g=2'))
         self.command('add', 'a.c')

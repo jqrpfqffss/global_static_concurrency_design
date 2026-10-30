@@ -31,16 +31,16 @@ project:
   native_word_bits: 32       # STM32 通常为 32；必须是 8 的正整数倍。
 
 analysis:
-  # 比较 project.root 固件仓库中的 Git 引用；默认保持原有全量扫描。
-  # 未确定影响边界时保守扩大；差异范围之外不代表安全，缓存升级后重新校验。
+  # 比较 project.root 固件仓库中的任意两个分支、标签或提交；方向为 base_ref → current_ref。
+  # 默认全量扫描；启用后直接比较两个版本，不自动取共同祖先。
+  # current_ref: HEAD 表示当前检出版本；填写其它分支时自动建立隔离工作树，无需切换分支。
+  # 缓存自动启用且校验有效性，影响不明确时自动保守扩大；差异范围之外不代表安全。
   git_diff:
     enabled: false
-    target_ref: origin/master
-    compare_mode: merge_base
-    include_uncommitted: false
-    cache_enabled: true
-    verify_against_full: false
-    uncertain_impact_policy: expand_or_full_scan
+    base_ref: origin/master
+    current_ref: HEAD
+    # 可选：仅 current_ref 为 HEAD 时可包含未提交修改，默认 false。
+    # include_uncommitted: true
 
   # ---------------------------------------------------------------------------
   # 变量排查范围

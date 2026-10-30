@@ -48,7 +48,7 @@ class StorageShapeDiffTests(unittest.TestCase):
     def delta(self, base, head):
         before = json.dumps([base, head], sort_keys=True)
         result = compare(base, head, dict(files=[], head_sha='head', base_sha='base',
-            current_ref='feature', target_ref='base', compare_mode='direct', base_source_root=str(self.root)))
+            current_ref='feature', base_ref='base', base_source_root=str(self.root)))
         self.assertEqual(before, json.dumps([base, head], sort_keys=True))
         return result
 

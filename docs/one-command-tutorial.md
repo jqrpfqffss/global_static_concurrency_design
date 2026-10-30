@@ -7,15 +7,15 @@
 ```yaml
 git_diff:
   enabled: false
-  target_ref: origin/master
-  compare_mode: merge_base
-  include_uncommitted: false
-  cache_enabled: true
-  verify_against_full: false
-  uncertain_impact_policy: expand_or_full_scan
+  base_ref: origin/master
+  current_ref: HEAD
 ```
 
-`target_ref` 属于 `project.root` 固件仓库。先把构建目录和 `.ecra/` 加入固件 `.gitignore`；默认要求工作区干净，需要包含暂存/未暂存/未跟踪输入时设置 `include_uncommitted: true`。命令行只覆盖本次模式，不改 YAML：
+两个引用都属于 `project.root` 固件仓库，支持分支、远端跟踪分支、标签和提交 SHA。比较方向为 `base_ref → current_ref`，直接比较两个版本，不自动取共同祖先。例如 `base_ref: release/v1`、`current_ref: feature/control`，无需检出这两个分支：工具在隔离工作树构建并分析，结果仍写入原固件输出目录。
+
+`current_ref: HEAD` 使用当前检出版本，默认要求工作区干净；先把构建目录和 `.ecra/` 加入固件 `.gitignore`。只有需要连同本地暂存、未暂存、未跟踪修改一起检查时，才额外填写 `include_uncommitted: true`，此时 `current_ref` 必须为 `HEAD`。指定其它引用只比较提交内容，不受原工作区未提交修改影响。工具不会自动 fetch，远端跟踪分支需要用户事先更新。
+
+日常只需上面的三个字段；缓存自动校验并复用，未知影响自动扩大。参数取舍和高级选项见[配置分析](git-diff-concurrency-validation.md#参数取舍与迁移)。命令行只覆盖本次模式，不改 YAML：
 
 ```powershell
 py -3.10 run_ecra.py

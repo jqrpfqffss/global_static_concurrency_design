@@ -38,7 +38,7 @@ def main():
             or not cfg['analysis']['git_diff'].get('include_uncommitted')
             or any(cfg['analysis'].get(k) for k in ('include_dirs', 'exclude_dirs', 'exclude_files', 'exclude'))):
         parser.error('需要关闭复核、选择完整 H743 ELF 目标并启用工作区比较；不允许缩小变量范围')
-    base = cfg['analysis']['git_diff']['target_ref']
+    base = cfg['analysis']['git_diff']['base_ref']
     if git('status', '--porcelain') or git('rev-parse', base) != git('rev-parse', 'HEAD'):
         parser.error('需要专用副本的干净基准 HEAD；禁止覆盖已有修改')
     reference = args.baseline_reference.resolve() if args.baseline_reference else None

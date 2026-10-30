@@ -272,13 +272,15 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             write_json(out / 'result_validity.json', dict(analysis_valid=False, state='RUNNING', started=started))
             write_failure(out, state='RUNNING')
         if cfg['analysis']['git_diff']['enabled']:
-            from .git_diff import pin, prepare_base
+            from .git_diff import pin, prepare_base, prepare_current
             diff_pin = pin(root, cfg)
             doctor['git_diff'] = diff_pin
             if not doctor_only:
                 diagnostics.stage('Git 基准版本完整分析')
                 base_summary_cache = {}
                 base_summary_file = prepare_base(root, out, cfg, diff_pin, progress, base_summary_cache)
+            root, cfg = prepare_current(root, out, cfg, diff_pin, progress)
+            run_info['analysis_root'] = str(root)
         diagnostics.stage('编译数据库准备')
         progress("检查配置、libclang 和真实编译数据库…")
         if no_review:
