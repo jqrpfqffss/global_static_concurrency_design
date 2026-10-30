@@ -1,0 +1,252 @@
+{
+  "matrix": {
+    "engine_digest": "2d4897d37274453cbaac1ec050b56d274fba0c7ba76ac72183a9749556058926",
+    "config_sha256": "f47eb1eacf76881df6ede7fdeee1a2b9c313e631f53f7039583faa52006a742d",
+    "head": "c7faf3b9b33c629c7d5158b5c8bfeb7c57af7e52",
+    "base": "399e68a45b57d36d894bb9273ab7735ae57e4077",
+    "scripts": {
+      "H:\\global_static_concurrency_design\\scripts\\validate_serial_diff.py": "ea6f77d4a4265e42d79bf69152998f3912cb852c0a2619d63bd3f6fea3288ccf",
+      "H:\\global_static_concurrency_design\\tests\\fixtures\\serial_diff\\expectations.json": "e884cebda5f92442182c54f96f33ecd2243024262bd7442976f245946394a866"
+    },
+    "complete": true,
+    "review_executed": false,
+    "hardware_executed": false,
+    "runs": [
+      {
+        "name": "diff-first",
+        "exit_code": 2,
+        "seconds": 147.14100000000326,
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "c5e31906bb084ebe454f45b58e81ac79d1b490a2f6e1299d9b7ef112f10ca633"
+        },
+        "tus": 23,
+        "parse_statuses": {
+          "PARSED": 23
+        },
+        "classifications": {
+          "CONTAINER": 11,
+          "SAFE_PROVEN": 41,
+          "SUSPECT": 40
+        },
+        "case_audit_passed": true,
+        "passed_cases": 21,
+        "cache": {
+          "hits": 0,
+          "extracted": 23,
+          "corrupt": 0,
+          "total": 23
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "selected": 33
+      },
+      {
+        "name": "full-independent",
+        "exit_code": 2,
+        "seconds": 69.92199999996228,
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "5aec4c8549cec1d188c4453984cfc5c89c76de2406b989dbad296dd8ecd41cee"
+        },
+        "tus": 23,
+        "parse_statuses": {
+          "PARSED": 23
+        },
+        "classifications": {
+          "CONTAINER": 11,
+          "SAFE_PROVEN": 41,
+          "SUSPECT": 40
+        }
+      },
+      {
+        "name": "diff-cached",
+        "exit_code": 2,
+        "seconds": 46.53099999995902,
+        "validity": {
+          "analysis_valid": true,
+          "state": "STATIC_SCAN_SAVED",
+          "snapshot_status": "VERIFIED",
+          "fingerprint": "c5e31906bb084ebe454f45b58e81ac79d1b490a2f6e1299d9b7ef112f10ca633"
+        },
+        "tus": 23,
+        "parse_statuses": {
+          "PARSED": 23
+        },
+        "classifications": {
+          "CONTAINER": 11,
+          "SAFE_PROVEN": 41,
+          "SUSPECT": 40
+        },
+        "case_audit_passed": true,
+        "passed_cases": 21,
+        "cache": {
+          "hits": 23,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 23
+        },
+        "fallback": [
+          "执行入口、保护、NVIC、DMA 或别名全局语义变化",
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "selected": 33
+      }
+    ],
+    "full_vs_diff_equal": true
+  },
+  "html_audit": {
+    "passed": true,
+    "path": "H:\\stm32_RAG\\code\\serial - opencode\\.ecra\\index.html",
+    "sha256": "2086ffad2a3a07702533134325a2f6bbe3d1e3d904325bf8b41a1b46f50b49dd",
+    "rows": 33,
+    "unique_ids": 33,
+    "displayed_names": [
+      "Probe_LocalSlot::hidden_epoch",
+      "Probe_Reentrant::hidden_scratch",
+      "probe_added",
+      "probe_array",
+      "probe_array[*]",
+      "probe_array[2]",
+      "probe_bits",
+      "probe_bits.high",
+      "probe_bits.low",
+      "probe_callback",
+      "probe_disjoint.foreground",
+      "probe_disjoint.irq",
+      "probe_frame",
+      "probe_frame.sequence",
+      "probe_frame.value",
+      "probe_header_private",
+      "probe_indirect",
+      "probe_lock_removed",
+      "probe_masked",
+      "probe_overlay",
+      "probe_overlay.bytes",
+      "probe_overlay.word",
+      "probe_race_removed",
+      "probe_readonly",
+      "probe_rmw",
+      "probe_route",
+      "probe_route.invoke",
+      "probe_route.payload",
+      "probe_same_name",
+      "probe_stale",
+      "probe_wide"
+    ]
+  },
+  "before": {
+    "selected_rows": 95,
+    "review_targets": 40
+  },
+  "after": {
+    "selected_rows": 33,
+    "review_targets": 17,
+    "backend_rows": 96,
+    "backend_findings": 40,
+    "potential_impact_rows": 62
+  },
+  "case_checks": {
+    "diff-first": {
+      "passed": true,
+      "total": 21,
+      "passed_cases": 21,
+      "focus": {
+        "passed": true,
+        "unrelated_selected": [],
+        "potential_impact": 62
+      },
+      "case_ids": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10",
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06"
+      ]
+    },
+    "diff-cached": {
+      "passed": true,
+      "total": 21,
+      "passed_cases": 21,
+      "focus": {
+        "passed": true,
+        "unrelated_selected": [],
+        "potential_impact": 62
+      },
+      "case_ids": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10",
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06"
+      ]
+    }
+  },
+  "artifact_sha256": {
+    "output\\serial-diff-focused-20261030\\release-matrix\\diff-cached\\summary.json": "de94787b4baa0df1905b80136871f5419d4a5858537f7a0f40e501daa40d97ec",
+    "output\\serial-diff-focused-20261030\\release-matrix\\diff-first\\summary.json": "de94787b4baa0df1905b80136871f5419d4a5858537f7a0f40e501daa40d97ec",
+    "output\\serial-diff-focused-20261030\\release-matrix\\full-independent\\summary.json": "de94787b4baa0df1905b80136871f5419d4a5858537f7a0f40e501daa40d97ec",
+    "output\\serial-diff-focused-20261030\\release-matrix\\diff-cached\\cases.json": "96162f07761b4f5421b4a023087c4227287bbb15d95d22e4384f62ea760dd281",
+    "output\\serial-diff-focused-20261030\\release-matrix\\diff-first\\cases.json": "bdc0ab5158d1286c5de977da4c4950f1b80d796daf9f6363d1ddce956bd8fbf3"
+  },
+  "full_regression": {
+    "state": "PASSED",
+    "tests": 1044,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "seconds": 898.945,
+    "engine_digest": "953863283d908aa41fdb751cf5d987a9aff1db58c341cbc03300b465f9a8aa37",
+    "note": "Executed before final function-like macro signature flag addition; final metadata change was followed by focused tests and a fresh real full/diff matrix."
+  },
+  "final_targeted": {
+    "state": "PASSED",
+    "tests": 104,
+    "seconds": 260.718,
+    "engine_digest": "2d4897d37274453cbaac1ec050b56d274fba0c7ba76ac72183a9749556058926"
+  },
+  "log_sha256": {
+    "output\\serial-diff-focused-20261030\\verified-regression.log": "507abadd0a2fa7f94fe2897294fa8e028f5991f7b8ccac068428c0283991c165",
+    "output\\serial-diff-focused-20261030\\release-targeted.log": "91f948d857d0732c5bf9132b6300bfe44ee7a03c01a66af331a5138e72388b89"
+  },
+  "hardware_executed": false,
+  "external_model_executed": false
+}

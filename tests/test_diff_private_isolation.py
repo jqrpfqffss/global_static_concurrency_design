@@ -40,14 +40,17 @@ class PrivateIsolationTests(unittest.TestCase):
                 diff, facts, _, _ = self.delta(declaration, use)
                 variables = [v for v in facts['variables'] if v['name'] == 'private']
                 self.assertTrue(variables)
-                self.assertTrue(all(v['symbol_id'] in diff['selected_symbol_ids'] for v in variables))
+                self.assertTrue(all(v['symbol_id'] in diff['conservative_symbol_ids'] for v in variables))
+                self.assertTrue(all(v['symbol_id'] not in diff['selected_symbol_ids'] for v in variables))
 
     def test_build_semantics_change_prevents_exemption(self):
         diff, facts, base, head = self.delta()
         head['macros']['a.c'] = 'changed macro value'
         diff = compare(base, head, dict(files=[], head_sha='h', base_sha='b'))
         self.assertFalse(diff['fallback_exemptions'])
-        self.assertTrue(all(v['symbol_id'] in diff['selected_symbol_ids'] for v in facts['variables']))
+        self.assertTrue(all(v['symbol_id'] in set(diff['selected_symbol_ids']) | set(diff['conservative_symbol_ids']) for v in facts['variables']))
+        private = next(v for v in facts['variables'] if v['name'] == 'private')
+        self.assertNotIn(private['symbol_id'], diff['selected_symbol_ids'])
 
     def test_changed_private_accessor_keeps_dependency_selection(self):
         diff, facts, base, head = self.delta()

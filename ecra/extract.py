@@ -4,6 +4,7 @@ import ctypes
 import os
 import re
 import sys
+from collections import defaultdict
 from itertools import islice
 from pathlib import Path
 
@@ -304,6 +305,8 @@ class Extractor:
                 if defining:
                     size, align = typ.get_size(), typ.get_align()
                     record.update(type=c.type.spelling, initializer=' '.join(tokens(c))[:500],
+                                  definition_extent=dict(file=decl['file'], offset=c.extent.start.offset,
+                                                         end_offset=c.extent.end.offset),
                                   semantic_digest=digest([t.spelling for t in c.get_tokens() if t.kind.name != 'COMMENT']),
                                   size_bytes=size if size >= 0 else None,
                                   alignment_bytes=align if align >= 0 else None)
@@ -661,7 +664,20 @@ class Extractor:
                 direct = ref is not None and ref.kind.name in FUNCTIONS
                 callee = self.fid(ref) if direct else None
                 name = ref.spelling if direct else c.spelling
+                result_used = True
+                for parent, index in reversed(ancestors):
+                    if parent.kind.name in WRAPPERS:
+                        if parent.type.kind.name == 'VOID':
+                            result_used = False
+                            break
+                        continue
+                    if parent.kind.name == 'BINARY_OPERATOR' and operator(parent) == ',' and index == 1:
+                        continue
+                    result_used = not (parent.kind.name == 'COMPOUND_STMT'
+                        or (parent.kind.name == 'BINARY_OPERATOR' and operator(parent) == ',' and index == 0))
+                    break
                 self.calls.append(dict(caller_function_id=fid, callee_function_id=callee,
+                                       result_used=result_used,
                                        callee_name=name, call_kind="DIRECT" if direct else "INDIRECT", **self.loc(c)))
                 if not direct:
                     self.issue("INDIRECT_CALL", c, fid)
@@ -813,12 +829,15 @@ class Extractor:
         import hashlib
         semantic_macros = hashlib.sha256()
         macro_dependencies = []
+        macro_catalog = defaultdict(list)
         macro_function_like = ci.conf.lib.clang_Cursor_isMacroFunctionLike
         macro_function_like.argtypes = [ci.Cursor]
         macro_function_like.restype = ctypes.c_uint
         for macro in tu.cursor.get_children():
             if macro.kind.name != 'MACRO_DEFINITION':
                 continue
+            macro_catalog[macro.spelling].append([bool(macro_function_like(macro)), *[
+                t.spelling.replace('\r\n', '\n') for t in macro.get_tokens() if t.kind.name != 'COMMENT']])
             if macro.location.file:
                 macro_tokens = [t for t in macro.get_tokens() if t.kind.name != 'COMMENT']
                 semantic_macros.update(digest([bool(macro_function_like(macro)),
@@ -848,6 +867,16 @@ class Extractor:
         dynamic_inputs = dynamic_input_abstraction(tu, macro_dependencies, self.root)
         start_stage('Clang 声明提取', self.tu_name)
         self.declare(tu.cursor)
+        # A macro may change only a global/static initializer, with no change
+        # to any function's source tokens. Bind declarations as consumers too.
+        from .macro_semantics import function_signatures
+        declarations = [dict(function_id=v['symbol_id'], **v['definition_extent'])
+                        for v in self.variables.values() if v.get('definition_extent')]
+        function_signatures([*self.functions.values(), *declarations], tu.cursor.get_children(),
+                            macro_catalog, macro_dependencies, self.root, self.tu_name,
+                            counter_environment_digest=semantic_macros.hexdigest())
+        for declaration in declarations:
+            self.variables[declaration['function_id']]['consumed_macros_digest'] = declaration['consumed_macros_digest']
         # A Clang error can coexist with a traversable AST. Its affected
         # declarations/calls remain explicit evidence gaps; it is not a
         # translation-unit-wide PARSE_FAILED taint.

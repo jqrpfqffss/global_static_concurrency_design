@@ -197,7 +197,8 @@ def _generate(out, facts, report, reviews, files):
         report['risk_summary']['scope'] = 'CURRENT_GIT_DIFF'
         report['review_summary']['basis'] = '当前差异范围的原始复核结果与进度；完整构建静态分类保留在 coverage 与 findings。'
     report['final_conclusion'] = final_conclusion(view_report, records)
-    if (counts['unresolved'] or counts['likely'] or not report['review_integrity']['complete']) and report.get('run_status') == 'REVIEW_COMPLETE':
+    if (counts['unresolved'] or counts['likely'] or not report['review_integrity']['complete']
+            or report.get('git_diff', {}).get('fallback_reasons')) and report.get('run_status') == 'REVIEW_COMPLETE':
         report['run_status'] = 'INCOMPLETE'
     for folder in ("inventory", "reports"):
         (out / folder).mkdir(parents=True, exist_ok=True)
@@ -272,7 +273,8 @@ def _generate(out, facts, report, reviews, files):
     static = cov.get('static_classification', {})
     if report.get('git_diff'):
         md[2:2] = ['- 扫描模式：分支差异。以上覆盖、变量总数、静态归账和 RR 指标采用完整构建范围；下方风险条目、最终风险分类与复核队列采用当前差异范围。',
-                   '- 当前差异清单行数（含容器）：' + str(len(report['git_diff']['selected_symbol_ids'])) + '；本轮复核项：' + str(len(review_targets(report))) + '。范围之外不代表安全。', '']
+                   '- 当前差异清单行数（含容器）：' + str(len(report['git_diff']['selected_symbol_ids'])) + '；本轮复核项：' + str(len(review_targets(report))) + '。范围之外不代表安全。',
+                   '- 未排除的潜在影响：' + str(len(report['git_diff'].get('conservative_symbol_ids', []))) + ' 个变量；只保留在覆盖证据，不自动列为本次差异。', '']
     if static:
         md[2:2] = [f"- 静态归账：总数 {static.get('total', 0)} = 静态安全 {static.get('safe_proven', 0)} + 共享无需复核 {static.get('shared_no_review', 0)} + 疑似风险 {static.get('suspect', 0)} + 无法判断 {static.get('unknown', 0)}", ""]
     rates = cov.get('review_rates', {})

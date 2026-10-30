@@ -1,5 +1,7 @@
 # serial - opencode 差异并发扫描验收
 
+这是首轮验收记录；其中 95/96 行展示属于当时尚未修复的范围扩散。最新实现已将默认清单收敛为 33 行（含 5 个容器汇总），仍保持 21/21 项命中，详见[差异清单收敛验收](git-diff-focused-validation.md)。原始数据保留以便追溯。
+
 目标工程：`H:/stm32_RAG/code/serial - opencode`。Codex 直接修改与验证，未调用 Claude Code、OpenCode 或其他编码代理。只进行 CMake/ARM GCC 构建、静态分析和测试，没有烧录、复位或串口操作。
 
 ## 已提交的固件分支

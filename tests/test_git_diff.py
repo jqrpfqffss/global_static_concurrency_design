@@ -110,7 +110,10 @@ class SemanticDiffTests(unittest.TestCase):
     def test_T10_T26_nvic_priority(self):
         src = 'void HAL_NVIC_SetPriority(int,int,int);int g;void Task(void){HAL_NVIC_SetPriority(30,1,0);}void ISR(void){g++;}'
         diff, facts, _ = self.delta({'a.c': src}, {'a.c': src.replace('(30,1,0)', '(30,0,0)')})
-        self.assertIn('g', self.names(diff, facts))
+        # No IRQ number/priority relation to this standalone ISR was proved.
+        # Keep its possible impact visible as uncertainty, not a code delta.
+        self.assertNotIn('g', self.names(diff, facts))
+        self.assertIn('c:@g', diff['conservative_symbol_ids'])
 
     def test_T13_shared_data_fixed_point(self):
         src = 'int raw,filtered,out;void Task(void){raw=1;}void F(void){filtered=raw;}void O(void){out=filtered;}void ISR(void){out++;}'
@@ -153,10 +156,11 @@ class SemanticDiffTests(unittest.TestCase):
         diff = compare(summarize(bf, br, {'old.c': 'new.c'}), summarize(hf, hr), dict(files=[],head_sha='h',base_sha='b'))
         self.assertFalse(diff['deleted_variables'])
 
-    def test_T20_T21_build_change_expands(self):
+    def test_T20_T21_build_change_preserves_uncertainty_without_filling_diff(self):
         src = {'a.c': 'int g;void Task(void){g++;}'}
         diff, facts, _ = self.delta(src, src, [dict(new_path='CMakeLists.txt')])
-        self.assertIn('g', self.names(diff, facts))
+        self.assertNotIn('g', self.names(diff, facts))
+        self.assertIn('c:@g', diff['conservative_symbol_ids'])
         self.assertEqual(diff['fallback_level'], 'L1')
 
     def test_T22_recursive_closure(self):
@@ -243,6 +247,39 @@ class GitIntegrationTests(unittest.TestCase):
         if code == 3:
             self.fail((self.root/'.ecra/run.log').read_text(encoding='utf-8'))
         return read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+
+    def test_shared_main_focus_filters_html_queue_and_saved_render(self):
+        self.repository()
+        source = '''int changed,unrelated;
+            void Update(void){changed=1;}void Other(void){unrelated++;}
+            int main(void){Update();Other();return 0;}
+            void USART2_IRQHandler(void){changed++;}void TIM2_IRQHandler(void){unrelated++;}'''
+        (self.root/'a.c').write_text(source)
+        (self.root/'b.c').write_text('')
+        self.command('add', '.')
+        self.command('commit', '-m', 'shared main with independent state')
+        self.command('branch', 'shared-main-base')
+        cfg = read_json(self.root/'.ecra/semantics.yaml')
+        cfg['contexts'] = [dict(id='main', kind='MAIN', functions=['main'])]
+        cfg['analysis']['git_diff']['base_ref'] = 'shared-main-base'
+        write_json(self.root/'.ecra/semantics.yaml', cfg)
+        (self.root/'a.c').write_text(source.replace('changed=1', 'changed=2'))
+        self.command('add', 'a.c')
+        self.command('commit', '-m', 'update only changed')
+        report = self.scan()
+        self.assertEqual(report['git_diff']['selected_symbol_ids'], ['c:@changed'])
+        self.assertEqual({f['symbol_id'] for f in report['findings']}, {'c:@changed', 'c:@unrelated'})
+        from ecra.workflow import saved_run
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertIn(saved_run(self.root, render_only=True), (1, 2))
+        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')
+        import re
+        inventory = re.search(r'<table[^>]*id="inventory-table"[^>]*>(.*?)</table>', html, re.S).group(1)
+        self.assertIn('changed', inventory)
+        self.assertEqual(set(re.findall(r'class="item-name"[^>]*>([^<]+)</a>', html)), {'changed'})
+        self.assertIn('本次差异涉及的全局 / static 变量', html)
+        queue = read_json(self.root/'.ecra/review/queue.json')
+        self.assertEqual(len(queue), 1)
 
     def test_T28_T33_T36_empty_diff_saved_scope_and_html(self):
         self.repository()

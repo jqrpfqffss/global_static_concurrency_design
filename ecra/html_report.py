@@ -436,7 +436,8 @@ def final_conclusion(report, reviews):
                        and category(mapping[f['finding_id']]) == 'confirmed']
     if confirmed:
         verdict, label = 'HAS_ISSUES', '有问题：OpenCode 已确认存在并发缺陷'
-    elif unresolved or report.get('analysis_status') != 'MODELED_SCOPE_COMPLETE':
+    elif (unresolved or report.get('analysis_status') != 'MODELED_SCOPE_COMPLETE'
+          or report.get('git_diff', {}).get('fallback_reasons')):
         verdict, label = 'INCONCLUSIVE', '尚不能确定：不能据此宣称没有问题'
     else:
         verdict, label = 'NO_ISSUES_IN_SCOPE', '本次已覆盖的构建与候选范围内未确认并发问题'
@@ -1357,6 +1358,10 @@ def _write_html(out, facts, report, reviews):
     coverage += raw(facts.get('translation_units', []), '全部编译单元、真实参数与解析诊断')
     coverage += raw(facts.get('unknowns', []), '全部原始分析盲区（不因合并复核项而删除）')
     coverage += raw(report.get('limitations', []), '分析限制') + raw(report.get('baseline', {}), '与上轮的变化')
+    if report.get('git_diff', {}).get('fallback_reasons'):
+        diff = report['git_diff']
+        coverage += '<h3>差异关联尚未排除的潜在影响</h3><p>另有 ' + str(len(diff.get('conservative_symbol_ids', []))) + ' 个变量未发现版本变化或明确依赖，但因覆盖缺口暂不能排除潜在影响。它们未计入默认清单；未列出不构成额外的安全证明。</p>'
+        coverage += raw(dict(reasons=diff['fallback_reasons'], symbol_ids=diff.get('conservative_symbol_ids', [])), '查看关联不确定性的范围与依据')
     coverage += '<h2>任务、中断与硬件上下文</h2>' + table(['上下文', '入口、优先级、注册与发现依据'],
         [row([esc(context(c['id'])), raw(c)]) for c in facts['contexts']])
     counts = Counter(category(r) for r in records.values())
@@ -1369,22 +1374,23 @@ def _write_html(out, facts, report, reviews):
         storage_count = risk_summary(facts, report, records)['total_variables']
         summary += metrics([('变更文件', len(pinned['files'])), ('变更函数', len(diff['modified_function_ids'])), ('受影响分析对象', storage_count), ('疑似并发风险', classes['SUSPECT']), ('无法判断', classes['UNKNOWN']), ('静态已判安全', classes['SAFE_PROVEN']), ('共享访问，无需复核', classes['SHARED_NO_REVIEW'])])
         summary += '<p>当前差异清单共 ' + str(len(diff['selected_symbol_ids'])) + ' 行（含结构体/数组容器汇总）；上述静态分类按实际分析对象统计，容器不重复计入风险分母。</p>'
-        summary += '<p>影响分析状态：' + ('保守扩大（' + esc('；'.join(diff['fallback_reasons'])) + '）' if diff['fallback_reasons'] else '完整') + '。未列出变量不代表安全。覆盖栏目使用完整构建范围。</p>'
+        summary += '<p>影响分析状态：' + ('仍有未排除的潜在影响（' + esc('；'.join(diff['fallback_reasons'])) + '）' if diff['fallback_reasons'] else '完整') + '。未列出变量不代表安全。覆盖栏目使用完整构建范围。</p>'
+        summary += '<p>默认清单仅展示有版本变化或明确依赖关系的变量；未排除的潜在影响另有 ' + str(len(diff.get('conservative_symbol_ids', []))) + ' 个，详见覆盖说明。后台始终保留完整并发分析。</p>'
         if not diff['selected_symbol_ids']:
             summary += '<p>本次比较未识别到需要核对的差异变量。</p>'
         if diff['deleted_variables']:
             summary += '<details><summary>已删除存储对象（不计入当前风险统计）</summary>' + raw(diff['deleted_variables'], '删除证据') + '</details>'
         content = summary + '</section>' + content
     content += '<nav class="tabs" aria-label="排查栏目">' + ''.join(f'<a href="#{key}">{label} {number}</a>' for key, label, number in [
-        ('risks', '变量风险结论', len(risks)), ('inventory', '全部目标变量', len(inventory_rows)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'
+        ('risks', '变量风险结论', len(risks)), ('inventory', '差异涉及变量' if report.get('git_diff') else '全部目标变量', len(inventory_rows)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'
     decision_options = [('decision:' + key, value[0]) for key, value in DECISIONS.items()]
     priority_options = [('all', '全部结论')] + decision_options[:-1] + [('level:' + k, v) for k, v in PRIORITIES.items()]
     content += panel('risks', '变量风险结论与关键证据',
         '先看左侧结论，再看读写语句和下一步。确认风险在前，疑似风险其次；证据不足单独标识。',
         table(['风险结论 / 目标变量', '关键依据：哪里读写、为什么可疑', '下一步处理'], risks, 'risk-table', True), priority_options)
-    content += panel('inventory', '全部全局 / static 变量清单', '先看变量为什么值得排查和结论；点击变量即可查看执行上下文、真实源码访问与完整调用链。相同源码访问点不会因多个入口重复成行。',
+    content += panel('inventory', '本次差异涉及的全局 / static 变量' if report.get('git_diff') else '全部全局 / static 变量清单', '先看变量为什么值得排查和结论；点击变量即可查看执行上下文、真实源码访问与完整调用链。相同源码访问点不会因多个入口重复成行。',
         table(['变量', '为什么值得看', '结论'], inventory_rows, 'inventory-table', True),
-        [('all', '全部变量'), ('candidate', '有静态候选'), ('inventory', '未筛出候选'), ('supplemental', '补充解析')] + decision_options)
+        [('all', '全部差异变量' if report.get('git_diff') else '全部变量'), ('candidate', '有静态候选'), ('inventory', '未筛出候选'), ('supplemental', '补充解析')] + decision_options)
     content += panel('gaps', '待补证据：影响判断的覆盖缺口',
         '这些记录不是已确认的变量风险。标有“依赖证据”的第三方路径与目标变量有关，补证据后才能缩小不确定性。',
         table(['缺口与位置', '缺少什么证据', '如何补充 / 复核状态'], gaps, 'gap-table', True),

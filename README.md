@@ -4,9 +4,11 @@
 
 大型事实与报告使用自包含的无损共享存储，Python 可通过 `ecra.workflow.read_saved_json(path)` 还原完整原结构；小结果保持原 JSON 格式。编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。页面继续使用 `.ecra/index.html`，完整图和长源码搜索按需加载。
 
-新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。仍在原 `.ecra/index.html` 展示受影响变量，完整后台并发证据和静态归账保留。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败，未知影响会说明保守扩大范围。
+新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。原 `.ecra/index.html` 默认只展示有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响在覆盖说明单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
 
 真实串口工程的已提交差异分支、21 项常规/隐蔽并发/安全对照矩阵及复现命令见 [serial 差异压力验收](docs/serial-diff-stress-validation.md)。当前本地配置默认比较该测试分支与其测试基准，外部自动复核已关闭。
+
+修正影响分析扩散后，该工程的默认差异清单由 95 行降为 33 行（含 5 个容器汇总），原有 UART/CLI 变量不再混入；21 项测试仍全部通过。范围规则与全量对照见 [差异清单收敛验收](docs/git-diff-focused-validation.md)。
 
 日常差异配置只需 `enabled`、`base_ref`、`current_ref`：直接比较任意两个分支、标签或提交。`current_ref: HEAD` 扫描当前检出版本；指定其它分支时自动在隔离工作树分析，报告仍保存到原输出目录。旧 `target_ref` / `compare_mode` 配置需按[参数取舍与迁移说明](docs/git-diff-concurrency-validation.md#参数取舍与迁移)修改；缓存与保守影响扩大自动处理。
 

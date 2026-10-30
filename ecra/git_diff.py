@@ -12,7 +12,7 @@ import subprocess
 
 from .common import digest, read_json, write_json
 
-SUMMARY_SCHEMA = 5
+SUMMARY_SCHEMA = 6
 
 DEFAULTS = dict(enabled=False, base_ref='origin/master', current_ref='HEAD',
                 include_uncommitted=False, cache_enabled=True, verify_against_full=False)
@@ -332,16 +332,27 @@ def variable_change_summary(variable, contexts, renames):
 def summarize(facts, report, renames=None):
     renames = renames or {}
     cid = lambda value: canonical_id(value, renames)
-    functions = {cid(f['function_id']): dict(digest=f.get('semantic_digest'), name=f['name'],
+    functions = {cid(f['function_id']): dict(digest=digest([f.get('semantic_digest'), f.get('consumed_macros_digest')]),
+                  return_type_kind=f.get('return_type_kind'), name=f['name'],
                   file=cid(f.get('file')), line=f.get('line')) for f in facts['functions']}
     edges = sorted({(cid(c['caller_function_id']), cid(c.get('callee_function_id') or 'unresolved:' + c.get('callee_name', '')))
                     for c in facts['calls']})
+    return_edges = sorted({(cid(c['caller_function_id']), cid(c['callee_function_id']))
+                           for c in facts['calls'] if c.get('callee_function_id') and c.get('result_used', True)})
     incoming = defaultdict(set)
     for a, b in edges:
         incoming[b].add(a)
     slices, graphs = {}, {}
     context_graph = facts.get('context_call_graph', {})
     context_rows = {row['id']: row for row in facts.get('contexts', [])}
+    nvic_by_context = defaultdict(list)
+    for priority in facts.get('nvic_priorities', []):
+        state = {key: priority.get(key) for key in (
+            'irq_number', 'priority_bits', 'grouping', 'logical_priority', 'preemption_priority',
+            'subpriority', 'configured_preemption', 'configured_subpriority', 'enabled',
+            'effective_validity', 'preemption_validity')}
+        for context in priority.get('context_ids', []):
+            nvic_by_context[context].append(state)
 
     def graph_for(accessors):
         key = tuple(sorted(accessors))
@@ -371,10 +382,14 @@ def summarize(facts, report, renames=None):
         accessors = {cid(a['function_id']) for a in accesses if a.get('function_id')}
         graph = graph_for(accessors)
         dimensions = dict(
-            declaration=digest(normalize({k: v.get(k) for k in ('semantic_digest', 'type', 'kind', 'storage_class',
+            declaration=digest(normalize({k: v.get(k) for k in ('semantic_digest', 'consumed_macros_digest', 'type', 'kind', 'storage_class',
                 'owner_function_id', 'field_path', 'array_size', 'size_bytes', 'initializer', 'member_definitions')}, renames)),
             accesses=row_hashes(accesses, renames),
-            contexts=row_hashes([c for c in facts.get('context_bindings', []) if cid(c.get('function_id')) in accessors], renames),
+            contexts=row_hashes(
+                [c for c in facts.get('context_bindings', []) if cid(c.get('function_id')) in accessors]
+                + [dict(context_id=context, nvic_state=state) for context in v.get('contexts', [])
+                   for state in nvic_by_context[context]]
+                + v.get('concurrency_relations', []), renames),
             protection=evidence_digest(v.get('protection_details', []), renames),
             coverage=digest(dict(analysis_coverage=v.get('analysis_coverage'),
                 blocking_evidence=evidence_digest(v.get('blocking_evidence'), renames),
@@ -420,6 +435,7 @@ def summarize(facts, report, renames=None):
          'hardware_contexts', 'preemption_relations', 'address_escapes')}
     global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
     return dict(schema=SUMMARY_SCHEMA, variables=variables, graphs=graphs, functions=functions, edges=edges,
+        return_edges=return_edges,
         macros={cid(u['source_file']): u.get('semantic_macros_digest') for u in facts.get('translation_units', [])},
         dependencies=sorted({canonical_id(str(Path(p).resolve().relative_to(Path(report['coverage']['project_root']).resolve())).replace('\\', '/'), renames)
             if report.get('coverage', {}).get('project_root') and Path(p).resolve().is_relative_to(Path(report['coverage']['project_root']).resolve())
@@ -487,20 +503,24 @@ def compare(base, head, pinned):
                 reasons[sid].add(reason)
         if old['findings'] != new['findings']:
             reasons[sid].add('CONFLICT_CHANGED')
-    # Typed worklist: changed callee -> all callers (return/control effects),
-    # affected caller -> all callees (arguments/side effects), writer -> readers
-    # (shared data), overlapping root -> sibling storages. No path enumeration.
-    outgoing, incoming, function_vars, readers, root_vars = (defaultdict(set) for _ in range(5))
+    # Direction matters: visiting a callee must not walk back through every
+    # caller and then spread to their unrelated siblings. Only a changed body
+    # or shared input can affect a consumed return value in its callers.
+    outgoing, function_vars, readers, root_vars = (defaultdict(set) for _ in range(4))
     for a, b in base['edges'] + head['edges']:
         outgoing[a].add(b)
-        incoming[b].add(a)
+    return_callers = defaultdict(set)
+    for summary in (base, head):
+        for a, b in summary.get('return_edges', summary['edges']):
+            if summary['functions'].get(b, {}).get('return_type_kind') != 'VOID':
+                return_callers[b].add(a)
     for summary in (base, head):
         for sid, v in summary['variables'].items():
             for f in v['accessors']:
                 function_vars[f].add(sid)
             readers[sid].update(v['reads'])
             root_vars[v['root']].add(sid)
-    pending = deque(('function', f) for f in modified)
+    pending = deque(('effect', f) for f in modified)
     pending.extend(('variable', sid) for sid in list(reasons))
     seen = set()
     while pending:
@@ -508,20 +528,22 @@ def compare(base, head, pinned):
         if (kind, key) in seen:
             continue
         seen.add((kind, key))
-        if kind == 'function':
-            pending.extend(('function', f) for f in outgoing[key] | incoming[key])
+        if kind in {'effect', 'callee'}:
+            pending.extend(('callee', f) for f in outgoing[key])
+            if kind == 'effect':
+                pending.extend(('effect', f) for f in return_callers[key])
             for sid in function_vars[key]:
                 reasons[sid].add('SEMANTIC_IMPACT')
                 pending.append(('variable', sid))
                 if any(key in summary['variables'].get(sid, {}).get('writes', []) for summary in (base, head)):
-                    pending.extend(('function', f) for f in readers[sid])
+                    pending.extend(('effect', f) for f in readers[sid])
         else:
             # A selected read alone is not a write. Only affected writers and
             # changed storage can propagate values into cross-function readers.
             old, new = bv.get(key, {}), hv.get(key, {})
             writers = set(old.get('writes', [])) | set(new.get('writes', []))
-            if 'DIRECT_CHANGED' in reasons[key] or any(('function', f) in seen for f in writers):
-                pending.extend(('function', f) for f in readers[key])
+            if 'DIRECT_CHANGED' in reasons[key] or any(('effect', f) in seen or ('callee', f) in seen for f in writers):
+                pending.extend(('effect', f) for f in readers[key])
             for v in (old, new):
                 for sibling in root_vars[v.get('root')]:
                     if sibling != key:
@@ -557,6 +579,7 @@ def compare(base, head, pinned):
     if build_changed:
         fallback.append('头文件或构建输入变化，重新评估完整构建范围')
     fallback_exemptions = {}
+    conservative = set()
     if fallback:
         for sid in bv.keys() | hv.keys():
             old, new = bv.get(sid), hv.get(sid)
@@ -565,7 +588,11 @@ def compare(base, head, pinned):
                     and old['dimensions'] == new['dimensions']):
                 fallback_exemptions[new['symbol_id']] = '未逃逸私有标量，两版完整直接访问、上下文及调用子图一致，且不在语义影响闭包内'
                 continue
-            reasons[sid].add('BUILD_SEMANTICS_CHANGED' if build_changed else 'CANNOT_EXCLUDE_IMPACT')
+            if sid in reasons:
+                if build_changed:
+                    reasons[sid].add('BUILD_SEMANTICS_CHANGED')
+            elif new:
+                conservative.add(new['symbol_id'])
     from functools import lru_cache
     impacts, deleted = {}, []
     @lru_cache(maxsize=32)
@@ -611,8 +638,10 @@ def compare(base, head, pinned):
     return dict(pin=pinned, selected_symbol_ids=sorted(impacts), impacts=impacts, deleted_variables=deleted,
         modified_function_ids=sorted(modified), fallback_level='L1' if fallback else 'L0', fallback_reasons=fallback,
         fallback_exemptions=fallback_exemptions,
+        conservative_symbol_ids=sorted(conservative),
+        selection_basis='VERSION_EVIDENCE_AND_DIRECTED_DEPENDENCIES',
         impact_coverage='CONSERVATIVE' if fallback else 'COMPLETE',
-        note='仅回答本次修改的影响；范围之外不代表安全。完整并发分析保留未修改路径。')
+        note='默认清单只列有版本变化或明确依赖关系的变量；未排除的潜在影响保存在覆盖证据，不自动填满差异清单。未列出不代表安全，后台保留完整并发分析。')
 
 
 def representative_paths(variable, changed_edges, evidence_graph=None):
@@ -678,7 +707,7 @@ def presentation_view(facts, report):
     view, result = dict(facts), dict(report)
     view['variables'] = [v for v in facts['variables'] if v['symbol_id'] in ids]
     result['findings'] = selected_findings(report)
-    result['presentation_notice'] = '当前差异范围：仅展示受影响变量；覆盖与依赖证据保留完整构建范围，未列出不代表安全。'
+    result['presentation_notice'] = '当前差异范围：仅展示有版本变化或明确依赖关系的变量；未排除的潜在影响见覆盖说明，后台保留完整分析。未列出不代表安全。'
     return view, result
 
 

@@ -98,6 +98,12 @@ def read_and_audit(root, out):
     baseline = read_saved_json(pin['base_facts_path'], canonical_accesses=True)
     cases = read_json(FIXTURE/'expectations.json')['cases']
     result = audit_cases(facts, report, baseline, cases)
+    selected = set(report['git_diff']['selected_symbol_ids'])
+    unrelated = [v['qualified_name'] for v in facts['variables'] if v['symbol_id'] in selected
+                 and 'ecra_diff_' not in (v.get('definition_file') or '')]
+    result['focus'] = dict(passed=not unrelated, unrelated_selected=unrelated,
+                           potential_impact=len(report['git_diff'].get('conservative_symbol_ids', [])))
+    result['passed'] = result['passed'] and result['focus']['passed']
     result.update(inventory=sum('static_classification' in v for v in facts['variables']), selected=len(report['git_diff']['selected_symbol_ids']),
                   classifications=dict(Counter(v['static_classification'] for v in facts['variables'] if 'static_classification' in v)),
                   fallback=report['git_diff']['fallback_reasons'],

@@ -100,8 +100,8 @@ def presumed_location(location):
     return ci._CXString.from_result(filename), line.value
 
 
-def update_signature(signature, cursors, definitions, root, tu_name):
-    sensitive = sensitive_macros(definitions)
+def update_signature(signature, cursors, definitions, root, tu_name, sensitive=None):
+    sensitive = sensitive if sensitive is not None else sensitive_macros(definitions)
     root = Path(root).resolve()
     for cursor in cursors:
         if cursor.kind.name != 'MACRO_INSTANTIATION':
@@ -124,3 +124,64 @@ def update_signature(signature, cursors, definitions, root, tu_name):
         # Record order/count captures __COUNTER__; physical line/column does
         # not change its expansion and must not cause comment-only impacts.
         signature.update(digest(record).encode('ascii'))
+
+
+def function_signatures(functions, cursors, catalog, definitions, root, tu_name,
+                        counter_environment_digest=None):
+    """Consumed macro definitions and predefined values per source consumer.
+
+    Retain all redefinitions of a consumed name conservatively. Parameter
+    identifiers are removed from dependency edges just as in the TU signature.
+    No unused header definition can change an unrelated function signature.
+    """
+    import hashlib
+    from .common import relative
+    by_file = defaultdict(list)
+    for function in functions:
+        by_file[function['file']].append(function)
+    dependencies = defaultdict(set)
+    for name, children in definitions:
+        dependencies[name].update(children)
+    # Include command-line definitions, whose locations have no file.
+    for name, rows in catalog.items():
+        if name not in dependencies:
+            dependencies[name].update(token for row in rows for token in row[1:] if token in catalog)
+    sensitive = sensitive_macros(list(dependencies.items()))
+    uses = defaultdict(list)
+    counter_positions = defaultdict(list)
+    counter_index = 0
+    for cursor in cursors:
+        if cursor.kind.name != 'MACRO_INSTANTIATION' or not cursor.location.file:
+            continue
+        file = relative(cursor.location.file.name, root)
+        counter = '__COUNTER__' in sensitive.get(cursor.spelling, ())
+        for function in by_file.get(file, ()):
+            if function['offset'] <= cursor.location.offset <= function['end_offset']:
+                uses[function['function_id']].append(cursor)
+                if counter:
+                    counter_positions[function['function_id']].append(counter_index)
+        if counter:
+            counter_index += 1
+    counter_scope = digest([counter_environment_digest,
+        [(name, catalog.get(name, [])) for name in sorted(sensitive) if '__COUNTER__' in sensitive[name]]])
+    closures = {}
+    for functions_in_file in by_file.values():
+        for function in functions_in_file:
+            signature = hashlib.sha256()
+            for name in sorted({c.spelling for c in uses[function['function_id']]}):
+                if name not in closures:
+                    seen, pending = set(), [name]
+                    while pending:
+                        current = pending.pop()
+                        if current in seen:
+                            continue
+                        seen.add(current)
+                        pending.extend(child for child in dependencies[current] if child in catalog)
+                    closures[name] = digest([(key, catalog.get(key, [])) for key in sorted(seen)])
+                signature.update(closures[name].encode('ascii'))
+            update_signature(signature, uses[function['function_id']], definitions, root, tu_name, sensitive)
+            if counter_positions[function['function_id']]:
+                # A preceding expansion/redefinition may change this value
+                # without editing its consumer. Keep TU ordering dependence.
+                signature.update(digest([counter_scope, counter_positions[function['function_id']]]).encode('ascii'))
+            function['consumed_macros_digest'] = signature.hexdigest()
