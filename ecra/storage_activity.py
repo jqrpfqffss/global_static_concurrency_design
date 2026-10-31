@@ -7,7 +7,7 @@ from .workspace import no_links
 
 class DataActivity:
     def __init__(self, data_root, *, exclusive=False,purpose='storage'):
-        if purpose not in {'storage','scan-budget','cleanup-job'}:raise ValueError('未知数据活动锁')
+        if purpose not in {'storage','scan-budget','cleanup-job','legacy-import'}:raise ValueError('未知数据活动锁')
         self.root=no_links(data_root)
         self.exclusive=exclusive
         self.purpose=purpose

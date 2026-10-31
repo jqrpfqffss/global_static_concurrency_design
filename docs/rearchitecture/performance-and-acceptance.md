@@ -18,7 +18,9 @@
 
 本机实际64GB RAM，不是32GB目标电脑。没有执行真实联网OpenCode判定、目标板采集、5–8名独立工程师盲测或干净离线Windows验收。
 
-尚未完成的代码：全局工作集外存化、保存复核时全量facts重建消除、dirty staged/unstaged/rename/delete/untracked字节隔离、旧目录流式GUI迁移、完整专业覆盖/Diff对照与全部交互场景。新扫描停止旧副本已实现，不能把低内存消费者迁移也宣称完成。
+本轮新增：旧目录GUI只读流式迁移，原生4TU旧facts/report全字段差异0、原64文件不变；50,000节点shared池与普通JSON完整根相同、工作集约29/31MB，SQLite约84MB大于11MB输入（不是G4收益）。六项真实迁移操作、更新后十四项主流程、62项模块回归和八项20007行浏览/精度操作通过。证据见`evidence/legacy-stream-v5.json`、`browser-legacy-v3.json`、`browser-wire-v1.json`、`regression-legacy-wire.json`和`browser-capacity-wire-v2.json`。这不是当前全源码的完整回归或最新Portable验收。
+
+尚未完成的代码：全局工作集外存化、保存复核时全量facts重建消除、dirty生产构建/解析隔离、巨型/双来源历史合并/缺证据降级、完整专业覆盖/Diff对照与全部交互场景。独立dirty字节/索引捕获及七项Clang/GCC测试不意味着完整H2通过，正式入口仍拒绝include_uncommitted。新扫描停止旧副本已实现，不能把低内存消费者迁移也宣称完成。
 
 G2的三类大型原生工程、G3的32GB 12/16GB实测、G4同输入峰值/最终物理占用降低70%、G5完整故障矩阵、G6完整大历史/包引用、G7所有U场景、G8干净机继续NOT_VERIFIED/FAIL。当前能力可验证，发布不通过。
 

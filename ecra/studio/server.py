@@ -9,7 +9,7 @@ import tempfile
 import uuid
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse as BaseJSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
@@ -17,6 +17,13 @@ from ..human_reviews import ReviewConflict, ReviewStore
 from ..report_package import import_report, export_report, import_delta, export_delta, IDENTITY
 from ..scan_store import EvidenceProvider, connect_readonly
 from ..workspace import no_links, studio_data_root, formal_workspace
+
+
+class JSONResponse(BaseJSONResponse):
+    def render(self, content):
+        # Escaped lone UTF-16 surrogates are valid legacy JSON. Sending them
+        # as literal UTF-8 would fail or corrupt the original evidence value.
+        return json.dumps(content,ensure_ascii=True,allow_nan=False,separators=(',',':')).encode('utf-8')
 
 
 def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
@@ -27,6 +34,8 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     tasks = TaskManager(data)
     from .cleanup_jobs import CleanupJobs
     cleanup=CleanupJobs(data)
+    from .migration_jobs import MigrationJobs
+    migrations = MigrationJobs(data)
     @asynccontextmanager
     async def lifespan(app):
         try:
@@ -34,7 +43,8 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
         finally:
             await run_in_threadpool(tasks.close)
     session = token or secrets.token_urlsafe(32)
-    app = FastAPI(title='ECRA Studio', docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    app = FastAPI(title='ECRA Studio', docs_url=None, redoc_url=None, openapi_url=None,
+        default_response_class=JSONResponse, lifespan=lifespan)
     app.state.task_manager = tasks
     app.state.session_token = session
     app.state.data_root = data
@@ -105,7 +115,7 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     def bootstrap():
         return dict(product='ECRA Studio', data_root=str(data), protocol=1,
             scan_pipeline='SQLITE_NATIVE_SCAN',
-            capabilities=['archive_viewer', 'human_reviews', 'report_packages', 'review_delta', 'profile_validation', 'native_scan_tasks'],
+            capabilities=['archive_viewer', 'human_reviews', 'report_packages', 'review_delta', 'profile_validation', 'native_scan_tasks', 'legacy_json_import'],
             limits=['大型工程资源门禁及完整 U01–U24 尚未全部通过。',
                     '归档内容校验不等于当前源码重新验证；确认者为用户声明，未经认证。'])
 
@@ -146,9 +156,13 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
             manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
             if manifest.get('format') == 'ECRA_LOCAL_SCAN':
                 binding['state'] = manifest['state']; mode = 'LOCAL_SNAPSHOT'
+        try:
+            legacy_warning = provider.node(provider.resolve('provenance', ['legacy_warning'])).get('value')
+        except KeyError:
+            legacy_warning = None
         return dict(binding=binding, static_counts=counts, human_counts=grouped, total=total,
                     counting_basis='完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。',
-                    mode=mode,diff=QueryService(scan_path(scan_id)).diff_summary(),
+                    mode=mode,legacy_warning=legacy_warning,diff=QueryService(scan_path(scan_id)).diff_summary(),
                     can_review=(scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
     @app.get('/api/scans/{scan_id}/ai')
@@ -244,6 +258,53 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     def source(scan_id: str, file: str):
         return EvidenceProvider(scan_path(scan_id)/'scan.db').archived_source(file)
 
+    @app.get('/api/scans/{scan_id}/legacy-files')
+    def legacy_files_page(scan_id: str, offset: int=0, limit: int=50):
+        provider = EvidenceProvider(scan_path(scan_id)/'scan.db')
+        root = provider.resolve('provenance', ['legacy_inputs'])
+        page = provider.node(root, offset=offset, limit=limit)
+        items = []
+        for item in page['items']:
+            fields = {row['key']:row.get('value') for row in provider.node(item['id'],limit=20)['items']}
+            items.append(dict(fields, ordinal=item['ordinal']))
+        return dict(items=items,total=page['total'],offset=offset,next_offset=page['next_offset'])
+
+    @app.get('/api/scans/{scan_id}/legacy-file')
+    def legacy_file_text(scan_id: str, ordinal: int, offset: int=0, limit: int=8192):
+        if ordinal < 0 or offset < 0 or not 1 <= limit <= 16384:
+            raise ValueError('旧审计文件游标无效')
+        out = scan_path(scan_id); provider = EvidenceProvider(out/'scan.db')
+        node = provider.resolve('provenance', ['legacy_inputs', ordinal])
+        fields = {row['key']:row.get('value') for row in provider.node(node,limit=20)['items']}
+        if fields.get('disposition') != 'OPAQUE_AUDIT_PRESERVED':
+            raise ValueError('该完整事实/报告已转换到权威库；请在原始证据中逐段浏览')
+        from ..report_package import OBJECT
+        hashed = fields.get('sha256','')
+        if not OBJECT.fullmatch('evidence/'+hashed): raise ValueError('旧审计对象身份损坏')
+        file = no_links(out/'evidence'/hashed)
+        if file.stat().st_size != fields['size'] or offset > fields['size']:
+            raise ValueError('旧审计对象大小或游标不符')
+        with file.open('rb') as stream:
+            stream.seek(offset); block = stream.read(limit)
+        # Bytes remain exact in CAS. Preview binary or non-UTF8 data as hex,
+        # never execute imported SQLite, HTML, shell or embedded scripts.
+        try:
+            for trim in range(4):
+                try:
+                    part = block[:-trim] if trim else block
+                    text = part.decode('utf-8'); break
+                except UnicodeDecodeError as exc:
+                    if exc.start < len(block)-3 or trim == 3: raise
+            if b'\0' in part: raise UnicodeError()
+            if block and not part: raise UnicodeError()
+            encoding = 'utf-8'
+        except UnicodeError:
+            text = block.hex(' '); part = block; encoding = 'hex'
+        next_offset = offset+len(part)
+        return dict(file=fields['file'],sha256=hashed,encoding=encoding,text=text,
+            offset=offset,total=fields['size'],next_offset=next_offset if next_offset<fields['size'] else None,
+            source='归档旧文件原始字节；仅文本/十六进制查看，不作为当前安全证明')
+
     @app.get('/api/scans/{scan_id}/source-window')
     def source_lines(scan_id: str,file: str,line: int=1,before: int=10,after: int=30):
         from .source_view import source_window
@@ -295,6 +356,22 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
                     stream.write(block)
             return await run_in_threadpool(import_report, upload, data)
 
+    @app.post('/api/migrations/preview')
+    def migration_preview(payload: dict):
+        return migrations.preview(payload['source'], payload['project_root'])
+
+    @app.post('/api/migrations')
+    def migration_start(payload: dict):
+        return migrations.start(payload['source'], payload['project_root'], payload['revision'])
+
+    @app.get('/api/migrations')
+    def migration_history(offset: int=0, limit: int=50):
+        return migrations.history(offset,limit)
+
+    @app.get('/api/migrations/{job_id}')
+    def migration_status(job_id: str):
+        return migrations.get(job_id)
+
     @app.post('/api/scans/{scan_id}/delta/import')
     async def delta_upload(scan_id: str, request: Request):
         raw = bytearray()
@@ -343,7 +420,8 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
                     partial = True
         import shutil
         usage=shutil.disk_usage(data)
-        return dict(bytes=totals, sampling_partial=partial, cleanup_available=True,
+        from datetime import datetime,timezone
+        return dict(bytes=totals, sampled_at=datetime.now(timezone.utc).isoformat(),sampling_partial=partial, cleanup_available=True,
                     physical_disk_free_bytes=usage.free,physical_disk_total_bytes=usage.total,
                     reason='目录数值为逻辑字节；空间整理先验证完整引用与哈希，再预览、隔离及二次确认释放。')
 

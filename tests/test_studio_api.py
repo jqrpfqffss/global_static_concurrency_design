@@ -13,6 +13,20 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_legacy_unicode_and_numeric_precision_survive_the_actual_json_response(self):
+        target=self.data/'scans/typed';target.mkdir()
+        publish_scan(target/'scan.db',dict(probe=dict(unpaired='\ud800',large=2**80+1,negative=-0.0)),{},scan_id='typed',project_id='p')
+        provider=EvidenceProvider(target/'scan.db')
+        node=provider.resolve('facts',['probe'])
+        response=self.client.get('/api/scans/typed/nodes/'+str(node))
+        self.assertEqual(response.status_code,200,response.text)
+        result={row['key']:row for row in response.json()['items']}
+        self.assertEqual(result['unpaired']['value'],'\ud800')
+        self.assertEqual(result['unpaired']['display_json'],'"\\ud800"')
+        self.assertEqual(result['large']['exact_value'],str(2**80+1))
+        self.assertEqual(result['negative']['exact_value'],'-0.0')
+        self.assertEqual(result['negative']['binary_value'],'-0x0.0p+0')
+
     def test_storage_sampling_tolerates_live_temp_removal_without_masking_import_errors(self):
         from ecra.workspace import no_links
         temporary=self.data/'work/transient';temporary.mkdir(parents=True)

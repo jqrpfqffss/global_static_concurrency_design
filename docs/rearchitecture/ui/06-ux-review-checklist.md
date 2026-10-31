@@ -43,3 +43,9 @@
 20007行容量夹具真实浏览器最大API响应16,656B；清理引用与50GiB实盘有独立收据。目录图和合成容量不代替g_mfcInterface.msgSp真场景、目标板或三类大工程。所有页全部状态与独立工程师盲测继续未通过。
 
 当前源码v6十四项浏览器流程通过，1366×768/1600×900任务主操作完整位于首屏；[任务截图](screenshots/v6/04-scan-published.png)、[变量证据](screenshots/v6/03-evidence-workbench.png)、[源码行](screenshots/v6/07-archived-source.png)、[清理结果](screenshots/v6/09-cleanup-recovered-and-purged.png)已随仓库保存。对应视频/trace位于output/playwright/studio-viewport-v6。
+
+## 旧归档迁移与证据翻页续轮
+
+共享页六项真实迁移场景：`evidence/browser-legacy-v3.json`；[归属计划](screenshots/legacy-v3/01-legacy-owner-and-plan.png)、[实际完成](screenshots/legacy-v3/02-legacy-real-conversion-complete.png)、[确认重开](screenshots/legacy-v3/03-legacy-confirmation-reopened.png)、[旧审计分段](screenshots/legacy-v3/04-legacy-opaque-audit-segments.png)、[损坏输入不覆盖](screenshots/legacy-v3/05-legacy-damaged-input-preserves-valid-result.png)。页面没有执行旧HTML/脚本/SQL，原复核文件可继续分段读取；缺完整facts.json或活WAL明确失败。
+
+当前编译资产另跑十四项原生/复核故障/确认/调用/源码/清理流程通过：`evidence/browser-wire-v1.json`。20007行浏览器容量新增精确大整数/负零/JSON转义、407条前后页、长UTF-8前后段，并断言每页/段不累积；[实际证据截图](screenshots/legacy-v3/typed-evidence-bounded-pages.png)。当前占用带采样时间，可主动更新，迁移完成后刷新。Windows系统DPI、全部场景与独立工程师仍未验收；六项迁移不等于U21全部通过。

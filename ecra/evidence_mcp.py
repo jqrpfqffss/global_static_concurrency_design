@@ -51,7 +51,7 @@ def dispatch(provider, request):
             raise ValueError('未知只读工具')
         try:
             result = evidence(provider,params.get('arguments',{}))
-            return dict(content=[dict(type='text',text=json.dumps(result,ensure_ascii=False))],isError=False)
+            return dict(content=[dict(type='text',text=json.dumps(result,ensure_ascii=True))],isError=False)
         except (KeyError,ValueError,TypeError) as exc:
             return dict(content=[dict(type='text',text=str(exc))],isError=True)
     if method and method.startswith('notifications/'):
@@ -86,7 +86,7 @@ def main(argv=None):
         except (ValueError,TypeError,KeyError,LookupError,RecursionError) as exc:
             reply=dict(jsonrpc='2.0',id=request.get('id') if isinstance(request,dict) else None,
                 error=dict(code=-32601 if isinstance(exc,LookupError) else -32602,message=str(exc)))
-        print(json.dumps(reply,ensure_ascii=False),flush=True)
+        print(json.dumps(reply,ensure_ascii=True),flush=True)
 
 
 if __name__=='__main__':raise SystemExit(main())

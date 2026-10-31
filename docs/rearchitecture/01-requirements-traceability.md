@@ -33,7 +33,7 @@
 | U18 | 完整证据变化须重新确认 | PARTIAL（原生变更/离线历史保留通过） |
 | U19 | 无源码第二电脑完整包继续确认 | NOT_VERIFIED |
 | U20 | 增量幂等与并行决定显式冲突 | NOT_VERIFIED |
-| U21 | 两种旧目录流式无损/归属/降级 | FAIL |
+| U21 | 两种旧目录流式无损/归属/降级 | PARTIAL（六项真实Chrome迁移；巨型/双来源/缺证据降级未通过） |
 | U22 | 三分辨率/四 DPI/键盘/长中文 | NOT_VERIFIED |
 | U23 | 50GB 真实占用/引用回收/恢复 | PARTIAL（50GiB实盘容量与UI闭环通过；非原生项目收益） |
 | U24 | 恶意/损坏包隔离与可恢复错误 | PASS（已覆盖的恶意/损坏包集合） |
@@ -67,7 +67,7 @@ Phase 0–6 在各自完整门禁通过前保持 BLOCKED/进行中。允许独�
 | U18 | `test_scan_store.test_new_evidence_changes_fingerprint_even_with_same_name`；证据变化不会套用旧事件 | 同profile原生变更后RECHECK_REQUIRED、全部旧事件/来源保留及离线包已测；精确不变证据继承仍偏保守 |
 | U19 | 包内Python3.10.9真实Chrome归档/源码/确认；`test_report_package`三隔离目录导出导入继续 | 物理第二电脑/原固件确实不存在的干净机尚未测 |
 | U20 | `test_human_reviews.test_two_devices_idempotence_conflict_and_explicit_resolution`；增量重复/冲突后端断言 | 双电脑并行决定的完整GUI冲突解决路径未全验 |
-| U21 | `test_studio_workspace.test_existing_tool_identity_migrates_with_all_bytes_and_source_preserved`；旧固件迁移原测试 | 巨型shared JSON归一化、双旧来源合并、GUI迁移未完成 |
+| U21 | `test_legacy_import`、`test_streamed_evidence`；原生4TU旧输出差异0；`validate_legacy_ui.py`六项真实操作；50,000 shared池完整根比较 | GUI只读转换已接通；巨型/双旧来源合并及缺证据专用降级Viewer仍未完成，详见06-legacy-streaming-import.md |
 | U22 | 1366/1600/1920真实Chrome截图、Ctrl+F；固定人工区 | Windows系统125/150/200%DPI、全键盘与全部页面状态未全验 |
 | U23 | 实际目录占用采样，临时目录消失容错专项 | 真实50GiB缓存释放53,687,025,664B，原归档不变；GUI预览/隔离/恢复/二次确认释放通过。不是原生G3/G4 |
 | U24 | `test_report_package`恶意路径/大小写/符号链接/预算/schema/SQL/哈希拒绝；浏览器`preview_malicious_package_preserves_prior_scan` | 完整故障注入矩阵仍属于未通过的G5，不以本集合PASS替代 |

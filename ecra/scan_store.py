@@ -7,6 +7,7 @@ from collections import OrderedDict
 from contextlib import closing
 import hashlib
 import itertools
+import json
 import math
 import os
 from pathlib import Path
@@ -99,6 +100,21 @@ def _decode(kind, value):
     if kind == 'str':
         return value.decode('utf-8', errors='surrogatepass')
     raise ValueError('未知证据标量类型: ' + kind)
+
+
+def _wire_value(kind, payload):
+    value = _decode(kind, payload)
+    result = dict(value=value)
+    # JSON numbers are arbitrary precision in Python but binary64 in browsers.
+    # Preserve a decimal spelling for display and a float's exact binary value;
+    # never let a GUI round a large integer or erase the sign of zero.
+    if kind == 'int':
+        result['exact_value'] = str(value)
+    elif kind == 'float':
+        result.update(exact_value=repr(value), binary_value=value.hex())
+    elif kind == 'str' and any(0xd800 <= ord(char) <= 0xdfff for char in value):
+        result['display_json'] = json.dumps(value,ensure_ascii=True)
+    return result
 
 
 def _hash_start(kind, count):
@@ -203,6 +219,36 @@ def _project(connection, dataset, root):
 def publish_scan(path, facts, report, *, scan_id, project_id, profile_id='default', provenance=None,
                  validation_state='UNVERIFIED'):
     """Publish once, never overwrite a valid archive, including on failure."""
+    return _publish(path, lambda writer: {name: writer.put(value) for name, value in
+        [('facts', facts), ('report', report), ('provenance', provenance or {})]},
+        scan_id=scan_id, project_id=project_id, profile_id=profile_id, validation_state=validation_state)
+
+
+def publish_json_scan(path, facts_path, report_path, *, scan_id, project_id, profile_id='default',
+                      provenance=None, provenance_path=None, validation_state='LEGACY_READ_ONLY', progress=lambda _: None):
+    """Import complete legacy JSON without restoring the evidence in Python.
+
+    The same ordered typed graph, projections and publication rules are used
+    by native scans. This grants no current-source or original-engine proof.
+    """
+    from .streamed_evidence import read_json
+    def build(writer):
+        roots = {}
+        for name, source in [('facts', facts_path), ('report', report_path)]:
+            progress('正在转换完整旧' + ('事实' if name == 'facts' else '报告') + '；剩余量未知')
+            roots[name] = read_json(source, writer)
+            kind = writer.conn.execute('SELECT kind FROM nodes WHERE id=?', (roots[name][0],)).fetchone()[0]
+            if kind != 'object':
+                raise ValueError('旧事实/报告根必须是完整对象')
+        if provenance is not None and provenance_path is not None:
+            raise ValueError('迁移来源不能同时来自对象与JSON文件')
+        roots['provenance'] = read_json(provenance_path, writer) if provenance_path is not None else writer.put(provenance or {})
+        return roots
+    return _publish(path, build, scan_id=scan_id, project_id=project_id,
+        profile_id=profile_id, validation_state=validation_state)
+
+
+def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_state):
     if validation_state not in {'UNVERIFIED', 'LEGACY_READ_ONLY', 'STATIC_VALIDATED'}:
         raise ValueError('未知静态快照有效性状态')
     path = Path(path)
@@ -214,15 +260,15 @@ def publish_scan(path, facts, report, *, scan_id, project_id, profile_id='defaul
         with closing(sqlite3.connect(temp)) as conn:
             conn.execute('PRAGMA foreign_keys=ON')
             conn.execute('PRAGMA synchronous=FULL')
+            conn.execute('PRAGMA cache_size=-8192')
+            conn.execute('PRAGMA temp_store=FILE')
             conn.executescript(SCHEMA)
             conn.execute(f'PRAGMA user_version={SCHEMA_VERSION}')
             with conn:
                 writer = GraphWriter(conn)
-                roots = {}
-                for name, value in [('facts', facts), ('report', report), ('provenance', provenance or {})]:
-                    node, hashed = writer.put(value)
+                roots = build_roots(writer)
+                for name, (node, hashed) in roots.items():
                     conn.execute('INSERT INTO roots VALUES (?,?)', (name, node))
-                    roots[name] = (node, hashed)
                 _project(conn, 'facts', roots['facts'][0])
                 _project(conn, 'report', roots['report'][0])
                 conn.execute('INSERT INTO projects VALUES (?,?)', (project_id, roots['provenance'][0]))
@@ -461,13 +507,16 @@ class EvidenceProvider:
                     item = dict(ordinal=child['ordinal'], key=child['key'], id=child['id'], hash=child['hash'], kind=child['kind'], total=child['length'])
                     if child['kind'] not in {'object', 'list'}:
                         # Large strings have their own explicit segment reader.
-                        item['value'] = _decode(child['kind'], child['value']) if child['kind'] != 'str' or child['length'] <= 16384 else None
+                        if child['kind'] == 'str' and child['length'] > 16384:
+                            item['value'] = None
+                        else:
+                            item.update(_wire_value(child['kind'], child['value']))
                     items.append(item)
                 result.update(items=items, offset=offset, next_offset=offset + len(items) if offset + len(items) < row['length'] else None)
             elif row['kind'] == 'str' and row['length'] > 16384:
                 result.update(value=None, segmented=True)
             else:
-                result['value'] = _decode(row['kind'], row['value'])
+                result.update(_wire_value(row['kind'], row['value']))
             return result
 
     def text(self, node_id, *, offset=0, limit=8192):
@@ -493,7 +542,14 @@ class EvidenceProvider:
             next_offset=offset+len(value)
             if not value and next_offset<row['length']:
                 raise ValueError('文本分段预算太小，无法容纳一个完整字符')
-            return dict(value=decoded, total=row['length'], offset=offset, hash=row['hash'], offset_unit='UTF8_BYTES',
+            previous=max(0,offset-limit)
+            if previous:
+                prefix=conn.execute('SELECT substr(value,?,4) FROM nodes WHERE id=?',(previous+1,node_id)).fetchone()[0]
+                for byte in prefix:
+                    if byte&0xc0 != 0x80:break
+                    previous+=1
+            return dict(**_wire_value('str',value), total=row['length'], offset=offset, previous_offset=previous if offset else None,
+                        hash=row['hash'], offset_unit='UTF8_BYTES',
                         next_offset=next_offset if next_offset<row['length'] else None)
 
     def roots(self):

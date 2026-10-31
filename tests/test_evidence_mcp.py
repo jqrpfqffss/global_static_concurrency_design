@@ -10,6 +10,19 @@ from ecra.review import _review_env
 
 
 class EvidenceMCPTests(unittest.TestCase):
+    def test_stdio_preserves_surrogates_large_integers_and_negative_zero(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'scan.db'
+            publish_scan(path,dict(probe=['\ud800',2**80+1,-0.0]),{},scan_id='s',project_id='p')
+            request=dict(jsonrpc='2.0',id=1,method='tools/call',params=dict(name='evidence',arguments=dict(root='facts',path=['probe'])))
+            result=subprocess.run([sys.executable,'-X','utf8','-B','-m','ecra.evidence_mcp','--database',str(path)],
+                input=json.dumps(request)+'\n',capture_output=True,text=True,encoding='utf-8',timeout=30)
+            self.assertEqual(result.returncode,0,result.stderr)
+            rows=json.loads(json.loads(result.stdout)['result']['content'][0]['text'])['items']
+            self.assertEqual(rows[0]['value'],'\ud800')
+            self.assertEqual(rows[1]['exact_value'],str(2**80+1))
+            self.assertEqual(rows[2]['exact_value'],'-0.0')
+
     def test_real_stdio_session_pages_complete_evidence_with_no_shell_or_network(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'scan.db'

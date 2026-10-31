@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "scope": "62 selected module tests, not a current-tree full-suite claim",
+  "tests": 62,
+  "failures": 0,
+  "errors": 0,
+  "seconds": 38.121,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\legacy-wire-final-regression.log",
+  "dirty_capture_production_enabled": false,
+  "dirty_capture_scope": "Bytes/index only plus isolated Clang/GCC macro fixtures; no complete native dirty pipeline",
+  "source_sha256": {
+    "ecra/working_snapshot.py": "3ccacf231ca7194083505fb3e100ec3ab54d2100942f168a946e13a95734950a",
+    "tests/test_working_snapshot.py": "4133265f39d1a54a8280c7eaf60dfbff04965273f9ab7d18c0b80452e8c68763",
+    "ecra/streamed_evidence.py": "fe9ba6a0c8edf0dd165c512432244088be6ee4aa729361ad3ee64d06f119328a",
+    "ecra/legacy_import.py": "c0b194ad582f6a2208289d0053f1dd6bfe0d5df3aca8ea675e993f5e50c49a6f",
+    "ecra/scan_store.py": "6d09085f73b2a4efb4dd27516663e732127eda8dbf67292e423e532d082c8670",
+    "ecra/evidence_mcp.py": "ec552d516fafe0027b5012eae1312fb21b48485ecfa9bf6a28e74c26779816b4",
+    "ecra/studio/server.py": "7732c1d2bb4afcc172593532bb512b96538003916781c8c2a45799d3ec56caee",
+    "ecra/studio/migration_jobs.py": "91d73729959ee4db43dfcce41f0b253469588d565575c88f4476105bc5670286",
+    "studio/src/EvidenceNode.vue": "21deebe63b74f7975fcaa5f163b4d80c330907714698ce45c9d309cf00573f86",
+    "studio/src/MigrationCenter.vue": "6396a31b224419a37f4a8041169c2efbae2a5be91c51cad69275b43da5a83d19",
+    "studio/src/LegacyArchive.vue": "ea832d634d4a2fe165b87cf72a655f439a5b5b609aed1c0dc4c6403917a93272"
+  },
+  "prior_failed_logs": [
+    "legacy-snapshot-regression-2.log: nonexistent test_storage_activity selected; corrected invocation in regression-3",
+    "capacity-wire-v1.log: browser lone surrogate literal display; corrected to explicit JSON escape",
+    "legacy-stream-v1.log and v2.log: original checker diagnostic writes refused; isolated copy and read-only guard added"
+  ],
+  "full_rearchitecture": "NOT_COMPLETE"
+}

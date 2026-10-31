@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "scope": "Real Chrome legacy migration with immutable DB and persisted decision checks.\n\nUses a byte copy of an existing native result. It does not run a new firmware\nscan or substitute this conversion for the full U21/large-project gates.\n",
+  "tests": [
+    "wrong_owner_is_rejected_without_scan_publication",
+    "native_legacy_copy_converts_through_real_ui_job",
+    "converted_archive_decision_and_position_survive_reopen",
+    "opaque_original_audits_paginate_without_script_execution",
+    "repeat_ui_migration_retains_static_db_and_existing_human_event",
+    "failed_conversion_does_not_damage_valid_result_or_human_history"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_windows_dpi": "NOT_VERIFIED",
+  "scan_id": "legacy-e12295cf58afcb56fcd35375a7f974d254c6a41f2edd1478",
+  "static_sha256": "cddb7f483819a7c07da10b8c1cf43777da9dc4ed7ff3d8f8a09fbab4fc6199f7",
+  "original_preserved": true,
+  "human_events": 1,
+  "related_scenarios": [
+    "U21 partial",
+    "U16 partial",
+    "U24 partial"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "native_legacy_conversion": {
+    "passed": true,
+    "scope": "Existing independent native 4-TU ARM legacy output; conversion only",
+    "original_engine_approved": true,
+    "original": {
+      "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\legacy-stream-v5\\original-check-copy",
+      "root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+      "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd",
+      "frozen_output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results"
+    },
+    "original_preserved": true,
+    "files": 64,
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "seconds": 44.23499999998603,
+    "scan_id": "legacy-e0a203993897e69e210771ce5416f9954a125389d649510f",
+    "sqlite_bytes": 6135808,
+    "package_bytes": 3376999,
+    "source_reverification": false,
+    "fresh_native_scan": false
+  },
+  "synthetic_capacity": {
+    "scope": "Synthetic streamed JSON storage only, not native analysis or G3/G4",
+    "seconds": 54.51500000001397,
+    "sqlite_bytes": 84123648,
+    "peak_working_set_bytes": 28692480,
+    "peak_commit_bytes": 20529152,
+    "variables": 50000,
+    "roots": {
+      "facts": "7d4c7ab204af5c6e40f131b94bc8e16abef212cdf294b1848713bf94c7bdc526",
+      "provenance": "dd79a4e166177b5e12babbb94b299d63b41c221cb7b5cb59a535a3e852d27e69",
+      "report": "483b30c30acddf2c05125cf7e94b6af5ddd450a2955c8ed0a854e30b2c60f069"
+    },
+    "input_bytes": 11066718
+  },
+  "synthetic_shared_pool": {
+    "scope": "Synthetic streamed JSON storage only, not native analysis or G3/G4",
+    "seconds": 49.61000000004424,
+    "sqlite_bytes": 84160512,
+    "peak_working_set_bytes": 30687232,
+    "peak_commit_bytes": 22503424,
+    "variables": 50000,
+    "roots": {
+      "facts": "7d4c7ab204af5c6e40f131b94bc8e16abef212cdf294b1848713bf94c7bdc526",
+      "provenance": "dd79a4e166177b5e12babbb94b299d63b41c221cb7b5cb59a535a3e852d27e69",
+      "report": "483b30c30acddf2c05125cf7e94b6af5ddd450a2955c8ed0a854e30b2c60f069"
+    },
+    "input_bytes": 11655669
+  },
+  "capacity_complete_roots_equal": true,
+  "protected_algorithms_modified": false,
+  "G1_large": "NOT_VERIFIED",
+  "G3_32GB": "NOT_VERIFIED",
+  "G4_reduction": "NOT_VERIFIED"
+}

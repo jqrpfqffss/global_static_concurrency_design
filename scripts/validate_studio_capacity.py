@@ -33,7 +33,9 @@ def main():
     count=20007
     facts=dict(variables=[dict(symbol_id='CAPACITY-'+str(i),name='capacity_counter_'+str(i),
         static_classification='UNKNOWN',definition_file='CAPACITY_TEST_ONLY.c',definition_line=i+1,
-        analysis_coverage='UNKNOWN') for i in range(count)])
+        analysis_coverage='UNKNOWN') for i in range(count)],
+        transport_fidelity=dict(big_integer=2**80+1,negative_zero=-0.0,unpaired='\ud800',
+            many=list(range(407)),long_text='中文😀abc'*9000))
     publish_scan(scan/'scan.db',facts,dict(findings=[]),scan_id=scan.name,project_id='SYNTHETIC_CAPACITY_TEST_ONLY',
                  provenance=dict(scope='Synthetic capacity fixture, no native extraction or risk classification.'))
     provider=EvidenceProvider(scan/'scan.db');store=ReviewStore(scan/'reviews.db',provider.metadata())
@@ -88,6 +90,33 @@ def main():
                 expect(page.locator('.conclusion')).to_contain_text('暂无法确认')
                 assert store.current('CAPACITY-20006',provider.fingerprint('CAPACITY-20006'))['decision']=='NEED_MORE_EVIDENCE'
                 assert sha256(scan/'scan.db')==original
+                page.screenshot(path=str(output/'20007-real-server-pagination.png'),full_page=True)
+                page.get_by_role('link',name='覆盖与诊断',exact=True).click()
+                facts_node=page.locator('details.evidence-node').filter(has_text='完整事实（调用图、全部TU、覆盖、指针、NVIC）').first
+                facts_node.locator(':scope > summary').click()
+                probe=facts_node.locator('details.evidence-node').filter(has_text='transport_fidelity').first
+                probe.locator(':scope > summary').click()
+                expect(probe.locator('.fact-line').filter(has_text='big_integer')).to_contain_text(str(2**80+1))
+                expect(probe.locator('.fact-line').filter(has_text='negative_zero')).to_contain_text('-0.0')
+                expect(probe.locator('.fact-line').filter(has_text='unpaired').locator('span')).to_have_text('"\\ud800"')
+                many=probe.locator('details.evidence-node').filter(has_text='many').first
+                many.locator(':scope > summary').click()
+                expect(many.locator('.fact-line')).to_have_count(50)
+                many.get_by_role('button',name='继续读取证据',exact=True).click()
+                expect(many.get_by_text('显示 51–100 / 407',exact=True)).to_be_visible()
+                expect(many.locator('.fact-line')).to_have_count(50)
+                many.get_by_role('button',name='上一页证据',exact=True).click()
+                expect(many.get_by_text('显示 1–50 / 407',exact=True)).to_be_visible()
+                text=probe.locator('details.evidence-node').filter(has_text='long_text').first
+                text.locator(':scope > summary').click()
+                expect(text.locator('pre')).not_to_be_empty()
+                first_text=text.locator('pre').text_content()
+                text.get_by_role('button',name='继续读取文本',exact=True).click()
+                expect(text.get_by_role('button',name='上一段文本',exact=True)).to_be_visible()
+                assert len(text.locator('pre').text_content().encode('utf-8'))<=8192
+                text.get_by_role('button',name='上一段文本',exact=True).click()
+                expect(text.locator('pre')).to_have_text(first_text)
+                page.screenshot(path=str(output/'typed-evidence-bounded-pages.png'),full_page=True)
                 payloads=[]
                 for response in responses:
                     raw=response.body();payloads.append(dict(path=response.url[len(base):],bytes=len(raw)))
@@ -96,9 +125,10 @@ def main():
                 assert receipt['max_api_response_bytes']<512*1024
                 assert not receipt['page_errors'] and not receipt['external_requests']
                 assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-                page.screenshot(path=str(output/'20007-real-server-pagination.png'),full_page=True)
                 receipt.update(passed=True,tests=['20007_rows_real_server_pages','exact_last_identity_search',
-                    'human_commit_and_reopen_position','bounded_api_responses','immutable_static_hash'],api_payloads=payloads,static_sha256=original)
+                    'human_commit_and_reopen_position','bounded_api_responses','immutable_static_hash',
+                    'exact_large_integer_negative_zero_and_surrogate', 'evidence_pages_do_not_accumulate',
+                    'long_utf8_text_bidirectional_bounded_segments'],api_payloads=payloads,static_sha256=original)
             except BaseException:
                 page.screenshot(path=str(output/'failure.png'),full_page=True);raise
             finally:

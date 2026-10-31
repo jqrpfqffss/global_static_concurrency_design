@@ -31,6 +31,7 @@ def main():
         'real_scan_task_component':"SQLITE_NATIVE_SCAN" in api and '<TaskCenter' in app,
         'real_scan_task_endpoints':all(route in api for route in ["'/api/tasks'", "'/api/tasks/{task_id}/stop'", "'/api/tasks/{task_id}/retry'"]),
         'real_cleanup_endpoints_and_confirmation':all(text in api for text in ["'/api/storage/cleanup'", "payload.get('confirmed') is not True"]),
+        'real_legacy_migration_and_opaque_evidence':all(text in api for text in ["'/api/migrations/preview'", "'/api/migrations/{job_id}'", "'/api/scans/{scan_id}/legacy-file'"]) and '<MigrationCenter' in app and '<LegacyArchive' in app,
         'bounded_source_and_call_navigation':all(text in api for text in ["'/api/scans/{scan_id}/source-window'","'/api/scans/{scan_id}/call-neighbors'"]),
         'session_origin_host_checks':all(text in api for text in ['compare_digest','origin !=','headers.get(\'host\')']),
     }
