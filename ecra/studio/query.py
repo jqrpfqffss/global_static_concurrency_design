@@ -24,8 +24,18 @@ class QueryService:
         self.evidence = EvidenceProvider(self.path/'scan.db')
 
     def symbols(self, *, search='', classification='', human_decision='', handling_status='',
-                file='',function='',context='',coverage='',ai_state='',diff='',offset=0, limit=50):
+                file='',function='',context='',coverage='',ai_state='',diff='',sort='priority',order='asc',offset=0, limit=50):
         self.evidence._bounds(offset, limit)
+        sorts={
+            'priority':["CASE s.static_classification WHEN 'SUSPECT' THEN 0 WHEN 'UNKNOWN' THEN 1 ELSE 2 END"],
+            'name':['s.name COLLATE BINARY'],
+            'definition':["coalesce(s.definition_file,'') COLLATE BINARY",'coalesce(s.definition_line,0)'],
+            'review_priority':["CASE coalesce(h.decision,'PENDING') WHEN 'PENDING' THEN 0 WHEN 'RECHECK_REQUIRED' THEN 1 "
+                "WHEN 'CONFLICT' THEN 2 WHEN 'NEED_MORE_EVIDENCE' THEN 3 WHEN 'CONFIRMED_RISK' THEN 4 "
+                "WHEN 'CONFIRMED_SAFE' THEN 5 ELSE 6 END"]}
+        if not isinstance(sort,str) or sort not in sorts or order not in {'asc','desc'}:
+            raise ValueError('列表排序只接受风险/名称/定义位置/待办优先级和升序/降序')
+        ordering=','.join(field+' '+order.upper() for field in sorts[sort])+',s.ordinal ASC'
         terms, args = [], []
         if search:
             terms.append("(instr(s.name,?)>0 OR instr(coalesce(s.definition_file,''),?)>0 OR instr(s.symbol_id,?)>0)")
@@ -72,10 +82,10 @@ class QueryService:
             cte = HUMAN_HEADS
             source = ' FROM symbols s LEFT JOIN heads h ON h.symbol_id=s.symbol_id'+where
             total = conn.execute(cte+'SELECT count(*)'+source, args).fetchone()[0]
-            rows = [dict(row) for row in conn.execute(cte+'SELECT s.*'+source+' ORDER BY '
-                "CASE s.static_classification WHEN 'SUSPECT' THEN 0 WHEN 'UNKNOWN' THEN 1 ELSE 2 END,s.ordinal LIMIT ? OFFSET ?",
+            rows = [dict(row) for row in conn.execute(cte+'SELECT s.*'+source+' ORDER BY '+ordering+' LIMIT ? OFFSET ?',
                 [*args,limit,offset])]
-        return dict(total=total,items=rows,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
+        return dict(total=total,items=rows,offset=offset,sort=sort,order=order,
+            next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
     def diff_summary(self):
         try:node=self.evidence.resolve('report',['git_diff'])

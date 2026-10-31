@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--evidence',type=Path,required=True)
     parser.add_argument('--engine',type=Path,default=TOOL)
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
+    parser.add_argument('--sorting',action='store_true',help='新增排序与位置合同；旧封存包没有此界面，不将其静默计作通过')
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=False)
@@ -68,10 +69,30 @@ def main():
                 page.get_by_role('button',name='无法判断 20007',exact=True).click()
                 expect(page.locator('.symbol')).to_have_count(50)
                 expect(page.get_by_text('匹配 20007 项；显示 1–50',exact=True)).to_be_visible()
-                for expected in ('51–100','101–150'):
+                expected_names=[]
+                if args.sorting:
+                    expected_names=sorted(['capacity_counter_'+str(i) for i in range(count)],reverse=True)
+                    page.get_by_label('列表排序',exact=True).select_option('name')
+                    page.get_by_label('排序方向',exact=True).select_option('desc')
+                    expect(page.locator('.symbol strong').first).to_have_text(expected_names[0])
+                    expect(page.locator('.activity')).to_have_count(0)
+                for index,expected in enumerate(('51–100','101–150'),1):
                     page.get_by_role('button',name='下一页',exact=True).click()
                     expect(page.get_by_text('匹配 20007 项；显示 '+expected,exact=True)).to_be_visible()
                     expect(page.locator('.symbol')).to_have_count(50)
+                    if args.sorting:expect(page.locator('.symbol strong').first).to_have_text(expected_names[index*50])
+                if args.sorting:
+                    expect(page.locator('.activity')).to_have_count(0)
+                    page.reload()
+                    expect(page.get_by_label('列表排序',exact=True)).to_have_value('name')
+                    expect(page.get_by_label('排序方向',exact=True)).to_have_value('desc')
+                    expect(page.locator('.symbol strong').first).to_have_text(expected_names[0])
+                    page.get_by_role('link',name='人工确认',exact=True).click()
+                    page.get_by_role('button',name='继续上次位置',exact=True).click()
+                    expect(page.get_by_text('匹配 20007 项；显示 101–150',exact=True)).to_be_visible()
+                    expect(page.locator('.symbol strong').first).to_have_text(expected_names[100])
+                    saved=store.position('workbench')
+                    assert saved['extra']['sort']=='name' and saved['extra']['order']=='desc' and saved['offset']==100
                 started=time.monotonic()
                 page.get_by_label('查找变量、文件或规范身份',exact=True).fill('capacity_counter_20006')
                 page.get_by_role('button',name='搜索',exact=True).click()
@@ -129,6 +150,7 @@ def main():
                     'human_commit_and_reopen_position','bounded_api_responses','immutable_static_hash',
                     'exact_large_integer_negative_zero_and_surrogate', 'evidence_pages_do_not_accumulate',
                     'long_utf8_text_bidirectional_bounded_segments'],api_payloads=payloads,static_sha256=original)
+                if args.sorting:receipt['tests'].append('server_sorting_stable_pages_and_reopened_position')
             except BaseException:
                 page.screenshot(path=str(output/'failure.png'),full_page=True);raise
             finally:

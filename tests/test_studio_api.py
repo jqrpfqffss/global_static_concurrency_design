@@ -71,6 +71,10 @@ class StudioAPITests(unittest.TestCase):
         reopened = ReviewStore(self.data/'scans/scan-api/reviews.db',self.provider.metadata())
         self.assertEqual(reopened.current('s',self.provider.fingerprint('s'))['decision'],'CONFIRMED_RISK')
         self.assertEqual(self.client.get('/api/scans/scan-api/symbols?limit=99999').status_code,400)
+        self.assertEqual(self.client.get('/api/scans/scan-api/symbols',params={'sort':'name; DROP TABLE symbols'}).status_code,400)
+        sorted_page=self.client.get('/api/scans/scan-api/symbols?sort=name&order=desc').json()
+        self.assertEqual(sorted_page['sort'],'name');self.assertEqual(sorted_page['order'],'desc')
+        self.assertEqual(sorted_page['total'],1)
 
     def test_real_package_upload_and_export_use_same_protocol(self):
         package = Path(self.tmp.name)/'result.ecra-report'

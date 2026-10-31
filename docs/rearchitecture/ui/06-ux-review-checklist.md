@@ -49,3 +49,5 @@
 共享页六项真实迁移场景：`evidence/browser-legacy-v3.json`；[归属计划](screenshots/legacy-v3/01-legacy-owner-and-plan.png)、[实际完成](screenshots/legacy-v3/02-legacy-real-conversion-complete.png)、[确认重开](screenshots/legacy-v3/03-legacy-confirmation-reopened.png)、[旧审计分段](screenshots/legacy-v3/04-legacy-opaque-audit-segments.png)、[损坏输入不覆盖](screenshots/legacy-v3/05-legacy-damaged-input-preserves-valid-result.png)。页面没有执行旧HTML/脚本/SQL，原复核文件可继续分段读取；缺完整facts.json或活WAL明确失败。
 
 当前编译资产另跑十四项原生/复核故障/确认/调用/源码/清理流程通过：`evidence/browser-wire-v1.json`。20007行浏览器容量新增精确大整数/负零/JSON转义、407条前后页、长UTF-8前后段，并断言每页/段不累积；[实际证据截图](screenshots/legacy-v3/typed-evidence-bounded-pages.png)。当前占用带采样时间，可主动更新，迁移完成后刷新。Windows系统DPI、全部场景与独立工程师仍未验收；六项迁移不等于U21全部通过。
+
+排序续轮：按交互合同增加服务器白名单排序，默认顺序保留；排序/筛选/分页位置与人工继续位置共同保存。20007行浏览器九项通过（browser-capacity-sort-v1.json），最大API17,192B；改变顺序、跨页、关闭页面后继续、独立SQLite位置断言均实际执行。十四项主流程再通过（browser-sort-v1.json），静态库不变。该后续不在封存v8中，不能拿v8源码匹配收据冒称包含排序功能。

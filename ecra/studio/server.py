@@ -219,12 +219,12 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     @app.get('/api/scans/{scan_id}/symbols')
     def symbols(scan_id: str, search: str='', classification: str='', human_decision: str='',
                 handling_status: str='',file: str='',function: str='',context: str='',coverage: str='',ai_state: str='',
-                diff: str='',offset: int=0, limit: int=50):
+                diff: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
         from .query import QueryService
         provider, reviews = stores(scan_id)
         page = QueryService(scan_path(scan_id)).symbols(search=search, classification=classification,
             human_decision=human_decision,handling_status=handling_status,file=file,function=function,context=context,
-            coverage=coverage,ai_state=ai_state,diff=diff,offset=offset,limit=limit)
+            coverage=coverage,ai_state=ai_state,diff=diff,sort=sort,order=order,offset=offset,limit=limit)
         for item in page['items']:
             item['human'] = reviews.current(item['symbol_id'], provider.fingerprint(item['symbol_id']))
         return page

@@ -22,7 +22,7 @@
 | U07 | 大项目阶段/TU/RAM/磁盘真实计数 | FAIL |
 | U08 | 停止/重启/有效旧归档/已提交 TU | FAIL |
 | U09 | 四卡统计与查询同口径 | NOT_VERIFIED |
-| U10 | 20000 行服务端分页/筛选/排序 | NOT_VERIFIED |
+| U10 | 20000 行服务端分页/筛选/排序 | PARTIAL（20007行真实浏览器九项含排序/重开通过；原生大工程容量仍未验） |
 | U11 | 真实 g_mfcInterface.msgSp 存储与交错 | NOT_VERIFIED |
 | U12 | 完整调用边分段遍历 | PARTIAL（真实F030双向树通过，大工程未验） |
 | U13 | NVIC/PRIMASK/BASEPRI 真实未知与证明 | NOT_VERIFIED |
