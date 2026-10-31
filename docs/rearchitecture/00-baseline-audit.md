@@ -4,6 +4,8 @@
 
 后续执行结果：本文件的冻结条目保留起点状态；真实4TU原生黄金、独立前后提取、存储全字段往返已运行并留证，见 `evidence/native-equivalence.json` / `golden-roundtrip.json`。完整Diff黄金与三类大型项目仍未完成。当前消费者引用清单另见 `legacy-consumers-current.txt` / `consumer-migration.json`，不能把SPA程序资源误算为旧扫描报告。
 
+覆盖边界补充：原四TU黄金虽然已实际ARM编译/链接，Clang阶段为4FAILED、13UNKNOWN，不能用来覆盖成功解析路径。另一明确输入配置保留同一固件/真实数据库并开启编译器系统头搜索，在原e69引擎得到2PARSED/2PARTIAL、6候选；候选同输入全字段对照差异0，原源码/.git及输出不变。见evidence/native-parsed-golden-v2.json；两份黄金分别保留，不将配置变化称算法优化，不称全部TU完整覆盖。
+
 ## 起点与冻结
 
 - 分支 `optimize_ccc`；HEAD `e69a10bbcb870dfc19a7d69cf2267774d08b3342`。

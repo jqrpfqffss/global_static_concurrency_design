@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "35902270fdba58b3c1089b2f4578b54e94b63d38",
+  "bundle": "H:\\ECRAStudio-build-20261101-legacy-v8\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-legacy-v8\\ECRA-Portable.zip",
+  "archive_bytes": 535418600,
+  "archive_sha256": "ba72a7907a3a9a09de690174ac3289059ac4ee745e8ee345329cb8a55afdd178",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "python": "3.10.9",
+      "original": "H:\\ECRAStudio-build-20261101-legacy-v8\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "5a89c132383272566e30adbfc78d03a419d998e003d5aa6d7026e9fcff56099a",
+      "bundle_contains_runtime_data": false
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "python": "3.10.9",
+      "original": "H:\\ECRAStudio-build-20261101-legacy-v8\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "3fa5929f1220a7c8dbb9b94789bb6b0df7e6da17e096d7e0c5f2ea957d0096bf",
+      "bundle_contains_runtime_data": false
+    }
+  },
+  "real_chrome": {
+    "main": {
+      "passed": true,
+      "tests": 14,
+      "original": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-wire-v8\\acceptance.json",
+      "sha256": "a6c8f1c0dc9ede35918b197069461271fd692b0b85ddf3379ad50a84ac0d9407"
+    },
+    "legacy": {
+      "passed": true,
+      "tests": 6,
+      "original": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-legacy-v8\\acceptance.json",
+      "sha256": "4cde10f15d4a5b2beb99a0434e8ce22213c672b1ae502d4839926213902886e9"
+    },
+    "capacity": {
+      "passed": true,
+      "tests": 8,
+      "original": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-capacity-v8\\acceptance.json",
+      "sha256": "d5c420b72ca5f2ae4b413a4db8690a294ac99db523636be2e142d35d5fbef3d7"
+    }
+  },
+  "source_match": "portable-source-match-v8.json",
+  "bundled_git": "MinGit 2.56.0.3; full local distribution, no network model test",
+  "clean_offline_windows": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "H2_dirty": "NOT_COMPLETE",
+  "G3_32GB": "NOT_VERIFIED",
+  "G4_reduction": "NOT_VERIFIED"
+}

@@ -176,3 +176,70 @@ const char *stamp=__TIMESTAMP__;
         (self.repo/'generated/new.h').write_bytes(b'#define CHANGED_HAS_INCLUDE 1\n')
         with self.assertRaisesRegex(ValueError,'原工作目录出现未记录的输入'):
             snapshot.validate(result,self.repo,dict(analysis=self.analysis))
+
+    def test_native_redirect_only_vfs_keeps_logical_paths_macros_and_frozen_negative_probes(self):
+        import os
+        from clang import cindex as ci
+        from ecra.compilation import normalize
+        from ecra.config import load_config
+        from ecra.extract import Extractor
+        from scripts.validate_studio_baseline import strict_difference
+        original_cwd=Path.cwd();self.addCleanup(os.chdir,original_cwd)
+        sdk=self.base/'external-sdk';sdk.mkdir();(sdk/'external.h').write_text('#define EXTERNAL 11\n',encoding='utf-8')
+        (self.repo/'generated').mkdir();(self.repo/'generated/input.h').write_text('#define INPUT 7\n',encoding='utf-8')
+        (self.repo/'main.c').write_text('''#include "generated/input.h"
+#include <external.h>
+#if __has_include("generated/late.h")
+#define PROBE 9
+#else
+#define PROBE 0
+#endif
+int shared=PROBE;
+char source_layout[sizeof(__FILE__)];
+const char *source_name=__FILE__;
+const char *base_name=__BASE_FILE__;
+const char *const source_stamp=__TIMESTAMP__;
+void ISR(void){shared+=INPUT+EXTERNAL;}
+int main(void){shared++;return shared;}
+''',encoding='utf-8')
+        config=self.base/'vfs-semantics.json';config.write_text(json.dumps(dict(version=1,
+            project=dict(root=str(self.repo)),analysis=self.analysis,review=dict(enabled=False))),encoding='utf-8')
+        cfg,_=load_config(self.repo,config)
+        unit=normalize(dict(directory=str(self.repo),file='main.c',arguments=['arm-none-eabi-gcc',
+            '-mcpu=cortex-m7','-mthumb','-I',str(sdk),'-c','main.c']),self.repo,cfg['analysis']);unit['tu_id']='TU-00001'
+        request=dict(root=str(self.repo),unit=unit,config=cfg,verify_inputs=True)
+        original=Extractor(request).run();self.assertEqual(original['parse_status'],'PARSED',original['diagnostics'])
+        captured=snapshot.capture(self.repo,cfg);tree=Path(captured['repository_root'])
+        roots=[]
+        with closing(sqlite3.connect(captured['manifest'])) as conn:
+            for (relative,) in conn.execute('SELECT relative FROM files ORDER BY relative'):
+                roots.append(dict(type='file',name=(self.repo/relative).as_posix(),
+                    **{'external-contents':(tree/relative).as_posix()}))
+        roots.append(dict(type='directory-remap',name=sdk.as_posix(),**{'external-contents':sdk.as_posix()}))
+        overlay=self.base/'readonly-vfs.json'
+        document=dict(version=0,roots=roots,**{'case-sensitive':False,'use-external-names':False,
+            'redirecting-with':'redirect-only'})
+        overlay.write_text(json.dumps(document),encoding='utf-8')
+        # These are deliberate changes to the owned test fixture after capture.
+        # The compiler view must use only captured original-repo bytes, including
+        # a negative __has_include probe which was absent at capture time.
+        (self.repo/'main.c').write_text('int wrong_live_source;\n',encoding='utf-8')
+        (self.repo/'generated/input.h').write_text('#define INPUT 999\n',encoding='utf-8')
+        (self.repo/'generated/late.h').write_text('#define LATE 1\n',encoding='utf-8')
+        parse=ci.Index.parse
+        def with_overlay(index,filename,args=None,**kwargs):
+            return parse(index,filename,args=[*(args or []),'-ivfsoverlay',str(overlay)],**kwargs)
+        with patch.object(ci.Index,'parse',new=with_overlay):
+            frozen=Extractor(request).run()
+        self.assertEqual(frozen['parse_status'],'PARSED',frozen['diagnostics'])
+        self.assertIsNone(strict_difference(original,frozen),strict_difference(original,frozen))
+        live=Extractor(request).run()
+        self.assertIsNotNone(strict_difference(original,live),'the fixture must actually distinguish current live source')
+        document['redirecting-with']='fallthrough';overlay.write_text(json.dumps(document),encoding='utf-8')
+        with patch.object(ci.Index,'parse',new=with_overlay):
+            unsafe=Extractor(request).run()
+        self.assertIsNotNone(strict_difference(original,unsafe),
+            'fallthrough admits the newly created ignored header and cannot be used as frozen input')
+        self.assertTrue(snapshot.validate(captured,self.repo,cfg,reverify_original=False)['valid'])
+        with self.assertRaisesRegex(ValueError,'原工作目录出现未记录的输入'):
+            snapshot.validate(captured,self.repo,cfg)

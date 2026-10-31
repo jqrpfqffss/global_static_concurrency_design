@@ -1,0 +1,136 @@
+{
+  "passed": true,
+  "differences": {
+    "facts": null,
+    "report": null
+  },
+  "original_preserved": true,
+  "original_source_and_git_preserved": true,
+  "original_hashes": {
+    "classification_quality.html": "9f1b765f372c5ebf643f913eff0447f6bfcd538e3af4e8ef23fca243650ae63b",
+    "doctor.json": "4f81e12a20e19961f7ac6931e5405b594943fdf0a8f23d507d5c3aec253ae834",
+    "facts.db": "3f2dae3e964e8f0fcc22710cb875ec529f533f1afe19c35168147d27888692cd",
+    "facts.json": "6a78f68208c9a45c50f36d6dcfbfab875e240c345936fba8f95330dec50d41e8",
+    "index.html": "3d1373a2f9601d32119bcbd18dc57b2b8b39097b084c038ae56650cb4c8c9313",
+    "input_closure.json": "95f636ff4303d18b73bf51efecd4255c1a097db290601c3d998d8a543095d4b5",
+    "input_manifest.json": "bd6a216177817d0edba5217580813433ebb279ddd13bd1ca4238952812cf699f",
+    "opencode_review.html": "75a9f7dffb5238d65c361bc1d09b9b953ceb6bd8c8e99d7b4942471eb98746c6",
+    "result_validity.json": "38ef873429f8a7ca5bd70f01f34b4929eb09b3fcaac1474d445e26acd8be5176",
+    "run.json": "222e16700a67683fdb20af781e52ec66114b36362a2b351955d90067d4a8e73d",
+    "run.log": "d577843270ef7b16d3f6314a730343ce28b26b50fcce37e6f6c0c3504b5abded",
+    "scan_state.json": "616280aa26f407dac262150644233a48aac8748c24877e4ef4a98cf7d00e087e",
+    "diagnostics\\completion.json": "3d414551577214f32ca8d13e33fc240c7f6f61fc9fcb4181c7ebf3c53da2e5d3",
+    "diagnostics\\memory_profile.json": "3c3ede683856fb2a8c23ae77e3a431be641abcaa133222ca16d8e534a10d1a94",
+    "diagnostics\\scan_stages.json": "3e428e0ed70149a5ce581df5913d84bb4c0d1a048da81a47d2da46c52b606af5",
+    "diagnostics\\source_changes.json": "e376802023e8537c21352add731e1984ad9d691455f128bbe3a81c017cad4b23",
+    "diagnostics\\dependencies\\TU-00000\\memory_profile.json": "189ec8b9bbec0530195607decf81bb4eacc8830a90de1ed6d3d7865166fed6ac",
+    "diagnostics\\dependencies\\TU-00000\\scan_stages.json": "8480d3a6b7616adcc448e87a54ea8924917f112bea23c36c0cd04da0fa54dc48",
+    "diagnostics\\dependencies\\TU-00001\\memory_profile.json": "3f217c37ca1fdb76f095071e29e006aa18915f909b804c05df240259df1f7853",
+    "diagnostics\\dependencies\\TU-00001\\scan_stages.json": "e03eda944927931d5869f5ab0da000f24503dc2bfe22a0950b82a3611b4ffd52",
+    "diagnostics\\dependencies\\TU-00002\\memory_profile.json": "585b9f2a8d456d36a6ad8ba5d38fcae11974d4a82f80828cf4d466ec96d529ae",
+    "diagnostics\\dependencies\\TU-00002\\scan_stages.json": "39a346a842e85778b68590ca9f8184117d7a33576808b27f91623398b58271c6",
+    "diagnostics\\dependencies\\TU-00003\\memory_profile.json": "5f4f0fd9d89705817f2a1a5cddeec594213fa4ca18913d62aeae8d5933d45e11",
+    "diagnostics\\dependencies\\TU-00003\\scan_stages.json": "115dee323072b710bdc7669c92cc87d8b65ce98c69ec6b49942955dca6c6a669",
+    "diagnostics\\workers\\TU-00000\\memory_profile.json": "9483e4a00d1ae8c8d628519259e0ed686aa9e43247f6e623b40421c0fd9b145f",
+    "diagnostics\\workers\\TU-00000\\scan_stages.json": "42c6e583c69ee146876af76dd2bee2449f7ee62310be50d7452f7932db8b3d7d",
+    "diagnostics\\workers\\TU-00001\\memory_profile.json": "0130fd28ad19b48cbdc96312ed692b8e392cca97754eaa130ccee27c1955f34a",
+    "diagnostics\\workers\\TU-00001\\scan_stages.json": "ac422fdd35281214ffcbd87852cbbe9586aa92910c920e837c9e114760089bfb",
+    "diagnostics\\workers\\TU-00002\\memory_profile.json": "01923261cd8369adb605f85bfa583f944560378220650dd8e3b5dfec35e16986",
+    "diagnostics\\workers\\TU-00002\\scan_stages.json": "5008c7f9e80767e8bd920de657b6734e302999676e0e2c8443fb3e9aed0457a5",
+    "diagnostics\\workers\\TU-00003\\memory_profile.json": "5ddc5834f44b31111c9c97fb5042e1184fda3be8443a85bdc0cb0f853e80b7d7",
+    "diagnostics\\workers\\TU-00003\\scan_stages.json": "34b0a1bfe0c31b6766390455b6553910d87f05b5425d0f0e9da34b886b185cef",
+    "inventory\\global_static_inventory.json": "77ba55be62fafb6a47b46ddb19d9a7c2e4a2c7d4582eefb8c085bf27a095c889",
+    "inventory\\global_static_inventory.md": "21ee089c7a1c7b71daaa8d66a8f9d9581c099b47c4b23ad1507af54a2da970f3",
+    "reports\\classification_root_causes.md": "51977d0ba895ef282f95a4cccca7a820746b664848095d2d5ef441d2a37b5dd3",
+    "reports\\global_static_concurrency.json": "a94c9bc075600f6d5d718188e65ec22330bf865bac0bf1b59052344ac498cc9c",
+    "reports\\global_static_concurrency.md": "d894f317738be358d0e59df096d1b279ad242c51ab102f9e0b5a51c5493af67a",
+    "reports\\opencode_global_static_review.md": "c70d968e0bd88c474a22cd46b69321f158042e471eed64c161edf878a3a4c35d",
+    "reports\\opencode_patch_plan.md": "8b2d30d1d822dc8f8cda6e1c402be9b66b94edc28ba9636da9dac66fc6774f1a",
+    "reports\\root_cause_v2.json": "6e4796d1e370206857b0c79a24d561195d956feb43106b878129f6eb646ac88d",
+    "reports\\unknown_contexts.md": "2aeab05bdb518a8bd6e54a33b4861a377fa73bf47b00fe561f302c9f660992b3",
+    "reports\\unknown_root_causes.md": "91581d4e8ab3fac99da794a4d277cd6cad9b5024221b971b849ccdf0dea35d97",
+    "review\\queue.json": "1fd95064b6747356c515ba8d7b168865b7c8ddb20fd602ff836acd54828115ba",
+    "workers\\TU-00000.dependencies.request.json": "96db89248921f1881805bc9287c3de82e53c5054100f13e419b37919890757b5",
+    "workers\\TU-00000.dependencies.response.json": "b0410dd8995a2db7274e86ea4c0130452f229af70da96b9a038365beacbda35d",
+    "workers\\TU-00000.request.json": "68de2fc243cc653ba8f6ec0eb9510554da3fa124b3684e72bf4a319138110165",
+    "workers\\TU-00000.response.json": "3707ce3fd3bda93912c79069dfe7a80d4a96f81379efda54658a835413488505",
+    "workers\\TU-00000.response.json.metadata.json": "ade11cb6a2619b8cdf46cc6409eb1a106fa877288e03a402a41180cc25e8948d",
+    "workers\\TU-00001.dependencies.request.json": "d947899e7dd1dc515ad7ba0830d78d68e10cc14688d824f0d66d1b2e60af1e26",
+    "workers\\TU-00001.dependencies.response.json": "a1dbac3a7041da4f11f0ec303496e1e32dc9b041e97b9bf3ea1613bbd605be8a",
+    "workers\\TU-00001.request.json": "3403cc23521bd9b203fa8978036673bcf6d29b2934b913f782645fd117d72c17",
+    "workers\\TU-00001.response.json": "34866229f25456a95e396fffe4d54ec9e9b562a0803cad23d5222398f145d2ae",
+    "workers\\TU-00001.response.json.metadata.json": "ab377c2a7faa296654e2ab69b3ca73c41da81a15420b6543638bde161e365a5a",
+    "workers\\TU-00002.dependencies.request.json": "4064ba75305b606e13128de06a9aa0387d91b3c38de66a294dc8ee1455a678cb",
+    "workers\\TU-00002.dependencies.response.json": "163671cab88c04c45cafe549f1dac203ad4fb1ce8a32a46e071b89091b929e09",
+    "workers\\TU-00002.request.json": "4d1e77dfbfbc351c4a51f0147d64340b0c2b279fd79b07035ffd3b6a35fd6c3d",
+    "workers\\TU-00002.response.json": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+    "workers\\TU-00002.response.json.metadata.json": "d0e3b8a7cf14c3af840e9c39cba3449d93288de22445b0eaf5ddd4d243910fa9",
+    "workers\\TU-00003.dependencies.request.json": "45f859974a983353874ad78e002cd951f6c9709425149f84548ea4d22b1b21d4",
+    "workers\\TU-00003.dependencies.response.json": "cb08105c488d1cb5bd691f248e3faff827bbccb62e9dcbc3290f0cb4e8925dff",
+    "workers\\TU-00003.request.json": "f8761c34f9cdc1a6b45ffec0b918e7bfbb3fd8da0ee64efa6181cce9a15f061f",
+    "workers\\TU-00003.response.json": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+    "workers\\TU-00003.response.json.metadata.json": "c97ab208b913d499e6b5ea42adbf27171e77107f799a9c6935cc05e5d357248c"
+  },
+  "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "legacy_outputs_absent": {
+    "facts.json": true,
+    "facts.db": true,
+    "index.html": true,
+    "reports": true,
+    "inventory": true
+  },
+  "tus": [
+    {
+      "source_file": "startup.c",
+      "parse_status": "PARTIAL"
+    },
+    {
+      "source_file": "main.c",
+      "parse_status": "PARTIAL"
+    },
+    {
+      "source_file": "peripheral.c",
+      "parse_status": "PARSED"
+    },
+    {
+      "source_file": "utils.c",
+      "parse_status": "PARSED"
+    }
+  ],
+  "facts_counts": {
+    "variables": 15,
+    "functions": 121,
+    "accesses": 56,
+    "calls": 98,
+    "unknowns": 236
+  },
+  "execution_envelopes": {
+    "before": {
+      "generated_at": "2026-10-31T18:24:57.990929+00:00",
+      "fingerprint": "38a8cc8e90022b9207405629dd05e15b94f07e5ca1df3c31d0da567d71788c46",
+      "workspace.results_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\original-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+      "read_timings": {
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json": {
+          "read_completed_ns": 1793471098234205200
+        }
+      }
+    },
+    "after": {
+      "generated_at": "2026-10-31T18:32:57.054910+00:00",
+      "fingerprint": "51e3b5edd4b4c83debc2796bc85b35d8391c82563b05a1957a27d7b126dab335",
+      "workspace.results_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-golden-candidate-v2\\data\\scans\\native-parsed-f030",
+      "read_timings": {
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json": {
+          "read_completed_ns": 1793471577223540100
+        }
+      }
+    }
+  },
+  "seconds": 35.95299999997951,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-legacy-wire",
+  "original": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\original-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+  "candidate": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-golden-candidate-v2\\data\\scans\\native-parsed-f030",
+  "coverage_gate": "PARTIAL_INDEPENDENT_SMALL_NATIVE_GOLDEN",
+  "large_G1_G2": "NOT_VERIFIED",
+  "physical_32GB": "NOT_VERIFIED"
+}

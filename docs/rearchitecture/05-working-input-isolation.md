@@ -17,3 +17,7 @@
 5. 全部通过后才解除formal_workspace的拒绝门禁、开放向导复选项。既有静态分类、Diff影响闭包、verify_against_full和复核合同保持原样。
 
 完整文件复制是正确性优先的实现起点；其峰值/最终物理占用必须实测，不计作70%收益。后续快照共享仅允许数据根内部的不可变内容，不能链接可写固件文件。
+
+新增真实Clang实验：只在测试中向原参数注入VFS overlay，不改生产Extractor、unit或算法。显式文件映射保留原逻辑文件名/宏/sizeof(__FILE__)布局/原始缓冲及完整事实；原测试源和头改写后仍读取冻结字节。redirect-only将捕获时不存在的__has_include探测保持为不存在，外部SDK显式映射；同样映射若允许fallthrough则读到后来新增的忽略头文件，完整对照失败。`working-vfs-1.log`单项PASS，源码在test_working_snapshot；此实验未包含于3590227的1161项冻结全回归，也未开放正式dirty扫描。
+
+依据为[LLVM18.1.8 RedirectingFileSystem实现](https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/llvm/lib/Support/VirtualFileSystem.cpp)：该版本接受redirect-only、use-external-names和显式文件/目录映射。生产接入仍须审核外部include根、原编译/预处理闭包、缓存和重做、Git/CMake元数据；不能把一个Clang视图实验当作整个只读构建通过。另确认现有committed Git worktree注册仍写原.git/worktrees，完整H2不能只以Git status/index未变化宣布通过，后续须改独立Git管理库并验证构建语义。

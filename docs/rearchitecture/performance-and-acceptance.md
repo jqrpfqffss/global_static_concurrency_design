@@ -2,6 +2,10 @@
 
 **完整重构未完成，Phase 0–6 和 G1–G8 不标全部通过。** 下方早期预览收据属于旧版本，不能当作当前源码/包的验收；当前实现入口为04-canonical-pipeline-progress.md。
 
+当前封存候选v8对应运行时代码3590227：1161项完整回归，1159通过、2项实际模型测试跳过，1802.796s；104个模块/前端/许可文件与包逐字节相同。目录及长中文ZIP各26命令通过；包内Python3.10.9真实Chrome主流程14、旧迁移6、容量/精度8项通过。包SHA与文件见`evidence/portable-legacy-v8.json`，完整回归见`full-regression-legacy-wire.json`。首轮v7因GitSource目录层级配置错误停止，未删除失败现场；v8使用完整MinGit目录，包含离线Git。
+
+补充成功解析黄金：原e69引擎在另一个明确配置中启用auto_system_includes，4TU里2PARSED/2PARTIAL，INCOMPLETE及6候选保留；候选使用同一配置文件字节、源码、编译库和工具，完整facts/report差异0，原结果/源码/.git不变，正式旧副本不存在。见`evidence/native-parsed-golden-v2.json`。旧黄金4FAILED/13UNKNOWN继续保留验证失败语义；不能把两份不同输入配置拼成优化前后收益，或把部分覆盖称完整解析。
+
 | 当前实测 | 结果 | 范围/收据 |
 |---|---|---|
 | 原引擎语义保护区 | 无代码差异 | analysis/points_to/context_points/solver/call_graph/protection/nvic/interrupts/physical/decisions |

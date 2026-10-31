@@ -1,0 +1,196 @@
+{
+  "passed": true,
+  "scope": "Real browser pagination capacity, with explicit synthetic storage fixtures.\n\nThis is not a native firmware scan, semantic golden, G2, G3 or G4 result.\nEvery operation uses the production server, database and human-review APIs.\n",
+  "rows": 20007,
+  "engine": "H:\\ECRAStudio-build-20261101-legacy-v8\\ECRA-Portable",
+  "tests": [
+    "20007_rows_real_server_pages",
+    "exact_last_identity_search",
+    "human_commit_and_reopen_position",
+    "bounded_api_responses",
+    "immutable_static_hash",
+    "exact_large_integer_negative_zero_and_surrogate",
+    "evidence_pages_do_not_accumulate",
+    "long_utf8_text_bidirectional_bounded_segments"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "overview_seconds": 0.3130000000237487,
+  "last_identity_lookup_seconds": 0.23399999999674037,
+  "max_api_response_bytes": 17192,
+  "api_payloads": [
+    {
+      "path": "/api/bootstrap",
+      "bytes": 655
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 316
+    },
+    {
+      "path": "/api/scans/capacity-fixture/summary",
+      "bytes": 1072
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?limit=5",
+      "bytes": 1665
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16388
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16388
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=UNKNOWN&human_decision=&offset=50&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16456
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=UNKNOWN&human_decision=&offset=100&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16656
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=capacity_counter_20006&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 393
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbol-functions?symbol_id=CAPACITY-20006&offset=0",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human?symbol_id=CAPACITY-20006",
+      "bytes": 206
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80029?limit=200",
+      "bytes": 1171
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/accesses?symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/findings?dataset=report&symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/source?file=CAPACITY_TEST_ONLY.c",
+      "bytes": 181
+    },
+    {
+      "path": "/api/scans/capacity-fixture/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human",
+      "bytes": 656
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human?symbol_id=CAPACITY-20006",
+      "bytes": 1483
+    },
+    {
+      "path": "/api/scans/capacity-fixture/summary",
+      "bytes": 1095
+    },
+    {
+      "path": "/api/bootstrap",
+      "bytes": 655
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 316
+    },
+    {
+      "path": "/api/scans/capacity-fixture/summary",
+      "bytes": 1095
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?limit=5",
+      "bytes": 1665
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16388
+    },
+    {
+      "path": "/api/scans/capacity-fixture/position",
+      "bytes": 226
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=capacity_counter_20006&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 1037
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbol-functions?symbol_id=CAPACITY-20006&offset=0",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human?symbol_id=CAPACITY-20006",
+      "bytes": 1483
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80029?limit=200",
+      "bytes": 1171
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/accesses?symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/findings?dataset=report&symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/source?file=CAPACITY_TEST_ONLY.c",
+      "bytes": 181
+    },
+    {
+      "path": "/api/scans/capacity-fixture/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/unknowns",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/1?offset=0",
+      "bytes": 441
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80033?offset=0",
+      "bytes": 1059
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80037?offset=0",
+      "bytes": 8198
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80037?offset=50",
+      "bytes": 8252
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80037?offset=0",
+      "bytes": 8198
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80039?offset=0",
+      "bytes": 144
+    },
+    {
+      "path": "/api/scans/capacity-fixture/text/80039?offset=0",
+      "bytes": 17191
+    },
+    {
+      "path": "/api/scans/capacity-fixture/text/80039?offset=8190",
+      "bytes": 17192
+    },
+    {
+      "path": "/api/scans/capacity-fixture/text/80039?offset=0",
+      "bytes": 17191
+    }
+  ],
+  "static_sha256": "27c31ffdfe17c6b61c2dfa27c020d028475150bfeb3810cabe15074d21b7d5e2"
+}

@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "scope": "Full unittest discovery on a frozen byte snapshot, runtime code matches sealed v8",
+  "implementation_commit": "35902270fdba58b3c1089b2f4578b54e94b63d38",
+  "tests": 1161,
+  "passed_tests": 1159,
+  "skipped": 2,
+  "failures": 0,
+  "errors": 0,
+  "seconds": 1802.796,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-legacy-wire.log",
+  "log_sha256": "0c99ff98527f5862702046eae182e64df6a04248ed636b1638bdab93469aa57c",
+  "snapshot_manifest": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-legacy-wire.sha256.json",
+  "snapshot_manifest_sha256": "8f77ec04e2da621f3d18dc242819e37ed1fd16ec5f6ce84c5a2c8a8c8a725227",
+  "new_vfs_experiment": "Not in frozen full suite; separately passed one real-Clang test in working-vfs-1.log",
+  "remaining_gates": "G1-G8 not all passed; this is not large-project or clean-machine certification"
+}
