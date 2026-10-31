@@ -198,10 +198,30 @@ def validate_objects(directory, manifest, *, max_raw_bytes=128*1024**3):
     consumed = 0
     # Query scalar reference fields only; source text is never loaded here.
     with closing(connect_readonly(directory/'scan.db')) as conn:
+        from .scan_store import _decode
+        legacy = conn.execute("SELECT e.child FROM roots r JOIN edges e ON e.parent=r.node WHERE r.name='provenance' AND e.key='legacy_inputs'").fetchone()
+        if legacy:
+            for (node,) in conn.execute('SELECT child FROM edges WHERE parent=? ORDER BY ordinal',(legacy[0],)):
+                fields = {key:_decode(kind,value) for key,kind,value in conn.execute(
+                    "SELECT e.key,n.kind,n.value FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=? "
+                    "AND e.key IN ('file','sha256','size','disposition') AND n.kind NOT IN ('object','list')",(node,))}
+                name=fields.get('file'); hashed=fields.get('sha256'); size=fields.get('size')
+                if (not isinstance(name,str) or PurePosixPath(name).is_absolute() or '..' in PurePosixPath(name).parts
+                        or '\\' in name or ':' in name or not OBJECT.fullmatch('evidence/'+str(hashed))
+                        or type(size) is not int or size<0):
+                    raise ValueError('旧归档原文件引用损坏')
+                if fields.get('disposition')=='CANONICAL_REENCODED':
+                    if name not in {'facts.json','reports/global_static_concurrency.json'}:
+                        raise ValueError('未知旧文件被错误标成可重建，拒绝丢弃证据')
+                elif fields.get('disposition')=='OPAQUE_AUDIT_PRESERVED':
+                    target=directory/'evidence'/hashed
+                    if not target.is_file() or target.stat().st_size!=size or sha256(target)!=hashed:
+                        raise ValueError('旧归档审计原字节缺失或损坏：'+name)
+                else:
+                    raise ValueError('旧归档原文件处置方式未知')
         root = conn.execute("SELECT e.child FROM roots r JOIN edges e ON e.parent=r.node WHERE r.name='provenance' AND e.key='archived_sources'").fetchone()
         if root is None:
             return
-        from .scan_store import _decode
         for (node,) in conn.execute('SELECT child FROM edges WHERE parent=? ORDER BY ordinal', (root[0],)):
             fields = {key:_decode(kind,value) for key,kind,value in conn.execute(
                 "SELECT e.key,n.kind,n.value FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=? AND e.key IN ('raw_object','codec','sha256','size')", (node,))}

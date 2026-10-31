@@ -10,6 +10,8 @@
 
 迁移状态固定LEGACY_READ_ONLY，当前源码/工具/模型未重新证明。完整旧report中的原始AI/历史字段保留；独立新人工库默认PENDING。没有经过合同验证的旧AI/人工决定，不自动投影为当前SAFE。旧文件清单/完整SHA/文本或十六进制片段可分页继续查看；大段有总字节/游标，HTML/代码只用文本插值。旧源文件未归档时显示缺失，不用当前源码填充历史证据。这些限制在所有结果页面显示，并随包内provenance传递。
 
+补充门禁：旧scan_state存在facts/input_manifest/input_closure哈希时，必须与捕获字节匹配；缺少该历史字段只标NOT_AVAILABLE，不伪造证明。源内容身份绑定既有project_id、规范来源路径及完整有序文件名/大小/SHA，不因中文警告文案变化产生新扫描。相同身份重复导入仍比较facts/report、源清单与原字节，原人工事件保留。标准包验证也检查全部legacy_inputs保留对象，不能删除可选audit_index后绕过原字节引用。`legacy-checkpoint-package-gates.log`追加16项通过；不是全源码回归。
+
 任务使用独立跨进程活动租约与持久SQLite小记录。新Studio不能把另一个活进程的迁移误判中断；退出后无租约RUNNING改为INTERRUPTED。私有失败现场保留，用户可核对源数据重新迁移；尚未实现巨型迁移在任意字节断点继续。来源完整清单和哈希在发布前复验；相同来源/内容再次导入命中既有扫描，当前人工确认不被覆盖。
 
 实测入口：`scripts/validate_legacy_import.py`、`scripts/validate_legacy_ui.py`、`tests/test_streamed_evidence.py`、`tests/test_legacy_import.py`。原64文件的真实4TU黄金旧输出在隔离副本经原版checked_scan批准，转换facts/report全字段有序类型差异0，原目录哈希不变，标准包往返通过。50,000行普通JSON与50,000节点shared池的完整根哈希相等，峰值工作集分别28,692,480/30,687,232B；SQLite分别84,123,648/84,160,512B，大于11MB输入，不是G4收益。原始日志见continuation-h3/legacy-stream-v5-acceptance.json，范围为编码/存储，不是原生分析。

@@ -93,6 +93,32 @@ class LegacyImportTests(unittest.TestCase):
             self.convert()
         self.assertFalse((self.data/'scans').exists())
 
+    def test_historical_checkpoint_hash_mismatch_is_not_imported_as_valid_history(self):
+        state=json.loads((self.old/'scan_state.json').read_text(encoding='utf-8'))
+        state['facts_sha256']='0'*64
+        (self.old/'scan_state.json').write_text(json.dumps(state),encoding='utf-8')
+        before=self.original_hashes()
+        with self.assertRaisesRegex(ValueError,'旧检查点与归档字节不一致'):
+            self.convert()
+        self.assertEqual(self.original_hashes(),before)
+        self.assertFalse((self.data/'scans').exists())
+
+    def test_package_cannot_drop_original_bytes_by_removing_optional_audit_index(self):
+        import zipfile
+        result=self.convert();scan=self.data/'scans'/result['scan_id']
+        package=self.base/'full.ecra-report';export_report(scan,package)
+        dropped='evidence/'+sha256(self.old/'unknown.bin')
+        corrupt=self.base/'missing-original.ecra-report'
+        with zipfile.ZipFile(package) as reader,zipfile.ZipFile(corrupt,'w',zipfile.ZIP_DEFLATED) as writer:
+            manifest=json.loads(reader.read('manifest.json'));manifest.pop('audit_index')
+            manifest['files'].pop(dropped)
+            writer.writestr('manifest.json',json.dumps(manifest))
+            for name in reader.namelist():
+                if name not in {'manifest.json',dropped}:writer.writestr(name,reader.read(name))
+        with self.assertRaisesRegex(ValueError,'旧归档审计原字节缺失'):
+            import_report(corrupt,self.base/'viewer')
+        self.assertFalse((self.base/'viewer/scans'/result['scan_id']).exists())
+
     def test_changed_copied_source_cannot_be_published_or_damage_prior_scan(self):
         existing=self.data/'scans/prior';existing.mkdir(parents=True)
         publish_scan(existing/'scan.db',{}, {},scan_id='prior',project_id='prior')

@@ -168,11 +168,29 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                             raise ValueError('旧审计对象SHA冲突/损坏')
                     progress(dict(stage='COPYING', message='逐文件捕获与校验：'+name, files=number, total=plan['files']))
                 conn.commit()
+                state_hash = conn.execute("SELECT sha256 FROM files WHERE name='scan_state.json'").fetchone()[0]
+                checkpoint = small_json(evidence/state_hash)
+                checkpoint_checks = {}
+                for key, name in [('facts_sha256','facts.json'),('manifest_sha256','input_manifest.json'),
+                        ('input_closure_sha256','input_closure.json')]:
+                    if key not in checkpoint:
+                        checkpoint_checks[key] = 'NOT_AVAILABLE'
+                        continue
+                    saved = conn.execute('SELECT sha256 FROM files WHERE name=?', (name,)).fetchone()
+                    if saved is None or saved[0] != checkpoint[key]:
+                        raise ValueError('旧检查点与归档字节不一致：'+name+'；未发布，原目录保留')
+                    checkpoint_checks[key] = 'MATCHED_ARCHIVED_BYTES_ONLY'
+                identity = hashlib.sha256(b'ECRA_LEGACY_BYTES_V1\0'+plan['project_id'].encode()+b'\0'+canonical(source).encode()+b'\0')
+                for row in conn.execute('SELECT name,size,sha256 FROM files ORDER BY name'):
+                    raw = json.dumps(row,ensure_ascii=True,separators=(',',':')).encode()
+                    identity.update(len(raw).to_bytes(8,'big')); identity.update(raw)
+                source_digest = identity.hexdigest()
                 provenance = stage/'provenance.json'
-                _write_inventory(conn, provenance, dict(legacy_migration_version=1,
+                _write_inventory(conn, provenance, dict(legacy_migration_version=2,legacy_source_digest=source_digest,
                     project_root=plan['project_root'], source_directory=str(source), source_kind=plan['source_kind'],
-                    source_reverification=False, legacy_warning=plan['warning'], archived_sources=[]))
-                scan_id = 'legacy-'+sha256(provenance)[:48]
+                    source_reverification=False, legacy_checkpoint_checks=checkpoint_checks,
+                    legacy_warning=plan['warning'], archived_sources=[]))
+                scan_id = 'legacy-'+source_digest
                 def update(message): progress(dict(stage='CONVERTING', message=message))
                 publish_json_scan(pending/'scan.db', copies/'facts.json', copies/'report.json',
                     scan_id=scan_id, project_id=plan['project_id'], profile_id='legacy-import',
@@ -215,8 +233,12 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                 repeated = destination.exists()
                 if repeated:
                     old = EvidenceProvider(destination/'scan.db').validate(deep=True)
-                    root_hashes = lambda provider: {row['name']:row['hash'] for row in provider.roots()}
-                    if old != binding or root_hashes(EvidenceProvider(destination/'scan.db')) != root_hashes(EvidenceProvider(pending/'scan.db')):
+                    old_provider = EvidenceProvider(destination/'scan.db')
+                    saved_digest = old_provider.node(old_provider.resolve('provenance',['legacy_source_digest']))['value']
+                    old_inputs=old_provider.node(old_provider.resolve('provenance',['legacy_inputs']))['hash']
+                    candidate=EvidenceProvider(pending/'scan.db')
+                    new_inputs=candidate.node(candidate.resolve('provenance',['legacy_inputs']))['hash']
+                    if old != binding or saved_digest != source_digest or old_inputs != new_inputs:
                         raise ValueError('同一旧导入身份对应不同证据；拒绝覆盖已有归档')
                     validate_objects(destination, small_json(destination/'manifest.json'))
                 else:
