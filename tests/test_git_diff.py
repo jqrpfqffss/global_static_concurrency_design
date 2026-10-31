@@ -306,6 +306,24 @@ class GitIntegrationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Git 无法运行'):
                 pin(self.root, cfg)
 
+    def test_project_output_diff_keeps_nested_optional_inventory(self):
+        cfg = self.repository()
+        (self.root/'unbuilt').mkdir()
+        (self.root/'unbuilt/extra.c').write_text('static int optional_declaration = 3;\n')
+        self.command('add', 'unbuilt/extra.c')
+        self.command('commit', '-m', 'nested inventory input')
+        cfg['analysis']['build_closure_only'] = False
+        cfg['analysis']['git_diff']['base_ref'] = 'HEAD'
+        write_json(self.root/'.ecra/semantics.yaml', cfg)
+        report = self.scan()
+        from ecra.workflow import read_saved_json
+        facts = read_saved_json(self.root/'.ecra/facts.json')
+        variable = next(v for v in facts['variables'] if v['name'] == 'optional_declaration')
+        self.assertEqual(variable['definition_file'], 'unbuilt/extra.c')
+        self.assertEqual(variable['static_classification'], 'OUT_OF_BUILD')
+        self.assertFalse(any(f.get('symbol_id') == variable['symbol_id'] for f in report['findings']))
+        self.assertEqual(report['git_diff']['selected_symbol_ids'], [])
+
     def test_T30_cache_hits_corruption_and_full_equivalence(self):
         cfg = self.repository()
         (self.root/'a.c').write_text('int g;void Task(void){g+=2;}void ISR(void){g++;}')
@@ -376,6 +394,11 @@ class GitIntegrationTests(unittest.TestCase):
         cfg, _ = __import__('ecra.config', fromlist=['load_config']).load_config(self.root)
         before = pin(self.root, cfg)
         (self.root/'a.c').write_text('int changed;')
+        # Committed comparisons bind refs and isolated source, not dirty bytes.
+        assert_pin(self.root, cfg, before)
+        cfg['analysis']['git_diff']['include_uncommitted'] = True
+        before = pin(self.root, cfg)
+        (self.root/'a.c').write_text('int changed_again;')
         with self.assertRaises(ValueError):
             assert_pin(self.root, cfg, before)
 
@@ -474,7 +497,13 @@ class GitIntegrationTests(unittest.TestCase):
         report = self.scan()
         pinned = report['git_diff']['pin']
         source = Path(pinned['current_source_root'])
-        self.assertTrue((source/'build/ecra/libfirmware.a').is_file())
+        from ecra.compilation import cmake_build_directory
+        from ecra.git_diff import current_context
+        from ecra.workspace import WorkspaceResolver
+        loaded, _ = __import__('ecra.config', fromlist=['load_config']).load_config(self.root)
+        WorkspaceResolver.resolve(self.root, loaded['analysis']).bind(loaded['analysis'])
+        _, loaded = current_context(self.root, loaded, pinned)
+        self.assertTrue((cmake_build_directory(source, loaded['analysis'])/'libfirmware.a').is_file())
         self.assertFalse((self.root/'build').exists())
         self.assertFalse((source/'.ecra').exists())
         self.assertTrue((self.root/'.ecra/cmake-build.log').is_file())

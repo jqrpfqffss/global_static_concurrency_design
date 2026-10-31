@@ -10,7 +10,8 @@ class TUCache:
         self.folder = Path(folder)
         self.folder.mkdir(parents=True, exist_ok=True)
         self.snapshot = snapshot
-        self.cfg = {k: v for k, v in cfg.items() if k != 'review'}
+        from .workflow import analysis_config
+        self.cfg = analysis_config(cfg)
         self.engine = engine_digest()
         self.keys = {}
         import os

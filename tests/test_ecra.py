@@ -35,11 +35,16 @@ class ProjectTest(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name, "-o", name + ".o"]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json"),
+        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", output=dict(location='project')),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]), dict(id="task", kind="TASK", functions=["Task"])],
                    review=review or dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
-        return load_config(self.root)[0]
+        cfg = load_config(self.root)[0]
+        # Fixtures that preseed review caches claim their runtime directory
+        # explicitly, just as run() does before writing owned state.
+        from ecra.workspace import WorkspaceResolver
+        WorkspaceResolver.resolve(self.root, cfg['analysis']).initialize()
+        return cfg
 
     def extract(self, cfg):
         units, audit = prepare(self.root, cfg)

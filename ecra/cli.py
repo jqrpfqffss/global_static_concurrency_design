@@ -180,7 +180,7 @@ def safe_review_samples(facts, count, shared_count=0):
 
 
 def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-        review_shared_sample=0, scan_mode=None, _cache_enabled=False):
+        review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     consumed_config = {}
@@ -191,17 +191,24 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         cfg['analysis']['git_diff']['enabled'] = scan_mode == 'diff'
     if no_review:
         cfg["review"]["enabled"] = False
-    out = (root / cfg["analysis"].get("output_dir", ".ecra")).resolve()
-    if out == root or not out.is_relative_to(root):
-        raise ValueError("analysis.output_dir 必须是工程根目录下的独立子目录")
+    from .workspace import WorkspaceResolver, lock_path, migrate_legacy
+    workspace = _workspace or WorkspaceResolver.resolve(root, cfg['analysis']).initialize()
+    workspace.bind(cfg['analysis'])
+    out = Path(workspace.results_root)
     out.mkdir(parents=True, exist_ok=True)
-    lock = out / "scan.lock"
+    lock = lock_path(root, cfg['analysis'])
     try:
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
         raise ValueError(f"已有扫描锁 {lock}；确认没有扫描进程后移除过期锁") from exc
     os.write(fd, json.dumps(dict(pid=os.getpid(), started=started)).encode())
     os.close(fd)
+    try:
+        if _workspace is None:
+            migrate_legacy(workspace)
+    except BaseException:
+        lock.unlink(missing_ok=True)
+        raise
     run_info = dict(version=__version__, started=started, project_root=str(root), state="RUNNING",
                     review_mode='disabled_by_cli' if no_review else
                     ('enabled' if cfg['review'].get('enabled', True) else 'disabled_by_config'))
@@ -265,6 +272,12 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 elif p.is_file():
                     archive_file(p, snapshot / name)
             report_can_replace = True
+        progress(f'ECRA 并发风险扫描：{workspace.project_name}\n固件路径：{workspace.project_root}\n扫描结果目录：{out}')
+        if 'output_dir' in cfg['analysis'] and 'output' not in cfg['analysis']:
+            progress('兼容配置 analysis.output_dir：' +
+                     ('旧默认 .ecra 已改为工具工作区；保留固件内输出可显式设置 analysis.output.location: project。'
+                      if cfg['analysis']['output_dir'] == '.ecra' else
+                      '保留原工程内目录；建议显式设置 analysis.output.location: project 或迁移到 custom。'))
         if not doctor_only:
             (out/'scan_state.json').unlink(missing_ok=True)
             (out/'input_closure.json').unlink(missing_ok=True)
@@ -274,6 +287,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if cfg['analysis']['git_diff']['enabled']:
             from .git_diff import pin, prepare_base, prepare_current
             diff_pin = pin(root, cfg)
+            progress('Git 差异扫描；基准：' + diff_pin['base_sha'] + '；当前：' + diff_pin['head_sha'] +
+                     ('；未提交修改：纳入本轮扫描' if diff_pin['include_uncommitted'] else '；未提交业务修改：未纳入本轮扫描，仅分析固定提交'))
             doctor['git_diff'] = diff_pin
             if not doctor_only:
                 diagnostics.stage('Git 基准版本完整分析')
@@ -352,6 +367,19 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         env = os.environ.copy()
         env["PYTHONPATH"] = str(tool_root) + os.pathsep + env.get("PYTHONPATH", "")
         explicit = [config_file, compilation['compile_database'], *sources, *response_files]
+        # Complete baseline caches must bind the executable inputs too, not
+        # just their path spellings in compile_commands/CMakeCache.
+        from .portable import resolved_executable
+        executables = [cfg['analysis'].get('libclang_file') or cindex.conf.get_filename()]
+        for unit in units:
+            raw = unit['original_arguments']
+            count = 2 if Path(raw[0]).stem.lower() in {'ccache', 'sccache'} else 1
+            executables.extend(str(resolved_executable(name, unit['directory'])) for name in raw[:count])
+        for key in ('CMAKE_COMMAND', 'CMAKE_MAKE_PROGRAM', 'CMAKE_C_COMPILER', 'CMAKE_CXX_COMPILER',
+                    'CMAKE_ASM_COMPILER', 'CMAKE_AR', 'CMAKE_RANLIB', 'CMAKE_LINKER'):
+            if compilation.get('cmake_cache', {}).get(key):
+                executables.append(compilation['cmake_cache'][key])
+        explicit.extend({Path(p).resolve() for p in executables if Path(p).is_file()})
         explicit.extend(root / cfg['analysis']['build_closure'][key] for key in ('elf', 'map')
                         if cfg['analysis'].get('build_closure', {}).get(key))
         if not cfg['analysis'].get('build_closure_only', True):
@@ -383,6 +411,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress(f"依赖快照 {i+1}/{len(units)}: {unit['source_file']}")
             snapshot_inputs.discover(unit, inputs, signature)
         snapshot_inputs.seal()
+        from .workspace import validate_analysis_inputs
+        validate_analysis_inputs(root, cfg['analysis'], snapshot_inputs.before,
+                                 config_file=config_file, compilation=compilation)
         if _cache_enabled or (diff_pin and cfg['analysis']['git_diff']['cache_enabled']):
             from .tu_cache import TUCache
             tu_cache = TUCache(out/'cache/tu-v1', cfg, snapshot_inputs)
@@ -485,6 +516,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         diagnostics.stage('指针、函数指针及调用图分析')
         report = analyze(facts, cfg, cov, root=root, source_reader=read_verified_source)
+        report['workspace'] = dict(project_id=workspace.project_id, project_root=workspace.project_root,
+                                   analysis_root=str(root), results_root=str(out))
         if diff_pin:
             from .git_diff import summarize, compare
             diagnostics.stage('双版本完整证据比较与语义影响传播')
@@ -522,6 +555,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
             snapshot_inputs.observe(unit, inputs, phase='PRE_PUBLICATION', signature=signature)
         snapshot_inputs.verify_disk()
+        validate_analysis_inputs(root, cfg['analysis'], snapshot_inputs.before,
+                                 config_file=config_file, compilation=compilation)
         snapshot_inputs.save()
         snapshot_inputs.assert_valid()
         if diff_pin:

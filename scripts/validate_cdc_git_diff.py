@@ -78,7 +78,7 @@ def main():
     change('Application/Src/usbd_cdc_interface.c', 'UserTxBufPtrIn++;', 'UserTxBufPtrIn += 2;',
            'change actual UART receive buffer index update')
     current = execute('diff-first', 'diff')
-    report = read_json(root/'.ecra/reports/global_static_concurrency.json')
+    report = read_json(__import__('ecra.workflow', fromlist=['output_path']).output_path(root, cfg)/'reports/global_static_concurrency.json')
     if 'c:@UserTxBufPtrIn' not in report['git_diff']['selected_symbol_ids']:
         raise RuntimeError('真实 UART 缓冲区索引变更没有纳入影响集合')
     execute('diff-cached', 'diff', current)

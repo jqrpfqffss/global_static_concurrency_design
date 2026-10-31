@@ -72,7 +72,7 @@ analysis:
   exclude_dirs: []
   exclude_files: []  # 混放在业务目录中的第三方 .c/.h 文件；保留调用链依赖
   parse_timeout_seconds: 180
-  output_dir: .ecra
+  # output: {location: tool}  # 默认工具侧 workspace，按工程自动隔离
   auto_contexts: true
 contexts:
   - id: main
@@ -144,7 +144,8 @@ analysis:
   exclude_dirs: [Drivers, Middlewares, ThirdParty, build, .ecra]
   exclude_files: []  # 例如 [Core/Src/system_stm32f1xx.c, Core/Src/sysmem.c]
   cmake:
-    build_dir: build/ecra
+    build_dir: build/ecra  # 保留旧配置标签；默认实际构建位于工程 workspace/builds
+    # location: project  # 特殊工程显式启用源码内兼容构建
     generator: Ninja
     # 多目标工程可指定实际固件目标；仅支持带 compdb-targets 的 Ninja。
     # target: firmware.elf
@@ -155,7 +156,7 @@ analysis:
     clean_before_configure: false
     build: true  # 每次先配置并增量构建，再扫描；不会烧录
   auto_system_includes: true  # 自动探测 Arm GCC 标准头文件目录
-  output_dir: .ecra
+  # output: {location: tool}  # 默认工具侧 workspace，按工程自动隔离
   # open_report: true  # 完成后用默认浏览器打开变量报告
 contexts:
   - id: main
@@ -300,6 +301,11 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
         if key in {'include_dirs', 'exclude_dirs', 'exclude_files'} and any(not x.strip() or any(c in x for c in '*?[]') for x in value):
             raise ValueError(f'analysis.{key} 请填写非空目录路径，不使用通配符；目录自动递归匹配')
     a = cfg['analysis']
+    # Runtime ownership is established by the resolver, never by YAML paths.
+    a.pop('_workspace', None)
+    a.pop('build_path_mapping', None)
+    from .workspace import output_settings
+    output_settings(a)
     from .git_diff import settings as git_diff_settings
     a['git_diff'] = git_diff_settings(a.get('git_diff', {}))
     workers = a.get('extraction_workers', 1)
@@ -320,9 +326,11 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
         if not isinstance(c, dict):
             raise ValueError('analysis.cmake 必须是映射')
         allowed = {'build_dir', 'generator', 'build_type', 'toolchain_file', 'args', 'build', 'build_args',
-                   'clean_before_configure', 'timeout_seconds', 'allow_external_toolchain', 'target'}
+                   'clean_before_configure', 'timeout_seconds', 'allow_external_toolchain', 'target', 'location'}
         if set(c) - allowed:
             raise ValueError('analysis.cmake 未知配置项: ' + ', '.join(sorted(set(c)-allowed)))
+        if c.get('location', 'workspace') not in {'workspace', 'project'}:
+            raise ValueError('analysis.cmake.location 必须是 workspace/project')
         for key in ('args', 'build_args'):
             if not isinstance(c.get(key, []), list) or any(not isinstance(x, str) for x in c.get(key, [])):
                 raise ValueError(f'analysis.cmake.{key} 必须是字符串列表')

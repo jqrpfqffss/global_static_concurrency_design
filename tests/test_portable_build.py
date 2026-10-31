@@ -22,7 +22,8 @@ class PortableCMakeTests(unittest.TestCase):
         self.root = Path(self.tmp.name).resolve()
         self.build = self.root/'build/ecra'
         self.build.mkdir(parents=True)
-        self.settings = dict(cmake=dict(build_dir='build/ecra',generator='MinGW Makefiles',build=True))
+        self.settings = dict(output=dict(location='project'),
+                             cmake=dict(location='project',build_dir='build/ecra',generator='MinGW Makefiles',build=True))
 
     def cache(self, **kwargs):
         (self.build/'CMakeCache.txt').write_text('\n'.join(k+':STRING='+str(v) for k,v in kwargs.items()),encoding='utf-8')
@@ -34,6 +35,37 @@ class PortableCMakeTests(unittest.TestCase):
                 configure_cmake(self.root,self.settings,lambda _:None,True)
             execute.assert_not_called()
         self.assertTrue((self.build/'CMakeCache.txt').is_file())
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows ASCII path aliases')
+    def test_ascii_bundle_with_chinese_workspace_descendants_has_ascii_build_path(self):
+        import ecra.portable as portable
+        project = self.root/'workspace/projects/中文工程'
+        project.mkdir(parents=True)
+        deeper = project/'第二层'
+        deeper.mkdir()
+        with patch.dict(portable._BUILD_ALIASES, {}, clear=True), \
+             patch('ecra.portable.bundle_root', return_value=self.root), \
+             patch('ecra.portable._short_path', side_effect=lambda p: str(p)):
+            first = Path(build_path(project))
+            second = Path(build_path(deeper/'builds'/'0123456789abcdef'))
+            self.assertTrue(str(first).isascii())
+            self.assertTrue(str(second).isascii())
+            self.assertEqual(first.resolve(), project.resolve())
+            self.assertEqual(second.resolve(), (deeper/'builds'/'0123456789abcdef').resolve())
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows build junction required')
+    def test_deep_ascii_build_uses_virtual_junction_even_with_native_short_name(self):
+        import ecra.portable as portable
+        target = self.root/('a'*70)/('b'*70)
+        target.mkdir(parents=True)
+        (target/'keep.txt').write_text('owned fixture')
+        with patch.dict(portable._BUILD_ALIASES, {}, clear=True):
+            alias = Path(build_path(target, prefer_junction=True))
+            self.assertLess(len(str(alias)), 180)
+            self.assertEqual(alias.resolve(), target.resolve())
+            self.assertTrue(alias.lstat().st_file_attributes & __import__('stat').FILE_ATTRIBUTE_REPARSE_POINT)
+            self.addCleanup(alias.rmdir)
+            self.assertEqual((target/'keep.txt').read_text(), 'owned fixture')
 
     def test_make_cache_from_another_machine_rejected(self):
         self.cache(CMAKE_GENERATOR='MinGW Makefiles',CMAKE_MAKE_PROGRAM='X:/old/mingw32-make.exe')

@@ -48,7 +48,7 @@ def cli(args):
     dump(root/'compile_commands.json',[dict(directory=str(root),file='app.c',
         arguments=['arm-none-eabi-gcc','-mcpu=cortex-m4','-mthumb','-c','app.c'])])
     config=root/'semantics.yaml'
-    dump(config,dict(version=1,analysis=dict(compile_database='compile_commands.json'),
+    dump(config,dict(version=1,analysis=dict(output=dict(location='project'),compile_database='compile_commands.json'),
         contexts=[dict(id='main',kind='MAIN',functions=['main']),dict(id='irq',kind='ISR',functions=['IRQ'])],
         review=dict(enabled=False,prepare_packets=False)))
     with (args.evidence/'baseline.log').open('w',encoding='utf-8') as log,contextlib.redirect_stdout(log):

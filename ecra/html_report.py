@@ -578,14 +578,21 @@ for(const b of document.querySelectorAll('[data-copy]'))b.addEventListener('clic
 
 
 def page(title, content, report, options, script="", reading=False):
+    pin = report.get('git_diff', {}).get('pin', {})
+    if pin:
+        boundary = '包含当前工作区未提交修改' if pin.get('include_uncommitted') else '仅分析固定提交；未提交业务修改未纳入本轮扫描'
+        content = ('<p class="notice">' + esc(boundary) + ' · 基准 ' + esc(pin.get('base_sha')) +
+                   ' · 当前 ' + esc(pin.get('head_sha')) + '</p>') + content
     generated = report.get('generated_at', '未知')
     try:
         generated = datetime.fromisoformat(generated.replace('Z', '+00:00')).astimezone().strftime('%Y-%m-%d %H:%M:%S %z')
     except (ValueError, TypeError):
         pass
-    root = report.get('coverage', {}).get('project_root', '')
+    root = report.get('workspace', {}).get('project_root') or report.get('coverage', {}).get('project_root', '')
     project = root.replace('\\', '/').rstrip('/').rsplit('/', 1)[-1] or '当前工程'
     meta = f"{project} · 扫描时间：{generated}（重新生成页面不会刷新扫描时间）"
+    if report.get('workspace'):
+        meta += ' · 扫描结果目录：' + report['workspace']['results_root']
     controls = '<div class="toolbar"><label for="q">搜索</label><input id="q" type="search" placeholder="变量、函数、文件或证据"><label for="filter">筛选</label><select id="filter">' + "".join(f'<option value="{esc(k)}">{esc(v)}</option>' for k, v in options) + '</select><label for="file-filter">文件</label><select id="file-filter"><option value="all">全部文件</option></select><label for="page-size">每页</label><select id="page-size"><option value="25">25 条</option><option value="100">100 条</option><option value="1000000000">全部</option></select><button id="reset" type="button">清除筛选</button><span id="visible" aria-live="polite"></span></div>'
     if reading:
         controls = controls.replace('<label for="filter">', '<details class="advanced-filters"><summary>筛选与分页设置</summary><div><label for="filter">').replace('<button id="reset"', '</div></details><button id="reset"')

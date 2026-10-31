@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import sys
 import tempfile
 from importlib.metadata import version
@@ -57,7 +58,7 @@ def _junction(alias, target):
             api.CloseHandle(handle)
 
 
-def build_path(value):
+def build_path(value, *, prefer_junction=False):
     """Same files under an ASCII spelling for Make 4.4.1's ANSI subprocess API.
 
     Prefer native 8.3 names. On volumes without them, keep a deterministic
@@ -65,18 +66,26 @@ def build_path(value):
     paths remain valid on later commands. Existing unrelated paths are refused.
     """
     path = Path(value).absolute()
-    if os.name != 'nt' or str(path).isascii():
+    compact = prefer_junction and (not str(path).isascii() or len(str(path)) > 180)
+    if os.name != 'nt' or (str(path).isascii() and not compact):
         return str(path)
     for root, alias in sorted(_BUILD_ALIASES.items(), key=lambda item: len(str(item[0])), reverse=True):
-        if path.is_relative_to(root):
+        junction = (alias.exists() and bool(getattr(alias.lstat(), 'st_file_attributes', 0)
+                                            & stat.FILE_ATTRIBUTE_REPARSE_POINT)) if compact else False
+        if path.is_relative_to(root) and str(alias/path.relative_to(root)).isascii() and (not compact or junction):
             return str(alias/path.relative_to(root))
-    package = bundle_root()
-    root = package if package and path.is_relative_to(package) else (path if path.is_dir() else path.parent)
+    # A tool-side workspace may contain a Chinese project name even when the
+    # package directory itself is ASCII. Aliasing only the package left that
+    # suffix unchanged and ARM ar/ranlib could fail in CMake's compiler probe.
+    # Cover the nearest existing directory, including non-ASCII descendants.
+    root = path if path.is_dir() else path.parent
     while not root.is_dir():
         root = root.parent
     root = root.resolve()
     alias = Path(_short_path(root))
-    if not str(alias).isascii():
+    # CMake expands native 8.3 names back to long Unicode paths in Makefiles.
+    # A virtual junction keeps deeply nested build/probe paths short as well.
+    if compact or not str(alias).isascii():
         import hashlib
         import time
         parent = Path(tempfile.gettempdir())/'ECRA-paths'

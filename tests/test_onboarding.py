@@ -70,9 +70,11 @@ class OnboardingTest(unittest.TestCase):
 
     def test_explicit_missing_database_bootstraps_then_reuses(self):
         (self.root/'a.c').write_text('int main(void){return 0;}')
+        configured_builds = []
         def configure(argv, **kwargs):
-            build = self.root/'build'
-            build.mkdir()
+            build = Path(argv[argv.index('-B') + 1])
+            configured_builds.append(build)
+            self.assertFalse(build.is_relative_to(self.root))
             (build/'compile_commands.json').write_text(json.dumps([
                 {'directory': str(self.root), 'file': 'a.c', 'arguments': ['cc', '-c', 'a.c']}]))
             self.assertIn('-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', argv)
@@ -82,7 +84,9 @@ class OnboardingTest(unittest.TestCase):
             self.assertEqual(len(units), 1)
             self.assertEqual(audit['selection_reason'], 'explicit')
             prepare(self.root, self.config())
-            self.assertEqual(execute.call_count, 1)
+            self.assertEqual(execute.call_count, 2)
+            self.assertEqual(configured_builds[0], configured_builds[1])
+            self.assertFalse((self.root/'build').exists())
 
     def test_mismatched_cmake_path_fails_before_configuration(self):
         cfg = self.config()

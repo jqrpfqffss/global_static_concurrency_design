@@ -15,10 +15,19 @@ CPP_EXTENSIONS = {'.cc', '.cpp', '.cxx', '.hh', '.hpp', '.hxx'}
 def selected_files(root, scope, output):
     result = set()
     output = Path(output).resolve()
+    analysis_root = Path(root).resolve()
+    nested_analysis = analysis_root.is_relative_to(output)
+    def is_output(path):
+        if not path.is_relative_to(output):
+            return False
+        # In explicit project-output compatibility mode an isolated source
+        # tree can live below the data owner. Preserve that exact source tree
+        # and its ancestors, while pruning sibling reports/cache/worktrees.
+        return not nested_analysis or not (path.is_relative_to(analysis_root) or analysis_root.is_relative_to(path))
     for tree in scope.walk_roots():
         for base, dirs, names in os.walk(tree):
             dirs[:] = [d for d in dirs if d not in {'.git', '__pycache__', 'node_modules'}
-                       and not (Path(base) / d).resolve().is_relative_to(output)]
+                       and not is_output((Path(base) / d).resolve())]
             for name in names:
                 path = Path(base) / name
                 if path.suffix.lower() in SOURCE_EXTENSIONS and scope.contains(path):

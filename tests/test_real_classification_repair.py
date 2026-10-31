@@ -174,7 +174,7 @@ class RealClassificationRepairTests(TestCase):
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, _ = self.extract(cfg)
         cfg['project']['root'] = str(self.root)
-        cfg['analysis']['cmake'] = dict(build_dir='build/manual')
+        cfg['analysis']['cmake'] = dict(build_dir='build/manual', location='project')
         (self.root / 'startup.s').write_text('Reset_Handler:\n bl __libc_init_array\n bl main\n',
                                               encoding='utf-8')
         build = self.root / 'build/manual'

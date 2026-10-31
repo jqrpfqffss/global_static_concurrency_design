@@ -13,6 +13,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import traceback
 
 
@@ -254,8 +255,10 @@ extern "C" int helper(void){
             self.inspect_build(build,self.gcc,make)
             self.command(generator+' build', [self.cmake,'--build',build_path(build),'--verbose'])
             self.command(generator+' execute', [build/'native.exe'])
-        firmware = self.work/'STM32 Cortex M3 中文'
-        firmware.mkdir()
+        # Keep firmware outside the developer checkout's ancestor .git. The
+        # source fixture is retained and its absolute path is in the receipt.
+        firmware = Path(tempfile.mkdtemp(prefix='ECRA STM32 中文 ')).resolve()
+        self.report['firmware_fixture'] = str(firmware)
         (firmware/'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.20)
 project(ecra_stm32 C CXX ASM)
 add_executable(firmware main.c helper.cpp startup.S)
@@ -302,6 +305,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         data = dict(version=1,project=dict(root=str(firmware),chip='STM32F103',core='Cortex-M3'),
             analysis=dict(cmake=dict(build_dir='build/ecra',generator='MinGW Makefiles',build=True,clean_before_configure=True,
                 toolchain_file='toolchain.cmake'),include_dirs=['.'],exclude_dirs=['build','.ecra'],
+                output=dict(location='custom', custom_dir=str(self.work/'runtime-data')),
                 auto_system_includes=True,expected_defines=['STM32F103xB','USE_HAL_DRIVER']),
             contexts=[dict(id='main',kind='MAIN',functions=['main'])], review=dict(enabled=False,command=['opencode']))
         config.write_text(json.dumps(data), encoding='utf-8')
@@ -313,7 +317,13 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         (legacy/'CMakeCache.txt').write_text('CMAKE_GENERATOR:INTERNAL=Ninja\n', encoding='utf-8')
         (legacy/'compile_commands.json').write_text('["stale database"]', encoding='utf-8')
         legacy_files = {p.name: p.read_bytes() for p in legacy.iterdir()}
-        build = firmware/'build/ecra-ecra'
+        # Resolve with the bundle's own engine, never the development checkout.
+        resolver_code = ('import json,sys;from pathlib import Path;from ecra.config import load_config;'
+            'from ecra.workspace import context;from ecra.compilation import cmake_build_directory;'
+            'r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];'
+            'print(json.dumps(dict(out=context(r,c["analysis"]).results_root,build=str(cmake_build_directory(r,c["analysis"])))) )')
+        paths = json.loads(self.command('resolve bundle workspace', [str(self.python), '-c', resolver_code, str(firmware), str(config)], cwd=self.bundle))
+        out, build = Path(paths['out']), Path(paths['build'])
         # Test the actual CMD launcher as well, including Chinese/space paths.
         help_text = self.command('ecra.cmd help', [os.environ.get('COMSPEC', r'C:\Windows\System32\cmd.exe'),
             '/d','/s','/c','""'+str(self.bundle/'ecra.cmd')+'" --help"'])
@@ -322,7 +332,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
                 raise ValueError(f'CLI missing: {command}')
         self.command('ecra.cmd doctor configure only', self.ecra('doctor',config))
         self.inspect_build(build,self.arm,self.make)
-        doctor = json.loads((firmware/'.ecra/doctor.json').read_text(encoding='utf-8'))
+        doctor = json.loads((out/'doctor.json').read_text(encoding='utf-8'))
         if Path(doctor['compile_database']).resolve() != (build/'compile_commands.json').resolve():
             raise ValueError('Doctor did not use the isolated build database')
         stale = build/'stale-ecra-output.txt'
@@ -335,22 +345,22 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         header = image.read_bytes()[:20]
         if header[:4] != b'\x7fELF' or struct.unpack_from('<H',header,18)[0] != 40:
             raise ValueError(f'Not an ARM ELF firmware: {image}')
-        facts = json.loads((firmware/'.ecra/facts.json').read_text(encoding='utf-8'))
+        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
         shared = next((v for v in facts['variables'] if v['name'] == 'shared_count'), None)
         if not shared or len(shared.get('writers',[])) < 2:
             raise ValueError('AST/global-variable/concurrent writer extraction regression')
-        static_facts_sha256 = sha256(firmware/'.ecra/facts.json')
+        static_facts_sha256 = sha256(out/'facts.json')
         self.command('ecra.cmd review disabled interface', self.ecra('review',config),allowed=(2,))
         self.command('ecra.cmd review-failed disabled interface', self.ecra('review-failed',config),allowed=(2,))
         self.command('ecra.cmd report', self.ecra('report',config),allowed=(2,))
-        if sha256(firmware/'.ecra/facts.json') != static_facts_sha256:
+        if sha256(out/'facts.json') != static_facts_sha256:
             raise ValueError('Saved review/report commands changed the complete static facts')
         self.report['saved_commands_static_facts_unchanged'] = True
         status = json.loads(self.command('ecra.cmd status', self.ecra('status',config,'--json')))
         if not status.get('resumable'):
             raise ValueError(f'Scan not resumable: {status}')
         for filename in ('index.html','facts.db','reports/global_static_concurrency.json'):
-            if not (firmware/'.ecra'/filename).is_file():
+            if not (out/filename).is_file():
                 raise ValueError(f'ECRA output missing: {filename}')
         if not image.is_file():
             raise ValueError('Firmware not linked')
@@ -359,8 +369,27 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         config2 = self.work/'configure-only.json'
         config2.write_text(json.dumps(data), encoding='utf-8')
         self.command('ecra.cmd build false', self.ecra('run',config2,'--no-review'),allowed=(2,))
-        if (firmware/'build/configure-only/firmware.elf').exists():
+        paths2 = json.loads(self.command('resolve configure-only build', [str(self.python), '-c', resolver_code, str(firmware), str(config2)], cwd=self.bundle))
+        if (Path(paths2['build'])/'firmware.elf').exists():
             raise ValueError('build:false unexpectedly built firmware')
+        # Exercise default tool-side storage in a relocated source copy, using
+        # this bundle's interpreter/tools. Keep validation reports outside the
+        # distribution so a later ZIP never ships acceptance runtime data.
+        relocated = self.work/'relocated-tool 中文'
+        (relocated/'ecra').mkdir(parents=True)
+        for source in (self.bundle/'ecra').glob('*.py'):
+            shutil.copyfile(source, relocated/'ecra'/source.name)
+        data['analysis'].pop('output')
+        default_config = self.work/'default-output.json'
+        default_config.write_text(json.dumps(data), encoding='utf-8')
+        launch = 'import sys;sys.path.insert(0,sys.argv.pop(1));from ecra.cli import main;raise SystemExit(main())'
+        self.command('relocated default workspace real scan', [self.python, '-c', launch, relocated,
+                     '--config', default_config, '--no-review'], allowed=(2,))
+        defaults = list((relocated/'workspace/projects').glob('*/results/facts.db'))
+        if len(defaults) != 1 or (firmware/'.ecra').exists() or (self.bundle/'workspace').exists():
+            raise ValueError('Default workspace location or distribution runtime-data isolation failed')
+        self.report['default_workspace'] = str(defaults[0].parent)
+        self.report['bundle_contains_runtime_data'] = False
         self.report['opencode'] = 'NOT_TESTED: external installation/provider required; review disabled interface passed'
 
     def run(self):

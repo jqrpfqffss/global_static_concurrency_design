@@ -4,7 +4,7 @@
 #
 # 日常运行：在本工具根目录执行 `py -3.10 run_ecra.py`。
 # 工具会按本文件完成：定位 project.root → （可选）清理构建目录 → CMake 配置和
-# 构建 → 扫描全局/static 变量 → 在 <固件>/.ecra/ 生成 HTML、JSON、Markdown、SQLite。
+# 构建 → 扫描全局/static 变量 → 在 <工具>/workspace/projects/<工程身份>/results/ 生成 HTML、JSON、Markdown、SQLite。
 #
 # 扫描新项目时，不创建新的 semantics.yaml：
 #   A. 修改 project.root 为新固件根目录；
@@ -33,7 +33,7 @@ project:
 analysis:
   # 比较 project.root 固件仓库中的任意两个分支、标签或提交；方向为 base_ref → current_ref。
   # 默认全量扫描；启用后直接比较两个版本，不自动取共同祖先。
-  # current_ref: HEAD 表示当前检出版本；填写其它分支时自动建立隔离工作树，无需切换分支。
+  # current_ref: HEAD 默认扫描固定提交的独立工作树；未提交修改只有显式 include_uncommitted: true 才纳入。
   # 缓存自动启用且校验有效性，影响不明确时自动保守扩大；差异范围之外不代表安全。
   git_diff:
     enabled: true
@@ -77,14 +77,17 @@ analysis:
   # 独立 TU 并行提取；全局指针/并发分析仍使用完整合并后的事实。
   extraction_workers: 8
 
-  # 排查输出目录，相对固件根目录。必须是根目录下的独立子目录。
-  # 它包含报告、日志、缓存和扫描状态；建议加入固件工程 .gitignore。
-  output_dir: .ecra
+  # 默认工具侧 workspace，自动按项目身份隔离；无须填写路径。
+  # output: {location: tool}
+  # 外置数据盘：output: {location: custom, custom_dir: "D:/ECRA_Data"}
+  # 旧固件内输出：output: {location: project} 并配合 output_dir
+  # 报告、日志、缓存和状态都在工具侧 workspace；无需修改固件忽略规则。
+  # output_dir: .ecra  # 旧默认值仍接受，并迁移到工具侧
 
   # 自动从真实 Arm GCC 编译命令探测标准头文件目录。STM32 + Arm GCC 通常保持 true。
   auto_system_includes: true
 
-  # 完成后自动在默认浏览器打开 .ecra/index.html；CI 或无 GUI 环境保持 false。
+  # 完成后自动在默认浏览器打开本工程 results/index.html；CI 或无 GUI 环境保持 false。
   open_report: false
 
   # ---------------------------------------------------------------------------
@@ -92,9 +95,9 @@ analysis:
   # 全部转成声明式配置。仅适用于 CMake 工程。
   # ---------------------------------------------------------------------------
   cmake:
-    # 专供 ECRA 使用的构建目录，相对固件根目录。
-    # 必须是工程根目录下的子目录；不要填 IDE 正在使用的正式构建目录。
-    # 对应原 PowerShell 中的 $manualBuild = ... "build\\manual"。
+    # 保留旧 build_dir 配置；默认实际构建位于工具 workspace 内按版本隔离的 builds。
+    # 特殊工程若需源码内构建，显式设置 location: project；再使用此工程内相对路径。
+    # location: project
     build_dir: build/manual
 
     # 必须与该固件真实构建方式一致；常见值为 Ninja、Unix Makefiles、MinGW Makefiles。
@@ -116,8 +119,8 @@ analysis:
     # 不可放 -S、-B、-G、--build 或 --preset；这些由专用字段控制。
     args: []
 
-    # true：每次扫描前删除且只删除本项 build_dir，避免旧 CMakeCache、工具链或生成器
-    # 残留；等价于原先的 Remove-Item $manualBuild -Recurse -Force。
+    # true：每次构建前清理已验证归属的 ECRA 专用构建目录，避免旧缓存残留。
+    # 默认不会删除固件工程里的旧正式构建目录。
     # false：保留构建目录，CMake 仍会重新 configure，适合增量调试。
     clean_before_configure: true
 

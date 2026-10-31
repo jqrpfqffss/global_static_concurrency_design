@@ -58,7 +58,7 @@ class Scenario:
         self.config = base / 'semantics.yaml'
         self.cfg = dict(version=1, project=dict(root=str(self.root), chip='STM32F103', core='Cortex-M3'),
             analysis=dict(compile_database='compile_commands.json', include_dirs=['Core/Src'],
-                          auto_system_includes=False, output_dir='.ecra', open_report=False),
+                          auto_system_includes=False, output=dict(location='project'), output_dir='.ecra', open_report=False),
             contexts=[dict(id='main', kind='MAIN', functions=['main'])],
             review=dict(enabled=False, workers=1, retries=0,
                 timeout_seconds=300 if backend == 'live' else 2,

@@ -212,7 +212,8 @@ class ProjectPortabilityTests(unittest.TestCase):
                 self.assertEqual(cfg['analysis']['include_dirs'],['.'])
                 self.assertFalse((root/'.ecra/semantics.yaml').exists())
                 self.assertEqual(self.invoke('--no-review'),2,self.stderr.getvalue())
-                out=root/'.ecra'
+                from ecra.workflow import output_path
+                out=output_path(root,cfg)
                 facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
                 variables={v['name']:v for v in facts['variables']}
                 self.assertEqual(variables['read_only']['audit_status'],'STATIC_SAFE_PROVEN')
@@ -289,9 +290,11 @@ target_compile_options(firmware PRIVATE -mcpu=cortex-m4 -mthumb)
         cfg,_=load_config()
         self.assertEqual(cfg['analysis']['cmake']['toolchain_file'],'cmake/gcc-arm-none-eabi.cmake')
         self.assertEqual(self.invoke(),2,self.stdout.getvalue()+self.stderr.getvalue())
-        report=json.loads((root/'.ecra/reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+        from ecra.workflow import output_path
+        from ecra.compilation import cmake_build_directory
+        report=json.loads((output_path(root,cfg)/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         self.assertEqual(report['coverage']['translation_units_failed'],0)
-        objects=[p for p in (root/'build/ecra').rglob('app.c.*') if p.suffix in {'.o','.obj'}]
+        objects=[p for p in cmake_build_directory(root,cfg['analysis']).rglob('app.c.*') if p.suffix in {'.o','.obj'}]
         self.assertEqual(len(objects),1)
         header=objects[0].read_bytes()[:20]
         self.assertEqual(header[:4],b'\x7fELF')

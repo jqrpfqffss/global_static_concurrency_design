@@ -107,7 +107,9 @@ def scan(root, config, name, mode):
                 pass
             time.sleep(.2)
     result = dict(name=name, exit_code=proc.returncode, seconds=time.monotonic()-begin, peak_rss_bytes=peak, log=str(log))
-    out = root/'.ecra'
+    from ecra.config import load_config
+    from ecra.workflow import output_path
+    out = output_path(root, load_config(root, config)[0])
     validity = read_json(out/'result_validity.json')
     result['validity'] = validity
     if proc.returncode not in (0, 1, 2) or not validity.get('analysis_valid'):

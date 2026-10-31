@@ -12,6 +12,20 @@ class AuditScope:
         project_root = self.root
         self._resolved_path = lru_cache(maxsize=16384)(
             lambda value: (project_root / value.replace('\\', '/')).resolve())
+        # Managed generated inputs retain the configured build directory's
+        # audit ownership after the physical build moves outside the source.
+        # Raw facts/evidence continue to use their real, snapshotted paths.
+        self.build_path_mapping = analysis.get('build_path_mapping')
+        settings = analysis.get('cmake')
+        if settings is None and analysis.get('auto_configure_cmake'):
+            settings = dict(build_dir=analysis.get('cmake_build_dir', 'build/ecra'),
+                generator=analysis.get('cmake_generator', 'Ninja'), args=analysis.get('cmake_args', []), build=False)
+            if analysis.get('cmake_toolchain_file'):
+                settings['toolchain_file'] = analysis['cmake_toolchain_file']
+        if settings is not None and settings.get('location', 'workspace') == 'workspace':
+            from .workspace import build_path
+            self.build_path_mapping = dict(actual=str(build_path(self.root, dict(analysis, cmake=settings))),
+                logical=str((self.root / settings.get('build_dir', 'build/ecra')).resolve()))
         self.include_dirs = analysis.get('include_dirs', [])
         self.exclude_dirs = analysis.get('exclude_dirs', [])
         self.exclude_files = analysis.get('exclude_files', [])
@@ -21,7 +35,7 @@ class AuditScope:
         self.files = [self.path(p) for p in self.exclude_files]
         self.active = bool(self.includes or self.excludes or self.files or self.legacy_exclude)
         for folder in self.includes:
-            if not folder.is_dir():
+            if not self.physical(folder).is_dir():
                 raise ValueError(f'排查目录不存在或不是目录: {folder}；请检查 analysis.include_dirs')
         for folder in self.excludes:
             if folder.is_file():
@@ -31,7 +45,19 @@ class AuditScope:
                 raise ValueError(f'exclude_files 中填写了目录: {file}；请改放到 analysis.exclude_dirs')
 
     def path(self, path):
-        return self._resolved_path(str(path))
+        value = self._resolved_path(str(path))
+        if self.build_path_mapping:
+            actual = Path(self.build_path_mapping['actual'])
+            if value.is_relative_to(actual):
+                return Path(self.build_path_mapping['logical']) / value.relative_to(actual)
+        return value
+
+    def physical(self, path):
+        if self.build_path_mapping:
+            logical = Path(self.build_path_mapping['logical'])
+            if path.is_relative_to(logical):
+                return Path(self.build_path_mapping['actual']) / path.relative_to(logical)
+        return path
 
     def contains(self, path):
         if not path:
@@ -86,6 +112,7 @@ class AuditScope:
     def walk_roots(self):
         roots = [self.root]
         for folder in sorted(self.includes, key=lambda p: len(p.parts)):
+            folder = self.physical(folder)
             if not any(folder.is_relative_to(r) for r in roots):
                 roots.append(folder)
         return roots
@@ -153,6 +180,7 @@ def select_facts(facts, scope, coverage):
     facts['snapshots'] = [s for s in facts['snapshots'] if s['symbol_id'] in ids]
     facts['unknowns'] = kept
     coverage['audit_scope'] = dict(include_dirs=scope.include_dirs, exclude_dirs=scope.exclude_dirs,
+        build_path_mapping=scope.build_path_mapping,
         exclude_files=scope.exclude_files, exclude=scope.legacy_exclude,
         variables_discovered=len(all_variables), variables_selected=len(selected),
         variables_omitted=len(all_variables)-len(selected),

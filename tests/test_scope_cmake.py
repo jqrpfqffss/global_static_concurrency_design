@@ -32,6 +32,7 @@ class ScopeCMakeTest(unittest.TestCase):
         self.addCleanup(lambda: os.chdir(original))
 
     def fixture(self, sources, **analysis):
+        analysis.setdefault('output', dict(location='project'))
         entries = []
         for name, source in sources.items():
             path = self.root/name
@@ -250,8 +251,8 @@ class ScopeCMakeTest(unittest.TestCase):
         self.assertFalse(status(self.root)['resumable'])
 
     def managed(self):
-        return dict(analysis=dict(cmake=dict(build_dir='build',generator='Ninja',build_type='Debug',args=['-DBOARD=demo']),
-                                 auto_system_includes=False,exclude_dirs=['build']))
+        return dict(analysis=dict(cmake=dict(location='project',build_dir='build',generator='Ninja',build_type='Debug',args=['-DBOARD=demo']),
+                                 output=dict(location='project'),auto_system_includes=False,exclude_dirs=['build']))
 
     def test_managed_cmake_refreshes_existing_database_and_builds_each_run(self):
         (self.root/'App').mkdir()
@@ -297,7 +298,7 @@ class ScopeCMakeTest(unittest.TestCase):
     def test_cmake_build_directory_cannot_escape_firmware_root(self):
         cfg = self.managed()
         cfg['analysis']['cmake']['build_dir'] = '../outside'
-        with self.assertRaisesRegex(ValueError, '工程根目录下'):
+        with self.assertRaisesRegex(ValueError, '构建边界'):
             prepare(self.root, cfg)
 
     def test_managed_failure_stops_before_old_database_is_scanned(self):

@@ -22,7 +22,9 @@ def checked_digest(folder, name, expected):
 
 def main(root, target):
     root, target = Path(root).resolve(), Path(target).resolve()
-    out = root / '.ecra'
+    from ecra.config import load_config
+    from ecra.workflow import output_path
+    out = output_path(root, load_config(root)[0])
     report = json.loads((out / 'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
     folder = out / 'review'
     queue = json.loads((folder / 'queue.json').read_text(encoding='utf-8'))
@@ -48,7 +50,7 @@ def main(root, target):
                          static_classification=finding['static_classification'],
                          review_status=review['status'],
                          summary=review['answer']['explanation']['summary'],
-                         receipt=f".ecra/review/{review['finding_id']}.result.json"))
+                         receipt=str(out/'review'/(review['finding_id']+'.result.json'))))
     payload = dict(upstream='https://github.com/ViniBR01/stm32-bare-metal',
                    upstream_commit='065875948326eab4d82cdaca59dd8bbd96d3516e',
                    firmware_target='cli_simple_standalone',

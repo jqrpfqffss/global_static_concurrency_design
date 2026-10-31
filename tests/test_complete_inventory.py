@@ -29,6 +29,7 @@ class CompleteInventoryTests(unittest.TestCase):
         (self.root/'.ecra').mkdir(exist_ok=True)
         inventory_analysis = dict(analysis or {})
         inventory_analysis.setdefault('build_closure_only', False)
+        inventory_analysis.setdefault('output', dict(location='project'))
         cfg = dict(version=1, analysis=dict(compile_database='compile_commands.json', **inventory_analysis),
                    contexts=[dict(id='main',kind='MAIN',functions=['main'])], review=dict(enabled=False))
         (self.root/'.ecra/semantics.yaml').write_text(json.dumps(cfg))

@@ -42,7 +42,9 @@ def main():
     evidence = args.evidence.resolve()
     if not args.audit_saved:
         evidence.mkdir(parents=True, exist_ok=False)
-    out = project / cfg['analysis'].get('output_dir', '.ecra')
+    from ecra.workflow import output_path
+    from ecra.workspace import lock_path
+    out = output_path(project, cfg)
     command = [sys.executable, '-B', str(TOOL/'run_ecra.py'), '--project', str(project),
                '--config', str(config), '--scan-mode', args.scan_mode, '--no-review']
     identity = dict(command=command, engine_digest=engine_digest(),
@@ -57,7 +59,7 @@ def main():
                 or type(result.get('seconds')) not in (int, float) or not math.isfinite(result['seconds']) or result['seconds'] <= 0
                 or type(result.get('peak_tree_rss_bytes')) is not int or result['peak_tree_rss_bytes'] < 0):
             raise RuntimeError('保存测量不属于同一未完成扫描；禁止恢复或改写验收结果')
-        if (out/'scan.lock').exists():
+        if lock_path(project, cfg['analysis']).exists():
             raise RuntimeError('扫描仍有锁，不能与发布并行恢复审计')
         _, saved_report, state = checked_scan(project, out, cfg, config, with_facts=False)
         del saved_report
@@ -102,7 +104,8 @@ def main():
     baseline_audit = None
     if args.audit_baseline:
         pinned = delta['pin']
-        base_out = Path(pinned['base_source_root'])/'.ecra-diff-base'
+        from ecra.workspace import context
+        base_out = Path(context(project, cfg['analysis']).git_diff_root)/'artifacts'/('base-' + pinned['base_sha'])
         if not base_out.resolve().is_relative_to((out/'git_diff').resolve()):
             raise RuntimeError('基准审计路径不属于本轮隔离工作树')
         if (file_digest(base_out/'facts.json') != pinned['base_facts_sha256']

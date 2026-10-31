@@ -115,7 +115,8 @@ def validate(args):
     import yaml
     from contextlib import closing
     cfg = yaml.safe_load(args.config.read_text(encoding='utf-8-sig'))
-    out = args.project/cfg['analysis'].get('output_dir', '.ecra')
+    from ecra.workflow import output_path
+    out = output_path(args.project, cfg)
     result = dict(all_scope=True, checks={}, output=str(out))
     for key in ('include_dirs','exclude_dirs','exclude_files','exclude'):
         if cfg['analysis'].get(key):

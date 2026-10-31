@@ -7,6 +7,8 @@ example a newly created header shadowing an earlier search directory).
 """
 import ctypes
 import hashlib
+import os
+import sys
 from pathlib import Path
 import time
 from contextvars import ContextVar
@@ -15,6 +17,15 @@ from .common import relative, write_json
 from .common import read_json
 
 SOURCE_READS = ContextVar('ecra_verified_parent_source_reads',default=None)
+
+
+def runtime_environment():
+    """Bind compiler lookup/injection as well as the replayed file closure."""
+    names = ('PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH',
+             'GCC_EXEC_PREFIX', 'COMPILER_PATH', 'CC', 'CXX', 'ASM', 'CFLAGS', 'CXXFLAGS',
+             'LDFLAGS', 'INCLUDE', 'LIB', 'CMAKE_GENERATOR', 'CMAKE_MAKE_PROGRAM',
+             'CMAKE_TOOLCHAIN_FILE', 'LIBCLANG_PATH', 'ECRA_PORTABLE_ROOT')
+    return dict(schema=1, python=sys.version, variables={key: os.environ.get(key) for key in names})
 
 
 def read_analysis_bytes(path):
@@ -178,6 +189,7 @@ def preprocessor_signature(tu):
 class InputSnapshot:
     def __init__(self, root, diagnostics, explicit, consumed=None):
         self.root, self.diagnostics = Path(root), Path(diagnostics)
+        self.environment = runtime_environment()
         self.before = {relative(p, root): file_record(p) for p in explicit}
         self.dependencies = {}
         self.preprocessor = {}
@@ -311,7 +323,7 @@ class InputSnapshot:
         # merely hash the files which happened to exist at scan time.
         write_json(self.diagnostics.parent / 'input_closure.json', dict(schema=1,
                    units=list(self.units.values()), dependency_sets=self.dependencies,
-                   preprocessor_signatures=self.preprocessor), indent=None)
+                   preprocessor_signatures=self.preprocessor, environment=self.environment), indent=None)
 
     def observe(self, unit, inputs, phase='EXTRACTION', signature=None):
         expected_signature = self.preprocessor.get(unit['tu_id'])
@@ -329,6 +341,9 @@ class InputSnapshot:
                              unit=unit['tu_id'], phase=phase)
 
     def verify_disk(self):
+        current_environment = runtime_environment()
+        if current_environment != self.environment:
+            self.record_change('<environment>', 'BUILD_ENVIRONMENT_CHANGED', self.environment, current_environment)
         after = {p: file_record(self.root / p) for p in self.before}
         for path, before in self.before.items():
             self.compare(path, before, after[path], 'INPUT_CONTENT_CHANGED')

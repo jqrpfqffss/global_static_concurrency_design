@@ -11,12 +11,16 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
 2. 备份并编辑 config/semantics.yaml 的 project.root、扫描目录、上下文和复核设置。
 3. cmake.generator 应保持工程实际设置：MinGW Makefiles / Ninja / Unix Makefiles。
    STM32 工程必须用其真实 ARM 工具链文件；MinGW GCC 仅用于 Windows 本机构建。
-4. build_dir 可沿用现有配置，例如 build/manual 或 build/ecra。
-   clean_before_configure: true 时，既有目录若没有当前工程的 ECRA 所有权标记，
-   工具会保留原目录，自动使用相邻的 <原目录名>-ecra；若该目录也被占用，则使用
-   <原目录名>-ecra-2 等。后续运行复用并清理同一专用目录，无需改固件源码或配置。
-   doctor 使用同一目录，但不清理或构建。关闭清理时仍在配置目录增量配置，
-   旧缓存的 Generator、Make、编译器路径冲突会明确报错。
+4. build_dir 可沿用旧配置；默认实际构建目录在工具 workspace/projects/<工程身份>/builds/。
+   Git 两个版本分别构建，不共用 CMakeCache。需要源码内构建时显式设置
+   analysis.cmake.location: project；工具只清理有当前源码所有权的专用构建目录。
+   generator、工具链、target 和参数保留，构建失败不会回退或忽略。
+   报告默认在 workspace/projects/<工程身份>/results/index.html。
+   工具目录无写权限时配置 analysis.output.location: custom 及绝对 custom_dir，
+   不会回退写入固件。升级请保留完整 workspace，不要覆盖或删除历史数据。
+   旧固件 .ecra 按身份、文件结构及哈希复制，原件保留；旧收据需重新校验。
+   current_ref: HEAD 默认使用固定提交的独立工作树，未提交业务修改未纳入扫描。
+   更多规则见 docs/workspace-migration.md（源码分发中的工作区迁移说明）。
 5. 在 PowerShell 中运行：
    .\ecra.cmd --help
    .\ecra.cmd doctor

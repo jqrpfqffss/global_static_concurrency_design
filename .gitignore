@@ -26,6 +26,7 @@ ECRA-Portable_培训配套.zip
 
 # ECRA generated state, reports, and browser-test artifacts
 .ecra/
+/workspace/
 output/
 .playwright-cli/
 *.log

@@ -1,0 +1,1293 @@
+{
+  "schema": 1,
+  "complete": true,
+  "generated_at": "2026-10-31T08:48:58.827432+00:00",
+  "branch": "optimize_ccc",
+  "base_commit": "1d60fc6",
+  "engine_digest": "ced093b7e00328e533e38d4166f4e6eb11cc3f82849ec452ea39d9f9a6121378",
+  "code_freeze": "H:\\global_static_concurrency_design\\workspace\\acceptance\\release2-code-freeze.json",
+  "source_module_hashes": {
+    "ecra/__init__.py": "1a57828454d39f2670fce85e9c32150abdca021dc6a16e9757e7e5c58bda113f",
+    "ecra/analysis.py": "889b642377e5bc52961095dfc058d650b6efaccac03081c2c67d4ba5b990ad1d",
+    "ecra/async_semantics.py": "2f0e87c0f0a26a61f08a8e8c050df1ef9b8dcc2541facacc96127b976adec649",
+    "ecra/block_bitmap.py": "f17ccc6235e61a0c05c711a4293ebee83a3c558ca205ed62b950ba4cbca8091c",
+    "ecra/call_graph.py": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+    "ecra/case_library.py": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2",
+    "ecra/cli.py": "dea6876e463bc04c8ccca84135f4a8858a0ab88a09a18efa9796e462bd34b15e",
+    "ecra/common.py": "91bb079e662f963d6f36d0205a7ad119bf84cdde34020fe4ca57b6ed84156646",
+    "ecra/compilation.py": "161e92865e270ba92eb60c2f6f1ffddfe3badc3ffe3fb8a125508d68da74cbb5",
+    "ecra/config.py": "37b0005725b280a6fd797d868b3b621335290fd8f8f473e49c15155b28c4f311",
+    "ecra/context_points.py": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+    "ecra/controlflow.py": "eadf0ccb43df25136288346d4c9983b065d40cff3ec8346a09208b9857df3874",
+    "ecra/decisions.py": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+    "ecra/diagnostics.py": "75736e8abec4580d79d4dd988e48d08ee8566904f7cc49a9ae272fca66150c5c",
+    "ecra/emergency_memory.py": "34d201f592c8ca7697beaf595102a0132d21c6004cdbd4954c36fb3312dbbb75",
+    "ecra/evidence.py": "ac4ef73c86026a39b54996a661059fcc472595be40b8c28f6667fcf1259f1829",
+    "ecra/extract.py": "583e73d70a2ee3250f4ac78afdebe0821211e451e89a4f463bc54cbc6bdda6a4",
+    "ecra/fact_parts.py": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+    "ecra/git_diff.py": "002288872cbc8583739450ada3e8a54648db20292b42ace37eb8889ee4784a90",
+    "ecra/history_archive.py": "e83b5df26b97e27219ecc689602c9ab2816e987c8a9c8e81883d9c598354a3cc",
+    "ecra/html_evidence.py": "73e9e9c00191ed70d4dad282ce872e99f6d028ecd4798e02bda40cc4f7361fde",
+    "ecra/html_report.py": "7be2049a650352ef97c2222d3652ff6a06055763306fce8d8a76439556da08dd",
+    "ecra/initialization.py": "43271805721f38f60ef61ed91b81b40d79f0419a5273b487cee978d1e28cc527",
+    "ecra/input_snapshot.py": "bbfaf50f4628296777babda71f3dd6ed438b563e9eb8e4daefd21a10d2d17ce3",
+    "ecra/interrupts.py": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+    "ecra/json_rows.py": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0",
+    "ecra/linker_symbols.py": "2df476c852a851aa27f5b4e21b75931ffa1b034d8035078e00d81560075d9f9e",
+    "ecra/macro_semantics.py": "d9879e9eae91ca8e33875fb35a8e0e90992bc11a1253a8f0539783580ec236be",
+    "ecra/missing_source.py": "3975809bc7971c1f6fa5e822fbd63b6c24828f043fd5c800bff0f9fea8d5fd86",
+    "ecra/multicore.py": "8858200160656e7863e234fc4812aa795ca9a0781561558086403166947af511",
+    "ecra/nonlocal_jumps.py": "21188550e1e36b5f110b9f45bf7088f31080784921d03d01bfcfb3a1523033ed",
+    "ecra/nvic.py": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+    "ecra/nvic_extract.py": "315cb099ecfc7f7eedd99ce4f8cc3022bf87058d7b18b542fb466ad19e49c041",
+    "ecra/physical.py": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+    "ecra/pointer_extract.py": "8533db5792bee3e25870f28d05c193754f76f87496773376263fef85ff0fd2fb",
+    "ecra/points_to.py": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+    "ecra/portable.py": "9c630a4dd27236e4ea69364a14ce74c998ad811335788b136219ebbbbf1ed27d",
+    "ecra/protection.py": "ae246acefc86ae7ab7fe7c91df02829a219e5e894485cc6d78b1fa854b3e46f5",
+    "ecra/report.py": "fff56d4d116b34cfcb2dc950ec9e3c6e389d723c2221430cc058f933c1696889",
+    "ecra/review.py": "a1db425c9c6a96ddd5135c24914f7ce2b9a4a49bd27a4192f447ee949cc447fe",
+    "ecra/review_context.py": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88",
+    "ecra/review_contract.py": "4a1b83f64c0192e8e3b123b61f5d51aec9120927ae7b65906667e5f115bf55bb",
+    "ecra/review_integrity.py": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804",
+    "ecra/review_language.py": "00a24bac1bf43595e6b74f15b0c79f5bc3a8e949c798fabf49b39bfd52f83d0f",
+    "ecra/review_presentation.py": "8ceb94ea1c45f5ef3ebdd219dab6fa112ca0e86cda3a94813a3ccd50d4e84f13",
+    "ecra/review_summary.py": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06",
+    "ecra/scan_diagnostics.py": "52300c1002c5e508af37304a50ab451f7ea7308af252dede8027c23074f41546",
+    "ecra/scope.py": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+    "ecra/shared_json.py": "5b134b0b6c837c7ddd06390097f54d2c8ccf4303d61d73f75e938c8d3a46c6f2",
+    "ecra/solver_reachability.py": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+    "ecra/stale_writeback.py": "246a9fbc0616a2674e3553fca1921a55d48f23b8ecfdcafb3df9297e41eac32a",
+    "ecra/storage.py": "36e4e4f0f90049b03e319770c3c54f81e5d954afd292b802ca41d6aeffc8a71a",
+    "ecra/supplemental.py": "2a8787eb89d120bed6329c1904cf4e4d956d9f62a7b66b67d7ba7acff6fcc048",
+    "ecra/target_set.py": "45cf1a746e26cb7eed47fbaad21c876a8f00489bf7eb1b57411f69bf6205c47b",
+    "ecra/tu_cache.py": "47bea2e867aa37983fd9543e5258edddce3b61a22a01aa63dbeaf2f1edefcd07",
+    "ecra/vectors.py": "f475ac221f91fcea4eefbaee4cf098ff3b9e454c10d924d234f65722be1f7ed2",
+    "ecra/workflow.py": "bd5f7da19311b6c498f872e8422e3b6836dbd9809273817d805eae57057915e2",
+    "ecra/workspace.py": "78ba3f06b6ae5f025fbe830d091585ce277da2baa772bf882efa1e8ff20ed297"
+  },
+  "full_unittest": {
+    "tests": 1068,
+    "seconds": 2228.199,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "log": "H:\\global_static_concurrency_design\\workspace-release2-complete-unittest.log"
+  },
+  "required_git_suites": {
+    "tests.test_git_diff": {
+      "tests": 49,
+      "seconds": 800.345,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "H:\\global_static_concurrency_design\\workspace-release2-complete-git.log"
+    },
+    "tests.test_git_diff_patch": {
+      "tests": 4,
+      "seconds": 23.524,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "H:\\global_static_concurrency_design\\workspace-release2-complete-patch.log"
+    },
+    "tests.test_relative_worktree_gitdir": {
+      "tests": 4,
+      "seconds": 4.819,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "H:\\global_static_concurrency_design\\workspace-release2-complete-gitdir.log"
+    }
+  },
+  "retained_integration": {
+    "tests": 20,
+    "failures": 0,
+    "errors": 0,
+    "evidence": "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code"
+  },
+  "real_stm32": {
+    "h743": "H:\\global_static_concurrency_design\\workspace\\acceptance\\h743-release2-code-acceptance.json",
+    "cdc": "H:\\global_static_concurrency_design\\workspace\\acceptance\\cdc-release2-code-acceptance.json",
+    "serial": "H:\\global_static_concurrency_design\\workspace\\acceptance\\release2-serial-result.json",
+    "h743_runs": 7,
+    "cdc_runs": 7,
+    "serial_results": "H:\\global_static_concurrency_design\\workspace\\projects\\serial_-_opencode_0449959e93b3e63a3025\\results",
+    "serial_original_unchanged": true,
+    "legacy_files": 3624,
+    "legacy_bytes": 2161350556
+  },
+  "portable": {
+    "command": [
+      "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\runtime\\python.exe",
+      "-B",
+      "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\validate_portable.py",
+      "--bundle",
+      "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable",
+      "--work",
+      "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\acceptance"
+    ],
+    "exit_code": 0,
+    "archive": "H:\\global_static_concurrency_design\\workspace\\acceptance\\ECRA-Portable-release2-verified.zip",
+    "archive_bytes": 522952176,
+    "extracted": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable",
+    "seconds": 425.0779999999795,
+    "acceptance": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\acceptance\\acceptance.json",
+    "archive_sha256": "29b4791357da89ad59544e95411309bf048886c58bcabf87ab0f7265d26fb715"
+  },
+  "portable_diff": "H:\\global_static_concurrency_design\\workspace\\acceptance\\Portable Release2 中文-acceptance.json",
+  "portable_patch": "H:\\global_static_concurrency_design\\workspace\\acceptance\\release2-portable-patch.json",
+  "cross_volume": "H:\\global_static_concurrency_design\\workspace\\acceptance\\release2-cross-volume-result.json",
+  "identity_switch": "H:\\global_static_concurrency_design\\workspace\\acceptance\\nonhead-same-name-release2\\acceptance.json",
+  "readonly": "H:\\global_static_concurrency_design\\workspace\\acceptance\\release2-readonly-result.json",
+  "performance": {
+    "complete": true,
+    "before_after_full_facts_equal": true,
+    "before_after_summary_equal": true,
+    "diff_cached_full_equal": true,
+    "legacy_preserved": true,
+    "ecat_sp": {
+      "symbol_id": "tu::a.c::c:a.c@g_msgSp",
+      "selected": true,
+      "tim4_review_evidence": true
+    },
+    "runs": [
+      {
+        "name": "before-full",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\baseline-engine\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "full"
+        ],
+        "exit_code": 2,
+        "seconds": 4.76500000001397,
+        "results": "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\.ecra",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 92428,
+        "facts_db_bytes": 286720,
+        "report_bytes": 197342,
+        "build_bytes": 101508,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\build"
+        ],
+        "worktrees": 1,
+        "managed_worktrees": 0,
+        "workspace_logical_bytes": 908267,
+        "history_logical_bytes": 0,
+        "cache": null,
+        "selected": null,
+        "baseline_summary_cache": null,
+        "workspace_digest": null,
+        "git_status": ""
+      },
+      {
+        "name": "before-full-repeat",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\baseline-engine\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "full"
+        ],
+        "exit_code": 2,
+        "seconds": 3.875,
+        "results": "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\.ecra",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 92428,
+        "facts_db_bytes": 286720,
+        "report_bytes": 197258,
+        "build_bytes": 92408,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\build"
+        ],
+        "worktrees": 1,
+        "managed_worktrees": 0,
+        "workspace_logical_bytes": 1664083,
+        "history_logical_bytes": 765435,
+        "cache": null,
+        "selected": null,
+        "baseline_summary_cache": null,
+        "workspace_digest": null,
+        "git_status": ""
+      },
+      {
+        "name": "before-diff-first",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\baseline-engine\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "diff"
+        ],
+        "exit_code": 2,
+        "seconds": 10.39100000000326,
+        "results": "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\.ecra",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 110797,
+        "facts_db_bytes": 307200,
+        "report_bytes": 245546,
+        "build_bytes": 196436,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\build",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\.ecra\\git_diff\\base-703a18edae185eb5ab35dca11dfa9b4a155aa91d\\build\\ecra"
+        ],
+        "worktrees": 2,
+        "managed_worktrees": 1,
+        "workspace_logical_bytes": 3638493,
+        "history_logical_bytes": 1530651,
+        "cache": {
+          "hits": 0,
+          "extracted": 1,
+          "corrupt": 0,
+          "total": 1
+        },
+        "selected": [
+          "c:@state::member::filtered",
+          "c:@state::member::raw",
+          "local::tu::a.c::c:a.c@F@Filter::history::0",
+          "tu::a.c::c:a.c@file_static",
+          "tu::a.c::c:a.c@g_msgSp"
+        ],
+        "baseline_summary_cache": {
+          "hit": false,
+          "corrupt": false
+        },
+        "workspace_digest": "20a00b92dc8a94e99bbe1672e12299ad13fb7e961bc038477c4ebd943c665541",
+        "git_status": ""
+      },
+      {
+        "name": "before-diff-cached",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\baseline-engine\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "diff"
+        ],
+        "exit_code": 2,
+        "seconds": 5.75,
+        "results": "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\.ecra",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 110797,
+        "facts_db_bytes": 307200,
+        "report_bytes": 245545,
+        "build_bytes": 196457,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\build",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\固件 ECAT SP\\.ecra\\git_diff\\base-703a18edae185eb5ab35dca11dfa9b4a155aa91d\\build\\ecra"
+        ],
+        "worktrees": 2,
+        "managed_worktrees": 1,
+        "workspace_logical_bytes": 4516262,
+        "history_logical_bytes": 2407802,
+        "cache": {
+          "hits": 1,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 1
+        },
+        "selected": [
+          "c:@state::member::filtered",
+          "c:@state::member::raw",
+          "local::tu::a.c::c:a.c@F@Filter::history::0",
+          "tu::a.c::c:a.c@file_static",
+          "tu::a.c::c:a.c@g_msgSp"
+        ],
+        "baseline_summary_cache": {
+          "hit": true,
+          "corrupt": false
+        },
+        "workspace_digest": "20a00b92dc8a94e99bbe1672e12299ad13fb7e961bc038477c4ebd943c665541",
+        "git_status": ""
+      },
+      {
+        "name": "after-full",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "full"
+        ],
+        "exit_code": 2,
+        "seconds": 11.01600000000326,
+        "results": "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\results",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 92598,
+        "facts_db_bytes": 286720,
+        "report_bytes": 201078,
+        "build_bytes": 102178,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\builds"
+        ],
+        "worktrees": 2,
+        "managed_worktrees": 0,
+        "workspace_logical_bytes": 5350479,
+        "history_logical_bytes": 3285195,
+        "cache": null,
+        "selected": null,
+        "baseline_summary_cache": null,
+        "workspace_digest": null,
+        "git_status": ""
+      },
+      {
+        "name": "after-full-repeat",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "full"
+        ],
+        "exit_code": 2,
+        "seconds": 7.0310000000172295,
+        "results": "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\results",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 92598,
+        "facts_db_bytes": 286720,
+        "report_bytes": 200994,
+        "build_bytes": 93078,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\builds"
+        ],
+        "worktrees": 2,
+        "managed_worktrees": 0,
+        "workspace_logical_bytes": 6123014,
+        "history_logical_bytes": 4067285,
+        "cache": null,
+        "selected": null,
+        "baseline_summary_cache": null,
+        "workspace_digest": null,
+        "git_status": ""
+      },
+      {
+        "name": "after-diff-first",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "diff"
+        ],
+        "exit_code": 2,
+        "seconds": 18.89100000000326,
+        "results": "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\results",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 111087,
+        "facts_db_bytes": 307200,
+        "report_bytes": 247007,
+        "build_bytes": 298704,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\builds"
+        ],
+        "worktrees": 4,
+        "managed_worktrees": 2,
+        "workspace_logical_bytes": 8226116,
+        "history_logical_bytes": 4849220,
+        "cache": {
+          "hits": 0,
+          "extracted": 1,
+          "corrupt": 0,
+          "total": 1
+        },
+        "selected": [
+          "c:@state::member::filtered",
+          "c:@state::member::raw",
+          "local::tu::a.c::c:a.c@F@Filter::history::0",
+          "tu::a.c::c:a.c@file_static",
+          "tu::a.c::c:a.c@g_msgSp"
+        ],
+        "baseline_summary_cache": {
+          "hit": false,
+          "corrupt": false
+        },
+        "workspace_digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "git_status": ""
+      },
+      {
+        "name": "after-diff-cached",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "diff"
+        ],
+        "exit_code": 2,
+        "seconds": 15.594000000040978,
+        "results": "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\results",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 111087,
+        "facts_db_bytes": 307200,
+        "report_bytes": 246923,
+        "build_bytes": 280212,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\builds"
+        ],
+        "worktrees": 4,
+        "managed_worktrees": 2,
+        "workspace_logical_bytes": 9896823,
+        "history_logical_bytes": 5741748,
+        "cache": {
+          "hits": 1,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 1
+        },
+        "selected": [
+          "c:@state::member::filtered",
+          "c:@state::member::raw",
+          "local::tu::a.c::c:a.c@F@Filter::history::0",
+          "tu::a.c::c:a.c@file_static",
+          "tu::a.c::c:a.c@g_msgSp"
+        ],
+        "baseline_summary_cache": {
+          "hit": false,
+          "corrupt": false
+        },
+        "workspace_digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "git_status": ""
+      },
+      {
+        "name": "after-head-full",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\run_ecra.py",
+          "--config",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\semantics.yaml",
+          "--no-review",
+          "--scan-mode",
+          "full"
+        ],
+        "exit_code": 2,
+        "seconds": 7.907000000006519,
+        "results": "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\results",
+        "variables": 6,
+        "findings": 2,
+        "facts_json_bytes": 92598,
+        "facts_db_bytes": 286720,
+        "report_bytes": 200994,
+        "build_bytes": 280232,
+        "build_roots": [
+          "H:\\global_static_concurrency_design\\workspace\\projects\\ecat_sp_c2eb2825257623c28641\\builds"
+        ],
+        "worktrees": 4,
+        "managed_worktrees": 2,
+        "workspace_logical_bytes": 10678099,
+        "history_logical_bytes": 6634731,
+        "cache": null,
+        "selected": null,
+        "baseline_summary_cache": null,
+        "workspace_digest": null,
+        "git_status": ""
+      }
+    ],
+    "hardware_test": false,
+    "model_review_executed": false
+  },
+  "cases": [
+    {
+      "id": "T01",
+      "scene": "首次扫描新固件工程",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\nonhead-same-name-release2\\acceptance.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T01_T02_T03_T10_T11_identity_and_isolation",
+          "-v"
+        ],
+        [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\validate_identity_nonhead_release2.py"
+        ]
+      ],
+      "expected": "自动创建项目独立结果目录",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T02",
+      "scene": "同一工程重复扫描",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\nonhead-same-name-release2\\acceptance.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T01_T02_T03_T10_T11_identity_and_isolation",
+          "-v"
+        ],
+        [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\validate_identity_nonhead_release2.py"
+        ]
+      ],
+      "expected": "身份和结果定位稳定",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T03",
+      "scene": "不同路径的同名工程",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\nonhead-same-name-release2\\acceptance.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T01_T02_T03_T10_T11_identity_and_isolation",
+          "-v"
+        ],
+        [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\validate_identity_nonhead_release2.py"
+        ]
+      ],
+      "expected": "完整身份不同且拒绝混用",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T04",
+      "scene": "未忽略 .ecra 的 Git 差异扫描",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace",
+          "-v"
+        ]
+      ],
+      "expected": "固定提交比较成功且原状态不变",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T05",
+      "scene": "旧 .ecra 安全迁移",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T05_T15_T16_T30_migration_bytes_and_interruption",
+          "-v"
+        ]
+      ],
+      "expected": "校验复制，旧文件字节不变",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T06",
+      "scene": "HEAD 提交比较排除未提交源码",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace",
+          "-v"
+        ]
+      ],
+      "expected": "分析固定 HEAD，终端和 HTML 提示覆盖边界",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T07",
+      "scene": "包含未提交修改",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs",
+          "-v"
+        ]
+      ],
+      "expected": "工作区真实字节纳入分析",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T08",
+      "scene": "暂存/未暂存/未跟踪混合输入",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs",
+          "-v"
+        ]
+      ],
+      "expected": "差异文件和独立应用 Patch 完整",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T09",
+      "scene": "非 HEAD 引用隔离分析",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\nonhead-same-name-release2\\acceptance.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace",
+          "-v"
+        ],
+        [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\validate_identity_nonhead_release2.py"
+        ]
+      ],
+      "expected": "使用指定提交的独立 worktree",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T04_T06_T09_committed_head_does_not_consume_dirty_workspace"
+      ],
+      "additional_evidence": "tests.test_git_diff.GitIntegrationTests.test_arbitrary_two_branches_preserve_workspace_and_saved_commands"
+    },
+    {
+      "id": "T10",
+      "scene": "仓库子目录工程",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T01_T02_T03_T10_T11_identity_and_isolation",
+          "-v"
+        ]
+      ],
+      "expected": "仓库根和工程相对路径正确",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T11",
+      "scene": "中文空格路径",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T01_T02_T03_T10_T11_identity_and_isolation",
+          "-v"
+        ]
+      ],
+      "expected": "Git/CMake/ARM GCC 使用真实目标",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T01_T02_T03_T10_T11_identity_and_isolation"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T12",
+      "scene": "双版本独立 CMake 构建",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ]
+      ],
+      "expected": "基准/当前构建目录和数据库分开",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T13",
+      "scene": "旧 output_dir 兼容",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T13_T14_configuration_compatibility\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T13_T14_configuration_compatibility",
+          "-v"
+        ]
+      ],
+      "expected": "默认 .ecra 迁移，显式兼容/冲突可诊断",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T13_T14_configuration_compatibility"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T14",
+      "scene": "自定义外部工作区",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T13_T14_configuration_compatibility\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T13_T14_configuration_compatibility",
+          "-v"
+        ]
+      ],
+      "expected": "custom_dir 下项目独立数据",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T13_T14_configuration_compatibility"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T15",
+      "scene": "旧确认状态/备注保留",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T05_T15_T16_T30_migration_bytes_and_interruption",
+          "-v"
+        ]
+      ],
+      "expected": "风险/无风险/未确认及时间备注按原字节保留，失效结论重核",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T16",
+      "scene": "迁移中断恢复",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T05_T15_T16_T30_migration_bytes_and_interruption",
+          "-v"
+        ]
+      ],
+      "expected": "故障后原件无损，pending 恢复并验证哈希",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T17",
+      "scene": "缓存输入/环境不一致",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T17_environment_and_compiler_bytes_invalidate_complete_cache\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ],
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T17_environment_and_compiler_bytes_invalidate_complete_cache",
+          "-v"
+        ]
+      ],
+      "expected": "环境/编译器/生成输入变化拒绝旧完整事实",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T17_environment_and_compiler_bytes_invalidate_complete_cache"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T18",
+      "scene": "扫描输入变化门禁",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs\\inputs.json",
+        "H:\\global_static_concurrency_design\\tests\\test_scan_stability.py"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs",
+          "-v"
+        ],
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-q"
+        ]
+      ],
+      "expected": "保留 assert_pin/输入快照/发布门禁",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs"
+      ],
+      "additional_evidence": "tests/test_scan_stability.py"
+    },
+    {
+      "id": "T19",
+      "scene": "不同工程并发",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_lock_and_identity_conflict\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_real_processes_different_projects_and_same_project_lock\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T19_T20_lock_and_identity_conflict",
+          "-v"
+        ],
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T19_T20_real_processes_different_projects_and_same_project_lock",
+          "-v"
+        ]
+      ],
+      "expected": "实际多进程互不覆盖",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_lock_and_identity_conflict",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_real_processes_different_projects_and_same_project_lock"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T20",
+      "scene": "同工程项目锁",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_lock_and_identity_conflict\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_real_processes_different_projects_and_same_project_lock\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T19_T20_lock_and_identity_conflict",
+          "-v"
+        ],
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T19_T20_real_processes_different_projects_and_same_project_lock",
+          "-v"
+        ]
+      ],
+      "expected": "第二个同工程进程拒绝并指出锁路径",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_lock_and_identity_conflict",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T19_T20_real_processes_different_projects_and_same_project_lock"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T21",
+      "scene": "report/status/review 路径统一",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ]
+      ],
+      "expected": "保存命令读取同一 facts，读写共享锁",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T22",
+      "scene": "源码/Patch/报告引用",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ]
+      ],
+      "expected": "实际 worktree、Patch 和事实引用可定位",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume"
+      ],
+      "additional_evidence": "tests/test_html_evidence.py"
+    },
+    {
+      "id": "T23",
+      "scene": "Portable 移盘运行",
+      "input_evidence": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\acceptance\\acceptance.json",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\FILES.sha256.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\release2-cross-volume-result.json"
+      ],
+      "command": [
+        [
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\runtime\\python.exe",
+          "-B",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\validate_portable.py",
+          "--bundle",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable",
+          "--work",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\acceptance"
+        ],
+        [
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\runtime\\python.exe",
+          "-B",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA FINAL moved 中文 b84qlij8\\ECRA-Portable\\run_ecra.py",
+          "--config",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA cross volume 中文 5iuq8ddg\\semantics.json",
+          "--scan-mode",
+          "diff",
+          "--no-review"
+        ]
+      ],
+      "expected": "C 盘中文路径解压包不依赖 H 盘开发运行时",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [],
+      "additional_evidence": "Portable ZIP + bundled Git target/patch acceptance"
+    },
+    {
+      "id": "T24",
+      "scene": "真实只读工作区",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T24_readonly_workspace_diagnostic\\inputs.json",
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\readonly-release2.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T24_readonly_workspace_diagnostic",
+          "-v"
+        ],
+        [
+          "powershell",
+          "-File",
+          "H:\\global_static_concurrency_design\\workspace\\acceptance\\check_readonly_release2.ps1"
+        ]
+      ],
+      "expected": "拒写返回 3，报出路径与 custom_dir 修复方法",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T24_readonly_workspace_diagnostic"
+      ],
+      "additional_evidence": "workspace/acceptance/check_readonly_release2.ps1"
+    },
+    {
+      "id": "T25",
+      "scene": "跟踪的生成输入不被过滤",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs",
+          "-v"
+        ]
+      ],
+      "expected": "跟踪输入继续进入工作区摘要",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T07_T08_T18_T25_effective_workspace_and_tracked_generated_inputs"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T26",
+      "scene": "生成头文件/源码归属及闭包",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ]
+      ],
+      "expected": "真实生成物参与 Clang，改变后快照失效",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T27",
+      "scene": "Junction 写入边界",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T27_junction_boundary\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T27_junction_boundary",
+          "-v"
+        ]
+      ],
+      "expected": "写入 Junction 拒绝，目标数据未修改",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T27_junction_boundary"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T28",
+      "scene": "重复扫描/缓存一致性",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ]
+      ],
+      "expected": "完整事实/分类/影响相等，缓存有效才复用，不重复增加工作树",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume"
+      ],
+      "additional_evidence": null
+    },
+    {
+      "id": "T29",
+      "scene": "原全量分析回归",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume",
+          "-v"
+        ]
+      ],
+      "expected": "完整测试和真实 STM32 独立全量对照",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume"
+      ],
+      "additional_evidence": "Full unittest + H743/CMSIS + real STM32 CDC"
+    },
+    {
+      "id": "T30",
+      "scene": "OpenCode 协议及历史确认归属",
+      "input_evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption\\inputs.json"
+      ],
+      "command": [
+        [
+          "py",
+          "-3.10",
+          "-m",
+          "unittest",
+          "tests.test_workspace.WorkspaceTests.test_T05_T15_T16_T30_migration_bytes_and_interruption",
+          "-v"
+        ]
+      ],
+      "expected": "原协议/失败重试/收据/保存命令断言通过；历史记录保留，实际模型调用单独列为未执行",
+      "actual": "PASSED_IN_RECORDED_SCOPE",
+      "evidence": [
+        "H:\\global_static_concurrency_design\\workspace\\acceptance\\retained-release2-code\\test_T05_T15_T16_T30_migration_bytes_and_interruption"
+      ],
+      "additional_evidence": "Full review/integrity regression + byte-preserving migration; live provider excluded"
+    }
+  ],
+  "limitations": [
+    "用户 D: 盘 HX_MFX_PRJ 工程在当前机器不可用，未冒充该工程验收。",
+    "未连接硬件，不证明中断硬实时行为。",
+    "未执行真实 OpenCode/远程模型请求；相关 live 测试按原条件跳过。",
+    "当前分支无独立 HTML 人工确认持久化接口；旧 HTML/review 文件按字节保留，无法读取浏览器外部私有存储。",
+    "性能为本机小型同源 ARM 夹具实测，不推断大型工程耗时；未自动清理任何历史。"
+  ],
+  "performance_evidence": "H:\\global_static_concurrency_design\\workspace\\acceptance\\p2d\\acceptance.json",
+  "performance_script_sha256": "13022ea0a24b6b0e8442d50f7f2bbb002e4cec74d5118da777ea91488b06329b"
+}

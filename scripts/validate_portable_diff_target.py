@@ -55,6 +55,7 @@ def main():
     cfg = dict(version=1, project=dict(root=str(root), chip='STM32H743XI', core='Cortex-M7',
                                      native_word_bits=32, nvic_priority_bits=4),
         analysis=dict(compile_database='auto', include_dirs=[], exclude_dirs=[], exclude_files=[],
+            output=dict(location='custom', custom_dir=str(root.with_name(root.name+'-runtime'))),
             auto_system_includes=True, build_closure_only=True, extraction_workers=1,
             cmake=dict(build_dir='build/ecra', generator='Ninja', target='firmware.elf', build=True,
                        args=['-DCMAKE_NINJA_FORCE_RESPONSE_FILE=ON']),
@@ -76,7 +77,11 @@ def main():
             p = subprocess.run(argv, cwd=root, env=env, stdout=stream, stderr=subprocess.STDOUT)
         if p.returncode not in (0, 1, 2):
             raise RuntimeError('Portable 扫描失败：'+str(logs/(name+'.log')))
-        out = root/'.ecra'
+        resolve = ('from pathlib import Path;from ecra.config import load_config;'
+                   'from ecra.workflow import output_path;import sys;'
+                   'print(output_path(Path(sys.argv[1]),load_config(Path(sys.argv[1]),sys.argv[2])[0]))')
+        out = Path(subprocess.check_output([str(python), '-c', resolve, str(root), str(config)],
+                   cwd=bundle, env=env).decode('utf-8').strip())
         validity = read_json(out/'result_validity.json')
         facts, report = read_json(out/'facts.json'), read_json(out/'reports/global_static_concurrency.json')
         delta = report.get('git_diff', {})

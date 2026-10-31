@@ -47,7 +47,8 @@ def combine(root, inputs, regions, out, elf_paths=None):
     units = []
     for variant, config_path in inputs:
         source_cfg, _ = load_config(root, config_path)
-        folder = root / source_cfg['analysis']['output_dir']
+        from .workflow import output_path
+        folder = output_path(root, source_cfg)
         facts = read_json(folder / 'facts.json')
         elf = root / (elf_paths or {}).get(variant, source_cfg['project'].get('firmware_elf', ''))
         linked = elf_objects(elf)

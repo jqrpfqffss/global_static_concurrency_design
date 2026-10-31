@@ -44,7 +44,7 @@ class Fixture(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", **analysis),
+        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", **analysis),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]),
                                         dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -68,7 +68,7 @@ class Fixture(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", **analysis),
+        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", **analysis),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]),
                                         dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -142,7 +142,7 @@ class TestInactiveBranches(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -163,7 +163,7 @@ class TestInactiveBranches(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-I.", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -188,7 +188,7 @@ class TestSupplementalIsolation(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -209,7 +209,7 @@ class TestSupplementalIsolation(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))

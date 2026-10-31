@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .common import execute, read_json, relative, write_json
 from .scope import AuditScope
+from .workspace import build_path as workspace_build_path, results_path, context, no_links
 from .portable import (bundle_root, tool_path, tool_environment, check_cache, read_cache,
                        audit_executable, probe_tool, build_path)
 
@@ -19,15 +20,16 @@ def _is_link(path):
         bool(getattr(path.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT))
 
 
-def _validated_build_directory(root, requested):
+def _validated_build_directory(root, requested, boundary=None):
     for item in (requested, *requested.parents):
         if _is_link(item):
             raise ValueError(f'拒绝使用含链接的构建路径: {item}')
         if item == root:
             break
     build = requested.resolve()
-    if build == root.resolve() or not build.is_relative_to(root.resolve()):
-        raise ValueError('analysis.cmake.build_dir 必须是工程根目录下的独立构建目录')
+    boundary = (boundary or root).resolve()
+    if build == boundary or not build.is_relative_to(boundary):
+        raise ValueError(f'analysis.cmake.build_dir 必须位于独立且归属明确的构建边界内: {boundary}')
     return build
 
 
@@ -45,12 +47,13 @@ def cmake_build_directory(root, analysis):
     Keep the saved analysis configuration unchanged for review/resume digests.
     """
     settings = analysis['cmake']
-    configured = _validated_build_directory(root, root / settings.get('build_dir', 'build/ecra'))
-    out = (root / analysis.get('output_dir', '.ecra')).resolve()
+    boundary = root if settings.get('location') == 'project' else Path(context(root, analysis).build_root)
+    configured = _validated_build_directory(root, workspace_build_path(root, analysis), boundary)
+    out = results_path(root, analysis)
     build = configured
     suffix = 0
     while True:
-        build = _validated_build_directory(root, build)
+        build = _validated_build_directory(root, build, boundary)
         if out == build or out.is_relative_to(build):
             raise ValueError(f'构建目录不可包含 ECRA 输出目录: {build} / {out}')
         if (not settings.get('clean_before_configure', False) or not build.exists() or
@@ -93,6 +96,8 @@ def configure_cmake(root, analysis, progress, build_firmware):
     if target and settings.get('generator', 'Ninja') != 'Ninja':
         raise ValueError('analysis.cmake.target 当前需要 Ninja Generator')
     build = cmake_build_directory(root, analysis)
+    if settings.get('location', 'workspace') == 'workspace' and build.exists() and any(build.iterdir()) and not _owns_build_directory(build, root):
+        raise ValueError(f'外置构建目录没有当前源码所有权，拒绝接管: {build}')
     configured = (root / settings.get('build_dir', 'build/ecra')).resolve()
     requested = analysis.get('compile_database', 'auto')
     # Explicit paths referring to the configured tree remain valid after isolation;
@@ -103,7 +108,7 @@ def configure_cmake(root, analysis, progress, build_firmware):
     if build != configured:
         progress(f'保留非 ECRA 专用构建目录: {configured}；自动使用独立构建目录: {build}')
     database = build / 'compile_commands.json'
-    out = (root / analysis.get('output_dir', '.ecra')).resolve()
+    out = results_path(root, analysis)
     out.mkdir(parents=True, exist_ok=True)
     generator = settings.get('generator', 'Ninja')
     if generator not in {'Ninja', 'MinGW Makefiles', 'Unix Makefiles'}:
@@ -123,7 +128,7 @@ def configure_cmake(root, analysis, progress, build_firmware):
             if not probe.get('matching', probe['running']):
                 raise ValueError(f'Portable 工具版本不匹配: {probe}')
     source_path = build_path(root) if bundle_root() else str(root)
-    build_command_path = build_path(build) if bundle_root() else str(build)
+    build_command_path = build_path(build, prefer_junction=True) if bundle_root() else str(build)
     if source_path != str(root) or build_command_path != str(build):
         progress(f'GNU Make 路径兼容别名（同一目录）: {root} -> {source_path}; {build} -> {build_command_path}')
     command = [cmake, '-S', source_path, '-B', build_command_path, '-G', generator]
@@ -504,31 +509,12 @@ def prepare(root, cfg, progress=None, build_firmware=True):
             raise ValueError("发现多个编译数据库，请显式设置 analysis.compile_database: " + ", ".join(map(str, candidates)))
     cmake_log = None
     if not candidates and a.get("auto_configure_cmake", False):
-        if bundle_root():
-            legacy = dict(a, cmake=dict(build_dir=a.get('cmake_build_dir', 'build/ecra'),
-                generator=a.get('cmake_generator', 'Ninja'), args=a.get('cmake_args', []), build=False))
-            if a.get('cmake_toolchain_file'):
-                legacy['cmake']['toolchain_file'] = a['cmake_toolchain_file']
-            database, cmake_steps = configure_cmake(root, legacy, progress, False)
-            candidates = [database]
-    if not candidates and a.get("auto_configure_cmake", False):
-        build = root / a.get("cmake_build_dir", "build")
-        generated = (build / 'compile_commands.json').resolve()
-        if requested is not None and requested != generated:
-            raise ValueError(f"analysis.compile_database 与 cmake_build_dir 不匹配：CMake 将生成 {generated}，配置却指定 {requested}")
-        cmd = ["cmake", "-S", str(root), "-B", str(build), "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"]
-        if a.get("cmake_generator"):
-            cmd += ["-G", a["cmake_generator"]]
-        if a.get("cmake_toolchain_file"):
-            cmd.append("-DCMAKE_TOOLCHAIN_FILE=" + str((root / a["cmake_toolchain_file"]).resolve()))
-        cmd += a.get("cmake_args", [])
-        proc = execute(cmd, cwd=root, timeout=300)
-        cmake_log = proc.stdout + proc.stderr
-        if proc.returncode:
-            raise ValueError("CMake 配置失败:\n" + cmake_log[-6000:])
-        if not generated.is_file():
-            raise ValueError(f"CMake 配置成功但未生成 {generated}；请使用 Ninja 或 Makefiles 生成器并启用 CMAKE_EXPORT_COMPILE_COMMANDS")
-        candidates = [generated]
+        legacy = dict(a, cmake=dict(build_dir=a.get('cmake_build_dir', 'build/ecra'),
+            generator=a.get('cmake_generator', 'Ninja'), args=a.get('cmake_args', []), build=False))
+        if a.get('cmake_toolchain_file'):
+            legacy['cmake']['toolchain_file'] = a['cmake_toolchain_file']
+        database, cmake_steps = configure_cmake(root, legacy, progress, False)
+        candidates = [database]
     if not candidates:
         raise ValueError("没有 compile_commands.json；导出真实固件编译数据库，或开启 auto_configure_cmake")
     from .input_snapshot import read_consumed_text
@@ -550,6 +536,11 @@ def prepare(root, cfg, progress=None, build_firmware=True):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
         unit = normalize(entry, root, a, consumed_inputs)
+        if cmake_steps:
+            # The real database is produced by this version's managed build.
+            # Canonical comparison may normalize this proven build root only;
+            # extraction and cache keys retain the actual paths and bytes.
+            unit['ecra_build_root'] = str(candidates[0].parent.resolve())
         if bundle_root():
             raw = unit['original_arguments']
             index = 1 if Path(raw[0]).stem.lower() in {'ccache', 'sccache'} else 0
@@ -596,7 +587,7 @@ def prepare(root, cfg, progress=None, build_firmware=True):
         raise ValueError("所有编译单元均被排除")
     # Audit files outside the database instead of silently assuming they are unused.
     sources, excluded_sources = [], []
-    output = (root / a.get("output_dir", ".ecra")).resolve()
+    output = results_path(root, a)
     for base, dirs, files in (row for tree in scope.walk_roots() for row in os.walk(tree)):
         dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "node_modules"}
                    and (Path(base) / d).resolve() != output]

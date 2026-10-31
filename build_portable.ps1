@@ -55,6 +55,8 @@ try {
     }
     $null = Assert-Asset 'make' $makeBase
     New-Item -ItemType Directory -Path $bundle | Out-Null
+    # Package only the explicit source/config/tool allowlist below. Never copy
+    # workspace, project histories, firmware worktrees or user review records.
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run_ecra.py') -Destination $bundle
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements.txt') -Destination $bundle
     $packageOut = Join-Path $bundle 'ecra'
@@ -233,6 +235,9 @@ exit /b %ERRORLEVEL%
     $null = Invoke-Checked 'Inventory all deliverable files' $python @('-B',(Join-Path $bundle 'validate_portable.py'),'--bundle',$bundle,'--write-hashes')
     $null = Invoke-Checked 'Uncompressed isolated acceptance' $python @('-B',(Join-Path $bundle 'validate_portable.py'),
         '--bundle',$bundle,'--work',(Join-Path $evidence 'uncompressed'))
+    if (Test-Path -LiteralPath (Join-Path $bundle 'workspace')) {
+        throw 'Acceptance created runtime data inside the distribution. Preserve it as evidence and rebuild in a new OutputDir; never package or automatically delete it.'
+    }
     if (-not $SkipZip) {
         $candidate = Join-Path $outputRoot 'ECRA-Portable.candidate.zip'
         if (Test-Path -LiteralPath $candidate) { throw "Previous failed candidate exists: $candidate" }

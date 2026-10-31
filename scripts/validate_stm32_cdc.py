@@ -35,6 +35,12 @@ SUBMODULES = ['Drivers/CMSIS/Device/ST/STM32F4xx', 'Drivers/STM32F4xx_HAL_Driver
               'Drivers/BSP/Components/stmpe811']
 
 
+def result_path(root):
+    from ecra.config import load_config
+    from ecra.workflow import output_path
+    return output_path(root, load_config(root, root/'config/semantics.yaml')[0])
+
+
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -232,7 +238,7 @@ def scan(base,cases,cache_only=False):
                           sha(Path(relocate(p,origin,root)))==h for p,h in old['inputs'].items())
                 valid=valid and old['response_sha256']==sha(body)
                 if valid:return unit['tu_id'],(meta,body,True)
-            existing=root/'.ecra/workers'/(unit['tu_id']+'.response.json')
+            existing=result_path(root)/'workers'/(unit['tu_id']+'.response.json')
             existing_request=existing.with_name(unit['tu_id']+'.request.json')
             if existing.exists() and existing_request.exists() and read_json(existing_request)==request:
                 part=read_json(existing)
@@ -270,7 +276,7 @@ def scan(base,cases,cache_only=False):
             # analyze, report, queue and scan checkpoint all run normally.
             code=run(root,str(root/'config/semantics.yaml'),no_review=True)
         if code not in (0,1,2):raise ValueError('Unexpected scanner exit')
-        facts=read_json(root/'.ecra/facts.json')
+        facts=read_json(result_path(root)/'facts.json')
         write_json(root/'scan-evidence.json',dict(variables=len(facts['variables']),
             extraction_cache=stats,
             units=len(facts.get('translation_units',[])),parse_statuses={
@@ -294,10 +300,10 @@ def review_one(base,case,args):
     if args.refresh_library:
         shutil.copy2(ROOT/'config/concurrency_cases.md',root/'config/concurrency_cases.md')
     cfg,_=load_config(root,root/'config/semantics.yaml')
-    cfg['review'].update(enabled=True,model=args.model,workers=1,facts_path=str(root/'.ecra/facts.json'),
+    cfg['review'].update(enabled=True,model=args.model,workers=1,facts_path=str(result_path(root)/'facts.json'),
                          timeout_seconds=args.timeout)
-    facts=read_json(root/'.ecra/facts.json')
-    full=read_json(root/'.ecra/reports/global_static_concurrency.json')
+    facts=read_json(result_path(root)/'facts.json')
+    full=read_json(result_path(root)/'reports/global_static_concurrency.json')
     selected=[]
     target_by_id={}
     for name in case['targets']:
@@ -311,7 +317,7 @@ def review_one(base,case,args):
     report=copy.deepcopy(full)
     report['findings']=selected
     report.pop('review_safe_samples',None)
-    out=root/'.ecra'/args.round
+    out=result_path(root)/args.round
     start=time.monotonic()
     # Explicitly audit the chosen SAFE samples too. Ordinary `review` mode
     # intentionally selects only SUSPECT/UNKNOWN; the full scan stays intact.
@@ -367,7 +373,7 @@ def export(base):
         rows=[r for f in sorted(folder.glob('p*.json')) for r in read_json(f)]
         for row in rows:
             root=base/'projects'/row['case']
-            review=root/'.ecra'/folder.name/'review'
+            review=result_path(root)/folder.name/'review'
             queue=read_json(review/'queue.json')
             receipt=next(r for r in queue if (r.get('answer') or {}).get('finding_id')==row.get('answer',{}).get('finding_id')) if row.get('answer') else None
             if receipt:

@@ -12,7 +12,7 @@ import subprocess
 
 from .common import digest, read_json, write_json
 
-SUMMARY_SCHEMA = 6
+SUMMARY_SCHEMA = 7
 
 DEFAULTS = dict(enabled=False, base_ref='origin/master', current_ref='HEAD',
                 include_uncommitted=False, cache_enabled=True, verify_against_full=False)
@@ -46,7 +46,7 @@ def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=
     if bundle and not Path(exe).is_file():
         raise ValueError('Portable 差异模式缺少离线 Git：请将完整 MinGit 解压到 tools/git（包含 cmd/git.exe）')
     try:
-        proc = subprocess.run([exe, '-C', str(root), *args], stdout=_stdout,
+        proc = subprocess.run([exe, '-c', 'core.longpaths=true', '-C', str(root), *args], stdout=_stdout,
                               stderr=subprocess.PIPE, timeout=300)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError(f'Git 无法运行，差异扫描未完成：{exc}') from exc
@@ -116,19 +116,21 @@ def changes(root, base, current=None):
 def pin(root, cfg):
     options = cfg['analysis']['git_diff']
     repo = Path(text(root, 'rev-parse', '--show-toplevel')).resolve()
+    from .workspace import context, canonical
+    if canonical(repo) != canonical(context(root, cfg['analysis']).repository_root):
+        raise ValueError('Git 实际仓库根目录与项目身份边界不一致；请检查 .git/core.worktree 配置后重新扫描')
     head = text(root, 'rev-parse', '--verify', options['current_ref'] + '^{commit}')
     base = text(root, 'rev-parse', '--verify', options['base_ref'] + '^{commit}')
-    workspace_mode = options['current_ref'] == 'HEAD'
-    dirty = git(repo, 'status', '--porcelain=v1', '-z', '--untracked-files=all') if workspace_mode else b''
-    # Build/report outputs must be ignored by the firmware repository. Refuse
-    # dirty tracked/untracked inputs rather than accidentally analysing bytes
-    # other than the pinned HEAD when workspace inclusion is disabled.
-    if workspace_mode and dirty and not options['include_uncommitted']:
-        raise ValueError('固件工作区存在未提交文件；请提交、忽略构建/报告输出，或启用 include_uncommitted')
+    workspace_mode = options['include_uncommitted']
+    from .workspace import generated_untracked
+    generated = generated_untracked(root, cfg) if workspace_mode else set()
+    tracked = {p.decode('utf-8') for p in git(repo, 'ls-files', '--cached', '-z').split(b'\0') if p} if workspace_mode else set()
+    generated -= tracked
     files = changes(repo, base, None if options['include_uncommitted'] else head)
     if options['include_uncommitted']:
         untracked = git(repo, 'ls-files', '--others', '--exclude-standard', '-z').split(b'\0')
-        files.extend(dict(status='?', old_path=None, new_path=p.decode('utf-8')) for p in untracked if p)
+        files.extend(dict(status='?', old_path=None, new_path=p.decode('utf-8')) for p in untracked
+                     if p and p.decode('utf-8') not in generated)
     for change in files:
         change['comment_only'] = False
         if change['status'].startswith('M') and Path(change['new_path']).suffix.lower() in ('.h', '.hh', '.hpp', '.hxx', '.inc'):
@@ -143,7 +145,7 @@ def pin(root, cfg):
     paths = git(repo, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0') if workspace_mode else []
     from .workflow import file_digest
     workspace = {p.decode('utf-8'): file_digest(repo/p.decode('utf-8')) if (repo/p.decode('utf-8')).is_file() else None
-                 for p in paths if p} if workspace_mode else None
+                 for p in paths if p and p.decode('utf-8') not in generated} if workspace_mode else None
     return dict(schema=2, repository_root=str(repo), project_subdir=Path(root).resolve().relative_to(repo).as_posix(),
         current_ref=options['current_ref'], base_ref=options['base_ref'], head_sha=head, base_sha=base,
         include_uncommitted=options['include_uncommitted'], workspace_digest=digest(workspace), files=files)
@@ -178,10 +180,7 @@ def assert_pin(root, cfg, expected):
             raise ValueError('基准事实或本轮代码差异已变化/损坏；请重新扫描')
     if expected.get('base_source_root'):
         base_root = Path(expected['base_source_root'])
-        changed = git(base_root, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')
-        allowed = expected.get('base_database_path')
-        if any(p and p.decode('utf-8') != allowed for p in changed):
-            raise ValueError('隔离基准源码已变化；本轮差异证据失效')
+        check_isolated_tree(base_root, expected['base_sha'], expected.get('base_build_path'))
     if expected.get('current_source_root'):
         check_current_tree(expected)
 
@@ -189,6 +188,11 @@ def assert_pin(root, cfg, expected):
 def canonical_id(value, renames):
     if not isinstance(value, str):
         return value
+    for actual in getattr(renames, 'build_roots', ()):
+        if value == actual or value.startswith(actual + '/'):
+            value = '<构建>' + value[len(actual):]
+        for prefix in ('tu::', 'local::'):
+            value = value.replace(prefix + actual + '/', prefix + '<构建>/')
     for old, new in renames.items():
         value = value.replace('tu::' + old + '::', 'tu::' + new + '::')
         # Clang file static USRs contain a basename as well as the TU identity.
@@ -213,7 +217,7 @@ POSITIONAL = frozenset(('line', 'column', 'offset', 'end_line', 'end_offset', 'd
 
 
 def normalize(value, renames=None):
-    renames = renames or {}
+    renames = {} if renames is None else renames
     if isinstance(value, dict):
         result = {k: normalize(v, renames) for k, v in value.items() if k not in POSITIONAL}
         for key in ('type', 'canonical_type', 'type_spelling'):
@@ -270,6 +274,7 @@ def build_arguments(unit, root):
     compiler driver spelling and macro/literal values retain their semantics.
     """
     root = Path(root).resolve() if root else None
+    build_root = Path(unit['ecra_build_root']).resolve() if unit.get('ecra_build_root') else None
     result = []
     prefixes = ('-isystem', '-iquote', '-idirafter', '-include', '-imacros',
                 '-isysroot', '--sysroot=', '-I', '-L', '@', '')
@@ -285,7 +290,9 @@ def build_arguments(unit, root):
                     continue
                 try:
                     actual = path.resolve()
-                    if actual.is_relative_to(root):
+                    if build_root is not None and actual.is_relative_to(build_root):
+                        normalized = prefix + '<构建>/' + actual.relative_to(build_root).as_posix()
+                    elif actual.is_relative_to(root):
                         normalized = prefix + '<工程>/' + actual.relative_to(root).as_posix()
                     else:
                         normalized = value  # external aliases are not project relocation proofs
@@ -330,7 +337,19 @@ def variable_change_summary(variable, contexts, renames):
 
 
 def summarize(facts, report, renames=None):
-    renames = renames or {}
+    class BuildRenames(dict):
+        pass
+    renames = BuildRenames(renames or {})
+    renames.build_roots = sorted({Path(u['ecra_build_root']).resolve().as_posix()
+        for u in facts.get('translation_units', []) if u.get('ecra_build_root')})
+    # CFG references hash [translation_unit, function_id]. Relocating a
+    # generated TU changes that derived reference, not its mask/protection
+    # evidence. Rebuild only references whose proven build path was mapped.
+    for function in facts['functions']:
+        source, fid = function.get('translation_unit'), function['function_id']
+        canonical = [canonical_id(source, renames), canonical_id(fid, renames)]
+        if source and canonical != [source, fid]:
+            renames['CFG-' + digest([source, fid])[:20]] = 'CFG-' + digest(canonical)[:20]
     cid = lambda value: canonical_id(value, renames)
     functions = {cid(f['function_id']): dict(digest=digest([f.get('semantic_digest'), f.get('consumed_macros_digest')]),
                   return_type_kind=f.get('return_type_kind'), name=f['name'],
@@ -439,9 +458,9 @@ def summarize(facts, report, renames=None):
         macros={cid(u['source_file']): u.get('semantic_macros_digest') for u in facts.get('translation_units', [])},
         dependencies=sorted({canonical_id(str(Path(p).resolve().relative_to(Path(report['coverage']['project_root']).resolve())).replace('\\', '/'), renames)
             if report.get('coverage', {}).get('project_root') and Path(p).resolve().is_relative_to(Path(report['coverage']['project_root']).resolve())
-            else str(p) for u in facts.get('translation_units', []) for p in u.get('includes', [])}),
+            else cid(str(p)) for u in facts.get('translation_units', []) for p in u.get('includes', [])}),
         semantics=global_semantics, unknowns=row_hashes(facts.get('unknowns', []), renames),
-        build=sorted(digest([u.get('source_file'), build_arguments(u, report.get('coverage', {}).get('project_root'))])
+        build=sorted(digest([cid(u.get('source_file')), build_arguments(u, report.get('coverage', {}).get('project_root'))])
                      for u in facts.get('translation_units', [])),
         analysis_status=report['analysis_status'])
 
@@ -782,6 +801,8 @@ def relocate_paths(value, old_root, new_root):
 def relocate_config(cfg, old_root, new_root):
     """Use the same analysis settings with version-local absolute paths."""
     result = relocate_paths(cfg, old_root, new_root)
+    if '_workspace' in cfg['analysis']:
+        result['analysis']['_workspace'] = copy.deepcopy(cfg['analysis']['_workspace'])
     result['project']['root'] = str(new_root)
     return result
 
@@ -796,27 +817,51 @@ def current_context(root, cfg, pinned):
         raise ValueError('分支比较检查点不属于当前工程；请重新扫描')
     if cfg.get('project', {}).get('root') == str(source):
         return source, cfg
-    output = (origin/cfg['analysis'].get('output_dir', '.ecra')).resolve()
+    from .workspace import context
+    workspace = context(origin, cfg['analysis'])
     current_cfg = relocate_config(cfg, origin, source)
-    current_cfg['analysis']['output_dir'] = str(output)
+    workspace.bind(current_cfg['analysis'])
+    if pinned.get('current_database_path'):
+        current_cfg['analysis']['compile_database'] = pinned['current_database_path']
     return source, current_cfg
 
 
+def check_isolated_tree(source, sha, build=None):
+    source = Path(source)
+    if text(source, 'rev-parse', 'HEAD') != sha:
+        raise ValueError('隔离工作树提交身份已变化；请重新扫描')
+    if any(git(source, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')):
+        raise ValueError(f'隔离源码已变化，拒绝使用污染的事实: {source}')
+    repo = Path(text(source, 'rev-parse', '--show-toplevel'))
+    from .compilation import _owns_build_directory
+    owned = Path(build).resolve() if build and _owns_build_directory(Path(build), source) else None
+    # --ignored also catches source-directory generators hidden by .gitignore.
+    # Only a specifically owned, explicitly selected build may be admitted.
+    paths = git(source, 'ls-files', '--full-name', '--others', '--exclude-standard', '-z').split(b'\0')
+    paths += git(source, 'ls-files', '--full-name', '--others', '--ignored', '--exclude-standard', '-z').split(b'\0')
+    for path in paths:
+        if not path:
+            continue
+        file = (repo/path.decode('utf-8')).resolve()
+        if owned is None or not file.is_relative_to(owned):
+            raise ValueError(f'隔离源码目录出现构建写入或未知文件: {file}；'
+                             '请将生成文件放入 CMAKE_BINARY_DIR；源码内构建可显式设置 analysis.cmake.location: project，'
+                             '但不得改写已提交文件或构建目录外源码。')
+
+
 def check_current_tree(pinned):
-    source = Path(pinned['current_source_root'])
-    if text(source, 'rev-parse', 'HEAD') != pinned['head_sha']:
-        raise ValueError('隔离当前版本工作树身份已变化；请重新扫描')
-    modified = git(source, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')
-    allowed = pinned.get('current_database_path')
-    if any(path and path.decode('utf-8') != allowed for path in modified):
-        raise ValueError('隔离当前版本源码已变化；拒绝使用污染的事实')
+    check_isolated_tree(pinned['current_source_root'], pinned['head_sha'], pinned.get('current_build_path'))
 
 
 def prepare_current(root, out, cfg, pinned, progress):
     """Materialize an arbitrary comparison ref without switching the user's HEAD."""
-    if pinned['current_ref'] == 'HEAD':
+    if pinned['include_uncommitted']:
         return root, cfg
-    directory = out/'git_diff'/('current-' + pinned['head_sha'])
+    from .workspace import context, no_links
+    workspace = context(root, cfg['analysis'])
+    # Keep Windows Git's administrative paths bounded. The complete SHA is
+    # always checked before reuse; a shortened-name collision is rejected.
+    directory = no_links(Path(workspace.worktree_root)/('current-' + pinned['head_sha'][:16]))
     if not directory.exists():
         directory.parent.mkdir(parents=True, exist_ok=True)
         git(root, 'worktree', 'add', '--detach', str(directory), pinned['head_sha'])
@@ -824,20 +869,25 @@ def prepare_current(root, out, cfg, pinned, progress):
     source = directory/pinned['project_subdir']
     pinned['current_source_root'] = str(source)
     source, current_cfg = current_context(root, cfg, pinned)
+    if 'cmake' in current_cfg['analysis']:
+        from .compilation import cmake_build_directory
+        pinned['current_build_path'] = str(cmake_build_directory(source, current_cfg['analysis']))
     allowed = None
     if 'cmake' not in current_cfg['analysis']:
         db = current_cfg['analysis'].get('compile_database', 'auto')
         if db == 'auto':
             raise ValueError('任意分支比较的非 CMake 工程必须显式配置版本内的 compile_database')
-        database = source/db
-        allowed = database.relative_to(directory).as_posix()
+        relative_db = (source/db).relative_to(directory).as_posix()
+        database = Path(workspace.git_diff_root)/'artifacts'/('current-' + pinned['head_sha'])/'compile_commands.json'
+        allowed = str(database)
     pinned['current_database_path'] = allowed
     check_current_tree(pinned)
     if allowed:
         import json
-        entries = json.loads(git(root, 'show', pinned['head_sha'] + ':' + allowed))
+        entries = json.loads(git(root, 'show', pinned['head_sha'] + ':' + relative_db))
         entries = relocate_paths(entries, root, source)
         write_json(database, entries)
+        current_cfg['analysis']['compile_database'] = str(database)
     progress('当前版本独立工作树：' + pinned['current_ref'] + '（' + pinned['head_sha'] + '）')
     return source, current_cfg
 
@@ -847,7 +897,9 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     from .cli import run
     from .workflow import read_saved_json, file_digest, checked_scan, engine_digest, clean_report, saved_report_digest
     repo = Path(pinned['repository_root'])
-    directory = out/'git_diff'/('base-' + pinned['base_sha'])
+    from .workspace import context, no_links
+    workspace = context(root, cfg['analysis'])
+    directory = no_links(Path(workspace.worktree_root)/('base-' + pinned['base_sha'][:16]))
     if not directory.exists():
         directory.parent.mkdir(parents=True, exist_ok=True)
         git(repo, 'worktree', 'add', '--detach', str(directory), pinned['base_sha'])
@@ -860,13 +912,15 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     baseline['review']['enabled'] = False
     baseline['review']['prepare_packets'] = False
     baseline['analysis']['open_report'] = False
-    baseline['analysis']['output_dir'] = '.ecra-diff-base'
     # Absolute in-project config paths are remapped. External toolchains remain
     # explicit inputs and are checked by the ordinary snapshot mechanism.
     baseline = relocate_config(baseline, root, base_root)
+    base_workspace = workspace.for_results(Path(workspace.git_diff_root)/'artifacts'/('base-' + pinned['base_sha']))
+    base_workspace.bind(baseline['analysis'])
+    if 'cmake' in baseline['analysis']:
+        from .compilation import cmake_build_directory
+        pinned['base_build_path'] = str(cmake_build_directory(base_root, baseline['analysis']))
     allowed_database = None
-    if 'cmake' not in baseline['analysis']:
-        allowed_database = (base_root/baseline['analysis'].get('compile_database', 'auto')).relative_to(directory).as_posix()
     modified_paths = git(directory, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')
     if any(p and p.decode('utf-8') != allowed_database for p in modified_paths):
         raise ValueError('隔离基准源码已被修改；拒绝使用污染的基准事实')
@@ -874,32 +928,46 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
         db = baseline['analysis'].get('compile_database', 'auto')
         if db == 'auto':
             raise ValueError('差异基准非 CMake 工程必须显式配置版本内的 compile_database')
-        database = base_root/db
-        if not database.is_file():
+        original_database = base_root/db
+        if not original_database.is_file():
             raise ValueError('基准版本缺少编译数据库；请使用隔离 CMake 构建或提交可重定位的真实数据库')
         # Never copy the HEAD database/build products into the baseline.
-        relative_db = database.relative_to(directory).as_posix()
+        relative_db = original_database.relative_to(directory).as_posix()
+        database = Path(workspace.git_diff_root)/'artifacts'/('base-db-' + pinned['base_sha'])/'compile_commands.json'
         import json
         entries = relocate_paths(json.loads(git(repo, 'show', pinned['base_sha'] + ':' + relative_db)), root, base_root)
         write_json(database, entries)
+        baseline['analysis']['compile_database'] = str(database)
     config = out/'git_diff/base-semantics.yaml'
-    write_json(config, baseline)
+    saved_baseline = copy.deepcopy(baseline)
+    saved_baseline['analysis'].pop('_workspace', None)
+    write_json(config, saved_baseline)
     progress('建立基准版本完整事实：' + pinned['base_sha'])
-    base_out = base_root/'.ecra-diff-base'
+    base_out = Path(base_workspace.results_root)
     base_report = None
     if cfg['analysis']['git_diff']['cache_enabled']:
         from .config import load_config
+        if 'cmake' in baseline['analysis'] and (base_out/'scan_state.json').is_file():
+            # Configure/build may consume arbitrary environment variables or
+            # generator inputs. Refresh real outputs before verifying the
+            # saved compiler closure; a build failure must never become a hit.
+            from .compilation import prepare
+            progress('刷新基准 CMake 构建输入后验证完整事实缓存。')
+            prepare(base_root, baseline, progress)
         try:
             validated, _ = load_config(base_root, config)
+            base_workspace.bind(validated['analysis'])
             _, base_report, _ = checked_scan(base_root, base_out, validated, config, with_facts=False)
             progress('基准完整事实缓存通过源码、预处理闭包和引擎校验。')
         except (ValueError, OSError, KeyError, TypeError):
             pass
     if base_report is None:
-        code = run(base_root, str(config), no_review=True, _cache_enabled=cfg['analysis']['git_diff']['cache_enabled'])
+        code = run(base_root, str(config), no_review=True, _cache_enabled=cfg['analysis']['git_diff']['cache_enabled'],
+                   _workspace=base_workspace)
         if code == 3 or not read_json(base_out/'result_validity.json').get('analysis_valid'):
             raise ValueError('基准版本分析失败，差异扫描未完成；详见 ' + str(base_out))
         base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
+    check_isolated_tree(base_root, pinned['base_sha'], pinned.get('base_build_path'))
     prefix = pinned['project_subdir'].rstrip('/')
     def local(path):
         return Path(os.path.relpath(path, prefix)).as_posix() if prefix and prefix != '.' and path else path

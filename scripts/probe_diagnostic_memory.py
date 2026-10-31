@@ -52,7 +52,7 @@ def cli_probe(args):
     dump(root/'compile_commands.json', [dict(directory=str(root), file='app.c',
          arguments=['arm-none-eabi-gcc', '-mcpu=cortex-m4', '-mthumb', '-c', 'app.c'])])
     cfg = root/'semantics.yaml'
-    dump(cfg, dict(version=1, analysis=dict(compile_database='compile_commands.json'),
+    dump(cfg, dict(version=1, analysis=dict(output=dict(location='project'),compile_database='compile_commands.json'),
          contexts=[dict(id='main',kind='MAIN',functions=['main']),dict(id='irq',kind='ISR',functions=['IRQ'])],
          review=dict(enabled=False,prepare_packets=False)))
     assert cli.run(root, str(cfg), no_review=True) in (0, 1, 2)

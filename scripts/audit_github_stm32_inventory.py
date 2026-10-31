@@ -43,7 +43,8 @@ def main(root: Path, config_path: Path) -> None:
         except Exception as exc:
             failures.append(f"{unit['source_file']}: {exc}")
 
-    facts = json.loads((root / '.ecra/facts.json').read_text(encoding='utf-8'))
+    from ecra.workflow import output_path, read_saved_json
+    facts = read_saved_json(output_path(root, cfg)/'facts.json')
     actual = set()
     for var in facts['variables']:
         if (var['kind'] not in {'GLOBAL', 'FILE_STATIC', 'LOCAL_STATIC'}

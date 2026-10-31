@@ -42,7 +42,10 @@ def engine_digest():
 
 
 def analysis_config(cfg):
-    return {k: v for k, v in cfg.items() if k != 'review'}
+    result = {k: v for k, v in cfg.items() if k != 'review'}
+    result['analysis'] = {k: v for k, v in cfg.get('analysis', {}).items()
+                          if k not in {'_workspace', 'output', 'output_dir'}}
+    return result
 
 
 def read_saved_json(path, *, canonical_accesses=False):
@@ -246,6 +249,9 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
     if not capsule_file.is_file() or file_digest(capsule_file) != expected_hash:
         raise ValueError('扫描输入闭包已变化/损坏；请重新运行 run')
     capsule = read_json(capsule_file)
+    from .input_snapshot import runtime_environment
+    if capsule.get('environment') != runtime_environment():
+        raise ValueError('构建/Clang 运行环境已变化或旧检查点缺少环境绑定；请重新扫描，不能复用旧事实')
     units = capsule.get('units')
     dependencies = capsule.get('dependency_sets')
     signatures = capsule.get('preprocessor_signatures')
@@ -432,10 +438,10 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True):
 
 
 def output_path(root, cfg):
-    out = (root/cfg['analysis'].get('output_dir', '.ecra')).resolve()
-    if out == root or not out.is_relative_to(root):
-        raise ValueError('analysis.output_dir 必须是工程根目录下的独立子目录')
-    return out
+    from .workspace import context
+    workspace = context(root, cfg['analysis'])
+    workspace.bind(cfg['analysis'])
+    return Path(workspace.results_root)
 
 
 def checked_reviews(root, out, reviews, fingerprint):
@@ -475,9 +481,19 @@ def status(root, config_path=None):
     from .git_diff import selected_findings
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
-    info = dict(project=str(root), output=str(out), scan_lock=(out/'scan.lock').exists())
+    from .workspace import lock_path
+    info = dict(project=str(root), output=str(out), scan_lock=lock_path(root, cfg['analysis']).exists())
     if not (out/'reports/global_static_concurrency.json').exists():
         info.update(state='NOT_SCANNED', next_action='运行 run，生成变量清单和复核队列')
+        legacy = Path(root)/'.ecra'
+        if legacy != out and legacy.is_dir():
+            from .workspace import legacy_files
+            try:
+                legacy_files(root, legacy)
+                info.update(state='LEGACY_HISTORY_FOUND', legacy_history=str(legacy),
+                    next_action='检测到已验证归属的旧版扫描历史；运行 run 复制迁移并刷新当前引擎结果，然后继续 report/review。原数据保留。')
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                info['legacy_directory'] = dict(path=str(legacy), owner_verified=False, diagnostic=str(exc))
     else:
         report = read_saved_json(out/'reports/global_static_concurrency.json')
         queue = read_queue(out)
@@ -545,8 +561,12 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False):
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
     if not out.is_dir():
+        if (Path(root)/'.ecra').is_dir() and Path(root)/'.ecra' != out:
+            raise ValueError(f'旧版数据目录存在: {Path(root)/".ecra"}；请先运行 run 验证归属、复制迁移并刷新结果，再执行 report/review')
         raise ValueError('还没有扫描结果；请先运行 run')
-    lock = out/'scan.lock'
+    from .workspace import context, lock_path
+    context(root, cfg['analysis']).initialize()
+    lock = lock_path(root, cfg['analysis'])
     try:
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:

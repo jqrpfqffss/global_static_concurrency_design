@@ -2,9 +2,11 @@
 
 大型 STM32H743 飞控工程的目标构建、问题修正与实测状态见 [INAV H743 验收记录](docs/inav-h743-git-diff-validation.md)。多目标 CMake 工程可配置可选的 `analysis.cmake.target`，由 Ninja 实际依赖图选择完整固件闭包。
 
-大型事实与报告使用自包含的无损共享存储，Python 可通过 `ecra.workflow.read_saved_json(path)` 还原完整原结构；小结果保持原 JSON 格式。编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。页面继续使用 `.ecra/index.html`，完整图和长源码搜索按需加载。
+大型事实与报告使用自包含的无损共享存储，Python 可通过 `ecra.workflow.read_saved_json(path)` 还原完整原结构；小结果保持原 JSON 格式。编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。页面使用 `workspace/projects/<工程身份>/results/index.html`，完整图和长源码搜索按需加载。
 
-新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。原 `.ecra/index.html` 默认只展示有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响在覆盖说明单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
+新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。同一 `results/index.html` 默认只展示有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响在覆盖说明单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
+
+默认结果目录、Git HEAD 隔离语义、CMake 外置构建、旧输出兼容及迁移恢复见[工作区与迁移说明](docs/workspace-migration.md)。所有命令自动定位同一 ProjectID；无需手填报告路径。
 
 真实串口工程的已提交差异分支、21 项常规/隐蔽并发/安全对照矩阵及复现命令见 [serial 差异压力验收](docs/serial-diff-stress-validation.md)。当前本地配置默认比较该测试分支与其测试基准，外部自动复核已关闭。
 
@@ -109,7 +111,7 @@
 
 ## 裸机 CMake 工程：配置一次，日常一条命令
 
-工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；固件 `.ecra/` 只保存运行产物。在工具根目录执行：
+工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；运行数据默认统一保存在工具侧 `workspace/projects/<工程身份>/results/`，固件内旧 `.ecra/` 会按身份安全复制迁移。在工具根目录执行：
 
 可在 [`config/review_context.md`](config/review_context.md) 填写当前工程补充背景及源码依据。每次正常变量复核读取它，作为待源码核实的用户声明。修改后运行 `review`，会重新复核全部静态疑似/未知变量。使用 `--config` 时，将同名 Markdown 放在实际 semantics.yaml 旁边；切换工程时同步更新。
 
@@ -129,7 +131,7 @@ OpenCode 内部遵循八步方法，核查间接访问、真实抢占、跨函�
 py -3.10 run_ecra.py
 ```
 
-自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出 `.ecra/index.html` 和 `.ecra/opencode_review.html`。新工程默认本地静态排查；当前工程及复核开关以 config/semantics.yaml 为准。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
+自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出该项目 `results/index.html` 和 `results/opencode_review.html`。新工程默认本地静态排查；当前工程及复核开关以 config/semantics.yaml 为准。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
 
 OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围内未确认问题、或尚不能确定。确认存在一个变量缺陷即可回答“有问题”，但剩余疑似项、失败项和覆盖盲区仍保留，不能宣称全工程排查完成。`LIKELY` 不算最终定论，下次 `review` 会重新复核。
 
@@ -178,7 +180,7 @@ analysis:
     clean_before_configure: true  # 清理 ECRA 专用目录，然后重新配置/构建
     build: true
   auto_system_includes: true
-  output_dir: .ecra
+  # output: {location: tool}  # 默认，自动按项目身份隔离
 ```
 
 目录相对固件根目录，也可使用绝对路径。包含目录必须存在；空包含列表表示不限制范围。根据变量定义文件归属范围；头文件 static 保留不同编译单元的身份，extern 以实际定义归属。排除目录里的变量不进入清单、候选或模型任务。
@@ -282,7 +284,7 @@ analysis:
   exclude_dirs: [Drivers, Middlewares, ThirdParty]
   exclude_files: []  # 混在业务目录中的第三方文件
   exclude: ['CM4/*', 'build/*']  # 旧选项：仅跳过确定不属于本次固件的编译单元
-  output_dir: .ecra
+  # output: {location: tool}  # 默认，自动按项目身份隔离
   parse_timeout_seconds: 180
 contexts:
   - id: main
@@ -321,8 +323,8 @@ review:
 
 | 输出 | 用途 |
 |---|---|
-| `.ecra/index.html` | HTML 1：全量变量、读写/调用链、独立风险变量表及覆盖盲区 |
-| `.ecra/opencode_review.html` | HTML 2：OpenCode 分类结论、源码证据、交错过程、修复与验证 |
+| `results/index.html` | HTML 1：全量变量、读写/调用链、独立风险变量表及覆盖盲区 |
+| `results/opencode_review.html` | HTML 2：OpenCode 分类结论、源码证据、交错过程、修复与验证 |
 | `inventory/global_static_inventory.md/json` | 排查范围内的变量，包括常量、未使用项、头文件实例 |
 | `reports/global_static_concurrency.md/json` | 候选规则、证据、覆盖率、增量变化 |
 | `reports/unknown_contexts.md` | 未知上下文、间接调用、指针、DMA、解析失败等 |
@@ -361,7 +363,7 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 每个变量的相关风险合并为一个复核包；无法归属于变量的覆盖盲区仍独立保留，不减少候选。日常完整运行：`py -3.10 run_ecra.py`；全部重评：`py -3.10 run_ecra.py review`；仅技术失败重试：`py -3.10 run_ecra.py review-failed`。后两者使用经一致性检查的静态扫描，不重新运行 Clang。
 
-修改复核提示词、`concurrency_cases.md`、案例库读取逻辑或报告页面后，可直接执行 `review`，无需重扫。固件源码、编译数据库、静态提取/分类实现或分析配置变化时，须先执行 `py -3.10 run_ecra.py --no-review` 刷新静态事实，再执行 `review`。升级前的旧检查点使用全程序指纹，也需要这样刷新一次；旧报告与模型记录会归档到 `.ecra/snapshots/`，不通过替换指纹强行复用旧事实。
+修改复核提示词、`concurrency_cases.md`、案例库读取逻辑或报告页面后，可直接执行 `review`，无需重扫。固件源码、编译数据库、静态提取/分类实现或分析配置变化时，须先执行 `py -3.10 run_ecra.py --no-review` 刷新静态事实，再执行 `review`。升级前的旧检查点使用全程序指纹，也需要这样刷新一次；旧报告与模型记录会归档到 `results/snapshots/`，不通过替换指纹强行复用旧事实。
 
 `review-failed` 已通过[真实子进程故障注入与真实 OpenCode 恢复测试](docs/review_failed_validation.md)：只重试 TECH_FAILED，成功项退出失败集合，没有失败项时不启动复核进程。
 
