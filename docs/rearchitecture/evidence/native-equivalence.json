@@ -1,0 +1,119 @@
+{
+  "passed": true,
+  "differences": {
+    "facts": null,
+    "static_report": null
+  },
+  "execution_envelope": {
+    "before": {
+      "generated_at": "2026-10-31T10:22:01.366020+00:00",
+      "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd",
+      "workspace.results_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+      "input_read_timings": {
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json": {
+          "read_completed_ns": 1793442121800677500
+        }
+      }
+    },
+    "after": {
+      "generated_at": "2026-10-31T11:01:02.890561+00:00",
+      "fingerprint": "a5780dc9c6a113e4c5e0db2fea56fe96f2594b47be4317322209866d1d99b61b",
+      "workspace.results_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\native-candidate-comparison-v2",
+      "input_read_timings": {
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json": {
+          "read_completed_ns": 1793444463035684400
+        }
+      }
+    }
+  },
+  "source_original_preserved": true,
+  "original_hashes": {
+    "facts.json": "352aaae4622ba83ee41481cb75d39071490938dd3c491d1ddc8bcf38f547b286",
+    "facts.db": "b11ea9f73134cbb10c4a48296d1bd263ab01d02f341f958e5d0068ba61d7d8c0",
+    "reports\\global_static_concurrency.json": "d73f3b3e824e4b9092a0d54acbafd5bb6ad986d8959b84cef1afb73881f1b3c2"
+  },
+  "native_candidate": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\native-candidate-comparison-v2",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\native-candidate-comparison-v2.log",
+  "log_sha256": "d7c328ff0c9352713747e3b7c2a5dfe1a8add08141b4fe2700a46f89b49802da",
+  "scope": "Two independently extracted scans of the identical real 4-TU STM32F030 ARM input; not large G1/G2/G3/G4",
+  "validation": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "a5780dc9c6a113e4c5e0db2fea56fe96f2594b47be4317322209866d1d99b61b"
+  },
+  "original_run": {
+    "version": "0.1.0",
+    "started": "2026-10-31T10:22:01.366020+00:00",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "state": "INCOMPLETE",
+    "review_mode": "disabled_by_cli",
+    "exit_code": 2,
+    "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd",
+    "report": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\index.html",
+    "review_report": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\opencode_review.html",
+    "review_summary": {
+      "total": 13,
+      "unresolved": 13,
+      "confirmed": 0,
+      "likely": 0,
+      "reviewed_safe_or_false_positive": 0,
+      "targets": 13,
+      "archived": 13,
+      "done": 0,
+      "failed": 0,
+      "pending": 13,
+      "stale": 0,
+      "missing": 0,
+      "duplicate": 0,
+      "complete": false,
+      "all_done": false,
+      "basis": "仅统计 OpenCode 原始复核结果与进度；最终风险分类见 risk_summary。",
+      "variable_coverage": {
+        "total": 13,
+        "statically_screened": 0,
+        "queued": 13,
+        "terminal": 0,
+        "remaining": 13
+      }
+    },
+    "finished": "2026-10-31T10:22:16.205552+00:00"
+  },
+  "candidate_run": {
+    "version": "0.1.0",
+    "started": "2026-10-31T11:01:02.890561+00:00",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "state": "INCOMPLETE",
+    "review_mode": "disabled_by_cli",
+    "exit_code": 2,
+    "fingerprint": "a5780dc9c6a113e4c5e0db2fea56fe96f2594b47be4317322209866d1d99b61b",
+    "report": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\native-candidate-comparison-v2\\index.html",
+    "review_report": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\native-candidate-comparison-v2\\opencode_review.html",
+    "review_summary": {
+      "total": 13,
+      "unresolved": 13,
+      "confirmed": 0,
+      "likely": 0,
+      "reviewed_safe_or_false_positive": 0,
+      "targets": 13,
+      "archived": 13,
+      "done": 0,
+      "failed": 0,
+      "pending": 13,
+      "stale": 0,
+      "missing": 0,
+      "duplicate": 0,
+      "complete": false,
+      "all_done": false,
+      "basis": "仅统计 OpenCode 原始复核结果与进度；最终风险分类见 risk_summary。",
+      "variable_coverage": {
+        "total": 13,
+        "statically_screened": 0,
+        "queued": 13,
+        "terminal": 0,
+        "remaining": 13
+      }
+    },
+    "finished": "2026-10-31T11:01:14.564352+00:00"
+  }
+}

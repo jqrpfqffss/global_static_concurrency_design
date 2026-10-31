@@ -1,0 +1,95 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "preview_empty_next_step",
+      "status": "PASS",
+      "related": [
+        "U01"
+      ],
+      "limitation": "No sample or native scan entry; U01 remains incomplete"
+    },
+    {
+      "name": "preview_package_ui_import",
+      "status": "PASS",
+      "related": [
+        "U19",
+        "U24"
+      ],
+      "limitation": "Same host, no clean-machine claim"
+    },
+    {
+      "name": "preview_static_card_matches_sql_filter",
+      "status": "PASS",
+      "related": [
+        "U09"
+      ]
+    },
+    {
+      "name": "preview_archived_source_text",
+      "status": "PASS",
+      "related": [
+        "U11",
+        "U19"
+      ],
+      "limitation": "Archive protocol check on one host, not physical second-machine UAT"
+    },
+    {
+      "name": "preview_decision_commit_reopen_and_position",
+      "status": "PASS",
+      "related": [
+        "U16"
+      ],
+      "limitation": "One browser item; 1000-event persistence separately unit-tested"
+    },
+    {
+      "name": "preview_undo_preserves_history",
+      "status": "PASS",
+      "related": [
+        "U17"
+      ]
+    },
+    {
+      "name": "preview_malicious_package_preserves_prior_scan",
+      "status": "PASS",
+      "related": [
+        "U24"
+      ]
+    },
+    {
+      "name": "preview_four_step_profile_save_retains_input",
+      "status": "PASS",
+      "related": [
+        "U02"
+      ],
+      "limitation": "Path/configuration check only; native build and scan NOT_IMPLEMENTED"
+    },
+    {
+      "name": "preview_three_viewports_and_ctrl_f",
+      "status": "PASS",
+      "related": [
+        "U22"
+      ],
+      "limitation": "Native Windows 125/150/200% DPI and full keyboard matrix NOT_VERIFIED"
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\06-import-validated.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\07-archived-source.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\05-human-history.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\02-project-wizard.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\01-overview.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\04-scan-task-gate.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\03-evidence-workbench.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\layout-1366x768.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\layout-1600x900.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-20261031-verified\\layout-1920x1080.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chromium preview archive/profile/decision workflows on one host; not full U01–U24",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED",
+  "native_scan_pipeline": "NOT_IMPLEMENTED",
+  "physical_second_computer": "NOT_VERIFIED"
+}

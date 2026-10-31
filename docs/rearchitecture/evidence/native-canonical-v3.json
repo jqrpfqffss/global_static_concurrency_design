@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "differences": {
+    "facts": null,
+    "static_report": null
+  },
+  "original_preserved": true,
+  "original_hashes": {
+    "facts.json": "352aaae4622ba83ee41481cb75d39071490938dd3c491d1ddc8bcf38f547b286",
+    "facts.db": "b11ea9f73134cbb10c4a48296d1bd263ab01d02f341f958e5d0068ba61d7d8c0",
+    "reports/global_static_concurrency.json": "d73f3b3e824e4b9092a0d54acbafd5bb6ad986d8959b84cef1afb73881f1b3c2",
+    "scan_state.json": "2d8687816aace3ae864e43ca80e5e398348cbdb59368276ae012920c2a35a9db",
+    "input_manifest.json": "c77c28a8d737f919044bf107099b3684da527eb8bf4b9f95fd22d1a1ac3fab64",
+    "input_closure.json": "26710d2913d58f44a95df83bf868e16f71c52a46ddcaa4f92e9f458e4b768656"
+  },
+  "legacy_outputs_absent": {
+    "facts.json": true,
+    "facts.db": true,
+    "index.html": true,
+    "reports": true,
+    "inventory": true
+  },
+  "execution_envelopes": [
+    {
+      "generated_at": "2026-10-31T10:22:01.366020+00:00",
+      "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd",
+      "workspace.results_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+      "input_read_timings": {
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json": {
+          "read_completed_ns": 1793442121800677500
+        }
+      }
+    },
+    {
+      "generated_at": "2026-10-31T15:56:34.477736+00:00",
+      "fingerprint": "fb00a1fcbab79d1f8ad514764d20bc20bef3efe04fcbc7477b44a647109e1083",
+      "workspace.results_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\identical-native-v3\\data\\scans\\native-canonical",
+      "input_read_timings": {
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json": {
+          "read_completed_ns": 1793462194618357000
+        }
+      }
+    }
+  ],
+  "seconds": 20.538025100016966,
+  "canonical_database_bytes": 6664192,
+  "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\identical-native-v3\\data\\scans\\native-canonical",
+  "scope": "Real independently extracted identical frozen 4-TU ARM input; no large G1/G2/G3/G4 claim",
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\identical-native-v3\\acceptance.json",
+  "original_receipt_sha256": "9b76d33cc661a194e8100a071ff3ee61eacf1742d6328cf22261f5bfb7cbfed2"
+}

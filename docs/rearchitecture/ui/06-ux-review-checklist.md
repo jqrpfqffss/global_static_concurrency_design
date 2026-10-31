@@ -41,3 +41,5 @@
 最新包内流程参考 `output/playwright/studio-portable-canonical-v5/acceptance.json`：14项真实Chrome流程通过，含原生扫描/停止/恢复和缺工具复核故障。当前图/代码/过滤/分栏/资源/清理均为真实API，不是概念页面。v6另断言1366×768和1600×900下任务主操作完整落在首屏，并以新截图复查；系统DPI仍NOT_VERIFIED。
 
 20007行容量夹具真实浏览器最大API响应16,656B；清理引用与50GiB实盘有独立收据。目录图和合成容量不代替g_mfcInterface.msgSp真场景、目标板或三类大工程。所有页全部状态与独立工程师盲测继续未通过。
+
+当前源码v6十四项浏览器流程通过，1366×768/1600×900任务主操作完整位于首屏；[任务截图](screenshots/v6/04-scan-published.png)、[变量证据](screenshots/v6/03-evidence-workbench.png)、[源码行](screenshots/v6/07-archived-source.png)、[清理结果](screenshots/v6/09-cleanup-recovered-and-purged.png)已随仓库保存。对应视频/trace位于output/playwright/studio-viewport-v6。

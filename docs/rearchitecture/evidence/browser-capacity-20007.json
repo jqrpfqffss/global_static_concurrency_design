@@ -1,0 +1,159 @@
+{
+  "passed": true,
+  "scope": "Real browser pagination capacity, with explicit synthetic storage fixtures.\n\nThis is not a native firmware scan, semantic golden, G2, G3 or G4 result.\nEvery operation uses the production server, database and human-review APIs.\n",
+  "rows": 20007,
+  "engine": "H:\\global_static_concurrency_design",
+  "tests": [
+    "20007_rows_real_server_pages",
+    "exact_last_identity_search",
+    "human_commit_and_reopen_position",
+    "bounded_api_responses",
+    "immutable_static_hash"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "overview_seconds": 0.26600000000325963,
+  "last_identity_lookup_seconds": 0.21799999999348074,
+  "max_api_response_bytes": 16656,
+  "api_payloads": [
+    {
+      "path": "/api/bootstrap",
+      "bytes": 478
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 316
+    },
+    {
+      "path": "/api/scans/capacity-fixture/summary",
+      "bytes": 954
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?limit=5",
+      "bytes": 1665
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16388
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16388
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=UNKNOWN&human_decision=&offset=50&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16456
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=UNKNOWN&human_decision=&offset=100&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16656
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=capacity_counter_20006&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 393
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbol-functions?symbol_id=CAPACITY-20006&offset=0",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human?symbol_id=CAPACITY-20006",
+      "bytes": 206
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80029?limit=200",
+      "bytes": 1149
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/accesses?symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/findings?dataset=report&symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/source?file=CAPACITY_TEST_ONLY.c",
+      "bytes": 121
+    },
+    {
+      "path": "/api/scans/capacity-fixture/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human",
+      "bytes": 563
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human?symbol_id=CAPACITY-20006",
+      "bytes": 1297
+    },
+    {
+      "path": "/api/scans/capacity-fixture/summary",
+      "bytes": 977
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=capacity_counter_20006&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 944
+    },
+    {
+      "path": "/api/bootstrap",
+      "bytes": 478
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 316
+    },
+    {
+      "path": "/api/scans/capacity-fixture/summary",
+      "bytes": 977
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?limit=5",
+      "bytes": 1665
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 16388
+    },
+    {
+      "path": "/api/scans/capacity-fixture/position",
+      "bytes": 226
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbols?search=capacity_counter_20006&classification=UNKNOWN&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=",
+      "bytes": 944
+    },
+    {
+      "path": "/api/scans/capacity-fixture/symbol-functions?symbol_id=CAPACITY-20006&offset=0",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/human?symbol_id=CAPACITY-20006",
+      "bytes": 1297
+    },
+    {
+      "path": "/api/scans/capacity-fixture/nodes/80029?limit=200",
+      "bytes": 1149
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/accesses?symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/records/findings?dataset=report&symbol_id=CAPACITY-20006",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/capacity-fixture/source?file=CAPACITY_TEST_ONLY.c",
+      "bytes": 121
+    },
+    {
+      "path": "/api/scans/capacity-fixture/position",
+      "bytes": 14
+    }
+  ],
+  "static_sha256": "d68a52b111074d4735288446d6b9bc24aaf612ed60d57454f65ce9930cb50db5",
+  "original_receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-capacity-20007-20261101\\acceptance.json",
+  "original_receipt_sha256": "9ad05d64292e6952ba4c47fbfd6770252a0ef35cf6c93a521a4315c086abb809"
+}

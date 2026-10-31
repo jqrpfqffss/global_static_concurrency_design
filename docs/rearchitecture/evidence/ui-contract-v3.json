@@ -1,0 +1,171 @@
+{
+  "passed": true,
+  "checks": {
+    "frozen_navigation_order": true,
+    "no_fake_timeout_or_raw_html": true,
+    "no_remote_frontend_assets": true,
+    "server_side_page_limit": true,
+    "three_independent_dimensions": true,
+    "real_write_receipts": true,
+    "real_scan_task_component": true,
+    "real_scan_task_endpoints": true,
+    "real_cleanup_endpoints_and_confirmation": true,
+    "bounded_source_and_call_navigation": true,
+    "session_origin_host_checks": true
+  },
+  "api_routes": [
+    [
+      "get",
+      "/api/bootstrap"
+    ],
+    [
+      "get",
+      "/api/scans"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/summary"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/ai"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/ai-artifact"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/symbols"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/records/{relation}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/symbol-functions"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/call-neighbors"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/nodes/{node_id}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/text/{node_id}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/source"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/source-window"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/human"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/human"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/position"
+    ],
+    [
+      "put",
+      "/api/scans/{scan_id}/position"
+    ],
+    [
+      "post",
+      "/api/import"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/delta/import"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/export"
+    ],
+    [
+      "get",
+      "/api/download/{name}"
+    ],
+    [
+      "get",
+      "/api/storage"
+    ],
+    [
+      "get",
+      "/api/profiles"
+    ],
+    [
+      "post",
+      "/api/storage/cleanup"
+    ],
+    [
+      "get",
+      "/api/storage/cleanup/jobs"
+    ],
+    [
+      "get",
+      "/api/storage/cleanup/jobs/{job_id}"
+    ],
+    [
+      "get",
+      "/api/storage/cleanup/previews/{preview_id}"
+    ],
+    [
+      "get",
+      "/api/tasks"
+    ],
+    [
+      "post",
+      "/api/tasks"
+    ],
+    [
+      "get",
+      "/api/tasks/{task_id}"
+    ],
+    [
+      "post",
+      "/api/tasks/{task_id}/stop"
+    ],
+    [
+      "post",
+      "/api/tasks/{task_id}/retry"
+    ],
+    [
+      "post",
+      "/api/profiles/check"
+    ],
+    [
+      "post",
+      "/api/profiles"
+    ]
+  ],
+  "source_hashes": {
+    "studio\\src\\api.ts": "744a9ce90fe4498b33a588329b61ec7aa81b778dcff51fda855975ea1928bc0c",
+    "studio\\src\\App.vue": "40c4712c12f9e04a1d2527e3d39f43a5df1217e6ce1d97ada58315a8a6c99d4d",
+    "studio\\src\\CallNode.vue": "db133bec52565cd9a7d8cff7cc37ce309ae027c3a269836c0792a57b8c00fa38",
+    "studio\\src\\CallTree.vue": "f15e1c251b4a0655bb71edd915dbbc9aa0e153c46fc942146d73f830b030276f",
+    "studio\\src\\CleanupCenter.vue": "cff49903f15fdbf0565684034fa1d191c9435ad8a7af4365258a10e34397fb82",
+    "studio\\src\\ConflictPairs.vue": "2b8d5620008abae5ee4cd52f7b2cabcecb68dfd6b83132929550149cf9631364",
+    "studio\\src\\EvidenceNode.vue": "e69f742ffe1dd4bd3129b86ed03d12640919ce62240f680d50c7a85814086a0a",
+    "studio\\src\\FindingCard.vue": "fc8ac3739ccc7ae4f3d384a199d3096c2f5cfca7beb357e364799c216b00dfd3",
+    "studio\\src\\main.ts": "b46de87e7e4ec6d679e055d739bf28009b7739c639dfcb0e0b34e2de9393725a",
+    "studio\\src\\ReviewCenter.vue": "5c8267a1455f3e4691807548991172345508389b0c9e18393016fd586cd5240d",
+    "studio\\src\\SourceViewer.vue": "c9da7a5937bd09bed164c5a0d8a533232166c5b262671b11643c83c61b528ce9",
+    "studio\\src\\style.css": "1e28db4569a88bd6ede31525acfbe3f750d59fb780c7effb8542b869511b749a",
+    "studio\\src\\TaskCenter.vue": "9208452e01695f3e41a5eeb94a2dc38653bcc6bff39ecf8ddfe95e7c55b410a8",
+    "studio\\src\\workbench.css": "ad71cc78fe1910012c734bcddca98eda2ae7ec42a7c580d6c50fd9f8c2a08eed"
+  },
+  "scope": "Static contracts only; no claim of U01–U24 completion, visual quality or native Windows DPI"
+}

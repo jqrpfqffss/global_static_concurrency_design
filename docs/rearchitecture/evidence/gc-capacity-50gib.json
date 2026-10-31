@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "scope": "Real standard F030 archive unchanged; synthetic unused TU-cache capacity fixture only. Not a native G3/G4 result.",
+  "allocated_logical_bytes": 53687091200,
+  "physical_free_before": null,
+  "physical_free_after_write": 55582298112,
+  "physical_free_after_quarantine": 55582228480,
+  "physical_free_after_purge": 109269254144,
+  "observed_freed_bytes": 53687025664,
+  "source_archive_unchanged": true,
+  "scan_sha256": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "cache_sha256": "88bf8dcd615856e92caba5f5c0567de8612e858039b72cfb916976d39062cb34",
+  "seconds": 1101.6938802999794,
+  "preview_id": "acba782b55b44bee974c5b5b7001a0cb",
+  "memory": {
+    "private_bytes": 14888960,
+    "working_set_bytes": 22618112,
+    "peak_working_set_bytes": 28123136,
+    "peak_process_commit_bytes": 20566016,
+    "system_commit_bytes": 33290805248,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 100864864256
+  },
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\gc50\\acceptance.json",
+  "original_receipt_sha256": "ebe5d0c41a4876e499f58142a969c0f89ea5be88aab01b41c266b4964e29f8cd"
+}

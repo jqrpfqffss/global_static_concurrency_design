@@ -1,0 +1,105 @@
+{
+  "passed": true,
+  "checks": {
+    "frozen_navigation_order": true,
+    "no_fake_timeout_or_raw_html": true,
+    "no_remote_frontend_assets": true,
+    "server_side_page_limit": true,
+    "three_independent_dimensions": true,
+    "real_write_receipts": true,
+    "unimplemented_scan_explicitly_gated": true,
+    "no_unimplemented_scan_endpoint": true,
+    "session_origin_host_checks": true
+  },
+  "api_routes": [
+    [
+      "get",
+      "/api/bootstrap"
+    ],
+    [
+      "get",
+      "/api/scans"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/summary"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/symbols"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/records/{relation}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/nodes/{node_id}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/text/{node_id}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/source"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/human"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/human"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/position"
+    ],
+    [
+      "put",
+      "/api/scans/{scan_id}/position"
+    ],
+    [
+      "post",
+      "/api/import"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/delta/import"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/export"
+    ],
+    [
+      "get",
+      "/api/download/{name}"
+    ],
+    [
+      "get",
+      "/api/storage"
+    ],
+    [
+      "get",
+      "/api/profiles"
+    ],
+    [
+      "post",
+      "/api/profiles/check"
+    ],
+    [
+      "post",
+      "/api/profiles"
+    ]
+  ],
+  "source_hashes": {
+    "studio\\src\\api.ts": "6b26ae9114a02f745842a56b99e827d707ad562292214d2c42d690e1715b938e",
+    "studio\\src\\App.vue": "d95b390c6c39fd0d40ef84e1f2975e3d531c5dab6353f46d92a1ea7f41f48309",
+    "studio\\src\\EvidenceNode.vue": "e69f742ffe1dd4bd3129b86ed03d12640919ce62240f680d50c7a85814086a0a",
+    "studio\\src\\main.ts": "b46de87e7e4ec6d679e055d739bf28009b7739c639dfcb0e0b34e2de9393725a",
+    "studio\\src\\style.css": "5ff3ade4c8511274cab620d2484bb1c8b758043fc4e756cfd9f750ba5f4c55b5",
+    "studio\\src\\workbench.css": "ad71cc78fe1910012c734bcddca98eda2ae7ec42a7c580d6c50fd9f8c2a08eed"
+  },
+  "scope": "Static contracts only; no claim of U01–U24 completion, visual quality or native Windows DPI"
+}

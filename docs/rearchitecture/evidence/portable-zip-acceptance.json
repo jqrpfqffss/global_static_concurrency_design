@@ -1,0 +1,333 @@
+{
+  "bundle": "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable",
+  "commands": [
+    {
+      "label": "Python",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\runtime\\python.exe",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\00-Python.log"
+    },
+    {
+      "label": "gcc",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\gcc.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\01-gcc.log"
+    },
+    {
+      "label": "g++",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\g++.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\02-g__.log"
+    },
+    {
+      "label": "ninja",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\ninja\\ninja.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\03-ninja.log"
+    },
+    {
+      "label": "mingw32-make",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\mingw32-make.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\04-mingw32-make.log"
+    },
+    {
+      "label": "arm-none-eabi-gcc",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\arm-gcc\\bin\\arm-none-eabi-gcc.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\05-arm-none-eabi-gcc.log"
+    },
+    {
+      "label": "cmake",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\cmake\\bin\\cmake.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\06-cmake.log"
+    },
+    {
+      "label": "Python dependencies and AST",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\runtime\\python.exe",
+        "-B",
+        "-c",
+        "import sys, struct, json, sqlite3, ssl, multiprocessing, yaml\nfrom importlib.metadata import version\nfrom clang import cindex\ncindex.Index.create()\nassert struct.calcsize('P') == 8\nprint(json.dumps({'python':sys.version.split()[0], 'PyYAML':version('PyYAML'), 'libclang':version('libclang'), 'libclang_loaded':True}))\n"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\07-Python_dependencies_and_AST.log"
+    },
+    {
+      "label": "MinGW Makefiles configure",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+        "-S",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\10d478389ae78e874b99703d0d6b6539",
+        "-B",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\10d478389ae78e874b99703d0d6b6539\\mingw",
+        "-G",
+        "MinGW Makefiles",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_MAKE_PROGRAM:FILEPATH=H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\mingw32-make.exe",
+        "-DCMAKE_C_COMPILER:FILEPATH=H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\gcc.exe",
+        "-DCMAKE_CXX_COMPILER:FILEPATH=H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\g++.exe"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\08-MinGW_Makefiles_configure.log"
+    },
+    {
+      "label": "MinGW Makefiles build",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+        "--build",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\10d478389ae78e874b99703d0d6b6539\\mingw",
+        "--verbose"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\09-MinGW_Makefiles_build.log"
+    },
+    {
+      "label": "MinGW Makefiles execute",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\acceptance\\native C C++ 中文\\mingw\\native.exe"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\10-MinGW_Makefiles_execute.log"
+    },
+    {
+      "label": "Ninja configure",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+        "-S",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\10d478389ae78e874b99703d0d6b6539",
+        "-B",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\10d478389ae78e874b99703d0d6b6539\\ninja",
+        "-G",
+        "Ninja",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_MAKE_PROGRAM:FILEPATH=H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\ninja\\ninja.exe",
+        "-DCMAKE_C_COMPILER:FILEPATH=H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\gcc.exe",
+        "-DCMAKE_CXX_COMPILER:FILEPATH=H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\mingw\\bin\\g++.exe"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\11-Ninja_configure.log"
+    },
+    {
+      "label": "Ninja build",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+        "--build",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\10d478389ae78e874b99703d0d6b6539\\ninja",
+        "--verbose"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\12-Ninja_build.log"
+    },
+    {
+      "label": "Ninja execute",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\acceptance\\native C C++ 中文\\ninja\\native.exe"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\13-Ninja_execute.log"
+    },
+    {
+      "label": "resolve bundle workspace",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\runtime\\python.exe",
+        "-c",
+        "import json,sys;from pathlib import Path;from ecra.config import load_config;from ecra.workspace import context;from ecra.compilation import cmake_build_directory;r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];print(json.dumps(dict(out=context(r,c[\"analysis\"]).results_root,build=str(cmake_build_directory(r,c[\"analysis\"])))) )",
+        "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 wv55n3mr",
+        "H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\14-resolve_bundle_workspace.log"
+    },
+    {
+      "label": "ecra.cmd help",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd\" --help\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd\" --help\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\15-ecra_cmd_help.log"
+    },
+    {
+      "label": "ecra.cmd doctor configure only",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd doctor --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd doctor --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\16-ecra_cmd_doctor_configure_only.log"
+    },
+    {
+      "label": "ecra.cmd run no review real ARM build and scan",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd run --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json --no-review\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd run --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json --no-review\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\17-ecra_cmd_run_no_review_real_ARM_build_and_scan.log"
+    },
+    {
+      "label": "ecra.cmd review disabled interface",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd review --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd review --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\18-ecra_cmd_review_disabled_interface.log"
+    },
+    {
+      "label": "ecra.cmd review-failed disabled interface",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd review-failed --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd review-failed --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\19-ecra_cmd_review-failed_disabled_interface.log"
+    },
+    {
+      "label": "ecra.cmd report",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd report --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd report --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\20-ecra_cmd_report.log"
+    },
+    {
+      "label": "ecra.cmd status",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd status --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json --json\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 0,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd status --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\fixture-semantics.json --json\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\21-ecra_cmd_status.log"
+    },
+    {
+      "label": "ecra.cmd build false",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd run --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\configure-only.json --no-review\""
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\ecra.cmd run --config H:\\ECRAStudioZipVerified-20261031\\acceptance\\configure-only.json --no-review\"",
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\22-ecra_cmd_build_false.log"
+    },
+    {
+      "label": "resolve configure-only build",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\runtime\\python.exe",
+        "-c",
+        "import json,sys;from pathlib import Path;from ecra.config import load_config;from ecra.workspace import context;from ecra.compilation import cmake_build_directory;r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];print(json.dumps(dict(out=context(r,c[\"analysis\"]).results_root,build=str(cmake_build_directory(r,c[\"analysis\"])))) )",
+        "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 wv55n3mr",
+        "H:\\ECRAStudioZipVerified-20261031\\acceptance\\configure-only.json"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\23-resolve_configure-only_build.log"
+    },
+    {
+      "label": "relocated default workspace real scan",
+      "command": [
+        "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable\\runtime\\python.exe",
+        "-c",
+        "import sys;sys.path.insert(0,sys.argv.pop(1));from ecra.cli import main;raise SystemExit(main())",
+        "H:\\ECRAStudioZipVerified-20261031\\acceptance\\relocated-tool 中文",
+        "--config",
+        "H:\\ECRAStudioZipVerified-20261031\\acceptance\\default-output.json",
+        "--no-review"
+      ],
+      "cwd": "H:\\ECRAStudioZipVerified-20261031\\acceptance",
+      "exit_code": 2,
+      "log": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\24-relocated_default_workspace_real_scan.log"
+    }
+  ],
+  "result": "PASS",
+  "opencode": "NOT_TESTED: external installation/provider required; review disabled interface passed",
+  "tool_root_alias": "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable",
+  "versions": {
+    "python": "3.10.9",
+    "PyYAML": "6.0.3",
+    "libclang": "18.1.1",
+    "libclang_loaded": true
+  },
+  "firmware_fixture": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 wv55n3mr",
+  "saved_commands_static_facts_unchanged": true,
+  "default_workspace": "H:\\ECRAStudioZipVerified-20261031\\acceptance\\user-data\\projects\\ecra_stm32____wv55n3mr_e98a9698ad1e5e303310\\results",
+  "bundle_contains_runtime_data": false
+}

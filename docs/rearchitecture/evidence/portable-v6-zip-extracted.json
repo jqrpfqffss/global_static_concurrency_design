@@ -1,0 +1,346 @@
+{
+  "bundle": "H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable",
+  "commands": [
+    {
+      "label": "Python",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\runtime\\python.exe",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\00-Python.log"
+    },
+    {
+      "label": "cmake",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\cmake\\bin\\cmake.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\01-cmake.log"
+    },
+    {
+      "label": "g++",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\g++.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\02-g__.log"
+    },
+    {
+      "label": "ninja",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\ninja\\ninja.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\03-ninja.log"
+    },
+    {
+      "label": "arm-none-eabi-gcc",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\arm-gcc\\bin\\arm-none-eabi-gcc.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\04-arm-none-eabi-gcc.log"
+    },
+    {
+      "label": "gcc",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\gcc.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\05-gcc.log"
+    },
+    {
+      "label": "mingw32-make",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\mingw32-make.EXE",
+        "--version"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\06-mingw32-make.log"
+    },
+    {
+      "label": "Python dependencies and AST",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\runtime\\python.exe",
+        "-B",
+        "-c",
+        "import sys, struct, json, sqlite3, ssl, multiprocessing, yaml\nfrom importlib.metadata import version\nfrom clang import cindex\ncindex.Index.create()\nassert struct.calcsize('P') == 8\nprint(json.dumps({'python':sys.version.split()[0], 'PyYAML':version('PyYAML'), 'libclang':version('libclang'), 'libclang_loaded':True}))\n"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\07-Python_dependencies_and_AST.log"
+    },
+    {
+      "label": "MinGW Makefiles configure",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\cmake\\bin\\cmake.exe",
+        "-S",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\3fb84c12136216fa877a3aff17db2fda",
+        "-B",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\3fb84c12136216fa877a3aff17db2fda\\mingw",
+        "-G",
+        "MinGW Makefiles",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_MAKE_PROGRAM:FILEPATH=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\mingw32-make.exe",
+        "-DCMAKE_C_COMPILER:FILEPATH=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\gcc.exe",
+        "-DCMAKE_CXX_COMPILER:FILEPATH=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\g++.exe"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\08-MinGW_Makefiles_configure.log"
+    },
+    {
+      "label": "MinGW Makefiles build",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\cmake\\bin\\cmake.exe",
+        "--build",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\3fb84c12136216fa877a3aff17db2fda\\mingw",
+        "--verbose"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\09-MinGW_Makefiles_build.log"
+    },
+    {
+      "label": "MinGW Makefiles execute",
+      "command": [
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\native C C++ 中文\\mingw\\native.exe"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\10-MinGW_Makefiles_execute.log"
+    },
+    {
+      "label": "Ninja configure",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\cmake\\bin\\cmake.exe",
+        "-S",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\3fb84c12136216fa877a3aff17db2fda",
+        "-B",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\3fb84c12136216fa877a3aff17db2fda\\ninja",
+        "-G",
+        "Ninja",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_MAKE_PROGRAM:FILEPATH=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\ninja\\ninja.exe",
+        "-DCMAKE_C_COMPILER:FILEPATH=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\gcc.exe",
+        "-DCMAKE_CXX_COMPILER:FILEPATH=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\mingw\\bin\\g++.exe"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\11-Ninja_configure.log"
+    },
+    {
+      "label": "Ninja build",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\tools\\cmake\\bin\\cmake.exe",
+        "--build",
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\3fb84c12136216fa877a3aff17db2fda\\ninja",
+        "--verbose"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\12-Ninja_build.log"
+    },
+    {
+      "label": "Ninja execute",
+      "command": [
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\native C C++ 中文\\ninja\\native.exe"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\13-Ninja_execute.log"
+    },
+    {
+      "label": "resolve bundle workspace",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\runtime\\python.exe",
+        "-c",
+        "import json,sys;from pathlib import Path;from ecra.config import load_config;from ecra.workspace import context;from ecra.compilation import cmake_build_directory;r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];print(json.dumps(dict(out=context(r,c[\"analysis\"]).results_root,build=str(cmake_build_directory(r,c[\"analysis\"])))) )",
+        "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 txfhpvza",
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\14-resolve_bundle_workspace.log"
+    },
+    {
+      "label": "ecra.cmd help",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" --help\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" --help\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\15-ecra_cmd_help.log"
+    },
+    {
+      "label": "ecra.cmd doctor configure only",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" doctor --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" doctor --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\16-ecra_cmd_doctor_configure_only.log"
+    },
+    {
+      "label": "ecra.cmd run no review real ARM build and scan",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" run --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json --no-review\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" run --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json --no-review\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\17-ecra_cmd_run_no_review_real_ARM_build_and_scan.log"
+    },
+    {
+      "label": "resolve and validate native SQLite authority",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\runtime\\python.exe",
+        "-c",
+        "import json,sys;from pathlib import Path;from ecra.config import load_config;from ecra.workflow import output_path;from ecra.scan_store import EvidenceProvider;r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];o=output_path(r,c);p=EvidenceProvider(o/\"scan.db\");p.validate(deep=True);s=p.symbols(search=\"shared_count\")[\"items\"];print(json.dumps(dict(out=str(o),shared=p.load(\"facts\",[\"variables\",s[0][\"ordinal\"]]) if len(s)==1 else None)))",
+        "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 txfhpvza",
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\18-resolve_and_validate_native_SQLite_authority.log"
+    },
+    {
+      "label": "ecra.cmd review disabled interface",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" review --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" review --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\19-ecra_cmd_review_disabled_interface.log"
+    },
+    {
+      "label": "ecra.cmd review-failed disabled interface",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" review-failed --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" review-failed --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\20-ecra_cmd_review-failed_disabled_interface.log"
+    },
+    {
+      "label": "ecra.cmd report",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" report --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" report --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\21-ecra_cmd_report.log"
+    },
+    {
+      "label": "ecra.cmd status",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" status --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json --json\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 0,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" status --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\fixture-semantics.json --json\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\22-ecra_cmd_status.log"
+    },
+    {
+      "label": "ecra.cmd build false",
+      "command": [
+        "C:\\Windows\\system32\\cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "\"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" run --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\configure-only.json --no-review\""
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 2,
+      "windows_command_line": "C:\\Windows\\system32\\cmd.exe /d /s /c \"\"H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable\\ecra.cmd\" run --config H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\configure-only.json --no-review\"",
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\23-ecra_cmd_build_false.log"
+    },
+    {
+      "label": "resolve configure-only build",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\runtime\\python.exe",
+        "-c",
+        "import json,sys;from pathlib import Path;from ecra.config import load_config;from ecra.workspace import context;from ecra.compilation import cmake_build_directory;r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];print(json.dumps(dict(out=context(r,c[\"analysis\"]).results_root,build=str(cmake_build_directory(r,c[\"analysis\"])))) )",
+        "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 txfhpvza",
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\configure-only.json"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\.zip-check 空格 中文-a71bf0e71c364a7b9f09345ebbba5aae\\ECRA-Portable",
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\24-resolve_configure-only_build.log"
+    },
+    {
+      "label": "relocated default workspace real scan",
+      "command": [
+        "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151\\runtime\\python.exe",
+        "-c",
+        "import sys;sys.path.insert(0,sys.argv.pop(1));from ecra.cli import main;raise SystemExit(main())",
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\relocated-tool 中文",
+        "--config",
+        "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\default-output.json",
+        "--no-review"
+      ],
+      "cwd": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted",
+      "exit_code": 2,
+      "log": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\25-relocated_default_workspace_real_scan.log"
+    }
+  ],
+  "result": "PASS",
+  "opencode": "NOT_TESTED: external installation/provider required; review disabled interface passed",
+  "tool_root_alias": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA-P~1\\bf8924d9e3aeb3899e5beab857917151",
+  "versions": {
+    "python": "3.10.9",
+    "PyYAML": "6.0.3",
+    "libclang": "18.1.1",
+    "libclang_loaded": true
+  },
+  "firmware_fixture": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ECRA STM32 中文 txfhpvza",
+  "saved_commands_static_facts_unchanged": true,
+  "default_workspace": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\user-data\\scans\\97d96af4ab7c433ca6e6c02ca5eb134d",
+  "bundle_contains_runtime_data": false
+}

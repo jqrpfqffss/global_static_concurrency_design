@@ -1,0 +1,33 @@
+{
+  "stage": "CANONICAL_STUDIO_CANDIDATE_V6",
+  "implementation_commit": "7ef7c8a8f5b8e56ff4ddb1e3fcb9c7d25f74d8e2",
+  "complete": false,
+  "tested": [
+    "full snapshot 1129 tests:1127 passed/2 skipped",
+    "current modules 68 passed",
+    "original portability 20 passed",
+    "real same-input F030 facts/report zero differences",
+    "20007-row browser fixture bounded API",
+    "50GiB real unused-cache cleanup",
+    "portable directory and Chinese-path ZIP 26 commands each",
+    "packaged Python3.10.9 real Chrome 14 operations"
+  ],
+  "not_complete": [
+    "global external-memory solving",
+    "full-facts restore in saved review consumers",
+    "dirty working-byte isolation",
+    "streamed legacy GUI migration",
+    "full professional coverage/Diff navigation",
+    "G1-G8 and U01-U24 full gates"
+  ],
+  "not_verified": [
+    "three large native firmware classes",
+    "32GB Windows real machine",
+    "70% native peak/final disk reduction",
+    "complete power/disk/WAL/PID/lock fault matrix",
+    "native Windows DPI",
+    "clean offline Windows",
+    "5-8 independent embedded engineers UAT",
+    "real network OpenCode verdicts"
+  ]
+}

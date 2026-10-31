@@ -1,0 +1,366 @@
+ecra\cli.py:256:        old_report = out / "reports/global_static_concurrency.json"
+ecra\cli.py:263:                with closing(sqlite3.connect(f"{(out / 'facts.db').as_uri()}?mode=ro", uri=True)) as connection:
+ecra\cli.py:273:            for name in ("facts.json", "facts.db", "run.json", "scan_state.json", "input_manifest.json", "input_closure.json", "doctor.json", "run.log", "index.html", REVIEW_PAGE, QUALITY_PAGE, "inventory", "reports", "review", 'diagnostics', 'result_validity.json', 'html_details'):
+ecra\cli.py:674:                     [out/'facts.json', out/'facts.db', out/'index.html', out/'reports/global_static_concurrency.json']}))
+ecra\cli.py:677:                        report=str(out / "index.html"), review_report=str(out / REVIEW_PAGE), review_summary=report["review_summary"])
+ecra\cli.py:678:        progress(f"完成：{report['run_status']}；变量与风险 {out / 'index.html'}；OpenCode 结果 {out / REVIEW_PAGE}")
+ecra\cli.py:682:                if not webbrowser.open((out / 'index.html').as_uri()):
+ecra\cli.py:683:                    progress('浏览器未自动打开，请打开上述 index.html。')
+scripts\audit_github_stm32_inventory.py:47:    facts = read_saved_json(output_path(root, cfg)/'facts.json')
+ecra\analysis.py:917:        evidence='facts.json: context_call_graph, call_graph_slices, calls',
+ecra\analysis.py:1144:                full_evidence_reference='facts.json:multi_field_coherence')
+scripts\benchmark_project_scan.py:99:    facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+scripts\benchmark_project_scan.py:100:    report = read_saved_json(out/'reports/global_static_concurrency.json')
+scripts\benchmark_project_scan.py:111:        if (file_digest(base_out/'facts.json') != pinned['base_facts_sha256']
+scripts\benchmark_project_scan.py:112:                or file_digest(pinned['base_facts_path']) != pinned['base_facts_sha256']
+scripts\benchmark_project_scan.py:138:                  facts_sha256=file_digest(out/'facts.json'), summary_sha256=file_digest(evidence/'summary.json'))
+scripts\compact_saved_html.py:90:        if relative.as_posix()=='index.html':continue
+scripts\compact_saved_html.py:96:            relative.as_posix() in {'facts.json','facts.db'} or relative.parts[0] in {'inventory','reports'}
+scripts\compact_saved_html.py:119:        with (out/'index.html').open('w',encoding='utf-8') as stream:
+scripts\compact_saved_html.py:121:            with (source/'index.html').open(encoding='utf-8') as original:
+scripts\compact_saved_html.py:125:        for ident in converter.ids:evidence.anchors[ident]='index.html'
+scripts\compact_saved_html.py:128:        source=str(source),source_bytes=(source/'index.html').stat().st_size,
+scripts\compact_saved_html.py:129:        index_bytes=(out/'index.html').stat().st_size,moved_count=len(converter.moved),
+scripts\audit_nvic_acceptance.py:41:    report=read_json(out/'reports/global_static_concurrency.json')
+scripts\audit_nvic_acceptance.py:53:    for name in ('index.html','opencode_review.html'):
+scripts\audit_nvic_acceptance.py:68:    with sqlite3.connect(out/'facts.db') as db:
+scripts\audit_nvic_acceptance.py:71:    baseline_path=out/'snapshots/20261019-150008-858553/facts.json'
+ecra\context_points.py:318:        # serializes the same evidence twice and can grow facts.json by GBs.
+ecra\evidence.py:76:    call_edges_reference: str = 'facts.json:calls'
+ecra\evidence.py:139:                entry_sites_reference='facts.json:unknowns (FUNCTION_ADDRESS, actual_escape, target_function_id)',
+scripts\export_github_stm32_review.py:28:    report = json.loads((out / 'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_block_bitmap.py:73:            path = Path(folder)/'facts.db'
+tests\test_call_graph_scaling.py:136:        html=(self.root/'.ecra/index.html').read_text(encoding='utf-8')
+ecra\git_diff.py:177:    for path_key, hash_key in (('base_facts_path', 'base_facts_sha256'), ('diff_patch_path', 'diff_patch_sha256'),
+ecra\git_diff.py:650:                      base_facts_path=pinned.get('base_facts_path'), base_facts_sha256=pinned.get('base_facts_sha256'),
+ecra\git_diff.py:969:        base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
+ecra\git_diff.py:975:    sha = file_digest(base_out/'facts.json')
+ecra\git_diff.py:995:        base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
+ecra\git_diff.py:1011:    immutable = evidence/'facts.json'
+ecra\git_diff.py:1015:            os.link(base_out/'facts.json', immutable)
+ecra\git_diff.py:1018:            shutil.copyfile(base_out/'facts.json', temp)
+ecra\git_diff.py:1023:    pinned['base_facts_path'] = str(immutable)
+ecra\history_archive.py:8:    'facts.json', 'facts.db',
+ecra\history_archive.py:10:    'reports/global_static_concurrency.json',
+scripts\large_stm32_scan.py:124:    required = ['facts.json','facts.db','index.html','reports/global_static_concurrency.json','input_manifest.json','scan_state.json']
+scripts\large_stm32_scan.py:156:    if result['checks']['process_completed'] and (out/'facts.db').is_file():
+scripts\large_stm32_scan.py:157:        with closing(sqlite3.connect(f"{(out/'facts.db').resolve().as_uri()}?mode=ro",uri=True)) as connection:
+scripts\large_stm32_scan.py:161:        with (out/'index.html').open(encoding='utf-8') as stream:
+ecra\html_evidence.py:41: try{const destination=await evidenceDestination(id);if(!destination)return;const root=document.documentElement.dataset.ecraRoot||'';const url=root+destination+'#'+encodeURIComponent(id);if(destination==='index.html')window.top.location.href=url;else location.href=url;}
+ecra\html_evidence.py:156:                  +'</title><link rel="stylesheet" href="'+self.style_name+'"><main><p><a target="_top" href="../index.html">返回完整报告</a>'
+ecra\html_report.py:18:REVIEW_PAGE = "opencode_review.html"
+ecra\html_report.py:332:    original facts remain available in the neighbouring facts.json file.
+ecra\html_report.py:605:    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class="reading-page"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href="index.html">静态排查</a><a href="' + REVIEW_PAGE + '">逐项复核结果</a><a href="' + QUALITY_PAGE + '">分类质量</a><button type="button" id="print-view">打印 / 保存当前筛选结果</button></nav></header><main><p class="print-context"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'
+ecra\html_report.py:782:            '<a href="index.html#' + anchor('var-', variable['symbol_id']) + '">' + esc(variable['name']) + '</a>',
+ecra\html_report.py:912:                    chains += '<a href="facts.json">查看完整图证据（context_call_graph / call_graph_slices / calls）</a>；'
+ecra\html_report.py:995:                      + '完整组合清单保存在同目录的 <a href="facts.json">facts.json</a> 与 '
+ecra\html_report.py:996:                      + '<a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>。</p>')
+ecra\html_report.py:1101:        body += '完整内容见 <a href="facts.json">facts.json</a>（变量 ID：<code>' + esc(variable['symbol_id']) + '</code>）。</p>'
+ecra\html_report.py:1109:        body += '<a href="facts.json">facts.json</a>，可按变量 ID 查找：<code>' + esc(variable['symbol_id']) + '</code>。'
+ecra\html_report.py:1122:                    完整证据定位=dict(file='facts.json',symbol_id=variable['symbol_id'],
+ecra\html_report.py:1252:        detail_body += '<p>完整、不重复的机器事实在同目录 <a href="reports/global_static_concurrency.json">global_static_concurrency.json</a>；候选 ID：<code>' + esc(f['finding_id']) + '</code>。</p>'
+ecra\html_report.py:1494:        source_link = f'index.html#{anchor("var-", f["symbol_id"])}' if f.get('symbol_id') else f'index.html#{anchor("risk-", f["finding_id"])}'
+ecra\html_report.py:1513:                 + f'<p><a href="{source_link}">静态读写与变量身份</a> · <a href="index.html#{anchor("risk-", f["finding_id"])}">候选依据与处理步骤</a></p>'
+ecra\html_report.py:1552:                '<a href="index.html#' + anchor('var-',sample['symbol_id']) + '">' + proof_label + '</a>'
+ecra\html_report.py:1563:    for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page),
+ecra\html_report.py:1578:    for name in ('index.html', REVIEW_PAGE, QUALITY_PAGE):
+ecra\html_report.py:1584:        write_json(out / 'reports/global_static_concurrency.json', dict(
+scripts\preopencode_benchmark_samples.py:10:def compact(variable, evidence_file='facts.json'):
+scripts\preopencode_benchmark_samples.py:45:    source = args.folder/'facts.json'
+scripts\preopencode_benchmark_samples.py:49:        evidence_file = 'facts.json'
+tests\test_compact_saved_html.py:29:                (source/'index.html').write_text(html,encoding='utf-8')
+tests\test_compact_saved_html.py:30:                evidence.register('index.html',html)
+tests\test_compact_saved_html.py:42:            frames=test_html_evidence.HtmlEvidenceTests.FrameContexts();frames.feed((out/'index.html').read_text(encoding='utf-8'))
+tests\test_compact_saved_html.py:47:            self.assertEqual(anchors['var-g'],'index.html')
+tests\test_compact_saved_html.py:48:            self.assertNotEqual(anchors['proof-node'],'index.html')
+scripts\preopencode_benchmark_scan.py:268:        destination = (output / 'raw-facts.json').resolve()
+scripts\preopencode_benchmark_scan.py:272:        write(output / "raw-facts.json", facts)
+scripts\preopencode_benchmark_scan.py:389:        write(output / "facts.json", facts)
+scripts\preopencode_benchmark_scan.py:439:        raw_facts_sha256=sha256_file(output / 'raw-facts.json'),
+tests\test_complete_inventory.py:40:        self.facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
+tests\test_complete_inventory.py:41:        self.report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_complete_inventory.py:45:        self.html=(out/'index.html').read_text(encoding='utf-8')
+scripts\preopencode_benchmark_summary.py:72:    source = folder/'facts.json'
+tests\test_database_values.py:21:        write_json(folder/'facts.json',facts);write_json(folder/'reports/global_static_concurrency.json',report)
+tests\test_database_values.py:22:        write_database(folder/'facts.db',facts,report,shared_threshold=0)
+tests\test_database_values.py:41:                with closing(sqlite3.connect(path/'facts.db')) as db,db:
+tests\test_deep_review.py:59:        write_json(out / 'facts.json', facts)
+tests\test_deep_review.py:60:        cfg['review']['facts_path'] = str(out / 'facts.json')
+tests\test_deep_review.py:61:        packet = build_variable_review_packet(self.root, facts, finding, facts_path=out/'facts.json',
+tests\test_deep_review.py:143:            before = read_json(self.root/'.ecra/facts.json')
+tests\test_deep_review.py:151:            self.assertEqual(read_json(self.root/'.ecra/facts.json'), before)
+tests\test_deep_review.py:152:            self.assertTrue((self.root/'.ecra/index.html').is_file())
+scripts\probe_diagnostic_memory.py:73:    assert '不能使用旧结论' in (out/'index.html').read_text(encoding='utf-8')
+tests\test_design_acceptance.py:93:        html = (out/'index.html').read_text(encoding='utf-8')
+tests\test_design_acceptance.py:94:        review_html = (out/'opencode_review.html').read_text(encoding='utf-8')
+tests\test_design_acceptance.py:111:        with closing(sqlite3.connect(out/'facts.db')) as db:
+tests\test_design_acceptance.py:255:        self.assertIn(anchor('review-',sample['finding_id']),(out/'opencode_review.html').read_text(encoding='utf-8'))
+tests\test_design_acceptance.py:257:        with closing(sqlite3.connect(out/'facts.db')) as db:
+ecra\multicore.py:52:        facts = read_json(folder / 'facts.json')
+scripts\real_project_metrics.py:1:"""Summarize an ECRA facts.json without importing analysis or changing facts."""
+scripts\repeat_large_scan.py:86:        copied = args.evidence/f'run{number}-facts.db'
+scripts\repeat_large_scan.py:87:        shutil.copy2(output/'facts.db',copied)
+scripts\repeat_large_scan.py:91:                str(args.evidence/f'run{number-1}-facts.db'),str(copied),'--output',str(comparison)])
+scripts\replay_saved_storage.py:60:            if file_digest(folder/'facts.json')!=verified['facts_sha256']:
+scripts\replay_saved_storage.py:63:            result['source_report_sha256']=file_digest(folder/'reports/global_static_concurrency.json')
+scripts\replay_saved_storage.py:65:            facts=read_saved_json(folder/'facts.json',canonical_accesses=True)
+scripts\replay_saved_storage.py:66:            report=read_saved_json(folder/'reports/global_static_concurrency.json')
+scripts\replay_saved_storage.py:78:        for name,value,path in [('完整事实',facts,rendered/'facts.json'),
+scripts\replay_saved_storage.py:80:                ('完整静态报告',report,rendered/'reports/global_static_concurrency.json')]:
+scripts\replay_saved_storage.py:85:                database.write_database(rendered/'facts.db',facts,report)
+scripts\replay_saved_storage.py:87:                database.write_database(rendered/'facts.db',facts,report,shared_plan=plan)
+tests\test_ecra.py:199:        page = (self.root / '.ecra' / 'index.html').read_text(encoding='utf-8')
+tests\test_ecra.py:267:        page = (out / 'index.html').read_text(encoding='utf-8')
+tests\test_ecra.py:461:        report = json.loads((out / "reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+tests\test_ecra.py:468:        self.assertIn('复核结果不完整', (out / 'opencode_review.html').read_text(encoding='utf-8'))
+tests\test_ecra.py:469:        with sqlite3.connect(out / "facts.db") as db:
+tests\test_ecra.py:472:        self.assertTrue((out / "index.html").is_file())
+tests\test_ecra.py:473:        self.assertTrue((out / "opencode_review.html").is_file())
+tests\test_ecra.py:480:        for name in ('index.html', 'opencode_review.html'):
+tests\test_ecra.py:700:        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+tests\test_ecra.py:729:        saved_facts = (out/'facts.json').read_bytes()
+tests\test_ecra.py:767:        self.assertEqual((out/'facts.json').read_bytes(), saved_facts)
+tests\test_ecra.py:875:        before={name:(out/name).read_bytes() for name in ('run.json','run.log','index.html','opencode_review.html','scan_state.json')}
+tests\test_ecra.py:889:        facts=self.root/'.ecra/facts.json'
+tests\test_ecra.py:908:        report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+ecra\report.py:52:            # facts.json. Dict/string-list pools are not ordinary fact tables.
+ecra\report.py:216:    write_shared_json(out / "facts.json", facts)
+ecra\report.py:218:    write_shared_json(out / "reports/global_static_concurrency.json", report)
+ecra\report.py:219:    write_database(out / "facts.db", facts, report)
+ecra\report.py:237:        inventory += ["调用路径以下仅列最短见证，条数不是全部路径数；完整调用证据包含全部入口、调用边与上下文，见 [facts.json](../facts.json) 的 context_call_graph、call_graph_slices 和 calls。保护与分类证明使用完整图。", ""]
+ecra\report.py:294:    causes += ["", "完整变量、源码位置和相关性解释保存在 facts.json 的 variable_evidence_slice / blocking_evidence。"]
+ecra\report.py:321:                '解析器返回错误；原文保留在 facts.json 中该编译单元的原始诊断。' if is_english_prose(d['message']) else d['message']) for d in u['diagnostics']]
+ecra\report.py:350:            detail = '该分析缺口尚待核实；请按位置核对 facts.json 中保留的原始诊断。'
+tests\test_effective_decisions.py:110:        facts = read_json(self.root / '.ecra/facts.json')
+tests\test_effective_decisions.py:111:        report = clean_report(read_json(self.root / '.ecra/reports/global_static_concurrency.json'))
+tests\test_effective_decisions.py:128:                exported = read_json(out / 'reports/global_static_concurrency.json')
+tests\test_effective_decisions.py:136:                html = (out / 'index.html').read_text(encoding='utf-8')
+tests\test_effective_decisions.py:236:        kwargs = dict(facts_path=self.root / '.ecra/facts.json',
+tests\test_engine_digest_coverage.py:78:        saved_facts = (self.out/'facts.json').read_bytes()
+tests\test_engine_digest_coverage.py:102:        self.assertEqual((self.out/'facts.json').read_bytes(), saved_facts)
+ecra\review.py:35:优先按 file/line/end_line 分段 read。project_evidence_path 提供构建配置；完整原始事实和静态冲突证据在 facts_path 与 static_report_path。
+ecra\review.py:264:def build_variable_review_packet(root, facts, finding, *, facts_path, shared_path, report_path):
+ecra\review.py:268:    CFG nodes stay in facts.json; context hints only provide navigation.
+ecra\review.py:370:        files_to_check=sorted(files), project_root=str(root), facts_path=str(facts_path),
+ecra\review.py:371:        static_report_path=str(report_path), project_evidence_path=str(shared_path),
+ecra\review.py:490:                error='OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中'), 'PENDING')
+ecra\review.py:498:    facts_path = Path(settings.get('facts_path', out / 'facts.json')).resolve()
+ecra\review.py:548:            packet = build_variable_review_packet(root, facts, finding, facts_path=facts_path,
+ecra\review.py:654:                        env=_review_env([packet_path, shared_path, facts_path, report_path,
+ecra\review.py:655:                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
+scripts\validate_cdc_git_diff.py:81:    report = read_json(__import__('ecra.workflow', fromlist=['output_path']).output_path(root, cfg)/'reports/global_static_concurrency.json')
+scripts\summarize_large_scan.py:75:        ('facts.json', 'facts.db', 'index.html', 'reports/global_static_concurrency.json') if (output/name).is_file()}
+tests\test_git_diff.py:218:        packet = build_variable_review_packet(self.root, facts, finding, facts_path='facts.json', shared_path='shared.json', report_path='report.json')
+tests\test_git_diff.py:249:        return read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+tests\test_git_diff.py:275:        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')
+tests\test_git_diff.py:288:        self.assertTrue((self.root/'.ecra/index.html').is_file())
+tests\test_git_diff.py:289:        self.assertFalse((self.root/'.ecra/diff_index.html').exists())
+tests\test_git_diff.py:290:        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')
+tests\test_git_diff.py:320:        facts = read_saved_json(self.root/'.ecra/facts.json')
+tests\test_git_diff.py:385:        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+tests\test_git_diff.py:461:        self.assertNotIn('workspace_only', (self.root/'.ecra/facts.json').read_text(encoding='utf-8'))
+tests\test_git_diff.py:540:        report = read_json(sub/'.ecra/reports/global_static_concurrency.json')
+tests\test_git_diff.py:611:        saved = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+tests\test_git_diff.py:638:        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+tests\test_git_diff.py:648:        facts = read_json(self.root/'.ecra/facts.json')
+tests\test_git_diff.py:657:            for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path'):
+scripts\validate_git_diff_stm32.py:119:    facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+scripts\validate_git_diff_stm32.py:120:    report = read_saved_json(out/'reports/global_static_concurrency.json')
+tests\test_git_diff_evidence_summary.py:37:            facts_path='facts.json', shared_path='shared.json', report_path='report.json')
+tests\test_git_diff_evidence_summary.py:115:        self.assertTrue((out/'index.html').is_file())
+tests\test_git_diff_evidence_summary.py:116:        self.assertFalse((out/'diff_index.html').exists())
+tests\test_git_diff_patch.py:104:        facts = read_json(self.root/'.ecra/facts.json')
+tests\test_git_diff_patch.py:107:            facts_path='facts.json', shared_path='shared.json', report_path='report.json')
+scripts\validate_large_report.py:228:    for key, value, is_array in rows(folder/'reports/global_static_concurrency.json'):
+scripts\validate_large_report.py:270:            closing(sqlite3.connect(f'{(folder/"facts.db").as_uri()}?mode=ro', uri=True)) as source, \
+scripts\validate_large_report.py:281:        paths = [folder/name for name in ('index.html', 'opencode_review.html', 'classification_quality.html')]
+scripts\validate_large_report.py:324:            result['json'] = audit_fact_database(folder/'facts.json', source, index)
+tests\test_git_diff_storage_shape.py:131:        self.assertTrue((self.root/'.ecra/index.html').is_file())
+tests\test_git_diff_storage_shape.py:132:        self.assertFalse((self.root/'.ecra/diff_index.html').exists())
+scripts\validate_nvic_fix.py:50:    facts=read_json(out/'facts.json')
+scripts\validate_nvic_fix.py:51:    report=read_json(out/'reports/global_static_concurrency.json')
+scripts\validate_nvic_fix.py:88:    for name in ('index.html','opencode_review.html'):
+scripts\validate_nvic_fix.py:94:        facts=str(out/'facts.json'),packet=str(out/'review'/(finding['finding_id']+'.input.json')),
+scripts\validate_nvic_fix.py:95:        review=str(review_out/'review/queue.json'),html=str(review_out/'index.html')))
+scripts\validate_portable.py:349:        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
+scripts\validate_portable.py:353:        static_facts_sha256 = sha256(out/'facts.json')
+scripts\validate_portable.py:357:        if sha256(out/'facts.json') != static_facts_sha256:
+scripts\validate_portable.py:363:        for filename in ('index.html','facts.db','reports/global_static_concurrency.json'):
+scripts\validate_portable.py:389:        defaults = list((self.work/'user-data/projects').glob('*/results/facts.db'))
+scripts\validate_portable.py:399:                         'ecra/studio/web/index.html','ecra/studio/server.py','requirements-studio.txt','STUDIO-PREVIEW.txt',
+tests\test_history_archive.py:13:        names = ('facts.json', 'facts.db', 'inventory/global_static_inventory.json',
+tests\test_history_archive.py:14:                 'reports/global_static_concurrency.json', 'html_details/'+'a'*64+'.json',
+tests\test_history_archive.py:32:            for name in ('index.html', 'queue.json', 'anchors.js'):
+tests\test_history_archive.py:42:            root = Path(folder)/'out';root.mkdir();source=root/'facts.json';saved=Path(folder)/'saved'
+tests\test_history_archive.py:51:            root=Path(folder)/'root';root.mkdir();source=Path(folder)/'facts.json';saved=root/'saved'
+scripts\validate_portable_diff_target.py:86:        facts, report = read_json(out/'facts.json'), read_json(out/'reports/global_static_concurrency.json')
+scripts\validate_portable_diff_target.py:95:            if selected != {'c:@g'} or (out/'diff_index.html').exists():
+tests\test_html_evidence.py:39:            main=(out/'index.html').read_text(encoding='utf-8')
+tests\test_html_evidence.py:57:            main=(out/'index.html').read_text(encoding='utf-8')
+tests\test_html_evidence.py:71:            text=(out/'index.html').read_text(encoding='utf-8')
+tests\test_html_evidence.py:76:            self.assertIn('facts.json',text)
+tests\test_html_evidence.py:88:                    '<a href="facts.json">完整事实</a><a href="inventory/global_static_inventory.md">清单</a>'+debug)
+tests\test_html_evidence.py:91:                evidence.register('index.html', '<tr id="var-1"></tr>')
+tests\test_html_evidence.py:107:            self.assertIn('href="../facts.json"', text)
+tests\test_html_evidence.py:114:            self.assertIn('"var-1":"index.html"', anchors)
+tests\test_html_report.py:155:            first = (out/'index.html').read_text(encoding='utf-8')
+tests\test_html_report.py:168:        self.assertIn('facts.json', first)
+tests\test_html_report.py:192:            if link.startswith('index.html#'):
+tests\test_html_report.py:211:            for name in ['index.html', REVIEW_PAGE]:
+tests\test_html_report.py:217:            self.assertIn('data-scope="dependency"', (out / 'index.html').read_text(encoding='utf-8'))
+tests\test_html_report.py:221:            text = (out / 'index.html').read_text(encoding='utf-8')
+scripts\validate_review_failed.py:71:        report = read_json(self.root / '.ecra/reports/global_static_concurrency.json')
+scripts\validate_review_failed.py:76:                              for p in ('facts.json', 'input_manifest.json', 'scan_state.json')}
+scripts\validate_saved_commands.py:91:        result['facts_before'] = sha256(out / 'facts.json')
+scripts\validate_saved_commands.py:110:        result['facts_after'] = sha256(out / 'facts.json')
+scripts\validate_serial_diff.py:92:    facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+scripts\validate_serial_diff.py:93:    report = read_saved_json(out/'reports/global_static_concurrency.json')
+scripts\validate_serial_diff.py:95:    if (file_digest(pin['base_facts_path']) != pin['base_facts_sha256']
+scripts\validate_serial_diff.py:98:    baseline = read_saved_json(pin['base_facts_path'], canonical_accesses=True)
+scripts\validate_serial_diff.py:165:        facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+scripts\validate_serial_diff.py:166:        report = read_saved_json(out/'reports/global_static_concurrency.json')
+scripts\validate_serial_diff.py:184:        write_json(folder/'facts.json', facts, indent=None)
+scripts\validate_serial_diff.py:185:        write_json(folder/'reports/global_static_concurrency.json', report, indent=None)
+scripts\validate_stm32_cdc.py:279:        facts=read_json(result_path(root)/'facts.json')
+scripts\validate_stm32_cdc.py:303:    cfg['review'].update(enabled=True,model=args.model,workers=1,facts_path=str(result_path(root)/'facts.json'),
+scripts\validate_stm32_cdc.py:305:    facts=read_json(result_path(root)/'facts.json')
+scripts\validate_stm32_cdc.py:306:    full=read_json(result_path(root)/'reports/global_static_concurrency.json')
+scripts\validate_studio_baseline.py:66:        [original/'facts.json', original/'reports/global_static_concurrency.json', original/'facts.db', original/'scan_state.json',
+scripts\validate_studio_baseline.py:68:    facts = read_saved_json(original/'facts.json', canonical_accesses=True)
+scripts\validate_studio_baseline.py:69:    report = read_saved_json(original/'reports/global_static_concurrency.json')
+tests\test_json_rows.py:43:            path = Path(folder)/'facts.json'
+tests\test_large_project.py:101:        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
+tests\test_large_project.py:102:        report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_large_project.py:150:        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
+tests\test_large_project.py:151:        report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_large_project.py:165:        html = (out/'index.html').read_text(encoding='utf-8')
+scripts\validate_studio_native_equivalence.py:32:    original_hashes={str(p.relative_to(original)):sha256(p) for p in [original/'facts.json',original/'facts.db',original/'reports/global_static_concurrency.json']}
+scripts\validate_studio_native_equivalence.py:49:    facts_before=read_saved_json(original/'facts.json',canonical_accesses=True)
+scripts\validate_studio_native_equivalence.py:50:    facts_after=read_saved_json(new/'facts.json',canonical_accesses=True)
+scripts\validate_studio_native_equivalence.py:51:    report_before=clean_report(read_saved_json(original/'reports/global_static_concurrency.json'))
+scripts\validate_studio_native_equivalence.py:52:    report_after=clean_report(read_saved_json(new/'reports/global_static_concurrency.json'))
+tests\test_large_report_pool_audit.py:17:            path = folder / 'facts.json'
+tests\test_large_report_pool_audit.py:19:            write_database(folder / 'facts.db', facts, dict(findings=[]))
+tests\test_large_report_pool_audit.py:20:            with closing(sqlite3.connect(folder / 'facts.db')) as source, \
+tests\test_large_report_pool_audit.py:72:            path = Path(folder) / 'facts.json'
+scripts\validate_ui_contract.py:17:    index=(root/'ecra/studio/web/index.html').read_text(encoding='utf-8')
+tests\test_large_report_scope.py:25:                    write(root/'reports/global_static_concurrency.json', dict(findings=[dict(v='all evidence')],
+tests\test_large_report_scope.py:34:                write_json(root/'reports/global_static_concurrency.json', dict(
+scripts\validate_workspace_matrix.py:55:            for name in ('facts.json', 'facts.db', 'index.html', 'project.json', 'scan_state.json', 'input_manifest.json',
+scripts\validate_workspace_migration.py:86:        facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+scripts\validate_workspace_migration.py:87:        report = read_saved_json(out/'reports/global_static_concurrency.json')
+scripts\validate_workspace_migration.py:104:            facts_json_bytes=(out/'facts.json').stat().st_size, facts_db_bytes=(out/'facts.db').stat().st_size,
+scripts\validate_workspace_migration.py:105:            report_bytes=size(out/'reports')+(out/'index.html').stat().st_size,
+scripts\validate_workspace_migration.py:155:        facts_path='facts.json', shared_path='shared.json', report_path='report.json')
+ecra\workflow.py:224:        engine_scope=ENGINE_SCOPE, engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),
+ecra\workflow.py:345:                or file_digest(out/'facts.json') != state['facts_sha256']):
+ecra\workflow.py:367:        source = out/'reports/global_static_concurrency.json'
+ecra\workflow.py:412:    if (state['facts_sha256'] != file_digest(out/'facts.json') or
+ecra\workflow.py:415:    report = read_saved_json(out/'reports/global_static_concurrency.json')
+ecra\workflow.py:437:    return (read_saved_json(out/'facts.json', canonical_accesses=True) if with_facts else None), clean_report(report), state
+ecra\workflow.py:486:    if not (out/'reports/global_static_concurrency.json').exists():
+ecra\workflow.py:498:        report = read_saved_json(out/'reports/global_static_concurrency.json')
+ecra\workflow.py:507:                    inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))
+ecra\workflow.py:588:            facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+ecra\workflow.py:589:            report = clean_report(read_saved_json(out/'reports/global_static_concurrency.json'))
+ecra\workflow.py:663:        print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)
+scripts\verify_database_values.py:82:    with closing(sqlite3.connect((folder/'facts.db').resolve().as_uri()+'?mode=ro',uri=True)) as connection:
+scripts\verify_database_values.py:85:        for path,is_report in [(folder/'facts.json',False),(folder/'reports/global_static_concurrency.json',True)]:
+ecra\workspace.py:323:    if not (legacy/'facts.db').is_file() or not (legacy/'reports/global_static_concurrency.json').is_file():
+ecra\workspace.py:363:            if not (legacy/'facts.db').is_file() or not (legacy/'reports/global_static_concurrency.json').is_file():
+ecra\workspace.py:439:    allowed_files = {'facts.json', 'facts.db', 'index.html', 'opencode_review.html', 'run.json', 'run.log',
+scripts\verify_replayed_report.py:39:    facts=read_saved_json(folder/'facts.json',canonical_accesses=True)
+scripts\verify_replayed_report.py:46:    report=read_saved_json(folder/'reports/global_static_concurrency.json')
+scripts\verify_replayed_report.py:52:            closing(sqlite3.connect(f'{(folder/"facts.db").as_uri()}?mode=ro',uri=True)) as source, \
+scripts\verify_replayed_report.py:54:        audit=audit_fact_database(folder/'facts.json',source,index)
+scripts\verify_replayed_report.py:59:        facts_logical_digest=actual,facts_sha256=file_digest(folder/'facts.json'),
+scripts\verify_design.py:39:        scenarios={case: dict(index=str(destination/case/'.ecra/index.html'),
+scripts\verify_design.py:40:                             review=str(destination/case/'.ecra/opencode_review.html'))
+tests\test_nvic_recovery.py:161:        packet = build_variable_review_packet(self.root, self.facts, finding, facts_path='facts.json', shared_path='project.json', report_path='report.json')
+tests\test_portability.py:217:                facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
+tests\test_portability.py:221:                html=(out/'index.html').read_text(encoding='utf-8')
+tests\test_portability.py:295:        report=json.loads((output_path(root,cfg)/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_real_classification_repair.py:75:        facts = json.loads((output / 'facts.json').read_text(encoding='utf-8'))
+tests\test_real_classification_repair.py:76:        report = json.loads((output / 'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_replayed_report.py:19:        write(folder/'facts.json',facts,threshold=0)
+tests\test_replayed_report.py:20:        write(folder/'reports/global_static_concurrency.json',report,threshold=0)
+tests\test_replayed_report.py:21:        write_database(folder/'facts.db',facts,report,shared_threshold=0)
+tests\test_replayed_report.py:41:            write(root/'rendered/facts.json',facts,threshold=0)
+tests\test_report_archive.py:21:        self.assertIn(b'classification_quality.html',(output/'index.html').read_bytes())
+tests\test_review_integrity.py:419:            static = Path(packet['static_report_path']).read_text(encoding='utf-8')
+tests\test_review_language.py:116:        for name in ('index.html','opencode_review.html','reports/opencode_global_static_review.md'):
+tests\test_review_language.py:120:        archived=read_json(self.out/'reports/global_static_concurrency.json')['review_records'][0]
+tests\test_review_risk.py:29:        packet = build_variable_review_packet(self.root, facts, finding, facts_path=self.root/'.ecra/facts.json',
+tests\test_review_risk.py:30:            shared_path=self.root/'.ecra/review/project-evidence.json', report_path=self.root/'.ecra/reports/global_static_concurrency.json')
+tests\test_review_summary.py:394:            text = (out/'index.html').read_text(encoding='utf-8')
+tests\test_review_summary.py:406:            for name in ['index.html', 'opencode_review.html', 'reports/opencode_global_static_review.md']:
+tests\test_review_summary.py:410:            for name in ['opencode_review.html', 'reports/opencode_global_static_review.md']:
+tests\test_review_summary.py:414:            self.assertEqual(read_json(out/'reports/global_static_concurrency.json')['review_records'][0]['answer'], repaired)
+tests\test_saved_json.py:22:            path = Path(folder)/'facts.json'
+tests\test_saved_json.py:149:        first = read_json(self.root/'.ecra/facts.json')
+tests\test_saved_json.py:155:        second = read_json(self.root/'.ecra/facts.json')
+tests\test_saved_json.py:166:            if Path(path).name == 'facts.json':
+tests\test_saved_json.py:172:        self.assertIn('global_static_concurrency.json', loaded)
+tests\test_saved_json.py:173:        facts = self.root/'.ecra/facts.json'
+tests\test_scan_comparison.py:14:        self.path = Path(self.temp.name)/'facts.json'
+tests\test_scan_stability.py:221:        self.assertIn('不能使用旧结论', (out/'index.html').read_text(encoding='utf-8'))
+tests\test_scan_stability.py:222:        self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])
+tests\test_scan_stability.py:371:        self.assertIn('不能使用旧结论', (out/'index.html').read_text(encoding='utf-8'))
+tests\test_scan_stability.py:372:        self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])
+tests\test_scan_stability.py:373:        self.assertTrue(list((out/'snapshots').glob('*/index.html')))
+tests\test_scan_stability.py:420:        self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])
+tests\test_scan_stability.py:472:        path = self.root/'facts.db'
+tests\test_scan_stability.py:487:        previous = (out/'reports/global_static_concurrency.json').read_bytes()
+tests\test_scan_stability.py:491:        self.assertEqual((out/'reports/global_static_concurrency.json').read_bytes(),previous)
+tests\test_scan_stability.py:521:        first = read_json(self.root/'.ecra/facts.json')
+tests\test_scan_stability.py:529:        second = read_json(self.root/'.ecra/facts.json')
+tests\test_scope_cmake.py:164:        report = json.loads((self.root/'.ecra/reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_scope_cmake.py:197:        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
+tests\test_scope_cmake.py:198:        report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_scope_cmake.py:243:        facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
+tests\test_scope_cmake.py:244:        report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+tests\test_scope_cmake.py:247:        self.assertNotIn('private_count',(out/'index.html').read_text(encoding='utf-8'))
+tests\test_second_pass.py:54:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_second_pass.py:55:        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+tests\test_second_pass.py:132:        html = (self.root / ".ecra/index.html").read_text(encoding="utf-8")
+tests\test_second_pass.py:152:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_second_pass.py:173:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_second_pass.py:198:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_second_pass.py:219:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_shared_json.py:20:            path = Path(folder)/'facts.json';write(path, source, threshold=0)
+tests\test_shared_json.py:37:            path = Path(folder)/'facts.db';write_database(path, source, report, shared_threshold=0)
+tests\test_shared_json.py:48:            path = Path(folder)/'facts.json';write(path, source, threshold=0);actual = read(path)
+tests\test_shared_json.py:66:            path = Path(folder)/'facts.json'
+tests\test_solver_stats_reader.py:13:            path=Path(folder)/'facts.json'
+tests\test_solver_stats_reader.py:45:            path=Path(folder)/'facts.json'
+tests\test_stale_writeback.py:44:        packet = build_variable_review_packet(self.root, facts, finding, facts_path=self.root/'.ecra/facts.json',
+tests\test_stale_writeback.py:291:                write_json(self.root/'.ecra/facts.json', facts)
+tests\test_studio_workspace.py:35:                write_json(source/'reports/global_static_concurrency.json',dict(findings=[]))
+tests\test_studio_workspace.py:36:                (source/'facts.db').write_bytes(b'preserve legacy bytes exactly')
+tests\test_variable_inventory.py:247:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_variable_inventory.py:267:        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+tests\test_variable_inventory.py:269:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_variable_inventory.py:291:        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+tests\test_variable_inventory.py:294:        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+tests\test_variable_inventory.py:353:        """index.html must default to the inventory panel and show only globals/statics."""
+tests\test_variable_inventory.py:364:        html_text = (out / "index.html").read_text(encoding="utf-8")
+tests\test_variable_inventory.py:386:        html_text = (out / "index.html").read_text(encoding="utf-8")
+tests\test_workspace.py:77:        return out, read_json(out/'reports/global_static_concurrency.json'), capture.getvalue()
+tests\test_workspace.py:83:        write_json(old/'reports/global_static_concurrency.json', dict(findings=[]))
+tests\test_workspace.py:84:        (old/'facts.db').write_bytes(b'legacy database bytes')
+tests\test_workspace.py:85:        (old/'index.html').write_text('人工确认风险/无风险/未确认; 2024-01-02; 原始备注', encoding='utf-8')
+tests\test_workspace.py:113:        self.assertNotIn('dirty_only', (out/'facts.json').read_text(encoding='utf-8'))
+tests\test_workspace.py:115:        self.assertIn('未提交业务修改未纳入', (out/'index.html').read_text(encoding='utf-8'))
+tests\test_workspace.py:157:        self.assertIn('原始备注', (out/'index.html').read_text(encoding='utf-8'))
+tests\test_workspace.py:161:        self.assertIn('Board/.ecra/facts.db', safe)
+tests\test_workspace.py:164:        (old/'facts.db').write_bytes(b'changed user content')
+tests\test_workspace.py:165:        self.assertNotIn('Board/.ecra/facts.db', generated_untracked(self.root, cfg))
+tests\test_workspace.py:231:        before = file_hash(old/'index.html')
+tests\test_workspace.py:236:        self.assertEqual(file_hash(old/'index.html'), before)
+tests\test_workspace.py:297:        self.assertTrue((Path(second_ws.results_root)/'facts.db').is_file())
+tests\test_workspace.py:298:        self.assertTrue((Path(ws.results_root)/'facts.db').is_file())
+tests\test_workspace.py:326:        self.assertTrue(Path(pinned['base_facts_path']).is_file())
+tests\test_workspace.py:394:        facts = read_json(out/'facts.json')
+tests\test_workspace.py:402:        variable = next(v for v in read_json(out/'facts.json')['variables'] if v['name']=='generated_global')
+tests\test_workspace.py:420:            old_facts = file_hash(Path(first['git_diff']['pin']['base_facts_path']))
+tests\test_workspace.py:424:        self.assertNotEqual(old_facts, file_hash(Path(second['git_diff']['pin']['base_facts_path'])))

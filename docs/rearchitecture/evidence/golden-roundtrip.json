@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "scope": "Storage roundtrip of a real frozen 4-TU ARM scan, not a new native scan or large G1 acceptance",
+  "original": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+  "original_hashes": {
+    "facts.json": "352aaae4622ba83ee41481cb75d39071490938dd3c491d1ddc8bcf38f547b286",
+    "reports\\global_static_concurrency.json": "d73f3b3e824e4b9092a0d54acbafd5bb6ad986d8959b84cef1afb73881f1b3c2",
+    "facts.db": "b11ea9f73134cbb10c4a48296d1bd263ab01d02f341f958e5d0068ba61d7d8c0",
+    "scan_state.json": "2d8687816aace3ae864e43ca80e5e398348cbdb59368276ae012920c2a35a9db",
+    "input_manifest.json": "c77c28a8d737f919044bf107099b3684da527eb8bf4b9f95fd22d1a1ac3fab64",
+    "input_closure.json": "26710d2913d58f44a95df83bf868e16f71c52a46ddcaa4f92e9f458e4b768656"
+  },
+  "original_preserved": true,
+  "differences": {
+    "facts": null,
+    "report": null,
+    "provenance": null
+  },
+  "classification_differences": 0,
+  "roots": {
+    "facts": "277001ffc4e5043b1fd253650baae9be0c9ed5cfa79da252d7a1fef6f624bf64",
+    "report": "379c11a5ae80a2d645c6d07fa0fc157f8c427da9e2cc4d54d983c69db8628abf",
+    "provenance": "c73be700c16f4accb80681837e6d07461e279d5940a05667e8428eef97ea1e68"
+  },
+  "sqlite_bytes": 7507968,
+  "standard_package_bytes": 3156947,
+  "legacy_final_bytes": 5510061,
+  "seconds": 11.883682599989697,
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\studio-acceptance",
+  "package": "H:\\ECRAStudio-data\\rearchitecture-20261031\\studio-acceptance\\exports\\golden-f030.ecra-report",
+  "real_large_project_native_comparison": "NOT_VERIFIED",
+  "diff_golden": "NOT_VERIFIED",
+  "performance_gate": "NOT_VERIFIED"
+}

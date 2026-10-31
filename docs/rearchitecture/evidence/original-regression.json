@@ -1,0 +1,51 @@
+{
+  "engine_head": "e69a10bbcb870dfc19a7d69cf2267774d08b3342",
+  "tests": 1068,
+  "seconds": 1554.85,
+  "result": "OK (skipped=2)",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\regression.log",
+  "log_sha256": "6ecc926ecaa84b31024c3a38c6049206f571f86cdbe5a100a98df7080137624d",
+  "native_result_validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd"
+  },
+  "native_run": {
+    "version": "0.1.0",
+    "started": "2026-10-31T10:22:01.366020+00:00",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "state": "INCOMPLETE",
+    "review_mode": "disabled_by_cli",
+    "exit_code": 2,
+    "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd",
+    "report": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\index.html",
+    "review_report": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\legacy-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\opencode_review.html",
+    "review_summary": {
+      "total": 13,
+      "unresolved": 13,
+      "confirmed": 0,
+      "likely": 0,
+      "reviewed_safe_or_false_positive": 0,
+      "targets": 13,
+      "archived": 13,
+      "done": 0,
+      "failed": 0,
+      "pending": 13,
+      "stale": 0,
+      "missing": 0,
+      "duplicate": 0,
+      "complete": false,
+      "all_done": false,
+      "basis": "仅统计 OpenCode 原始复核结果与进度；最终风险分类见 risk_summary。",
+      "variable_coverage": {
+        "total": 13,
+        "statically_screened": 0,
+        "queued": 13,
+        "terminal": 0,
+        "remaining": 13
+      }
+    },
+    "finished": "2026-10-31T10:22:16.205552+00:00"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "7ef7c8a8f5b8e56ff4ddb1e3fcb9c7d25f74d8e2",
+  "bundle": "H:\\ECRAStudio-build-20261101-canonical-v6\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-canonical-v6\\ECRA-Portable.zip",
+  "archive_bytes": 504252703,
+  "archive_sha256": "419432b2931549436c20594053a40d8dedef850002a232b4ae1d4b395f6f873c",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "python": "3.10.9",
+      "original": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "ff2b99439f314637955ecd37b37aa513be3347564d2dfeed1cc0cd1492ffa2ae",
+      "bundle_contains_runtime_data": false
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "python": "3.10.9",
+      "original": "H:\\ECRAStudio-build-20261101-canonical-v6\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "1ace868128ab0677361c56ff6e378cc9fd5d448750c603d54be7356d49bbde2d",
+      "bundle_contains_runtime_data": false
+    }
+  },
+  "real_chrome": {
+    "passed": true,
+    "tests": 14,
+    "evidence": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-canonical-v6\\acceptance.json",
+    "sha256": "484dcf412e46cebda0b631e24389b2b7b592271457c5bfb31e38afac70022d1a"
+  },
+  "source_match": "portable-source-match-v6.json",
+  "clean_offline_windows": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "complete_refactor": false
+}

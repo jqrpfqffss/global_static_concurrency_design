@@ -1,0 +1,94 @@
+{
+  "branch": "optimize_ccc",
+  "starting_head": "e69a10bbcb870dfc19a7d69cf2267774d08b3342",
+  "complete_refactor": false,
+  "full_regression": {
+    "snapshot": "frozen-engine-v3",
+    "tests": 1129,
+    "passed": 1127,
+    "skipped": 2,
+    "seconds": 1631.32,
+    "log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-v3.log",
+      "sha256": "d3010ed5cfe05ce0ccab533b5b0935137f370dcb1315bda2ff699de73ac61c08",
+      "tail": "Users\\Administrator\\AppData\\Local\\Temp\\ecra inventory test cgnv6wg0\\.ecra\n阶段开始：编译数据库准备\n检查配置、libclang 和真实编译数据库…\n本次命令使用 --no-review，已跳过 OpenCode；候选项只会保存为 PENDING。\n阶段开始：扫描输入快照建立\n依赖快照 1/1: a.c\n阶段开始：Clang 翻译单元提取\nClang 1/1: a.c\n阶段开始：输入一致性验证\n阶段开始：跨翻译单元事实归并\n补充声明盘点：orphan.h\n阶段开始：输入一致性验证\n阶段开始：指针、函数指针及调用图分析\n阶段开始：跨翻译单元指针与函数指针求解\n阶段开始：执行上下文指针与调用图分析\n阶段开始：结构体字段、数组与重叠存储分析\n阶段开始：调用图上下文恢复\n阶段开始：NVIC 优先级与抢占关系分析\n阶段开始：可达性与不完整证据关联\n阶段开始：并发风险分类与保护证据\n阶段开始：发布前输入一致性验证\n未启用自动复核及证据包；完成最终输入校验后单次发布完整报告。\n已盘点 3 个变量，生成 1 个候选/盲区复核项。\n阶段开始：可选 OpenCode 复核\n阶段开始：报告生成与存储（单次发布）\n阶段开始：报告发布后输入一致性验证\n阶段开始：最终完整性验收\n完成：INCOMPLETE；变量与风险 C:\\Users\\Administrator\\AppData\\Local\\Temp\\ecra inventory test cgnv6wg0\\.ecra\\index.html；OpenCode 结果 C:\\Users\\Administrator\\AppData\\Local\\Temp\\ecra inventory test cgnv6wg0\\.ecra\\opencode_review.html\n..............................................................................................................................................................................s.........................................................................................................................\n----------------------------------------------------------------------\nRan 1129 tests in 1631.320s\n\nOK (skipped=2)\n"
+    }
+  },
+  "current_delta_regression": {
+    "tests": 68,
+    "passed": 68,
+    "seconds": 107.49,
+    "log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\final-module-regression-v5.log",
+      "sha256": "93d7ad13030b7fca86c1ef6d907fa8ffe010f342b38263ce3abe400d278de419",
+      "tail": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n  from starlette.testclient import TestClient as TestClient  # noqa\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 107.490s\n\nOK\n"
+    }
+  },
+  "additional_portability_regression": {
+    "tests": 20,
+    "passed": 20,
+    "seconds": 42.39,
+    "log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-alias-tests-v4.log",
+      "sha256": "9442c3194b1ac475461abbacaf709512c30996d94ad6811d3b5f8d2f6fb82ac6",
+      "tail": "....................\n----------------------------------------------------------------------\nRan 20 tests in 42.390s\n\nOK\n"
+    }
+  },
+  "changed_engine_files_since_full_snapshot": [
+    "ecra/garbage_collection.py",
+    "ecra/lock_owner.py",
+    "ecra/portable.py",
+    "ecra/scan_persistence.py",
+    "ecra/storage_activity.py",
+    "ecra/studio/cleanup_jobs.py"
+  ],
+  "protected_modules_unchanged": {
+    "analysis.py": true,
+    "points_to.py": true,
+    "context_points.py": true,
+    "solver_reachability.py": true,
+    "call_graph.py": true,
+    "protection.py": true,
+    "nvic.py": true,
+    "interrupts.py": true,
+    "physical.py": true,
+    "decisions.py": true
+  },
+  "semantics_yaml_values_unchanged": true,
+  "logs": {
+    "full-regression-v3.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-v3.log",
+      "sha256": "d3010ed5cfe05ce0ccab533b5b0935137f370dcb1315bda2ff699de73ac61c08",
+      "tail": "Users\\Administrator\\AppData\\Local\\Temp\\ecra inventory test cgnv6wg0\\.ecra\n阶段开始：编译数据库准备\n检查配置、libclang 和真实编译数据库…\n本次命令使用 --no-review，已跳过 OpenCode；候选项只会保存为 PENDING。\n阶段开始：扫描输入快照建立\n依赖快照 1/1: a.c\n阶段开始：Clang 翻译单元提取\nClang 1/1: a.c\n阶段开始：输入一致性验证\n阶段开始：跨翻译单元事实归并\n补充声明盘点：orphan.h\n阶段开始：输入一致性验证\n阶段开始：指针、函数指针及调用图分析\n阶段开始：跨翻译单元指针与函数指针求解\n阶段开始：执行上下文指针与调用图分析\n阶段开始：结构体字段、数组与重叠存储分析\n阶段开始：调用图上下文恢复\n阶段开始：NVIC 优先级与抢占关系分析\n阶段开始：可达性与不完整证据关联\n阶段开始：并发风险分类与保护证据\n阶段开始：发布前输入一致性验证\n未启用自动复核及证据包；完成最终输入校验后单次发布完整报告。\n已盘点 3 个变量，生成 1 个候选/盲区复核项。\n阶段开始：可选 OpenCode 复核\n阶段开始：报告生成与存储（单次发布）\n阶段开始：报告发布后输入一致性验证\n阶段开始：最终完整性验收\n完成：INCOMPLETE；变量与风险 C:\\Users\\Administrator\\AppData\\Local\\Temp\\ecra inventory test cgnv6wg0\\.ecra\\index.html；OpenCode 结果 C:\\Users\\Administrator\\AppData\\Local\\Temp\\ecra inventory test cgnv6wg0\\.ecra\\opencode_review.html\n..............................................................................................................................................................................s.........................................................................................................................\n----------------------------------------------------------------------\nRan 1129 tests in 1631.320s\n\nOK (skipped=2)\n"
+    },
+    "final-module-regression-v5.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\final-module-regression-v5.log",
+      "sha256": "93d7ad13030b7fca86c1ef6d907fa8ffe010f342b38263ce3abe400d278de419",
+      "tail": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n  from starlette.testclient import TestClient as TestClient  # noqa\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 107.490s\n\nOK\n"
+    },
+    "portable-alias-tests-v4.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-alias-tests-v4.log",
+      "sha256": "9442c3194b1ac475461abbacaf709512c30996d94ad6811d3b5f8d2f6fb82ac6",
+      "tail": "....................\n----------------------------------------------------------------------\nRan 20 tests in 42.390s\n\nOK\n"
+    },
+    "locks-tool-alias-regression.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\locks-tool-alias-regression.log",
+      "sha256": "502d8cdc3fbcafd235ebbd28aae3d2cb1338ffe1b4e34f616561f4342c097e43",
+      "tail": ".................\n----------------------------------------------------------------------\nRan 17 tests in 75.911s\n\nOK\n"
+    },
+    "gc-checkpoint-reference-tests.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\gc-checkpoint-reference-tests.log",
+      "sha256": "c71d191ca04156b3a93a861dfd57866c90136ae9275d1fd6d89834f631213183",
+      "tail": "........\n----------------------------------------------------------------------\nRan 8 tests in 4.414s\n\nOK\n"
+    },
+    "native-benchmark-migration-2.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-benchmark-migration-2.log",
+      "sha256": "377f8b372c5abddad621d2f8b0ef538f27cf1e4c03d872ac65e0ef9807d0f800",
+      "tail": "..\n----------------------------------------------------------------------\nRan 2 tests in 15.276s\n\nOK\n"
+    }
+  },
+  "host_physical_ram_bytes": 68645584896,
+  "windows_32gb": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED",
+  "clean_offline_windows": "NOT_VERIFIED"
+}

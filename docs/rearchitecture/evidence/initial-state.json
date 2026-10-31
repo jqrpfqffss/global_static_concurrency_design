@@ -1,0 +1,15 @@
+{
+  "head": "e69a10bbcb870dfc19a7d69cf2267774d08b3342",
+  "branch": "optimize_ccc",
+  "initial_status": "?? docs/ECRA_optimize_ccc_Codex.md\n",
+  "python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "python_version": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+  "engine_archive_sha256": "6a02201bca0290e8759f0e963cdc8fa71f51441d444a0b5323b7ed823fa7dda6",
+  "firmware_archive_sha256": "3af79d911384796a301a67fb66763165374422a88b73a73b1695f057141d74c3",
+  "firmware_head": "55bbd6a1ffddfd4acb20b62aabb3c0eb060e2eb3",
+  "firmware_origin": "https://github.com/hemashushu/practice-mcu-bare-metal-stm32f030.git",
+  "firmware_status": "",
+  "semantics_status": "NOT_SCANNED",
+  "real_large_project_validation": "NOT_VERIFIED",
+  "baseline": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline"
+}

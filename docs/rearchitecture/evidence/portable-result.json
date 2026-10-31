@@ -1,0 +1,21 @@
+{
+  "archive": "H:\\ECRAStudio-build-20261031-delivery-preview\\ECRA-Studio-Preview-verified.zip",
+  "zip_sha256": "f4e37cb2912fc03a32749b952606726cb3ef19e12bd234e306628a8d135b187a",
+  "zip_bytes": 496272732,
+  "files": 28539,
+  "uncompressed_bytes": 1664932986,
+  "extracted": "H:\\ECRAStudioZipVerified-20261031\\ECRA-Portable",
+  "seconds": 116.03864139999496,
+  "status": "PASS_PREVIEW_PACKAGE_CHECKS",
+  "directory_commands": 25,
+  "zip_extracted_commands": 25,
+  "python": "3.10.9",
+  "viewer_ui_tests": 9,
+  "clean_offline_machine": "NOT_VERIFIED",
+  "full_studio_native_scan": "NOT_IMPLEMENTED",
+  "G8": "NOT_VERIFIED",
+  "source_match": "portable-source-match.json",
+  "directory_receipt": "portable-directory-acceptance.json",
+  "zip_receipt": "portable-zip-acceptance.json",
+  "browser_receipt": "browser-portable.json"
+}

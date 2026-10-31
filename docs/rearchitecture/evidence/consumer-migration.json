@@ -1,0 +1,2202 @@
+{
+  "complete": false,
+  "consumers": [
+    {
+      "file": "ecra\\cli.py",
+      "line": 256,
+      "reference": "        old_report = out / \"reports/global_static_concurrency.json\"",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 263,
+      "reference": "                with closing(sqlite3.connect(f\"{(out / 'facts.db').as_uri()}?mode=ro\", uri=True)) as connection:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 273,
+      "reference": "            for name in (\"facts.json\", \"facts.db\", \"run.json\", \"scan_state.json\", \"input_manifest.json\", \"input_closure.json\", \"doctor.json\", \"run.log\", \"index.html\", REVIEW_PAGE, QUALITY_PAGE, \"inventory\", \"reports\", \"review\", 'diagnostics', 'result_validity.json', 'html_details'):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 674,
+      "reference": "                     [out/'facts.json', out/'facts.db', out/'index.html', out/'reports/global_static_concurrency.json']}))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 677,
+      "reference": "                        report=str(out / \"index.html\"), review_report=str(out / REVIEW_PAGE), review_summary=report[\"review_summary\"])",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 678,
+      "reference": "        progress(f\"完成：{report['run_status']}；变量与风险 {out / 'index.html'}；OpenCode 结果 {out / REVIEW_PAGE}\")",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 682,
+      "reference": "                if not webbrowser.open((out / 'index.html').as_uri()):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\cli.py",
+      "line": 683,
+      "reference": "                    progress('浏览器未自动打开，请打开上述 index.html。')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\audit_github_stm32_inventory.py",
+      "line": 47,
+      "reference": "    facts = read_saved_json(output_path(root, cfg)/'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\analysis.py",
+      "line": 917,
+      "reference": "        evidence='facts.json: context_call_graph, call_graph_slices, calls',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\analysis.py",
+      "line": 1144,
+      "reference": "                full_evidence_reference='facts.json:multi_field_coherence')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\benchmark_project_scan.py",
+      "line": 99,
+      "reference": "    facts = read_saved_json(out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\benchmark_project_scan.py",
+      "line": 100,
+      "reference": "    report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\benchmark_project_scan.py",
+      "line": 111,
+      "reference": "        if (file_digest(base_out/'facts.json') != pinned['base_facts_sha256']",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\benchmark_project_scan.py",
+      "line": 112,
+      "reference": "                or file_digest(pinned['base_facts_path']) != pinned['base_facts_sha256']",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\benchmark_project_scan.py",
+      "line": 138,
+      "reference": "                  facts_sha256=file_digest(out/'facts.json'), summary_sha256=file_digest(evidence/'summary.json'))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 90,
+      "reference": "        if relative.as_posix()=='index.html':continue",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 96,
+      "reference": "            relative.as_posix() in {'facts.json','facts.db'} or relative.parts[0] in {'inventory','reports'}",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 119,
+      "reference": "        with (out/'index.html').open('w',encoding='utf-8') as stream:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 121,
+      "reference": "            with (source/'index.html').open(encoding='utf-8') as original:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 125,
+      "reference": "        for ident in converter.ids:evidence.anchors[ident]='index.html'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 128,
+      "reference": "        source=str(source),source_bytes=(source/'index.html').stat().st_size,",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\compact_saved_html.py",
+      "line": 129,
+      "reference": "        index_bytes=(out/'index.html').stat().st_size,moved_count=len(converter.moved),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\audit_nvic_acceptance.py",
+      "line": 41,
+      "reference": "    report=read_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\audit_nvic_acceptance.py",
+      "line": 53,
+      "reference": "    for name in ('index.html','opencode_review.html'):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\audit_nvic_acceptance.py",
+      "line": 68,
+      "reference": "    with sqlite3.connect(out/'facts.db') as db:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\audit_nvic_acceptance.py",
+      "line": 71,
+      "reference": "    baseline_path=out/'snapshots/20261019-150008-858553/facts.json'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\context_points.py",
+      "line": 318,
+      "reference": "        # serializes the same evidence twice and can grow facts.json by GBs.",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\evidence.py",
+      "line": 76,
+      "reference": "    call_edges_reference: str = 'facts.json:calls'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\evidence.py",
+      "line": 139,
+      "reference": "                entry_sites_reference='facts.json:unknowns (FUNCTION_ADDRESS, actual_escape, target_function_id)',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\export_github_stm32_review.py",
+      "line": 28,
+      "reference": "    report = json.loads((out / 'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_block_bitmap.py",
+      "line": 73,
+      "reference": "            path = Path(folder)/'facts.db'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_call_graph_scaling.py",
+      "line": 136,
+      "reference": "        html=(self.root/'.ecra/index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 177,
+      "reference": "    for path_key, hash_key in (('base_facts_path', 'base_facts_sha256'), ('diff_patch_path', 'diff_patch_sha256'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 650,
+      "reference": "                      base_facts_path=pinned.get('base_facts_path'), base_facts_sha256=pinned.get('base_facts_sha256'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 969,
+      "reference": "        base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 975,
+      "reference": "    sha = file_digest(base_out/'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 995,
+      "reference": "        base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 1011,
+      "reference": "    immutable = evidence/'facts.json'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 1015,
+      "reference": "            os.link(base_out/'facts.json', immutable)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 1018,
+      "reference": "            shutil.copyfile(base_out/'facts.json', temp)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\git_diff.py",
+      "line": 1023,
+      "reference": "    pinned['base_facts_path'] = str(immutable)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\history_archive.py",
+      "line": 8,
+      "reference": "    'facts.json', 'facts.db',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\history_archive.py",
+      "line": 10,
+      "reference": "    'reports/global_static_concurrency.json',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\large_stm32_scan.py",
+      "line": 124,
+      "reference": "    required = ['facts.json','facts.db','index.html','reports/global_static_concurrency.json','input_manifest.json','scan_state.json']",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\large_stm32_scan.py",
+      "line": 156,
+      "reference": "    if result['checks']['process_completed'] and (out/'facts.db').is_file():",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\large_stm32_scan.py",
+      "line": 157,
+      "reference": "        with closing(sqlite3.connect(f\"{(out/'facts.db').resolve().as_uri()}?mode=ro\",uri=True)) as connection:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\large_stm32_scan.py",
+      "line": 161,
+      "reference": "        with (out/'index.html').open(encoding='utf-8') as stream:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_evidence.py",
+      "line": 41,
+      "reference": " try{const destination=await evidenceDestination(id);if(!destination)return;const root=document.documentElement.dataset.ecraRoot||'';const url=root+destination+'#'+encodeURIComponent(id);if(destination==='index.html')window.top.location.href=url;else location.href=url;}",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_evidence.py",
+      "line": 156,
+      "reference": "                  +'</title><link rel=\"stylesheet\" href=\"'+self.style_name+'\"><main><p><a target=\"_top\" href=\"../index.html\">返回完整报告</a>'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 18,
+      "reference": "REVIEW_PAGE = \"opencode_review.html\"",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 332,
+      "reference": "    original facts remain available in the neighbouring facts.json file.",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 605,
+      "reference": "    return '<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"icon\" href=\"data:,\"><title>' + esc(title) + '</title><style>' + STYLE + '</style></head><body' + (' class=\"reading-page\"' if reading else '') + '><header><h1>' + esc(title) + '</h1><p>' + esc(meta) + '</p><nav><a href=\"index.html\">静态排查</a><a href=\"' + REVIEW_PAGE + '\">逐项复核结果</a><a href=\"' + QUALITY_PAGE + '\">分类质量</a><button type=\"button\" id=\"print-view\">打印 / 保存当前筛选结果</button></nav></header><main><p class=\"print-context\"></p><noscript>启用 JavaScript 可使用搜索、栏目切换、分页和按需展开详情；完整机器事实见同目录 facts.json 与 reports/。</noscript>' + content + '<footer>' + raw({'源码指纹': report.get('fingerprint'), '工具版本': report.get('tool_version'), '工程版本': report.get('git_commit'), '静态状态': report.get('analysis_status'), '本轮状态': report.get('run_status')}, '报告版本与原始状态') + '</footer></main><script>' + SCRIPT + script + '</script></body></html>'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 782,
+      "reference": "            '<a href=\"index.html#' + anchor('var-', variable['symbol_id']) + '\">' + esc(variable['name']) + '</a>',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 912,
+      "reference": "                    chains += '<a href=\"facts.json\">查看完整图证据（context_call_graph / call_graph_slices / calls）</a>；'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 995,
+      "reference": "                      + '完整组合清单保存在同目录的 <a href=\"facts.json\">facts.json</a> 与 '",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 996,
+      "reference": "                      + '<a href=\"reports/global_static_concurrency.json\">global_static_concurrency.json</a>。</p>')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1101,
+      "reference": "        body += '完整内容见 <a href=\"facts.json\">facts.json</a>（变量 ID：<code>' + esc(variable['symbol_id']) + '</code>）。</p>'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1109,
+      "reference": "        body += '<a href=\"facts.json\">facts.json</a>，可按变量 ID 查找：<code>' + esc(variable['symbol_id']) + '</code>。'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1122,
+      "reference": "                    完整证据定位=dict(file='facts.json',symbol_id=variable['symbol_id'],",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1252,
+      "reference": "        detail_body += '<p>完整、不重复的机器事实在同目录 <a href=\"reports/global_static_concurrency.json\">global_static_concurrency.json</a>；候选 ID：<code>' + esc(f['finding_id']) + '</code>。</p>'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1494,
+      "reference": "        source_link = f'index.html#{anchor(\"var-\", f[\"symbol_id\"])}' if f.get('symbol_id') else f'index.html#{anchor(\"risk-\", f[\"finding_id\"])}'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1513,
+      "reference": "                 + f'<p><a href=\"{source_link}\">静态读写与变量身份</a> · <a href=\"index.html#{anchor(\"risk-\", f[\"finding_id\"])}\">候选依据与处理步骤</a></p>'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1552,
+      "reference": "                '<a href=\"index.html#' + anchor('var-',sample['symbol_id']) + '\">' + proof_label + '</a>'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1563,
+      "reference": "    for name, contents in [('index.html', inventory_page), (REVIEW_PAGE, review_page),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1578,
+      "reference": "    for name in ('index.html', REVIEW_PAGE, QUALITY_PAGE):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\html_report.py",
+      "line": 1584,
+      "reference": "        write_json(out / 'reports/global_static_concurrency.json', dict(",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_samples.py",
+      "line": 10,
+      "reference": "def compact(variable, evidence_file='facts.json'):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_samples.py",
+      "line": 45,
+      "reference": "    source = args.folder/'facts.json'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_samples.py",
+      "line": 49,
+      "reference": "        evidence_file = 'facts.json'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_compact_saved_html.py",
+      "line": 29,
+      "reference": "                (source/'index.html').write_text(html,encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_compact_saved_html.py",
+      "line": 30,
+      "reference": "                evidence.register('index.html',html)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_compact_saved_html.py",
+      "line": 42,
+      "reference": "            frames=test_html_evidence.HtmlEvidenceTests.FrameContexts();frames.feed((out/'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_compact_saved_html.py",
+      "line": 47,
+      "reference": "            self.assertEqual(anchors['var-g'],'index.html')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_compact_saved_html.py",
+      "line": 48,
+      "reference": "            self.assertNotEqual(anchors['proof-node'],'index.html')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_scan.py",
+      "line": 268,
+      "reference": "        destination = (output / 'raw-facts.json').resolve()",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_scan.py",
+      "line": 272,
+      "reference": "        write(output / \"raw-facts.json\", facts)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_scan.py",
+      "line": 389,
+      "reference": "        write(output / \"facts.json\", facts)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_scan.py",
+      "line": 439,
+      "reference": "        raw_facts_sha256=sha256_file(output / 'raw-facts.json'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_complete_inventory.py",
+      "line": 40,
+      "reference": "        self.facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_complete_inventory.py",
+      "line": 41,
+      "reference": "        self.report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_complete_inventory.py",
+      "line": 45,
+      "reference": "        self.html=(out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\preopencode_benchmark_summary.py",
+      "line": 72,
+      "reference": "    source = folder/'facts.json'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_database_values.py",
+      "line": 21,
+      "reference": "        write_json(folder/'facts.json',facts);write_json(folder/'reports/global_static_concurrency.json',report)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_database_values.py",
+      "line": 22,
+      "reference": "        write_database(folder/'facts.db',facts,report,shared_threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_database_values.py",
+      "line": 41,
+      "reference": "                with closing(sqlite3.connect(path/'facts.db')) as db,db:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_deep_review.py",
+      "line": 59,
+      "reference": "        write_json(out / 'facts.json', facts)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_deep_review.py",
+      "line": 60,
+      "reference": "        cfg['review']['facts_path'] = str(out / 'facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_deep_review.py",
+      "line": 61,
+      "reference": "        packet = build_variable_review_packet(self.root, facts, finding, facts_path=out/'facts.json',",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_deep_review.py",
+      "line": 143,
+      "reference": "            before = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_deep_review.py",
+      "line": 151,
+      "reference": "            self.assertEqual(read_json(self.root/'.ecra/facts.json'), before)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_deep_review.py",
+      "line": 152,
+      "reference": "            self.assertTrue((self.root/'.ecra/index.html').is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\probe_diagnostic_memory.py",
+      "line": 73,
+      "reference": "    assert '不能使用旧结论' in (out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_design_acceptance.py",
+      "line": 93,
+      "reference": "        html = (out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_design_acceptance.py",
+      "line": 94,
+      "reference": "        review_html = (out/'opencode_review.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_design_acceptance.py",
+      "line": 111,
+      "reference": "        with closing(sqlite3.connect(out/'facts.db')) as db:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_design_acceptance.py",
+      "line": 255,
+      "reference": "        self.assertIn(anchor('review-',sample['finding_id']),(out/'opencode_review.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_design_acceptance.py",
+      "line": 257,
+      "reference": "        with closing(sqlite3.connect(out/'facts.db')) as db:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "ecra\\multicore.py",
+      "line": 52,
+      "reference": "        facts = read_json(folder / 'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\real_project_metrics.py",
+      "line": 1,
+      "reference": "\"\"\"Summarize an ECRA facts.json without importing analysis or changing facts.\"\"\"",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\repeat_large_scan.py",
+      "line": 86,
+      "reference": "        copied = args.evidence/f'run{number}-facts.db'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\repeat_large_scan.py",
+      "line": 87,
+      "reference": "        shutil.copy2(output/'facts.db',copied)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\repeat_large_scan.py",
+      "line": 91,
+      "reference": "                str(args.evidence/f'run{number-1}-facts.db'),str(copied),'--output',str(comparison)])",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 60,
+      "reference": "            if file_digest(folder/'facts.json')!=verified['facts_sha256']:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 63,
+      "reference": "            result['source_report_sha256']=file_digest(folder/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 65,
+      "reference": "            facts=read_saved_json(folder/'facts.json',canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 66,
+      "reference": "            report=read_saved_json(folder/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 78,
+      "reference": "        for name,value,path in [('完整事实',facts,rendered/'facts.json'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 80,
+      "reference": "                ('完整静态报告',report,rendered/'reports/global_static_concurrency.json')]:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 85,
+      "reference": "                database.write_database(rendered/'facts.db',facts,report)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\replay_saved_storage.py",
+      "line": 87,
+      "reference": "                database.write_database(rendered/'facts.db',facts,report,shared_plan=plan)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 199,
+      "reference": "        page = (self.root / '.ecra' / 'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 267,
+      "reference": "        page = (out / 'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 461,
+      "reference": "        report = json.loads((out / \"reports/global_static_concurrency.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 468,
+      "reference": "        self.assertIn('复核结果不完整', (out / 'opencode_review.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 469,
+      "reference": "        with sqlite3.connect(out / \"facts.db\") as db:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 472,
+      "reference": "        self.assertTrue((out / \"index.html\").is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 473,
+      "reference": "        self.assertTrue((out / \"opencode_review.html\").is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 480,
+      "reference": "        for name in ('index.html', 'opencode_review.html'):",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 700,
+      "reference": "        report = json.loads((self.root / \".ecra/reports/global_static_concurrency.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 729,
+      "reference": "        saved_facts = (out/'facts.json').read_bytes()",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 767,
+      "reference": "        self.assertEqual((out/'facts.json').read_bytes(), saved_facts)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 875,
+      "reference": "        before={name:(out/name).read_bytes() for name in ('run.json','run.log','index.html','opencode_review.html','scan_state.json')}",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 889,
+      "reference": "        facts=self.root/'.ecra/facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_ecra.py",
+      "line": 908,
+      "reference": "        report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 52,
+      "reference": "            # facts.json. Dict/string-list pools are not ordinary fact tables.",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 216,
+      "reference": "    write_shared_json(out / \"facts.json\", facts)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 218,
+      "reference": "    write_shared_json(out / \"reports/global_static_concurrency.json\", report)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 219,
+      "reference": "    write_database(out / \"facts.db\", facts, report)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 237,
+      "reference": "        inventory += [\"调用路径以下仅列最短见证，条数不是全部路径数；完整调用证据包含全部入口、调用边与上下文，见 [facts.json](../facts.json) 的 context_call_graph、call_graph_slices 和 calls。保护与分类证明使用完整图。\", \"\"]",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 294,
+      "reference": "    causes += [\"\", \"完整变量、源码位置和相关性解释保存在 facts.json 的 variable_evidence_slice / blocking_evidence。\"]",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 321,
+      "reference": "                '解析器返回错误；原文保留在 facts.json 中该编译单元的原始诊断。' if is_english_prose(d['message']) else d['message']) for d in u['diagnostics']]",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\report.py",
+      "line": 350,
+      "reference": "            detail = '该分析缺口尚待核实；请按位置核对 facts.json 中保留的原始诊断。'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_effective_decisions.py",
+      "line": 110,
+      "reference": "        facts = read_json(self.root / '.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_effective_decisions.py",
+      "line": 111,
+      "reference": "        report = clean_report(read_json(self.root / '.ecra/reports/global_static_concurrency.json'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_effective_decisions.py",
+      "line": 128,
+      "reference": "                exported = read_json(out / 'reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_effective_decisions.py",
+      "line": 136,
+      "reference": "                html = (out / 'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_effective_decisions.py",
+      "line": 236,
+      "reference": "        kwargs = dict(facts_path=self.root / '.ecra/facts.json',",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_engine_digest_coverage.py",
+      "line": 78,
+      "reference": "        saved_facts = (self.out/'facts.json').read_bytes()",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_engine_digest_coverage.py",
+      "line": 102,
+      "reference": "        self.assertEqual((self.out/'facts.json').read_bytes(), saved_facts)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 35,
+      "reference": "优先按 file/line/end_line 分段 read。project_evidence_path 提供构建配置；完整原始事实和静态冲突证据在 facts_path 与 static_report_path。",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 264,
+      "reference": "def build_variable_review_packet(root, facts, finding, *, facts_path, shared_path, report_path):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 268,
+      "reference": "    CFG nodes stay in facts.json; context hints only provide navigation.",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 370,
+      "reference": "        files_to_check=sorted(files), project_root=str(root), facts_path=str(facts_path),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 371,
+      "reference": "        static_report_path=str(report_path), project_evidence_path=str(shared_path),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 490,
+      "reference": "                error='OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中'), 'PENDING')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 498,
+      "reference": "    facts_path = Path(settings.get('facts_path', out / 'facts.json')).resolve()",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 548,
+      "reference": "            packet = build_variable_review_packet(root, facts, finding, facts_path=facts_path,",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 654,
+      "reference": "                        env=_review_env([packet_path, shared_path, facts_path, report_path,",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\review.py",
+      "line": 655,
+      "reference": "                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_cdc_git_diff.py",
+      "line": 81,
+      "reference": "    report = read_json(__import__('ecra.workflow', fromlist=['output_path']).output_path(root, cfg)/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\summarize_large_scan.py",
+      "line": 75,
+      "reference": "        ('facts.json', 'facts.db', 'index.html', 'reports/global_static_concurrency.json') if (output/name).is_file()}",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 218,
+      "reference": "        packet = build_variable_review_packet(self.root, facts, finding, facts_path='facts.json', shared_path='shared.json', report_path='report.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 249,
+      "reference": "        return read_json(self.root/'.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 275,
+      "reference": "        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 288,
+      "reference": "        self.assertTrue((self.root/'.ecra/index.html').is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 289,
+      "reference": "        self.assertFalse((self.root/'.ecra/diff_index.html').exists())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 290,
+      "reference": "        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 320,
+      "reference": "        facts = read_saved_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 385,
+      "reference": "        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 461,
+      "reference": "        self.assertNotIn('workspace_only', (self.root/'.ecra/facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 540,
+      "reference": "        report = read_json(sub/'.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 611,
+      "reference": "        saved = read_json(self.root/'.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 638,
+      "reference": "        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 648,
+      "reference": "        facts = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff.py",
+      "line": 657,
+      "reference": "            for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path'):",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_git_diff_stm32.py",
+      "line": 119,
+      "reference": "    facts = read_saved_json(out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_git_diff_stm32.py",
+      "line": 120,
+      "reference": "    report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_git_diff_evidence_summary.py",
+      "line": 37,
+      "reference": "            facts_path='facts.json', shared_path='shared.json', report_path='report.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff_evidence_summary.py",
+      "line": 115,
+      "reference": "        self.assertTrue((out/'index.html').is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff_evidence_summary.py",
+      "line": 116,
+      "reference": "        self.assertFalse((out/'diff_index.html').exists())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff_patch.py",
+      "line": 104,
+      "reference": "        facts = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff_patch.py",
+      "line": 107,
+      "reference": "            facts_path='facts.json', shared_path='shared.json', report_path='report.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_large_report.py",
+      "line": 228,
+      "reference": "    for key, value, is_array in rows(folder/'reports/global_static_concurrency.json'):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_large_report.py",
+      "line": 270,
+      "reference": "            closing(sqlite3.connect(f'{(folder/\"facts.db\").as_uri()}?mode=ro', uri=True)) as source, \\",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_large_report.py",
+      "line": 281,
+      "reference": "        paths = [folder/name for name in ('index.html', 'opencode_review.html', 'classification_quality.html')]",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_large_report.py",
+      "line": 324,
+      "reference": "            result['json'] = audit_fact_database(folder/'facts.json', source, index)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_git_diff_storage_shape.py",
+      "line": 131,
+      "reference": "        self.assertTrue((self.root/'.ecra/index.html').is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_git_diff_storage_shape.py",
+      "line": 132,
+      "reference": "        self.assertFalse((self.root/'.ecra/diff_index.html').exists())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_nvic_fix.py",
+      "line": 50,
+      "reference": "    facts=read_json(out/'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_nvic_fix.py",
+      "line": 51,
+      "reference": "    report=read_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_nvic_fix.py",
+      "line": 88,
+      "reference": "    for name in ('index.html','opencode_review.html'):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_nvic_fix.py",
+      "line": 94,
+      "reference": "        facts=str(out/'facts.json'),packet=str(out/'review'/(finding['finding_id']+'.input.json')),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_nvic_fix.py",
+      "line": 95,
+      "reference": "        review=str(review_out/'review/queue.json'),html=str(review_out/'index.html')))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable.py",
+      "line": 349,
+      "reference": "        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable.py",
+      "line": 353,
+      "reference": "        static_facts_sha256 = sha256(out/'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable.py",
+      "line": 357,
+      "reference": "        if sha256(out/'facts.json') != static_facts_sha256:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable.py",
+      "line": 363,
+      "reference": "        for filename in ('index.html','facts.db','reports/global_static_concurrency.json'):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable.py",
+      "line": 389,
+      "reference": "        defaults = list((self.work/'user-data/projects').glob('*/results/facts.db'))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable.py",
+      "line": 399,
+      "reference": "                         'ecra/studio/web/index.html','ecra/studio/server.py','requirements-studio.txt','STUDIO-PREVIEW.txt',",
+      "state": "PROGRAM_SPA_RESOURCE_ALLOWED"
+    },
+    {
+      "file": "tests\\test_history_archive.py",
+      "line": 13,
+      "reference": "        names = ('facts.json', 'facts.db', 'inventory/global_static_inventory.json',",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_history_archive.py",
+      "line": 14,
+      "reference": "                 'reports/global_static_concurrency.json', 'html_details/'+'a'*64+'.json',",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_history_archive.py",
+      "line": 32,
+      "reference": "            for name in ('index.html', 'queue.json', 'anchors.js'):",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_history_archive.py",
+      "line": 42,
+      "reference": "            root = Path(folder)/'out';root.mkdir();source=root/'facts.json';saved=Path(folder)/'saved'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_history_archive.py",
+      "line": 51,
+      "reference": "            root=Path(folder)/'root';root.mkdir();source=Path(folder)/'facts.json';saved=root/'saved'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_portable_diff_target.py",
+      "line": 86,
+      "reference": "        facts, report = read_json(out/'facts.json'), read_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_portable_diff_target.py",
+      "line": 95,
+      "reference": "            if selected != {'c:@g'} or (out/'diff_index.html').exists():",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 39,
+      "reference": "            main=(out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 57,
+      "reference": "            main=(out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 71,
+      "reference": "            text=(out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 76,
+      "reference": "            self.assertIn('facts.json',text)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 88,
+      "reference": "                    '<a href=\"facts.json\">完整事实</a><a href=\"inventory/global_static_inventory.md\">清单</a>'+debug)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 91,
+      "reference": "                evidence.register('index.html', '<tr id=\"var-1\"></tr>')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 107,
+      "reference": "            self.assertIn('href=\"../facts.json\"', text)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_evidence.py",
+      "line": 114,
+      "reference": "            self.assertIn('\"var-1\":\"index.html\"', anchors)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_report.py",
+      "line": 155,
+      "reference": "            first = (out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_report.py",
+      "line": 168,
+      "reference": "        self.assertIn('facts.json', first)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_report.py",
+      "line": 192,
+      "reference": "            if link.startswith('index.html#'):",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_report.py",
+      "line": 211,
+      "reference": "            for name in ['index.html', REVIEW_PAGE]:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_report.py",
+      "line": 217,
+      "reference": "            self.assertIn('data-scope=\"dependency\"', (out / 'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_html_report.py",
+      "line": 221,
+      "reference": "            text = (out / 'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_review_failed.py",
+      "line": 71,
+      "reference": "        report = read_json(self.root / '.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_review_failed.py",
+      "line": 76,
+      "reference": "                              for p in ('facts.json', 'input_manifest.json', 'scan_state.json')}",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_saved_commands.py",
+      "line": 91,
+      "reference": "        result['facts_before'] = sha256(out / 'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_saved_commands.py",
+      "line": 110,
+      "reference": "        result['facts_after'] = sha256(out / 'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 92,
+      "reference": "    facts = read_saved_json(out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 93,
+      "reference": "    report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 95,
+      "reference": "    if (file_digest(pin['base_facts_path']) != pin['base_facts_sha256']",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 98,
+      "reference": "    baseline = read_saved_json(pin['base_facts_path'], canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 165,
+      "reference": "        facts = read_saved_json(out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 166,
+      "reference": "        report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 184,
+      "reference": "        write_json(folder/'facts.json', facts, indent=None)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_serial_diff.py",
+      "line": 185,
+      "reference": "        write_json(folder/'reports/global_static_concurrency.json', report, indent=None)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_stm32_cdc.py",
+      "line": 279,
+      "reference": "        facts=read_json(result_path(root)/'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_stm32_cdc.py",
+      "line": 303,
+      "reference": "    cfg['review'].update(enabled=True,model=args.model,workers=1,facts_path=str(result_path(root)/'facts.json'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_stm32_cdc.py",
+      "line": 305,
+      "reference": "    facts=read_json(result_path(root)/'facts.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_stm32_cdc.py",
+      "line": 306,
+      "reference": "    full=read_json(result_path(root)/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_studio_baseline.py",
+      "line": 66,
+      "reference": "        [original/'facts.json', original/'reports/global_static_concurrency.json', original/'facts.db', original/'scan_state.json',",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "scripts\\validate_studio_baseline.py",
+      "line": 68,
+      "reference": "    facts = read_saved_json(original/'facts.json', canonical_accesses=True)",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "scripts\\validate_studio_baseline.py",
+      "line": 69,
+      "reference": "    report = read_saved_json(original/'reports/global_static_concurrency.json')",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "tests\\test_json_rows.py",
+      "line": 43,
+      "reference": "            path = Path(folder)/'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_project.py",
+      "line": 101,
+      "reference": "        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_project.py",
+      "line": 102,
+      "reference": "        report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_project.py",
+      "line": 150,
+      "reference": "        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_project.py",
+      "line": 151,
+      "reference": "        report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_project.py",
+      "line": 165,
+      "reference": "        html = (out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_studio_native_equivalence.py",
+      "line": 32,
+      "reference": "    original_hashes={str(p.relative_to(original)):sha256(p) for p in [original/'facts.json',original/'facts.db',original/'reports/global_static_concurrency.json']}",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "scripts\\validate_studio_native_equivalence.py",
+      "line": 49,
+      "reference": "    facts_before=read_saved_json(original/'facts.json',canonical_accesses=True)",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "scripts\\validate_studio_native_equivalence.py",
+      "line": 50,
+      "reference": "    facts_after=read_saved_json(new/'facts.json',canonical_accesses=True)",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "scripts\\validate_studio_native_equivalence.py",
+      "line": 51,
+      "reference": "    report_before=clean_report(read_saved_json(original/'reports/global_static_concurrency.json'))",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "scripts\\validate_studio_native_equivalence.py",
+      "line": 52,
+      "reference": "    report_after=clean_report(read_saved_json(new/'reports/global_static_concurrency.json'))",
+      "state": "DEVELOPMENT_VALIDATION"
+    },
+    {
+      "file": "tests\\test_large_report_pool_audit.py",
+      "line": 17,
+      "reference": "            path = folder / 'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_report_pool_audit.py",
+      "line": 19,
+      "reference": "            write_database(folder / 'facts.db', facts, dict(findings=[]))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_report_pool_audit.py",
+      "line": 20,
+      "reference": "            with closing(sqlite3.connect(folder / 'facts.db')) as source, \\",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_report_pool_audit.py",
+      "line": 72,
+      "reference": "            path = Path(folder) / 'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_ui_contract.py",
+      "line": 17,
+      "reference": "    index=(root/'ecra/studio/web/index.html').read_text(encoding='utf-8')",
+      "state": "PROGRAM_SPA_RESOURCE_ALLOWED"
+    },
+    {
+      "file": "tests\\test_large_report_scope.py",
+      "line": 25,
+      "reference": "                    write(root/'reports/global_static_concurrency.json', dict(findings=[dict(v='all evidence')],",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_large_report_scope.py",
+      "line": 34,
+      "reference": "                write_json(root/'reports/global_static_concurrency.json', dict(",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "scripts\\validate_workspace_matrix.py",
+      "line": 55,
+      "reference": "            for name in ('facts.json', 'facts.db', 'index.html', 'project.json', 'scan_state.json', 'input_manifest.json',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_workspace_migration.py",
+      "line": 86,
+      "reference": "        facts = read_saved_json(out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_workspace_migration.py",
+      "line": 87,
+      "reference": "        report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_workspace_migration.py",
+      "line": 104,
+      "reference": "            facts_json_bytes=(out/'facts.json').stat().st_size, facts_db_bytes=(out/'facts.db').stat().st_size,",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_workspace_migration.py",
+      "line": 105,
+      "reference": "            report_bytes=size(out/'reports')+(out/'index.html').stat().st_size,",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\validate_workspace_migration.py",
+      "line": 155,
+      "reference": "        facts_path='facts.json', shared_path='shared.json', report_path='report.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 224,
+      "reference": "        engine_scope=ENGINE_SCOPE, engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 345,
+      "reference": "                or file_digest(out/'facts.json') != state['facts_sha256']):",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 367,
+      "reference": "        source = out/'reports/global_static_concurrency.json'",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 412,
+      "reference": "    if (state['facts_sha256'] != file_digest(out/'facts.json') or",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 415,
+      "reference": "    report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 437,
+      "reference": "    return (read_saved_json(out/'facts.json', canonical_accesses=True) if with_facts else None), clean_report(report), state",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 486,
+      "reference": "    if not (out/'reports/global_static_concurrency.json').exists():",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 498,
+      "reference": "        report = read_saved_json(out/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 507,
+      "reference": "                    inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 588,
+      "reference": "            facts = read_saved_json(out/'facts.json', canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 589,
+      "reference": "            report = clean_report(read_saved_json(out/'reports/global_static_concurrency.json'))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workflow.py",
+      "line": 663,
+      "reference": "        print(f\"{report['run_status']}：{out/'index.html'}\\nOpenCode：{out/REVIEW_PAGE}\", flush=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_database_values.py",
+      "line": 82,
+      "reference": "    with closing(sqlite3.connect((folder/'facts.db').resolve().as_uri()+'?mode=ro',uri=True)) as connection:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_database_values.py",
+      "line": 85,
+      "reference": "        for path,is_report in [(folder/'facts.json',False),(folder/'reports/global_static_concurrency.json',True)]:",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workspace.py",
+      "line": 323,
+      "reference": "    if not (legacy/'facts.db').is_file() or not (legacy/'reports/global_static_concurrency.json').is_file():",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workspace.py",
+      "line": 363,
+      "reference": "            if not (legacy/'facts.db').is_file() or not (legacy/'reports/global_static_concurrency.json').is_file():",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "ecra\\workspace.py",
+      "line": 439,
+      "reference": "    allowed_files = {'facts.json', 'facts.db', 'index.html', 'opencode_review.html', 'run.json', 'run.log',",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_replayed_report.py",
+      "line": 39,
+      "reference": "    facts=read_saved_json(folder/'facts.json',canonical_accesses=True)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_replayed_report.py",
+      "line": 46,
+      "reference": "    report=read_saved_json(folder/'reports/global_static_concurrency.json')",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_replayed_report.py",
+      "line": 52,
+      "reference": "            closing(sqlite3.connect(f'{(folder/\"facts.db\").as_uri()}?mode=ro',uri=True)) as source, \\",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_replayed_report.py",
+      "line": 54,
+      "reference": "        audit=audit_fact_database(folder/'facts.json',source,index)",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_replayed_report.py",
+      "line": 59,
+      "reference": "        facts_logical_digest=actual,facts_sha256=file_digest(folder/'facts.json'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_design.py",
+      "line": 39,
+      "reference": "        scenarios={case: dict(index=str(destination/case/'.ecra/index.html'),",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "scripts\\verify_design.py",
+      "line": 40,
+      "reference": "                             review=str(destination/case/'.ecra/opencode_review.html'))",
+      "state": "LEGACY_CONSUMER_NOT_MIGRATED"
+    },
+    {
+      "file": "tests\\test_nvic_recovery.py",
+      "line": 161,
+      "reference": "        packet = build_variable_review_packet(self.root, self.facts, finding, facts_path='facts.json', shared_path='project.json', report_path='report.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_portability.py",
+      "line": 217,
+      "reference": "                facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_portability.py",
+      "line": 221,
+      "reference": "                html=(out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_portability.py",
+      "line": 295,
+      "reference": "        report=json.loads((output_path(root,cfg)/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_real_classification_repair.py",
+      "line": 75,
+      "reference": "        facts = json.loads((output / 'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_real_classification_repair.py",
+      "line": 76,
+      "reference": "        report = json.loads((output / 'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_replayed_report.py",
+      "line": 19,
+      "reference": "        write(folder/'facts.json',facts,threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_replayed_report.py",
+      "line": 20,
+      "reference": "        write(folder/'reports/global_static_concurrency.json',report,threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_replayed_report.py",
+      "line": 21,
+      "reference": "        write_database(folder/'facts.db',facts,report,shared_threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_replayed_report.py",
+      "line": 41,
+      "reference": "            write(root/'rendered/facts.json',facts,threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_report_archive.py",
+      "line": 21,
+      "reference": "        self.assertIn(b'classification_quality.html',(output/'index.html').read_bytes())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_integrity.py",
+      "line": 419,
+      "reference": "            static = Path(packet['static_report_path']).read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_language.py",
+      "line": 116,
+      "reference": "        for name in ('index.html','opencode_review.html','reports/opencode_global_static_review.md'):",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_language.py",
+      "line": 120,
+      "reference": "        archived=read_json(self.out/'reports/global_static_concurrency.json')['review_records'][0]",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_risk.py",
+      "line": 29,
+      "reference": "        packet = build_variable_review_packet(self.root, facts, finding, facts_path=self.root/'.ecra/facts.json',",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_risk.py",
+      "line": 30,
+      "reference": "            shared_path=self.root/'.ecra/review/project-evidence.json', report_path=self.root/'.ecra/reports/global_static_concurrency.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_summary.py",
+      "line": 394,
+      "reference": "            text = (out/'index.html').read_text(encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_summary.py",
+      "line": 406,
+      "reference": "            for name in ['index.html', 'opencode_review.html', 'reports/opencode_global_static_review.md']:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_summary.py",
+      "line": 410,
+      "reference": "            for name in ['opencode_review.html', 'reports/opencode_global_static_review.md']:",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_review_summary.py",
+      "line": 414,
+      "reference": "            self.assertEqual(read_json(out/'reports/global_static_concurrency.json')['review_records'][0]['answer'], repaired)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_saved_json.py",
+      "line": 22,
+      "reference": "            path = Path(folder)/'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_saved_json.py",
+      "line": 149,
+      "reference": "        first = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_saved_json.py",
+      "line": 155,
+      "reference": "        second = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_saved_json.py",
+      "line": 166,
+      "reference": "            if Path(path).name == 'facts.json':",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_saved_json.py",
+      "line": 172,
+      "reference": "        self.assertIn('global_static_concurrency.json', loaded)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_saved_json.py",
+      "line": 173,
+      "reference": "        facts = self.root/'.ecra/facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_comparison.py",
+      "line": 14,
+      "reference": "        self.path = Path(self.temp.name)/'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 221,
+      "reference": "        self.assertIn('不能使用旧结论', (out/'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 222,
+      "reference": "        self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 371,
+      "reference": "        self.assertIn('不能使用旧结论', (out/'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 372,
+      "reference": "        self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 373,
+      "reference": "        self.assertTrue(list((out/'snapshots').glob('*/index.html')))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 420,
+      "reference": "        self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 472,
+      "reference": "        path = self.root/'facts.db'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 487,
+      "reference": "        previous = (out/'reports/global_static_concurrency.json').read_bytes()",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 491,
+      "reference": "        self.assertEqual((out/'reports/global_static_concurrency.json').read_bytes(),previous)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 521,
+      "reference": "        first = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scan_stability.py",
+      "line": 529,
+      "reference": "        second = read_json(self.root/'.ecra/facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scope_cmake.py",
+      "line": 164,
+      "reference": "        report = json.loads((self.root/'.ecra/reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scope_cmake.py",
+      "line": 197,
+      "reference": "        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scope_cmake.py",
+      "line": 198,
+      "reference": "        report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scope_cmake.py",
+      "line": 243,
+      "reference": "        facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scope_cmake.py",
+      "line": 244,
+      "reference": "        report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_scope_cmake.py",
+      "line": 247,
+      "reference": "        self.assertNotIn('private_count',(out/'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 54,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 55,
+      "reference": "        report = json.loads((self.root / \".ecra/reports/global_static_concurrency.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 132,
+      "reference": "        html = (self.root / \".ecra/index.html\").read_text(encoding=\"utf-8\")",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 152,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 173,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 198,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_second_pass.py",
+      "line": 219,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_shared_json.py",
+      "line": 20,
+      "reference": "            path = Path(folder)/'facts.json';write(path, source, threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_shared_json.py",
+      "line": 37,
+      "reference": "            path = Path(folder)/'facts.db';write_database(path, source, report, shared_threshold=0)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_shared_json.py",
+      "line": 48,
+      "reference": "            path = Path(folder)/'facts.json';write(path, source, threshold=0);actual = read(path)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_shared_json.py",
+      "line": 66,
+      "reference": "            path = Path(folder)/'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_solver_stats_reader.py",
+      "line": 13,
+      "reference": "            path=Path(folder)/'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_solver_stats_reader.py",
+      "line": 45,
+      "reference": "            path=Path(folder)/'facts.json'",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_stale_writeback.py",
+      "line": 44,
+      "reference": "        packet = build_variable_review_packet(self.root, facts, finding, facts_path=self.root/'.ecra/facts.json',",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_stale_writeback.py",
+      "line": 291,
+      "reference": "                write_json(self.root/'.ecra/facts.json', facts)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_studio_workspace.py",
+      "line": 35,
+      "reference": "                write_json(source/'reports/global_static_concurrency.json',dict(findings=[]))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_studio_workspace.py",
+      "line": 36,
+      "reference": "                (source/'facts.db').write_bytes(b'preserve legacy bytes exactly')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 247,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 267,
+      "reference": "        report = json.loads((self.root / \".ecra/reports/global_static_concurrency.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 269,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 291,
+      "reference": "        report = json.loads((self.root / \".ecra/reports/global_static_concurrency.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 294,
+      "reference": "        facts = json.loads((self.root / \".ecra/facts.json\").read_text(encoding=\"utf-8\"))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 353,
+      "reference": "        \"\"\"index.html must default to the inventory panel and show only globals/statics.\"\"\"",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 364,
+      "reference": "        html_text = (out / \"index.html\").read_text(encoding=\"utf-8\")",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_variable_inventory.py",
+      "line": 386,
+      "reference": "        html_text = (out / \"index.html\").read_text(encoding=\"utf-8\")",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 77,
+      "reference": "        return out, read_json(out/'reports/global_static_concurrency.json'), capture.getvalue()",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 83,
+      "reference": "        write_json(old/'reports/global_static_concurrency.json', dict(findings=[]))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 84,
+      "reference": "        (old/'facts.db').write_bytes(b'legacy database bytes')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 85,
+      "reference": "        (old/'index.html').write_text('人工确认风险/无风险/未确认; 2024-01-02; 原始备注', encoding='utf-8')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 113,
+      "reference": "        self.assertNotIn('dirty_only', (out/'facts.json').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 115,
+      "reference": "        self.assertIn('未提交业务修改未纳入', (out/'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 157,
+      "reference": "        self.assertIn('原始备注', (out/'index.html').read_text(encoding='utf-8'))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 161,
+      "reference": "        self.assertIn('Board/.ecra/facts.db', safe)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 164,
+      "reference": "        (old/'facts.db').write_bytes(b'changed user content')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 165,
+      "reference": "        self.assertNotIn('Board/.ecra/facts.db', generated_untracked(self.root, cfg))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 231,
+      "reference": "        before = file_hash(old/'index.html')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 236,
+      "reference": "        self.assertEqual(file_hash(old/'index.html'), before)",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 297,
+      "reference": "        self.assertTrue((Path(second_ws.results_root)/'facts.db').is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 298,
+      "reference": "        self.assertTrue((Path(ws.results_root)/'facts.db').is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 326,
+      "reference": "        self.assertTrue(Path(pinned['base_facts_path']).is_file())",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 394,
+      "reference": "        facts = read_json(out/'facts.json')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 402,
+      "reference": "        variable = next(v for v in read_json(out/'facts.json')['variables'] if v['name']=='generated_global')",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 420,
+      "reference": "            old_facts = file_hash(Path(first['git_diff']['pin']['base_facts_path']))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    },
+    {
+      "file": "tests\\test_workspace.py",
+      "line": 424,
+      "reference": "        self.assertNotEqual(old_facts, file_hash(Path(second['git_diff']['pin']['base_facts_path'])))",
+      "state": "LEGACY_OR_DEVELOPMENT_TEST_REFERENCE"
+    }
+  ],
+  "note": "All old-path references retained for audit; no claim that Phase3 consumers have migrated."
+}
