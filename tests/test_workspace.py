@@ -30,6 +30,9 @@ class WorkspaceTests(unittest.TestCase):
         self.patcher = patch('ecra.workspace.TOOL_ROOT', self.tool)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
+        self.data_env = patch.dict(os.environ, {'ECRA_DATA_ROOT': str(self.home/'data')})
+        self.data_env.start()
+        self.addCleanup(self.data_env.stop)
         self.repo = self.home/'固件 空格'
         self.repo.mkdir()
         self.root = self.repo/'Board'
@@ -162,7 +165,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertNotIn('Board/.ecra/facts.db', generated_untracked(self.root, cfg))
 
     def test_T13_T14_configuration_compatibility(self):
-        self.assertEqual(output_settings(dict(output_dir='.ecra'))['location'], 'tool')
+        self.assertEqual(output_settings(dict(output_dir='.ecra'))['location'], 'user')
         self.assertEqual(output_settings(dict(output_dir='my-results'))['location'], 'project')
         with self.assertRaisesRegex(ValueError, '冲突'):
             output_settings(dict(output_dir='old', output=dict(location='tool')))
@@ -273,7 +276,7 @@ class WorkspaceTests(unittest.TestCase):
         write_json(second_config, second)
         script = Path(__file__).resolve().parents[1]/'run_ecra.py'
         def command(config):
-            return [sys.executable, str(script), '--config', str(config), '--no-review']
+            return [sys.executable, str(script), '--config', str(config), '--no-review','--legacy-output']
         with tempfile.TemporaryFile() as first_log, tempfile.TemporaryFile() as other_log:
             first = subprocess.Popen(command(self.config), stdout=first_log, stderr=subprocess.STDOUT)
             self.addCleanup(lambda: first.kill() if first.poll() is None else None)
@@ -297,7 +300,7 @@ class WorkspaceTests(unittest.TestCase):
     def test_T27_junction_boundary(self):
         destination = self.home/'private'
         destination.mkdir()
-        alias = self.tool/'workspace'
+        alias = self.home/'data'
         if os.name == 'nt':
             result = subprocess.run(['cmd', '/c', 'mklink', '/J', str(alias), str(destination)], capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)

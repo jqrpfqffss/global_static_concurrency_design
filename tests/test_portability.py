@@ -179,7 +179,9 @@ class ProjectPortabilityTests(unittest.TestCase):
     def invoke(self, *args):
         self.stdout, self.stderr = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(self.stdout), contextlib.redirect_stderr(self.stderr):
-            code = main(list(args))
+            # These assertions cover the original HTML/file-layout contract.
+            # The canonical CLI/GUI path has separate native acceptance tests.
+            code = main([*args,'--legacy-output'])
         return code
 
     def board(self, name, cpu='cortex-m3'):

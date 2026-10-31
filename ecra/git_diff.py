@@ -962,6 +962,13 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
         except (ValueError, OSError, KeyError, TypeError):
             pass
     if base_report is None:
+        from .scan_persistence import is_canonical, MARKER
+        if is_canonical(out):
+            base_out.mkdir(parents=True, exist_ok=True)
+            # Baselines use the same authority and solver as the current side.
+            # Their identity is distinct; no current-version facts are copied.
+            write_json(base_out/MARKER, dict(version=1, scan_id='base-'+pinned['base_sha'],
+                project_id=workspace.project_id, profile_id='git-baseline'))
         code = run(base_root, str(config), no_review=True, _cache_enabled=cfg['analysis']['git_diff']['cache_enabled'],
                    _workspace=base_workspace)
         if code == 3 or not read_json(base_out/'result_validity.json').get('analysis_valid'):
@@ -1008,14 +1015,15 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     pinned['base_database_path'] = allowed_database
     evidence = out/'git_diff/evidence'/sha
     evidence.mkdir(parents=True, exist_ok=True)
-    immutable = evidence/'facts.json'
+    database = base_out/'scan.db' if (base_out/'scan.db').is_file() else base_out/'facts.json'
+    immutable = evidence/database.name
     if not immutable.exists():
         import shutil
         try:
-            os.link(base_out/'facts.json', immutable)
+            os.link(database, immutable)
         except OSError:
             temp = immutable.with_suffix('.pending')
-            shutil.copyfile(base_out/'facts.json', temp)
+            shutil.copyfile(database, temp)
             from .common import replace_file
             replace_file(temp, immutable)
     if file_digest(immutable) != sha:

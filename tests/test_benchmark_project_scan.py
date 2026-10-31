@@ -15,7 +15,7 @@ class BenchmarkAuditTests(unittest.TestCase):
     def invoke(self, evidence, *options):
         return subprocess.run([sys.executable, '-B', str(test_ecra.ROOT/'scripts/benchmark_project_scan.py'),
             '--project', str(self.root), '--config', str(self.root/'.ecra/semantics.yaml'),
-            '--scan-mode', 'diff', '--evidence', str(evidence), *options],
+            '--scan-mode', 'diff', '--evidence', str(evidence), '--legacy-output', *options],
             capture_output=True, encoding='utf-8', errors='replace', timeout=120)
 
     def test_real_baseline_audit_saved_resume_and_changed_inputs_rejected(self):

@@ -18,6 +18,10 @@ from .review_integrity import normalize_review_record, set_review_state
 
 
 def file_digest(path):
+    from .scan_persistence import artifact
+    mapped = artifact(path)
+    if mapped is not None:
+        path = mapped[0]
     h = hashlib.sha256()
     with Path(path).open('rb') as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b''):
@@ -55,6 +59,9 @@ def read_saved_json(path, *, canonical_accesses=False):
     entities can also share storage, as they do before serialization. Array
     order, duplicate entries, scalar types and every field remain unchanged.
     """
+    from .scan_persistence import artifact, read
+    if artifact(path) is not None:
+        return read(path)
     from .json_rows import RecordDicts, RowReader
     strings = lru_cache(maxsize=131072)(lambda value: value)
     records = RecordDicts()
@@ -197,7 +204,8 @@ def clean_report(report):
     # copying it would duplicate gigabytes before validating a saved report.
     result = dict(report)
     result['findings'] = [dict(finding) for finding in report['findings']]
-    for key in ('run_status', 'stale_reason', 'review_summary', 'review_integrity', 'review_records', 'matrix_review_summary', 'risk_summary', 'final_conclusion'):
+    from .scan_persistence import RUNTIME_KEYS
+    for key in RUNTIME_KEYS:
         result.pop(key, None)
     for f in result['findings']:
         f.pop('review', None)
@@ -441,6 +449,16 @@ def output_path(root, cfg):
     from .workspace import context
     workspace = context(root, cfg['analysis'])
     workspace.bind(cfg['analysis'])
+    pointer = Path(workspace.project_workspace)/'latest-scan.json'
+    if pointer.is_file():
+        saved = read_json(pointer)
+        from .report_package import IDENTITY
+        if saved.get('project_id') != workspace.project_id or not IDENTITY.fullmatch(saved.get('scan_id', '')):
+            raise ValueError('当前扫描指针身份不符')
+        from dataclasses import replace
+        result = Path(workspace.workspace_root)/'scans'/saved['scan_id']
+        replace(workspace, results_root=str(result)).bind(cfg['analysis'])
+        return result
     return Path(workspace.results_root)
 
 
@@ -466,6 +484,10 @@ def checked_reviews(root, out, reviews, fingerprint):
 
 
 def read_queue(out):
+    from .scan_persistence import runtime
+    saved = runtime(out)
+    if saved:
+        return saved['reviews']
     try:
         rows=read_json(out/'review/queue.json')
         if not isinstance(rows,list):
@@ -483,7 +505,8 @@ def status(root, config_path=None):
     out = output_path(root, cfg)
     from .workspace import lock_path
     info = dict(project=str(root), output=str(out), scan_lock=lock_path(root, cfg['analysis']).exists())
-    if not (out/'reports/global_static_concurrency.json').exists():
+    from .scan_persistence import exists, is_canonical
+    if not exists(out/'reports/global_static_concurrency.json'):
         info.update(state='NOT_SCANNED', next_action='运行 run，生成变量清单和复核队列')
         legacy = Path(root)/'.ecra'
         if legacy != out and legacy.is_dir():
@@ -504,7 +527,8 @@ def status(root, config_path=None):
                     variables=report['coverage'].get('variables_total'), findings=len(records),
                     unresolved=sum(category(r)=='unresolved' for r in records),
                     review_integrity=integrity, review_complete=integrity['all_done'],
-                    inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))
+                    **(dict(scan_database=str(out/'scan.db'), viewer_command='ecra ui') if is_canonical(out) else
+                       dict(inventory_html=str(out/'index.html'), review_html=str(out/REVIEW_PAGE))))
         if report.get('git_diff'):
             info['variables'] = report.get('risk_summary', {}).get('total_variables', len(report['git_diff']['selected_symbol_ids']))
         if info['scan_lock']:
@@ -556,10 +580,29 @@ def status(root, config_path=None):
     return info
 
 
-def saved_run(root, config_path=None, render_only=False, failed_only=False):
+def saved_run(root, config_path=None, render_only=False, failed_only=False, *, _out=None,_budget_owned=False):
+    from contextlib import ExitStack
+    from .scan_persistence import is_canonical
+    from .storage_activity import DataActivity,review_data_root
+    cfg,_=load_config(root,config_path)
+    out=_out if _out is not None else output_path(root,cfg)
+    data=review_data_root(Path(out)/'reviews.db') if is_canonical(out) else None
+    with ExitStack() as activities:
+        if data:
+            activities.enter_context(DataActivity(data))
+            if not _budget_owned:activities.enter_context(DataActivity(data,exclusive=True,purpose='scan-budget'))
+        return _saved_run(root,config_path,render_only,failed_only,_out=_out)
+
+
+def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, _out=None):
     from .git_diff import selected_findings
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
+    if _out is not None:
+        from dataclasses import replace
+        from .workspace import context, no_links
+        out = no_links(_out)
+        replace(context(root,cfg['analysis']),results_root=str(out)).bind(cfg['analysis'])
     if not out.is_dir():
         if (Path(root)/'.ecra').is_dir() and Path(root)/'.ecra' != out:
             raise ValueError(f'旧版数据目录存在: {Path(root)/".ecra"}；请先运行 run 验证归属、复制迁移并刷新结果，再执行 report/review')
@@ -660,7 +703,16 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False):
         write_json(out/'resume.json', dict(command='report' if render_only else ('review-failed' if failed_only else 'review'), state=report['run_status'],
                                          finished=datetime.now(timezone.utc).isoformat(), exit_code=code,
                                          review_integrity=integrity))
-        print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)
+        from .scan_persistence import is_canonical, archive_audit
+        if is_canonical(out):
+            manifest_path = out/'manifest.json'
+            if manifest_path.is_file():
+                manifest = read_json(manifest_path)
+                manifest.update(archive_audit(out), run_state=report['run_status'])
+                write_json(manifest_path, manifest)
+            print(f"{report['run_status']}：{out/'scan.db'}；请在 ECRA Studio 查看。", flush=True)
+        else:
+            print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)
         return code
     finally:
         lock.unlink(missing_ok=True)

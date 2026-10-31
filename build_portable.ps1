@@ -59,11 +59,25 @@ try {
     # workspace, project histories, firmware worktrees or user review records.
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run_ecra.py') -Destination $bundle
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements.txt') -Destination $bundle
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements-studio.txt') -Destination $bundle
     $packageOut = Join-Path $bundle 'ecra'
     New-Item -ItemType Directory -Path $packageOut | Out-Null
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'ecra') -File -Filter '*.py') {
         Copy-Item -LiteralPath $file.FullName -Destination $packageOut
     }
+    $studioSource = Join-Path $PSScriptRoot 'ecra/studio'
+    if (-not (Test-Path -LiteralPath (Join-Path $studioSource 'web/index.html'))) {
+        throw 'Studio assets missing. Build with npm ci and npm run build in studio before packaging.'
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $studioSource 'web/licenses/inventory.json'))) {
+        throw 'Studio third-party notices missing. Run scripts/collect_studio_licenses.py after frontend build.'
+    }
+    $studioOut = Join-Path $packageOut 'studio'
+    New-Item -ItemType Directory -Path $studioOut | Out-Null
+    foreach ($file in Get-ChildItem -LiteralPath $studioSource -File -Filter '*.py') {
+        Copy-Item -LiteralPath $file.FullName -Destination $studioOut
+    }
+    Copy-DirectoryContents (Join-Path $studioSource 'web') (Join-Path $studioOut 'web')
     $configOut = Join-Path $bundle 'config'
     New-Item -ItemType Directory -Path $configOut | Out-Null
     foreach ($name in @('semantics.yaml', 'review_context.md', 'concurrency_cases.md')) {
@@ -96,12 +110,18 @@ try {
     }
     $pipText = Invoke-Checked 'pip version' $python @('-m','pip','--version')
     if ($pipText -notmatch ('^pip ' + [regex]::Escape($sources.PipVersion) + ' ')) { throw "pip version mismatch: $pipText" }
+    $null = Invoke-Checked 'Verify all locked Studio wheel receipts without network' $python @('-B',
+        (Join-Path $PSScriptRoot 'scripts/prepare_studio_wheels.py'),'--cache',$cacheRoot,'--offline')
     $constraints = Join-Path $bundle 'requirements-portable.lock.txt'
     [IO.File]::WriteAllText($constraints, "libclang==$($sources.LibClangVersion)`r`nPyYAML==$($sources.PyYamlVersion)`r`n", [Text.Encoding]::ASCII)
     $null = Invoke-Checked 'Install local compatible Windows wheels' $python @('-m','pip','--disable-pip-version-check','install',
         '--no-index','--find-links',$wheelRoot,'--only-binary',':all:','--no-compile','--target',$sitePackages,
         '-r',(Join-Path $bundle 'requirements.txt'),'-c',$constraints)
     $null = Invoke-Checked 'Dependency consistency' $python @('-m','pip','check')
+    $null = Invoke-Checked 'Install locked offline Studio wheels' $python @('-m','pip','--disable-pip-version-check','install',
+        '--no-index','--find-links',$wheelRoot,'--only-binary',':all:','--no-compile','--target',$sitePackages,
+        '-r',(Join-Path $bundle 'requirements-studio.txt'))
+    $null = Invoke-Checked 'Studio dependency consistency' $python @('-m','pip','check')
     $toolsDir = Join-Path $bundle 'tools'
     New-Item -ItemType Directory -Path $toolsDir | Out-Null
     Copy-DirectoryContents $cmakeBase (Join-Path $toolsDir 'cmake')
@@ -204,21 +224,15 @@ try {
         omitted_optional_components=$omitted;
         cmake_distribution_note='Official Kitware 3.29.6 differs from JetBrains IDE bundle build 1; check actual version below.' }
     $lock | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $bundle 'portable-lock.json') -Encoding UTF8
-    $launcher = @'
-@echo off
-setlocal DisableDelayedExpansion
-set "ECRA_ROOT=%~dp0"
-set "ECRA_PORTABLE_ROOT=%~dp0"
-set "ECRA_CONFIG_HOME=%ECRA_ROOT%config"
-set "PATH=%ECRA_ROOT%runtime;%ECRA_ROOT%tools\cmake\bin;%ECRA_ROOT%tools\ninja;%ECRA_ROOT%tools\mingw\bin;%ECRA_ROOT%tools\mingw\opt\bin;%ECRA_ROOT%tools\arm-gcc\bin;%PATH%"
-set "PYTHONHOME="
-set "PYTHONPATH="
-set "PYTHONDONTWRITEBYTECODE=1"
-"%ECRA_ROOT%runtime\python.exe" -B "%ECRA_ROOT%run_ecra.py" %*
-exit /b %ERRORLEVEL%
-'@
-    [IO.File]::WriteAllText((Join-Path $bundle 'ecra.cmd'), $launcher.Replace("`r`n","`n").Replace("`n","`r`n") + "`r`n", [Text.Encoding]::ASCII)
+    # The same launcher opens Studio on double-click and keeps explicit CLI
+    # arguments compatible. No runtime data or Node installation is shipped.
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ECRA.cmd') -Destination (Join-Path $bundle 'ECRA.cmd')
+    [IO.File]::WriteAllText((Join-Path $bundle 'STUDIO-PREVIEW.txt'),
+        "DEVELOPMENT PREVIEW - Formal scan pipeline, large-project gates and clean-machine UAT are NOT_VERIFIED. See docs/rearchitecture.`r`n", [Text.Encoding]::ASCII)
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'README.txt')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'CLI-README.txt')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/rearchitecture/portable-preview-readme.txt') -Destination (Join-Path $bundle 'README.txt') -Force
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/rearchitecture/portable-and-user-guide.md') -Destination (Join-Path $bundle 'STUDIO-GUIDE.md')
     $commit = 'unknown (source archive or Git unavailable)'
     $git = Get-Command git.exe -ErrorAction SilentlyContinue
     if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {

@@ -647,7 +647,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         for index, seed in enumerate(('1', '2', '3')):
             env = dict(os.environ, PYTHONHASHSEED=seed)
             command = 'run' if index == 1 else 'review'
-            proc = execute([sys.executable, str(ROOT/'run_ecra.py'), command, '--project', str(self.root)],
+            proc = execute([sys.executable, str(ROOT/'run_ecra.py'), command, '--legacy-output', '--project', str(self.root)],
                            # This tests cache identity, not scan latency. Full
                            # Clang input verification starts extra processes;
                            # allow loaded Windows CI hosts to finish them.

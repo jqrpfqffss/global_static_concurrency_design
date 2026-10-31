@@ -137,7 +137,7 @@ class DeepReviewTests(unittest.TestCase):
 
         with contextlib.redirect_stdout(io.StringIO()), patch('ecra.review.resolve_command',
                 return_value=['synthetic-opencode']), patch('ecra.review.execute', side_effect=respond):
-            self.assertEqual(main(['run', '--config', str(config)]), 1)
+            self.assertEqual(main(['run', '--legacy-output', '--config', str(config)]), 1)
             self.assertTrue(prompts)
             self.assertTrue(all('CLI_INITIAL' in p and str(library.resolve()) in p for p in prompts))
             before = read_json(self.root/'.ecra/facts.json')

@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--scan-mode', choices=('full', 'diff'), required=True)
+    parser.add_argument('--legacy-output', action='store_true', help='显式测量旧版产物，供冻结基线/兼容回归；不作为新格式收益')
     parser.add_argument('--reference', type=Path, help='同一源码快照的规范化 summary.json，用于完整语义对照')
     parser.add_argument('--audit-baseline', action='store_true',
                         help='额外独立审计首次差异内建的完整基准；不替代当前版本全量对照')
@@ -47,6 +48,8 @@ def main():
     out = output_path(project, cfg)
     command = [sys.executable, '-B', str(TOOL/'run_ecra.py'), '--project', str(project),
                '--config', str(config), '--scan-mode', args.scan_mode, '--no-review']
+    if args.legacy_output:
+        command.append('--legacy-output')
     identity = dict(command=command, engine_digest=engine_digest(),
                   config_sha256=file_digest(config), scan_mode=args.scan_mode,
                   review_executed=False, audit_baseline=args.audit_baseline,
@@ -59,6 +62,8 @@ def main():
                 or type(result.get('seconds')) not in (int, float) or not math.isfinite(result['seconds']) or result['seconds'] <= 0
                 or type(result.get('peak_tree_rss_bytes')) is not int or result['peak_tree_rss_bytes'] < 0):
             raise RuntimeError('保存测量不属于同一未完成扫描；禁止恢复或改写验收结果')
+        if result.get('output'):
+            out=Path(result['output'])
         if lock_path(project, cfg['analysis']).exists():
             raise RuntimeError('扫描仍有锁，不能与发布并行恢复审计')
         _, saved_report, state = checked_scan(project, out, cfg, config, with_facts=False)
@@ -92,6 +97,10 @@ def main():
         write_json(evidence/'execution.json', result)
     if result['exit_code'] not in (0, 1, 2):
         raise RuntimeError('扫描失败，日志：' + str(evidence/'console.log'))
+    if not args.audit_saved and not args.legacy_output:
+        out=output_path(project,cfg)  # resolve the newly published scan, not the pre-run pointer
+    result['output']=str(out)
+    write_json(evidence/'execution.json',result)
     validity = read_json(out/'result_validity.json')
     if not validity.get('analysis_valid') or engine_digest() != result['engine_digest']:
         raise RuntimeError('结果或分析实现无效，不能记录为验收通过')

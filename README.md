@@ -2,9 +2,11 @@
 
 大型 STM32H743 飞控工程的目标构建、问题修正与实测状态见 [INAV H743 验收记录](docs/inav-h743-git-diff-validation.md)。多目标 CMake 工程可配置可选的 `analysis.cmake.target`，由 Ninja 实际依赖图选择完整固件闭包。
 
-大型事实与报告使用自包含的无损共享存储，Python 可通过 `ecra.workflow.read_saved_json(path)` 还原完整原结构；小结果保持原 JSON 格式。编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。页面使用 `workspace/projects/<工程身份>/results/index.html`，完整图和长源码搜索按需加载。
+**ECRA Studio 重构进行中**：双击 `ECRA.cmd` 或运行 `py -3.10 run_ecra.py ui`，可保存独立工程配置、发起真实 SQLite 扫描、安全停止/校验 TU 后恢复、查看完整证据及调用树、进行人工确认和结果包交换。可选 OpenCode 复核有独立任务与账本。**完整重构及发布门禁仍未全部通过**；[本轮可验证实现](docs/rearchitecture/04-canonical-pipeline-progress.md)、[阶段验收与阻断项](docs/rearchitecture/performance-and-acceptance.md)、[操作指南](docs/rearchitecture/portable-and-user-guide.md)。
 
-新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。同一 `results/index.html` 默认只展示有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响在覆盖说明单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
+CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `--legacy-output`，仅供兼容验证和黄金基线。旧数据的共享编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。`read_saved_json` 兼容旧逻辑路径和新库，GUI/AI 的分页导航共用 EvidenceProvider。保护区算法未修改；大型原生 full/Diff、资源收益和全部用户场景尚不能视为通过。
+
+新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。新结果由Studio同一工作台查询；显式兼容模式才生成旧 `results/index.html`。默认差异清单只选有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
 
 默认结果目录、Git HEAD 隔离语义、CMake 外置构建、旧输出兼容及迁移恢复见[工作区与迁移说明](docs/workspace-migration.md)。所有命令自动定位同一 ProjectID；无需手填报告路径。
 
@@ -30,7 +32,7 @@
 
 ## Windows Full Portable 离线打包
 
-`build_portable.ps1` **不会联网**。它从项目根目录的 `.tools-cache/` 读取工具和 Python 依赖，生成 `dist/ECRA-Portable/` 与 `dist/ECRA-Portable.zip`。默认版本记录在 `config/portable_sources.psd1`，目前内置 Python 为 **3.12.10（64 位）**、Arm GCC 为 **10.3.1**。若缓存中仍是旧版 Arm GCC，需重新准备缓存，或通过 `-ArmGccSource` 指定本地 10.3.1 完整目录。
+`build_portable.ps1` **不会联网**。它从项目根目录的 `.tools-cache/` 读取工具和 Python 依赖，生成 `dist/ECRA-Portable/` 与 `dist/ECRA-Portable.zip`。默认版本记录在 `config/portable_sources.psd1`，本轮内置 Python 为 **3.10.9（64 位）**、Arm GCC 为 **10.3.1**，以真实包内版本收据为准。若缓存中仍是旧版 Arm GCC，需重新准备缓存，或通过 `-ArmGccSource` 指定本地 10.3.1 完整目录。
 
 ### 把源码和已有缓存迁移到新电脑打包
 
@@ -111,7 +113,7 @@
 
 ## 裸机 CMake 工程：配置一次，日常一条命令
 
-工具只使用一份 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时直接修改这一项及该项目的排查/CMake 参数；运行数据默认统一保存在工具侧 `workspace/projects/<工程身份>/results/`，固件内旧 `.ecra/` 会按身份安全复制迁移。在工具根目录执行：
+旧CLI使用 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时修改这一项及该项目的排查/CMake参数；运行数据默认保存在独立用户数据根（Windows `%LOCALAPPDATA%/ECRAStudio/data`，可设置 `ECRA_DATA_ROOT`）下 `projects/<工程身份>/results/`，旧 `.ecra/` 与工具workspace按精确身份复制迁移并保留原始数据，旧证明仍需重新验证。GUI预览另存每项目profile。在工具根目录执行：
 
 可在 [`config/review_context.md`](config/review_context.md) 填写当前工程补充背景及源码依据。每次正常变量复核读取它，作为待源码核实的用户声明。修改后运行 `review`，会重新复核全部静态疑似/未知变量。使用 `--config` 时，将同名 Markdown 放在实际 semantics.yaml 旁边；切换工程时同步更新。
 
@@ -180,7 +182,7 @@ analysis:
     clean_before_configure: true  # 清理 ECRA 专用目录，然后重新配置/构建
     build: true
   auto_system_includes: true
-  # output: {location: tool}  # 默认，自动按项目身份隔离
+  # output: {location: user}  # 默认，独立用户数据根，按项目身份隔离
 ```
 
 目录相对固件根目录，也可使用绝对路径。包含目录必须存在；空包含列表表示不限制范围。根据变量定义文件归属范围；头文件 static 保留不同编译单元的身份，extern 以实际定义归属。排除目录里的变量不进入清单、候选或模型任务。
@@ -284,7 +286,7 @@ analysis:
   exclude_dirs: [Drivers, Middlewares, ThirdParty]
   exclude_files: []  # 混在业务目录中的第三方文件
   exclude: ['CM4/*', 'build/*']  # 旧选项：仅跳过确定不属于本次固件的编译单元
-  # output: {location: tool}  # 默认，自动按项目身份隔离
+  # output: {location: user}  # 默认，独立用户数据根，按项目身份隔离
   parse_timeout_seconds: 180
 contexts:
   - id: main

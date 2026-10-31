@@ -828,6 +828,9 @@ def classification_quality_html(facts, report):
 
 
 def write_html(out, facts, report, reviews):
+    from .scan_persistence import is_canonical, append_runtime
+    if is_canonical(out):
+        return append_runtime(out, report, reviews)
     if len(facts.get('variables', [])) >= 1000 or len(facts.get('accesses', [])) >= 50000:
         # Individually small templates still create millions of inert DOM
         # nodes in a large project. Load every deferred detail independently.
@@ -1573,6 +1576,9 @@ document.addEventListener('toggle',async event=>{const d=event.target;if(!d.matc
 
 
 def write_failure(out, state='FAILED', *, write_report=True):
+    from .scan_persistence import is_canonical
+    if is_canonical(out):
+        return
     title = {'RUNNING': '本次扫描正在运行', 'INTERRUPTED': '本次扫描已中断'}.get(state, '本次扫描失败')
     contents = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + title + '</title><h1>' + title + '，不能使用旧结论</h1><p>请查看 run.json / run.log 和 diagnostics/exception.log。已有事实及复核缓存可能来自旧版本，不能作为本次结论。</p></html>'
     for name in ('index.html', REVIEW_PAGE, QUALITY_PAGE):

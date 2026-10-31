@@ -239,7 +239,37 @@ def report_selection(folder):
     return set(selected)
 
 
+def audit_sqlite(folder):
+    """Audit the authority directly; never manufacture legacy HTML/JSON."""
+    from ecra.scan_store import EvidenceProvider,connect_readonly,SCHEMA,SUPPORTED_VERSIONS
+    from ecra.report_package import validate_schema,validate_objects,sha256
+    from ecra.human_reviews import SCHEMA as REVIEW_SCHEMA
+    started=time.monotonic();folder=Path(folder).resolve();checks={};result=dict(format='SQLITE_AUTHORITY',checks=checks)
+    provider=EvidenceProvider(folder/'scan.db');binding=provider.validate(deep=True)
+    checks['complete_typed_graph_and_projections']=True
+    with closing(connect_readonly(folder/'scan.db')) as conn:
+        version=conn.execute('PRAGMA user_version').fetchone()[0]
+    validate_schema(folder/'scan.db',SCHEMA,version)
+    checks['known_static_schema']=version in SUPPORTED_VERSIONS
+    checks['legacy_copies_absent']=all(not (folder/name).exists() for name in
+        ('facts.json','facts.db','index.html','opencode_review.html','diff_index.html','inventory','reports'))
+    manifest=json.loads((folder/'manifest.json').read_text(encoding='utf-8')) if (folder/'manifest.json').is_file() else {}
+    expected=manifest.get('scan_sha256') or manifest.get('files',{}).get('scan.db',{}).get('sha256')
+    checks['manifest_digest']=not expected or sha256(folder/'scan.db')==expected
+    validate_objects(folder,manifest);checks['complete_archived_objects']=True
+    validate_schema(folder/'reviews.db',REVIEW_SCHEMA)
+    with closing(sqlite3.connect((folder/'reviews.db').as_uri()+'?mode=ro',uri=True)) as conn:
+        conn.execute('PRAGMA trusted_schema=OFF')
+        keys=('scan_id','project_id','facts_hash','report_hash')
+        checks['independent_reviews_binding']=conn.execute('SELECT '+','.join(keys)+' FROM binding').fetchall()==[tuple(binding[k] for k in keys)]
+        checks['ai_event_hashes']=all(hashlib.sha256(raw.encode()).hexdigest()==hashed for raw,hashed in conn.execute('SELECT payload,hash FROM ai_events'))
+    result.update(binding=binding,static_counts=provider.counts(),passed=all(checks.values()),seconds=time.monotonic()-started)
+    return result
+
+
 def audit(folder, *, check_json=True, node=None):
+    if (Path(folder)/'scan.db').is_file():
+        return audit_sqlite(folder)
     folder = Path(folder).resolve()
     begin = time.monotonic()
     checks, result = {}, {'browser_rendering': 'NOT_EXECUTED', 'output': str(folder)}

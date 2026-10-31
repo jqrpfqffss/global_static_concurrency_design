@@ -96,6 +96,7 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
     Consume in DB order so weak/strong selection, function declaration choice
     and evidence order remain identical to a sequential scan.
     """
+    from collections import deque
     from concurrent.futures import ThreadPoolExecutor
     def job(unit):
         request = worker_dir / (unit['tu_id'] + '.request.json')
@@ -121,11 +122,35 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
             # become an apparently successful incomplete static report.
             raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']} 退出 {proc.returncode}: {proc.stderr[-4000:]}")
         return unit, response, metadata
-    pool = ThreadPoolExecutor(max_workers=cfg['analysis'].get('extraction_workers', 1))
-    futures = [pool.submit(job, unit) for unit in units]
+    count = cfg['analysis'].get('extraction_workers', 1)
+    # The supervisor may change scheduling only. It does not change cfg or any
+    # extraction/analysis inputs, and database-order consumption is preserved.
+    requested=os.environ.get('ECRA_EXTRACTION_WORKERS')
+    if requested:
+        count=int(requested)
+        if not 1<=count<=8:raise ValueError('TU并行预算必须为1–8')
+    pool = ThreadPoolExecutor(max_workers=count)
+    todo, pending = iter(units), deque()
+    def submit():
+        unit = next(todo, None)
+        if unit is not None:
+            pending.append(pool.submit(job, unit))
+    def replenish():
+        limit=count
+        pressure=os.environ.get('ECRA_RESOURCE_PRESSURE_FILE')
+        if pressure and Path(pressure).is_file():
+            limit=max(1,min(count,int(read_json(pressure)['parallel_limit'])))
+        while len(pending)<limit:
+            before=len(pending);submit()
+            if len(pending)==before:break
     try:
-        for future in futures:
-            yield future.result()
+        replenish()
+        while pending:
+            # Do not submit the next TU until the consumer resumes after
+            # processing/committing this response. Preserve database order,
+            # including weak/strong selection and order-sensitive evidence.
+            yield pending.popleft().result()
+            replenish()
     finally:
         pool.shutdown(wait=True, cancel_futures=True)
 
@@ -180,7 +205,7 @@ def safe_review_samples(facts, count, shared_count=0):
 
 
 def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-        review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None):
+        review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None,_lock_owned=False):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     consumed_config = {}
@@ -192,22 +217,32 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     if no_review:
         cfg["review"]["enabled"] = False
     from .workspace import WorkspaceResolver, lock_path, migrate_legacy
+    if _workspace is not None:
+        from .scan_persistence import is_canonical
+        if is_canonical(_workspace.results_root):
+            from .workspace import formal_workspace
+            effective=dict(cfg['analysis'],output=dict(location='custom',custom_dir=_workspace.workspace_root))
+            formal_workspace(root,effective)
     workspace = _workspace or WorkspaceResolver.resolve(root, cfg['analysis']).initialize()
     workspace.bind(cfg['analysis'])
     out = Path(workspace.results_root)
     out.mkdir(parents=True, exist_ok=True)
     lock = lock_path(root, cfg['analysis'])
-    try:
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
-        raise ValueError(f"已有扫描锁 {lock}；确认没有扫描进程后移除过期锁") from exc
-    os.write(fd, json.dumps(dict(pid=os.getpid(), started=started)).encode())
-    os.close(fd)
+    if _lock_owned:
+        if not lock.is_file() or read_json(lock).get('pid')!=os.getpid():
+            raise ValueError('外部扫描锁所有权不符')
+    else:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc:
+            raise ValueError(f"已有扫描锁 {lock}；确认没有扫描进程后移除过期锁") from exc
+        os.write(fd, json.dumps(dict(pid=os.getpid(), started=started)).encode())
+        os.close(fd)
     try:
         if _workspace is None:
             migrate_legacy(workspace)
     except BaseException:
-        lock.unlink(missing_ok=True)
+        if not _lock_owned:lock.unlink(missing_ok=True)
         raise
     run_info = dict(version=__version__, started=started, project_root=str(root), state="RUNNING",
                     review_mode='disabled_by_cli' if no_review else
@@ -241,6 +276,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         from .workflow import engine_digest
         engine_at_start = engine_digest()
         previous_ids = set()
+        from .scan_persistence import is_canonical, previous_finding_ids
+        if is_canonical(out):
+            previous_ids=previous_finding_ids(out,workspace)
         old_report = out / "reports/global_static_concurrency.json"
         if old_report.is_file():
             report_can_replace = False
@@ -416,7 +454,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                                  config_file=config_file, compilation=compilation)
         if _cache_enabled or (diff_pin and cfg['analysis']['git_diff']['cache_enabled']):
             from .tu_cache import TUCache
-            tu_cache = TUCache(out/'cache/tu-v1', cfg, snapshot_inputs)
+            tu_cache = TUCache(Path(workspace.cache_root)/'tu-v1', cfg, snapshot_inputs)
             # Fix keys before workers mutate live unit dictionaries.
             for unit in units:
                 tu_cache.key(unit)
@@ -659,12 +697,17 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                    classifications=cov.get('static_classification'), snapshot_status=snapshot_inputs.status,
                    static_analysis_status=report['analysis_status'], analysis_valid=True,
                    output_files={str(path.relative_to(out)): path.stat().st_size for path in
-                     [out/'facts.json', out/'facts.db', out/'index.html', out/'reports/global_static_concurrency.json']}))
+                     ([out/'scan.db', out/'reviews.db'] if (out/'scan.db').is_file() else
+                      [out/'facts.json', out/'facts.db', out/'index.html', out/'reports/global_static_concurrency.json'])}))
         code = 2 if report["run_status"] == "INCOMPLETE" else (1 if report["findings"] else 0)
         run_info.update(state=report["run_status"], exit_code=code, fingerprint=fingerprint,
                         report=str(out / "index.html"), review_report=str(out / REVIEW_PAGE), review_summary=report["review_summary"])
-        progress(f"完成：{report['run_status']}；变量与风险 {out / 'index.html'}；OpenCode 结果 {out / REVIEW_PAGE}")
-        if cfg['analysis'].get('open_report', False):
+        if (out/'scan.db').is_file():
+            run_info.update(report=str(out/'scan.db'), review_report=str(out/'reviews.db'))
+            progress(f"完成：{report['run_status']}；完整证据 {out/'scan.db'}；请使用 ECRA Studio 查看。")
+        else:
+            progress(f"完成：{report['run_status']}；变量与风险 {out / 'index.html'}；OpenCode 结果 {out / REVIEW_PAGE}")
+        if cfg['analysis'].get('open_report', False) and not (out/'scan.db').is_file():
             try:
                 import webbrowser
                 if not webbrowser.open((out / 'index.html').as_uri()):
@@ -717,13 +760,19 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if source_token is not None:
             source_token.var.reset(source_token)
         diagnostics.close()
+        if tu_cache is not None:
+            write_json(out/'diagnostics/tu_cache.json', tu_cache.stats())
         run_info["finished"] = datetime.now(timezone.utc).isoformat()
         if not doctor_only:
             write_json(out / "run.json", run_info)
-        lock.unlink(missing_ok=True)
+        if not _lock_owned:lock.unlink(missing_ok=True)
 
 
 def main(argv=None):
+    supplied = list(sys.argv[1:] if argv is None else argv)
+    if supplied and supplied[0] == 'ui':
+        from .studio.__main__ import main as studio_main
+        return studio_main(supplied[1:])
     # Match UTF-8 report files and Windows IDE terminals, regardless of ACP.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -737,6 +786,7 @@ def main(argv=None):
     parser.add_argument("--model", help="init 时写入已配置的 OpenCode provider/model")
     parser.add_argument('--toolchain-file', help='init 时指定 CMake Arm 工具链文件（相对固件根目录）')
     parser.add_argument("--no-review", action="store_true", help="只生成静态报告与待复核清单，不调用 OpenCode")
+    parser.add_argument('--legacy-output', action='store_true', help='显式兼容验证入口：生成旧版报告；正式扫描使用 SQLite')
     parser.add_argument('--scan-mode', choices=['full', 'diff'], help='覆盖本次全量/分支差异模式，不修改 YAML')
     parser.add_argument("--review-safe-sample", type=int, default=0, metavar='N',
                         help='额外抽取 N 个 SAFE_PROVEN 项生成质量复核证据包；不改变风险队列')
@@ -838,7 +888,11 @@ def main(argv=None):
             print('环境检查：' + launcher + ' doctor')
             print('一键排查：' + launcher)
             return 0
-        return run(root, str(config_path), args.no_review, args.command == "doctor",
+        executor = run
+        if args.command == 'run' and not args.legacy_output:
+            from .scan_persistence import run_canonical
+            executor = run_canonical
+        return executor(root, str(config_path), args.no_review, args.command == "doctor",
                    args.review_safe_sample, args.review_shared_sample, scan_mode=args.scan_mode)
     except (ValueError, OSError, ImportError) as exc:
         print(f"ECRA: {exc}", file=sys.stderr)

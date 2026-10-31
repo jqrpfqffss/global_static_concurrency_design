@@ -1,0 +1,91 @@
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+
+from ecra.human_reviews import ReviewStore
+from ecra.report_package import export_report
+from ecra.scan_store import EvidenceProvider, publish_scan
+from ecra.studio.server import create_app
+
+
+class StudioAPITests(unittest.TestCase):
+    def test_storage_sampling_tolerates_live_temp_removal_without_masking_import_errors(self):
+        from ecra.workspace import no_links
+        temporary=self.data/'work/transient';temporary.mkdir(parents=True)
+        def racing(path):
+            if Path(path).name=='transient':raise FileNotFoundError('temporary directory was removed by its owner')
+            return no_links(path)
+        with patch('ecra.studio.server.no_links',side_effect=racing):
+            response=self.client.get('/api/storage')
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertTrue(response.json()['sampling_partial'])
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='ecra API ')
+        self.addCleanup(self.tmp.cleanup)
+        self.data = Path(self.tmp.name)/'data'
+        path = self.data/'scans/scan-api'; path.mkdir(parents=True)
+        publish_scan(path/'scan.db', dict(variables=[dict(symbol_id='s',name='真实变量',static_classification='SUSPECT')],
+            accesses=[dict(symbol_id='s', access_kind='RMW',file='a.c',line=3)]), dict(findings=[]), scan_id='scan-api',project_id='p')
+        self.provider = EvidenceProvider(path/'scan.db')
+        ReviewStore(path/'reviews.db',self.provider.metadata())
+        self.client = TestClient(create_app(self.data,token='test-token',authority='127.0.0.1:12345'),base_url='http://127.0.0.1:12345',
+            headers={'x-ecra-session':'test-token','origin':'http://127.0.0.1:12345'})
+
+    def test_loopback_host_origin_token_and_csrf_boundaries(self):
+        self.assertEqual(self.client.get('/api/scans').status_code,200)
+        for headers,status in [({'x-ecra-session':'wrong'},401),({'host':'evil.test'},403),({'origin':'https://evil.test'},403)]:
+            self.assertEqual(self.client.get('/api/scans',headers=headers).status_code,status)
+        self.assertEqual(self.client.post('/api/scans/scan-api/human',headers={'origin':'null'},json={}).status_code,403)
+
+    def test_pagination_count_and_decision_commit_survive_reopening(self):
+        result = self.client.get('/api/scans/scan-api/symbols?limit=1').json()
+        self.assertEqual(result['total'],1)
+        self.assertEqual(result['items'][0]['name'],'真实变量')
+        request = dict(symbol_id='s',fingerprint=self.provider.fingerprint('s'),decision='CONFIRMED_RISK',reviewer='声明',expected_heads=[])
+        response = self.client.post('/api/scans/scan-api/human',json=request)
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertTrue(response.json()['saved'])
+        self.assertEqual(self.client.post('/api/scans/scan-api/human',json=request).status_code,409)
+        self.assertEqual(self.client.get('/api/scans/scan-api/summary').json()['human_counts']['CONFIRMED_RISK'],1)
+        self.assertEqual(self.client.get('/api/scans/scan-api/symbols?human_decision=PENDING').json()['total'],0)
+        self.assertEqual(self.client.get('/api/scans/scan-api/symbols?human_decision=CONFIRMED_RISK').json()['total'],1)
+        reopened = ReviewStore(self.data/'scans/scan-api/reviews.db',self.provider.metadata())
+        self.assertEqual(reopened.current('s',self.provider.fingerprint('s'))['decision'],'CONFIRMED_RISK')
+        self.assertEqual(self.client.get('/api/scans/scan-api/symbols?limit=99999').status_code,400)
+
+    def test_real_package_upload_and_export_use_same_protocol(self):
+        package = Path(self.tmp.name)/'result.ecra-report'
+        export_report(self.data/'scans/scan-api',package)
+        response = self.client.post('/api/import',content=package.read_bytes())
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertTrue(response.json()['repeated'])
+        result = self.client.post('/api/scans/scan-api/export',json={'kind':'full'})
+        self.assertEqual(result.status_code,200,result.text)
+        self.assertGreater(len(self.client.get(result.json()['download']).content),100)
+
+    def test_profile_preserves_raw_yaml_unknown_fields_and_comments(self):
+        fw = Path(self.tmp.name)/'firmware'; fw.mkdir()
+        raw = f'# 人工注释不能丢失\nversion: 1\nproject:\n  root: {json.dumps(str(fw))}\nanalysis: {{}}\nfuture_custom: {{keep: true}}\nreview: {{enabled: false}}\n'
+        checked = self.client.post('/api/profiles/check',json={'yaml':raw})
+        self.assertEqual(checked.status_code,200,checked.text)
+        self.assertFalse(checked.json()['ready_for_scan'])
+        saved = self.client.post('/api/profiles',json={'yaml':raw})
+        self.assertEqual(saved.status_code,200,saved.text)
+        reopened = self.client.get('/api/profiles').json()['items'][0]
+        self.assertEqual(reopened['yaml'],raw)
+        self.assertEqual(list(fw.iterdir()),[])
+        # Concurrent stale editor cannot overwrite another saved revision.
+        self.assertEqual(self.client.post('/api/profiles',json={'yaml':raw,'id':saved.json()['id'],'revision':'bad'}).status_code,409)
+
+    def test_unsafe_source_modes_rejected_with_actionable_error(self):
+        fw = Path(self.tmp.name)/'firmware'; fw.mkdir()
+        raw = json.dumps(dict(version=1,project=dict(root=str(fw)),analysis=dict(output=dict(location='project'))))
+        response = self.client.post('/api/profiles/check',json={'yaml':raw})
+        self.assertEqual(response.status_code,400,response.text)
+        self.assertIn('独立',response.json()['error'])
+        self.assertEqual(list(fw.iterdir()),[])

@@ -40,18 +40,68 @@ def read_owner(marker):
                          '检查 project.json/初始化 pending；不要手工替换身份摘要。' + str(exc)) from exc
 
 
+def user_data_root():
+    """Stable user data, independent of replaceable program installations."""
+    value = os.environ.get('ECRA_DATA_ROOT')
+    if value:
+        if not Path(value).is_absolute():
+            raise ValueError('ECRA_DATA_ROOT 必须是绝对路径')
+        return no_links(value)
+    if os.name == 'nt':
+        local = os.environ.get('LOCALAPPDATA')
+        if not local or not Path(local).is_absolute():
+            raise ValueError('LOCALAPPDATA 不可用；请设置独立的绝对路径 ECRA_DATA_ROOT')
+        return no_links(Path(local)/'ECRAStudio'/'data')
+    return no_links(Path(os.environ.get('XDG_DATA_HOME', str(Path.home()/'.local/share')))/'ECRAStudio'/'data')
+
+
+def studio_data_root(value=None):
+    """Reject recognized source/install trees before Studio's first write."""
+    path=no_links(value if value is not None else user_data_root())
+    tool=Path(TOOL_ROOT).resolve()
+    if path==tool or path.is_relative_to(tool):
+        raise ValueError('Studio 数据根不能位于程序安装目录；请选择独立用户数据目录')
+    for ancestor in (path,*path.parents):
+        if ((ancestor/'.git').exists() or (ancestor/'CMakeLists.txt').is_file()
+                or (ancestor/'compile_commands.json').is_file()):
+            raise ValueError('Studio 数据根位于源码/Git/构建工程内，拒绝创建数据；请选择工程外独立目录: '+str(ancestor))
+    return path
+
+
+def formal_workspace(root, analysis):
+    """Validate Studio boundaries without initializing or writing firmware.
+
+    Legacy resolver modes remain available to isolated compatibility readers;
+    Studio never treats them as authorization for new in-source scans/builds.
+    """
+    settings = output_settings(analysis)
+    if settings['location'] in {'project', 'tool'}:
+        raise ValueError('正式扫描需要独立用户数据根；请迁移旧 .ecra/工具 workspace，'
+                         '移除 output.location: project/tool，或选择仓库及安装目录外的 custom_dir')
+    if analysis.get('cmake', {}).get('location') == 'project':
+        raise ValueError('正式扫描禁止在固件中构建；请使用 analysis.cmake.location: workspace')
+    if analysis.get('git_diff', {}).get('include_uncommitted'):
+        raise ValueError('未提交字节的隔离快照尚未完成验收；正式工作流暂不允许 include_uncommitted: true')
+    ws = WorkspaceResolver.resolve(root, analysis)
+    data, tool = Path(ws.workspace_root), Path(TOOL_ROOT).resolve()
+    if data == tool or data.is_relative_to(tool):
+        raise ValueError('数据根不能位于会被升级覆盖的程序安装目录内')
+    studio_data_root(data)
+    return ws
+
+
 def output_settings(analysis):
     value = analysis.get('output')
     legacy = analysis.get('output_dir', '.ecra')
     if not isinstance(legacy, str) or not legacy.strip():
         raise ValueError('analysis.output_dir 必须是非空路径字符串')
     if value is None:
-        return dict(location='tool' if legacy == '.ecra' else 'project')
+        return dict(location='user' if legacy == '.ecra' else 'project')
     if not isinstance(value, dict) or set(value) - {'location', 'custom_dir'}:
         raise ValueError('analysis.output 只支持 location/custom_dir')
-    mode = value.get('location', 'tool')
-    if mode not in {'tool', 'project', 'custom'}:
-        raise ValueError('analysis.output.location 必须是 tool/project/custom')
+    mode = value.get('location', 'user')
+    if mode not in {'user', 'tool', 'project', 'custom'}:
+        raise ValueError('analysis.output.location 必须是 user/custom（tool/project仅旧格式兼容）')
     if mode == 'custom':
         if not isinstance(value.get('custom_dir'), str) or not value['custom_dir'].strip():
             raise ValueError('analysis.output.custom_dir 必须是非空绝对路径')
@@ -103,7 +153,8 @@ class WorkspaceResolver:
             work = result
             workspace = result.parent
         else:
-            workspace = no_links(TOOL_ROOT/'workspace' if settings['location'] == 'tool' else settings['custom_dir'])
+            workspace = no_links(user_data_root() if settings['location'] == 'user' else
+                TOOL_ROOT/'workspace' if settings['location'] == 'tool' else settings['custom_dir'])
             if workspace == repo or workspace.is_relative_to(repo):
                 raise ValueError(f'ECRA workspace 与固件 Git 仓库重叠: {workspace}；请配置 analysis.output.location: custom 和仓库外 custom_dir')
             # Preserve the full Unicode display name in project.json while
@@ -296,18 +347,47 @@ def legacy_files(root, legacy):
 def migrate_legacy(ws, progress=print):
     legacy = Path(ws.project_root)/'.ecra'
     out = Path(ws.results_root)
+    source_kind = 'FIRMWARE_LEGACY'
+    source_lock = legacy/'scan.lock'
+    if not legacy.is_dir():
+        # Adopt only this resolver's exact previous tool identity, never a
+        # directory guessed from a project display name. Raw bytes are copied
+        # for revalidation; this does not bless old engine/input proofs.
+        previous = WorkspaceResolver.resolve(ws.project_root, dict(output=dict(location='tool')))
+        old_work = Path(previous.project_workspace)
+        legacy = Path(previous.results_root)
+        if legacy == out or not (old_work/'project.json').is_file():
+            return
+        previous.verify_identity()
+        source_kind = 'TOOL_WORKSPACE'
+        source_lock = old_work/'scan.lock'
     if not legacy.is_dir() or legacy == out or (out/'migration.json').exists():
         return
     # An existing new scan is never overwritten by old results.
     if (out/'run.json').exists():
         return
     try:
-        files = legacy_files(ws.project_root, legacy)
+        def source_files():
+            if source_kind == 'FIRMWARE_LEGACY':
+                return legacy_files(ws.project_root, legacy)
+            previous.verify_identity()
+            run = read_json(legacy/'run.json')
+            if canonical(run.get('project_root', '')) != canonical(ws.project_root):
+                raise ValueError('旧工具 workspace 的扫描工程身份不匹配')
+            if not (legacy/'facts.db').is_file() or not (legacy/'reports/global_static_concurrency.json').is_file():
+                raise ValueError('旧工具 workspace 缺少完整事实/报告；保留原数据，不能冒充有效历史')
+            files = []
+            for base, dirs, names in os.walk(no_links(legacy)):
+                for name in dirs + names:
+                    no_links(Path(base)/name)
+                files.extend(Path(base)/name for name in names)
+            return files
+        files = source_files()
     except (OSError, ValueError, KeyError, TypeError) as exc:
         progress(f'旧目录未自动接管: {legacy}；{exc}。保留原目录；核对身份后可手动归档到 snapshots。')
         return
-    if (legacy/'scan.lock').exists():
-        raise ValueError(f'旧数据存在扫描锁: {legacy}/scan.lock；确认旧进程退出并处理锁后重试')
+    if source_lock.exists():
+        raise ValueError(f'旧数据存在扫描锁: {source_lock}；确认旧进程退出并处理锁后重试')
     if any(out.iterdir()):
         raise ValueError(f'迁移目标已有数据，拒绝覆盖: {out}；请将旧目录手动归档至 snapshots 后重新扫描')
     pending = Path(ws.project_workspace)/'.migration-pending'
@@ -329,13 +409,13 @@ def migrate_legacy(ws, progress=print):
             if (target.stat().st_size, file_hash(target)) != before or file_hash(source) != before[1]:
                 raise ValueError(f'迁移校验失败/旧数据正在变化: {source}')
             records[rel.as_posix()] = dict(size=before[0], sha256=before[1])
-        if set(files) != set(legacy_files(ws.project_root, legacy)) or (legacy/'scan.lock').exists():
+        if set(files) != set(source_files()) or source_lock.exists():
             raise ValueError('迁移期间旧数据目录发生变化')
         for source in files:
             record = records[source.relative_to(legacy).as_posix()]
             if source.stat().st_size != record['size'] or file_hash(source) != record['sha256']:
                 raise ValueError(f'迁移期间旧数据发生变化: {source}')
-        write_json(pending/'migration.json', dict(schema=1, source=str(legacy), project_id=ws.project_id,
+        write_json(pending/'migration.json', dict(schema=1, source=str(legacy), source_kind=source_kind, project_id=ws.project_id,
             files=records, complete=True, copied_bytes=sum(r['size'] for r in records.values()),
             seconds=time.monotonic()-started, review_state='PRESERVED_REVALIDATION_REQUIRED'))
         # Publish one whole directory; interrupted copies never masquerade as a

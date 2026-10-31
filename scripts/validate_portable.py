@@ -135,6 +135,7 @@ class Acceptance:
         self.env['ECRA_PORTABLE_ROOT'] = str(bundle)
         self.env['ECRA_CONFIG_HOME'] = str(bundle/'config')
         self.env['PYTHONDONTWRITEBYTECODE'] = '1'
+        self.env['ECRA_DATA_ROOT'] = str(work/'user-data')
         from ecra.portable import build_path
         tool_root = Path(build_path(bundle))
         self.env['PATH'] = os.pathsep.join(build_path(Path(p)) for p in self.env['PATH'].split(os.pathsep))
@@ -338,6 +339,14 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         stale = build/'stale-ecra-output.txt'
         stale.write_text('remove only ECRA output', encoding='utf-8')
         self.command('ecra.cmd run no review real ARM build and scan', self.ecra('run',config,'--no-review'), allowed=(2,))
+        canonical_code=('import json,sys;from pathlib import Path;from ecra.config import load_config;'
+            'from ecra.workflow import output_path;from ecra.scan_store import EvidenceProvider;'
+            'r=Path(sys.argv[1]);c=load_config(r,sys.argv[2])[0];o=output_path(r,c);p=EvidenceProvider(o/"scan.db");'
+            'p.validate(deep=True);s=p.symbols(search="shared_count")["items"];'
+            'print(json.dumps(dict(out=str(o),shared=p.load("facts",["variables",s[0]["ordinal"]]) if len(s)==1 else None)))')
+        native = json.loads(self.command('resolve and validate native SQLite authority',
+            [str(self.python),'-c',canonical_code,str(firmware),str(config)],cwd=self.bundle))
+        out=Path(native['out'])
         self.inspect_build(build,self.arm,self.make)
         if stale.exists() or {p.name: p.read_bytes() for p in legacy.iterdir()} != legacy_files:
             raise ValueError('Isolated build cleanup did not preserve the existing user build')
@@ -345,23 +354,24 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         header = image.read_bytes()[:20]
         if header[:4] != b'\x7fELF' or struct.unpack_from('<H',header,18)[0] != 40:
             raise ValueError(f'Not an ARM ELF firmware: {image}')
-        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
-        shared = next((v for v in facts['variables'] if v['name'] == 'shared_count'), None)
+        shared = native['shared']
         if not shared or len(shared.get('writers',[])) < 2:
             raise ValueError('AST/global-variable/concurrent writer extraction regression')
-        static_facts_sha256 = sha256(out/'facts.json')
+        static_facts_sha256 = sha256(out/'scan.db')
         self.command('ecra.cmd review disabled interface', self.ecra('review',config),allowed=(2,))
         self.command('ecra.cmd review-failed disabled interface', self.ecra('review-failed',config),allowed=(2,))
         self.command('ecra.cmd report', self.ecra('report',config),allowed=(2,))
-        if sha256(out/'facts.json') != static_facts_sha256:
+        if sha256(out/'scan.db') != static_facts_sha256:
             raise ValueError('Saved review/report commands changed the complete static facts')
         self.report['saved_commands_static_facts_unchanged'] = True
         status = json.loads(self.command('ecra.cmd status', self.ecra('status',config,'--json')))
         if not status.get('resumable'):
             raise ValueError(f'Scan not resumable: {status}')
-        for filename in ('index.html','facts.db','reports/global_static_concurrency.json'):
+        for filename in ('scan.db','reviews.db','manifest.json'):
             if not (out/filename).is_file():
                 raise ValueError(f'ECRA output missing: {filename}')
+        if any((out/name).exists() for name in ('facts.json','facts.db','index.html','reports','inventory')):
+            raise ValueError('Formal packaged scan generated a forbidden legacy report copy')
         if not image.is_file():
             raise ValueError('Firmware not linked')
         # build:false must configure/export without starting a build.
@@ -385,8 +395,8 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         launch = 'import sys;sys.path.insert(0,sys.argv.pop(1));from ecra.cli import main;raise SystemExit(main())'
         self.command('relocated default workspace real scan', [self.python, '-c', launch, relocated,
                      '--config', default_config, '--no-review'], allowed=(2,))
-        defaults = list((relocated/'workspace/projects').glob('*/results/facts.db'))
-        if len(defaults) != 1 or (firmware/'.ecra').exists() or (self.bundle/'workspace').exists():
+        defaults = list((self.work/'user-data/scans').glob('*/scan.db'))
+        if len(defaults) != 1 or (firmware/'.ecra').exists() or (self.bundle/'workspace').exists() or (relocated/'workspace').exists():
             raise ValueError('Default workspace location or distribution runtime-data isolation failed')
         self.report['default_workspace'] = str(defaults[0].parent)
         self.report['bundle_contains_runtime_data'] = False
@@ -395,6 +405,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
     def run(self):
         try:
             for name in ('ecra.cmd','run_ecra.py','README.txt','VERSION.txt','portable-lock.json',
+                         'ecra/studio/web/index.html','ecra/studio/server.py','requirements-studio.txt','STUDIO-PREVIEW.txt',
                          'config/semantics.yaml','config/review_context.md','config/concurrency_cases.md',
                          'runtime/python.exe','runtime/python310.zip','runtime/python310._pth',
                          'runtime/msvcp140.dll','tools/cmake/bin/cmake.exe','tools/ninja/ninja.exe',

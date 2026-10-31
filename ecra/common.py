@@ -44,6 +44,10 @@ def digest(value):
 
 def write_json(path, value, *, indent=2):
     path = Path(path)
+    from .scan_persistence import queue_directory, append_runtime, runtime
+    directory = queue_directory(path)
+    if directory is not None:
+        return append_runtime(directory,runtime(directory,with_reviews=False).get('report',{}),value)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(path.suffix + ".tmp")
     with temp.open('w', encoding='utf-8') as stream:
@@ -69,6 +73,12 @@ def replace_file(source, destination):
 
 
 def read_json(path):
+    from .scan_persistence import artifact, read, queue_directory, runtime
+    directory = queue_directory(path)
+    if directory is not None:
+        return runtime(directory).get('reviews',[])
+    if artifact(path) is not None:
+        return read(path)
     from .shared_json import encoded_stream, read_stream
     with Path(path).open(encoding='utf-8-sig') as stream:
         return read_stream(stream) if encoded_stream(stream) else json.load(stream)

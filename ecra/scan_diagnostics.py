@@ -47,7 +47,9 @@ def memory():
     if ctypes.windll.psapi.GetPerformanceInfo(ctypes.byref(info), info.cb):
         result.update(system_commit_bytes=info.CommitTotal * info.PageSize,
                       system_commit_limit_bytes=info.CommitLimit * info.PageSize,
-                      system_commit_peak_bytes=info.CommitPeak * info.PageSize)
+                      system_commit_peak_bytes=info.CommitPeak * info.PageSize,
+                      system_physical_total_bytes=info.PhysicalTotal*info.PageSize,
+                      system_physical_available_bytes=info.PhysicalAvailable*info.PageSize)
     return result
 
 
@@ -93,8 +95,16 @@ class ScanDiagnostics:
 
     def sample_loop(self):
         while not self.stop.wait(0.5):
+            request = os.environ.get('ECRA_JOB_STOP_FILE')
+            if request and Path(request).is_file():
+                import _thread
+                _thread.interrupt_main()
+                return
             try:
                 self.sample()
+                write_json(self.folder/'scan_progress.json', dict(completed_units=self.completed_units,
+                    total_units=self.total_units, snapshot_status=self.snapshot_status,
+                    stage=self.current['stage'] if self.current else None, fact_counts=self.fact_counts))
             except (OSError, MemoryError):
                 pass
 

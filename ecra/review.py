@@ -405,7 +405,7 @@ ECRA发现 shared→读取旧值→实参保存→经调用路径写回同一sha
         + '\n聚焦事实：\n' + json.dumps(focused, ensure_ascii=False) + CONTRACT_PROMPT)
 
 
-def _review_env(paths, *, format_only=False, reference_paths=()):
+def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None):
     # Formatting sessions have no source or tool access and no previous session.
     permissions = {'*': 'deny'}
     if not format_only:
@@ -423,9 +423,19 @@ def _review_env(paths, *, format_only=False, reference_paths=()):
                     permissions['external_directory'][pattern] = 'allow'
     env = os.environ.copy()
     env['OPENCODE_PERMISSION'] = json.dumps(permissions)
-    env['OPENCODE_CONFIG_CONTENT'] = json.dumps(dict(permission=permissions, share='disabled',
+    configuration = dict(permission=permissions, share='disabled',
         agent={'ecra-review': dict(description='Read-only variable concurrency reviewer',
-                                   mode='primary', permission=permissions)}))
+                                   mode='primary', permission=permissions)})
+    if evidence_database is not None and not format_only:
+        import sys
+        # Keep shell/network/write denied. Only our fixed-database read tool is
+        # permitted; local MCP process startup uses a structured argv, no shell.
+        permissions['ecra_evidence_*'] = 'allow'
+        configuration['mcp'] = dict(ecra_evidence=dict(type='local', enabled=True,
+            command=[sys.executable,'-B','-m','ecra.evidence_mcp','--database',str(evidence_database)],
+            environment=dict(PYTHONPATH=str(Path(__file__).resolve().parent.parent),PYTHONIOENCODING='utf-8')))
+        env['OPENCODE_PERMISSION'] = json.dumps(permissions)
+    env['OPENCODE_CONFIG_CONTENT'] = json.dumps(configuration)
     return env
 
 
@@ -501,7 +511,19 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     # only to the original static facts, also during an explicit re-review.
     from .workflow import clean_report
     report_path = folder / 'static-report.json'
-    write_json(report_path, clean_report(report))
+    from .scan_persistence import is_canonical
+    navigation = ''
+    if is_canonical(out):
+        facts_path = folder/'facts-navigation.json'
+        report_path = folder/'report-navigation.json'
+        for name, path in [('facts', facts_path), ('report', report_path)]:
+            write_json(path, dict(format='ECRA_EVIDENCE_NAVIGATION', version=1, root=name,
+                database=str(out/'scan.db'), command=[__import__('sys').executable, '-m', 'ecra.evidence_reader',
+                    '--database', str(out/'scan.db'), '--root', name],
+                instructions='按 JSON path 或 node 读取；返回 total/hash/next_offset。必须继续分页直到 next_offset=null；字符串使用 --text。所有证据完整保留。'))
+        navigation = '\n完整静态 facts/report 位于导航文件指向的 SQLite。使用已配置的 ecra_evidence MCP evidence 工具，按 root/path 或 node 逐层读取。它与 GUI 使用同一 EvidenceProvider；继续 offset 直到 next_offset=null，不可把第一页当作全部证据。无需 shell 或网络权限。\n'
+    else:
+        write_json(report_path, clean_report(report))
     write_json(shared_path, dict(contexts=facts.get('contexts', []), coverage=report.get('coverage', {}),
         limitations=report.get('limitations', []), config=cfg,
         compile_commands=[{k: u[k] for k in ('source_file', 'arguments', 'parse_status', 'diagnostics') if k in u}
@@ -553,7 +575,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             result['summary_validation'] = dict(settings=summary_config, variable_name=variable_name,
                 scope='确定性质量检查及明确结论矛盾检查，不是完整语义证明', state='PENDING')
             write_json(packet_path, packet, indent=1)
-            prompt = REVIEW_PROMPT + review_context_section(review_context_path) + library_prompt + CONTRACT_PROMPT
+            prompt = REVIEW_PROMPT + review_context_section(review_context_path) + library_prompt + CONTRACT_PROMPT + navigation
             prompt += ('\n大型事实可能采用无损共享存储：JSON 根含 _ecra_shared_json=1 时，'
                 'reference_key 指定引用字段，pool 按子节点在前排列，value 是完整逻辑对象；'
                 '先还原池引用，再读取变量、访问和调用边。SQLite 的 ecra_shared_json_metadata/'
@@ -654,7 +676,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                         env=_review_env([packet_path, shared_path, facts_path, report_path,
                             *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
                               if (packet.get('git_diff_impact') or {}).get(key)]],
-                                        format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths))
+                                        format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths,
+                                        evidence_database=out/'scan.db' if is_canonical(out) else None))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')
                     record['exit_code'] = proc.returncode

@@ -66,7 +66,10 @@ def build_path(value, *, prefer_junction=False):
     paths remain valid on later commands. Existing unrelated paths are refused.
     """
     path = Path(value).absolute()
-    compact = prefer_junction and (not str(path).isascii() or len(str(path)) > 180)
+    # CMake's TryCompile/object suffixes can add >100 characters. Waiting
+    # until the build root itself exceeds 180 leaves normal ASCII workspaces
+    # beyond Make's path limit. A requested build alias is always compact.
+    compact = prefer_junction
     if os.name != 'nt' or (str(path).isascii() and not compact):
         return str(path)
     for root, alias in sorted(_BUILD_ALIASES.items(), key=lambda item: len(str(item[0])), reverse=True):
@@ -122,6 +125,10 @@ def tool_environment():
     env = os.environ.copy()
     root = bundle_root()
     if root:
+        # Register the whole bundle before individual bin directories. GCC
+        # resolves ../libexec and ../lib relative to argv[0]; aliasing bin alone
+        # makes those siblings disappear on Chinese/space install paths.
+        build_path(root)
         windows = Path(env.get('SystemRoot', r'C:\Windows'))
         paths = [root/'runtime', root/'tools/cmake/bin', root/'tools/ninja',
                  root/'tools/mingw/bin', root/'tools/mingw/opt/bin', root/'tools/arm-gcc/bin',
@@ -140,6 +147,7 @@ def tool_path(name):
              'g++': 'mingw/bin/g++.exe', 'arm-none-eabi-gcc': 'arm-gcc/bin/arm-none-eabi-gcc.exe',
              'arm-none-eabi-g++': 'arm-gcc/bin/arm-none-eabi-g++.exe'}
     if root and name in paths:
+        build_path(root)
         path = root/'tools'/paths[name]
         if not path.is_file():
             raise ValueError(f'Portable 缺少工具: {path}；重新生成完整包')

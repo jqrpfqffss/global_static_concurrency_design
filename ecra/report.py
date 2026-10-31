@@ -119,11 +119,15 @@ class AtomicLines:
 
 
 def generate(out, facts, report, reviews):
+    from .scan_persistence import is_canonical, persist
+    if is_canonical(out):
+        prepare(facts, report, reviews)
+        return persist(out, facts, report, reviews)
     with ExitStack() as files:
         return _generate(out, facts, report, reviews, files)
 
 
-def _generate(out, facts, report, reviews, files):
+def prepare(facts, report, reviews):
     from .html_report import category, review_records, write_html, risk_summary, final_conclusion, localized_records
     from .decisions import decision_label, effective_decision
     from .scope import validate_selection
@@ -200,14 +204,23 @@ def _generate(out, facts, report, reviews, files):
     if (counts['unresolved'] or counts['likely'] or not report['review_integrity']['complete']
             or report.get('git_diff', {}).get('fallback_reasons')) and report.get('run_status') == 'REVIEW_COMPLETE':
         report['run_status'] = 'INCOMPLETE'
-    for folder in ("inventory", "reports"):
-        (out / folder).mkdir(parents=True, exist_ok=True)
     from .diagnostics import root_causes, root_causes_markdown
     diagnostic = root_causes(facts['variables'], report['coverage']['review_rates'])
     quality = report['coverage']['classification_quality']
     quality['root_cause_reason_counts'] = diagnostic['reason_counts']
     quality['root_cause_hotspots'] = diagnostic['hotspots'][:50]
     quality['counterfactual_upper_bounds'] = diagnostic['counterfactual_upper_bounds']
+    return records_by_id, diagnostic
+
+
+def _generate(out, facts, report, reviews, files):
+    from .html_report import write_html, localized_records
+    from .git_diff import selected_findings
+    from .review_integrity import review_targets
+    from .diagnostics import root_causes_markdown
+    records_by_id, diagnostic = prepare(facts, report, reviews)
+    for folder in ("inventory", "reports"):
+        (out / folder).mkdir(parents=True, exist_ok=True)
     from .shared_json import write as write_shared_json
     write_shared_json(out / 'reports/root_cause_v2.json', diagnostic)
     (out / 'reports/classification_root_causes.md').write_text(

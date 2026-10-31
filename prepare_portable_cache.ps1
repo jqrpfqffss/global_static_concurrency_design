@@ -125,6 +125,9 @@ try {
         }
         $pipArgs += @('--no-index','--find-links',$wheelRoot)
         $null = Invoke-Checked 'Python 3.10 compatible wheels' $python $pipArgs
+        $studioArgs = @('-B',(Join-Path $PSScriptRoot 'scripts/prepare_studio_wheels.py'),'--cache',$cacheRoot)
+        if ($OfflineCheck) { $studioArgs += '--offline' }
+        $null = Invoke-Checked 'Studio Python 3.10 wheel hashes and licenses' $python $studioArgs
     } finally { if ($stage) { Remove-OutputChild $cacheRoot $stage } }
 } catch { $errors += "Python dependencies : $_"; Write-Warning $errors[-1] }
 $summary = @{ resolved=$resolved; errors=$errors; offline=[bool]$OfflineCheck; utc=[datetime]::UtcNow.ToString('o') }
