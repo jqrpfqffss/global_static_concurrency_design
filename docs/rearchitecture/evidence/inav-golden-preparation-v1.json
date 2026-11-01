@@ -1,0 +1,18 @@
+{
+  "scope": "Prepare a rebuildable public INAV golden candidate, never a formal dirty snapshot.\n\nCopies tracked working bytes and nonignored untracked inputs into an independent\nGit clone. Existing ignored builds/scan archives remain untouched at the source.\nAn actual fresh build and complete consumed-input audit are required next; this\npreparation alone establishes neither semantic equivalence nor any G gate.\n",
+  "state": "SOURCE_CANDIDATE_CAPTURED_BUILD_NOT_VERIFIED",
+  "original": "I:\\ecra_stm32_validation\\inav-h743-20261026",
+  "head": "f25434a9e2e58db1ad2ce3b87529a78393cad139",
+  "source_index_sha256": "605dd33f5a087a05433871582801f0cca9f42c64f018bf36a22d023327dbf370",
+  "working_patch_sha256": "c6e9ea63434fd12017591b725b26ac6fc04e03fe69d2bcbf0235566fedfddfaa",
+  "staged_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "ignored_scope": "Not copied. Existing build/archives retained at original. Fresh build and consumed-input audit REQUIRED.",
+  "production_dirty_isolation": "NOT_PROVEN",
+  "native_golden": "NOT_RUN",
+  "source_unchanged": true,
+  "source_files": 3533,
+  "source_logical_bytes": 225726022,
+  "config_sha256": "356d2cacad160a5180fd33bdf01ca28d557060afd04f10256937f156097a4690",
+  "original_config_sha256": "4fbb0206450f13b1ce46dc7210ea03c116398d4e6adfa07237a8b0b3d0f864e0",
+  "files_manifest_sha256": "1860176788ef5e7cf1fe435bcf15a74a7f75852959b3385665052b2c077c0412"
+}

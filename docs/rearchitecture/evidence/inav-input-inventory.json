@@ -1,0 +1,56 @@
+{
+  "scope": "READ_ONLY_METADATA_INVENTORY_NOT_GOLDEN_OR_PERFORMANCE_PROOF",
+  "source": "I:/ecra_stm32_validation/inav-h743-20261026",
+  "seconds": 17.280999999959022,
+  "totals": {
+    "<root>": {
+      "files": 17,
+      "logical_bytes": 56714
+    },
+    "src": {
+      "files": 1450,
+      "logical_bytes": 8442748
+    },
+    "lib": {
+      "files": 1787,
+      "logical_bytes": 187588388
+    },
+    "docs": {
+      "files": 222,
+      "logical_bytes": 12877488
+    },
+    "dev": {
+      "files": 10,
+      "logical_bytes": 16651243
+    },
+    "cmake": {
+      "files": 33,
+      "logical_bytes": 92299
+    },
+    "build": {
+      "files": 1375,
+      "logical_bytes": 1864594117
+    },
+    "board": {
+      "files": 4,
+      "logical_bytes": 709
+    },
+    ".vscode": {
+      "files": 3,
+      "logical_bytes": 3796
+    },
+    ".github": {
+      "files": 7,
+      "logical_bytes": 12637
+    },
+    ".git": {
+      "files": 55,
+      "logical_bytes": 107887861
+    },
+    ".ecra": {
+      "files": 115696,
+      "logical_bytes": 106941865853
+    }
+  },
+  "reparse_points_skipped": []
+}

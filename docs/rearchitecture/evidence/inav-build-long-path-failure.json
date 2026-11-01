@@ -1,0 +1,12 @@
+{
+  "passed": false,
+  "scope": "Original e69 fresh INAV target build preparation; extraction NOT_RUN",
+  "source_head": "f25434a9e2e58db1ad2ce3b87529a78393cad139",
+  "failure": "GNU GCC dependency output path exceeds practical Windows path limit; explicit failure, no golden published",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-golden-build-1.log",
+  "log_sha256": "5e84c22c6531376bc7105918257257c3aec772d36bc334a69ac5b21a14bf0a17",
+  "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics.yaml",
+  "config_sha256": "356d2cacad160a5180fd33bdf01ca28d557060afd04f10256937f156097a4690",
+  "retry_config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-build-short.yaml",
+  "G1_G2": "NOT_VERIFIED"
+}

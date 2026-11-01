@@ -1,0 +1,17 @@
+# INAV 388TU 新黄金输入与原生测量（进行中）
+
+仅使用任务书获准的公开INAV副本 `I:/ecra_stm32_validation/inav-h743-20261026`。实际HEAD为f25434a9e2e58db1ad2ce3b87529a78393cad139，存在一处既有未提交改动 `src/main/drivers/serial_uart_stm32h7xx.c`；未执行原仓库checkout/reset/clean或修改原索引。旧配置含已废弃target_ref/compare_mode，另存改为当前base_ref/current_ref语法；本次全量关闭Diff。没有修改工具工作区中的用户config/semantics.yaml。
+
+只读元数据盘点见evidence/inav-input-inventory.json：原.ecra共115,696个文件、106,941,865,853逻辑字节，原build约1.865GB；这些历史数据完整保留，没有以其删除量计算新格式收益。不是当前引擎磁盘峰值测量。
+
+`scripts/prepare_inav_golden.py`在独立Git对象库捕获3,533个实际源码输入、225,726,022B及原始working/staged补丁、索引条目、Git状态和SQLite逐文件哈希。原索引/HEAD/工作状态与捕获后源码字节复验相同；原ignored构建/旧报告未复制，必须通过重新构建和实际消费闭包证明输入，不能叫作生产dirty完整快照。发生staged变化/子模块/链接/冲突时拒绝，不把未知输入跳过。2项真实Git专项通过，包含删除/未跟踪/忽略历史与staged拒绝。
+
+准备目录：`I:/ECRAStudio-data/rearchitecture-20261101/inav-golden-f254-v1`。首次no-checkout克隆在完成源码复制后，另对私有副本明确执行read-tree HEAD，核对全部索引条目和porcelain状态与原输入相同；该步骤只写私有.git。见inav-golden-index-check.json，脚本已将此步骤纳入默认流程。
+
+原引擎e69首次外置构建实际失败：GNU GCC无法创建长路径的.dep文件，日志/配置/目录保留，见inav-build-long-path-failure.json。另存 `semantics-build-short.yaml`，只更换独立输出根为I:/ECRA-B1后，原引擎真实CMake/Ninja/ARM GCC10.3.1完成392个构建步骤及MATEKH743.elf链接，目标闭包388TU。未改变固件字节、目标、优化参数或诊断策略；详情inav-native-build-v2.json。
+
+为两个引擎的独立提取固定同一命令与路径，最终 `semantics-native-golden.yaml`引用刚刚生成的target compile database、ELF及map；两边均使用该文件的完全相同字节，不在对照时再次配置CMake。构建阶段与原生提取/分析阶段分别测量，不伪称全量CMake工作流等价。源码含独立Git元数据共3,545个文件、332,710,534B，实际构建578个文件、1,125,157,293B；逐文件SHA/大小/mtime记录于frozen-inputs.db，输入文件置只读。还不是只读挂载/ACL的完整U03证明。
+
+测量器 `scripts/measure_native_golden.py`先在真实4TU旧CLI运行验证：10秒左右实际完成、analysis_valid=true、INCOMPLETE，捕获全部Job子进程、主进程内存、系统RAM/提交及目录逻辑字节；见native-resource-observer-probe-v2.json。首版短任务没有中间磁盘样本，现将最终大小纳入采样下界，失败/旧收据保留。它不重新装入完整facts/report，不把一个指标采集器当成语义对照。
+
+388TU原版原生全量已启动，日志为 `H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/inav-original-native-v1/console.log`，资源逐样本为同目录resources.jsonl；完整性仅由执行结束后的execution.json确定。原版运行显式施加32GiB进程树安全提交上限，低于4GiB系统可用或8GiB工作盘空闲会只停止本任务；触及限制是受控失败，不叫作自然OOM。主机物理64GiB，不是32GiB电脑测试；目录大小只是采样逻辑下界，物理分配峰值和系统分页速率尚未测量，不关闭G3/G4。当前尚无本次388TU完整黄金事实、候选逐字段对照或完整Diff收据，G1/G2保持NOT_VERIFIED。

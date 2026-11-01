@@ -1,0 +1,22 @@
+{
+  "build_passed": true,
+  "scope": "Original e69 CMake/ARM native MATEKH743.elf link, target closure 388TU. Extraction and large equivalence NOT_RUN.",
+  "units": 388,
+  "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+  "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "immutable_build": "I:\\ECRA-B1\\projects\\firmware_5a9c0c24c12d3378438e\\builds\\58c42f8beb6d55708e5d27f2",
+  "physical_32GB": "NOT_VERIFIED",
+  "input_manifest": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\frozen-inputs.db",
+  "production_dirty_isolation": "NOT_PROVEN",
+  "engine_commit": "e69a10bbcb870dfc19a7d69cf2267774d08b3342",
+  "real_link": {
+    "elf_sha256": "93f61b6acc52657cfc323dcb7195a7dc7b3fe7f6cd2fa1f767a1b5e3fa3c0e27",
+    "map_sha256": "526b059586287f36fb536acd4c6f4f20dd235ba5e2d3253aaea9cbafd6d6bffe",
+    "target_compile_database_sha256": "893da02d4bc07f47c8a05f92123b2e26e1dd42040a3e06b63b843e4c51f0060b"
+  },
+  "frozen_input_manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "build_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-golden-build-2.log",
+  "build_log_sha256": "fd47f8f751fc1b056cfdacfe3d6135e9b5617a9beabdf2b3cbbae25829a13546",
+  "G1": "NOT_RUN",
+  "G2": "BUILD_ONLY_NOT_NATIVE_SCAN_PASS"
+}

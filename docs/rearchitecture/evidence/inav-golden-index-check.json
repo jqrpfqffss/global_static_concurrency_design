@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "scope": "Private prepared clone HEAD index initialized explicitly after no-checkout; original staged list and porcelain status exactly equal. Not production dirty snapshot or a native build.",
+  "private_index_entries_equal": true,
+  "private_working_status_equal": true,
+  "original_index_unchanged": true,
+  "current_config_parser_accepts": true,
+  "helper_followup": "read-tree HEAD in owned clone only; staged.patch empty required",
+  "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics.yaml",
+  "config_sha256": "356d2cacad160a5180fd33bdf01ca28d557060afd04f10256937f156097a4690"
+}

@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "scope": "Two real Git preparation helper tests; not native extraction or G gates",
+  "tests": 2,
+  "seconds": 3.688,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-golden-preparation-tests-2.log",
+  "log_sha256": "f387bed667fe47dd5f7a0ade126b8a1ed79e78f70fde3aade541f98b01d54e45"
+}

@@ -1,0 +1,75 @@
+{
+  "complete": true,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. Directory sizes below are sampled logical sizes.\n",
+  "mode": "legacy",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-config-v2.yaml",
+  "config_sha256": "0a67117207d470da079292b814a22f13f588d8838b0f7bc41c91de3aba68003b",
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data",
+  "safety_job_commit_limit_bytes": 2147483648,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "NOT_MEASURED",
+  "system_paging_rate": "NOT_MEASURED",
+  "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "started": "2026-11-01T00:50:50.521199+00:00",
+  "peaks": {
+    "working_set_bytes": 170557440,
+    "private_bytes": 133959680,
+    "peak_job_commit_bytes": 135008256,
+    "sampled_output_logical_bytes": 5512865
+  },
+  "samples": 19,
+  "pid": 28240,
+  "seconds": 9.75,
+  "last": {
+    "seconds": 9.23399999999674,
+    "available": true,
+    "working_set_bytes": 102412288,
+    "private_bytes": 73953280,
+    "peak_job_commit_bytes": 135008256,
+    "limit_bytes": 2147483648,
+    "processes": 6,
+    "sampled_processes": 6,
+    "write_bytes": 0,
+    "system_commit_bytes": 35223367680,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 100864864256,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 43816726528,
+    "disk_free_bytes": 90437754880,
+    "main_process_memory": {
+      "rss": 42459136,
+      "vms": 40382464,
+      "num_page_faults": 361514,
+      "peak_wset": 48320512,
+      "wset": 42459136,
+      "peak_paged_pool": 303536,
+      "paged_pool": 303360,
+      "peak_nonpaged_pool": 18016,
+      "nonpaged_pool": 17840,
+      "pagefile": 40382464,
+      "peak_pagefile": 46436352,
+      "private": 40382464
+    },
+    "output_disk": {
+      "files": 0,
+      "logical_bytes": 0,
+      "sampling_partial": false
+    }
+  },
+  "exit_code": 2,
+  "final_output_disk": {
+    "files": 64,
+    "logical_bytes": 5512865,
+    "sampling_partial": false
+  },
+  "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd"
+  }
+}
