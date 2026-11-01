@@ -441,6 +441,12 @@ def conflict_pairs(accesses, relations, contexts):
     from .evidence import access_role
     from .json_rows import RecordDicts
     participant_records = RecordDicts(maxsize=1)
+    pair_records = RecordDicts(maxsize=2)
+    def pair_record(**values):
+        result = pair_records(tuple(values))
+        for field, value in values.items():
+            result[field] = value
+        return result
     participant_keys = ('instance_id', 'context_id', 'access_id', 'access_kind',
                         'function_id', 'file', 'line', 'canonical_path',
                         'call_path_count', 'access_scope', 'inherited_from_canonical_path',
@@ -500,6 +506,13 @@ def conflict_pairs(accesses, relations, contexts):
                 potential_rows += (len(left_writes) * len(right_all)
                                    + len(left_reads) * len(right_writes))
     if potential_rows > CONFLICT_PAIR_INLINE_LIMIT:
+        selectors = {}
+        def access_ids(cid):
+            if cid not in selectors:
+                _, writes, reads = grouped[cid]
+                selectors[cid] = (sorted({row['access_id'] for row in reads}),
+                                  sorted({row['access_id'] for row in writes}))
+            return selectors[cid]
         for i, left_cid in enumerate(context_ids):
             left_all, left_writes, left_reads = grouped[left_cid]
             for right_cid in context_ids[i:]:
@@ -545,7 +558,10 @@ def conflict_pairs(accesses, relations, contexts):
                 mhp = ('NO' if relation['relation'] == 'SERIAL' else
                        'MAYBE' if relation['relation'] == 'UNKNOWN_PREEMPTION' else 'YES')
                 possible = mhp != 'NO'
-                pairs.append(dict(
+                # These complete selectors are read-only evidence. Reuse the
+                # same context's lists instead of retaining them per pair.
+                left_ids, right_ids = access_ids(left_cid), access_ids(right_cid)
+                pairs.append(pair_record(
                     conflict_id='C-' + digest([left['instance_id'], right['instance_id'],
                                                left_cid, right_cid, 'CONTEXT_ACCESS_PRODUCT'])[:16],
                     representation='CONTEXT_ACCESS_PRODUCT',
@@ -553,10 +569,10 @@ def conflict_pairs(accesses, relations, contexts):
                     pair_generation=('COMBINATIONS_WITH_REPLACEMENT' if left_cid == right_cid
                                      else 'CROSS_PRODUCT'),
                     pair_rule='AT_LEAST_ONE_WRITE', pair_count=count,
-                    participant_a_read_access_ids=sorted({row['access_id'] for row in left_reads}),
-                    participant_a_write_access_ids=sorted({row['access_id'] for row in left_writes}),
-                    participant_b_read_access_ids=sorted({row['access_id'] for row in right_reads}),
-                    participant_b_write_access_ids=sorted({row['access_id'] for row in right_writes}),
+                    participant_a_read_access_ids=left_ids[0],
+                    participant_a_write_access_ids=left_ids[1],
+                    participant_b_read_access_ids=right_ids[0],
+                    participant_b_write_access_ids=right_ids[1],
                     participant_a=left, participant_b=right, relation=relation,
                     mhp=mhp, may_concurrent=possible, has_write_conflict=True,
                     status='需确认' if possible else '忽略（同一串行上下文）',
@@ -606,7 +622,7 @@ def conflict_pairs(accesses, relations, contexts):
             has_write = access_role(left['access_kind']) == 'WRITE' or access_role(right['access_kind']) == 'WRITE'
             state = ('需确认' if possible and has_write else
                      '无写冲突' if possible else '忽略（同一串行上下文）')
-            pairs.append(dict(conflict_id='C-' + digest([left['instance_id'], right['instance_id']])[:16],
+            pairs.append(pair_record(conflict_id='C-' + digest([left['instance_id'], right['instance_id']])[:16],
                               participant_a=left, participant_b=right, relation=relation,
                               mhp=mhp, may_concurrent=possible, has_write_conflict=has_write, status=state,
                               path_combination_count=left['call_path_count'] * right['call_path_count'],

@@ -71,5 +71,39 @@ class ConflictAllocationTests(unittest.TestCase):
             finally:tracemalloc.stop()
         self.assertLess(peaks[1],peaks[0]*0.85,'All 48,000 routes must remain processed with fewer temporary bytes')
 
+    def test_many_context_products_keep_every_selector_and_order_with_lower_retained_allocation(self):
+        contexts={f'c{i:02d}':dict(physical_id=f'p{i}') for i in range(32)}
+        rows=[access(i*400+j,cid,'WRITE' if j%2 else 'READ',routes=2)
+              for i,cid in enumerate(contexts) for j in range(400)]
+        self.assert_reference(rows,[],contexts)
+        peaks=[]
+        for function in [reference.conflict_pairs,conflict_pairs]:
+            tracemalloc.start(1)
+            try:
+                result=function(rows,[],contexts)
+                self.assertTrue(result)
+                self.assertTrue(all(pair['representation']=='CONTEXT_ACCESS_PRODUCT' for pair in result))
+                peaks.append(tracemalloc.get_traced_memory()[1])
+                del result
+            finally:tracemalloc.stop()
+        self.assertLess(peaks[1],peaks[0]*0.85)
+
+    def test_inline_pairs_near_threshold_keep_complete_records_and_lower_retained_allocation(self):
+        contexts=dict(main=dict(physical_id='M'),irq=dict(physical_id='I'))
+        rows=[access(i,'main','WRITE',routes=2) for i in range(63)]
+        rows += [access(63+i,'irq','READ',routes=3) for i in range(63)]
+        self.assert_reference(rows,[],contexts)
+        peaks=[]
+        for function in [reference.conflict_pairs,conflict_pairs]:
+            tracemalloc.start(1)
+            try:
+                result=function(rows,[],contexts)
+                self.assertEqual(len(result),3969)
+                self.assertTrue(all('representation' not in pair and type(pair) is dict for pair in result))
+                peaks.append(tracemalloc.get_traced_memory()[1])
+                del result
+            finally:tracemalloc.stop()
+        self.assertLess(peaks[1],peaks[0]*0.85)
+
 
 if __name__=='__main__':unittest.main()
