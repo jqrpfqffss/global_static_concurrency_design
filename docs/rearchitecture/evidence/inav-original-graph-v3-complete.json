@@ -1,0 +1,106 @@
+{
+  "passed": true,
+  "scope": "Validated original full JSON comparison encoding; not new native result or standard complete archive. Driver stale sequential label superseded: v7 actually ran concurrently on same HDD, no timing/volume attribution",
+  "execution": {
+    "complete": true,
+    "scope": "Encode a completed native baseline's raw JSON for bounded graph comparison.\n\nNever re-extracts firmware or restores complete facts. This is an encoding\ndiagnostic, not another native G2 scan or a standard offline result package.\nThe original native JSON and its observer receipt remain authoritative.\n",
+    "execution": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-native-v1\\execution.json",
+    "execution_sha256": "35df1855a94eaad73a279b309dccc103214d10c4a63bb9ffa82efe1098e05233",
+    "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\codec-cache64-experiment-v1\\cache64",
+    "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64",
+    "job_limit_bytes": 2147483648,
+    "peaks": {
+      "working_set_bytes": 112435200,
+      "private_bytes": 103153664,
+      "peak_job_commit_bytes": 103161856
+    },
+    "samples": 27433,
+    "original_native_validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "3d92ef785ff468464968473938a188fa28ee625f711a79975d582695e9b7fab8"
+    },
+    "source": "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results",
+    "temporary_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\worker\\temporary",
+    "observer_script_sha256": "216e53a7c4405d001ca229f223ed32f138dd0728f910bbb513194fc05e812477",
+    "pid": 26948,
+    "seconds": 14251.031,
+    "last": {
+      "seconds": 14250.514999999998,
+      "available": true,
+      "working_set_bytes": 36392960,
+      "private_bytes": 29044736,
+      "peak_job_commit_bytes": 103161856,
+      "limit_bytes": 2147483648,
+      "enforced_job_commit_limit_bytes": 2147483648,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 23461253120,
+      "system_commit_limit_bytes": 85825454080,
+      "system_commit_peak_bytes": 39965896704,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 49878880256,
+      "disk": {
+        "files": 6,
+        "logical_bytes": 17850556795,
+        "allocated_bytes": 17850646784,
+        "unique_files": 6,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.0
+      },
+      "drive_free_bytes": 964473487360
+    },
+    "exit_code": 0,
+    "final_disk": {
+      "files": 7,
+      "logical_bytes": 17850636496,
+      "allocated_bytes": 17850642688,
+      "unique_files": 7,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    },
+    "conversion": {
+      "passed": true,
+      "source_json_unchanged": true,
+      "source_sha256": {
+        "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results\\facts.json": "c4c148c32582dcd38285383e3f2053f64fb55afc847b52de852622c3f6cea6fc",
+        "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results\\reports\\global_static_concurrency.json": "c0c866e9d08a5f5f429595aa8fc1037439ac8b03349ad3531a52f9110a28ea83"
+      },
+      "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+      "metadata": {
+        "scan_id": "original-native-comparison-only",
+        "project_id": "frozen-native-original",
+        "profile_id": "default",
+        "state": "LEGACY_READ_ONLY",
+        "facts_hash": "9da30821f449de364352f533134d80e731e031f44bbe69ec86d8f287ac12b6c2",
+        "report_hash": "40f6e6e125d18f039e1dacf82baa87f7fc7a9f8c07815745a7b55ad81a24836e"
+      },
+      "complete_fact_graph_restore": false,
+      "scope": "Streaming representation of existing independently native original; not new extraction, not standard full archive"
+    }
+  },
+  "conversion": {
+    "passed": true,
+    "source_json_unchanged": true,
+    "source_sha256": {
+      "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results\\facts.json": "c4c148c32582dcd38285383e3f2053f64fb55afc847b52de852622c3f6cea6fc",
+      "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results\\reports\\global_static_concurrency.json": "c0c866e9d08a5f5f429595aa8fc1037439ac8b03349ad3531a52f9110a28ea83"
+    },
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+    "metadata": {
+      "scan_id": "original-native-comparison-only",
+      "project_id": "frozen-native-original",
+      "profile_id": "default",
+      "state": "LEGACY_READ_ONLY",
+      "facts_hash": "9da30821f449de364352f533134d80e731e031f44bbe69ec86d8f287ac12b6c2",
+      "report_hash": "40f6e6e125d18f039e1dacf82baa87f7fc7a9f8c07815745a7b55ad81a24836e"
+    },
+    "complete_fact_graph_restore": false,
+    "scope": "Streaming representation of existing independently native original; not new extraction, not standard full archive"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "inputs": 4123,
+  "differences": [],
+  "engine_files": 890,
+  "engine_manifest_sha256": "d372243e30e8ffbb175ba1aa1cf806492d55343a78ae678dad83a37cb3c68f96",
+  "input_manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "verification_seconds": 6.782000000002881,
+  "observed_utc": "2026-11-01T17:38:24.686779+00:00",
+  "scope": "All frozen real source/Git/build bytes before fresh native extraction; no TU-cache migration"
+}

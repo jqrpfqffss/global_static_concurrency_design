@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1259,
+  "passed_tests": 1257,
+  "skipped": 2,
+  "seconds": 1880.152,
+  "controller_seconds": 1883.936999999998,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v14-release",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v14-release",
+  "frozen_files": 886,
+  "differences": [],
+  "manifest_sha256": "7a110674e33f4313820fe88b9ff3fb39afa8d1956f48f155db16124c5bc064fa",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v14.log",
+  "log_sha256": "ac8f32e687746733ce9fa432cc10cc467db53f83305aa87954091e69808cdffd",
+  "scope": "Frozen b5c299e runtime and tests: directory/context/teaching sample/viewport, identity guard, explicit asset packaging; live OpenCode opt-in skipped"
+}

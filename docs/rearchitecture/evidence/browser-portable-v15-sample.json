@@ -1,0 +1,235 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "three_first_use_entries_have_real_routes_and_visible_actions",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "sample_opens_actual_native_archive_with_explicit_teaching_identity",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "teaching_label_does_not_misidentify_project_configuration_or_real_task_pages",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_unknown_card_drills_to_same_count_and_actual_canonical_variable",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "archived_real_source_is_available_without_a_firmware_parameter",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "human_confirmation_and_teaching_label_survive_browser_reload",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "reopening_existing_sample_is_idempotent_and_preserves_confirmation",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "standard_export_retains_complete_real_graph_and_human_event",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_service_restart_keeps_sample_identity_and_committed_confirmation",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "review_search_and_all_decision_actions_fit_first_viewport_with_sample_banner",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\01-first-use-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\01-first-use-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\02-real-sample-overview.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\03-archived-demo-code.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\04-real-service-reopened-confirmation.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\05-workbench-actions-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-sample\\05-workbench-actions-1600.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: three first-use entries and a real native-built archive.\n\nNo firmware path or toolchain is passed to the viewer. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\runtime\\python.exe",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "service_restarted": true,
+  "service_process_ids": [
+    25700,
+    3488
+  ],
+  "workbench_action_bounds": [
+    {
+      "width": 1366,
+      "height": 768,
+      "action": "确认有风险",
+      "bounds": {
+        "x": 709.671875,
+        "y": 695,
+        "width": 80,
+        "height": 32
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "action": "确认无风险",
+      "bounds": {
+        "x": 793.671875,
+        "y": 695,
+        "width": 80,
+        "height": 32
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "action": "暂无法确认",
+      "bounds": {
+        "x": 877.671875,
+        "y": 695,
+        "width": 80,
+        "height": 32
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "action": "撤销上次确认",
+      "bounds": {
+        "x": 961.671875,
+        "y": 695,
+        "width": 92,
+        "height": 32
+      }
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "action": "确认有风险",
+      "bounds": {
+        "x": 798.59375,
+        "y": 827,
+        "width": 80,
+        "height": 32
+      }
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "action": "确认无风险",
+      "bounds": {
+        "x": 882.59375,
+        "y": 827,
+        "width": 80,
+        "height": 32
+      }
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "action": "暂无法确认",
+      "bounds": {
+        "x": 966.59375,
+        "y": 827,
+        "width": 80,
+        "height": 32
+      }
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "action": "撤销上次确认",
+      "bounds": {
+        "x": 1050.59375,
+        "y": 827,
+        "width": 92,
+        "height": 32
+      }
+    }
+  ],
+  "scan_id": "builtin-stm32-demo-v1",
+  "facts_hash": "560d9c25097cedb4bc4612b2d3a97ba57d782cb7b968c600fa44f00be6247e13",
+  "report_hash": "4c74853bf7edb16ef05cee6f5d18a42317546c64c40d7001fb362066e6ed1636",
+  "static_database_unchanged": true,
+  "program_assets_unchanged": true,
+  "native_tasks_created": 0,
+  "human_event": "149341c9-1642-4e51-bbc1-5fce571ae739",
+  "exported_package_sha256": "875e2b9d12afe0ac0b26382fcd4080d19af8597c3f1bec0a5dc3f2f270491be9"
+}

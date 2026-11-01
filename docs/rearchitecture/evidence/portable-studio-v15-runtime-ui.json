@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "scope": "v15 actual Portable directory+Chinese extracted ZIP CLI and real Chrome subset; entire v15 regression still RUNNING, not whole refactor/gates pass",
+  "head": "b50103f685b832aa17cbbc6ffe9d85d2604a2202",
+  "bundle": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable",
+  "zip": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable.zip",
+  "zip_bytes": 545003832,
+  "zip_sha256": "d0a0e3bfe7ab5462da013acbf8e69f38b49d172b70750e1790973a783f77aaf7",
+  "frozen_files": 893,
+  "source_manifest_sha256": "b3146bfb0aa8de31fab52d7ee19213dbfe91d2c03b6145ec0da6e6d643afa282",
+  "source_match_files": 120,
+  "cli_commands_per_location": 27,
+  "browsers": [
+    {
+      "name": "sample",
+      "tests": 10,
+      "passed": true
+    },
+    {
+      "name": "main",
+      "tests": 16,
+      "passed": true
+    },
+    {
+      "name": "profile",
+      "tests": 7,
+      "passed": true
+    },
+    {
+      "name": "contexts",
+      "tests": 8,
+      "passed": true
+    },
+    {
+      "name": "directories",
+      "tests": 7,
+      "passed": true
+    },
+    {
+      "name": "git",
+      "tests": 6,
+      "passed": true
+    },
+    {
+      "name": "capacity",
+      "tests": 9,
+      "passed": true
+    }
+  ],
+  "full_regression": "RUNNING_FROZEN1264",
+  "large_native": "QUEUED_WAITING_FROZEN1263_REGRESSION",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_host": "NOT_VERIFIED",
+  "native_system_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED"
+}

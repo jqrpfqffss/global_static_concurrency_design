@@ -1,0 +1,253 @@
+{
+  "passed": false,
+  "scope": "Preserved first ACL fixture attempt: original native scan passed but canonical correctly refused data root under compile-database ancestor. Restore applied access rules but exact descriptor check failed on Windows AUTO_INHERITED metadata; no original firmware ACL change",
+  "attempt": {
+    "passed": false,
+    "scope": "Actual Windows ACL-read-only firmware scan, original/current full comparison.\n\nOnly a new owned source copy receives ACL changes, restored in finally. This\nproves applicable compile-database scans, not a read-only volume, malicious\nowner-resistant sandbox, production write-guard integration or a new G2 project.\n",
+    "commands": [
+      {
+        "name": "01-protect",
+        "command": [
+          "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+          "-NoProfile",
+          "-File",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\acl.ps1",
+          "-Mode",
+          "Protect",
+          "-Root",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\firmware",
+          "-Record",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\acl-before.json"
+        ],
+        "exit_code": 0,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\01-protect.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "02-protected-before",
+        "command": [
+          "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+          "-NoProfile",
+          "-File",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\acl.ps1",
+          "-Mode",
+          "Inspect",
+          "-Root",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\firmware",
+          "-Record",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\acl-before.json"
+        ],
+        "exit_code": 0,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\02-protected-before.log",
+        "sha256": "a74bf7801cd2bd7a92753f72f0d2cea039a6d06541f640a57298d498e38e50b1"
+      },
+      {
+        "name": "03-write-denied-before",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "-c",
+          "import pathlib,sys\ntry:pathlib.Path(sys.argv[1]).write_bytes(b\"probe\")\nexcept PermissionError:raise SystemExit(0)\nraise SystemExit(5)",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\firmware\\ecra-write-probe.tmp"
+        ],
+        "exit_code": 0,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\03-write-denied-before.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "legacy-scan",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release\\scripts\\measure_native_golden.py",
+          "--engine",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+          "--config",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\semantics.yaml",
+          "--data-root",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\original-data",
+          "--work",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\original-run",
+          "--mode",
+          "legacy",
+          "--limit-gib",
+          "2"
+        ],
+        "exit_code": 0,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\legacy-scan.log",
+        "sha256": "209c51d6bb63d85f5f6a372e9b0b0b49cd2daefae658f2bd2a3bb22ff91d33e8"
+      },
+      {
+        "name": "canonical-scan",
+        "command": [
+          "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release\\scripts\\measure_native_golden.py",
+          "--engine",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+          "--config",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\semantics.yaml",
+          "--data-root",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\new-data",
+          "--work",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\new-run",
+          "--mode",
+          "canonical",
+          "--limit-gib",
+          "2"
+        ],
+        "exit_code": 1,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\canonical-scan.log",
+        "sha256": "905310ddb49ff02559363b81e5e3f5f88a6bdb4579c4516b0bc4eda366b88177"
+      },
+      {
+        "name": "08-restore",
+        "command": [
+          "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+          "-NoProfile",
+          "-File",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\acl.ps1",
+          "-Mode",
+          "Restore",
+          "-Root",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\firmware",
+          "-Record",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\acl-before.json"
+        ],
+        "exit_code": 1,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\08-restore.log",
+        "sha256": "7d3da1d5e3a1c4565b4feae6d682125632feff44472db7953ba2704a9bb0beb7"
+      }
+    ],
+    "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "owned_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\firmware",
+    "controller_sha256": "a85e3a38aaa8dbf8e66aad51309e177d9cdfb78997b8a53650b0475ef1ab5122",
+    "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+    "original_engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+    "native_g2": "NOT_ANOTHER_PROJECT",
+    "readonly_volume": "NOT_VERIFIED",
+    "production_guard": "NOT_INTEGRATED",
+    "legacy": {
+      "complete": true,
+      "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+      "mode": "legacy",
+      "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+      "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\semantics.yaml",
+      "config_sha256": "13f555257558cfe75d05317547aec0ce8c78a817f5eecfb7a6ec08be64c7f47f",
+      "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\original-data",
+      "safety_job_commit_limit_bytes": 2147483648,
+      "controlled_limit_experiment": true,
+      "physical_32GB": "NOT_VERIFIED",
+      "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+      "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+      "paging_samples_valid": 27,
+      "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+      "logical_disk_peak_is_sampled_lower_bound": true,
+      "started": "2026-11-01T17:35:13.957773+00:00",
+      "peaks": {
+        "working_set_bytes": 176816128,
+        "private_bytes": 138268672,
+        "peak_job_commit_bytes": 141529088,
+        "sampled_output_logical_bytes": 7742561,
+        "sampled_output_allocated_bytes": 7873376
+      },
+      "samples": 27,
+      "cache_reuse": null,
+      "diagnostic_fault": null,
+      "observer_script_sha256": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe",
+      "output_volume_free_at_start": 963729362944,
+      "pid": 27628,
+      "seconds": 14.28099999999904,
+      "last": {
+        "seconds": 13.765999999999622,
+        "available": true,
+        "working_set_bytes": 59416576,
+        "private_bytes": 51761152,
+        "peak_job_commit_bytes": 141529088,
+        "limit_bytes": 2147483648,
+        "enforced_job_commit_limit_bytes": 2147483648,
+        "job_limit_flags": 8704,
+        "processes": 2,
+        "sampled_processes": 2,
+        "write_bytes": 0,
+        "system_commit_bytes": 23332671488,
+        "system_commit_limit_bytes": 85825454080,
+        "system_commit_peak_bytes": 39965896704,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 50250301440,
+        "system_commit_headroom_bytes": 62492782592,
+        "host_paging": {
+          "available": true,
+          "values": {
+            "pages_input_per_second": 17.539989226548837,
+            "pages_output_per_second": 0.0
+          },
+          "errors": {},
+          "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+        },
+        "disk_free_bytes": 963720994816,
+        "whole_volume_used_change_bytes": 8368128,
+        "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+        "main_process_memory": {
+          "rss": 48726016,
+          "vms": 46231552,
+          "num_page_faults": 404431,
+          "peak_wset": 51630080,
+          "wset": 48726016,
+          "peak_paged_pool": 303536,
+          "paged_pool": 299776,
+          "peak_nonpaged_pool": 18560,
+          "nonpaged_pool": 17520,
+          "pagefile": 46231552,
+          "peak_pagefile": 50307072,
+          "private": 46231552
+        },
+        "output_disk": {
+          "files": 0,
+          "logical_bytes": 0,
+          "allocated_bytes": 0,
+          "unique_files": 0,
+          "sampling_partial": false,
+          "unmeasured_files": 0,
+          "observation_seconds": 0.0
+        },
+        "output_disk_observed_seconds": 0.43699999999807915
+      },
+      "exit_code": 2,
+      "final_output_disk": {
+        "files": 64,
+        "logical_bytes": 7742561,
+        "allocated_bytes": 7873376,
+        "unique_files": 64,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.01599999999962165
+      },
+      "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\original-data\\projects\\firmware_36a9764e9758c105581e\\results",
+      "validity": {
+        "analysis_valid": true,
+        "state": "STATIC_SCAN_SAVED",
+        "snapshot_status": "VERIFIED",
+        "fingerprint": "8908c3e17ae9e1625842ccb8cf20ff3f6baee66046811581c416e724a81235dc"
+      }
+    },
+    "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_readonly_native.py\", line 148, in main\n    run([sys.executable,'-B','-X','utf8',engine/'scripts/measure_native_golden.py','--engine',current,\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_readonly_native.py\", line 135, in run\n    if code!=expected:raise RuntimeError(name+' failed; see '+str(output))\nRuntimeError: canonical-scan failed; see H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v1\\canonical-scan.log\n",
+    "acl_restored": false,
+    "seconds": 18.5
+  },
+  "recovery": {
+    "exact_sddl": "NOT_IDENTICAL_WINDOWS_AUTO_INHERITED_FLAG_ONLY",
+    "ordinary_write_probe": "PASS",
+    "state": "RECOVERED_ACCESS_RULES",
+    "prior_attempt": "FAIL_PRESERVED",
+    "normalized_flag_differences": 49,
+    "original_customer_acl": "UNTOUCHED",
+    "remaining_deny_rules": 0
+  }
+}

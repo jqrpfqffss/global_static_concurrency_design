@@ -43,3 +43,5 @@
 新增真实Clang实验：只在测试中向原参数注入VFS overlay，不改生产Extractor、unit或算法。显式文件映射保留原逻辑文件名/宏/sizeof(__FILE__)布局/原始缓冲及完整事实；原测试源和头改写后仍读取冻结字节。redirect-only将捕获时不存在的__has_include探测保持为不存在，外部SDK显式映射；同样映射若允许fallthrough则读到后来新增的忽略头文件，完整对照失败。`working-vfs-1.log`单项PASS，源码在test_working_snapshot；此实验未包含于3590227的1161项冻结全回归，也未开放正式dirty扫描。
 
 依据为[LLVM18.1.8 RedirectingFileSystem实现](https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/llvm/lib/Support/VirtualFileSystem.cpp)：该版本接受redirect-only、use-external-names和显式文件/目录映射。生产接入仍须审核外部include根、原编译/预处理闭包、缓存和重做、Git/CMake元数据；不能把一个Clang视图实验当作整个只读构建通过。另确认现有committed Git worktree注册仍写原.git/worktrees，完整H2不能只以Git status/index未变化宣布通过，后续须改独立Git管理库并验证构建语义。
+
+2026-11-02实际Windows ACL只读续验：新建外部F030副本，先固定42文件字节/大小/mtime，再禁止Everyone写入/删除并传播目录/文件ACL。扫描前后真实子进程均获PermissionError；原版与当前v15各实际扫描完成，完整facts/规范report差异0，42原文件与受控副本均未变，49个对象ACL精确恢复到测试前基线。工具scripts/validate_readonly_native.py及readonly-native-f030-v2.json保留全部命令和收据。首轮夹具把compile_commands放在数据根祖先触发正式边界拒绝，并遇到Windows AUTO_INHERITED规范化差异；失败及恢复另存v1-failed。新副本在测试前规范化自己的ACL后才冻结恢复基线，未改原固件ACL。这证明适用compile-database扫描的真实ACL只读输入；不等于物理只读挂载，也不关闭恶意owner进程隔离、生产write guard、dirty输入与完整H2门禁。

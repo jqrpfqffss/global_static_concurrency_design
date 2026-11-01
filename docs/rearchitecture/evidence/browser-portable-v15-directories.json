@@ -1,0 +1,88 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "escape_cancels_real_directory_navigation_without_changing_project",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_project_folder_selection_only_registers_selected_path",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "scope_escape_reports_real_error_and_disables_stale_directory_selection",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "all_137_real_directories_and_nested_relative_selection_without_lost_pages",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "exclude_cancel_and_paged_selection_keep_existing_literal_entries",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_directory_dialog_actions_and_path_visible_at_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "selected_relative_scope_survives_save_reload_and_no_change_roundtrip",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-directories\\01-directory-dialog-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-directories\\01-directory-dialog-1600.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: read-only directory selection and bound scope pages.\n\nUses an already authorized, read-only firmware path. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "fixture_tree_entries_unchanged": 187,
+  "fixture": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v15-directories\\固件, 目录选择",
+  "fixture_note": "ApprovedF030 copy plus137 empty directory UI fixtures, not another nativeG2 project",
+  "firmware_files_unchanged": 42,
+  "compile_database_unchanged": true,
+  "backup_files": 0,
+  "saved_profile": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v15-directories\\data\\projects\\1a680b8c9d7ade1ef3b359da319b6b1d07c14c0a1c963946a0cdaa57181b18b2\\profiles\\bbfff970d9bd4241b2f5f8db8878cf57.yaml",
+  "profile_sha256": "bb28139f43eca182d2950875d30264aef7ff896ad8396b0e27c7e753a9d3e085"
+}

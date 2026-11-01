@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1263,
+  "passed_tests": 1261,
+  "skipped": 2,
+  "seconds": 1880.423,
+  "controller_seconds": 1884.563000000002,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-ancestor-v1",
+  "frozen_files": 890,
+  "differences": [],
+  "manifest_sha256": "d372243e30e8ffbb175ba1aa1cf806492d55343a78ae678dad83a37cb3c68f96",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-ancestor-v1.log",
+  "log_sha256": "3cb81e3f5721f7a380074e9fc528c946a4355274bc1b8bc5382619616511c4fc",
+  "scope": "Frozen b5c299e plus staged ADR013 complete ancestor union and bounded recomputable closure cache; live OpenCode opt-in skipped"
+}

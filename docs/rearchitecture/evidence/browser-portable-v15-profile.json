@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "four_step_generation_preserves_comma_space_paths_and_names",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "advanced_edit_back_modify_forward_changes_only_requested_paths",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "immutable_original_backup_and_restore_require_recheck_save",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "synchronized_saved_profile_reopens_byte_exact_with_descriptive_name",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "build_mode_switch_declared_backed_up_and_reversible",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "ambiguous_alias_controlled_mapping_refuses_without_overwrite",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "browser_reload_and_new_profile_keep_existing_profile",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-profile\\01-roundtrip-saved-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-profile\\02-profile-saved-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-profile\\02-profile-saved-1600.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: advanced YAML/form edits, backup, save and reopen.\n\nUses an already authorized, read-only firmware path. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "firmware_files_unchanged": 42,
+  "compile_database_unchanged": true,
+  "backup_files": 1,
+  "saved_profile": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v15-profile\\data\\projects\\1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd\\profiles\\632d435376a94703ab3725d64a61a674.yaml",
+  "profile_sha256": "c313289bae8e107534bc65b164ae14b78218d9c63375414f2fb323c46f549bbf"
+}

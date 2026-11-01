@@ -1,0 +1,405 @@
+{
+  "passed": true,
+  "scope": "Actual Windows ACL-read-only firmware scan, original/current full comparison.\n\nOnly a new owned source copy receives ACL changes, restored in finally. This\nproves applicable compile-database scans, not a read-only volume, malicious\nowner-resistant sandbox, production write-guard integration or a new G2 project.\n",
+  "commands": [
+    {
+      "name": "01-protect",
+      "command": [
+        "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+        "-NoProfile",
+        "-File",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl.ps1",
+        "-Mode",
+        "Protect",
+        "-Root",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware",
+        "-Record",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl-before.json"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\01-protect.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "02-protected-before",
+      "command": [
+        "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+        "-NoProfile",
+        "-File",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl.ps1",
+        "-Mode",
+        "Inspect",
+        "-Root",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware",
+        "-Record",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl-before.json"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\02-protected-before.log",
+      "sha256": "b8061e2b7fc7489ee79d530f2347ead6ba9ae6024fcef1c59e03fe43dd059b16"
+    },
+    {
+      "name": "03-write-denied-before",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "-c",
+        "import pathlib,sys\ntry:pathlib.Path(sys.argv[1]).write_bytes(b\"probe\")\nexcept PermissionError:raise SystemExit(0)\nraise SystemExit(5)",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware\\ecra-write-probe.tmp"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\03-write-denied-before.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "legacy-scan",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release\\scripts\\measure_native_golden.py",
+        "--engine",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+        "--config",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\input-contract\\semantics.yaml",
+        "--data-root",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\original-data",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\original-run",
+        "--mode",
+        "legacy",
+        "--limit-gib",
+        "2"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\legacy-scan.log",
+      "sha256": "2a738c1ff979d510439b7cd3d81c5c48b290a6d621464c63cfb7696cca67b448"
+    },
+    {
+      "name": "canonical-scan",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release\\scripts\\measure_native_golden.py",
+        "--engine",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+        "--config",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\input-contract\\semantics.yaml",
+        "--data-root",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\new-data",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\new-run",
+        "--mode",
+        "canonical",
+        "--limit-gib",
+        "2"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\canonical-scan.log",
+      "sha256": "a191010a2b57fe778e439e98fdd837972eeca44d9fdc454312aa9c7df3d162bc"
+    },
+    {
+      "name": "06-write-denied-after",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "-c",
+        "import pathlib,sys\ntry:pathlib.Path(sys.argv[1]).write_bytes(b\"probe\")\nexcept PermissionError:raise SystemExit(0)\nraise SystemExit(5)",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware\\ecra-write-probe.tmp"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\06-write-denied-after.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "07-protected-after",
+      "command": [
+        "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+        "-NoProfile",
+        "-File",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl.ps1",
+        "-Mode",
+        "Inspect",
+        "-Root",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware",
+        "-Record",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl-before.json"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\07-protected-after.log",
+      "sha256": "968a028fc4766bd025d2bf84b9fba761d634b60299c957fb3a17c6960336133f"
+    },
+    {
+      "name": "08-restore",
+      "command": [
+        "C:\\Program Files\\PowerShell\\7\\pwsh.EXE",
+        "-NoProfile",
+        "-File",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl.ps1",
+        "-Mode",
+        "Restore",
+        "-Root",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware",
+        "-Record",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\acl-before.json"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\08-restore.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "owned_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\firmware",
+  "controller_sha256": "343cd2f1eb856b299e8e1196599ca78d6b94baf91d3a0bef3e55d9f8d3e97ecd",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+  "original_engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+  "native_g2": "NOT_ANOTHER_PROJECT",
+  "readonly_volume": "NOT_VERIFIED",
+  "production_guard": "NOT_INTEGRATED",
+  "legacy": {
+    "complete": true,
+    "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+    "mode": "legacy",
+    "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+    "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\input-contract\\semantics.yaml",
+    "config_sha256": "cbd4d8364066c096aa9f24e247a2763144b3ff0a511816c6db4b79d8477abe5d",
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\original-data",
+    "safety_job_commit_limit_bytes": 2147483648,
+    "controlled_limit_experiment": true,
+    "physical_32GB": "NOT_VERIFIED",
+    "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+    "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+    "paging_samples_valid": 26,
+    "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+    "logical_disk_peak_is_sampled_lower_bound": true,
+    "started": "2026-11-01T17:37:11.350673+00:00",
+    "peaks": {
+      "working_set_bytes": 175185920,
+      "private_bytes": 136278016,
+      "peak_job_commit_bytes": 139403264,
+      "sampled_output_logical_bytes": 7743008,
+      "sampled_output_allocated_bytes": 7873376
+    },
+    "samples": 26,
+    "cache_reuse": null,
+    "diagnostic_fault": null,
+    "observer_script_sha256": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe",
+    "output_volume_free_at_start": 963713597440,
+    "pid": 26980,
+    "seconds": 13.703000000001339,
+    "last": {
+      "seconds": 13.187000000001717,
+      "available": true,
+      "working_set_bytes": 59543552,
+      "private_bytes": 51716096,
+      "peak_job_commit_bytes": 139403264,
+      "limit_bytes": 2147483648,
+      "enforced_job_commit_limit_bytes": 2147483648,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 23345922048,
+      "system_commit_limit_bytes": 85825454080,
+      "system_commit_peak_bytes": 39965896704,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 50292318208,
+      "system_commit_headroom_bytes": 62479532032,
+      "host_paging": {
+        "available": true,
+        "values": {
+          "pages_input_per_second": 52.32760959727121,
+          "pages_output_per_second": 0.0
+        },
+        "errors": {},
+        "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+      },
+      "disk_free_bytes": 963704737792,
+      "whole_volume_used_change_bytes": 8859648,
+      "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+      "main_process_memory": {
+        "rss": 46747648,
+        "vms": 44089344,
+        "num_page_faults": 417955,
+        "peak_wset": 51290112,
+        "wset": 46747648,
+        "peak_paged_pool": 303536,
+        "paged_pool": 299776,
+        "peak_nonpaged_pool": 18560,
+        "nonpaged_pool": 17384,
+        "pagefile": 44089344,
+        "peak_pagefile": 50003968,
+        "private": 44089344
+      },
+      "output_disk": {
+        "files": 0,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "unique_files": 0,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.0
+      },
+      "output_disk_observed_seconds": 0.4370000000017171
+    },
+    "exit_code": 2,
+    "final_output_disk": {
+      "files": 64,
+      "logical_bytes": 7743008,
+      "allocated_bytes": 7873376,
+      "unique_files": 64,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.014999999999417923
+    },
+    "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\original-data\\projects\\firmware_c0868b297a7a33e8babc\\results",
+    "validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "1d36ad38cf54685fc103e9c7b66bef54f5e9b572e436cda0ce52316e8f1dee56"
+    }
+  },
+  "canonical": {
+    "complete": true,
+    "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+    "mode": "canonical",
+    "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+    "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\input-contract\\semantics.yaml",
+    "config_sha256": "cbd4d8364066c096aa9f24e247a2763144b3ff0a511816c6db4b79d8477abe5d",
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\new-data",
+    "safety_job_commit_limit_bytes": 2147483648,
+    "controlled_limit_experiment": true,
+    "physical_32GB": "NOT_VERIFIED",
+    "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+    "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+    "paging_samples_valid": 46,
+    "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+    "logical_disk_peak_is_sampled_lower_bound": true,
+    "started": "2026-11-01T17:37:25.332636+00:00",
+    "peaks": {
+      "working_set_bytes": 182468608,
+      "private_bytes": 145010688,
+      "peak_job_commit_bytes": 146948096,
+      "sampled_output_logical_bytes": 14160507,
+      "sampled_output_allocated_bytes": 14295328
+    },
+    "samples": 46,
+    "cache_reuse": null,
+    "diagnostic_fault": null,
+    "observer_script_sha256": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe",
+    "worker_temporary_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\new-data\\work\\native-observer\\temporary",
+    "output_volume_free_at_start": 963704725504,
+    "pid": 27852,
+    "seconds": 24.06199999999808,
+    "last": {
+      "seconds": 23.54699999999866,
+      "available": true,
+      "working_set_bytes": 150986752,
+      "private_bytes": 116260864,
+      "peak_job_commit_bytes": 146948096,
+      "limit_bytes": 2147483648,
+      "enforced_job_commit_limit_bytes": 2147483648,
+      "job_limit_flags": 8704,
+      "processes": 6,
+      "sampled_processes": 6,
+      "write_bytes": 0,
+      "system_commit_bytes": 23418949632,
+      "system_commit_limit_bytes": 85825454080,
+      "system_commit_peak_bytes": 39965896704,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 50275590144,
+      "system_commit_headroom_bytes": 62406504448,
+      "host_paging": {
+        "available": true,
+        "values": {
+          "pages_input_per_second": 15.40577759025523,
+          "pages_output_per_second": 0.0
+        },
+        "errors": {},
+        "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+      },
+      "disk_free_bytes": 963689648128,
+      "whole_volume_used_change_bytes": 15077376,
+      "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+      "main_process_memory": {
+        "rss": 46624768,
+        "vms": 44118016,
+        "num_page_faults": 502615,
+        "peak_wset": 61730816,
+        "wset": 46624768,
+        "peak_paged_pool": 305768,
+        "paged_pool": 305592,
+        "peak_nonpaged_pool": 19104,
+        "nonpaged_pool": 18928,
+        "pagefile": 44118016,
+        "peak_pagefile": 60030976,
+        "private": 44118016
+      },
+      "output_disk": {
+        "files": 80,
+        "logical_bytes": 2850549,
+        "allocated_bytes": 3035592,
+        "unique_files": 80,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.01600000000325963
+      },
+      "output_disk_observed_seconds": 15.81199999999808
+    },
+    "exit_code": 2,
+    "final_output_disk": {
+      "files": 84,
+      "logical_bytes": 14160507,
+      "allocated_bytes": 14295328,
+      "unique_files": 84,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.01600000000325963
+    },
+    "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\new-data\\scans\\native-golden",
+    "validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "720189b46285c8178b2896fe30bab7868ac55ecebb85736ac3f4647ce252b49b"
+    }
+  },
+  "original_files": 42,
+  "original_unchanged": true,
+  "protected_copy_unchanged": true,
+  "acl_enforced_before_after": true,
+  "acl_unchanged": true,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "590b9161be65163d5b91ac446fca5de90c677f0dfdc94a51d92377d5f9fddc80",
+        "after": "590b9161be65163d5b91ac446fca5de90c677f0dfdc94a51d92377d5f9fddc80"
+      },
+      "report": {
+        "before": "a786c1d7c1ec7378cba4094ac6949244703eb55856e9a0ccae062accc8869747",
+        "after": "a786c1d7c1ec7378cba4094ac6949244703eb55856e9a0ccae062accc8869747"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\original.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\readonly-native-f030-v2\\new-data\\scans\\native-golden\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "acl_restored": true,
+  "seconds": 52.78100000000268
+}
