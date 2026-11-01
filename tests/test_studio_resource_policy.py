@@ -9,6 +9,22 @@ from ecra.studio.resource_policy import policy
 
 
 class ResourcePolicyTests(unittest.TestCase):
+    def test_child_temporary_files_ignore_inherited_firmware_temp_and_broker_environment_stays_unchanged(self):
+        import json,os,subprocess,sys
+        from ecra.studio.resource_policy import temporary_environment
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'firmware';source.mkdir();owned=root/'task';owned.mkdir()
+            inherited=dict(os.environ,TEMP=str(source),TMP=str(source),TMPDIR=str(source),SQLITE_TMPDIR=str(source))
+            updated=temporary_environment(owned,inherited)
+            code='import tempfile,json,os; from pathlib import Path; f=tempfile.NamedTemporaryFile(delete=False); f.write(b"actual worker scratch"); f.close(); print(json.dumps(dict(path=f.name,temporary=tempfile.gettempdir(),env={k:os.environ[k] for k in ["TEMP","TMP","TMPDIR","SQLITE_TMPDIR"]})))'
+            child=subprocess.run([sys.executable,'-B','-c',code],env=updated,capture_output=True,text=True)
+            self.assertEqual(child.returncode,0,child.stderr);result=json.loads(child.stdout)
+            self.assertTrue(os.path.samefile(Path(result['path']).parent,owned/'temporary'))
+            self.assertTrue(all(Path(value).resolve()==(owned/'temporary').resolve() for value in result['env'].values()))
+            self.assertEqual(Path(result['path']).read_bytes(),b'actual worker scratch')
+            self.assertEqual(inherited['TEMP'],str(source));self.assertEqual(list(source.iterdir()),[])
+            with self.assertRaises(FileExistsError):temporary_environment(owned,inherited)
+
     def test_other_studio_cannot_mark_owned_running_task_interrupted(self):
         with tempfile.TemporaryDirectory() as folder:
             data=Path(folder);path=data/'work/tasks/a/task.json';path.parent.mkdir(parents=True)

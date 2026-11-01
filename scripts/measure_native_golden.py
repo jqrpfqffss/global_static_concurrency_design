@@ -97,6 +97,13 @@ else:
         try:paging=PagingRates()
         except OSError as exc:result.update(system_paging_rate='NOT_MEASURED',paging_error=str(exc))
         env=dict(os.environ,PYTHONIOENCODING='utf-8',GIT_OPTIONAL_LOCKS='0')
+        if args.mode=='canonical':
+            from ecra.studio.resource_policy import temporary_environment
+            owned=data/'work/native-observer';owned.mkdir(parents=True)
+            env=temporary_environment(owned,env)
+            result['worker_temporary_root']=env['TEMP']
+        result['output_volume_free_at_start']=shutil.disk_usage(data).free
+        save()
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
             process=subprocess.Popen([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode],
                 cwd=engine,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
@@ -109,6 +116,8 @@ else:
                     sample['host_paging']=paging.sample()
                     if sample['host_paging']['available']:result['paging_samples_valid']+=1
                 sample['disk_free_bytes']=shutil.disk_usage(data).free
+                sample['whole_volume_used_change_bytes']=result['output_volume_free_at_start']-sample['disk_free_bytes']
+                sample['volume_change_scope']='WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS'
                 try:sample['main_process_memory']=psutil.Process(process.pid).memory_info()._asdict()
                 except psutil.NoSuchProcess:pass
                 if elapsed-last_disk>=15 or not disk:

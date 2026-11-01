@@ -103,7 +103,8 @@ class TaskManager:
                 ownership.callback(budget.close)
                 stream = (folder/'console.log').open('wb')
                 ownership.callback(stream.close)
-                env = os.environ.copy(); env['PYTHONIOENCODING']='utf-8'
+                from .resource_policy import temporary_environment
+                env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'
                 env['ECRA_DATA_ROOT']=str(self.data)
                 env['ECRA_RESOURCE_PRESSURE_FILE']=str(folder/'resource-pressure.json')
                 env['ECRA_EXTRACTION_WORKERS']=str(limits['workers'])

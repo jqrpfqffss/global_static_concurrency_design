@@ -1,5 +1,11 @@
 # H2 未提交输入隔离：实施合同（进行中）
 
+## 已接入的任务临时目录控制
+
+`resource_policy.temporary_environment`只在调用方已验证并持有的任务目录创建独占temporary子目录，覆盖子进程TEMP/TMP/TMPDIR/SQLITE_TMPDIR，不改broker环境、不复用已有临时目录、不回退到继承的固件路径。TaskManager在进程启动和Job放行前调用，编译器、Python及SQLite文件后备临时表均继承该环境；仍不代表其他H2隔离问题已经解决。
+
+38项专项通过，真实子进程在传入TEMP=固件目录时仍将临时文件写入任务目录、源目录无新增；Windows8.3/长路径以实际文件身份核对。实际4TU原生再次与旧版完整事实/规范报告根比较差异0；真实Chrome15项停止/恢复/AI故障/同profile重扫通过，4个实际任务均有独占temporary目录，源及.git保持不变。见evidence/worker-temporary-v2.json。该修复晚于Portablev10；v10仍封存匹配434988c/1b573a1运行时，不冒称包含本修复或覆盖当前树的完整1189项。
+
 ## Windows进程写保护前置原型（尚未接入正式扫描）
 
 `ecra/studio/write_guard.py`使用禁用特权的受限主令牌、Low完整性等级和显式标准输入/日志句柄继承列表，先挂起启动、加入受控Job后再继续。只为一个全新、无重解析点、与源码/程序目录不重叠的私有目录设置Low继承标签；现有目录一律拒绝，绝不改原固件/SDK/安装目录的标签。普通Medium或未标注的原始文件可读，Low子进程及普通后代的写操作由Windows阻止。此机制依据[Microsoft MIC文档](https://learn.microsoft.com/en-us/windows/win32/secauthz/mandatory-integrity-control)、[受限令牌](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-createrestrictedtoken)及[CreateProcessAsUserW](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasuserw)。它不是防恶意代码的完整沙箱，也不证明构建输入等价。

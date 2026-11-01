@@ -12,3 +12,17 @@ def policy(value=None):
     if type(workers) is not int or not 1<=workers<=8:raise ValueError('最大TU并行数要求1–8')
     if preset=='low':workers=1
     return dict(preset=preset,peak_bytes=int(peak*1024**3),soft_bytes=int(peak*.75*1024**3),workers=workers)
+
+def temporary_environment(owned_folder, environment):
+    """Bind child scratch files to a fresh folder in its validated work area.
+
+    The caller owns the parent and has already checked firmware/data boundaries.
+    Never changes the broker's environment or falls back to inherited TEMP.
+    """
+    from ..workspace import no_links
+    parent=no_links(owned_folder)
+    if not parent.is_dir():raise ValueError('任务临时目录的受控父目录不存在')
+    temporary=no_links(parent/'temporary');temporary.mkdir(exist_ok=False)
+    updated=dict(environment)
+    for key in ['TEMP','TMP','TMPDIR','SQLITE_TMPDIR']:updated[key]=str(temporary)
+    return updated
