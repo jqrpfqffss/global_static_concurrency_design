@@ -9,3 +9,5 @@
 验收必须包含真实Windows venv启动器及后代、挂起时无子程序副作用、Job登记的真实PID、受控分配失败与峰值、任务原生扫描/停止/重扫、关闭与创建失败无遗留进程。PE依赖测试应以真实基础Python解释器作DLL缺失夹具，不能误把venv转接器当作链接python310.dll的解释器。已有全套失败保留，修复后另冻结复跑，不修改旧冻结目录或抹去失败记录。
 
 实测修正：第一轮49项中48项通过；新测试将原始PeakJobMemoryUsed也断言≤128MiB，实际读到134,377,472B，超过设限159,744B，因此失败。没有删除这个失败记录或抬高配置预算。改为在分配器捕获MemoryError后保留全部载荷、只释放预留的1MiB日志空间、让全部Worker等待，实读Job配置/flags与全部PID的PrivateUsage之和，再放行退出；原始Job历史峰值继续原样保留，不伪报为实际提交峰值达标。[微软字段定义](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information)没有给出失败申请计账时的峰值不变量；[官方支持问答](https://learn.microsoft.com/en-us/answers/questions/6054259/windows-job-object-can-a-rejected-memory-commit-in)同样指出不能把失败申请与成功提交等同，具体内核计账次序未经证明。本项目不会用该解释抹平G3大型扫描原始峰值；这里只修正进程所有权/受控OOM测试的测量对象，系统32GB门禁仍待验。
+
+后续审计Worker故障探针原先已使用真实ready.pid，但补上同一外层512MiB Job、Job归属与内层PID核验，且显式向真实Worker传递所选limit-mib。原有提取器完成、实际MemoryError、原报告失效/锁和检查点移除断言保留。frozen-source-package-v3.json三项通过，其中两项为真实PS5.1冻结源码标签（完整SHA/大小/安全路径）和拒绝篡改，另一项为真实提取Worker受控OOM；不能计作又一个原生G2工程。

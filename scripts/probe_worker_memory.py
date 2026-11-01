@@ -23,16 +23,13 @@ def worker(args):
     sys.path.insert(0,str(args.engine))
     from ecra.extract import Extractor,main
     from ecra.scan_diagnostics import memory
-    from probe_diagnostic_memory import exhaust_allocators
+    from probe_diagnostic_memory import exhaust_allocators,wait_limit
     original=Extractor.run
     def exhausted(self):
         facts=original(self)
         dump(args.evidence/'worker-ready.json',dict(pid=os.getpid(),memory=memory(),
              actual_clang_extraction_completed=True,counts={k:len(v) for k,v in facts.items() if isinstance(v,list)}))
-        start=time.monotonic()
-        while not (args.evidence/'limit.json').is_file():
-            if time.monotonic()-start>30:raise RuntimeError('Worker quota setup timed out')
-            time.sleep(0.05)
+        wait_limit(args)
         exhaust_allocators()
         raise AssertionError('Quota exhaustion did not raise')
     sys.argv=['worker-memory-probe',str(args.worker_request),str(args.worker_output)]
@@ -59,6 +56,7 @@ def cli(args):
         if 'ecra.extract' in argv and '.dependencies.' not in str(argv[-1]):
             argv=[str(args.python),'-u',str(Path(__file__).resolve()),'--engine',str(args.engine),
                 '--python',str(args.python),'--evidence',str(args.evidence),'--inside-worker',
+                '--limit-mib',str(args.limit_mib),
                 '--worker-request',str(argv[-2]),'--worker-output',str(argv[-1])]
         return execute(argv,**kw)
     with patch.object(commands,'execute',actual_worker), \
@@ -101,21 +99,34 @@ def main():
     args.evidence.mkdir(parents=True,exist_ok=False)
     command=[str(args.python),'-u',str(Path(__file__).resolve()),*sys.argv[1:],'--inside-cli']
     begin=time.monotonic()
-    with (args.evidence/'console.log').open('w',encoding='utf-8') as log:
-        process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+    from ecra.studio.process_budget import ProcessBudget
+    from ecra.studio.write_guard import OwnedProcess
+    budget=ProcessBudget(512*1024**2);process=controller=None
+    try:
+      with (args.evidence/'console.log').open('w',encoding='utf-8') as log:
+        process=OwnedProcess(command,cwd=args.engine,env=dict(os.environ),log=log)
+        budget.assign(process);process.resume()
         while not (args.evidence/'worker-ready.json').is_file():
             if process.poll() is not None:raise RuntimeError('Probe failed before worker quota; inspect console.log')
             if time.monotonic()-begin>60:
-                process.terminate();raise RuntimeError('Worker setup timed out')
+                raise RuntimeError('Worker setup timed out')
             time.sleep(0.05)
         ready=json.loads((args.evidence/'worker-ready.json').read_text(encoding='utf-8'))
+        if not budget.contains(ready['pid']):raise RuntimeError('Actual extraction worker is outside the owned512MiB Job')
         controller=subprocess.Popen([sys.executable,str(Path(__file__).with_name('windows_memory_limit.py')),
             '--pid',str(ready['pid']),'--gib',str(args.limit_mib/1024),'--evidence',str(args.evidence/'limit.json')],
             stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
-        code=process.wait()
+        code=process.wait(timeout=120)
         controller.wait(timeout=10)
+        peak=budget.sample()['peak_job_commit_bytes']
+    finally:
+        budget.close()
+        if process is not None:process.wait(timeout=10);process.close()
+        if controller is not None and controller.poll() is None:controller.wait(timeout=10)
     dump(args.evidence/'execution.json',dict(exit_code=code,seconds=time.monotonic()-begin,command=command,
-        controlled_fault_injection=True,full_scan_acceptance=False))
+        controlled_fault_injection=True,full_scan_acceptance=False,allocator_pid=ready['pid'],
+        allocator_in_owned_job=True,outer_job_limit_bytes=512*1024**2,outer_peak_job_commit_bytes=peak))
     return code
 
 

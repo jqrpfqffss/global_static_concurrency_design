@@ -1,5 +1,11 @@
 # INAV 388TU 新黄金输入与原生测量（进行中）
 
+## 16GiB预算实际FAIL（覆盖此前进行中状态）
+
+恢复v3确实触及16GiB Job额度，在“并发风险分类与保护证据”发生MemoryError并受控退出3；结果analysis_valid=false/FAILED，未取得完整权威结果，G1仍未验。1472.438秒为恢复段（不含589.125秒缓存复制与158.765秒输入复验，不是冷扫描耗时）；388个PARSED TU缓存命中、0重新提取/0损坏。原始Job峰值17,179,934,720B，private采样17,179,660,288B，工作集17,097,158,656B；不裁剪峰值到配置上限。故障诊断时整机提交50,646,466,560B、额度85,825,454,080B、可用物理33,745,141,760B，与v2整机耗尽不同，这次应记**16GiB预算FAIL**。见inav-canonical-native-v3-failed.json。
+
+保留全部v3现场，另在I:/ECRA-N4用相同冻结717文件/配置和已验证TU缓存运行32GiB诊断，名称inav-canonical-diagnostic32-v4。目的为获取完整结果、逐字段对照及定位分配热点；32GiB成功也不能改写16GiB FAIL，且仍非物理32GB机验收。当前原版流式图编码/完整独立备份仍在运行。
+
 ## 整机提交耗尽与可验证恢复（最新）
 
 候选v2完成388TU后在归并阶段因观察器MemoryError被终止，观察到Job峰值7,925,542,912B，尚不是16GiB预算触顶的证据；原版图编码遇SQLite I/O error，独立备份也发生MemoryError。所有失败收据/部分目录保留：inav-canonical-native-v2-failed.json、inav-original-graph-v1-failed.json、inav-original-backup-v1-failed.json。同期Windows2004事件显示系统提交接近103GB额度；61.1GB Python进程创建时间在故障前8秒，**不是早已运行的备份进程**，此前归因已纠正。其消失后的完整命令行未捕获；并行venv故障测试的PID错误由源审计与独立无分配等待程序复现，见10-process-job-ownership.md，不能将未知归因写成已证实的备份内存收益。

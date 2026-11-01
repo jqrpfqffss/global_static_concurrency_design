@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "tests": 3,
+  "seconds": 8.053,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-source-package-v3.log",
+  "log_sha256": "d801027ec40cdc62fcb047fa06474612d1627082220a6d7f64b6f0174a12e917",
+  "scope": "PS5 frozen source identity/hash/path rejection plus real extractor-worker bounded OOM; not complete regression",
+  "prior_attempts": "v1/v2 retained; Python inherited incompatible PS7 module search path into PS5, then case-duplicate environment override was corrected. No machine/shell environment altered."
+}

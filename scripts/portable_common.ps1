@@ -1,4 +1,29 @@
 ﻿# Shared by online preparation and the strictly offline packager. Windows PS 5.1.
+function Get-FrozenSourceRevision([string]$SourceRoot) {
+    $manifest = $SourceRoot.TrimEnd('\','/') + '.sha256.json'
+    if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { return $null }
+    $snapshot = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($snapshot.passed -ne $true -or $snapshot.head -notmatch '^[a-f0-9]{40}$' -or -not $snapshot.files.Count) {
+        throw 'Frozen source manifest is incomplete or invalid; preserve the snapshot.'
+    }
+    $seen = @{}
+    foreach ($entry in $snapshot.files) {
+        if ([IO.Path]::IsPathRooted($entry.file) -or $entry.file -match '(^|[/\\])\.\.([/\\]|$)' -or $seen.ContainsKey($entry.file)) {
+            throw 'Frozen source manifest contains unsafe or duplicate paths.'
+        }
+        $seen[$entry.file] = $true
+        $file = Join-Path $SourceRoot $entry.file
+        Assert-ChildPath $SourceRoot $file
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or
+            (Get-Item -LiteralPath $file).Length -ne $entry.size -or
+            (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ine $entry.sha256) {
+            throw "Frozen source changed: $($entry.file); preserve and rebuild a fresh snapshot."
+        }
+    }
+    return @{ head=$snapshot.head; manifest=$manifest; files=$snapshot.files.Count;
+        sha256=(Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash }
+}
+
 function Assert-ChildPath([string]$Parent, [string]$Child) {
     $parentFull = [IO.Path]::GetFullPath($Parent).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
     $childFull = [IO.Path]::GetFullPath($Child)

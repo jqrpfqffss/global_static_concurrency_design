@@ -42,6 +42,8 @@ py -3.10 -B scripts/prepare_studio_wheels.py --cache .tools-cache --offline
 
 开发时先运行 `py -3.10 -B scripts/collect_studio_licenses.py --cache .tools-cache` 收集经哈希校验的离线wheel/Vue许可到studio/public；在studio目录执行 `npm.cmd ci`、`npm.cmd run build`。后续干净Vite构建会自动复制许可证。安装包运行端不需要这些开发工具。`build_portable.ps1 -OutputDir <全新目录>`拒绝覆盖旧包并执行目录/ZIP验收，轮子必须先有发布者SHA收据。
 
+从不含.git的冻结源码构建时，支持旁置`<源码目录>.sha256.json`，格式为passed/head/files数组（每项file/size/sha256）。包版本标识前逐文件验证实际工作字节、拒绝越界或篡改，包内SOURCE-SNAPSHOT.json保留完整来源清单；不会凭目录名猜测提交。这使后续代码开发与已冻结候选打包分离。实际完整打包验收仍以每个新包独立收据为准。
+
 本轮黄金与浏览器：
 
 ```powershell

@@ -238,6 +238,13 @@ try {
     if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {
         try { $commit = Invoke-Checked 'Git source revision' $git.Source @('-C',$PSScriptRoot,'rev-parse','HEAD') }
         catch { $commit = 'unknown (Git could not resolve revision)' }
+    } else {
+        $frozenSource = Get-FrozenSourceRevision $PSScriptRoot
+        if ($null -ne $frozenSource) {
+            $commit = $frozenSource.head + ' (verified working snapshot)'
+            Copy-Item -LiteralPath $frozenSource.manifest -Destination (Join-Path $bundle 'SOURCE-SNAPSHOT.json')
+            $lock.source_snapshot_sha256 = $frozenSource.sha256
+        }
     }
     $pyproject = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'pyproject.toml') -Raw
     $version = [regex]::Match($pyproject, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
