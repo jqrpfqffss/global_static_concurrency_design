@@ -1,5 +1,20 @@
 # 续轮验收：真实实现与未通过门禁（2026-11-01）
 
+## 最新局部验收与可用包 v10
+
+| 范围 | 实测 | 边界/收据 |
+|---|---|---|
+| 发布/校验存储 | 60项PASS；真实小型原生结果三个根原样重新入库 | graph-identity-regression-v1.json、graph-publication-f030-v1.json；不是大型G1/G4 |
+| 受保护冲突函数分配 | 4项PASS；48,000路径临时分配10,032,993→5,013,433B；实际4TU全字段事实/规范报告差异0 | ADR-009、conflict-allocation-v1.json、native-parsed-allocation-v1.json；不是全工程RAM降幅 |
+| Windows写保护 | 3项PASS，Low子进程实际ARM链接与单TU解析PARSED | windows-write-guard-v1.json；尚未接入正式扫描，不关闭H2/U03 |
+| 资源采集 | 3项PASS，真实4TU23.954s、46有效分页样本、Job142,188,544B、采样分配14,262,384B | native-resource-observer-probe-v3.json；分配仅采样下界、排除元数据/ADS，分页为整机 |
+| Portable v10 | 目录/中文解压各26命令PASS；106运行时文件SHA一致 | portable-studio-v10.json；535,435,337B，SHA1354e5c8...；非干净离线机 |
+| 真实Chrome | 主流程15、覆盖8、容量/排序9、旧迁移6、双origin协作7分别PASS | browser-portable-v10-*.json；不合并冒充完整U01–U24或全套单测 |
+| 冻结全套 | RUNNING，686文件冻结1b573a1，运行时与v10逐字节相同 | continuation-h3/full-regression-allocation-1b5.log；结束前不称全套PASS |
+| INAV原版388TU | TU/全局分析完成，保存中，完整性尚无最终收据 | continuation-h3/inav-original-native-v1；32GiB受控上限、64GiB物理机；原版物理分配峰值/分页早期数据未采集 |
+
+原版完整黄金未发布、候选尚未单独运行，不能填写真实大型工程“之后”的峰值/耗时/差异，更不能宣称16GB或70%达标。历史.ecra虽有5.86GB JSON/7.67GB DB，其有效性仍为RUNNING/false，不替代原生黄金；inav-historical-validity.json明确记录。此前1161项全套属于3590227，不自动扩大到当前源码。
+
 **完整重构未完成，Phase 0–6 和 G1–G8 不标全部通过。** 下方早期预览收据属于旧版本，不能当作当前源码/包的验收；当前实现入口为04-canonical-pipeline-progress.md。
 
 当前封存候选v8对应运行时代码3590227：1161项完整回归，1159通过、2项实际模型测试跳过，1802.796s；104个模块/前端/许可文件与包逐字节相同。目录及长中文ZIP各26命令通过；包内Python3.10.9真实Chrome主流程14、旧迁移6、容量/精度8项通过。包SHA与文件见`evidence/portable-legacy-v8.json`，完整回归见`full-regression-legacy-wire.json`。首轮v7因GitSource目录层级配置错误停止，未删除失败现场；v8使用完整MinGit目录，包含离线Git。

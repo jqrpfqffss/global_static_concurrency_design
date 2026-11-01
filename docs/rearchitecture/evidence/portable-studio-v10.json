@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "434988c",
+  "bundle": "H:\\ECRAStudio-build-20261101-studio-v10\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-studio-v10\\ECRA-Portable.zip",
+  "archive_bytes": 535435337,
+  "archive_sha256": "1354e5c88507fbb24de4e30e9cc363fddd88b03b5b76707569f4b46e15c73230",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "bundle_contains_runtime_data": false,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v10\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "5667556f402aaaa7a4251b5336c9fba143397756d89beed7517ade831720cb6b",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Validator applies each command expected exit contract; INCOMPLETE exit2 is explicitly retained, never interpreted as SAFE"
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "bundle_contains_runtime_data": false,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v10\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "4b64cab941e8b3bbce9fe23156c9e70e07b1c36f08dbd3acafb610e11c16287c",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Validator applies each command expected exit contract; INCOMPLETE exit2 is explicitly retained, never interpreted as SAFE"
+    }
+  },
+  "real_chrome": {
+    "main": {
+      "passed": true,
+      "tests": 15,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-repeat-v10\\acceptance.json",
+      "sha256": "9e1bd90fbd49dd6594f58b89864b34860b45ab5051e9681b7470ab1c97746a1e"
+    },
+    "coverage": {
+      "passed": true,
+      "tests": 8,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-coverage-v10\\acceptance.json",
+      "sha256": "ab888d9a8fed81a06ca74f474f40ec27ddbe17b22df5a73c03568a990b5f83bd"
+    },
+    "capacity": {
+      "passed": true,
+      "tests": 9,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-capacity-v10\\acceptance.json",
+      "sha256": "d0c46da2fde3cebbeeee88b86b250629d640d58732e4bc4c7e80ce63033c7c6e"
+    },
+    "legacy": {
+      "passed": true,
+      "tests": 6,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-legacy-v10\\acceptance.json",
+      "sha256": "6a4b478c22bc454b8dc2246c33e630d72e420977b18933e89220e06915f13fd2"
+    },
+    "collaboration": {
+      "passed": true,
+      "tests": 7,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-collaboration-v3\\acceptance.json",
+      "sha256": "ea7c7094b922e5e0031108089b9fb7a707ed48bdd5ee2ddef6601c9539b79470"
+    }
+  },
+  "runtime_files_match": 106,
+  "limitations": [
+    "Not a clean/offline second physical machine",
+    "Physical host64GiB, not G3 physical32GiB",
+    "Main native UI permits frozen external ARM compiler; bundled compilers independently tested by26-command checks",
+    "G1-G8 not all passed; production dirty isolation, original Git metadata writes, external-memory global analysis and large native full/Diff remain incomplete"
+  ],
+  "frozen_regression_runtime_byte_match": {
+    "head": "1b573a1",
+    "files": 106,
+    "result": "PASS",
+    "full_suite_result": "RUNNING_NOT_YET_CLAIMED"
+  }
+}

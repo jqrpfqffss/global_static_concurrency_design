@@ -1,5 +1,15 @@
 # 2026-10-31 续轮：真实扫描链与验收进度
 
+## 当前阶段候选 v10（完整重构仍未完成）
+
+源运行时1b573a1，构建记录434988c；docs/测量器/协作验收后续提交没有改变这106个运行时/前端/许可文件。v10与当前源码以及全回归冻结目录逐文件SHA一致。ZIP为H:/ECRAStudio-build-20261101-studio-v10/ECRA-Portable.zip，535,435,337B，SHA-256 1354e5c88507fbb24de4e30e9cc363fddd88b03b5b76707569f4b46e15c73230。
+
+新增运行时优化：深校验只重建小型投影而不复制完整静态图；发布时用有生命周期证明的磁盘身份表避免共享子图再次展开；ADR-009只减少冲突参与者对象分配，完整字段/顺序/路径不变。60项存储专项、4项独立旧函数对照与实际4TU全部facts/规范report黄金差异0分别有收据。全套回归在冻结686文件中运行，完成前不计PASS。
+
+目录与中文ZIP解压各26条真实命令通过，INCOMPLETE退出码2按原合同保留，不当作SAFE。包内Python真实Chrome主流程15项、覆盖8项、20,007行容量/排序9项、旧迁移6项、双origin协作7项分别通过，106文件逐字节匹配；收据portable-studio-v10.json、portable-source-match-v10.json及browser-portable-v10-*.json。截图见ui/screenshots/v10与collaboration-v3；trace/video在output/playwright对应目录。
+
+原版INAV388TU已完成提取/分析，保存阶段仍运行，尚无本次完整原生黄金。正式dirty隔离、原.git/worktrees写入、全局外存/消费者完整恢复、大型full/Diff、物理32GB、70%实盘收益、完整故障矩阵、干净离线机及工程师盲测仍未关闭。原生写保护只是前置原型，没有开放生产dirty扫描；所有完整Phase保持BLOCKED/进行中。
+
 本文件记录可复查的阶段实现，**不代表完整重构完成**。分支 optimize_ccc，起点 HEAD e69a10bbcb870dfc19a7d69cf2267774d08b3342。保护区算法未修改，已有文件与黄金基线不覆盖；修改前源码备份保存在外部 continuation-h3/pre-h3-source.zip。
 
 2026-11-01后续：运行时代码3590227的1161项完整回归通过（2项真实模型跳过），v8完整包与104个运行时/前端/许可文件匹配、目录及中文ZIP各26命令、包内14+6+8项Chrome通过。旧格式GUI流式迁移已接通，完整/缺证据/双来源/巨型场景仍不全部通过，详见06-legacy-streaming-import.md。独立dirty捕获及Clang视图只到验证实验，不开放正式入口；原.git/worktrees写入和CMake隔离仍为H2缺口。封存包与全回归不包含随后新增的单项VFS测试及QA脚本，运行时代码相同。大工程/32GB/70%/完整UI/干净机门禁继续未通过。
