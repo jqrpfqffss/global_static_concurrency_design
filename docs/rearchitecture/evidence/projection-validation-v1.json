@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "scope": "Canonical publication/projection/deep-validation/package/legacy/API/coverage focused regression, not full suite or G4",
+  "tests": 52,
+  "seconds": 29.164,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\projection-validation-1.log",
+  "log_sha256": "2f6a73472f35feb5d67c1c091553fd7044d12b65d2939e95b56922e4e8325f1a",
+  "properties": [
+    "Every rebuilt symbols/records row compared against the original read-only graph in a single read transaction",
+    "No full source graph SQLite backup for projection validation",
+    "8MiB unused-diagnostic fixture: temporary validation DB below one quarter of source DB and additional traced Python allocation below 7MiB",
+    "Schema 1 caller/callee projection behavior remains valid",
+    "Original database SHA unchanged"
+  ],
+  "source_sha256": "63a7399a8c0430a5b4a35e3b60107a60ca2ae283964d2e2aaed390b9c5c9adb6",
+  "sealed_v9": "Predates this runtime change, not claimed current-source byte match"
+}

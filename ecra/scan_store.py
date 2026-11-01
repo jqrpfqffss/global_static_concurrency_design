@@ -191,18 +191,24 @@ class GraphWriter:
                                                          self.conn.execute(sql, (second,))))
 
 
-def _project(connection, dataset, root):
-    version = connection.execute('PRAGMA user_version').fetchone()[0]
-    fields = connection.execute('SELECT key,child FROM edges WHERE parent=? ORDER BY ordinal', (root,))
+def _project(connection, dataset, root, *, source=None):
+    # Validation may read an immutable source graph into a separate, disposable
+    # projection database. Never copy the complete graph merely to check indexes.
+    graph = source if source is not None else connection
+    version = graph.execute('PRAGMA user_version').fetchone()[0]
+    fields = graph.execute('SELECT key,child FROM edges WHERE parent=? ORDER BY ordinal', (root,))
     for relation, array in fields:
-        if connection.execute('SELECT kind FROM nodes WHERE id=?', (array,)).fetchone()[0] != 'list':
+        if graph.execute('SELECT kind FROM nodes WHERE id=?', (array,)).fetchone()[0] != 'list':
             continue
-        for ordinal, node in connection.execute('SELECT ordinal,child FROM edges WHERE parent=? ORDER BY ordinal', (array,)):
-            if connection.execute('SELECT kind FROM nodes WHERE id=?', (node,)).fetchone()[0] != 'object':
+        for ordinal, node in graph.execute('SELECT ordinal,child FROM edges WHERE parent=? ORDER BY ordinal', (array,)):
+            if graph.execute('SELECT kind FROM nodes WHERE id=?', (node,)).fetchone()[0] != 'object':
                 continue
             values = {}
-            for key, kind, value in connection.execute(
-                    'SELECT e.key,n.kind,n.value FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=?', (node,)):
+            for key, kind, value in graph.execute(
+                    'SELECT e.key,n.kind,n.value FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=? '
+                    "AND e.key IN ('symbol_id','function_id','caller_function_id','caller','caller_id',"
+                    "'callee_function_id','callee','callee_id','qualified_name','name','static_classification',"
+                    "'resource_kind','definition_file','definition_line','analysis_coverage')", (node,)):
                 if kind not in {'object', 'list'}:
                     values[key] = _decode(kind, value)
             connection.execute('INSERT INTO records VALUES (?,?,?,?,?,?,?,?)',
@@ -300,6 +306,8 @@ class EvidenceProvider:
 
     def validate(self, *, deep=False):
         with closing(connect_readonly(self.path)) as conn:
+            # Keep graph hashes and rebuilt query projections on one read view.
+            conn.execute('BEGIN')
             if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):
                 raise ValueError('静态库损坏或证据引用缺失')
             scan = conn.execute('SELECT * FROM scans').fetchone()
@@ -346,23 +354,18 @@ class EvidenceProvider:
                                 raise ValueError('非规范化的证据标量编码')
                     if hasher.hexdigest() != node['hash']:
                         raise ValueError('证据哈希校验失败')
-                # Rebuild projections in a separate disposable in-memory
-                # index, comparing every row. Source evidence is never edited.
-                # Use a file-backed temporary DB for large scans instead of
-                # retaining all symbol/record rows in Python.
+                # Rebuild only projections in a file-backed disposable index,
+                # comparing every row against this same immutable read view.
                 import tempfile
                 with tempfile.TemporaryDirectory(prefix='ecra projection validation ') as folder:
                     with closing(sqlite3.connect(Path(folder)/'projection.db')) as expected:
                         expected.executescript(SCHEMA)
                         expected.execute('PRAGMA foreign_keys=OFF')
-                        # sqlite backup provides a consistent, bounded-memory
-                        # copy; validate the exact projection against its tree.
-                        conn.backup(expected)
-                        expected.execute('DELETE FROM symbols')
-                        expected.execute('DELETE FROM records')
+                        expected.execute('PRAGMA cache_size=-8192')
+                        expected.execute('PRAGMA temp_store=FILE')
                         for name in ('facts', 'report'):
-                            root = expected.execute('SELECT node FROM roots WHERE name=?', (name,)).fetchone()[0]
-                            _project(expected, name, root)
+                            root = conn.execute('SELECT node FROM roots WHERE name=?', (name,)).fetchone()[0]
+                            _project(expected, name, root, source=conn)
                         for table, order in [('symbols', 'ordinal'), ('records', 'dataset,relation,ordinal')]:
                             actual = (tuple(row) for row in conn.execute('SELECT * FROM ' + table + ' ORDER BY ' + order))
                             rebuilt = expected.execute('SELECT * FROM ' + table + ' ORDER BY ' + order)

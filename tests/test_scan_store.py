@@ -9,6 +9,32 @@ from ecra.scan_store import EvidenceProvider, GraphWriter, publish_scan
 
 
 class ScanStoreTests(unittest.TestCase):
+    def test_projection_validation_does_not_duplicate_graph_or_decode_unused_large_record_fields(self):
+        from contextlib import contextmanager
+        import tracemalloc
+        from ecra.report_package import sha256
+        provider=self.publish(dict(variables=[dict(symbol_id='s',name='s')],
+            unknowns=[dict(symbol_id='s',kind='CAPACITY_FIXTURE',diagnostic='x'*(8*1024**2))]))
+        before=sha256(self.path);source_bytes=self.path.stat().st_size;sizes=[]
+        temporary=tempfile.TemporaryDirectory
+        @contextmanager
+        def measured_temporary(*args,**kwargs):
+            with temporary(*args,**kwargs) as folder:
+                yield folder
+                sizes.extend(path.stat().st_size for path in Path(folder).rglob('*') if path.is_file())
+        owned_trace=not tracemalloc.is_tracing()
+        if owned_trace:tracemalloc.start(1)
+        try:
+            start=tracemalloc.get_traced_memory()[0]
+            with patch('tempfile.TemporaryDirectory',measured_temporary):provider.validate(deep=True)
+            peak=tracemalloc.get_traced_memory()[1]-start
+        finally:
+            if owned_trace:tracemalloc.stop()
+        self.assertTrue(sizes)
+        self.assertLess(max(sizes),source_bytes//4,'temporary validation must contain query projections, not complete source evidence')
+        if owned_trace:self.assertLess(peak,7*1024**2,'unused diagnostic must not be decoded while projecting record identities')
+        self.assertEqual(sha256(self.path),before)
+
     def test_engine_tuple_arrays_and_shared_restore_preserve_json_contract(self):
         shared = {'all_edges': [1, 2, 2, {'name': '中文'}]}
         provider = self.publish(dict(variables=[], repeated=(shared, shared)))
