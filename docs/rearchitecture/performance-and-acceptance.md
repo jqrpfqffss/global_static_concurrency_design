@@ -155,3 +155,6 @@ Portable前两次长路径构建实际失败：CMake TryCompile在ASCII构建根
 
 
 INAV v5实际结束为FAIL：4277.250秒、退出3、analysis_valid=false；Job峰值17,180,848,128B（原始读数不钳制，设置上限17,179,869,184B），采样private峰值17,179,201,536B、工作集17,084,760,064B。388TU冷提取完成后，在conflict_pairs为每个access/context创建实例字典时analysis.py474发生MemoryError；没有有效scan.db/标准归档，不能把10,773,364,343B失败目录当最终磁盘收益。完整收据见evidence/inav-selectors-native-v5-failed.json，64GiB主机不代替物理32GB。G3仍FAIL。原版图转码v3随后按顺序启动。
+
+
+2026-11-02：6692分配实现冻结完整1244项已完成（1242PASS/2联网SKIP，1781.019s，833SHA不变）；后续目录/示例GUI另有39专项、示例10/主流程16真实Chrome通过，当前整树与新Portable仍待冻结重验。v13继续作为较早封存包。INAV v7原生冷提取已启动，4123真实输入无差异；它与旧版图转码共用物理HDD，时间/全卷占用不归因于单任务优化。v7尚无最终收据，G3仍未通过；原版比较中间库不是标准完整归档，不能作为G4收益。

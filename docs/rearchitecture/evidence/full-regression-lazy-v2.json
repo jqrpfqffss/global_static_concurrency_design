@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1244,
+  "passed_tests": 1242,
+  "skipped": 2,
+  "seconds": 1781.019,
+  "controller_seconds": 1784.3279999999995,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-lazy-instances-v2",
+  "frozen_files": 833,
+  "differences": [],
+  "manifest_sha256": "4116579fcadd7f1ac1792fee82d117ef16582f1d9552bdc61729d22644c00636",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-lazy-v2.log",
+  "log_sha256": "17756e974931307064fdfe737c1e2223e04598448715c226757116f077759cbc",
+  "scope": "Frozen actual6692 runtime: ordinary context forms and lazy conflict participants; live OpenCode opt-in skipped",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-lazy-v2.json",
+  "raw_receipt_sha256": "0f1d9f557a0dac3a1a437790aa2843457974434b1ee4437a92a03be10db12d77",
+  "scope_note": "Frozen833 files actual6692 runtime, excludes later directory and builtin sample GUI; not current whole-source pass"
+}

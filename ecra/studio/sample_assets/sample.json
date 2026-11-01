@@ -1,0 +1,43 @@
+{
+  "format": "ECRA_BUILTIN_SAMPLE_V1",
+  "filename": "stm32-demo.ecra-report",
+  "sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b",
+  "bytes": 540266,
+  "scan_id": "builtin-stm32-demo-v1",
+  "project_id": "850ad27e66522e238302d4b692fd54a1f09b892517036f061d21bb1ddcfcd428",
+  "facts_hash": "560d9c25097cedb4bc4612b2d3a97ba57d782cb7b968c600fa44f00be6247e13",
+  "report_hash": "4c74853bf7edb16ef05cee6f5d18a42317546c64c40d7001fb362066e6ed1636",
+  "title": "STM32并发访问教学示例",
+  "notice": "教学示例 · 真实扫描归档 · 非用户工程。2个TU实际ARM对象编译/Clang分析，未链接固件、无硬件验证；未知与覆盖缺口按实保存。",
+  "sources": {
+    "main.c": {
+      "sha256": "7ea05c4e2276a20f9fb660802f50541679d24b95e464a26b3247e7d11ff4992f",
+      "mtime_ns": 1788620494254100000,
+      "size": 1546
+    },
+    "other.c": {
+      "sha256": "2bac4faa6c60085462ab1f801f6172c5dc609fa8f65aa8748f91e3f66f82599a",
+      "mtime_ns": 1788620494256120700,
+      "size": 122
+    },
+    "shared.h": {
+      "sha256": "dd42df14623078247b703711ab01e0bd484d267bb0c92804c7c1e64129206a6d",
+      "mtime_ns": 1788620493745316700,
+      "size": 332
+    },
+    "CMakeLists.txt": {
+      "sha256": "4eab75c8c3729ce67e06c7495c42edbc3d8eee5adf504be0c1834fde998e8f93",
+      "mtime_ns": 1788620494258122600,
+      "size": 136
+    },
+    "semantics.yaml": {
+      "sha256": "f3e8192ad0d8ac629381d50e9795992ec5ee296d03a5d39f03da3be9c65294e4",
+      "mtime_ns": 1789857497431960400,
+      "size": 760
+    }
+  },
+  "license": "Repository project terms; no standalone LICENSE file declared in this checkout",
+  "native_tus": 2,
+  "linked_firmware": false,
+  "hardware_verified": false
+}

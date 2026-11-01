@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "scope": "Actual native-built sample import, preservation, UI and desktop workbench repair; U01/U02/U16/U19/U22 partial, not completeG1-G8",
+  "unit_tests": 39,
+  "unit_seconds": 15.213,
+  "unit_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\sample-and-directory-v2-tests.log",
+  "unit_log_sha256": "61cb05d99419d5c874936e748ad67cdb5dabc4bc57f7b158f78bbbbcbce6f4f1",
+  "sample_archive_bytes": 540266,
+  "sample_archive_sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b",
+  "sample_metadata_sha256": "1bc71de446b3cd25842afa3dfe14d4db618dc0ab685ee6a9f7ceea7f710f71db",
+  "real_chrome_sample_tests": 10,
+  "real_chrome_main_tests": 16,
+  "first_viewport_before": {
+    "width": 1366,
+    "height": 768,
+    "action": "确认有风险",
+    "y": 809.65625,
+    "bottom": 841.65625
+  },
+  "accepted_browser_receipt": "browser-builtin-sample-v8.json",
+  "source_sha256": {
+    "ecra/studio/sample.py": "1fc09f5022339a0c3d2d060065cf57161cc22fced70bcd8bad283d08305670a5",
+    "ecra/studio/server.py": "27c91dc22dd148a446c6286b298b82e0f2879fbfba17cfd1e15f87778575d7eb",
+    "studio/src/App.vue": "5fc25871448e9b404c3ecabf5e0db42d51787626c3a0a0dd11a4182cbb6c7b1e",
+    "studio/src/workbench.css": "17bbdcc979fe5d3a09e755dd6cbcaf5b66ccf07380e21357eabd26c542bc4e58",
+    "scripts/build_studio_sample.py": "272aea536396f02fe8298cc58a7df7040a58faf43a9b14a82a22754bfc13aecb",
+    "scripts/validate_builtin_sample.py": "589ca0549996aea59fc5b4620559d46d917fda9da158c632300f13676df5a6f9",
+    "scripts/measure_native_golden.py": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe"
+  },
+  "complete_current_source_regression": "NOT_RUN_YET",
+  "new_portable": "NOT_BUILT",
+  "physical_clean_offline_windows": "NOT_VERIFIED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED"
+}

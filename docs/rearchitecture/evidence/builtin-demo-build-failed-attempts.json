@@ -1,0 +1,23 @@
+[
+  {
+    "version": 1,
+    "cause": "Original engine rejects new output.location=user enum",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v1\\original-native.log",
+    "sha256": "37d8060ba54cc16e3b79cb1d0ee73c7d9faaa147a5341b5f18911c0884e12fc8",
+    "scope": "No independently completed original sample proof; original/new directories retained"
+  },
+  {
+    "version": 2,
+    "cause": "Legacy measurement rejects config data root different from requested measurement root",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v2\\original-native.log",
+    "sha256": "c92a5cbb629cdec84a0a952ecd8c04041d98adf1ebe6d28a18987be62bc612e4",
+    "scope": "No independently completed original sample proof; original/new directories retained"
+  },
+  {
+    "version": 3,
+    "cause": "Measurement rejects already existing data root",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v3\\original-native.log",
+    "sha256": "ac487164a99989def85dcc494ecc1b7a211e1ba34e5dc7c3ca26c814797d5ac0",
+    "scope": "No independently completed original sample proof; original/new directories retained"
+  }
+]

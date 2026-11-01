@@ -113,11 +113,18 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
 
     @app.get('/api/bootstrap')
     def bootstrap():
+        from .sample import sample_info
         return dict(product='ECRA Studio', data_root=str(data), protocol=1,
+            sample=sample_info(),
             scan_pipeline='SQLITE_NATIVE_SCAN',
             capabilities=['archive_viewer', 'human_reviews', 'report_packages', 'review_delta', 'profile_validation', 'native_scan_tasks', 'legacy_json_import'],
             limits=['大型工程资源门禁及完整 U01–U24 尚未全部通过。',
                     '归档内容校验不等于当前源码重新验证；确认者为用户声明，未经认证。'])
+
+    @app.post('/api/sample/open')
+    def open_builtin_sample():
+        from .sample import open_sample
+        return open_sample(data)
 
     @app.get('/api/scans')
     def scans():

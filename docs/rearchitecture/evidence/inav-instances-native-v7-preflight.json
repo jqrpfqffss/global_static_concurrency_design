@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "inputs": 4123,
+  "differences": [],
+  "engine_files": 833,
+  "engine_manifest_sha256": "4116579fcadd7f1ac1792fee82d117ef16582f1d9552bdc61729d22644c00636",
+  "input_manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "verification_seconds": 6.078000000001339,
+  "observed_utc": "2026-11-01T15:43:57.962858+00:00",
+  "scope": "All frozen real source/Git/build bytes before fresh native extraction; no TU-cache migration",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-instances-native-v7-preflight.json",
+  "raw_receipt_sha256": "e0f659e916374df8a132277b0bf97eb721e8e8ad42ccc5ddc8a2f8ca95850a60",
+  "runtime_scope": "Cold native v7, explicit16GiB; concurrently encodes original graph on sameHDD. Per-tree resources independent; elapsed and volume deltas not optimization attribution; physical32GB NOT_VERIFIED"
+}

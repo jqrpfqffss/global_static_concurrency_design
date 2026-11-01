@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "exit_code": 0,
+  "tests": 0,
+  "passed_tests": 0,
+  "skipped": 0,
+  "seconds": 0.0,
+  "controller_seconds": 0.7809999999990396,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-lazy-instances-v1",
+  "frozen_files": 833,
+  "differences": [],
+  "manifest_sha256": "4116579fcadd7f1ac1792fee82d117ef16582f1d9552bdc61729d22644c00636",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-lazy-v1.log",
+  "log_sha256": "5908c79981b1361a56b0a2d7bedb0e9bd7fc9a2efdfb1968be756dd713e25fab",
+  "scope": "Frozen actual6692 runtime: ordinary context forms and lazy conflict participants; live OpenCode opt-in skipped",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-lazy-v1.json",
+  "raw_receipt_sha256": "5cb024fbae3fb0502fc527461fc715bab6514bf5b272bea45fb63f9d009d0e4c",
+  "scope_note": "Zero tests is FAILED validation, not a passing complete suite; corrected discover -s tests then v2 actually ran1244"
+}

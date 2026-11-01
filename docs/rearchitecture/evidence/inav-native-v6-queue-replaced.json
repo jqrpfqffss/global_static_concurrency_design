@@ -1,0 +1,17 @@
+{
+  "native_children": 0,
+  "command_line": "\"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe\" -B -X utf8 H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/run-instances-native-after-graph-v6.py",
+  "pid": 27860,
+  "observed_utc": "2026-11-01T15:43:51.0060546Z",
+  "creation_time": "2026-11-01T21:27:40.912233+08:00",
+  "scope": "Agent-created queued driver only; v6 native never started. Replaced with explicit concurrent-load v7; no scan data removed.",
+  "console_children": [
+    {
+      "ProcessId": 5352,
+      "Name": "conhost.exe",
+      "CommandLine": "\\??\\C:\\Windows\\system32\\conhost.exe 0x4"
+    }
+  ],
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-native-v6-queue-replaced.json",
+  "raw_receipt_sha256": "78b1669fc33e3cdfb56a580982b490366f7b992037c04a5eba20ff76a5f438c1"
+}

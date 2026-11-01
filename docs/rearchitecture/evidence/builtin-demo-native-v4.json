@@ -1,0 +1,240 @@
+{
+  "passed": true,
+  "scope": "Build a real, independently compared Studio teaching archive from repo demo.\n\nNever runs setup_demo.py or writes the original demo/user configuration. All\nbuild/scan products use explicitly selected fresh external directories. This\ntwo-TU object target is not a linked STM32 firmware or an additional G2 project.\n",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+  "original_engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+  "commands": [
+    {
+      "label": "cmake-configure",
+      "argv": [
+        "H:\\global_static_concurrency_design\\.tools-cache\\cmake-3.29.6\\bin\\cmake.exe",
+        "-S",
+        "H:\\ECRA-DEMO-S4",
+        "-B",
+        "H:\\ECRA-DEMO-B4",
+        "-G",
+        "Ninja",
+        "-DCMAKE_MAKE_PROGRAM=H:\\global_static_concurrency_design\\.tools-cache\\ninja-1.13.2\\ninja.exe",
+        "-DCMAKE_TOOLCHAIN_FILE=H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\arm-toolchain.cmake"
+      ],
+      "exit_code": 0,
+      "seconds": 1.8119999999998981,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\cmake-configure.log",
+      "log_sha256": "ad6e3b4a834c0712da5544635beb9be77bdff8daf411a9e77f648ee9f4015911"
+    },
+    {
+      "label": "arm-object-build",
+      "argv": [
+        "H:\\global_static_concurrency_design\\.tools-cache\\cmake-3.29.6\\bin\\cmake.exe",
+        "--build",
+        "H:\\ECRA-DEMO-B4",
+        "--target",
+        "demo",
+        "--parallel",
+        "2"
+      ],
+      "exit_code": 0,
+      "seconds": 0.1720000000004802,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\arm-object-build.log",
+      "log_sha256": "f02398bad0e49afff0e8392aa87772c64f7f9d222a1e8a45ceaf422794d96230"
+    },
+    {
+      "label": "original-native",
+      "argv": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\global_static_concurrency_design\\scripts\\measure_native_golden.py",
+        "--engine",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+        "--config",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\semantics.yaml",
+        "--data-root",
+        "H:\\ECRA-DEMO-O4",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-native",
+        "--mode",
+        "legacy",
+        "--limit-gib",
+        "2"
+      ],
+      "exit_code": 0,
+      "seconds": 12.890999999999622,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-native.log",
+      "log_sha256": "4b65453dc07e33ddaa9ba1768eddbfe05bf778bbd7fe334724c0bfe056af8032"
+    },
+    {
+      "label": "new-native",
+      "argv": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\global_static_concurrency_design\\scripts\\measure_native_golden.py",
+        "--engine",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+        "--config",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\semantics.yaml",
+        "--data-root",
+        "H:\\ECRA-DEMO-D4",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\new-native",
+        "--mode",
+        "canonical",
+        "--limit-gib",
+        "2",
+        "--scan-id",
+        "builtin-stm32-demo-v1",
+        "--profile-id",
+        "builtin-stm32-demo"
+      ],
+      "exit_code": 0,
+      "seconds": 24.25,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\new-native.log",
+      "log_sha256": "8029e3296f2cbfe1ccd4eb0a4929b768aa2bafe1958c807b8652341a94abc592"
+    },
+    {
+      "label": "original-graph",
+      "argv": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\global_static_concurrency_design\\scripts\\measure_baseline_graph.py",
+        "--execution",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-native\\execution.json",
+        "--engine",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-graph",
+        "--limit-gib",
+        "2"
+      ],
+      "exit_code": 0,
+      "seconds": 16.125,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-graph.log",
+      "log_sha256": "0c640f0246081b48331791e720e653903ddae25ab4b8135ba510a4da65ad9cc8"
+    },
+    {
+      "label": "full-semantic-comparison",
+      "argv": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\global_static_concurrency_design\\scripts\\compare_native_graphs.py",
+        "--before",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-graph\\original-graph.db",
+        "--after",
+        "H:\\ECRA-DEMO-D4\\scans\\builtin-stm32-demo-v1\\scan.db",
+        "--receipt",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\semantic-comparison.json",
+        "--envelope",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\runtime-envelope.jsonl"
+      ],
+      "exit_code": 0,
+      "seconds": 0.4690000000009604,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\full-semantic-comparison.log",
+      "log_sha256": "7b54831743b04950a894f30b2963ee32d39b7a8e1fcd0c9c9986f917527baf97"
+    }
+  ],
+  "original_files_unchanged": true,
+  "copied_files_unchanged": true,
+  "original_native_bytes_unchanged_after_new": true,
+  "measurement_scope": "Independent native CLI bodies under separate fresh external roots; same config and compile DB; no G2/physical32GB/hardware claim",
+  "native_receipts": {
+    "original-native": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-native\\execution.json",
+      "sha256": "272cbf18a39de7f2d3324a02595b1f3a2b863023efc16d5207df8e93a9e212bf"
+    },
+    "new-native": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\new-native\\execution.json",
+      "sha256": "bea1518f1da4f2830cec2470594dd2d0d5ea5ad9cacdaecfdb372c1a6771bf51"
+    }
+  },
+  "semantic_comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "560d9c25097cedb4bc4612b2d3a97ba57d782cb7b968c600fa44f00be6247e13",
+        "after": "560d9c25097cedb4bc4612b2d3a97ba57d782cb7b968c600fa44f00be6247e13"
+      },
+      "report": {
+        "before": "68fe00a6eed310d2260758bbbb50f39cb5e47c656f991d51df0aaf32af81bf9e",
+        "after": "68fe00a6eed310d2260758bbbb50f39cb5e47c656f991d51df0aaf32af81bf9e"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\original-graph\\original-graph.db",
+    "after": "H:\\ECRA-DEMO-D4\\scans\\builtin-stm32-demo-v1\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "tools": {
+    "cmake": {
+      "path": "H:\\global_static_concurrency_design\\.tools-cache\\cmake-3.29.6\\bin\\cmake.exe",
+      "sha256": "2f7ab077ad3128c6250c462dc01e8615be4f5d51e62eb7d567fabab2eeeea89b"
+    },
+    "ninja": {
+      "path": "H:\\global_static_concurrency_design\\.tools-cache\\ninja-1.13.2\\ninja.exe",
+      "sha256": "e52a7ad9538d9618c67a0bd777964e2eec8a30f68b810a2f6adce1f2daf847b8"
+    },
+    "compiler": {
+      "path": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+      "sha256": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac"
+    }
+  },
+  "sample": {
+    "format": "ECRA_BUILTIN_SAMPLE_V1",
+    "filename": "stm32-demo.ecra-report",
+    "sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b",
+    "bytes": 540266,
+    "scan_id": "builtin-stm32-demo-v1",
+    "project_id": "850ad27e66522e238302d4b692fd54a1f09b892517036f061d21bb1ddcfcd428",
+    "facts_hash": "560d9c25097cedb4bc4612b2d3a97ba57d782cb7b968c600fa44f00be6247e13",
+    "report_hash": "4c74853bf7edb16ef05cee6f5d18a42317546c64c40d7001fb362066e6ed1636",
+    "title": "STM32并发访问教学示例",
+    "notice": "教学示例 · 真实扫描归档 · 非用户工程。2个TU实际ARM对象编译/Clang分析，未链接固件、无硬件验证；未知与覆盖缺口按实保存。",
+    "sources": {
+      "main.c": {
+        "sha256": "7ea05c4e2276a20f9fb660802f50541679d24b95e464a26b3247e7d11ff4992f",
+        "mtime_ns": 1788620494254100000,
+        "size": 1546
+      },
+      "other.c": {
+        "sha256": "2bac4faa6c60085462ab1f801f6172c5dc609fa8f65aa8748f91e3f66f82599a",
+        "mtime_ns": 1788620494256120700,
+        "size": 122
+      },
+      "shared.h": {
+        "sha256": "dd42df14623078247b703711ab01e0bd484d267bb0c92804c7c1e64129206a6d",
+        "mtime_ns": 1788620493745316700,
+        "size": 332
+      },
+      "CMakeLists.txt": {
+        "sha256": "4eab75c8c3729ce67e06c7495c42edbc3d8eee5adf504be0c1834fde998e8f93",
+        "mtime_ns": 1788620494258122600,
+        "size": 136
+      },
+      "semantics.yaml": {
+        "sha256": "f3e8192ad0d8ac629381d50e9795992ec5ee296d03a5d39f03da3be9c65294e4",
+        "mtime_ns": 1789857497431960400,
+        "size": 760
+      }
+    },
+    "license": "MIT (repository LICENSE)",
+    "native_tus": 2,
+    "linked_firmware": false,
+    "hardware_verified": false
+  },
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\acceptance.json",
+  "raw_receipt_sha256": "cc7f0d1310b3ab359307ef0d0be88f03b85006892f90e146aaf4fab653c1510b",
+  "metadata_superseded_by": "builtin-demo-assets-v5.json",
+  "scope_note": "Actual native/semantic receipt unchanged. Its unsupported standalone MIT metadata claim was corrected only in derived program metadata; original v4 receipt preserved"
+}

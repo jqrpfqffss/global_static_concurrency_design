@@ -1,0 +1,129 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "three_first_use_entries_have_real_routes_and_visible_actions",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "sample_opens_actual_native_archive_with_explicit_teaching_identity",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_unknown_card_drills_to_same_count_and_actual_canonical_variable",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "archived_real_source_is_available_without_a_firmware_parameter",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "human_confirmation_and_teaching_label_survive_browser_reload",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "reopening_existing_sample_is_idempotent_and_preserves_confirmation",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "standard_export_retains_complete_real_graph_and_human_event",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_service_restart_keeps_sample_identity_and_committed_confirmation",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\builtin-sample-v5-before-viewport-fix\\01-first-use-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\builtin-sample-v5-before-viewport-fix\\01-first-use-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\builtin-sample-v5-before-viewport-fix\\02-real-sample-overview.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\builtin-sample-v5-before-viewport-fix\\03-archived-demo-code.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\builtin-sample-v5-before-viewport-fix\\04-real-service-reopened-confirmation.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: three first-use entries and a real native-built archive.\n\nNo firmware path or toolchain is passed to the viewer. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "engine": "H:\\global_static_concurrency_design",
+  "server_python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "service_restarted": true,
+  "service_process_ids": [
+    2252,
+    26728
+  ],
+  "workbench_action_bounds": [
+    {
+      "width": 1366,
+      "height": 768,
+      "action": "确认有风险",
+      "bounds": {
+        "x": 709.671875,
+        "y": 809.65625,
+        "width": 80,
+        "height": 32
+      }
+    }
+  ],
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_builtin_sample.py\", line 160, in main\n    assert bounds and 0<=bounds['y'] and bounds['y']+bounds['height']<=height,'Review action below first viewport: '+str(receipt['workbench_action_bounds'][-1])\nAssertionError: Review action below first viewport: {'width': 1366, 'height': 768, 'action': '确认有风险', 'bounds': {'x': 709.671875, 'y': 809.65625, 'width': 80, 'height': 32}}\n",
+  "raw_receipt_path": "H:\\global_static_concurrency_design\\output\\playwright\\builtin-sample-v5-before-viewport-fix\\acceptance.json",
+  "raw_receipt_sha256": "ae7f70bbfdfbb4fffed0ae60e008a0ff1906289120ee7ffaed8cc7b8652da8a1"
+}

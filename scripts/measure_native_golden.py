@@ -37,9 +37,13 @@ def main():
     parser.add_argument('--work',type=Path,required=True)
     parser.add_argument('--mode',choices=['legacy','canonical'],required=True)
     parser.add_argument('--limit-gib',type=int,required=True)
+    parser.add_argument('--scan-id',default='native-golden',help='Explicit canonical output identity; original default unchanged')
+    parser.add_argument('--profile-id',default='same-golden-input')
     parser.add_argument('--reuse-tu-cache-from',type=Path,help='Explicit failed same-engine native attempt; replay preprocessing and verify every TU cache, not fresh extraction timing')
     parser.add_argument('--inject-stop-before-merge',action='store_true',help='Explicit diagnostic fault after real extraction; never a successful native benchmark')
     args=parser.parse_args()
+    from ecra.report_package import IDENTITY
+    if not IDENTITY.fullmatch(args.scan_id) or not IDENTITY.fullmatch(args.profile_id):parser.error('Scan/profile identity is invalid')
     if os.name!='nt':parser.error('This measurement requires real Windows Job accounting')
     if not 2<=args.limit_gib<=32:parser.error('Choose an explicit safety cap between 2 and 32GiB')
     if args.inject_stop_before_merge and args.mode!='canonical':parser.error('Fault injection is canonical diagnostic only')
@@ -107,9 +111,9 @@ else:
  from dataclasses import replace
  from ecra.common import write_json
  ws=WorkspaceResolver.resolve(root,dict(cfg['analysis'],output=dict(location='custom',custom_dir=str(data)))).initialize()
- out=data/'scans/native-golden';out.mkdir(parents=True)
+ out=data/'scans'/sys.argv[7];out.mkdir(parents=True)
  ws=replace(ws,results_root=str(out),snapshots_root=str(out/'snapshots'))
- write_json(out/'storage.json',dict(version=1,scan_id='native-golden',project_id=ws.project_id,profile_id='same-golden-input'))
+ write_json(out/'storage.json',dict(version=1,scan_id=sys.argv[7],project_id=ws.project_id,profile_id=sys.argv[8]))
 gate.with_name('output.json').write_text(json.dumps(dict(output=str(out))),encoding='utf-8')
 if mode=='legacy':
  sys.argv=[str(engine/'run_ecra.py'),'--config',str(config),'--scan-mode','full','--no-review']
@@ -148,7 +152,7 @@ else:
         save()
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
             from ecra.studio.write_guard import OwnedProcess
-            process=OwnedProcess([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode,str(args.inject_stop_before_merge)],cwd=engine,env=env,log=log)
+            process=OwnedProcess([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode,str(args.inject_stop_before_merge),args.scan_id,args.profile_id],cwd=engine,env=env,log=log)
             budget.assign(process);process.resume();result['pid']=process.pid;save();(work/'start').write_text('OWNED',encoding='ascii')
             last_disk=last_report=0;disk={}
             while process.poll() is None:

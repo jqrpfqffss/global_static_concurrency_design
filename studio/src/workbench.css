@@ -9,3 +9,24 @@
 .access-row{border-bottom:1px solid #e7edf4;padding:8px 0;font-size:13px}.access-row p{margin:4px 0;color:#667894}.detail-panel>.empty{overflow:auto}.detail-panel:has(>.empty){display:block}
 @media(max-width:850px){.detail-panel{height:730px;min-height:560px}.detail-evidence{min-height:140px}}
 @media(max-height:750px) and (min-width:851px){.detail-panel{height:calc(100vh - 174px);min-height:530px}.page-heading{margin-top:0}.page-heading h1{font-size:22px}.review-controls .muted{display:none}}
+
+/* Keep the existing workbench inside the space left by actual page banners,
+   heading and human counts. Fixed offsets cannot account for those states. */
+@media(min-width:851px){
+  main:has(>.workbench){height:calc(100dvh - 60px);display:flex;flex-direction:column;min-height:0}
+  main:has(>.workbench)>:not(.workbench){flex-shrink:0}
+  main:has(>.workbench)>.workbench{flex:1;min-height:320px;grid-template-rows:minmax(0,1fr)}
+  main:has(>.workbench) .workbench>.panel{height:100%;min-height:0;max-height:none;margin-bottom:0}
+  main:has(>.workbench) .splitter{min-height:0}
+  main:has(>.workbench) .list-panel{position:static}
+  main:has(>.workbench) .list-filters{max-height:calc(100% - 160px);overflow:auto;min-height:0;padding-right:4px;flex-shrink:1}
+  main:has(>.workbench) .symbol-list{min-height:76px;flex:1}
+  main:has(>.workbench) .list-panel>.page-controls{flex-shrink:0}
+  main:has(>.workbench) .detail-summary{max-height:30%;min-height:48px;overflow:auto;flex-shrink:1}
+  main:has(>.workbench) .detail-heading>button{min-height:32px;padding:5px 9px}
+  main:has(>.workbench) .detail-summary>.identity,main:has(>.workbench) .detail-summary>.conclusion{margin-bottom:4px}
+  main:has(>.workbench) .detail-evidence{min-height:64px}
+  main:has(>.workbench) .review-controls{max-height:50%;min-height:120px;display:flex;flex-direction:column;flex-shrink:1}
+  main:has(>.workbench) .review-content{min-height:0;overflow:auto;flex:1}
+  main:has(>.workbench) .decision-actions{position:static;flex-shrink:0;background:white;padding:6px 0 0;border-top:1px solid #d9e1ed}
+}

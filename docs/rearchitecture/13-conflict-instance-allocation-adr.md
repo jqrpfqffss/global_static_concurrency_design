@@ -14,3 +14,6 @@ INAV v5在16GiB受控Job中实际失败，栈指向conflict_pairs的instances[ke
 局部实测：evidence/conflict-instances-v1.json。独立e69原函数与冻结626834e前版均按完整有序JSON一致；15项专项5.069秒通过，包内CPython3.10.9同15项5.127秒通过。32,000重叠实例临时Python分配峰值13,760,732→3,763,592B；单域12,000访问5,130,744→1,762,336B；3969个inline完整结果也相同。不是进程树RSS/G3指标。首版新增测试的数值fixture误传字符串错误日志保留，修正fixture后重验。
 
 冻结833文件（manifest SHA4116579fcadd7f1ac1792fee82d117ef16582f1d9552bdc61729d22644c00636）后，真实F030原生32.453秒、Job峰值145,915,904B、analysis_valid=true且仍INCOMPLETE。与原版事实和规范报告全字段差异0，原始运行包络独立保留。此时原版INAV图转码正在运行，耗时受共享HDD负载影响，不归因为本优化。大型G1/G3/G4和完整冻结回归仍未完成；v13包早于本实现。
+
+
+冻结完整回归已完成：1244项、1242PASS/2联网OpenCode opt-in SKIP，1781.019秒，833文件在引擎与测试副本均SHA不变（full-regression-lazy-v2.json）。首次discover未指定tests导致0项，明确记为失败并保留v1，未冒充通过。该冻结包括入口表单但不包括后续目录/教学示例GUI。INAV v7同一冻结引擎以16GiB冷提取运行；4123输入/833引擎/配置SHA启动前通过，v6仅排队未启动已审计替换。为推进独立内存验证，v7与原版图转码并行，同一HDD负载明确记录；不以耗时/全卷变化宣称收益。此时大型运行未结束，G3仍FAIL/未关闭，物理32GB仍待验。

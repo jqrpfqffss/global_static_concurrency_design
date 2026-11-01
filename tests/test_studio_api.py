@@ -13,6 +13,17 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_real_builtin_sample_api_is_idempotent_authenticated_and_preserves_existing_scan(self):
+        from ecra.report_package import sha256
+        original=self.data/'scans/scan-api/scan.db';before=sha256(original)
+        descriptor=self.client.get('/api/bootstrap').json()['sample'];self.assertTrue(descriptor['available'],descriptor)
+        self.assertEqual(self.client.post('/api/sample/open',json={},headers={'x-ecra-session':'bad'}).status_code,401)
+        first=self.client.post('/api/sample/open',json={});self.assertEqual(first.status_code,200,first.text)
+        self.assertEqual(first.json()['scan_id'],descriptor['scan_id'])
+        again=self.client.post('/api/sample/open',json={});self.assertEqual(again.status_code,200,again.text);self.assertTrue(again.json()['repeated'])
+        self.assertEqual(sha256(original),before)
+        self.assertEqual(self.client.get('/api/scans').json()['items'][0]['mode'],'OFFLINE_ARCHIVE')
+
     def test_directory_picker_is_authenticated_read_only_and_bound_to_selected_project(self):
         root=Path(self.tmp.name)/'固件, 目录';root.mkdir();(root/'Drivers, HAL').mkdir()
         file=root/'original.c';file.write_text('int original;','utf-8');before=(file.read_bytes(),file.stat().st_mtime_ns,root.stat().st_mtime_ns)

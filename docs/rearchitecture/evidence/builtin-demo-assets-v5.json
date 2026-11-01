@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "scope": "Unchanged verified native/archive bytes from v4; corrected unsupported standalone MIT metadata claim; original v4 metadata/receipt preserved, no new native run claimed",
+  "source_acceptance": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-build-v4\\acceptance.json",
+  "source_acceptance_sha256": "cc7f0d1310b3ab359307ef0d0be88f03b85006892f90e146aaf4fab653c1510b",
+  "archive_sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b",
+  "metadata_sha256": "1bc71de446b3cd25842afa3dfe14d4db618dc0ab685ee6a9f7ceea7f710f71db",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-demo-package-v5\\acceptance.json",
+  "raw_receipt_sha256": "74977a629fdb7800eebc39ea695d8dc7b8a245ef444707a426a257d113f16e10"
+}
