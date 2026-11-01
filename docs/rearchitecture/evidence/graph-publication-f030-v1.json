@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "Re-publish an explicitly small frozen native graph and compare every root.\n\nThis exercises in-memory publication, including shared object identity. It is\nnot a native extraction, a large-graph reader, or a resource/semantic G1 gate.\nThe size guard prevents this diagnostic from restoring a large scan in RAM.\n",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-golden-candidate-v2\\data\\scans\\native-parsed-f030\\scan.db",
+  "source_bytes": 11317248,
+  "source_sha256": "e9bf7493970b4f889d57f40499c2479a19c29e88e5eeeac69258d0ff830d48ff",
+  "source_unchanged": true,
+  "target": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\graph-publication-v1\\republished.db",
+  "target_bytes": 10653696,
+  "expected_roots": {
+    "facts": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+    "report": "d5f28bb35b7c3b1f9257e38eefcfe78fbd16721cbb73c6771cf0c427fc258ff0",
+    "provenance": "dfe93f7f77f68a42e25d772dc208585f7031e944fe1caea841e1b1a477387ed1"
+  },
+  "actual_roots": {
+    "facts": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+    "report": "d5f28bb35b7c3b1f9257e38eefcfe78fbd16721cbb73c6771cf0c427fc258ff0",
+    "provenance": "dfe93f7f77f68a42e25d772dc208585f7031e944fe1caea841e1b1a477387ed1"
+  },
+  "seconds": 8.188,
+  "scan_store_sha256": "d78715854f1f9cfc45908e04b398ece2823cd4eca40cd5df7dd0bf378a4a2028"
+}

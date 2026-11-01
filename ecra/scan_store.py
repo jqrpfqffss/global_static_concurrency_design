@@ -137,12 +137,39 @@ class GraphWriter:
         # Bounded acceleration index, never an evidence limit.
         self.cache = OrderedDict()
         self.cache_size = cache_size
+        self.scalars = OrderedDict()
+        self._roots = None
 
-    def put(self, value):
+    def put_roots(self, values):
+        """Serialize immutable roots with a file-backed identity memo.
+
+        Exact built-in containers strongly retain their children. Keeping all
+        roots alive therefore proves object IDs cannot be reused along those
+        paths. Unknown container subclasses keep the bounded strong-reference
+        cache only; computed/temporary children never enter this identity map.
+        Entries are cleared before roots can be released or a new call begins.
+        """
+        if self._roots is not None:raise ValueError('不能嵌套发布事实根')
+        self._roots=tuple(values)
+        ready=False
+        try:
+            self.conn.execute('CREATE TEMP TABLE IF NOT EXISTS ecra_identity(object INTEGER PRIMARY KEY,node INTEGER,hash TEXT)')
+            self.conn.execute('DELETE FROM ecra_identity');ready=True
+            return {name:self.put(value,_stable=True) for name,value in self._roots}
+        finally:
+            self._roots=None
+            self.cache.clear()
+            if ready:self.conn.execute('DELETE FROM ecra_identity')
+
+    def put(self, value, *, _stable=False):
         # The engine uses tuples for immutable JSON arrays too. Match the
         # original JSON encoder's tuple -> array contract without dropping data.
         container = isinstance(value, (dict, list, tuple))
         if container:
+            stable=self._roots is not None and _stable and type(value) in {dict,list,tuple}
+            if stable:
+                previous=self.conn.execute('SELECT node,hash FROM ecra_identity WHERE object=?',(id(value),)).fetchone()
+                if previous is not None:return tuple(previous)
             previous = self.cache.get(id(value))
             if previous is not None and previous[0] is value:
                 self.cache.move_to_end(id(value))
@@ -155,7 +182,7 @@ class GraphWriter:
             for ordinal, (key, item) in enumerate(items):
                 if kind == 'object' and not isinstance(key, str):
                     raise TypeError('证据映射键必须是字符串')
-                child, child_hash = self.put(item)
+                child, child_hash = self.put(item,_stable=stable)
                 self.conn.execute('INSERT INTO edges VALUES (?,?,?,?)', (node, ordinal, key, child))
                 _hash_edge(hasher, key, child_hash)
             hashed = hasher.hexdigest()
@@ -171,8 +198,13 @@ class GraphWriter:
             self.cache[id(value)] = (value, node, hashed)
             while len(self.cache) > self.cache_size:
                 self.cache.popitem(last=False)
+            if stable:self.conn.execute('INSERT INTO ecra_identity VALUES (?,?,?)',(id(value),node,hashed))
             return node, hashed
         kind, payload = _scalar(value)
+        key=(kind,payload) if len(payload)<=256 else None
+        if key is not None and key in self.scalars:
+            self.scalars.move_to_end(key)
+            return self.scalars[key]
         hasher = _hash_start(kind, len(payload))
         hasher.update(payload)
         hashed = hasher.hexdigest()
@@ -180,9 +212,13 @@ class GraphWriter:
         if old:
             if old[1:] != (kind, payload, len(payload)):
                 raise ValueError('证据 SHA-256 冲突；拒绝合并')
-            return old[0], hashed
-        node = self.conn.execute('INSERT INTO nodes(hash,kind,value,length) VALUES (?,?,?,?)',
-                                 (hashed, kind, payload, len(payload))).lastrowid
+            node=old[0]
+        else:
+            node = self.conn.execute('INSERT INTO nodes(hash,kind,value,length) VALUES (?,?,?,?)',
+                                     (hashed, kind, payload, len(payload))).lastrowid
+        if key is not None:
+            self.scalars[key]=(node,hashed)
+            while len(self.scalars)>self.cache_size:self.scalars.popitem(last=False)
         return node, hashed
 
     def _same_edges(self, first, second):
@@ -225,8 +261,8 @@ def _project(connection, dataset, root, *, source=None):
 def publish_scan(path, facts, report, *, scan_id, project_id, profile_id='default', provenance=None,
                  validation_state='UNVERIFIED'):
     """Publish once, never overwrite a valid archive, including on failure."""
-    return _publish(path, lambda writer: {name: writer.put(value) for name, value in
-        [('facts', facts), ('report', report), ('provenance', provenance or {})]},
+    return _publish(path, lambda writer: writer.put_roots(
+        [('facts', facts), ('report', report), ('provenance', provenance or {})]),
         scan_id=scan_id, project_id=project_id, profile_id=profile_id, validation_state=validation_state)
 
 

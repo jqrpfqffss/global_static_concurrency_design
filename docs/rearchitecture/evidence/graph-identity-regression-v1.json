@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "Focused graph publication/package/streaming/legacy/API/coverage/comparator regression, not full suite or native G1/G3/G4",
+  "tests": 60,
+  "seconds": 25.368,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\graph-memo-2.log",
+  "log_sha256": "0c7110ac12c0baa7d4f26180140313294a47d9d03e0da2e057e0fb74c9cfa1af",
+  "source_sha256": "d78715854f1f9cfc45908e04b398ece2823cd4eca40cd5df7dd0bf378a4a2028",
+  "properties": [
+    "Typed ordered root hashes unchanged with a disk-backed identity memo for strongly retained exact built-in containers",
+    "Unknown container subclasses retain only the bounded strong-reference cache; computed temporary children cannot enter the persistent identity map",
+    "Released root scopes and scalar cache eviction do not change values; bool/int and signed zero remain distinct",
+    "A complete shared subtree is not serialized again after eviction from the small Python cache"
+  ],
+  "prior_failed_attempt": {
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\graph-memo-1.log",
+    "log_sha256": "4bd332dd8e7c85b2105a19b6031436e368b0382c430830e3c8eba5b44c2f0baa",
+    "failures": "1 incorrect aggregate percentage assertion; 1 Windows cleanup error caused by an unclosed test connection",
+    "resolution": "Assert complete shared subtree edge-write saving and explicitly close the test connection"
+  },
+  "sealed_v9": "Predates this change"
+}

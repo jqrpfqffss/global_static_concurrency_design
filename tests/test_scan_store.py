@@ -1,14 +1,67 @@
 import json
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from ecra.scan_store import EvidenceProvider, GraphWriter, publish_scan
+from ecra.scan_store import EvidenceProvider, GraphWriter, publish_scan,SCHEMA
 
 
 class ScanStoreTests(unittest.TestCase):
+    def test_bound_immutable_roots_reuse_shared_graph_beyond_the_python_cache_without_changing_hashes(self):
+        shared=dict(rows=[dict(shared_record=i,trace=['main','irq',i]) for i in range(180)])
+        values=[('facts',dict(variables=[],first=shared,churn=[dict(churn=i) for i in range(200)],again=shared)),
+            ('report',dict(findings=[],third=shared)),('provenance',{})]
+        results=[];writes=[]
+        for bound in [False,True]:
+            with closing(sqlite3.connect(self.temp.name+('/bound.db' if bound else '/reference.db'))) as conn:
+                conn.executescript(SCHEMA);conn.execute('PRAGMA temp_store=FILE')
+                counter=[0]
+                def trace(statement):
+                    if statement.startswith('INSERT INTO edges VALUES'):counter[0]+=1
+                conn.set_trace_callback(trace);writer=GraphWriter(conn,cache_size=4)
+                roots=writer.put_roots(values) if bound else {name:writer.put(value) for name,value in values}
+                results.append({name:row[1] for name,row in roots.items()});writes.append(counter[0])
+                if bound:
+                    self.assertIsNone(writer._roots)
+                    self.assertEqual(conn.execute('SELECT count(*) FROM ecra_identity').fetchone()[0],0)
+        self.assertEqual(results[0],results[1])
+        # One repeated subtree is beyond the small Python cache; the next
+        # reference happens while it is still cached even in the reference
+        # writer. Count the actual repeated subtree rather than inventing a
+        # percentage of unrelated root/churn work that must disappear.
+        shared_edges=1+180+180*(2+3)
+        self.assertGreaterEqual(writes[0]-writes[1],shared_edges,
+            'The complete shared subtree must not be expanded again after cache eviction')
+
+    def test_identity_scope_never_reuses_a_released_root_and_unknown_subclasses_keep_temporary_children_safe(self):
+        class Generated(dict):
+            def __len__(self):return 300
+            def items(self):
+                for i in range(300):yield str(i),dict(value=i)
+        with sqlite3.connect(self.path) as conn:
+            conn.executescript(SCHEMA);writer=GraphWriter(conn,cache_size=1)
+            for value in range(400):
+                node,_=writer.put_roots([('r',dict(value=value))])['r']
+                raw=conn.execute("SELECT n.value FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=? AND e.key='value'",(node,)).fetchone()[0]
+                self.assertEqual(int(raw),value)
+            node,_=writer.put_roots([('r',dict(generated=Generated()))])['r']
+            generated=conn.execute("SELECT child FROM edges WHERE parent=? AND key='generated'",(node,)).fetchone()[0]
+            for key,n in conn.execute('SELECT key,child FROM edges WHERE parent=? ORDER BY ordinal',(generated,)):
+                raw=conn.execute("SELECT value FROM nodes WHERE id=(SELECT child FROM edges WHERE parent=? AND key='value')",(n,)).fetchone()[0]
+                self.assertEqual(int(raw),int(key))
+
+    def test_scalar_acceleration_is_bounded_and_keeps_boolean_integer_and_signed_zero_distinct(self):
+        with sqlite3.connect(self.path) as conn:
+            conn.executescript(SCHEMA);writer=GraphWriter(conn,cache_size=3)
+            nodes=[writer.put(value)[0] for value in [True,1,-0.0,0.0]]
+            self.assertEqual(len(set(nodes)),4)
+            for value in range(80):writer.put(str(value))
+            self.assertLessEqual(len(writer.scalars),3)
+            self.assertEqual([writer.put(value)[0] for value in [True,1,-0.0,0.0]],nodes)
+
     def test_projection_validation_does_not_duplicate_graph_or_decode_unused_large_record_fields(self):
         from contextlib import contextmanager
         import tracemalloc
