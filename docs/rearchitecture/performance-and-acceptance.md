@@ -2,6 +2,12 @@
 
 ## 2026-11-01 最新阶段记录（早期状态按时间保留）
 
+最新封存候选为 **v12 / a8e4cea**：[收据](evidence/portable-studio-v12.json)。ZIP 535,735,013B，SHA-256 e80df57ae6cfaf84469713d401da6a3aa2e8df9cdeb4ec18f2af9639d05c85ae；109个运行时/前端/许可文件与冻结源逐字节匹配，包内SOURCE-SNAPSHOT.json也与759文件清单相同。目录与中文ZIP解压各26命令通过（每组20个exit0、6个预期INCOMPLETE exit2），包内Python3.10.9真实Chrome主流程15项、配置往返7项通过。它包含挂起启动/Job所有权、整机提交保护与YAML同步，不包含随后字符串共享和独立Git改动；其他浏览器集合没有借用v10的收据充数。
+
+冻结a8e完整回归 **1214项：1212 PASS、2项联网OpenCode opt-in SKIP，1795.710秒**；759文件SHA全部不变，见[完整收据](evidence/full-regression-owned-a8e.json)。这修复了下述4e6受控OOM/venv夹具失败，不改写旧失败记录，也不覆盖新工作树改动。
+
+三项长任务的旧PID均已不存在，且没有最终完成收据，原因NOT_VERIFIED：[中断审计](evidence/long-task-interruption-20261101.json)。INAV diagnostic32停在发布阶段，观察到Job峰值22,429,601,792B；原版图转换未完成；黄金备份虽已复制57,773文件/46,427,649,982B，但停在VERIFYING_ORIGINAL，仍未通过。原目录、pending库和原收据全部保留，不能称G1/G3/G4或完整黄金备份PASS。先完成同输入字符串归并诊断，再按独立恢复流程继续，避免将中断轮耗时当冷扫描对照。
+
 配置往返同步与首屏固定操作已实际实现：17专项、7项真实Chrome，见ui/10-profile-roundtrip-contract.md。阶段Portable v11为H:/ECRAStudio-build-20261101-studio-v11/ECRA-Portable.zip，535,693,209B，SHA-256 de815af2529068f3f470387de4fb53abf092b67b18b8ea06a7c59c7122bd0b96；运行时4e6fe06，109文件匹配冻结源码。目录/中文ZIP解压各26命令与包内15项主流程、7项配置浏览器通过。v11不含后续Job启动/整机提交保护修复；不能把旧v10的其他浏览器收据算成本包实际复验。
 
 冻结4e6/733文件完整回归结束：1205测试、4个失败断言、2 opt-in跳过，1845.984秒，所有冻结文件SHA未变。3个受控OOM子场景因venv真实PID未受限而失败，另PE夹具把venv启动器当成实际Python；源/失败已保留（full-regression-roundtrip-4e6.json）。没有将这些失败宣称通过。修复后49项专项、3项实际venv启动/后代归属测试、11项canonical/背压和当前源码15项浏览器通过，集合有重叠，不相加为全套数。须另冻结完整复跑。真实受控OOM内层128/192MiB、外层512MiB保护，不是G3大型工程性能证据。

@@ -1,5 +1,7 @@
 # UX审核与证据登记
 
+最新v12实际包内Python3.10.9/Chrome验证：主流程15项、配置往返7项通过（evidence/browser-portable-v12-main.json、browser-portable-v12-profile.json）。四核心页截图：[首页](screenshots/portable-v12/01-overview.png)、[向导](screenshots/portable-v12/02-project-wizard.png)、[证据](screenshots/portable-v12/03-evidence-workbench.png)、[真实发布](screenshots/portable-v12/04-scan-published.png)。[1366首屏保存配置](screenshots/portable-v12/05-profile-saved-1366.png)已实际查看，启动/保存/返回均可见；完整键盘、Windows系统DPI和独立工程师UAT仍未验。v12不包含随后独立Git/字符串共享改动，不能将此收据扩大到当前全部工作字节。
+
 冻结布局见02、交互见04、状态见05。全部页面必须记录真实目标、默认动作、入口/返回、状态/错误、键盘/屏幕、测试、截图与待人工项。已有早期及续轮真实Chrome截图；完整页状态仍需逐项验收，不把旧概念图或少量流程当成全部实现。
 
 | 页面 | 目标/主动作 | 入口与返回 | 验证/截图状态 |

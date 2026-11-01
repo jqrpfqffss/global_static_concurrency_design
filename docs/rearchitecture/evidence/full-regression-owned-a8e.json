@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "tests": 1214,
+  "passed_tests": 1212,
+  "skipped": 2,
+  "seconds": 1795.71,
+  "head": "a8e4cea6142b48f0f598a9957852f8cb0bec49f3",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-owned-a8e",
+  "frozen_files": 759,
+  "source_differences": [],
+  "manifest_sha256": "1039c41092fdc4e06e4aabe7d2a752235e22766516d693eaac825ee58eb482a8",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-owned-a8e.log",
+  "log_sha256": "b28f606292d9e581864e4b4acbbdd20c8b6b99c34dc05516a0df508bf3a943b6",
+  "scope": "Complete unittest suite on immutable a8e bytes; excludes subsequent live-string and independent-Git changes",
+  "live_OpenCode": "NOT_VERIFIED_OPT_IN_SKIPPED"
+}

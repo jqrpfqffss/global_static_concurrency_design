@@ -1,0 +1,57 @@
+{
+  "passed": false,
+  "observed_utc": "2026-11-01T10:33:45.284569+00:00",
+  "jobs": [
+    {
+      "name": "inav-original-backup-v2",
+      "state": "INTERRUPTED_WITHOUT_FINAL_RECEIPT",
+      "observer": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-backup-v2\\execution.json",
+      "observer_sha256": "a2d2c1310541513868871af90ef34ae7793af824f067cef32376106b9a88791e",
+      "last_seconds": 11893.54700000002,
+      "last_peaks": {
+        "private_bytes": 21737472,
+        "working_set_bytes": 33067008,
+        "peak_job_commit_bytes": 21737472
+      },
+      "pid": 5628,
+      "pid_absent_at_observation": true,
+      "termination_cause": "NOT_VERIFIED",
+      "complete": false
+    },
+    {
+      "name": "inav-original-graph-v2",
+      "state": "INTERRUPTED_WITHOUT_FINAL_RECEIPT",
+      "observer": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v2\\execution.json",
+      "observer_sha256": "e704fe8086443991650c5b6473e161ea40581f0b6f60a184c34685ab918a5a73",
+      "last_seconds": 11714.171999999962,
+      "last_peaks": {
+        "working_set_bytes": 50176000,
+        "private_bytes": 39358464,
+        "peak_job_commit_bytes": 39358464
+      },
+      "pid": 24456,
+      "pid_absent_at_observation": true,
+      "termination_cause": "NOT_VERIFIED",
+      "complete": false
+    },
+    {
+      "name": "inav-canonical-diagnostic32-v4",
+      "state": "INTERRUPTED_WITHOUT_FINAL_RECEIPT",
+      "observer": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-diagnostic32-v4\\execution.json",
+      "observer_sha256": "6d93154ba2b3b5f188015ad0a916cf7830435c9931c175cb49e992dadccf008d",
+      "last_seconds": 8596.04700000002,
+      "last_peaks": {
+        "working_set_bytes": 22389243904,
+        "private_bytes": 22423830528,
+        "peak_job_commit_bytes": 22429601792,
+        "sampled_output_logical_bytes": 15017189673,
+        "sampled_output_allocated_bytes": 15033651200
+      },
+      "pid": 40296,
+      "pid_absent_at_observation": true,
+      "termination_cause": "NOT_VERIFIED",
+      "complete": false
+    }
+  ],
+  "scope": "Derived interruption audit; original observer receipts and partial data untouched. No completed native/publication/backup claim."
+}

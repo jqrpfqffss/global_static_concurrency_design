@@ -59,3 +59,13 @@ scripts/measure_baseline_graph.py对已完成原生原版的两个完整JSON进�
 测量器 `scripts/measure_native_golden.py`先在真实4TU旧CLI运行验证：10秒左右实际完成、analysis_valid=true、INCOMPLETE，捕获全部Job子进程、主进程内存、系统RAM/提交及目录逻辑字节；见native-resource-observer-probe-v2.json。首版短任务没有中间磁盘样本，现将最终大小纳入采样下界，失败/旧收据保留。它不重新装入完整facts/report，不把一个指标采集器当成语义对照。
 
 388TU原版原生全量已启动，日志为 `H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/inav-original-native-v1/console.log`，资源逐样本为同目录resources.jsonl；完整性仅由执行结束后的execution.json确定。原版运行显式施加32GiB进程树安全提交上限，低于4GiB系统可用或8GiB工作盘空闲会只停止本任务；触及限制是受控失败，不叫作自然OOM。主机物理64GiB，不是32GiB电脑测试；目录大小只是采样逻辑下界，物理分配峰值和系统分页速率尚未测量，不关闭G3/G4。当前尚无本次388TU完整黄金事实、候选逐字段对照或完整Diff收据，G1/G2保持NOT_VERIFIED。
+# 2026-11-01 18时续轮核验（覆盖早期“正在运行”描述）
+
+见[evidence/long-task-interruption-20261101.json](evidence/long-task-interruption-20261101.json)：原版独立备份v2、原版JSON流式图v2和canonical diagnostic32 v4的原PID均不存在，原观察器没有最终收据。没有证据确认终止原因，不把中断称作受控完成或自然OOM。所有原日志/收据/部分文件保持原样。
+
+备份已复制57,773文件/46,427,649,982B，之后只复验到部分源文件，状态仍VERIFYING_ORIGINAL、passed=false；因此**完整独立只读黄金备份未通过**。可用另存的中断恢复凭据重试，每个已有文件仍须SHA核验，不覆盖不一致字节。
+
+32GiB诊断已完成分类并进入单次发布，观察到Job峰值22,429,601,792B、主树private22,423,830,528B，未生成最终scan.db或有效发布；这既不满足16GiB目标，也没有关闭G1/G4。它复用了逐文件复验的388TU缓存，不是冷扫描。原版图转换保留pending库，未完成深度校验，不供正式对照。先前受控16GiB v3的FAIL继续有效。
+
+固定388TU归并的分配诊断另行测量，明确CONTROLLED_REPLAY_NOT_NATIVE_G2_OR_G3；不将其当作新的原生项目或成功发布。仅继续用户获准INAV/F030，其余真实工程仍NOT_VERIFIED_USER_DEFERRED。
+

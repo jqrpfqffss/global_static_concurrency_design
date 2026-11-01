@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "a8e4cea6142b48f0f598a9957852f8cb0bec49f3",
+  "bundle": "H:\\ECRAStudio-build-20261101-studio-v12\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-studio-v12\\ECRA-Portable.zip",
+  "archive_bytes": 535735013,
+  "archive_sha256": "e80df57ae6cfaf84469713d401da6a3aa2e8df9cdeb4ec18f2af9639d05c85ae",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v12\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "d6afde6486d1c783eaaa3844e18b4716957e1c1450f96293d9f91c0176025897",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Six expected exit2 INCOMPLETE; not all commands exit0"
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v12\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "43a18409ccbe88fcd43747ae9a0537974877e90bb76c3da30284e286bdcd8999",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Six expected exit2 INCOMPLETE; not all commands exit0"
+    }
+  },
+  "real_chrome": {
+    "main": {
+      "passed": true,
+      "tests": 15,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\portable-v12-main\\acceptance.json",
+      "sha256": "38efb02c50de6bf9d370247758ae708121eadce711fb79e6dae32558c281a07a"
+    },
+    "profile": {
+      "passed": true,
+      "tests": 7,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\portable-v12-profile\\acceptance.json",
+      "sha256": "e1d45c33f676de3c265d7aa9b544e9de3ae1c94812b8cf9349283922a980faf8"
+    }
+  },
+  "matched_runtime_files": 109,
+  "runtime_scope": "Suspended startup ownership, host commit guard and YAML/form roundtrip; subsequent live-string and independent-Git edits excluded",
+  "complete_regression": "1214 tests:1212 PASS/2 opt-in live OpenCode SKIP; frozen a8e,759 hashes unchanged",
+  "physical_second_computer": "NOT_VERIFIED",
+  "clean_offline_windows": "NOT_VERIFIED",
+  "system_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "large_native_G1_G4": "NOT_PASSED"
+}
