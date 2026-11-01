@@ -466,28 +466,28 @@ def conflict_pairs(accesses, relations, contexts):
             identity = access.get('access_id')
             instance = group.get(identity)
             if instance is None:
-                # Preserve malformed-fact rejection even for participants that
-                # will not be referenced by an output pair. Normal engine IDs
-                # are strings; exceptional key types retain digest validation.
-                if not isinstance(identity,str) or not isinstance(context_id,str):
-                    digest((identity,context_id))
+                # Preserve the original digest's malformed/Unicode rejection
+                # even when this instance is never referenced in output. Keep
+                # the literal context too: equal dict keys (True/1/1.0) must not
+                # replace the first instance's actual JSON scalar type.
+                digest((identity,context_id))
                 access['function_id']
-                instance = [access, 0, None]
+                instance = [access, context_id, 0, None]
                 group[identity] = instance
-            instance[2] = ('EXACT_PATH_COUNT' if access.get('call_path_lists_complete', True)
+            instance[3] = ('EXACT_PATH_COUNT' if access.get('call_path_lists_complete', True)
                            else 'WITNESS_COUNT')
             # Full routes stay once in access.all_call_chains.  A conflict
             # participant references that evidence by access/context instead
             # of duplicating every route for every competing counterpart.
-            instance[1] += 1
+            instance[2] += 1
     group = None
     for context_id in by_context:
         by_context[context_id] = list(by_context[context_id].values())
     participants = {}
-    def participant(instance, context_id):
+    def participant(instance):
         key = id(instance)
         if key not in participants:
-            access, count, count_kind = instance
+            access, context_id, count, count_kind = instance
             result = participant_records(participant_keys)
             for field, value in zip(participant_keys, (
                 'CI-' + digest((access.get('access_id'), context_id))[:20],
@@ -539,22 +539,22 @@ def conflict_pairs(accesses, relations, contexts):
                         continue
                     count = (len(left_writes) * (len(left_writes) + 1) // 2
                              + len(left_writes) * len(left_reads))
-                    write_paths = sum(row[1] for row in left_writes)
-                    read_paths = sum(row[1] for row in left_reads)
+                    write_paths = sum(row[2] for row in left_writes)
+                    read_paths = sum(row[2] for row in left_reads)
                     path_count = (write_paths * read_paths
                                   + (write_paths * write_paths
-                                     + sum(row[1] ** 2 for row in left_writes)) // 2)
+                                     + sum(row[2] ** 2 for row in left_writes)) // 2)
                 else:
                     count = (len(left_writes) * len(right_all)
                              + len(left_reads) * len(right_writes))
-                    path_count = (sum(row[1] for row in left_writes)
-                                  * sum(row[1] for row in right_all)
-                                  + sum(row[1] for row in left_reads)
-                                  * sum(row[1] for row in right_writes))
+                    path_count = (sum(row[2] for row in left_writes)
+                                  * sum(row[2] for row in right_all)
+                                  + sum(row[2] for row in left_reads)
+                                  * sum(row[2] for row in right_writes))
                 if not count:
                     continue
-                left = participant(left_writes[0] if left_writes else left_reads[0], left_cid)
-                right = participant(right_all[0] if left_writes else right_writes[0], right_cid)
+                left = participant(left_writes[0] if left_writes else left_reads[0])
+                right = participant(right_all[0] if left_writes else right_writes[0])
                 left_context = contexts.get(left_cid, {})
                 right_context = contexts.get(right_cid, {})
                 same_physical = (left_context.get('physical_id') is not None
@@ -595,7 +595,7 @@ def conflict_pairs(accesses, relations, contexts):
                     status='需确认' if possible else '忽略（同一串行上下文）',
                     path_combination_count=path_count,
                     path_combination_count_kind=('EXACT_PATH_PRODUCT'
-                        if all(row[2] == 'EXACT_PATH_COUNT'
+                        if all(row[3] == 'EXACT_PATH_COUNT'
                                for row in itertools.chain(left_all,right_all)) else 'WITNESS_PRODUCT')))
         return sorted(pairs, key=lambda pair: (
             not pair['may_concurrent'], pair['participant_a']['context_id'],
@@ -608,7 +608,7 @@ def conflict_pairs(accesses, relations, contexts):
         for left, right in candidates:
             if access_role(left[0]['access_kind']) == access_role(right[0]['access_kind']) == 'READ':
                 continue
-            left, right = participant(left, left_cid), participant(right, right_cid)
+            left, right = participant(left), participant(right)
             # The exact same source access on the exact same route is one
             # access instance, not a self-conflict.  The same source point in
             # another context deliberately remains a distinct instance.

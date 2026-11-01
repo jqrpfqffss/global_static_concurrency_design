@@ -1,0 +1,247 @@
+{
+  "passed": true,
+  "scope": "ADR012 identity guard and original scalar type preservation; native generated IDs remain unchanged, large resource proof still version-bound",
+  "focused": {
+    "tests": 17,
+    "seconds": 9.42,
+    "result": "PASS",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\conflict-instance-identity-after-fix.log",
+    "sha256": "36497814859fb6e5f914456595dc01d7ca0e14d374bd8b7907890ffd57d7a804"
+  },
+  "packaged_python": {
+    "version": "3.10.9",
+    "tests": 17,
+    "seconds": 8.223,
+    "result": "PASS",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\conflict-identity-packaged-python-v1.log",
+    "sha256": "e49231db084fd297ab06bba69144ecdb1fb19c02a7c92b0066078e4ee91f5e7d"
+  },
+  "before_fix": {
+    "tests": 2,
+    "result": "FAIL",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\conflict-instance-identity-before-fix.log",
+    "sha256": "2f6d46332d6ff207f2292896ee8e2df8fabdd70c5a07645409dbe89518d02825"
+  },
+  "capacity": {
+    "passed": true,
+    "scope": "Complete ordered fixture comparison and physical Python allocation only.\n\nNot a native firmware run, a whole-process memory peak, or G2/G3 acceptance.\nBoth prior functions are independently frozen under tests/fixtures.\n",
+    "metrics": [
+      {
+        "case": "inline3969",
+        "engine": "e69_original",
+        "rows": 3969,
+        "seconds": 0.2710478000008152,
+        "retained_python_bytes": 3571570,
+        "temporary_python_peak_bytes": 3833430,
+        "full_ordered_json_sha256": "50e3f713ff4d28040873d496ba96e347631842573b09a363cfb5ed3b3ceee2f9"
+      },
+      {
+        "case": "inline3969",
+        "engine": "selectors626834e",
+        "rows": 3969,
+        "seconds": 0.22288380000100005,
+        "retained_python_bytes": 2313628,
+        "temporary_python_peak_bytes": 2577288,
+        "full_ordered_json_sha256": "50e3f713ff4d28040873d496ba96e347631842573b09a363cfb5ed3b3ceee2f9"
+      },
+      {
+        "case": "inline3969",
+        "engine": "current",
+        "rows": 3969,
+        "seconds": 0.23541000000113854,
+        "retained_python_bytes": 2290216,
+        "temporary_python_peak_bytes": 2565372,
+        "full_ordered_json_sha256": "50e3f713ff4d28040873d496ba96e347631842573b09a363cfb5ed3b3ceee2f9"
+      },
+      {
+        "case": "overlap32000",
+        "engine": "e69_original",
+        "rows": 120,
+        "seconds": 1.5751263999991352,
+        "retained_python_bytes": 4141944,
+        "temporary_python_peak_bytes": 30469652,
+        "full_ordered_json_sha256": "2707bb951d8e6377348bcaccaf5be080789eb3e1a293d63e96b8718730220e50"
+      },
+      {
+        "case": "overlap32000",
+        "engine": "selectors626834e",
+        "rows": 120,
+        "seconds": 1.3284848999974201,
+        "retained_python_bytes": 482320,
+        "temporary_python_peak_bytes": 13760732,
+        "full_ordered_json_sha256": "2707bb951d8e6377348bcaccaf5be080789eb3e1a293d63e96b8718730220e50"
+      },
+      {
+        "case": "overlap32000",
+        "engine": "current",
+        "rows": 120,
+        "seconds": 0.9945189000027312,
+        "retained_python_bytes": 368808,
+        "temporary_python_peak_bytes": 4020280,
+        "full_ordered_json_sha256": "2707bb951d8e6377348bcaccaf5be080789eb3e1a293d63e96b8718730220e50"
+      },
+      {
+        "case": "single12000",
+        "engine": "e69_original",
+        "rows": 0,
+        "seconds": 0.42854889999944135,
+        "retained_python_bytes": 118344,
+        "temporary_python_peak_bytes": 10021784,
+        "full_ordered_json_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "case": "single12000",
+        "engine": "selectors626834e",
+        "rows": 0,
+        "seconds": 0.4617599000011978,
+        "retained_python_bytes": 120824,
+        "temporary_python_peak_bytes": 5130744,
+        "full_ordered_json_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "case": "single12000",
+        "engine": "current",
+        "rows": 0,
+        "seconds": 0.33603840000068885,
+        "retained_python_bytes": 6632,
+        "temporary_python_peak_bytes": 1850408,
+        "full_ordered_json_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    ],
+    "analysis_sha256": "3fc4dcc67be39a773c06b4a0c88b80159c127c2934794de81291417dfad5fbad"
+  },
+  "native": {
+    "complete": true,
+    "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+    "mode": "canonical",
+    "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v14",
+    "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+    "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+    "data_root": "H:\\ECRA-ID-P1",
+    "safety_job_commit_limit_bytes": 2147483648,
+    "controlled_limit_experiment": true,
+    "physical_32GB": "NOT_VERIFIED",
+    "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+    "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+    "paging_samples_valid": 61,
+    "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+    "logical_disk_peak_is_sampled_lower_bound": true,
+    "started": "2026-11-01T16:33:27.382145+00:00",
+    "peaks": {
+      "working_set_bytes": 182067200,
+      "private_bytes": 145092608,
+      "peak_job_commit_bytes": 146743296,
+      "sampled_output_logical_bytes": 14119344,
+      "sampled_output_allocated_bytes": 14262664
+    },
+    "samples": 61,
+    "cache_reuse": null,
+    "diagnostic_fault": null,
+    "observer_script_sha256": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe",
+    "worker_temporary_root": "H:\\ECRA-ID-P1\\work\\native-observer\\temporary",
+    "output_volume_free_at_start": 969721778176,
+    "pid": 9328,
+    "seconds": 31.764999999999418,
+    "last": {
+      "seconds": 31.23400000000038,
+      "available": true,
+      "working_set_bytes": 60981248,
+      "private_bytes": 53452800,
+      "peak_job_commit_bytes": 146743296,
+      "limit_bytes": 2147483648,
+      "enforced_job_commit_limit_bytes": 2147483648,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 24094101504,
+      "system_commit_limit_bytes": 85825454080,
+      "system_commit_peak_bytes": 39965896704,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 48894062592,
+      "system_commit_headroom_bytes": 61731352576,
+      "host_paging": {
+        "available": true,
+        "values": {
+          "pages_input_per_second": 23.097373135753273,
+          "pages_output_per_second": 0.0
+        },
+        "errors": {},
+        "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+      },
+      "disk_free_bytes": 969517932544,
+      "whole_volume_used_change_bytes": 203845632,
+      "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+      "main_process_memory": {
+        "rss": 48164864,
+        "vms": 46931968,
+        "num_page_faults": 527272,
+        "peak_wset": 62001152,
+        "wset": 48164864,
+        "peak_paged_pool": 313960,
+        "paged_pool": 310200,
+        "peak_nonpaged_pool": 19168,
+        "nonpaged_pool": 18064,
+        "pagefile": 46931968,
+        "peak_pagefile": 60452864,
+        "private": 46931968
+      },
+      "output_disk": {
+        "files": 84,
+        "logical_bytes": 14112773,
+        "allocated_bytes": 14250512,
+        "unique_files": 84,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.014999999999417923
+      },
+      "output_disk_observed_seconds": 31.23400000000038
+    },
+    "exit_code": 2,
+    "final_output_disk": {
+      "files": 86,
+      "logical_bytes": 14119344,
+      "allocated_bytes": 14262664,
+      "unique_files": 86,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.01600000000325963
+    },
+    "output": "H:\\ECRA-ID-P1\\scans\\native-golden",
+    "validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "828bec2acc1f4b309afb71095cba02dbe6db37437d0ecceb8d5e79183c08da30"
+    }
+  },
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+    "after": "H:\\ECRA-ID-P1\\scans\\native-golden\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "frozen_files": 881,
+  "manifest_sha256": "a4a5eaf936bd5765b32f39d5a824544e3bdb954c2d45d85c31f1255d76e3e788",
+  "analysis_sha256": "3fc4dcc67be39a773c06b4a0c88b80159c127c2934794de81291417dfad5fbad",
+  "large_native_current_guard": "NOT_RUN",
+  "large_native_v7": "Running immutable prior6692 version, not this guard",
+  "physical_32GB": "NOT_VERIFIED"
+}

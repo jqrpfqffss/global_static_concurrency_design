@@ -1,5 +1,11 @@
 # ADR-012：延迟物化冲突参与者（实施前合同）
 
+## 身份边界补充（修复前冻结）
+
+追加e69/626独立对照实际复现两处延迟分配边界偏差：未引用的孤立Unicode代理字符access_id，原函数在digest时报错而6692返回空；Python中相等的True/1/1.0上下文键会归并，但每个首个实例的原字面类型必须保留。两项修复前FAIL日志见conflict-instance-identity-before-fix.log，不将其当作G1通过。
+
+紧凑记录增加首个原context_id字面值，在每个首实例处仍调用原digest验证（不保留未引用的摘要字符串），保持原错误与类型；不得把非法证据转成无冲突。计数/选择器/阈值/关系/输出不改。对两份冻结原函数按有序JSON重验，并重测临时分配和实际F030。正在运行的v7继续使用已冻结6692字节，不能替换其文件或把它的实测归属给后续修复版本。
+
 INAV v5在16GiB受控Job中实际失败，栈指向conflict_pairs的instances[key]插入；详见inav-selectors-native-v5-failed.json。ADR-011保留全部选择器仍不足以达到G3，不能改阈值、跳过变量或删除关系。
 
 原实现为每个access/context先创建完整12字段参与者及摘要ID，再计算4096阈值。product结果只引用每个上下文首个满足条件的参与者，未输出的实例仅用于完整计数/选择器；这些完整字典和摘要可延迟到真正被结果引用时创建。计划以按context→access_id的有序字典记录首个原始access引用、完整路径计数及最后的计数类型，避免每个实例的元组键/12字段字典/摘要字符串。
@@ -17,3 +23,6 @@ INAV v5在16GiB受控Job中实际失败，栈指向conflict_pairs的instances[ke
 
 
 冻结完整回归已完成：1244项、1242PASS/2联网OpenCode opt-in SKIP，1781.019秒，833文件在引擎与测试副本均SHA不变（full-regression-lazy-v2.json）。首次discover未指定tests导致0项，明确记为失败并保留v1，未冒充通过。该冻结包括入口表单但不包括后续目录/教学示例GUI。INAV v7同一冻结引擎以16GiB冷提取运行；4123输入/833引擎/配置SHA启动前通过，v6仅排队未启动已审计替换。为推进独立内存验证，v7与原版图转码并行，同一HDD负载明确记录；不以耗时/全卷变化宣称收益。此时大型运行未结束，G3仍FAIL/未关闭，物理32GB仍待验。
+
+
+身份边界修复已验：evidence/conflict-instance-identity-v1.json；修复前2项确实FAIL，修复后17项9.420秒PASS，包内CPython3.10.9同17项8.223秒PASS。与e69/626两份冻结原函数的全部有序JSON一致；32,000实例临时Python峰值13,760,732→4,020,280B（对比626），不当作G3。真实F03031.765秒、Job峰值146,743,296B、analysis_valid=true/INCOMPLETE；facts与规范report全字段差异0。881文件冻结源码实际字节清单SHA a4a5eaf936bd5765b32f39d5a824544e3bdb954c2d45d85c31f1255d76e3e788；当前静态模块与之相同。整树回归/新Portable及本修复的大型资源门禁尚未完成。

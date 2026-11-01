@@ -15,6 +15,19 @@ previous=importlib.util.module_from_spec(spec);spec.loader.exec_module(previous)
 
 
 class ConflictInstanceTests(unittest.TestCase):
+    def test_unreferenced_invalid_unicode_identity_keeps_original_digest_failure(self):
+        row=access(1,'main');row['access_id']='invalid\ud800'
+        for function in [reference.conflict_pairs,previous.conflict_pairs,conflict_pairs]:
+            with self.assertRaises(UnicodeEncodeError):function([row],[],dict(main={}))
+
+    def test_equal_context_keys_keep_each_first_literal_scalar_type_in_inline_and_product(self):
+        for count in [3,100]:
+            rows=[access(i,[True,1,1.0][i%3],'READ' if i%3==0 else 'WRITE') for i in range(count)]
+            contexts={True:dict(reentrant=True)}
+            expected=encoded(reference.conflict_pairs(rows,[],contexts))
+            self.assertEqual(encoded(previous.conflict_pairs(rows,[],contexts)),expected)
+            self.assertEqual(encoded(conflict_pairs(rows,[],contexts)),expected)
+
     def test_previous_selector_reference_is_frozen_byte_exact(self):
         text=path.read_text('utf-8');node=next(n for n in ast.parse(text).body if isinstance(n,ast.FunctionDef))
         raw='\n'.join(text.splitlines()[node.lineno-1:node.end_lineno])+'\n'
