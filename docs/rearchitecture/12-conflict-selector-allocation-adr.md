@@ -2,6 +2,8 @@
 
 ## 已实施的局部结果
 
+冻结完整回归现已结束：1224项，1222PASS、2项联网OpenCode opt-in SKIP，1732.914秒；779冻结文件SHA全部不变，当前静态引擎根模块摘要与该冻结源完全相同。见[evidence/full-regression-selectors-v1.json](evidence/full-regression-selectors-v1.json)。它不包含随后Git版本GUI/API和任务读取/视口修复；后者另有真实Chrome/API专项，仍须整包复验。不把此全套替代INAV/物理32GB门禁。
+
 已按以下合同修改，仅conflict_pairs的结果编码/分配；11项独立回归通过，另包内CPython3.10.9同11项通过。见[evidence/conflict-selectors-v1.json](evidence/conflict-selectors-v1.json)。3969个inline结果的完整有序JSON相同，Python保留分配3,085,707→2,176,803B；32上下文/12,800访问的496个product结果同样全字段相同，保留分配3,850,608→452,595B、临时峰值14,331,588→5,732,039B。此处基准为冻结e69，包含已存在ADR-009的累计效果；不是单独ADR-011或原生工程的内存降幅。inline采样耗时略增，不声称所有场景加速。
 
 冻结779文件后实际F030原生扫描22.281秒、Job峰值148,512,768B、analysis_valid=true且仍INCOMPLETE；严格比较facts/规范report差异0，哈希分别49e91182…与62fd77e0…。没有修改配置以隐藏部分覆盖。完整回归在单独冻结测试目录运行，尚未预报PASS；同输入新INAV冷提取安排在黄金备份最终复验通过后启动，16GiB受控预算。源/config/build/引擎在执行前逐文件核验；它改用H盘独立数据根，耗时不可直接归因于分配变化。

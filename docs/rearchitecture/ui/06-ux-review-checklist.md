@@ -1,5 +1,7 @@
 # UX审核与证据登记
 
+当前源码新功能：见[Git版本合同](11-git-selection-contract.md)、[实际文件共享读取故障合同](12-task-sharing-error-contract.md)。真实Chrome版本选择6项、主流程16项含真实文件锁、配置往返7项分别通过；[选择后保存](screenshots/git-selection-v2/02-refs-saved.png)、[读取错误仍可打开归档](screenshots/git-selection-v2/03-real-sharing-failure.png)。未改变九导航/四步和判定语义；16项新主流程保留原首屏坐标断言，修复了长错误条挤出操作的问题。封存v12不含这些改动，不能冒称包内复验；完整DPI/键盘/UAT仍未通过。
+
 最新v12实际包内Python3.10.9/Chrome验证：主流程15项、配置往返7项通过（evidence/browser-portable-v12-main.json、browser-portable-v12-profile.json）。四核心页截图：[首页](screenshots/portable-v12/01-overview.png)、[向导](screenshots/portable-v12/02-project-wizard.png)、[证据](screenshots/portable-v12/03-evidence-workbench.png)、[真实发布](screenshots/portable-v12/04-scan-published.png)。[1366首屏保存配置](screenshots/portable-v12/05-profile-saved-1366.png)已实际查看，启动/保存/返回均可见；完整键盘、Windows系统DPI和独立工程师UAT仍未验。v12不包含随后独立Git/字符串共享改动，不能将此收据扩大到当前全部工作字节。
 
 冻结布局见02、交互见04、状态见05。全部页面必须记录真实目标、默认动作、入口/返回、状态/错误、键盘/屏幕、测试、截图与待人工项。已有早期及续轮真实Chrome截图；完整页状态仍需逐项验收，不把旧概念图或少量流程当成全部实现。

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "tests": 1224,
+  "passed_tests": 1222,
+  "skipped": 2,
+  "seconds": 1723.71,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-independent-v4",
+  "frozen_files": 778,
+  "source_differences": [],
+  "manifest_sha256": "14d84bb46343dee43109638a77e2974c262bec051b5a331e6bf369af6bbf8608",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-independent-v4.log",
+  "log_sha256": "9ebb55990f3e3faf54f1092c8aafbef829c06e1cdae76941b1b7eef96815853f",
+  "scope": "Independent Git plus subsequently rejected sys.intern trial; does NOT include later conflict selector changes, Git selector UI or task metadata fix; not current release certification"
+}

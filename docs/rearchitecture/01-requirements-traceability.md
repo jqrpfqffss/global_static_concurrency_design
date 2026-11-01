@@ -4,7 +4,7 @@
 
 | 约束 | 实现/保护边界 | 验证 | 当前状态 |
 |---|---|---|---|
-| H1 | 分析算法保护区不修改；完整有序、类型敏感的证据持久化 | 黄金输入全字段往返/旧新对照，非分类计数比较 | NOT_VERIFIED |
+| H1 | 判定策略保留；analysis.conflict_pairs仅ADR-009/011物理分配例外，独立冻结原函数对照 | 完整有序、类型敏感事实/报告；F030差异0，大工程/Diff待验 | NOT_VERIFIED |
 | H2 | 复用 WorkspaceResolver；独立数据根；拒绝正式 project 输出 | 路径、链接、dirty 快照、只读固件验证 | NOT_VERIFIED |
 | H3 | 全消费者迁移后停写旧格式 | legacy-consumers 清单逐项回归；最终产物白名单 | FAIL |
 | H4 | reviews.db 不可变事件、独立处理字段、冲突 DAG | 重开/撤销/重复导入/离线冲突/指纹变化 | FAIL |
@@ -14,20 +14,20 @@
 | 场景 | 自动化验收目标 | 当前状态 |
 |---|---|---|
 | U01 | 首次工程/导入/示例，下一步明确 | FAIL |
-| U02 | 四步向导前后不丢输入、真实参数门禁 | FAIL |
+| U02 | 四步向导前后不丢输入、真实参数门禁 | PARTIAL（原文往返/备份/真实Git选择已测；上下文普通表单/目录选择未齐） |
 | U03 | 只读目录原生扫描与输入不变 | NOT_VERIFIED |
-| U04 | 真实 base/current/HEAD/dirty 输入 | FAIL |
+| U04 | 真实 base/current/HEAD/dirty 输入 | PARTIAL（真实Git下拉/分页/解析/SHA与dirty覆盖、保存重开6项Chrome通过；大工程Diff未验） |
 | U05 | 缺工具路径诊断、无污染 | NOT_VERIFIED |
-| U06 | 首次及再次相同 profile 扫描 | FAIL |
-| U07 | 大项目阶段/TU/RAM/磁盘真实计数 | FAIL |
-| U08 | 停止/重启/有效旧归档/已提交 TU | FAIL |
+| U06 | 首次及再次相同 profile 扫描 | PARTIAL（真实F030开始/停止恢复/同配置再次扫描通过） |
+| U07 | 大项目阶段/TU/RAM/磁盘真实计数 | PARTIAL（4TU真实资源/阶段与读取故障恢复已测；大工程完整UI未验） |
+| U08 | 停止/重启/有效旧归档/已提交 TU | PARTIAL（实际停止/输入重验/缓存复用通过；完整故障矩阵未验） |
 | U09 | 四卡统计与查询同口径 | NOT_VERIFIED |
 | U10 | 20000 行服务端分页/筛选/排序 | PARTIAL（20007行真实浏览器九项含排序/重开通过；原生大工程容量仍未验） |
 | U11 | 真实 g_mfcInterface.msgSp 存储与交错 | NOT_VERIFIED |
 | U12 | 完整调用边分段遍历 | PARTIAL（真实F030双向树通过，大工程未验） |
 | U13 | NVIC/PRIMASK/BASEPRI 真实未知与证明 | NOT_VERIFIED |
-| U14 | 失败 TU 与覆盖缺口下钻 | NOT_VERIFIED |
-| U15 | 可选 AI/失败/重试与静态正交 | FAIL |
+| U14 | 失败 TU 与覆盖缺口下钻 | PARTIAL（已记录8项真实覆盖诊断Chrome；全部失败类/大工程未验） |
+| U15 | 可选 AI/失败/重试与静态正交 | PARTIAL（真实缺工具TECH_FAILED与静态不变；联网模型/完整重试矩阵未验） |
 | U16 | 1000 项分批确认/重启/继续位置 | NOT_VERIFIED |
 | U17 | 撤销新增事件保留原理由 | NOT_VERIFIED |
 | U18 | 完整证据变化须重新确认 | PARTIAL（原生变更/离线历史保留通过） |
@@ -42,7 +42,7 @@
 |---|---|---|
 | G1 | 同输入、全字段全关系与 Diff 逐项一致 | NOT_VERIFIED |
 | G2 | INAV 388 TU + TMFC/H747 或等价 + DMA/回调/RTOS 真工程 | NOT_VERIFIED |
-| G3 | 32GB Windows 12/16GB 资源实测 | NOT_VERIFIED |
+| G3 | 32GB Windows 12/16GB 资源实测 | FAIL（7d5严格16GiB受控失败；新选择器冷扫描待验，物理32GB仍NOT_VERIFIED） |
 | G4 | 同引擎输入前后磁盘峰值/最终大小、至少70% | NOT_VERIFIED |
 | G5 | 完整故障注入矩阵、旧归档不污染 | NOT_VERIFIED |
 | G6 | 外键/哈希/包/事件/Viewer 一致 | NOT_VERIFIED |
@@ -50,6 +50,8 @@
 | G8 | Windows x64 干净机离线 Portable | NOT_VERIFIED |
 
 Phase 0–6 在各自完整门禁通过前保持 BLOCKED/进行中。允许独立模块继续开发，不以模块单测 PASS 替代整阶段 PASS。人工盲测及目标板硬件试验单独记录。
+
+最新源实现局部证据：git-selection-and-task-poll-v2.json（12项Git/配置API、12项任务/API，集合有重叠；真实Chrome6项版本选择、16项主流程含实际Windows独占读锁、7项配置往返）。短暂读失败后不会继续显示旧轮询错误，当前真实详情/原归档不丢；两视口主操作不越界。不是完整U04/G5/G7，封存v12不含这些后续改动。独立Git管理库另有6项真实Git、20项冻结workspace、49项Diff；生产dirty与只读挂载仍未通过。
 
 ## 实际测试与未覆盖部分
 

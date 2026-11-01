@@ -2,6 +2,12 @@
 
 ## 2026-11-01 最新阶段记录（早期状态按时间保留）
 
+当前源码后续功能（尚未重打包）：真实Git版本下拉/服务器分页/HEAD与dirty覆盖、原ref解析、配置保存重开；任务JSON短暂共享拒绝重试、轮询错误恢复与错误状态首屏操作。真实Chrome版本选择6项、主流程16项（含Windows真实共享锁故障）、配置往返7项通过；两组12项专项有重叠，不合算全套。详见git-selection-and-task-poll-v2.json及ui/11、12合同；初轮可访问名称和真实PermissionError导致的首屏失败保留。完整U01–U24与干净机仍未通过。
+
+选择器静态实现的完整冻结回归也已结束：1224项/1222PASS+2opt-in SKIP，1732.914秒，779文件SHA不变；当前59个静态引擎模块摘要完全相同，见full-regression-selectors-v1.json。后续GUI/API/任务读取修复不在这轮全套中，不能扩称当前全部代码完整通过。
+
+ADR-011冲突完整选择器/记录布局已提交，冻结F030原生全字段差异0，11项独立回归及包内Python3.10.9同11项通过；大工程16GiB尚待冷扫描，不把容量样本当G3。sys.intern试验在完整388TU归并后发现内存增加约74MB，已回退，完整有序事实摘要仍相同，见live-string-trial-reverted-v1.json。旧试验冻结回归1224项/1222PASS+2opt-in SKIP仅覆盖其当时字节，不覆盖后来冲突/GUI修复；完整原始范围见full-regression-independent-v4.json。
+
 最新封存候选为 **v12 / a8e4cea**：[收据](evidence/portable-studio-v12.json)。ZIP 535,735,013B，SHA-256 e80df57ae6cfaf84469713d401da6a3aa2e8df9cdeb4ec18f2af9639d05c85ae；109个运行时/前端/许可文件与冻结源逐字节匹配，包内SOURCE-SNAPSHOT.json也与759文件清单相同。目录与中文ZIP解压各26命令通过（每组20个exit0、6个预期INCOMPLETE exit2），包内Python3.10.9真实Chrome主流程15项、配置往返7项通过。它包含挂起启动/Job所有权、整机提交保护与YAML同步，不包含随后字符串共享和独立Git改动；其他浏览器集合没有借用v10的收据充数。
 
 冻结a8e完整回归 **1214项：1212 PASS、2项联网OpenCode opt-in SKIP，1795.710秒**；759文件SHA全部不变，见[完整收据](evidence/full-regression-owned-a8e.json)。这修复了下述4e6受控OOM/venv夹具失败，不改写旧失败记录，也不覆盖新工作树改动。

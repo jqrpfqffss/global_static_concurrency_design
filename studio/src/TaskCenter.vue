@@ -5,7 +5,7 @@ const emit=defineEmits<{open:[scanId:string],focus:[taskId:string]}>()
 const props=defineProps<{focusTask?:string}>()
 const profiles=ref<any[]>([]), tasks=ref<any[]>([]), selected=ref(''), profile=ref(''), detail=ref<any>(null)
 const resourcePreset=ref('auto'),peakGib=ref(16),workers=ref(4)
-const error=ref(''), notice=ref(''), busy=ref(false), logOffset=ref(0), search=ref('')
+const error=ref(''), pollError=ref(''), notice=ref(''), busy=ref(false), logOffset=ref(0), search=ref('')
 const names:Record<string,string>={RUNNING:'正在扫描',STOP_REQUESTED:'停止请求已发送',COMPLETE:'扫描已发布',FAILED:'扫描失败',INTERRUPTED:'已停止 / 上次中断'}
 function taskName(task:any){if(task.mode&&task.mode!=='scan')return ({RUNNING:'正在复核',COMPLETE:'复核执行已结束',FAILED:'复核执行失败'} as Record<string,string>)[task.state]||names[task.state]||task.state;return names[task.state]||task.state}
 const active=computed(()=>tasks.value.some(x=>['RUNNING','STOP_REQUESTED'].includes(x.state)))
@@ -21,7 +21,8 @@ async function poll(){
     tasks.value=(await api('/tasks')).items
     if(!selected.value&&tasks.value.length)selected.value=tasks.value[0].id
     if(selected.value)detail.value=await api(`/tasks/${selected.value}?offset=${logOffset.value}`)
-  }catch(e:any){error.value=e.message}finally{polling=false}
+    pollError.value=''
+  }catch(e:any){pollError.value=e.message}finally{polling=false}
 }
 async function action(fn:()=>Promise<any>){busy.value=true;error.value='';notice.value='';try{await fn();await poll()}catch(e:any){error.value=e.message}finally{busy.value=false}}
 async function start(){await action(async()=>{const p=currentProfile.value;if(!p)throw Error('请选择已保存的工程配置');const task=await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,resources:{preset:resourcePreset.value,peak_gib:peakGib.value,workers:workers.value}});selected.value=task.id;logOffset.value=0})}
@@ -33,8 +34,10 @@ onMounted(async()=>{try{profiles.value=(await api('/profiles')).items;profile.va
 onUnmounted(()=>{if(timer)clearInterval(timer)})
 </script>
 <template>
+  <div class="task-center">
   <h1>扫描任务中心</h1>
   <div v-if="error" class="banner error" role="alert">{{error}}</div><div v-if="notice" class="banner" role="status">{{notice}}</div>
+  <div v-if="pollError" class="banner warning" role="alert"><strong>任务状态暂时无法读取，正在重试；保留上次真实详情。</strong><details><summary>查看读取失败原因</summary>{{pollError}}</details></div>
   <section class="panel task-controls"><details :open="!detail"><summary>扫描配置与资源预算 · {{currentProfile?.project_root || '尚未选择工程'}}</summary><label>工程与构建配置<select v-model="profile" aria-label="扫描工程配置" :disabled="busy||active"><option v-for="p in profiles" :value="p.id">{{p.project_root}} · {{p.id.slice(0,8)}}</option></select></label>
     <div class="resource-settings"><label>资源预设<select aria-label="资源预设" v-model="resourcePreset" :disabled="busy||active"><option value="auto">自动</option><option value="low">低内存</option><option value="high">高性能</option><option value="manual">手动预算</option></select></label><label v-if="resourcePreset==='manual'">进程树峰值提交预算（GiB）<input type="number" min="2" max="64" v-model.number="peakGib" :disabled="busy||active"></label><label>最大 TU 并行数<input type="number" min="1" max="8" v-model.number="workers" :disabled="busy||active||resourcePreset==='low'"></label></div></details><button class="primary" :disabled="busy||active||!profile" @click="start">开始扫描</button><p v-if="!profiles.length">请先在“工程配置”保存真实构建配置。</p>
     <p>输出保存在当前独立数据根。开始后才执行真实构建、Clang 和输入一致性检查。自动默认软目标 12 GiB、峰值提交预算 16 GiB；低内存采用 6/8 GiB。接近阈值降低后续TU并行并请求安全停止，同一数据根共享一个扫描预算。目标能否满足须由真实工程测量。</p>
@@ -54,4 +57,5 @@ onUnmounted(()=>{if(timer)clearInterval(timer)})
     <p>工作集趋势纵轴：0–{{size(chartMax)}}</p><svg v-if="detail.samples?.length" class="resource-chart" viewBox="0 0 480 100" role="img" aria-label="进程树真实工作集趋势"><polyline fill="none" stroke="#2563eb" stroke-width="2" :points="detail.samples.map((s:any,i:number)=>`${i*480/Math.max(1,detail.samples.length-1)},${100-100*(s.working_set_bytes||0)/chartMax}`).join(' ')" /></svg>
     <label>检索当前日志段<input v-model="search" aria-label="检索任务日志" placeholder="阶段 / TU / 失败原因"></label><pre class="task-log" tabindex="0">{{lines.join('\n')||'等待真实日志…'}}</pre><p>日志字节 {{detail.log.offset}}–{{detail.log.next_offset}} / {{detail.log.total}}，按段完整读取</p><button :disabled="!logOffset" @click="logOffset=Math.max(0,logOffset-65536);poll()">上一段</button><button :disabled="detail.log.next_offset>=detail.log.total" @click="logOffset=detail.log.next_offset;poll()">下一段</button>
   </template><p v-else>选择任务后显示真实进程和诊断数据。</p></section></div>
+  </div>
 </template>

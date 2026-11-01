@@ -34,12 +34,15 @@ def main():
     parser.add_argument('--native-scan', action='store_true', help='通过真实任务按钮停止并恢复扫描；需固件与真实数据库')
     parser.add_argument('--ai-failure', action='store_true', help='注入缺失复核工具的真实故障；不调用网络模型')
     parser.add_argument('--repeat-scan',action='store_true',help='新增向导直接启动与首页同profile重扫；旧封存包不包含此入口')
+    parser.add_argument('--task-metadata-sharing-fault',action='store_true',help='真实Windows已完成任务文件共享拒绝/解除，验证轮询错误恢复与首屏操作')
     parser.add_argument('--allow-external-toolchain',action='store_true',help='明确允许已冻结编译数据库中的外部黄金工具链；不改写编译器路径')
     parser.add_argument('--engine', type=Path, default=TOOL)
     parser.add_argument('--python', type=Path, default=Path(sys.executable))
     args = parser.parse_args()
     if args.repeat_scan and not (args.native_scan and args.firmware and args.compile_database):
         parser.error('--repeat-scan requires --native-scan, --firmware and --compile-database')
+    if args.task_metadata_sharing_fault and (os.name!='nt' or not args.native_scan):
+        parser.error('--task-metadata-sharing-fault requires actual Windows and --native-scan')
     work = args.work.resolve(); work.mkdir(parents=True,exist_ok=False)
     output = args.evidence.resolve(); output.mkdir(parents=True,exist_ok=True)
     receipt = dict(passed=False, tests=[], screenshots=[], page_errors=[], external_requests=[],
@@ -271,6 +274,33 @@ def main():
                     assert source_before=={str(path.relative_to(args.firmware)):sha256(path) for path in args.firmware.rglob('*') if path.is_file()}
                     receipt['native_scan_pipeline']='REAL_SCAN_STOP_RECOVER_PASS'
                     receipt['native_task']=completed
+                    if args.task_metadata_sharing_fault:
+                        import ctypes
+                        from ctypes import wintypes
+                        metadata=work/'data/work/tasks'/completed['id']/'task.json'
+                        before_metadata=sha256(metadata);before_static=sha256(native/'scan.db')
+                        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+                        kernel.CreateFileW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,wintypes.DWORD,ctypes.c_void_p,wintypes.DWORD,wintypes.DWORD,wintypes.HANDLE]
+                        kernel.CreateFileW.restype=wintypes.HANDLE
+                        kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+                        handle=None;deadline=time.monotonic()+5
+                        while handle is None:
+                            value=kernel.CreateFileW(str(metadata),0x80000000,0,None,3,0x80,None)
+                            if value!=ctypes.c_void_p(-1).value:handle=value
+                            elif time.monotonic()>deadline:raise ctypes.WinError(ctypes.get_last_error())
+                            else:time.sleep(.02)
+                        warning=page.get_by_role('alert').filter(has_text='任务状态暂时无法读取')
+                        try:
+                            expect(warning).to_be_visible(timeout=10000)
+                            for width,height in ((1366,768),(1600,900)):
+                                page.set_viewport_size(dict(width=width,height=height));page.evaluate('scrollTo(0,0)')
+                                bounds=page.get_by_role('button',name='打开扫描结果',exact=True).bounding_box()
+                                assert bounds and bounds['y']>=0 and bounds['y']+bounds['height']<=height,'read error displaced task action'
+                            shot('11-real-task-sharing-failure')
+                        finally:kernel.CloseHandle(handle)
+                        expect(warning).to_have_count(0,timeout=10000)
+                        assert sha256(metadata)==before_metadata and sha256(native/'scan.db')==before_static
+                        receipt['tests'].append(dict(name='actual_windows_task_file_sharing_failure_recovers_polling_and_keeps_action_visible',status='PASS',related=['U07','U08','U22','G5'],limitation='Exclusive read handle on completed test task only; permanent permission failure remains an error'))
                     receipt['tests'].append(dict(name='native_scan_safe_stop_recovery_and_publication',status='PASS',related=['U03','U06','U08'],
                         limitation='Real 4-TU input; no large-resource or complete fault-matrix claim'))
                     page.get_by_role('button',name='打开扫描结果',exact=True).click()

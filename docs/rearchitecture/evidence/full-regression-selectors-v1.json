@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "tests": 1224,
+  "passed_tests": 1222,
+  "skipped": 2,
+  "seconds": 1732.914,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-selectors-v1",
+  "frozen_files": 779,
+  "source_differences": [],
+  "manifest_sha256": "e50143c6e4266d03e8a5a6be693932d5a59c1aec7b6d9dd0d979744b699cb53a",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-selectors-v1.log",
+  "log_sha256": "19f8b195d8f8aaf5b063b6e1e620cbd2b460ca1294798ca4c4cdc90d01e49149",
+  "static_engine_digest": "9c66a0354bc68b5a7024ae5392a4aedf6d566569cdb78e5dddccb3bcdc82db2e",
+  "current_static_engine_files_match": 59,
+  "scope": "All frozen selectors-v1 source including independent Git and reverted interning; current static engine root bytes match exactly. Excludes subsequent Git selector GUI/API and task metadata retry/layout.",
+  "live_OpenCode": "NOT_VERIFIED_OPT_IN_SKIPPED"
+}

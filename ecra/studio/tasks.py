@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
+import time
 import uuid
 
 from ..common import write_json, read_json
@@ -16,6 +17,18 @@ from .process_budget import ProcessBudget
 
 def now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def read_task_json(path):
+    """Brief Windows replacement/sharing races, never a stale-data fallback."""
+    path = no_links(path)
+    for attempt in range(5):
+        try:
+            return read_json(path)
+        except PermissionError:
+            if attempt == 4:
+                raise
+            time.sleep(.02 * (attempt + 1))
 
 
 class TaskManager:
@@ -32,14 +45,14 @@ class TaskManager:
         else:
             try:
                 for path in self.work.glob('*/task.json'):
-                    value = read_json(no_links(path))
+                    value = read_task_json(path)
                     if value['state'] in {'RUNNING', 'STOP_REQUESTED'}:
                         value.update(state='INTERRUPTED', finished=now(), error='上次监督器退出；保留完整 TU 缓存与诊断，可重新校验输入后恢复。')
                         write_json(path, value)
             finally:lease.__exit__(None,None,None)
 
     def list(self):
-        return sorted((read_json(no_links(path)) for path in self.work.glob('*/task.json')),
+        return sorted((read_task_json(path) for path in self.work.glob('*/task.json')),
                       key=lambda item:item['started'], reverse=True)
 
     def directory(self, ident):
@@ -194,7 +207,7 @@ class TaskManager:
                 threading.Event().wait(.5)
             value.update(exit_code=process.returncode, finished=now())
             published = (self.data/'scans'/value['scan_id']/'manifest.json').is_file()
-            result=read_json(folder/'worker-result.json') if (folder/'worker-result.json').is_file() else {}
+            result=read_task_json(folder/'worker-result.json') if (folder/'worker-result.json').is_file() else {}
             if result.get('error'):
                 value['error']=result['error']
             value['state'] = 'COMPLETE' if process.returncode in {0,1,2} and published and result.get('operation_completed') else (
@@ -210,7 +223,7 @@ class TaskManager:
         if type(offset) is not int or offset<0 or not 1<=limit<=65536:
             raise ValueError('日志游标无效')
         folder = self.directory(ident)
-        value = read_json(folder/'task.json')
+        value = read_task_json(folder/'task.json')
         log = folder/'console.log'
         with log.open('rb') as stream:
             stream.seek(offset)
@@ -221,7 +234,7 @@ class TaskManager:
         for key, name in [('stages','scan_stages.json'),('failure','exception.json'),('memory','memory_profile.json'),('tu_cache','tu_cache.json'),('progress','scan_progress.json')]:
             path = diagnostics/name
             if path.is_file():
-                value[key] = read_json(path)
+                value[key] = read_task_json(path)
         return value
 
     def stop(self, ident):

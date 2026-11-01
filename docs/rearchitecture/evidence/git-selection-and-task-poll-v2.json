@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "scope": "Real local Git fixed-ref wizard and real Windows completed-task sharing fault; not full U04/G5/G7",
+  "browser": {
+    "git-picker": {
+      "passed": true,
+      "tests": 6,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\git-picker-v2\\acceptance.json",
+      "sha256": "ed3dcafa770e6171a208818916546097f0eac65dd628b21e7de0b22a8f9d8382"
+    },
+    "main": {
+      "passed": true,
+      "tests": 16,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\main-git-picker-v2\\acceptance.json",
+      "sha256": "d504bae3cdf1a2ae7b8ba6adb5be854a5d36037e80b9b2033b99a6448bf698cb"
+    },
+    "profile": {
+      "passed": true,
+      "tests": 7,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\profile-git-picker-v1\\acceptance.json",
+      "sha256": "51682fcd8b957b2d14c3e87b4cc006fc0facc6f8b0f701bfd7d0ad8058fe6192"
+    }
+  },
+  "unit_scopes": [
+    {
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-picker-api-v1.log",
+      "sha256": "eba1c93a900c96898cc5fbbe1a044a34d41b9af2c674cae8cfb9cc931c359ade",
+      "tests": 12,
+      "seconds": 8.272
+    },
+    {
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\task-metadata-api-v1.log",
+      "sha256": "04fee1cbadc2491ce6cb47bd1fdd0c09743e03e4f47fc02f962a21011a141dff",
+      "tests": 12,
+      "seconds": 5.431
+    }
+  ],
+  "counts_note": "Scopes overlap; do not sum as full-suite counts",
+  "source_sha256": {
+    "ecra/studio/git_versions.py": "2febf8c8e5304d195332b7343676798bd088e065b8fb9f42f3aff0e5bced3a71",
+    "ecra/studio/tasks.py": "0e359a3924f50ed7484b71dff3afb897b33784a5b7381227b4885bf4a8b7e217",
+    "ecra/studio/server.py": "fab5f2e970efd3242b6e0a53023eec798d701f21361c1611dab09de5e7efa01b",
+    "studio/src/GitVersions.vue": "83549d6e18c59f8065521793ddd97285ee87a04d9b9cfaba9c3ec8ed077cf745",
+    "studio/src/TaskCenter.vue": "35c21e1385e3cfd678e90473941015e2368e6074b4e22ca76636d2f58f7809f9",
+    "studio/src/App.vue": "a63e3b1db3a983e1761c14e893250ee818a5c4317c594d033e10172506e1530b",
+    "studio/src/style.css": "397ff6fe45b3490c6b3428cc226c23d2e764547e62f66973d297dc7b2f8fdb98"
+  },
+  "frontend_build_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\task-poll-layout-build-v1.log",
+  "frontend_build_sha256": "090ad6e7b693c2a0ac28f98574b0493e0dd2805bac8b7dfbe7182594f221d7ae",
+  "failure_history": [
+    "git picker v1 missing explicit select accessible names; failure trace preserved; v2 passed6",
+    "main v1 real task.json PermissionError caused stale error and action below fold; fixed task snapshot retry/poll state/layout; v2 passed16 including actual exclusive-read-lock fault"
+  ],
+  "full_regression": "SELECTORS_V1_RUNNING_EXCLUDES_LATER_UI_TASK_FIX",
+  "portable": "Not in sealed v12; rebuild required",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED"
+}

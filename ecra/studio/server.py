@@ -495,6 +495,12 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
         from .profile_forms import form_state
         return form_state(payload.get('yaml'))
 
+    @app.post('/api/profiles/git-versions')
+    def profile_git_versions(payload: dict):
+        from .git_versions import inspect_versions
+        return inspect_versions(payload.get('project_root'), data/'work/git-versions',
+            **{key: payload[key] for key in ('base_ref','current_ref','search','offset','limit') if key in payload})
+
     @app.post('/api/profiles/form-merge')
     def profile_form_merge(payload: dict):
         from .profile_forms import merge_form,backup_original
