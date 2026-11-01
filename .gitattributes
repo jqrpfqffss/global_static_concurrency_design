@@ -1,0 +1,3 @@
+# Locked program assets are checked byte-for-byte at runtime.
+ecra/studio/sample_assets/sample.json text eol=lf
+ecra/studio/sample_assets/*.ecra-report binary

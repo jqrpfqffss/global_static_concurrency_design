@@ -1,15 +1,33 @@
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
 from ecra.human_reviews import ReviewStore
 from ecra.report_package import sha256
 from ecra.scan_store import EvidenceProvider
-from ecra.studio.sample import ASSETS,open_sample,sample_info
+from ecra.studio.sample import ASSETS,EXPECTED_METADATA_SHA256,open_sample,sample_info
 
 
 class BuiltinSampleTests(unittest.TestCase):
+    def test_git_checkout_settings_cannot_change_locked_sample_metadata_bytes(self):
+        git=shutil.which('git')
+        if git is None:self.skipTest('Git is required for checkout byte preservation')
+        tool=Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory(prefix='ecra-asset-git-') as folder:
+            root=Path(folder);relative='ecra/studio/sample_assets/sample.json';target=root/relative;target.parent.mkdir(parents=True)
+            (root/'.gitattributes').write_bytes((tool/'.gitattributes').read_bytes())
+            target.write_bytes((ASSETS/'sample.json').read_bytes())
+            def run(*args):return subprocess.check_output([git,'-C',str(root),*args],stderr=subprocess.STDOUT)
+            run('init','--quiet')
+            import hashlib
+            for autocrlf in ['true','false']:
+                run('config','core.autocrlf',autocrlf);run('add','.gitattributes',relative)
+                self.assertEqual(hashlib.sha256(run('show',':'+relative)).hexdigest(),EXPECTED_METADATA_SHA256)
+                target.unlink();run('checkout','--',relative)
+                self.assertEqual(sha256(target),EXPECTED_METADATA_SHA256)
+
     def test_real_archive_opens_repeatedly_without_overwriting_confirmation_or_program_asset(self):
         descriptor=sample_info();self.assertTrue(descriptor['available'],descriptor)
         original={p.name:(sha256(p),p.stat().st_mtime_ns) for p in ASSETS.iterdir() if p.is_file()}

@@ -78,6 +78,13 @@ try {
         Copy-Item -LiteralPath $file.FullName -Destination $studioOut
     }
     Copy-DirectoryContents (Join-Path $studioSource 'web') (Join-Path $studioOut 'web')
+    $sampleOut = Join-Path $studioOut 'sample_assets'
+    New-Item -ItemType Directory -Path $sampleOut | Out-Null
+    foreach ($name in @('sample.json', 'stm32-demo.ecra-report')) {
+        $sampleFile = Join-Path (Join-Path $studioSource 'sample_assets') $name
+        if (-not (Test-Path -LiteralPath $sampleFile -PathType Leaf)) { throw "Verified builtin teaching asset missing: $sampleFile" }
+        Copy-Item -LiteralPath $sampleFile -Destination $sampleOut
+    }
     $configOut = Join-Path $bundle 'config'
     New-Item -ItemType Directory -Path $configOut | Out-Null
     foreach ($name in @('semantics.yaml', 'review_context.md', 'concurrency_cases.md')) {
@@ -232,7 +239,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'README.txt')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'CLI-README.txt')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/rearchitecture/portable-preview-readme.txt') -Destination (Join-Path $bundle 'README.txt') -Force
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/rearchitecture/portable-and-user-guide.md') -Destination (Join-Path $bundle 'STUDIO-GUIDE.md')
+    Copy-DirectoryContents (Join-Path $PSScriptRoot 'docs/rearchitecture') (Join-Path $bundle 'docs/rearchitecture')
+    [IO.File]::WriteAllText((Join-Path $bundle 'STUDIO-GUIDE.md'),
+        "# ECRA Studio 操作说明`r`n`r`n双击 ECRA.cmd 打开本地工作台。完整操作、数据位置和能力边界见[用户操作说明](docs/rearchitecture/portable-and-user-guide.md)。`r`n`r`n本包仍为开发验收候选，完整重构发布门禁未全部通过。技术证据见[需求追踪](docs/rearchitecture/01-requirements-traceability.md)与[验收记录](docs/rearchitecture/performance-and-acceptance.md)。`r`n", [Text.Encoding]::UTF8)
     $commit = 'unknown (source archive or Git unavailable)'
     $git = Get-Command git.exe -ErrorAction SilentlyContinue
     if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Locked sample metadata retains raw checksum across Git checkout settings; packaging explicitly includes immutable assets and offline guide tree",
+  "working_sha256": "1bc71de446b3cd25842afa3dfe14d4db618dc0ab685ee6a9f7ceea7f710f71db",
+  "git_index_sha256": "1bc71de446b3cd25842afa3dfe14d4db618dc0ab685ee6a9f7ceea7f710f71db",
+  "previous_normalized_blob_sha256": "9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba",
+  "checkout_tests": 4,
+  "checkout_test_seconds": 2.279,
+  "log": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/builtin-sample-checkout-v1-tests.log",
+  "powershell_5_1_ast": "PASS",
+  "new_cli_asset_check": "ADDED_NOT_YET_RUN_IN_NEW_BUNDLE",
+  "new_portable": "NOT_BUILT",
+  "scope_status": "SUPERSEDED_BY_CANONICAL_LF_V2; preliminary CRLF experiment, no Portable built"
+}

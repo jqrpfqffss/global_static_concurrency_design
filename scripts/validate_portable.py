@@ -406,6 +406,8 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         try:
             for name in ('ecra.cmd','run_ecra.py','README.txt','VERSION.txt','portable-lock.json',
                          'ecra/studio/web/index.html','ecra/studio/server.py','requirements-studio.txt','STUDIO-PREVIEW.txt',
+                         'ecra/studio/sample_assets/sample.json','ecra/studio/sample_assets/stm32-demo.ecra-report',
+                         'STUDIO-GUIDE.md','docs/rearchitecture/portable-and-user-guide.md',
                          'config/semantics.yaml','config/review_context.md','config/concurrency_cases.md',
                          'runtime/python.exe','runtime/python310.zip','runtime/python310._pth',
                          'runtime/msvcp140.dll','tools/cmake/bin/cmake.exe','tools/ninja/ninja.exe',
@@ -432,6 +434,8 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
                 changed = [k for k in expected.keys() | actual.keys() if expected.get(k) != actual.get(k)]
                 raise ValueError(f'Bundle file integrity mismatch: {changed[:20]}')
             self.versions()
+            sample_code='import json;from ecra.studio.sample import sample_info;value=sample_info();assert value["available"],value;print(json.dumps(value))'
+            self.report['builtin_sample']=json.loads(self.command('builtin teaching asset integrity',[self.python,'-B','-c',sample_code],cwd=self.bundle))
             deps = verify_pe_dependencies(self.bundle)
             (self.work/'pe-dependencies.json').write_text(json.dumps(deps,indent=2),encoding='utf-8')
             self.builds()

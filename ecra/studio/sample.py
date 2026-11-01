@@ -8,7 +8,7 @@ from ..report_package import import_report,sha256
 from ..workspace import no_links
 
 ASSETS=Path(__file__).with_name('sample_assets')
-EXPECTED_METADATA_SHA256='1bc71de446b3cd25842afa3dfe14d4db618dc0ab685ee6a9f7ceea7f710f71db'
+EXPECTED_METADATA_SHA256='9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba'
 PROFILE_ID='builtin-stm32-demo'
 TITLE='STM32并发访问教学示例'
 NOTICE='教学示例 · 真实扫描归档 · 非用户工程。2个TU实际ARM对象编译/Clang分析，未链接固件、无硬件验证；未知与覆盖缺口按实保存。'

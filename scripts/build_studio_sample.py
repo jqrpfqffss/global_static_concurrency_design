@@ -92,7 +92,7 @@ def main():
                   scan_id=binding['scan_id'],project_id=binding['project_id'],facts_hash=binding['facts_hash'],report_hash=binding['report_hash'],
                   title='STM32并发访问教学示例',notice='教学示例 · 真实扫描归档 · 非用户工程。2个TU实际ARM对象编译/Clang分析，未链接固件、无硬件验证；未知与覆盖缺口按实保存。',
                   sources=original,license='Repository project terms; no standalone LICENSE file declared in this checkout',native_tus=2,linked_firmware=False,hardware_verified=False)
-    (destination/'sample.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n','utf-8')
+    (destination/'sample.json').write_bytes((json.dumps(metadata,ensure_ascii=False,indent=2)+'\n').encode('utf-8'))
     receipt=dict(passed=True,scope=__doc__,engine=str(args.engine),original_engine=str(args.original_engine),commands=commands,builder_sha256=sha(work/'builder.py'),
                  original_files_unchanged=True,copied_files_unchanged=True,original_native_bytes_unchanged_after_new=True,
                  measurement_scope='Independent native CLI bodies under separate fresh external roots; same config and compile DB; no G2/physical32GB/hardware claim',

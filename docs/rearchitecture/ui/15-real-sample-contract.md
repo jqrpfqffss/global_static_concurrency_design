@@ -20,3 +20,5 @@
 实测续轮：示例原/新引擎各2TU独立原生全量，完整有序facts及规范report差异0；真实对象编译成功，标准包540,266B、SHA ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b。见builtin-demo-native-v4.json、builtin-demo-assets-v5.json及三次失败构建记录。未发现独立LICENSE，已纠正最初错误的MIT元数据声明，原记录未改写；原/新原生证据不受该元数据更正影响。
 
 39项专项与最终10项真实Chrome通过，包含新建/导入/示例真实入口、实际统计下钻/归档代码、确认、重复打开、真实服务进程重启、完整包带事件转移及1366/1600工作台可见性。中间浏览器失败与范围有限的PASS均保留，最终以browser-builtin-sample-v8.json为准。教学标签仅标识所选归档页，不将工程配置/任务页面标作教学扫描。完成回调尊重用户新导航，已有真实主流程16项重验通过。系统DPI、物理干净机与工程师UAT待验，v13不含本功能。
+
+交付前补验：元数据统一UTF-8 LF并通过Git autocrlf true/false实际检出；归档字节未改，见sample-package-inputs-v2.json。Portable显式纳入两个示例资产及相对链接完整的离线文档树，新的包内完整验收待运行。

@@ -1,0 +1,148 @@
+{
+  "passed": false,
+  "status": "FAIL",
+  "scope": "Frozen 6692 lazy3-field conflict allocation; cold388TU approved same input under explicit16GiB Job; 64GiB host not physical32GB; concurrent original graph writer on same physical HDD, no timing attribution",
+  "execution": {
+    "complete": false,
+    "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+    "mode": "canonical",
+    "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+    "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+    "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+    "data_root": "H:\\ECRA-NATIVE-L7",
+    "safety_job_commit_limit_bytes": 17179869184,
+    "controlled_limit_experiment": true,
+    "physical_32GB": "NOT_VERIFIED",
+    "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+    "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+    "paging_samples_valid": 8334,
+    "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+    "logical_disk_peak_is_sampled_lower_bound": true,
+    "started": "2026-11-01T15:43:58.169913+00:00",
+    "peaks": {
+      "working_set_bytes": 17091043328,
+      "private_bytes": 17179607040,
+      "peak_job_commit_bytes": 17180798976,
+      "sampled_output_logical_bytes": 10773368395,
+      "sampled_output_allocated_bytes": 10782517384
+    },
+    "samples": 8334,
+    "cache_reuse": null,
+    "diagnostic_fault": null,
+    "observer_script_sha256": "df805da306fd61b0abf643d620f9afb15472f4f933566a73b682a1eab738fa06",
+    "worker_temporary_root": "H:\\ECRA-NATIVE-L7\\work\\native-observer\\temporary",
+    "output_volume_free_at_start": 983002316800,
+    "pid": 25468,
+    "seconds": 4427.546999999999,
+    "last": {
+      "seconds": 4427.046999999999,
+      "available": true,
+      "working_set_bytes": 115924992,
+      "private_bytes": 108179456,
+      "peak_job_commit_bytes": 17180798976,
+      "limit_bytes": 17179869184,
+      "enforced_job_commit_limit_bytes": 17179869184,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 22781403136,
+      "system_commit_limit_bytes": 85825454080,
+      "system_commit_peak_bytes": 39965896704,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 50581970944,
+      "system_commit_headroom_bytes": 63044050944,
+      "host_paging": {
+        "available": true,
+        "values": {
+          "pages_input_per_second": 0.0,
+          "pages_output_per_second": 0.0
+        },
+        "errors": {},
+        "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+      },
+      "disk_free_bytes": 968755843072,
+      "whole_volume_used_change_bytes": 14246473728,
+      "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+      "main_process_memory": {
+        "rss": 78020608,
+        "vms": 73994240,
+        "num_page_faults": 30420501,
+        "peak_wset": 17080307712,
+        "wset": 78020608,
+        "peak_paged_pool": 340976,
+        "paged_pool": 326464,
+        "peak_nonpaged_pool": 1688128,
+        "nonpaged_pool": 55328,
+        "pagefile": 73994240,
+        "peak_pagefile": 17174278144,
+        "private": 73994240
+      },
+      "output_disk": {
+        "files": 5026,
+        "logical_bytes": 10773358759,
+        "allocated_bytes": 10782509104,
+        "unique_files": 5026,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.5469999999986612
+      },
+      "output_disk_observed_seconds": 4412.280999999999
+    },
+    "exit_code": 3,
+    "final_output_disk": {
+      "files": 5028,
+      "logical_bytes": 10773368395,
+      "allocated_bytes": 10782517384,
+      "unique_files": 5028,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.5159999999996217
+    },
+    "output": "H:\\ECRA-NATIVE-L7\\scans\\native-golden",
+    "validity": {
+      "analysis_valid": false,
+      "state": "FAILED",
+      "error": "MemoryError: "
+    }
+  },
+  "postflight": {
+    "passed": true,
+    "inputs": 4123,
+    "input_differences": [],
+    "engine_files": 833,
+    "engine_differences": [],
+    "verification_seconds": 6.875,
+    "observed_utc": "2026-11-01T16:57:53.119898+00:00"
+  },
+  "driver": {
+    "exit_code": 1,
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1\\scripts\\measure_native_golden.py",
+      "--engine",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-lazy-instances-v1",
+      "--config",
+      "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+      "--data-root",
+      "H:/ECRA-NATIVE-L7",
+      "--work",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-instances-native-v7",
+      "--mode",
+      "canonical",
+      "--limit-gib",
+      "16"
+    ],
+    "cold_extraction": true,
+    "scope": "Same frozen approved INAV input/build/config; fresh cold extraction, explicit16GiB Job. Concurrent original graph encoding on the SAME physicalHDD; elapsed/whole-volume deltas are not optimization attribution. Per-tree Job and output allocations remain separately measured; physical32GB NOT_VERIFIED"
+  },
+  "diagnostics": {
+    "console": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-instances-native-v7\\console.log",
+    "console_sha256": "c61393db26a61de61971545f5dff5441e8abfa830e275397b004ca2c7c84930b"
+  },
+  "gate": "G3_FAIL_NO_VALID_SCAN_NO_G4_ARCHIVE",
+  "later_identity_guard": "NOT_TESTED_IN_THIS_RUN"
+}

@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "scope": "Canonical LF sample metadata survives autocrlf true/false; same parsed JSON and unchanged native archive; packager explicitly includes immutable teaching assets and linked offline guide tree",
+  "working_sha256": "9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba",
+  "git_index_sha256": "9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba",
+  "derivation": {
+    "passed": true,
+    "scope": "Canonical LF metadata only; same parsed JSON and same verified native archive; preserves v5 originals; fixes checkout checksum across autocrlf settings",
+    "before_metadata_sha256": "1bc71de446b3cd25842afa3dfe14d4db618dc0ab685ee6a9f7ceea7f710f71db",
+    "metadata_sha256": "9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba",
+    "archive_sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b"
+  },
+  "checkout_tests": 4,
+  "checkout_test_seconds": 2.2,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-sample-checkout-v2-tests.log",
+  "log_sha256": "97ddae424997a0717a57a442927d29dcb08b686e36295633c83304569ea6528b",
+  "portable_status": "NOT_BUILT_NOT_YET_VERIFIED",
+  "new_cli_asset_check": "ADDED_NOT_YET_RUN_IN_NEW_BUNDLE"
+}
