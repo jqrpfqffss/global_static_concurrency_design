@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 3,
+  "seconds": 0.141,
+  "scope": "Independent binary backup/failure/overlap regression; not the still-running full INAV copy",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-backup-tests-v1.log",
+  "log_sha256": "07703a052e2b885298ac58173a4df139d9ff661c7854018af22a3aedbe3ba359"
+}

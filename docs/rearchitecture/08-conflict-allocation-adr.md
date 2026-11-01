@@ -11,3 +11,5 @@
 已验证局部：4项专门测试PASS；12,000访问/48,000路径样本临时Python峰值10,032,993B→5,013,433B，采样耗时0.805s→0.274s（tracemalloc开启，不能代替原生资源门禁）。原函数原文SHA为7f73bfe450235519c5d2a877581396b697bc00567c16f298cd9edc52f6bfebe5。已归档F030的13变量/2冲突行逐字段差异0；另重新实际提取4TU（2PARSED/2PARTIAL），全部facts和规范report与原生独立黄金差异0，源码/.git/原黄金哈希不变、旧HTML/JSON/库存目录不生成。见evidence/conflict-allocation-v1.json、native-parsed-allocation-v1.json。
 
 原型失败保留：dict.update的空字典快路径使共享schema布局失效，现改按原顺序逐字段写入；首个参与者断言误选IRQ自重入冲突，现按真实context定位。初次198项回归还出现跨进程hash-seed复核测试退出码2而预期1；运行期间工作区源码曾变更，原因尚未证明。后续须在冻结字节上完整复跑，不以4项专项替代该失败。此受保护模块是此前“分析区未改”的明确例外，仅对象分配改变，判定/关系仍受完整G1门禁约束。
+
+冻结复跑已结束：1b573a1共1189项、1187PASS/2 opt-in联网模型跳过，1753.598秒，包含跨hash-seed用例；686冻结文件SHA未变。见evidence/full-regression-allocation-1b5.json。原初失败仍保留，不改写成初次通过；这也不替代INAV同输入新旧逐字段比较。

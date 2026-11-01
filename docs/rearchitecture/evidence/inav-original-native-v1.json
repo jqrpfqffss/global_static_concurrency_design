@@ -1,0 +1,77 @@
+{
+  "complete": true,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. Directory sizes below are sampled logical sizes.\n",
+  "mode": "legacy",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+  "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+  "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "data_root": "I:\\ECRA-O1",
+  "safety_job_commit_limit_bytes": 34359738368,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "NOT_MEASURED",
+  "system_paging_rate": "NOT_MEASURED",
+  "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "started": "2026-11-01T00:51:00.479804+00:00",
+  "peaks": {
+    "working_set_bytes": 29537386496,
+    "private_bytes": 29735292928,
+    "peak_job_commit_bytes": 29805875200,
+    "sampled_output_logical_bytes": 46427649982
+  },
+  "samples": 24414,
+  "pid": 32728,
+  "seconds": 12542.188000000024,
+  "last": {
+    "seconds": 12541.657000000007,
+    "available": true,
+    "working_set_bytes": 1352671232,
+    "private_bytes": 1367445504,
+    "peak_job_commit_bytes": 29805875200,
+    "limit_bytes": 34359738368,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "system_commit_bytes": 35695665152,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 100864864256,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 50017939456,
+    "disk_free_bytes": 1904986562560,
+    "main_process_memory": {
+      "rss": 1306079232,
+      "vms": 1319800832,
+      "num_page_faults": 54850134,
+      "peak_wset": 29598859264,
+      "wset": 1306079232,
+      "peak_paged_pool": 342840,
+      "paged_pool": 328328,
+      "peak_nonpaged_pool": 2303000,
+      "nonpaged_pool": 246680,
+      "pagefile": 1319800832,
+      "peak_pagefile": 29799350272,
+      "private": 1319800832
+    },
+    "output_disk": {
+      "files": 57773,
+      "logical_bytes": 46427649982,
+      "sampling_partial": false
+    }
+  },
+  "exit_code": 2,
+  "final_output_disk": {
+    "files": 57773,
+    "logical_bytes": 46427649982,
+    "sampling_partial": false
+  },
+  "output": "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "3d92ef785ff468464968473938a188fa28ee625f711a79975d582695e9b7fab8"
+  },
+  "raw_receipt_sha256": "35df1855a94eaad73a279b309dccc103214d10c4a63bb9ffa82efe1098e05233",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-native-v1\\execution.json"
+}

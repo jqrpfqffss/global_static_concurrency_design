@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "tests": 1189,
+  "passed_tests": 1187,
+  "skipped": 2,
+  "seconds": 1753.598,
+  "scope": "Complete unittest discovery on686 frozen files; production106 files exactly match Portablev10",
+  "engine_commit": "1b573a121ffc9b7d502429919e9d8566a7160597",
+  "frozen_engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-allocation-1b5",
+  "manifest_sha256": "15ee4030ba8e04870572f53694f413394edbee6806ac54b91f800a853f7d2e94",
+  "frozen_files_unchanged": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-allocation-1b5.log",
+  "log_sha256": "f1fcd60903431dfc7a6d721bc6e93e93b0ac3cb803f04b17e7fb7fd934ed25db",
+  "skips": [
+    "test_live_six_cases: opt-in real OpenCode review",
+    "test_live_opencode_reviews_new_fixtures: opt-in live OpenCode review"
+  ],
+  "additional_metrics": "3 later actual Windows metric tests separately passed, not silently added to1189"
+}

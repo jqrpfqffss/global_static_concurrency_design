@@ -1,5 +1,15 @@
 # INAV 388TU 新黄金输入与原生测量（进行中）
 
+## 原版完成与候选前置核验（最新）
+
+原版实际388TU完整运行已经结束：12,542.188秒，退出码2，analysis_valid=true、STATIC_SCAN_SAVED、输入快照VERIFIED；报告仍为INCOMPLETE，不能解释为全工程安全。进程树Job提交峰值29,805,875,200B，工作集峰值29,537,386,496B，主树private采样峰值29,735,292,928B；显式32GiB安全上限未触及。目录最终/采样逻辑峰值均46,427,649,982B、57,773文件。见evidence/inav-original-native-v1.json及完整console/resources日志。原版早期没有分配字节/分页采集，不事后补造物理峰值；64GiB主机也不代替G3物理32GB。
+
+原版结束后逐一复验源树（含独立.git）3,545文件和实际构建578文件，SHA/大小/mtime全部不变，共4,123文件，差异0（inav-inputs-after-original.json）。完整原始数据正独立复制到I:/ECRA-GOLDEN-O1，逐文件哈希验证后设置只读文件属性；复制验证尚未完成前不称完整只读备份通过。候选须使用相同配置/源码路径/命令/ELF/map，从独立I:/ECRA-N1重新原生提取，预算16GiB，不共用原版TU缓存。原始备份与比较器中间格式不计入日常扫描磁盘收益。
+
+冻结1b573a1全套1189测试已结束：1187PASS、2项联网OpenCode opt-in跳过，1753.598秒；686冻结文件全部SHA未变，106运行时文件与Portablev10逐字节相同。见full-regression-allocation-1b5.json。后续3项Windows指标、3项备份专项是单独范围，不改写全套计数。
+
+用户回复“先继续已获准工程，其余标记待验”：仅继续已获准INAV/F030。其余G2工程保持NOT_VERIFIED_USER_DEFERRED。回复前ST公开资料目录/版本和独立Git下载已经完成，但没有构建/扫描，后续不推进；没有访问客户固件。见g2-user-scope-20261101.json。
+
 ## 观察器后续版本与当前长任务范围
 
 当前长任务inav-original-native-v1继续使用启动时的旧观察器；没有事后为它补造早期分页/分配峰值。新版scripts/native_metrics.py为以后运行增加[FileStandardInfo分配字节](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info)、[同句柄卷号与128位文件身份](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info)以避免硬链接重复计算；这不是os.stat的逻辑文件大小。遍历是每15秒采样的下界，排除目录/MFT元数据和备用数据流；消失/无法读取的文件显式记录partial。不能据此宣布完整G4或70%收益。

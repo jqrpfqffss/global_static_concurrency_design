@@ -10,10 +10,11 @@
 | 资源采集 | 3项PASS，真实4TU23.954s、46有效分页样本、Job142,188,544B、采样分配14,262,384B | native-resource-observer-probe-v3.json；分配仅采样下界、排除元数据/ADS，分页为整机 |
 | Portable v10 | 目录/中文解压各26命令PASS；106运行时文件SHA一致 | portable-studio-v10.json；535,435,337B，SHA1354e5c8...；非干净离线机 |
 | 真实Chrome | 主流程15、覆盖8、容量/排序9、旧迁移6、双origin协作7分别PASS | browser-portable-v10-*.json；不合并冒充完整U01–U24或全套单测 |
-| 冻结全套 | RUNNING，686文件冻结1b573a1，运行时与v10逐字节相同 | continuation-h3/full-regression-allocation-1b5.log；结束前不称全套PASS |
-| INAV原版388TU | TU/全局分析完成，保存中，完整性尚无最终收据 | continuation-h3/inav-original-native-v1；32GiB受控上限、64GiB物理机；原版物理分配峰值/分页早期数据未采集 |
+| 冻结全套 | 1189项：1187PASS、2 opt-in联网模型跳过，1753.598秒；686文件SHA未变 | full-regression-allocation-1b5.json；运行时与v10相同，后续临时目录修复单独验证 |
+| 独占任务临时目录 | 38项PASS、真实4TU与旧版全字段差异0、真实Chrome15项 | worker-temporary-v2.json；尚未重打包，不当作完整H2或全套重跑 |
+| INAV原版388TU | 12542.188秒；analysis_valid=true，状态INCOMPLETE；Job峰值29805875200B；最终/采样逻辑峰值46427649982B | inav-original-native-v1.json；32GiB受控上限、64GiB物理机；原版物理分配峰值/分页早期数据未采集 |
 
-原版完整黄金未发布、候选尚未单独运行，不能填写真实大型工程“之后”的峰值/耗时/差异，更不能宣称16GB或70%达标。历史.ecra虽有5.86GB JSON/7.67GB DB，其有效性仍为RUNNING/false，不替代原生黄金；inav-historical-validity.json明确记录。此前1161项全套属于3590227，不自动扩大到当前源码。
+原版已完成最终验证、独立原始备份继续逐文件复制核验；候选尚无最终同输入对照，不能填写真实大型工程“之后”的最终峰值/耗时/差异，更不能宣称16GB或70%达标。历史.ecra虽有5.86GB JSON/7.67GB DB，其有效性仍为RUNNING/false，不替代本次原生黄金；inav-historical-validity.json明确记录。用户指定其他G2工程待验，仅继续已获准INAV/F030。此前1161项全套属于3590227，本轮1189项属于冻结1b573a1，不自动扩大到后续当前源码。
 
 **完整重构未完成，Phase 0–6 和 G1–G8 不标全部通过。** 下方早期预览收据属于旧版本，不能当作当前源码/包的验收；当前实现入口为04-canonical-pipeline-progress.md。
 

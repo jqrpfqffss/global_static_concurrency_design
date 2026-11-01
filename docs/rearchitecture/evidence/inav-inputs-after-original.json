@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Every originally frozen source/Git and real build file after original native run",
+  "manifest": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\frozen-inputs.db",
+  "manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "counts": {
+    "real_build": 578,
+    "source": 3545
+  },
+  "differences": [],
+  "seconds": 39.0,
+  "raw_receipt_sha256": "ff8242cfb90da6abda0fc65b88702e62776d2e64efdd554500f6bff1b672a447",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-inputs-after-original.json"
+}

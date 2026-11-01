@@ -1,0 +1,18 @@
+{
+  "user_reply": "先继续已获准工程，其余标记待验",
+  "approved": [
+    "I:/ecra_stm32_validation/inav-h743-20261026",
+    "H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware"
+  ],
+  "remaining_G2": "NOT_VERIFIED_USER_DEFERRED",
+  "public_metadata_only": {
+    "downloaded": [
+      "I:/ECRA-PUBLIC-H7-8ec3113",
+      "I:/ECRA-PUBLIC-F4-60c8abe"
+    ],
+    "built": false,
+    "scanned": false,
+    "further_preparation": "DEFERRED_AT_USER_REQUEST"
+  },
+  "customer_firmware_accessed": false
+}
