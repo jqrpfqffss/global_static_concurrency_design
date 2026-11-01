@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "scope": "ADR014 development-only read-only comparison tool; exact raw and normalized hashes agree with independent typed graph",
+  "tests": 13,
+  "seconds": 3.954,
+  "logs": {
+    "native-json-hashes-v1-tests.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-json-hashes-v1-tests.log",
+      "sha256": "1a04ad18f6590aa2cf8a3ada7d4570bafb6730bbdb4b445ddbdd2efa9dc39bdd"
+    },
+    "native-json-hashes-v2-tests.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-json-hashes-v2-tests.log",
+      "sha256": "1d7cbafb38284aa89e4ea83c49dc93971adeccc494e99e3f531845ee2e33cba6"
+    },
+    "native-json-hashes-v3-tests.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-json-hashes-v3-tests.log",
+      "sha256": "22bedfe16f53199e2361f48883c69d6f27332d1f78e5106bd825034b22c54826"
+    },
+    "native-json-hashes-v4-tests.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-json-hashes-v4-tests.log",
+      "sha256": "5d26098ee5dd5fab005c57359fe88795ab3cae75e00b2a6034d20a37bdf4722a"
+    }
+  },
+  "first_attempt": "FAILED: shared fixture mistakenly used body-only Plan.dumps without full envelope; arbitrary roots incorrectly used business projections. Originals/log retained; corrected to original full shared writer and isolated GraphWriter.",
+  "native_f030": {
+    "passed": true,
+    "format": "ECRA_NATIVE_JSON_HASHES_V1",
+    "scope": "Read-only full ordered/typed JSON hashes; no full graph or evidence restore.\n\nNormalization is exactly compare_native_graphs.NormalizedGraph's contract.\nRaw JSON remains the complete envelope evidence. A hash mismatch is FAIL; this\ntool does not locate the first differing path. It is not a production codec.\n",
+    "script_sha256": "7c72780d10342962fdd64cbaa91dff73fdac9ced6395bbd486eb1853c2983d12",
+    "limit": "Hash certificate only; original JSON retains all envelope values. No first-difference path, G2/G3/G4 or input-closure claim.",
+    "facts": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\original-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\facts.json",
+      "raw_sha256": "6a78f68208c9a45c50f36d6dcfbfab875e240c345936fba8f95330dec50d41e8",
+      "bytes": 2096464,
+      "mtime_ns": 1793471111491061000,
+      "ordered_hash": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+      "normalized_hash": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+      "scope": "opaque",
+      "seconds": 4.9540000000015425,
+      "inputs_unchanged": true,
+      "pool_nodes": 0,
+      "parsed_tokens": 147106
+    },
+    "report": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\original-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\reports\\global_static_concurrency.json",
+      "raw_sha256": "a94c9bc075600f6d5d718188e65ec22330bf865bac0bf1b59052344ac498cc9c",
+      "bytes": 125565,
+      "mtime_ns": 1793471111530204000,
+      "ordered_hash": "33d7b4273fbff98f39d94a2c8e589c3c889ebc66e10f773dd3894f77864a2fb5",
+      "normalized_hash": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+      "scope": "report",
+      "seconds": 0.1709999999984575,
+      "inputs_unchanged": true,
+      "pool_nodes": 0,
+      "parsed_tokens": 4356
+    }
+  },
+  "independent_graph_hashes": {
+    "facts": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+    "report": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+  },
+  "large_native": "NOT_RUN",
+  "portable": "Not part of frozen v15; production runtime unchanged"
+}
