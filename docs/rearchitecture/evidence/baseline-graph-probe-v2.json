@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "scope": "Encode a completed native baseline's raw JSON for bounded graph comparison.\n\nNever re-extracts firmware or restores complete facts. This is an encoding\ndiagnostic, not another native G2 scan or a standard offline result package.\nThe original native JSON and its observer receipt remain authoritative.\n",
+  "execution": "H:\\global_static_concurrency_design\\docs\\rearchitecture\\evidence\\native-resource-observer-probe-v2.json",
+  "execution_sha256": "3c6dddd4f41ffd053f648f605acd79b91b29c14df8b148614c3d9bde1bd2c8ac",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-temporary-7d5",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-probe-v2",
+  "job_limit_bytes": 2147483648,
+  "peaks": {
+    "working_set_bytes": 39604224,
+    "private_bytes": 27922432,
+    "peak_job_commit_bytes": 27922432
+  },
+  "samples": 33,
+  "original_native_validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd"
+  },
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+  "temporary_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-probe-v2\\worker\\temporary",
+  "pid": 35656,
+  "seconds": 16.71899999998277,
+  "last": {
+    "seconds": 16.21899999998277,
+    "available": true,
+    "working_set_bytes": 34615296,
+    "private_bytes": 22978560,
+    "peak_job_commit_bytes": 27922432,
+    "limit_bytes": 2147483648,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "disk": {
+      "files": 4,
+      "logical_bytes": 1361,
+      "allocated_bytes": 4104,
+      "unique_files": 4,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    },
+    "drive_free_bytes": 87628394496
+  },
+  "exit_code": 0,
+  "final_disk": {
+    "files": 6,
+    "logical_bytes": 6069739,
+    "allocated_bytes": 6078720,
+    "unique_files": 6,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.0
+  },
+  "conversion": {
+    "passed": true,
+    "source_json_unchanged": true,
+    "source_sha256": {
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\facts.json": "352aaae4622ba83ee41481cb75d39071490938dd3c491d1ddc8bcf38f547b286",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\reports\\global_static_concurrency.json": "100f6674b3179b29cce6110881168bb49c635804f201ca1acef08767a44f6a1f"
+    },
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-probe-v2\\original-graph.db",
+    "metadata": {
+      "scan_id": "original-native-comparison-only",
+      "project_id": "frozen-native-original",
+      "profile_id": "default",
+      "state": "LEGACY_READ_ONLY",
+      "facts_hash": "277001ffc4e5043b1fd253650baae9be0c9ed5cfa79da252d7a1fef6f624bf64",
+      "report_hash": "28351a16d60e2a88af2dc59688b038b23f174818b68a2d2c680913a388c0fb55"
+    },
+    "complete_fact_graph_restore": false,
+    "scope": "Streaming representation of existing independently native original; not new extraction, not standard full archive"
+  },
+  "raw_receipt_sha256": "d5e024c2477e1d44358a5f44443a616b0fbf4c70d45e283e7d828a78d7c2a9c7",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-probe-v2\\execution.json",
+  "controller_sha256": "58dbda62cf205c06689e8e33d4914067c4da8dd7a05b3a55cef88a11f55a4505"
+}

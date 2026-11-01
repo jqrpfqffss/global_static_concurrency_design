@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "source": "I:\\ECRA-O1",
+  "files": 57773,
+  "readonly_scope": "FILE_ATTRIBUTES_NOT_ACL_MOUNT",
+  "seconds": 231.18800000002375,
+  "independent_backup": "STILL_COPYING_AND_VERIFYING_NOT_YET_COMPLETE",
+  "raw_receipt_sha256": "1de26ba96d51bfa7e5216bf385782f08fa73a3c6aea69f6a2ad758ae3610b771",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-file-attributes.json"
+}

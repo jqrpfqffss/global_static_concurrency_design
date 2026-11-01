@@ -1,5 +1,13 @@
 # INAV 388TU 新黄金输入与原生测量（进行中）
 
+## 2026-11-01 当前对照工作（覆盖下述较早的启动计划）
+
+原始I:/ECRA-O1的57,773文件已设置只读文件属性（不是ACL/只读挂载），独立I:/ECRA-GOLDEN-O1仍逐文件复制/复验，未完成前不称备份完成。见inav-original-file-attributes.json。
+
+首次候选inav-canonical-native-v1启动与冻结副本收尾发生重叠，已明确作废为REJECTED_STARTUP_ORDER；仅停止核验过身份的本任务进程，保留I:/ECRA-N1部分产物与失败收据，不计任何G门禁。新候选inav-canonical-native-v2在717个冻结工作文件逐一校验完成后顺序启动，使用frozen-engine-temporary-7d5、独立I:/ECRA-N2、同一6b27a1b0…配置、16GiB Job上限，临时目录归属该独立根。当前仍在原生388TU提取/分析，未宣布完成/等价/资源达标。
+
+scripts/measure_baseline_graph.py对已完成原生原版的两个完整JSON进行流式图编码，供逐字段对照；不重新提取、不整图恢复、不改原JSON，不是第三个原生工程或标准完整归档。真实4TU原版探针通过深度关系/投影校验与前后源SHA检查，Job峰值27,922,432B；见baseline-graph-probe-v2.json。INAV原版编码在独立目录进行中，尚未和新扫描比较，G1仍未关闭。
+
 ## 原版完成与候选前置核验（最新）
 
 原版实际388TU完整运行已经结束：12,542.188秒，退出码2，analysis_valid=true、STATIC_SCAN_SAVED、输入快照VERIFIED；报告仍为INCOMPLETE，不能解释为全工程安全。进程树Job提交峰值29,805,875,200B，工作集峰值29,537,386,496B，主树private采样峰值29,735,292,928B；显式32GiB安全上限未触及。目录最终/采样逻辑峰值均46,427,649,982B、57,773文件。见evidence/inav-original-native-v1.json及完整console/resources日志。原版早期没有分配字节/分页采集，不事后补造物理峰值；64GiB主机也不代替G3物理32GB。

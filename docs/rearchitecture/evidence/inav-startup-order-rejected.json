@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "state": "REJECTED_STARTUP_ORDER",
+  "reason": "Child started while full frozen snapshot copy was still finishing; do not use this attempt for any G gate",
+  "controller_pid": 37500,
+  "owned_child_pid": 33344,
+  "owned_child_stopped": true,
+  "source_data_root": "I:/ECRA-N1",
+  "partial_data_retained": true,
+  "previous_original_baseline_untouched": true,
+  "raw_receipt_sha256": "a2ce320a09664e686c835f2bd92e4e4d59a417366c3b42b228f85698dc5792bd",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-native-v1\\attempt-rejected.json"
+}
