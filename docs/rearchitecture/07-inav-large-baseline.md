@@ -14,6 +14,8 @@
 
 只读元数据盘点见evidence/inav-input-inventory.json：原.ecra共115,696个文件、106,941,865,853逻辑字节，原build约1.865GB；这些历史数据完整保留，没有以其删除量计算新格式收益。不是当前引擎磁盘峰值测量。
 
+补查历史归档有效性：虽然原.ecra存在5,855,058,999B facts.json和7,674,376,192B facts.db，result_validity仍为analysis_valid=false/RUNNING、开始于2026-10-29。不能仅凭大文件存在就把它作为完整黄金或G2成功；本轮没有复用它替代正在运行的原生基线，也没有删除/修复原目录。见evidence/inav-historical-validity.json。
+
 `scripts/prepare_inav_golden.py`在独立Git对象库捕获3,533个实际源码输入、225,726,022B及原始working/staged补丁、索引条目、Git状态和SQLite逐文件哈希。原索引/HEAD/工作状态与捕获后源码字节复验相同；原ignored构建/旧报告未复制，必须通过重新构建和实际消费闭包证明输入，不能叫作生产dirty完整快照。发生staged变化/子模块/链接/冲突时拒绝，不把未知输入跳过。2项真实Git专项通过，包含删除/未跟踪/忽略历史与staged拒绝。
 
 准备目录：`I:/ECRAStudio-data/rearchitecture-20261101/inav-golden-f254-v1`。首次no-checkout克隆在完成源码复制后，另对私有副本明确执行read-tree HEAD，核对全部索引条目和porcelain状态与原输入相同；该步骤只写私有.git。见inav-golden-index-check.json，脚本已将此步骤纳入默认流程。

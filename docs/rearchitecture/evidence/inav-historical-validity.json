@@ -1,0 +1,31 @@
+{
+  "scope": "Read-only metadata inspection of authorized historical INAV artifacts; never used as a valid golden",
+  "metadata": {
+    "result_validity.json": {
+      "sha256": "0cbc1fd2e1ab175bf7e0975d18aabae71a4b6f9a2a812f95297b386c8cba7f53",
+      "value": {
+        "analysis_valid": false,
+        "state": "RUNNING",
+        "started": "2026-10-29T07:28:22.472096+00:00"
+      }
+    },
+    "run.json": {
+      "sha256": "c59c68484d34700098e64b78675c718a8bd7f74a7fee18fc286a373efb601c1c",
+      "value": {
+        "version": "0.1.0",
+        "started": "2026-10-29T07:28:22.472096+00:00",
+        "project_root": "I:\\ecra_stm32_validation\\inav-h743-20261026",
+        "state": "RUNNING",
+        "review_mode": "disabled_by_cli"
+      }
+    }
+  },
+  "files": {
+    "facts.json": 5855058999,
+    "facts.db": 7674376192
+  },
+  "golden_usable": false,
+  "reason": "Historical result validity is analysis_valid=false and RUNNING, started2026-10-29; presence of large files is not a completed scan or native equivalence proof",
+  "mutations": false,
+  "originals_preserved": true
+}
