@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "scope": "Real metadata-only directory picker, bounded current-level pages and project-bound ranges; U02 partial, not LowMIC/nativeH2/G2/G7",
+  "tests": 34,
+  "seconds": 7.998,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\directory-browser-v2-tests.log",
+  "log_sha256": "f055b7c2f9568ef8a2da7b940c7b7d70e7b43affc43c0a083ae2867995325aba",
+  "browser": {
+    "directory_tests": 7,
+    "contexts_rechecked": 8,
+    "git_rechecked": 6
+  },
+  "initial_test_correction": "Two path-string expectations used TEMP8.3 alias; normalized owned fixture root via resolve to compare actual same paths; no production rewrite required",
+  "frontend": "vue-tsc and Vite50 modules PASS",
+  "new_portable": "NOT_BUILT",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "files": {
+    "ecra/studio/directories.py": "22646fc91364e908f7b8fbf74e29976ffecd2cd596215082baf94e743d9339a2",
+    "ecra/studio/server.py": "f1af12b434aeb994a4a3b9ff29883f3b46aa03b2ae907104cd6d3d935fad6e7a",
+    "studio/src/DirectoryBrowser.vue": "129a5ce375f0857670cd4b9a6d994ed89b4fe7ce92267b0e8a67eb3ffc8c25fa",
+    "studio/src/App.vue": "aab8d10c18e11331784909017bb3c2c49db420b439680892c0903c957b86ce3c",
+    "scripts/validate_directory_browser.py": "1a7597cba1f9010063919dac12bf1e4224d0426cbb8a1e38b4a6668f5d75e5b4",
+    "tests/test_directory_browser.py": "4f403c4039f15aae6e33b342df06366c5b26ddc914bd0067c4e01cbbba071412",
+    "tests/test_studio_api.py": "0bc0a0344ee3f733f0d010fd04cfef974824408ab68f7b1494ae0d3345e6cf9a"
+  }
+}

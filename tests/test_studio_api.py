@@ -13,6 +13,18 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_directory_picker_is_authenticated_read_only_and_bound_to_selected_project(self):
+        root=Path(self.tmp.name)/'固件, 目录';root.mkdir();(root/'Drivers, HAL').mkdir()
+        file=root/'original.c';file.write_text('int original;','utf-8');before=(file.read_bytes(),file.stat().st_mtime_ns,root.stat().st_mtime_ns)
+        payload=dict(path=str(root),root=str(root),limit=1)
+        response=self.client.post('/api/profiles/directories',json=payload)
+        self.assertEqual(response.status_code,200,response.text);value=response.json()
+        self.assertEqual(value['items'][0]['relative'],'Drivers, HAL');self.assertEqual(value['relative'],'.')
+        self.assertEqual(value['total'],1)
+        self.assertEqual(self.client.post('/api/profiles/directories',json=dict(path=str(root.parent),root=str(root))).status_code,400)
+        self.assertEqual(self.client.post('/api/profiles/directories',json=payload,headers={'x-ecra-session':'bad'}).status_code,401)
+        self.assertEqual(before,(file.read_bytes(),file.stat().st_mtime_ns,root.stat().st_mtime_ns))
+
     def test_context_form_api_keeps_full_backup_and_refuses_shared_or_invalid_origins(self):
         import copy
         import yaml

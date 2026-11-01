@@ -13,6 +13,7 @@ import LegacyArchive from './LegacyArchive.vue'
 import CoverageCenter from './CoverageCenter.vue'
 import GitVersions from './GitVersions.vue'
 import ContextEditor from './ContextEditor.vue'
+import DirectoryBrowser from './DirectoryBrowser.vue'
 const navigation = [ ['overview','项目概览'], ['projects','工程配置'], ['tasks','扫描任务'], ['variables','变量与风险'], ['coverage','覆盖与诊断'], ['opencode','OpenCode 复核'], ['reviews','人工确认'], ['history','历史与对比'], ['sharing','数据与共享'] ]
 const route = ref(location.hash.slice(2) || 'overview'), compact = ref(false)
 const bootstrap = ref<any>(null), scans = ref<any[]>([]), scan = ref(localStorage.getItem('ecra-scan') || ''), summary = ref<any>(null)
@@ -37,6 +38,16 @@ const savedYaml=ref(''),profileError=ref(''),taskFocus=ref(sessionStorage.getIte
 const formSnapshot=ref<Record<string,any>|null>(null),yamlBackup=ref<any>(null)
 const initialContexts=()=>[{origin_id:null as string|null,id:'main',kind:'MAIN',functions:['main']}]
 const contextRows=ref(initialContexts()),contextsEditable=ref(true),contextsReason=ref(''),systemHeaders=ref('default')
+const directoryMode=ref<''|'project'|'include'|'exclude'>('')
+function directorySelected(value:{path:string,relative:string|null}){
+  if(directoryMode.value==='project')projectRoot.value=value.path
+  else{
+    const target=directoryMode.value==='include'?include:exclude,entry=value.relative||'.',lines=directoryLines(target.value)
+    if(!lines.includes(entry))target.value=[...lines,entry].join('\n')
+    notice.value='已选择相对工程目录 '+entry+'；仅在下一步同步、检查并保存后生效。'
+  }
+  directoryMode.value=''
+}
 const editedProfile=computed(()=>profileList.value.find(p=>p.id===profileId.value&&p.revision===profileRevision.value))
 const savedProfileReady=computed(()=>!!editedProfile.value&&savedYaml.value===yaml.value)
 const repeatProfile=computed(()=>currentScan.value?.mode==='LOCAL_SNAPSHOT'?profileList.value.find(p=>p.project_id===summary.value?.binding.project_id&&p.id===summary.value?.binding.profile_id):null)
@@ -209,9 +220,9 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
           <div class="page-heading"><div><h1>接入工程 · 确认真实构建与范围</h1><p>配置保存在独立数据根。高级 YAML 原文保留，仅同步实际修改的普通字段。</p></div><button :disabled="busy" @click="newProfile">新建工程配置</button></div>
           <div class="steps"><span v-for="(text,index) in ['选择工程','确认构建','分析范围','检查与保存']" :class="{current: wizardStep===index+1}">{{ index+1 }} {{ text }}</span></div>
           <div class="overview-columns project-config"><section class="panel wizard-panel"><h2>第 {{ wizardStep }} 步</h2><fieldset class="wizard-fields" :disabled="busy"><div class="wizard-content">
-            <template v-if="wizardStep===1"><label>工程名称<input v-model="projectName" placeholder="例如：电机控制 CM7"></label><label>固件目录（绝对路径）<input v-model="projectRoot" placeholder="D:/Firmware/MotorControl"></label><p>仅登记路径，不修改固件与原正式构建目录。</p></template>
+            <template v-if="wizardStep===1"><label>工程名称<input v-model="projectName" placeholder="例如：电机控制 CM7"></label><label>固件目录（绝对路径）<input v-model="projectRoot" placeholder="D:/Firmware/MotorControl"></label><button type="button" @click="directoryMode='project'">选择固件目录</button><p>仅登记路径，不修改固件与原正式构建目录。</p></template>
             <template v-if="wizardStep===2"><label>真实构建方式<select v-model="buildMode" aria-label="真实构建方式" @change="changeBuildMode"><option value="cmake">CMake + Ninja（外置构建）</option><option value="database">已有 compile_commands.json</option></select></label><label>{{ buildMode==='cmake' ? '目标名称' : '编译数据库路径' }}<input v-model="target"></label><label v-if="buildMode==='cmake'">Toolchain 文件<input v-model="toolchain"></label><label v-if="buildMode==='cmake'">构建变体<input v-model="variant"></label><p v-else>宏、编译变体与工具链以真实编译数据库中的参数为准。</p><label>编译器标准头文件<select v-model="systemHeaders" aria-label="编译器标准头文件"><option value="default">按引擎默认（CMake 开启 / 数据库关闭）</option><option value="on">明确开启 · 从实际编译器探测</option><option value="off">明确关闭 · 使用已有参数</option></select></label><p class="muted">开启会调用真实编译器探测标准头文件目录；编译器缺失会明确失败。保持默认不会补写旧配置字段。</p></template>
-            <template v-if="wizardStep===3"><label>变量定义纳入目录（每行一个，空表示全部）<textarea v-model="include" rows="3"></textarea></label><label>排除变量清单目录（每行一个，仍参与调用恢复）<textarea v-model="exclude" rows="3"></textarea></label><ContextEditor v-model="contextRows" :editable="contextsEditable" :reason="contextsReason"/><GitVersions :project-root="projectRoot" v-model:base-ref="baseRef" v-model:current-ref="currentRef"/><p>目录中的逗号与空格按原文保留。未提交输入的完整隔离快照尚待验收。</p></template>
+            <template v-if="wizardStep===3"><label>变量定义纳入目录（每行一个，空表示全部）<textarea v-model="include" rows="3"></textarea></label><button type="button" :disabled="!projectRoot" @click="directoryMode='include'">从目录树纳入</button><label>排除变量清单目录（每行一个，仍参与调用恢复）<textarea v-model="exclude" rows="3"></textarea></label><button type="button" :disabled="!projectRoot" @click="directoryMode='exclude'">从目录树排除</button><p class="muted">目录树选择使用相对工程路径，“.”表示全部目录；排除仅影响变量清单，仍参与调用恢复。</p><ContextEditor v-model="contextRows" :editable="contextsEditable" :reason="contextsReason"/><GitVersions :project-root="projectRoot" v-model:base-ref="baseRef" v-model:current-ref="currentRef"/><p>目录中的逗号与空格按原文保留。未提交输入的完整隔离快照尚待验收。</p></template>
             <template v-if="wizardStep===4"><label>高级完整 YAML<textarea v-model="yaml" rows="9" spellcheck="false" @input="profileCheck=null"></textarea></label><button :disabled="busy" @click="checkProfile">检查配置与工具路径</button><details v-if="profileCheck" class="profile-check" :open="profileCheck.checks.some((item:any)=>!item.available)"><summary>配置路径已检查 · 工具可用 {{profileCheck.checks.filter((item:any)=>item.available).length}} / {{profileCheck.checks.length}} · 展开详情</summary><p>工程：{{ profileCheck.project_root }}</p><p>独立数据：{{ profileCheck.data_root }}</p><p v-for="item in profileCheck.checks">{{ item.tool }}：{{ item.available ? '路径可用' : '缺失' }} · {{ item.path }} {{ item.repair }}</p><div class="banner warning">{{ profileCheck.note }}</div></details></template>
             <div v-if="yamlBackup && wizardStep===4" class="banner" role="note"><p>同步前原文已备份 · {{yamlBackup.bytes}} 字节 · {{yamlBackup.id.slice(0,12)}}</p><button @click="restoreYaml">恢复同步前原文</button></div>
             </div><div class="wizard-actions"><button v-if="wizardStep>1" @click="previousStep">上一步</button><button v-if="wizardStep<4" class="primary" @click="nextStep">下一步</button><button v-else :class="{primary:!savedProfileReady}" :disabled="!profileCheck || busy" @click="saveProfile">保存独立配置</button><button v-if="wizardStep===4" :class="{primary:savedProfileReady}" :disabled="busy||!savedProfileReady" @click="launchProfile(editedProfile)">开始此配置扫描</button></div></fieldset>
@@ -243,5 +254,6 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
         <template v-else><h1>设置与验收状态</h1><section class="panel"><h2>独立数据根</h2><p class="identity">{{ bootstrap?.data_root }}</p><p>可在启动前设置 ECRA_DATA_ROOT 为其他盘的绝对路径。升级软件不覆盖此数据目录。</p><h2>明确的能力边界</h2><p v-for="item in bootstrap?.limits">{{ item }}</p><p>大型原生全量/Diff、32GB资源、干净机Portable及真实工程师盲测尚未完成，不宣称完整发布。</p></section></template>
       </main>
     </div>
+    <DirectoryBrowser v-if="directoryMode" :title="directoryMode==='project'?'选择固件目录':directoryMode==='include'?'选择变量纳入目录':'选择变量排除目录'" :start="projectRoot" :root="directoryMode==='project'?undefined:projectRoot" @selected="directorySelected" @close="directoryMode=''"/>
   </div>
 </template>
