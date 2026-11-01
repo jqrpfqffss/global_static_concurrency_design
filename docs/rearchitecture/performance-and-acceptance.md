@@ -98,3 +98,10 @@ Portable前两次长路径构建实际失败：CMake TryCompile在ASCII构建根
 封存v8的1161项冻结回归、目录/解压各26条命令与包内14+6+8浏览器流程属于3590227运行时代码；排序45d8a56及本轮覆盖不在该包中。v8 ZIP为H:/ECRAStudio-build-20261101-legacy-v8/ECRA-Portable.zip，535,418,600B，SHA-256 ba72a7907a3a9a09de690174ac3289059ac4ee745e8ee345329cb8a55afdd178。必须重建才能交付本轮功能。旧v6/v8收据不能证明当前源码完整通过。
 
 完整重构仍未完成。生产dirty字节隔离、原.git/worktrees写入、全局外存求解、三类大型full/Diff逐字段对照、32GB资源/70%实盘收益、完整故障矩阵、干净离线机和工程师盲测继续未通过；U14是本轮已覆盖范围的部分验收，不标全场景PASS。
+
+
+## 2026-11-01 当前阶段包 v9
+
+[evidence/portable-studio-v9.json](evidence/portable-studio-v9.json)：实现e7521e9，包含服务器排序、覆盖诊断和向导/首页真实重扫。H:/ECRAStudio-build-20261101-studio-v9/ECRA-Portable.zip，535,430,890B；SHA-256 f6c27e191e893673da6d8b72a45c1fa279abfddcd0f3c7a281822796f554ae51。105个运行时代码/前端/许可文件与源码逐字节匹配。目录与长中文路径ZIP解压各26条真实命令通过；包内Python3.10.9真实Chrome主流程15项、覆盖8项、容量/排序9项、旧迁移6项分别通过。完整视频/trace保留，不合算为全套回归数。
+
+主流程原生扫描明确使用冻结黄金数据库中的外部ARM编译器；包内ARM/GCC/C++/CMake/Ninja独立由两组26命令验证。没有干净离线物理机/系统DPI/工程师UAT；v9仍是阶段候选，G1–G8总门禁未关闭。1161项全回归属于3590227，当前新增覆盖有17项专项及真实浏览器验证；不宣称当前树已重跑完整全套。

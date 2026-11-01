@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--package',type=Path,required=True)
     parser.add_argument('--work',type=Path,required=True)
     parser.add_argument('--evidence',type=Path,required=True)
+    parser.add_argument('--engine',type=Path,default=TOOL)
+    parser.add_argument('--python',type=Path,default=Path(sys.executable))
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=False)
@@ -29,11 +31,12 @@ def main():
     provider=EvidenceProvider(scan/'scan.db');query=CoverageService(scan/'scan.db')
     stats=query.summary();original=sha256(scan/'scan.db')
     receipt=dict(passed=False,scope=__doc__,tests=[],page_errors=[],external_requests=[],scan_id=scan_id,
+        engine=str(args.engine),server_python=str(args.python),
         static_sha256=original,package_sha256=sha256(args.package),archived_status=stats,
         physical_second_machine='NOT_VERIFIED',native_windows_dpi='NOT_VERIFIED',independent_engineer_uat='NOT_VERIFIED')
     session=work/'session.json';log=(work/'server.log').open('w',encoding='utf-8')
-    server=subprocess.Popen([sys.executable,'-B','-m','ecra.studio','--data-root',str(work/'data'),
-        '--no-browser','--session-file',str(session)],cwd=TOOL,stdout=log,stderr=subprocess.STDOUT,
+    server=subprocess.Popen([str(args.python),'-B','-m','ecra.studio','--data-root',str(work/'data'),
+        '--no-browser','--session-file',str(session)],cwd=args.engine,stdout=log,stderr=subprocess.STDOUT,
         env=dict(os.environ,PYTHONIOENCODING='utf-8'),creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
     try:
         deadline=time.monotonic()+40

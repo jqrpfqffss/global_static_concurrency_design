@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "e7521e9",
+  "bundle": "H:\\ECRAStudio-build-20261101-studio-v9\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-studio-v9\\ECRA-Portable.zip",
+  "archive_bytes": 535430890,
+  "archive_sha256": "f6c27e191e893673da6d8b72a45c1fa279abfddcd0f3c7a281822796f554ae51",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "bundle_contains_runtime_data": false,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v9\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "9acf8a441bcfd70cdca5bdaf9c0f3b0ca6014372d13b0ce9771ad2d8ea8e24c4"
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "bundle_contains_runtime_data": false,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v9\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "75905ca830093ece100a6af66c0cb8a231f94a802f59dc0a451309663b41a14c"
+    }
+  },
+  "real_chrome": {
+    "main": {
+      "passed": true,
+      "tests": 15,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-repeat-v9\\acceptance.json",
+      "sha256": "69b83532d97a01b8516342652da21df7bab79f44d0943288ceb8d1ef99690fbe"
+    },
+    "coverage": {
+      "passed": true,
+      "tests": 8,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-coverage-v9\\acceptance.json",
+      "sha256": "c6278604d642bbbb49beec624275bef4dbfb26fa2e0d2b0a5e1b7ee695d9c343"
+    },
+    "capacity": {
+      "passed": true,
+      "tests": 9,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-capacity-v9\\acceptance.json",
+      "sha256": "28ac5d2a312d6720433288ccc761f45a757fceae05def799ac9e9afaebe7edfb"
+    },
+    "legacy": {
+      "passed": true,
+      "tests": 6,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-portable-legacy-v9\\acceptance.json",
+      "sha256": "f751bd13a6676f959e4463463ed5b8fd38a3af38b1737b5c5ee1bffffcc59d29"
+    }
+  },
+  "runtime_files_match": 105,
+  "limitations": [
+    "Not a clean/offline second physical machine",
+    "Physical host is 64 GiB, not G3 32 GiB",
+    "Main native UI test explicitly allows frozen external golden ARM compiler; bundled compilers independently exercised by 26-command checks",
+    "G1-G8 not all passed; source isolation, external-memory solving and large native full/Diff remain incomplete"
+  ]
+}
