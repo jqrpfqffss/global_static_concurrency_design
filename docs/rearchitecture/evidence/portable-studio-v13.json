@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "4ce86865d0ea1eb5dd91d3eb3620ebaa9997e613",
+  "bundle": "H:\\ECRAStudio-build-20261101-studio-v13\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-studio-v13\\ECRA-Portable.zip",
+  "archive_bytes": 535745045,
+  "archive_sha256": "3f23a7022307222380e287302fe7dc7ffed47e40f6376795deab6ddb2289d819",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v13\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "e14cc02136bbd8337f591af0ca3e4f969c131a059d5c3830adb4780efb12dae9",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Six expected exit2 INCOMPLETE; not all commands exit0"
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v13\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "5eec74e520d4b4e2f593c0500ee88d36464f6589a367e14a44b1cc6af1eb2b92",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Six expected exit2 INCOMPLETE; not all commands exit0"
+    }
+  },
+  "real_chrome": {
+    "git": {
+      "passed": true,
+      "tests": 6,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\portable-v13-git\\acceptance.json",
+      "sha256": "b6cb5854af4c7dba6eb3529fbc6782dab751160b9f65f55017f5ca80f6d7ea99"
+    },
+    "main": {
+      "passed": true,
+      "tests": 16,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\portable-v13-main\\acceptance.json",
+      "sha256": "bacf7bc8d8ec04f96cdfeef9be2f29dd1bf3229013fbc5dea73721ac903d7346"
+    },
+    "profile": {
+      "passed": true,
+      "tests": 7,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\portable-v13-profile\\acceptance.json",
+      "sha256": "19d3dbd22d603b5ad383683609e04f14f384aae60c514d41d2c57b367964b444"
+    }
+  },
+  "matched_runtime_files": 111,
+  "runtime_scope": "Independent Git stores, exact conflict selector/record allocations, real Git wizard and recoverable task metadata/layout; immutable4ce source bytes",
+  "complete_regression": "1230 tests:1228 PASS/2 opt-in live OpenCode SKIP; frozen4ce,798 hashes unchanged",
+  "physical_second_computer": "NOT_VERIFIED",
+  "clean_offline_windows": "NOT_VERIFIED",
+  "system_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "large_native_G1_G4": "NOT_PASSED"
+}

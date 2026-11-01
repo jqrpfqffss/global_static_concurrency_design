@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "scope": "Complete real66MB INAV TU response encoding, empty report fixture; NOT_NATIVE_G2_G3_G4",
+  "source_sha256": {
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\codec-cache64-experiment-v1\\actual-tu.json": "2b79b04cbfd14b5a460459111df0ff0030687d16c72e90243f097ca2443b6a9a",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\codec-cache64-experiment-v1\\empty-report.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "roots_equal": true,
+  "deep_integrity_both": true,
+  "before": {
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\codec-cache64-experiment-v1\\before\\execution.json",
+    "sha256": "cc623b1b5ece4225467f25f5ce54d960badcfb3bf4ca7f91b7c174f2edbcc243",
+    "encoding_seconds": 177.90599999999995,
+    "job_peak_bytes": 35512320,
+    "writer_cache_mib": 8
+  },
+  "after": {
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\codec-cache64-experiment-v1\\after\\execution.json",
+    "sha256": "4d150fe397d4adcc158304b45421eeed1d907e61258760c526b71850ff0ead1f",
+    "encoding_seconds": 130.9380000000001,
+    "job_peak_bytes": 98529280,
+    "writer_cache_mib": 64
+  },
+  "production_change": false,
+  "decision": "Use larger bounded cache only in separately frozen original-JSON comparison encoder; production/native code remains unchanged",
+  "hardware": "H and I are partitions of the same WDC WD60EZAX SATA HDD; do not treat them as independent disks or attribute concurrent whole-volume deltas",
+  "source_engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\codec-cache64-experiment-v1\\cache64",
+  "source_manifest_sha256": "b86b2460d1c0c5bcb14421abbfae4827ed9ac26e0d6829200922d59b890d4b5f"
+}

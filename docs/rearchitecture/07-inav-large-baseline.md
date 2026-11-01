@@ -69,3 +69,10 @@ scripts/measure_baseline_graph.py对已完成原生原版的两个完整JSON进�
 
 固定388TU归并的分配诊断另行测量，明确CONTROLLED_REPLAY_NOT_NATIVE_G2_OR_G3；不将其当作新的原生项目或成功发布。仅继续用户获准INAV/F030，其余真实工程仍NOT_VERIFIED_USER_DEFERRED。
 
+
+
+## 2026-11-01 黄金独立副本已完成，候选 v5 继续运行
+
+`evidence/inav-original-backup-v3.json`：源 I:/ECRA-O1 与独立 I:/ECRA-GOLDEN-O1 的57,773文件、46,427,649,982B全部逐文件SHA校验通过，源再次全量复验不变，清单SHA为bed35ca978b234f4afc04b6b0ced4949ddb3abc992f307d8a45e6689f2991875。复用中断副本前每个文件均已验证，未改写原版数据。只读仅指文件属性；H/I为同一物理HDD的两个分区，不是异机灾备或只读挂载。此前v2中断收据继续保留，不能改写为成功。
+
+候选 v5 使用冻结selectors引擎、原6b27配置，从H:/ECRA-NATIVE-S5独立冷提取388TU，Windows Job上限16GiB。启动前4123输入和779引擎文件核验通过，见inav-selectors-native-v5-preflight.json。当前完成提取、正在事实合并，没有最终成功收据；此前v3在16GiB下的MemoryError仍是实际FAIL，不能由提取阶段低内存覆盖。原版完整图转码排在候选之后，使用明确隔离的64MiB SQLite写缓存试验，不作为生产引擎或原生G2证明，见codec-cache64-diagnostic-v1.json。大型全字段对照与G1/G3/G4仍未关闭。

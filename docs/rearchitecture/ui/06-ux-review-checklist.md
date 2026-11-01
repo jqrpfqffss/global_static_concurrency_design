@@ -62,3 +62,6 @@
 向导/重扫续轮：15项真实Chrome流程通过，含[向导入口](screenshots/repeat-v1/02-project-wizard.png)、[第二次原生任务](screenshots/repeat-v1/10-home-profile-repeat-scan.png)、[本机概览](screenshots/repeat-v1/01-overview.png)。TaskCenter保存当前任务身份，复核任务也使用真实返回ID；配置YAML未保存时不能启动。只是U06局部流程，全部向导配置与系统DPI/真人仍待验。
 
 配置同步续轮：[冻结交互合同](10-profile-roundtrip-contract.md)。17项配置/API专项与7项真实Chrome操作通过；[1366首屏操作](screenshots/profile-roundtrip-v2/02-profile-saved-1366.png)增加启动按钮坐标断言，[1600高级配置](screenshots/profile-roundtrip-v2/01-roundtrip-saved-1600.png)。覆盖高级编辑后回填/仅同步改动、原文备份恢复、切换构建分支、逗号/空格目录、别名歧义拒绝与保存/重开。CRLF原文读回已修复。真实固件42文件及编译数据库SHA不变；无外部页面请求。初版首屏操作被挤出后已修复，保留v1截图/trace。该集合不代替完整U02、Windows系统DPI或工程师UAT；封存v10不含此实现。
+
+
+v13实包续验：evidence/browser-portable-v13-main.json（16项）、browser-portable-v13-git.json（6项）、browser-portable-v13-profile.json（7项）全部通过。包括真实Windows文件独占导致的任务状态读取失败及解除后自动恢复，1366/1600任务操作仍可见；截图ui/screenshots/portable-v13。真实浏览器缩放不代替系统DPI。U01示例/选目录、U02普通上下文/目录树等仍未齐，不将这些收据当U01–U24全部PASS。

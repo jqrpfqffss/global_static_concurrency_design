@@ -83,3 +83,6 @@ U14续轮：CoverageService/真实覆盖页已接通。17项专项与8项F030浏
 U06续轮：向导保存后直接开始、首页按相同project/profile当前保存版本重扫、真实任务ID定位已接通。browser-repeat-v1.json的15项真实操作通过，包含停止恢复、缺工具复核和第二次独立原生扫描，原归档/人工/固件.git不变；高级YAML修改后启动禁用。仅4TU与当前保存版本，未解决表单修改回写高级YAML、全部构建模式与大工程门禁。见ui/08-repeat-scan-contract.md。
 
 U02配置同步续轮已解决上述“表单修改回写高级YAML”缺陷：profile_forms受控round-trip、原文哈希备份与恢复、原始类型/引用拓扑检查、仅更新实际改动字段；17项专项及7项真实Chrome通过。详见profile-roundtrip-regression-v1.json、browser-profile-roundtrip-v2.json、ui/10-profile-roundtrip-contract.md。配置修改或恢复后必须重新检查保存，重新打开已保存配置可直接启动。内置常见上下文表单/目录树/真实Git分支下拉等仍未齐，U02保持PARTIAL，不能标全场景PASS；G7仍未通过。
+
+
+2026-11-01 v13证据更新：Git本地refs分页/搜索/解析/保存和非Git行为已由6项真实浏览器验收；任务文件真实独占读取错误及恢复由主流程新增第16项验收。包内配置往返7项、798文件冻结全套1230项（1228PASS/2联网SKIP）通过，见portable-studio-v13.json。独立原版备份57,773文件已验证通过，候选大工程v5仍未完成。U02/U04为已覆盖范围PARTIAL，G1/G2/G3/G4/G7/G8总门禁未通过；其余G2工程继续NOT_VERIFIED_USER_DEFERRED。

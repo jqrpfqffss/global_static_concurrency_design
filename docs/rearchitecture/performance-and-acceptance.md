@@ -143,3 +143,12 @@ Portable前两次长路径构建实际失败：CMake TryCompile在ASCII构建根
 [evidence/portable-studio-v9.json](evidence/portable-studio-v9.json)：实现e7521e9，包含服务器排序、覆盖诊断和向导/首页真实重扫。H:/ECRAStudio-build-20261101-studio-v9/ECRA-Portable.zip，535,430,890B；SHA-256 f6c27e191e893673da6d8b72a45c1fa279abfddcd0f3c7a281822796f554ae51。105个运行时代码/前端/许可文件与源码逐字节匹配。目录与长中文路径ZIP解压各26条真实命令通过；包内Python3.10.9真实Chrome主流程15项、覆盖8项、容量/排序9项、旧迁移6项分别通过。完整视频/trace保留，不合算为全套回归数。
 
 主流程原生扫描明确使用冻结黄金数据库中的外部ARM编译器；包内ARM/GCC/C++/CMake/Ninja独立由两组26命令验证。没有干净离线物理机/系统DPI/工程师UAT；v9仍是阶段候选，G1–G8总门禁未关闭。1161项全回归属于3590227，当前新增覆盖有17项专项及真实浏览器验证；不宣称当前树已重跑完整全套。
+
+
+## 2026-11-01 v13 封存与当前门禁
+
+最新封存阶段包为 `evidence/portable-studio-v13.json`，实现4ce86865d0ea1eb5dd91d3eb3620ebaa9997e613。ZIP为H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable.zip，535,745,045B，SHA-256 3f23a7022307222380e287302fe7dc7ffed47e40f6376795deab6ddb2289d819。111个运行时/前端/许可文件与冻结源码相同；798文件冻结回归1230项：1228PASS、2项联网OpenCode opt-in SKIP，1846.822秒，运行后SHA全部未变。原目录/中文路径解压各26条命令通过（各20退出0、6个预期INCOMPLETE退出2）。包内真实Chrome Git选择6项、主流程16项、配置往返7项通过，分别保留收据，不合并为全套回归数。
+
+该包实际包含独立Git管理库、完整冲突选择列表物理复用、真实Git refs向导、任务JSON共享占用重试及可见错误恢复。截图见ui/screenshots/portable-v13；Windows原生DPI/干净离线机/第二台物理机/工程师UAT未验。v13为开发候选，未宣称完整重构或G8通过。
+
+原版完整独立备份已实际完成：57,773文件、46,427,649,982B，逐文件SHA与源复验通过，见inav-original-backup-v3.json。候选v5仍在运行；大型最终完整归档、全字段Diff、物理峰值≥70%收益及32GB真机继续未通过。H/I分区属于同一物理HDD，避免并发重任务干扰；原版图转码在候选结束后执行。先前被中断/失败的收据不覆盖、不重新标PASS。

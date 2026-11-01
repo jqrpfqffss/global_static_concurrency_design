@@ -57,3 +57,10 @@ py -3.10 -B scripts/validate_studio_ui.py --package H:/ECRAStudio-data/rearchite
 配置同步（源码已实现；封存v10不含此功能）：普通目录字段每行一个，逗号和空格保留。已有配置在第4步点“上一步”，表单会先读取当前完整YAML；再次前进只同步实际修改字段，原文备份位于独立数据根settings/profile-drafts，可点“恢复同步前原文”。切换构建方式会替换该构建分支，界面明确提示并保留完整前文。共享映射/合并键无法证明仅影响本字段时保留高级编辑，不猜测展开。修改或恢复后重新检查保存才能扫描；工程配置可用名称打开，新建配置不会覆盖已有配置。详细检查可展开，表单内容独立滚动，底部操作保持可见。
 
 上述配置同步现已包含于阶段v11：双击H:/ECRAStudio-build-20261101-studio-v11/ECRA-Portable/ECRA.cmd，包内Python/Chrome主流程15项与配置7项通过；见evidence/portable-studio-v11.json。其冻结4e6完整测试在Windows venv出现4个失败断言（故障注入PID与PE夹具），后续源码已修复并有专项证据，仍须完整复跑及新包验证。v11不含后续挂起启动Job所有权/整机提交保护，不能冒称所有发布门禁已通过。
+
+
+## 最新封存阶段包 v13（完整发布门禁未通过）
+
+启动H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/ECRA.cmd，或解压同目录ECRA-Portable.zip。ZIP 535,745,045B，SHA-256 3f23a7022307222380e287302fe7dc7ffed47e40f6376795deab6ddb2289d819；具体收据见evidence/portable-studio-v13.json。真实Git版本选择可分页/搜索本地refs，显示HEAD、提交和未提交范围；保存后扫描重新固定输入。只覆盖已提交版本，未提交完整隔离仍未完成。任务状态文件被Windows短暂独占时显示重试提示，读取恢复后自动消除提示，原结果仍可打开。
+
+此包完整回归1230项（1228PASS/2联网SKIP），包内Chrome主流程16、Git6、配置往返7项及目录/ZIP各26命令通过。尚无干净离线机、系统高DPI、物理第二台电脑与工程师盲测通过记录；大型G1–G4尚未关闭。

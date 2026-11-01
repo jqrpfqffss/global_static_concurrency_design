@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "tests": 1230,
+  "passed_tests": 1228,
+  "skipped": 2,
+  "seconds": 1846.822,
+  "head": "4ce86865d0ea1eb5dd91d3eb3620ebaa9997e613",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-4ce",
+  "frozen_files": 798,
+  "source_differences": [],
+  "manifest_sha256": "95cf9eebfcc089f1ebb9623ed082e7b82c5b5ef539bc9896eb835a541befa880",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-4ce.log",
+  "log_sha256": "8e138825194969124917432e47ace05b34a915a392f957a88023c06c90fc8873",
+  "scope": "Whole committed4ce working bytes, includes Git selector and task snapshot/layout plus conflict allocations; user comment-only config kept; live network OpenCode skipped"
+}

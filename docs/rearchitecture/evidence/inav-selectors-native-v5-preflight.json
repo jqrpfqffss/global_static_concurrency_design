@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "inputs": 4123,
+  "differences": [],
+  "engine_files": 779,
+  "engine_manifest_sha256": "e50143c6e4266d03e8a5a6be693932d5a59c1aec7b6d9dd0d979744b699cb53a",
+  "input_manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "verification_seconds": 44.39100000000053,
+  "observed_utc": "2026-11-01T12:04:08.835231+00:00",
+  "scope": "All frozen real source/Git/build bytes before fresh native extraction; no TU-cache migration",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-selectors-native-v5-preflight.json",
+  "raw_receipt_sha256": "b11feb3a24081817363ae906a4a6fca7135ed90d827e4dde6d02a203e41ee0d6"
+}
