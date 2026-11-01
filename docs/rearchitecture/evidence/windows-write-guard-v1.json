@@ -1,0 +1,96 @@
+{
+  "passed": true,
+  "scope": "Actual ARM/CMake/Clang compatibility of the unintegrated Windows write guard.\n\nUses the explicitly selected frozen public F030 input. This is not a production\ndirty snapshot, private Git metadata isolation, or full H2/G8 acceptance.\n",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "private_root": "H:\\ECRA-GUARD-4",
+  "integrity_rid": 4096,
+  "commands": [
+    {
+      "command": [
+        "D:\\cmake\\bin\\cmake.EXE",
+        "-S",
+        "H:\\ECRA-GUARD-4\\project",
+        "-B",
+        "H:\\ECRA-GUARD-4\\build",
+        "-G",
+        "Ninja",
+        "-DCMAKE_MAKE_PROGRAM=C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Links\\ninja.EXE"
+      ],
+      "returncode": 0,
+      "stdout": "-- The C compiler identification is GNU 10.3.1\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: H:/global_static_concurrency_design/.tools-cache/arm-gcc-10.3-2021.10/bin/arm-none-eabi-gcc.exe - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Configuring done (1.0s)\n-- Generating done (0.0s)\n-- Build files have been written to: H:/ECRA-GUARD-4/build\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "D:\\cmake\\bin\\cmake.EXE",
+        "--build",
+        "H:\\ECRA-GUARD-4\\build",
+        "--parallel",
+        "2"
+      ],
+      "returncode": 0,
+      "stdout": "[1/5] Building C object CMakeFiles/guard.elf.dir/H_/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/startup.c.obj\n[2/5] Building C object CMakeFiles/guard.elf.dir/H_/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c.obj\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c: In function 'test_dma':\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:616:28: warning: passing argument 2 of 'uart_write_int' makes integer from pointer without a cast [-Wint-conversion]\n  616 |     uart_write_int(USART1, mem_src);\n      |                            ^~~~~~~\n      |                            |\n      |                            char *\nIn file included from H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:7:\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/peripheral.h:18:48: note: expected 'int' but argument is of type 'char *'\n   18 | void uart_write_int(USART_TypeDef *USARTx, int i);\n      |                                            ~~~~^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:627:28: warning: passing argument 2 of 'uart_write_int' makes integer from pointer without a cast [-Wint-conversion]\n  627 |     uart_write_int(USART1, mem_dest);\n      |                            ^~~~~~~~\n      |                            |\n      |                            char *\nIn file included from H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:7:\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/peripheral.h:18:48: note: expected 'int' but argument is of type 'char *'\n   18 | void uart_write_int(USART_TypeDef *USARTx, int i);\n      |                                            ~~~~^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:666:25: warning: assignment to 'uint32_t' {aka 'volatile long unsigned int'} from 'char *' makes integer from pointer without a cast [-Wint-conversion]\n  666 |     DMA1_Channel1->CMAR = mem_src;  // memory address (source address)\n      |                         ^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:667:25: warning: assignment to 'uint32_t' {aka 'volatile long unsigned int'} from 'char *' makes integer from pointer without a cast [-Wint-conversion]\n  667 |     DMA1_Channel1->CPAR = mem_dest; // peripheral address (destination address)\n      |                         ^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c: In function 'test_dma_interrupt':\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:712:28: warning: passing argument 2 of 'uart_write_int' makes integer from pointer without a cast [-Wint-conversion]\n  712 |     uart_write_int(USART1, mem_src);\n      |                            ^~~~~~~\n      |                            |\n      |                            char *\nIn file included from H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:7:\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/peripheral.h:18:48: note: expected 'int' but argument is of type 'char *'\n   18 | void uart_write_int(USART_TypeDef *USARTx, int i);\n      |                                            ~~~~^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:723:28: warning: passing argument 2 of 'uart_write_int' makes integer from pointer without a cast [-Wint-conversion]\n  723 |     uart_write_int(USART1, mem_dest);\n      |                            ^~~~~~~~\n      |                            |\n      |                            char *\nIn file included from H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:7:\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/peripheral.h:18:48: note: expected 'int' but argument is of type 'char *'\n   18 | void uart_write_int(USART_TypeDef *USARTx, int i);\n      |                                            ~~~~^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:762:25: warning: assignment to 'uint32_t' {aka 'volatile long unsigned int'} from 'char *' makes integer from pointer without a cast [-Wint-conversion]\n  762 |     DMA1_Channel1->CMAR = mem_src;  // memory address (source address)\n      |                         ^\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/main.c:763:25: warning: assignment to 'uint32_t' {aka 'volatile long unsigned int'} from 'char *' makes integer from pointer without a cast [-Wint-conversion]\n  763 |     DMA1_Channel1->CPAR = mem_dest; // peripheral address (destination address)\n      |                         ^\n[3/5] Building C object CMakeFiles/guard.elf.dir/H_/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/peripheral.c.obj\nIn file included from H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/peripheral.c:7:\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/utils.h:6:20: warning: 'spin' declared 'static' but never defined [-Wunused-function]\n    6 | static inline void spin(volatile uint32_t count);\n      |                    ^~~~\nH:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/utils.h:7:20: warning: 'spin_one' declared 'static' but never defined [-Wunused-function]\n    7 | static inline void spin_one();\n      |                    ^~~~~~~~\n[4/5] Building C object CMakeFiles/guard.elf.dir/H_/ECRAStudio-data/rearchitecture-20261031/baseline/firmware/utils.c.obj\n[5/5] Linking C executable guard.elf\n",
+      "stderr": ""
+    }
+  ],
+  "native_elf": "H:\\ECRA-GUARD-4\\build\\guard.elf",
+  "clang_tu": "peripheral.c",
+  "parse_status": "PARSED",
+  "diagnostics": [
+    {
+      "severity": 2,
+      "message": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware\\utils.h:8:5: warning: incompatible redeclaration of library function 'strlen' [-Wincompatible-library-redeclaration]",
+      "file": "utils.h",
+      "line": 8,
+      "column": 5
+    }
+  ],
+  "variables": 6,
+  "accesses": 9,
+  "exit_code": 0,
+  "resources": {
+    "available": true,
+    "working_set_bytes": 0,
+    "private_bytes": 0,
+    "peak_job_commit_bytes": 44900352,
+    "limit_bytes": 1073741824,
+    "processes": 0,
+    "sampled_processes": 0,
+    "write_bytes": 0
+  },
+  "source_unchanged": true,
+  "test_scope": {
+    "tests": 3,
+    "seconds": 0.339,
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\windows-write-guard-3.log",
+    "sha256": "fc7b7c1c07211590310d3d365ba50b68c0f33828b8abd274fe7eedc64f6590e1"
+  },
+  "sources": {
+    "ecra\\studio\\write_guard.py": "73dcfe6e3f05e42b740bad70f7f2abef6094ec30ee1a0fa54a5a8950e25fe62c",
+    "scripts\\validate_windows_write_guard.py": "be71b0be5b23a2a424abd7210800c33556fdbfed1d9e928f244b34a063c493e9",
+    "tests\\test_windows_write_guard.py": "3f731dae17476f66e4a98edfbb6cac89703e95aba0f5a10d3d40166c62440d89"
+  },
+  "limitations": [
+    "NOT integrated with formal scans",
+    "Ordinary current-host medium/unlabelled source protection only; not a hostile-code sandbox",
+    "Original low-integrity paths, remote filesystems, non-admin clean machine and portable runtime NOT_VERIFIED",
+    "Independent Git metadata, dirty compilation equivalence and complete H2/U03 remain incomplete"
+  ],
+  "prior_attempts": [
+    {
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\guard-native-v1.log",
+      "result": "Failed diagnostic script quoting; corrected script"
+    },
+    {
+      "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\guard-native-v2\\acceptance.json",
+      "result": "Passed earlier configuration of same prototype"
+    },
+    {
+      "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\guard-native-v3\\acceptance.json",
+      "result": "CMake/link passed, Clang FAILED with earlier config lacking auto_system_includes; v4 explicitly selects the separately frozen parsed-F030 config with auto_system_includes true"
+    }
+  ]
+}

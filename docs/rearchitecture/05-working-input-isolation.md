@@ -1,5 +1,15 @@
 # H2 未提交输入隔离：实施合同（进行中）
 
+## Windows进程写保护前置原型（尚未接入正式扫描）
+
+`ecra/studio/write_guard.py`使用禁用特权的受限主令牌、Low完整性等级和显式标准输入/日志句柄继承列表，先挂起启动、加入受控Job后再继续。只为一个全新、无重解析点、与源码/程序目录不重叠的私有目录设置Low继承标签；现有目录一律拒绝，绝不改原固件/SDK/安装目录的标签。普通Medium或未标注的原始文件可读，Low子进程及普通后代的写操作由Windows阻止。此机制依据[Microsoft MIC文档](https://learn.microsoft.com/en-us/windows/win32/secauthz/mandatory-integrity-control)、[受限令牌](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-createrestrictedtoken)及[CreateProcessAsUserW](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasuserw)。它不是防恶意代码的完整沙箱，也不证明构建输入等价。
+
+当前Windows实测3项PASS：覆盖/创建/删除/建目录/原.git写入及后代写入全部拒绝，原固件可读且哈希不变，私有目录正常写入；源码/安装目录内部的新标签目录在创建前拒绝。另`scripts/validate_windows_write_guard.py`以冻结的parsed-F030配置在Low子进程实际CMake/Ninja/ARM编译链接成功、Clang解析peripheral.c为PARSED（6变量/9访问），原源码及.git全文件SHA不变，收据evidence/windows-write-guard-v1.json。
+
+失败尝试均保留：v1诊断脚本引号错误；v3误选早期缺少系统头探测的基线配置，链接成功而Clang为FAILED；v4显式使用早已冻结的auto_system_includes=true配置成功，没有改变原固件/配置。该验证只构建独立小工程并提取一个TU，不当作全量扫描、Portable/只读挂载或H2验收。
+
+生产接入仍需将所有可写工作区、缓存、构建和隔离Git元数据放在全新私有工作胶囊内，由普通完整性broker验证后发布权威归档/人工事件。禁止为方便执行而重标现有整个数据根。原先已是Low的文件、网络文件系统、非管理员干净机尚未验证；正式dirty扫描门禁和原.git/worktrees问题仍未解除。
+
 起点为当前候选实现提交7ef7c8a，验收记录提交c378539。该功能尚未接入正式扫描，`include_uncommitted: true`继续拒绝；不能将本设计或独立捕获器测试当成完整H2通过。
 
 复用WorkspaceResolver的工程身份和worktree_root，不创建第二套项目身份。原固件、原.git/index/config/refs与正式build只读。隔离Git仓库使用独立对象库和索引；禁止hardlink到原源码，也不以git worktree add写原仓库管理目录。Git的可选索引刷新关闭。
