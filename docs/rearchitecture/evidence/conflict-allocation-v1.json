@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "scope": "Compare allocation-only conflict changes against a small frozen native scan.\n\nExisting native data is read, not re-extracted. This diagnostic restores only a\ndatabase <=32MiB, compares all existing variable conflict rows, and measures a\nseparate 12,000-access/48,000-route capacity fixture. It is not large-native G1\nor physical-32GB G3 acceptance.\n",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-golden-candidate-v2\\data\\scans\\native-parsed-f030\\scan.db",
+  "source_sha256": "e9bf7493970b4f889d57f40499c2479a19c29e88e5eeeac69258d0ff830d48ff",
+  "source_unchanged": true,
+  "native_variable_conflicts_compared": 13,
+  "native_conflict_rows": 2,
+  "differences": 0,
+  "capacity_metrics": [
+    {
+      "engine": "frozen_e69",
+      "seconds": 0.8050614999956451,
+      "temporary_python_peak_bytes": 10032993
+    },
+    {
+      "engine": "candidate",
+      "seconds": 0.27419829997234046,
+      "temporary_python_peak_bytes": 5013433
+    }
+  ],
+  "analysis_sha256": "291ec9f20ef367e90d466e23e06d4ab2a2708099d1c826651c5b5b113cd203a4",
+  "reference_sha256": "5dce34c3f57e0ba52d2e2df9be81a0c70ab1e0336eae4666e270d90483eb0da9",
+  "unit_regression": {
+    "tests": 4,
+    "seconds": 1.822,
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\conflict-allocation-2.log",
+    "log_sha256": "ce58b48860c875793bac4e888c81f22487c3e89c2ce3a82474c789917d0b5ae2"
+  },
+  "initial_focused_run": {
+    "tests": 198,
+    "seconds": 239.862,
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\conflict-allocation-1.log",
+    "sha256": "6d2e6719720919ca5c957934034c9e3041c99426ca030ccd678ac964155e0d67",
+    "result": "FAILED: two prototype allocation/test-selection errors corrected; cross-process review hash-seed regression returned2 instead of1 while runtime source changed; must re-run on immutable bytes, cause not yet established"
+  }
+}

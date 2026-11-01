@@ -439,6 +439,12 @@ def conflict_pairs(accesses, relations, contexts):
     keeping facts and HTML proportional to the actual call graph.
     """
     from .evidence import access_role
+    from .json_rows import RecordDicts
+    participant_records = RecordDicts(maxsize=1)
+    participant_keys = ('instance_id', 'context_id', 'access_id', 'access_kind',
+                        'function_id', 'file', 'line', 'canonical_path',
+                        'call_path_count', 'access_scope', 'inherited_from_canonical_path',
+                        'call_path_count_kind')
     relation_by_contexts = {tuple(sorted(row['contexts'])): row for row in relations}
     instances = {}
     for access in accesses:
@@ -446,12 +452,20 @@ def conflict_pairs(accesses, relations, contexts):
             continue
         for context_id, route in all_resolved_routes(access):
             key = (access.get('access_id'), context_id)
-            instance = instances.setdefault(key, dict(instance_id='CI-' + digest(key)[:20],
-                context_id=context_id, access_id=access.get('access_id'), access_kind=access['access_kind'],
-                function_id=access['function_id'], file=access.get('file'), line=access.get('line'),
-                canonical_path=access.get('canonical_path'), call_path_count=0,
-                access_scope=access.get('access_scope', 'MEMBER_ACCESS'),
-                inherited_from_canonical_path=access.get('inherited_from_canonical_path')))
+            instance = instances.get(key)
+            if instance is None:
+                # Defaults to setdefault are evaluated even on a hit. Keep
+                # the first record exactly, without rebuilding it per route.
+                instance = participant_records(participant_keys)
+                # Insert individually: dict.update's empty-dict fast path can
+                # discard CPython's split shared-key layout.
+                for field, value in zip(participant_keys, (
+                    'CI-' + digest(key)[:20], context_id, access.get('access_id'), access['access_kind'],
+                    access['function_id'], access.get('file'), access.get('line'),
+                    access.get('canonical_path'), 0, access.get('access_scope', 'MEMBER_ACCESS'),
+                    access.get('inherited_from_canonical_path'))):
+                    instance[field] = value
+                instances[key] = instance
             instance['call_path_count_kind'] = ('EXACT_PATH_COUNT' if access.get('call_path_lists_complete', True)
                                                 else 'WITNESS_COUNT')
             # Full routes stay once in access.all_call_chains.  A conflict

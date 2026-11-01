@@ -2,6 +2,8 @@
 
 冻结基准引擎见 `00-baseline-audit.md`。默认不修改 `analysis/points_to/context_points/solver_reachability/call_graph/protection/nvic/interrupts/physical/decisions` 的判定。
 
+明确例外：ADR-009（08-conflict-allocation-adr.md）只改变analysis.conflict_pairs的临时普通dict分配、复用已存在的共享schema实现；不改变实例键、首条获胜、全部路径计数或冲突生成。4项独立旧函数对照及实际4TU全字段黄金通过；198项初次回归的失败与完整冻结复跑状态必须一起查阅，不能继续用“受保护文件完全未改”描述该候选。
+
 1. 固定 firmware SHA、全部 dirty 字节、编译命令/宏/实际头文件、生成输入、工具链二进制、配置、环境与引擎。旧新使用相同字节和真实构建闭包；目录映射只能由显式清单建立。
 2. 存储层往返必须保留每个字段、JSON 标量类型、浮点有符号零、字典字段顺序、全部数组顺序及重复次数。未知未来字段同样保留，禁止只保存已知 schema 子集。
 3. 关系索引是可查询投影，绝不替代权威原始值。symbol_id/canonical identity 不重新推断。容器、OUT_OF_BUILD、NON_STORAGE 不计为 SAFE。
