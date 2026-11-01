@@ -1,0 +1,26 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "ordinary_main_isr_task_and_explicit_compiler_header_generation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: ordinary context forms and exact advanced roundtrip.\n\nUses an already authorized, read-only firmware path. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_context_forms.py\", line 111, in main\n    value=yaml.safe_load(merged);assert value==expected and value['future_alias'] is value['contexts'][0]['future']\nAssertionError\n",
+  "raw_receipt_path": "H:\\global_static_concurrency_design\\output\\playwright\\context-forms-v1\\acceptance.json",
+  "raw_receipt_sha256": "a5326c9736a2e72aeffcef3499f5fee5708b48259f051404c2379e07558d4593"
+}

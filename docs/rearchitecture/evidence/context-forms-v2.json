@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "scope": "Common context forms and explicit compiler headers, U02 partial; no native algorithm change or new G2 claim",
+  "implementation_base": "8d8aa4f",
+  "tests": {
+    "command": "py -3.10 -B -X utf8 -m unittest tests.test_context_forms tests.test_profile_forms tests.test_studio_api tests.test_git_versions -v",
+    "tests": 31,
+    "seconds": 15.454,
+    "result": "PASS",
+    "raw_log": "Tool execution d2373e and session16878, not exported as standalone full log"
+  },
+  "earlier_command_error": {
+    "tests": 27,
+    "passed": 26,
+    "errors": 1,
+    "cause": "Wrong module name tests.test_git_selection; corrected to existing tests.test_git_versions; no production defect inferred"
+  },
+  "frontend": {
+    "command": "npm.cmd run build",
+    "result": "PASS",
+    "modules": 47
+  },
+  "real_chrome": {
+    "contexts": {
+      "result": "PASS",
+      "tests": 8,
+      "receipt": "browser-context-forms-v2.json"
+    },
+    "original_roundtrip": {
+      "result": "PASS",
+      "tests": 7,
+      "receipt": "browser-profile-context-v1.json"
+    }
+  },
+  "preserved_failure": {
+    "receipt": "browser-context-forms-v1.json",
+    "tests_completed": 1,
+    "cause": "Delayed textarea change allowed a sibling selection to reset unblurred functions",
+    "fix": "FunctionNames keeps raw draft and emits input immediately, respecting incoming row replacement"
+  },
+  "code_sha256": {
+    "ecra/studio/profile_forms.py": "8fa43de4e09e975fa4abb363578f3acdc47fbcf51e60cf211a7bf1a4d4080e75",
+    "studio/src/App.vue": "a51d815da5a6bd986e1c4f370a679db2bf7050800a2b7a818d509661a481640b",
+    "studio/src/ContextEditor.vue": "4618fc3199180c254cd3d6db67f0e88856c51aa448184fecca3d2d69329b9bdf",
+    "studio/src/FunctionNames.vue": "534d5c9e9a73d0f58bb29c6f55359115b83542285661f5117b6111a0dd099a50",
+    "scripts/validate_context_forms.py": "d4b4bad724cb65e3b6ddb53a92cb87555605a9319fa1c634aa3aa387d1277e1d",
+    "tests/test_context_forms.py": "88fbe3388a468c872dcbf4762a93fbd5af58b1264ed0b3702407e4342f25eff7",
+    "tests/test_studio_api.py": "57d690308454f885803eb854fe391d29e59a8efbe568e9dc98a420478fc00fb9",
+    "ecra/studio/web/index.html": "530d106e0ae690201b74f5a1c8ab51377ae4f5f84e02f30ceb69a48d58f56d79"
+  },
+  "physical_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "G7": "NOT_PASSED",
+  "new_portable": "NOT_BUILT"
+}

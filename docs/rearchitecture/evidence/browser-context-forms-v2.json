@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "ordinary_main_isr_task_and_explicit_compiler_header_generation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "advanced_context_fields_comments_types_aliases_and_complete_restore",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "explicit_return_to_engine_default_removes_only_selected_option",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "duplicate_context_identity_error_preserves_inputs_and_saved_profile",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "all_thirteen_entries_survive_pagination_save_and_reload",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "explicit_row_removal_preserves_other_advanced_rows_and_full_predecessor",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "context_and_saved_primary_actions_visible_at_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "shared_context_function_editor_disabled_without_losing_other_form_edits",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\context-forms-v2\\01-contexts-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\context-forms-v2\\02-saved-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\context-forms-v2\\01-contexts-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\context-forms-v2\\02-saved-1600.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: ordinary context forms and exact advanced roundtrip.\n\nUses an already authorized, read-only firmware path. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "firmware_files_unchanged": 42,
+  "compile_database_unchanged": true,
+  "backup_files": 4,
+  "saved_profile": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-context-forms-v2\\data\\projects\\1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd\\profiles\\04a8c01f52e047be8fa942e0a70c7e09.yaml",
+  "profile_sha256": "a78c04a24693da99028e05171807d03b5469270864d1758c8e164e06b21cf1e3",
+  "raw_receipt_path": "H:\\global_static_concurrency_design\\output\\playwright\\context-forms-v2\\acceptance.json",
+  "raw_receipt_sha256": "62ea3a40fc05aaaf02797b615667b7bfc7310cb61755a984c86c78d9f742a66a"
+}

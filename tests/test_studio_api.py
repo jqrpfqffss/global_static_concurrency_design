@@ -13,6 +13,27 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_context_form_api_keeps_full_backup_and_refuses_shared_or_invalid_origins(self):
+        import copy
+        import yaml
+        from tests.test_context_forms import RAW
+        state=self.client.post('/api/profiles/form',json=dict(yaml=RAW)).json()
+        self.assertTrue(state['contexts_editable']);rows=copy.deepcopy(state['form']['contexts'])
+        rows[1]['functions']=['New_IRQHandler','New_IRQHandler']
+        result=self.client.post('/api/profiles/form-merge',json=dict(yaml=RAW,changes=dict(contexts=rows,system_headers='on')))
+        self.assertEqual(result.status_code,200,result.text);value=result.json();expected=yaml.safe_load(RAW)
+        expected['contexts'][1]['functions']=rows[1]['functions'];expected['analysis']['auto_system_includes']=True
+        self.assertEqual(yaml.safe_load(value['yaml']),expected)
+        original=self.client.get('/api/profiles/drafts/'+value['backup']['id'])
+        self.assertEqual(original.json()['yaml'],RAW)
+        backup_files={p.name:p.read_bytes() for p in (self.data/'settings/profile-drafts').glob('*.yaml')}
+        rows[0]['origin_id']='forged'
+        shared='contexts: [{id: main, kind: MAIN, functions: &f [main]}]\nfuture: *f\n'
+        for raw,changes in [(RAW,dict(contexts=rows)),(shared,dict(contexts=[]))]:
+            refused=self.client.post('/api/profiles/form-merge',json=dict(yaml=raw,changes=changes))
+            self.assertEqual(refused.status_code,400,refused.text)
+        self.assertEqual(backup_files,{p.name:p.read_bytes() for p in (self.data/'settings/profile-drafts').glob('*.yaml')})
+
     def test_host_commit_pressure_blocks_new_task_without_altering_valid_scan_or_firmware(self):
         from ecra.report_package import sha256
         fw=Path(self.tmp.name)/'firmware';fw.mkdir()

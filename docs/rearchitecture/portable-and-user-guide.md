@@ -64,3 +64,5 @@ py -3.10 -B scripts/validate_studio_ui.py --package H:/ECRAStudio-data/rearchite
 启动H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/ECRA.cmd，或解压同目录ECRA-Portable.zip。ZIP 535,745,045B，SHA-256 3f23a7022307222380e287302fe7dc7ffed47e40f6376795deab6ddb2289d819；具体收据见evidence/portable-studio-v13.json。真实Git版本选择可分页/搜索本地refs，显示HEAD、提交和未提交范围；保存后扫描重新固定输入。只覆盖已提交版本，未提交完整隔离仍未完成。任务状态文件被Windows短暂独占时显示重试提示，读取恢复后自动消除提示，原结果仍可打开。
 
 此包完整回归1230项（1228PASS/2联网SKIP），包内Chrome主流程16、Git6、配置往返7项及目录/ZIP各26命令通过。尚无干净离线机、系统高DPI、物理第二台电脑与工程师盲测通过记录；大型G1–G4尚未关闭。
+
+源码后续支持：构建步骤可选择按引擎默认/明确开启/关闭编译器标准头文件探测；默认仍为CMake开启、编译数据库关闭。分析范围步骤可编辑main/ISR/任务等入口ID/类型/逐行函数、添加/移除和分页。仅编辑所选字段；高级规则保留，移除入口会移除整段入口，下一步可恢复同步前原文。共享别名无法证明局部编辑时该部分显示只读原因，保留高级YAML。此功能尚未进入上述v13包，见context-forms-v2.json。

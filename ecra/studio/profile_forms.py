@@ -16,12 +16,13 @@ import yaml as engine_yaml
 from ..config import UniqueKeyLoader
 
 MAX_BYTES=4*1024**2
-FIELDS={'project_name','project_root','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref'}
+FIELDS={'project_name','project_root','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','contexts','system_headers'}
+CONTEXT_KINDS={'ISR','TASK','MAIN','CALLBACK','DMA','CORE','FOREGROUND','IRQ','EXTERNAL_ASYNC','UNKNOWN_CONTEXT'}
 
 
 def _text(value,path,default=''):
     if value is None:return default
-    if not isinstance(value,str):raise ValueError(path+' 无法用文本表单表达，请使用高级YAML')
+    if not isinstance(value,str) or '\n' in value or '\r' in value:raise ValueError(path+' 无法用单行文本表单表达，请使用高级YAML')
     return value
 
 
@@ -91,32 +92,105 @@ def _parents(document,path,*,create=False):
     return node
 
 
+def _context_form(document):
+    """Expose only rows whose identity and editable containers are unambiguous."""
+    _parents(document,('contexts',))
+    rows=document.get('contexts',[]);counts=_graph(document)
+    if not isinstance(rows,list):raise ValueError('contexts 必须是入口映射列表，请使用高级YAML')
+    if counts.get(id(rows),0)>1:raise ValueError('入口列表被其他高级字段共享，请保留高级YAML原文')
+    identities=set();result=[]
+    for row in rows:
+        if not isinstance(row,dict) or counts.get(id(row),0)>1 or getattr(row,'merge',None):
+            raise ValueError('入口含共享映射或合并键，请保留高级YAML原文')
+        identity=row.get('id');kind=row.get('kind');functions=row.get('functions',[])
+        if (not isinstance(identity,str) or not identity.strip() or '\n' in identity or '\r' in identity or
+            identity in identities or not isinstance(kind,str) or kind not in CONTEXT_KINDS):
+            raise ValueError('入口身份缺失/重复或类型无法表达，请在高级YAML修复')
+        if (not isinstance(functions,list) or counts.get(id(functions),0)>1 or
+            any(not isinstance(item,str) or not item or '\n' in item or '\r' in item for item in functions)):
+            raise ValueError('入口函数含共享列表或无法逐行表达的值，请保留高级YAML原文')
+        identities.add(identity);result.append(dict(origin_id=identity,id=identity,kind=kind,functions=list(functions)))
+    return result
+
+
+def _merge_contexts(document,expected,rows):
+    from ruamel.yaml.comments import CommentedMap,CommentedSeq
+    from ruamel.yaml.scalarstring import DoubleQuotedScalarString as Quoted
+    original=_context_form(document)
+    if not isinstance(rows,list):raise ValueError('执行入口必须是列表')
+    positions={row['id']:i for i,row in enumerate(original)};used=set();identities=set();last=-1;new_seen=False
+    for row in rows:
+        if not isinstance(row,dict) or set(row)!={'origin_id','id','kind','functions'}:raise ValueError('执行入口表单字段无效')
+        identity=row['id'];kind=row['kind'];functions=row['functions'];origin=row['origin_id']
+        if not isinstance(identity,str) or not identity.strip() or '\n' in identity or '\r' in identity or identity in identities:raise ValueError('入口ID必须非空单行且不能重复')
+        if not isinstance(kind,str) or kind not in CONTEXT_KINDS:raise ValueError('入口类型不受引擎支持')
+        if not isinstance(functions,list) or any(not isinstance(item,str) or not item or '\n' in item or '\r' in item for item in functions):
+            raise ValueError('入口函数必须为非空逐行字符串列表')
+        identities.add(identity)
+        if origin is None:new_seen=True;continue
+        if not isinstance(origin,str) or origin not in positions or origin in used:raise ValueError('原入口身份不存在或重复，请重新读取原文')
+        index=positions[origin]
+        if index<=last or new_seen:raise ValueError('已有入口不支持重排；请在高级YAML显式修改')
+        last=index;used.add(origin)
+    # Edit the actual sequence in place: ruamel retains its sequence comments
+    # and the untouched row maps, including their advanced aliases and styles.
+    actual=document.setdefault('contexts',CommentedSeq());wanted=expected.setdefault('contexts',[])
+    for index in reversed(range(len(original))):
+        if original[index]['id'] not in used:del actual[index];del wanted[index]
+    retained={row['id']:(actual[i],wanted[i]) for i,row in enumerate(row for row in original if row['id'] in used)}
+    for row in rows:
+        if row['origin_id'] is None:
+            a=CommentedMap();e={};actual.append(a);wanted.append(e);previous={}
+        else:
+            a,e=retained[row['origin_id']];previous=original[positions[row['origin_id']]]
+        for key in ('id','kind','functions'):
+            value=row[key]
+            if key in previous and value==previous[key]:continue
+            if key=='functions':
+                # Preserve comments on existing function items when possible.
+                if key in a:
+                    target=a[key]
+                    for i,item in enumerate(value):
+                        if i<len(target):target[i]=Quoted(item)
+                        else:target.append(Quoted(item))
+                    while len(target)>len(value):del target[-1]
+                else:a[key]=CommentedSeq(Quoted(item) for item in value)
+                e[key]=list(value)
+            else:a[key]=Quoted(value);e[key]=value
+
+
 def form_state(raw):
     value=_plain(raw);project=_mapping(value.get('project',{}),'project');analysis=_mapping(value.get('analysis',{}),'analysis')
     cmake=_mapping(analysis.get('cmake',{}),'analysis.cmake');git=_mapping(analysis.get('git_diff',{}),'analysis.git_diff')
     mode='cmake' if 'cmake' in analysis else 'database'
     def directories(name):
         result=analysis.get(name,[])
-        if not isinstance(result,list) or any(not isinstance(item,str) or '\n' in item or '\r' in item for item in result):raise ValueError(name+' 不能用逐行目录表单表达，请保留高级YAML')
+        if not isinstance(result,list) or any(not isinstance(item,str) or not item or '\n' in item or '\r' in item for item in result):raise ValueError(name+' 不能用逐行目录表单表达，请保留高级YAML')
         return result
     result=dict(project_name=_text(project.get('name'),'project.name'),project_root=_text(project.get('root'),'project.root'),
         build_mode=mode,target=_text(cmake.get('target') if mode=='cmake' else analysis.get('compile_database','auto'),'构建目标/数据库'),
         toolchain=_text(cmake.get('toolchain_file'),'Toolchain'),variant=_text(cmake.get('build_type','Debug'),'构建变体'),
         include_dirs=directories('include_dirs'),exclude_dirs=directories('exclude_dirs'),
         base_ref=_text(git.get('base_ref','HEAD^'),'base_ref') if git.get('enabled') else '',current_ref=_text(git.get('current_ref','HEAD'),'current_ref',default='HEAD'))
-    _,document=_roundtrip(raw);reason=''
+    headers=analysis.get('auto_system_includes')
+    if 'auto_system_includes' in analysis and type(headers) is not bool:raise ValueError('analysis.auto_system_includes 必须是布尔值，请在高级YAML修复')
+    result['system_headers']='default' if headers is None else 'on' if headers else 'off'
+    _,document=_roundtrip(raw);reason='';context_reason=''
+    try:result['contexts']=_context_form(document)
+    except ValueError as exc:result['contexts']=[];context_reason=str(exc)
     for path in [('project','root'),('analysis','include_dirs'),('analysis','cmake','target'),('analysis','git_diff','base_ref')]:
         try:_parents(document,path)
         except ValueError as exc:reason=str(exc);break
-    return dict(form=result,editable=not reason,reason=reason,sha256=hashlib.sha256(raw.encode('utf-8')).hexdigest())
+    return dict(form=result,editable=not reason,reason=reason,contexts_editable=not context_reason,contexts_reason=context_reason,sha256=hashlib.sha256(raw.encode('utf-8')).hexdigest())
 
 
 def merge_form(raw,changes):
     before=_plain(raw)
     if not isinstance(changes,dict) or set(changes)-FIELDS:raise ValueError('表单包含未知修改字段')
     for key,value in changes.items():
+        if key=='contexts':continue
         if key in {'include_dirs','exclude_dirs'}:
-            if not isinstance(value,list) or any(not isinstance(item,str) or '\n' in item or '\r' in item for item in value):raise ValueError('目录必须是逐行文本数组')
+            if not isinstance(value,list) or any(not isinstance(item,str) or not item or '\n' in item or '\r' in item for item in value):raise ValueError('目录必须是非空逐行文本数组')
         elif not isinstance(value,str):raise ValueError('表单字段 '+key+' 必须是文本')
     if not changes:return dict(yaml=raw,changed_paths=[])
     parser,document=_roundtrip(raw);expected=copy.deepcopy(before);operations=[]
@@ -146,6 +220,10 @@ def merge_form(raw,changes):
         set_value(('analysis','git_diff','enabled'),bool(changes['base_ref']))
         if changes['base_ref']:set_value(('analysis','git_diff','base_ref'),changes['base_ref'])
     if 'current_ref' in changes:set_value(('analysis','git_diff','current_ref'),changes['current_ref'])
+    if 'system_headers' in changes:
+        if changes['system_headers'] not in {'default','on','off'}:raise ValueError('编译器标准头文件选项无效')
+        if changes['system_headers']=='default':remove(('analysis','auto_system_includes'))
+        else:set_value(('analysis','auto_system_includes'),changes['system_headers']=='on')
     from ruamel.yaml.scalarstring import DoubleQuotedScalarString
     from ruamel.yaml.comments import CommentedSeq
     for path,value,deleted in operations:
@@ -156,9 +234,10 @@ def merge_form(raw,changes):
         else:
             actual_parent[path[-1]]=DoubleQuotedScalarString(value) if isinstance(value,str) else CommentedSeq(DoubleQuotedScalarString(item) for item in value) if isinstance(value,list) else value
             expected_parent[path[-1]]=copy.deepcopy(value)
+    if 'contexts' in changes:_merge_contexts(document,expected,changes['contexts'])
     stream=io.StringIO();parser.dump(document,stream);result=stream.getvalue();after=_plain(result)
     if not _same(expected,after):raise ValueError('同步会改变未选中的高级字段或类型；已拒绝，请继续编辑原文')
-    return dict(yaml=result,changed_paths=['.'.join(path) for path,_,_ in operations],build_mode_changed='build_mode' in changes)
+    return dict(yaml=result,changed_paths=['.'.join(path) for path,_,_ in operations]+(['contexts'] if 'contexts' in changes else []),build_mode_changed='build_mode' in changes)
 
 
 def backup_original(settings,raw):
