@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "scope": "Program alias resolves before immutable asset lookup; metadata/archive checksum remains strict; data links still rejected by actual Windows Junction test",
+  "before": "ACTUAL_FAIL",
+  "after_tests": 5,
+  "after_seconds": 2.639,
+  "logs": {
+    "builtin-sample-alias-before-fix.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-sample-alias-before-fix.log",
+      "sha256": "ac094d7788c7962133b4ec2f8f2cb6c5dc8d4cf546f66c8c27e76e14c9d3211e"
+    },
+    "builtin-sample-alias-before-fix-v2.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-sample-alias-before-fix-v2.log",
+      "sha256": "2f8eaf15dd6625a45b4f28a2a1849747ac26ceac85fd574dc1986d48054586be"
+    },
+    "builtin-sample-alias-after-fix.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\builtin-sample-alias-after-fix.log",
+      "sha256": "e4ada723e4c855b12385f52528abc9777bfabafcb0869e1c0931ec716c2975de"
+    }
+  },
+  "portable": "NOT_YET_REBUILT",
+  "immutable_archive_sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b"
+}

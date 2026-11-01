@@ -1,6 +1,8 @@
 from pathlib import Path
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -11,6 +13,30 @@ from ecra.studio.sample import ASSETS,EXPECTED_METADATA_SHA256,open_sample,sampl
 
 
 class BuiltinSampleTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'nt', 'Windows Portable alias')
+    def test_program_alias_reads_verified_assets_without_relaxing_data_link_rejection(self):
+        from ecra.portable import _junction
+        from ecra.workspace import no_links
+        tool = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory(prefix='ecra-sample-alias-') as folder:
+            root = Path(folder).resolve()
+            alias = root/'program'
+            _junction(alias, tool)
+            try:
+                with self.assertRaises(ValueError): no_links(alias/'workspace')
+                code = ('import sys;sys.path.insert(0,sys.argv[1]);'
+                        'import ecra.studio.sample as s;'
+                        'assert s.sample_info()["available"],s.sample_info();'
+                        'print(s.ASSETS)')
+                result = subprocess.run([sys.executable,'-B','-X','utf8','-c',code,str(alias)],
+                                        cwd=root,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+                self.assertEqual(result.returncode, 0, result.stdout.decode('utf-8',errors='replace'))
+            finally:
+                # Remove only this owned junction, never recurse into its target.
+                self.assertEqual(alias.parent, root)
+                self.assertEqual(alias.resolve(), tool)
+                alias.rmdir()
+
     def test_git_checkout_settings_cannot_change_locked_sample_metadata_bytes(self):
         git=shutil.which('git')
         if git is None:self.skipTest('Git is required for checkout byte preservation')

@@ -7,7 +7,9 @@ import tempfile
 from ..report_package import import_report,sha256
 from ..workspace import no_links
 
-ASSETS=Path(__file__).with_name('sample_assets')
+# Resolve the launcher's verified program alias before read-only asset lookup.
+# Asset entries and every writable data path still pass through no_links.
+ASSETS=Path(__file__).resolve().with_name('sample_assets')
 EXPECTED_METADATA_SHA256='9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba'
 PROFILE_ID='builtin-stm32-demo'
 TITLE='STM32并发访问教学示例'

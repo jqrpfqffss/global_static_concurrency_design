@@ -22,3 +22,5 @@
 39项专项与最终10项真实Chrome通过，包含新建/导入/示例真实入口、实际统计下钻/归档代码、确认、重复打开、真实服务进程重启、完整包带事件转移及1366/1600工作台可见性。中间浏览器失败与范围有限的PASS均保留，最终以browser-builtin-sample-v8.json为准。教学标签仅标识所选归档页，不将工程配置/任务页面标作教学扫描。完成回调尊重用户新导航，已有真实主流程16项重验通过。系统DPI、物理干净机与工程师UAT待验，v13不含本功能。
 
 交付前补验：元数据统一UTF-8 LF并通过Git autocrlf true/false实际检出；归档字节未改，见sample-package-inputs-v2.json。Portable显式纳入两个示例资产及相对链接完整的离线文档树，新的包内完整验收待运行。
+
+v14实际解压验收FAIL并保留portable-studio-v14-failed.json：已有启动器的只读程序短路径Junction被示例路径校验拒绝。修复为先解析模块程序位置，再对资产条目及全部数据写入保持no_links校验；实际Windows Junction修复前FAIL、修复后5项2.639秒PASS，见builtin-sample-alias-v1.json。重建包未验前不标Portable通过。
