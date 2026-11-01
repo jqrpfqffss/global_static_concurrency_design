@@ -13,6 +13,39 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_profile_form_roundtrip_backup_survives_reopen_and_bad_edits_preserve_source(self):
+        import hashlib
+        fw=Path(self.tmp.name)/'firmware';fw.mkdir()
+        raw='# 完整原文\r\nversion: 1\r\nproject:\r\n  name: "原配置"\r\n  root: '+json.dumps(str(fw))+'\r\nanalysis:\r\n  output: {location: user}\r\n  compile_database: "compile_commands.json"\r\nextra: {literal: "on", unknown: [true, 7]} # 未知字段\r\n'
+        state=self.client.post('/api/profiles/form',json=dict(yaml=raw))
+        self.assertEqual(state.status_code,200,state.text)
+        self.assertTrue(state.json()['editable'])
+        result=self.client.post('/api/profiles/form-merge',json=dict(yaml=raw,changes=dict(project_name='已同步配置',include_dirs=['Src,用户目录',' Path with spaces '])))
+        self.assertEqual(result.status_code,200,result.text)
+        value=result.json();identity=hashlib.sha256(raw.encode()).hexdigest()
+        self.assertEqual(value['backup']['id'],identity)
+        self.assertIn('# 未知字段',value['yaml'])
+        saved=self.client.post('/api/profiles',json=dict(yaml=value['yaml']))
+        self.assertEqual(saved.status_code,200,saved.text)
+        reopened=self.client.get('/api/profiles').json()['items'][0]
+        self.assertEqual(reopened['yaml'],value['yaml']);self.assertEqual(reopened['name'],'已同步配置')
+        other=TestClient(create_app(self.data,token='test-token',authority='127.0.0.1:12345'),base_url='http://127.0.0.1:12345',headers={'x-ecra-session':'test-token','origin':'http://127.0.0.1:12345'})
+        restored=other.get('/api/profiles/drafts/'+identity)
+        self.assertEqual(restored.status_code,200,restored.text);self.assertEqual(restored.json()['yaml'],raw)
+        backup=self.data/'settings/profile-drafts'/(identity+'.yaml')
+        self.assertEqual(backup.read_bytes(),raw.encode())
+        for changes in [dict(unknown='no'),dict(include_dirs=['bad\npath'])]:
+            refused=other.post('/api/profiles/form-merge',json=dict(yaml=raw,changes=changes))
+            self.assertEqual(refused.status_code,400,refused.text)
+            self.assertEqual(backup.read_bytes(),raw.encode())
+            self.assertEqual(other.get('/api/profiles').json()['items'][0]['yaml'],value['yaml'])
+        self.assertEqual(other.get('/api/profiles/drafts/not-a-hash').status_code,400)
+        backup.write_bytes(b'corrupt existing backup')
+        self.assertEqual(other.get('/api/profiles/drafts/'+identity).status_code,400)
+        self.assertEqual(other.post('/api/profiles/form-merge',json=dict(yaml=raw,changes=dict(project_name='retry'))).status_code,400)
+        self.assertEqual(backup.read_bytes(),b'corrupt existing backup')
+        self.assertFalse(list(backup.parent.glob('*.pending')));self.assertEqual(list(fw.iterdir()),[])
+
     def test_coverage_endpoints_exact_identity_and_independent_position_survive_reopen(self):
         from ecra.report_package import sha256
         path=self.data/'scans/coverage-api';path.mkdir()

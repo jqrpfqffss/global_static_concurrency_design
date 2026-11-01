@@ -1,0 +1,274 @@
+{
+  "passed": true,
+  "tests": 17,
+  "seconds": 5.765,
+  "scope": "Profile YAML round trip8 and real API9; not complete regression",
+  "python": "Isolated Python3.10 dev environment",
+  "dependencies": {
+    "ruamel.yaml": "0.18.16",
+    "ruamel.yaml.clib": "0.2.12"
+  },
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\profile-forms-api-v5.log",
+  "log_sha256": "7be40845f97d7d748e9e61d7a1d02ca13be74e7752b35e2b6c89d2ec84274fdd",
+  "frontend_build_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\profile-forms-frontend-v2.log",
+  "frontend_build_sha256": "e2a185b554f4d0e1faa3eefb19edb0232ebbc24bdcc34113ece08edbb1457115",
+  "static_ui_contract": {
+    "passed": true,
+    "checks": {
+      "frozen_navigation_order": true,
+      "no_fake_timeout_or_raw_html": true,
+      "no_remote_frontend_assets": true,
+      "server_side_page_limit": true,
+      "three_independent_dimensions": true,
+      "real_write_receipts": true,
+      "real_scan_task_component": true,
+      "real_scan_task_endpoints": true,
+      "real_cleanup_endpoints_and_confirmation": true,
+      "real_legacy_migration_and_opaque_evidence": true,
+      "bounded_source_and_call_navigation": true,
+      "session_origin_host_checks": true
+    },
+    "api_routes": [
+      [
+        "get",
+        "/api/bootstrap"
+      ],
+      [
+        "get",
+        "/api/scans"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/summary"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/ai"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/ai-artifact"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/symbols"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/symbol"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage/groups"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage/issues"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage/blockers"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage/tus"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage/related"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/coverage/position"
+      ],
+      [
+        "put",
+        "/api/scans/{scan_id}/coverage/position"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/records/{relation}"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/symbol-functions"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/call-neighbors"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/nodes/{node_id}"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/text/{node_id}"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/source"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/legacy-files"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/legacy-file"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/source-window"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/human"
+      ],
+      [
+        "post",
+        "/api/scans/{scan_id}/human"
+      ],
+      [
+        "get",
+        "/api/scans/{scan_id}/position"
+      ],
+      [
+        "put",
+        "/api/scans/{scan_id}/position"
+      ],
+      [
+        "post",
+        "/api/import"
+      ],
+      [
+        "post",
+        "/api/migrations/preview"
+      ],
+      [
+        "post",
+        "/api/migrations"
+      ],
+      [
+        "get",
+        "/api/migrations"
+      ],
+      [
+        "get",
+        "/api/migrations/{job_id}"
+      ],
+      [
+        "post",
+        "/api/scans/{scan_id}/delta/import"
+      ],
+      [
+        "post",
+        "/api/scans/{scan_id}/export"
+      ],
+      [
+        "get",
+        "/api/download/{name}"
+      ],
+      [
+        "get",
+        "/api/storage"
+      ],
+      [
+        "get",
+        "/api/profiles"
+      ],
+      [
+        "post",
+        "/api/profiles/form"
+      ],
+      [
+        "post",
+        "/api/profiles/form-merge"
+      ],
+      [
+        "get",
+        "/api/profiles/drafts/{identity}"
+      ],
+      [
+        "post",
+        "/api/storage/cleanup"
+      ],
+      [
+        "get",
+        "/api/storage/cleanup/jobs"
+      ],
+      [
+        "get",
+        "/api/storage/cleanup/jobs/{job_id}"
+      ],
+      [
+        "get",
+        "/api/storage/cleanup/previews/{preview_id}"
+      ],
+      [
+        "get",
+        "/api/tasks"
+      ],
+      [
+        "post",
+        "/api/tasks"
+      ],
+      [
+        "get",
+        "/api/tasks/{task_id}"
+      ],
+      [
+        "post",
+        "/api/tasks/{task_id}/stop"
+      ],
+      [
+        "post",
+        "/api/tasks/{task_id}/retry"
+      ],
+      [
+        "post",
+        "/api/profiles/check"
+      ],
+      [
+        "post",
+        "/api/profiles"
+      ]
+    ],
+    "source_hashes": {
+      "studio\\src\\api.ts": "c5d234a1bfc20906c1fb4b69ad8c25212a4685c692c1a470d88c2ef1f858682a",
+      "studio\\src\\App.vue": "71284c2e05c4df5faf8afac968390071a64d811dc80c6ac6285b57b675722c0f",
+      "studio\\src\\CallNode.vue": "db133bec52565cd9a7d8cff7cc37ce309ae027c3a269836c0792a57b8c00fa38",
+      "studio\\src\\CallTree.vue": "f15e1c251b4a0655bb71edd915dbbc9aa0e153c46fc942146d73f830b030276f",
+      "studio\\src\\CleanupCenter.vue": "77d5890534cb9726018acc6c421512306b4f3bcc65adbc47bd036d52e102fd61",
+      "studio\\src\\ConflictPairs.vue": "2b8d5620008abae5ee4cd52f7b2cabcecb68dfd6b83132929550149cf9631364",
+      "studio\\src\\CoverageCenter.vue": "fffd81107994431b75553530bb7cb5679c7083bd887f088d1f5f0a69f7aedee4",
+      "studio\\src\\EvidenceNode.vue": "21deebe63b74f7975fcaa5f163b4d80c330907714698ce45c9d309cf00573f86",
+      "studio\\src\\FindingCard.vue": "fc8ac3739ccc7ae4f3d384a199d3096c2f5cfca7beb357e364799c216b00dfd3",
+      "studio\\src\\LegacyArchive.vue": "ea832d634d4a2fe165b87cf72a655f439a5b5b609aed1c0dc4c6403917a93272",
+      "studio\\src\\main.ts": "b46de87e7e4ec6d679e055d739bf28009b7739c639dfcb0e0b34e2de9393725a",
+      "studio\\src\\MigrationCenter.vue": "6396a31b224419a37f4a8041169c2efbae2a5be91c51cad69275b43da5a83d19",
+      "studio\\src\\ReviewCenter.vue": "c183940f9aa39b869da12ecf74842a023a8305111b669ca2444bfddb8a2d3e5e",
+      "studio\\src\\SourceViewer.vue": "c9da7a5937bd09bed164c5a0d8a533232166c5b262671b11643c83c61b528ce9",
+      "studio\\src\\style.css": "409c56876b5221e819b6d23873bd047583731260a904c31a1aadb195181abd64",
+      "studio\\src\\TaskCenter.vue": "714dd53ce83620d00c6ebeba6a78bb5282ec768cfc2804287a1b7cfcd60b0f49",
+      "studio\\src\\workbench.css": "ad71cc78fe1910012c734bcddca98eda2ae7ec42a7c580d6c50fd9f8c2a08eed"
+    },
+    "scope": "Static contracts only; no claim of U01–U24 completion, visual quality or native Windows DPI"
+  },
+  "prior_attempts": [
+    {
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\profile-forms-api-v2.log",
+      "result": "FAIL: CRLF normalization on profile reopen; fixed then passed"
+    },
+    {
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\profile-forms-api-v4.log",
+      "result": "17 actual tests pass; invocation ERROR for nonexistent test_studio_resources; corrected to real module set in v5"
+    }
+  ],
+  "full_suite": "NOT_RERUN_ON_THIS_REVISION",
+  "sealed_portable_v10": "Does not include this feature or worker temporary fix"
+}

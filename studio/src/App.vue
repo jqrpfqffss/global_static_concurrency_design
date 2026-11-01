@@ -32,6 +32,7 @@ const pending = computed(() => summary.value?.human_counts?.PENDING || 0)
 const wizardStep = ref(1), projectName = ref(''), projectRoot = ref(''), buildMode = ref('cmake'), toolchain = ref(''), target = ref(''), variant = ref('Debug')
 const include = ref(''), exclude = ref(''), baseRef = ref(''), currentRef = ref('HEAD'), yaml = ref(''), profileCheck = ref<any>(null), profileList = ref<any[]>([]), profileId = ref(''), profileRevision = ref('')
 const savedYaml=ref(''),profileError=ref(''),taskFocus=ref(sessionStorage.getItem('ecra-task-focus')||'')
+const formSnapshot=ref<Record<string,any>|null>(null),yamlBackup=ref<any>(null)
 const editedProfile=computed(()=>profileList.value.find(p=>p.id===profileId.value&&p.revision===profileRevision.value))
 const savedProfileReady=computed(()=>!!editedProfile.value&&savedYaml.value===yaml.value)
 const repeatProfile=computed(()=>currentScan.value?.mode==='LOCAL_SNAPSHOT'?profileList.value.find(p=>p.project_id===summary.value?.binding.project_id&&p.id===summary.value?.binding.profile_id):null)
@@ -137,16 +138,44 @@ async function exportFile(kind: string) {
 }
 function buildYaml() {
   const q = (s: string) => JSON.stringify(s)
-  yaml.value = `# ${projectName.value || '新工程'}；高级字段可在下方完整编辑\nversion: 1\nproject:\n  root: ${q(projectRoot.value)}\nanalysis:\n  output: {location: user}\n  include_dirs: ${JSON.stringify(include.value.split(',').map(s=>s.trim()).filter(Boolean))}\n  exclude_dirs: ${JSON.stringify(exclude.value.split(',').map(s=>s.trim()).filter(Boolean))}\n`
+  yaml.value = `# 高级字段可在下方完整编辑\nversion: 1\nproject:\n  name: ${q(projectName.value)}\n  root: ${q(projectRoot.value)}\nanalysis:\n  output: {location: user}\n  include_dirs: ${JSON.stringify(directoryLines(include.value))}\n  exclude_dirs: ${JSON.stringify(directoryLines(exclude.value))}\n`
   if (buildMode.value === 'cmake') yaml.value += `  cmake:\n    generator: Ninja\n    build: true\n    build_type: ${q(variant.value)}\n${toolchain.value ? '    toolchain_file: '+q(toolchain.value)+'\n' : ''}${target.value ? '    target: '+q(target.value)+'\n' : ''}`
   else yaml.value += `  compile_database: ${q(target.value || 'compile_commands.json')}\n`
   if (baseRef.value) yaml.value += `  git_diff:\n    enabled: true\n    base_ref: ${q(baseRef.value)}\n    current_ref: ${q(currentRef.value)}\n    include_uncommitted: false\n`
   yaml.value += 'contexts:\n  - {id: main, kind: MAIN, functions: [main]}\nreview:\n  enabled: false\n'
 }
-async function nextStep() { if (wizardStep.value < 4) { wizardStep.value++; if (wizardStep.value === 4) { if(!yaml.value) buildYaml(); else notice.value='现有高级 YAML 已保留；请核对表单变更后保存。'; profileCheck.value = null } } }
-async function checkProfile() { await run(async () => { profileCheck.value = await api('/profiles/check', 'POST', { yaml: yaml.value }) }) }
-async function saveProfile() { await run(async () => { const raw=yaml.value;const result = await api('/profiles', 'POST', { yaml: raw, id: profileId.value || undefined, revision: profileRevision.value || undefined }); profileId.value = result.id; profileRevision.value = result.revision; savedYaml.value=raw;await loadProfiles();notice.value = '配置已保存。可开始此配置扫描，或在任务中心调整资源预算。' }) }
-function openProfile(profile: any) { profileId.value = profile.id; profileRevision.value = profile.revision; yaml.value = profile.yaml;savedYaml.value=profile.yaml; wizardStep.value = 4; profileCheck.value = null }
+function directoryLines(value:string){return value.split(/\r?\n/).filter(line=>line.length>0)}
+function currentForm(){return {project_name:projectName.value,project_root:projectRoot.value,build_mode:buildMode.value,target:target.value,toolchain:toolchain.value,variant:variant.value,include_dirs:directoryLines(include.value),exclude_dirs:directoryLines(exclude.value),base_ref:baseRef.value,current_ref:currentRef.value}}
+function changeBuildMode(){target.value=''}
+async function previousStep(){if(wizardStep.value!==4){wizardStep.value--;return}await run(async()=>{
+  const raw=yaml.value,state=await api('/profiles/form','POST',{yaml:raw})
+  if(yaml.value!==raw)throw Error('配置已变化，请重新返回表单。')
+  if(!state.editable)throw Error(state.reason)
+  const f=state.form;projectName.value=f.project_name;projectRoot.value=f.project_root;buildMode.value=f.build_mode;target.value=f.target;toolchain.value=f.toolchain;variant.value=f.variant;include.value=f.include_dirs.join('\n');exclude.value=f.exclude_dirs.join('\n');baseRef.value=f.base_ref;currentRef.value=f.current_ref
+  formSnapshot.value=f;wizardStep.value=3
+})}
+async function nextStep(){if(wizardStep.value<3){wizardStep.value++;return}await run(async()=>{
+  if(!yaml.value){buildYaml();formSnapshot.value=currentForm()}
+  else{
+    if(!formSnapshot.value)throw Error('请先从高级YAML返回，读取当前表单值。')
+    const form=currentForm(),changes:Record<string,any>={}
+    for(const [key,value] of Object.entries(form))if(JSON.stringify(value)!==JSON.stringify(formSnapshot.value[key]))changes[key]=value
+    if(changes.build_mode){changes.target=form.target;if(form.build_mode==='cmake'){changes.toolchain=form.toolchain;changes.variant=form.variant}}
+    if(form.build_mode==='database'){delete changes.toolchain;delete changes.variant}
+    const raw=yaml.value,result=await api('/profiles/form-merge','POST',{yaml:raw,changes})
+    if(yaml.value!==raw)throw Error('配置已变化；同步结果未应用，请重试。')
+    if(result.backup)yamlBackup.value=result.backup
+    yaml.value=result.yaml;formSnapshot.value=form
+    notice.value=result.build_mode_changed?'已同步并切换构建方式；旧构建分支已保存到原文备份，可恢复后重新检查。':result.changed_paths.length?'已同步所改字段；完整原文备份可恢复。':'表单未修改，完整原文保持一致。'
+  }
+  profileCheck.value=null;wizardStep.value=4
+})}
+async function restoreYaml(){await run(async()=>{const identity=yamlBackup.value.id,result=await api('/profiles/drafts/'+encodeURIComponent(identity));yaml.value=result.yaml;formSnapshot.value=null;profileCheck.value=null;wizardStep.value=4;notice.value='已恢复同步前完整原文；请重新检查并保存。'})}
+async function checkProfile() { await run(async () => { const raw=yaml.value,result=await api('/profiles/check', 'POST', { yaml: raw });if(yaml.value===raw)profileCheck.value=result }) }
+async function saveProfile() { await run(async () => { if(!profileCheck.value)throw Error('请重新检查当前配置。');const raw=yaml.value,anotherProject=editedProfile.value&&editedProfile.value.project_id!==profileCheck.value.project_id;const result = await api('/profiles', 'POST', { yaml: raw, id: anotherProject?undefined:profileId.value || undefined, revision: anotherProject?undefined:profileRevision.value || undefined }); profileId.value = result.id; profileRevision.value = result.revision; savedYaml.value=raw;await loadProfiles();notice.value = anotherProject?'已另存此工程配置；原工程配置仍保留。':'配置已保存。可开始此配置扫描，或在任务中心调整资源预算。' }) }
+function openProfile(profile: any) { if(busy.value)return;profileId.value = profile.id; profileRevision.value = profile.revision; yaml.value = profile.yaml;savedYaml.value=profile.yaml;formSnapshot.value=null;yamlBackup.value=null;wizardStep.value = 4; profileCheck.value = null;error.value='';notice.value='' }
+function newProfile(){if(busy.value)return;profileId.value='';profileRevision.value='';savedYaml.value='';yaml.value='';profileCheck.value=null;formSnapshot.value=null;yamlBackup.value=null;projectName.value='';projectRoot.value='';buildMode.value='cmake';target.value='';toolchain.value='';variant.value='Debug';include.value='';exclude.value='';baseRef.value='';currentRef.value='HEAD';wizardStep.value=1;notice.value='';error.value=''}
+watch(yaml,()=>{profileCheck.value=null;savedYaml.value=''},{flush:'sync'})
 function keydown(event: KeyboardEvent) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && isWorkbench.value) { event.preventDefault(); document.getElementById('variable-search')?.focus() } if (event.key === 'Escape') { compact.value = false; selected.value = null } }
 watch(scan, () => { localStorage.setItem('ecra-scan', scan.value); summary.value=null;items.value=[];priorityItems.value=[];selected.value = null; human.value = null; fromCoverage.value=false;offset.value = 0; restoreFilters(scan.value) })
 watch(route, () => { if(route.value==='overview' && scan.value) readPage(async()=>{priorityItems.value=(await api(apiScan.value+'/symbols?limit=5')).items}); if (route.value === 'sharing' || route.value === 'settings') readPage(async () => { storage.value = await api('/storage') }); if (route.value === 'projects') readPage(async () => { profileList.value = (await api('/profiles')).items }) })
@@ -171,15 +200,16 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
           </template><section v-else class="panel empty"><h2>尚无可打开的静态结果</h2><p>从四步向导保存工程配置，再到任务中心发起真实扫描；也可先导入同事分享的完整结果包。</p><div class="actions"><button @click="go('sharing')">导入结果包</button><button @click="go('projects')">接入工程配置</button></div><p class="muted">示例扫描尚未接入；不会填充演示风险数据。</p></section>
         </template>
         <template v-else-if="route==='projects'">
-          <div class="page-heading"><div><h1>接入工程 · 确认真实构建与范围</h1><p>配置保存在独立数据根。高级 YAML 原样保存，已有注释与未知字段不会被表单覆盖。</p></div></div>
+          <div class="page-heading"><div><h1>接入工程 · 确认真实构建与范围</h1><p>配置保存在独立数据根。高级 YAML 原文保留，仅同步实际修改的普通字段。</p></div><button :disabled="busy" @click="newProfile">新建工程配置</button></div>
           <div class="steps"><span v-for="(text,index) in ['选择工程','确认构建','分析范围','检查与保存']" :class="{current: wizardStep===index+1}">{{ index+1 }} {{ text }}</span></div>
-          <div class="overview-columns"><section class="panel"><h2>第 {{ wizardStep }} 步</h2>
+          <div class="overview-columns project-config"><section class="panel wizard-panel"><h2>第 {{ wizardStep }} 步</h2><fieldset class="wizard-fields" :disabled="busy"><div class="wizard-content">
             <template v-if="wizardStep===1"><label>工程名称<input v-model="projectName" placeholder="例如：电机控制 CM7"></label><label>固件目录（绝对路径）<input v-model="projectRoot" placeholder="D:/Firmware/MotorControl"></label><p>仅登记路径，不修改固件与原正式构建目录。</p></template>
-            <template v-if="wizardStep===2"><label>真实构建方式<select v-model="buildMode" aria-label="真实构建方式"><option value="cmake">CMake + Ninja（外置构建）</option><option value="database">已有 compile_commands.json</option></select></label><label>{{ buildMode==='cmake' ? '目标名称' : '编译数据库路径' }}<input v-model="target"></label><label v-if="buildMode==='cmake'">Toolchain 文件<input v-model="toolchain"></label><label>构建变体<input v-model="variant"></label></template>
-            <template v-if="wizardStep===3"><label>变量定义纳入目录（逗号分隔，空表示全部）<input v-model="include"></label><label>排除变量清单目录（仍参与调用恢复）<input v-model="exclude"></label><label>Diff 基准 ref（空表示全量）<input v-model="baseRef"></label><label>当前 ref<input v-model="currentRef"></label><p>固定 base → current。未提交输入的完整隔离快照尚待验收。</p></template>
-            <template v-if="wizardStep===4"><label>高级完整 YAML<textarea v-model="yaml" rows="15" spellcheck="false" @input="profileCheck=null"></textarea></label><button :disabled="busy" @click="checkProfile">检查配置与工具路径</button><div v-if="profileCheck"><p>工程：{{ profileCheck.project_root }}</p><p>独立数据：{{ profileCheck.data_root }}</p><p v-for="item in profileCheck.checks">{{ item.tool }}：{{ item.available ? '路径可用' : '缺失' }} · {{ item.path }} {{ item.repair }}</p><div class="banner warning">{{ profileCheck.note }}</div></div></template>
-            <div class="wizard-actions"><button v-if="wizardStep>1 && !profileId" @click="wizardStep--">上一步</button><button v-if="wizardStep<4" class="primary" @click="nextStep">下一步</button><button v-else :class="{primary:!savedProfileReady}" :disabled="!profileCheck || busy" @click="saveProfile">保存独立配置</button><button v-if="wizardStep===4" :class="{primary:savedProfileReady}" :disabled="busy||!savedProfileReady" @click="launchProfile(editedProfile)">开始此配置扫描</button></div>
-          </section><section class="panel"><h2>构建与执行边界</h2><p>真实宏和目标必须来自实际编译命令，工程名称和芯片标签不替代编译参数。</p><p>配置检查并保存后，可直接开始此配置扫描；修改YAML后须重新检查保存。完整输入闭包会在扫描过程中验证。</p><button @click="go('tasks')">进入扫描任务中心</button><p v-if="profileError" class="banner error" role="alert">{{profileError}}</p><h3>已保存配置</h3><button v-for="profile in profileList" class="profile" @click="openProfile(profile)">{{ profile.id }} · 打开完整 YAML</button></section></div>
+            <template v-if="wizardStep===2"><label>真实构建方式<select v-model="buildMode" aria-label="真实构建方式" @change="changeBuildMode"><option value="cmake">CMake + Ninja（外置构建）</option><option value="database">已有 compile_commands.json</option></select></label><label>{{ buildMode==='cmake' ? '目标名称' : '编译数据库路径' }}<input v-model="target"></label><label v-if="buildMode==='cmake'">Toolchain 文件<input v-model="toolchain"></label><label v-if="buildMode==='cmake'">构建变体<input v-model="variant"></label><p v-else>宏、编译变体与工具链以真实编译数据库中的参数为准。</p></template>
+            <template v-if="wizardStep===3"><label>变量定义纳入目录（每行一个，空表示全部）<textarea v-model="include" rows="3"></textarea></label><label>排除变量清单目录（每行一个，仍参与调用恢复）<textarea v-model="exclude" rows="3"></textarea></label><label>Diff 基准 ref（空表示全量）<input v-model="baseRef"></label><label>当前 ref<input v-model="currentRef"></label><p>固定 base → current。目录中的逗号与空格按原文保留。未提交输入的完整隔离快照尚待验收。</p></template>
+            <template v-if="wizardStep===4"><label>高级完整 YAML<textarea v-model="yaml" rows="9" spellcheck="false" @input="profileCheck=null"></textarea></label><button :disabled="busy" @click="checkProfile">检查配置与工具路径</button><details v-if="profileCheck" class="profile-check" :open="profileCheck.checks.some((item:any)=>!item.available)"><summary>配置路径已检查 · 工具可用 {{profileCheck.checks.filter((item:any)=>item.available).length}} / {{profileCheck.checks.length}} · 展开详情</summary><p>工程：{{ profileCheck.project_root }}</p><p>独立数据：{{ profileCheck.data_root }}</p><p v-for="item in profileCheck.checks">{{ item.tool }}：{{ item.available ? '路径可用' : '缺失' }} · {{ item.path }} {{ item.repair }}</p><div class="banner warning">{{ profileCheck.note }}</div></details></template>
+            <div v-if="yamlBackup && wizardStep===4" class="banner" role="note"><p>同步前原文已备份 · {{yamlBackup.bytes}} 字节 · {{yamlBackup.id.slice(0,12)}}</p><button @click="restoreYaml">恢复同步前原文</button></div>
+            </div><div class="wizard-actions"><button v-if="wizardStep>1" @click="previousStep">上一步</button><button v-if="wizardStep<4" class="primary" @click="nextStep">下一步</button><button v-else :class="{primary:!savedProfileReady}" :disabled="!profileCheck || busy" @click="saveProfile">保存独立配置</button><button v-if="wizardStep===4" :class="{primary:savedProfileReady}" :disabled="busy||!savedProfileReady" @click="launchProfile(editedProfile)">开始此配置扫描</button></div></fieldset>
+          </section><section class="panel"><h2>构建与执行边界</h2><p>真实宏和目标必须来自实际编译命令，工程名称和芯片标签不替代编译参数。</p><p>配置检查并保存后，可直接开始此配置扫描；修改YAML后须重新检查保存。完整输入闭包会在扫描过程中验证。</p><button @click="go('tasks')">进入扫描任务中心</button><p v-if="profileError" class="banner error" role="alert">{{profileError}}</p><h3>已保存配置</h3><button v-for="profile in profileList" class="profile" :disabled="busy" @click="openProfile(profile)">{{ profile.name || profile.id }} · 打开完整 YAML</button></section></div>
         </template>
         <template v-else-if="isWorkbench">
           <div class="page-heading"><div><h1>{{ route==='reviews' ? '人工确认工作台' : '变量与风险' }}</h1><p>静态证据与人工处理独立。原源码不可用时查看全部归档证据。</p></div><button v-if="route==='reviews' && scan" :disabled="busy" @click="continueReview">继续上次位置</button></div>

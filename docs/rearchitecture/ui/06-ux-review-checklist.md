@@ -56,3 +56,5 @@
 覆盖诊断续轮：见[实施规格](07-coverage-contract.md)、[TU命令/零关联/源码](screenshots/coverage-v4/03-tu-filter-and-original-command-evidence.png)、[阻断返回重开](screenshots/coverage-v4/01-blocker-return-and-reopen.png)。8项F030真实浏览器操作、17项查询/API专项通过；首次可访问名称失败已修复，另一次失败为验证器相对定位器误用，均保留失败收据。系统DPI与独立工程师UAT仍未验收。
 
 向导/重扫续轮：15项真实Chrome流程通过，含[向导入口](screenshots/repeat-v1/02-project-wizard.png)、[第二次原生任务](screenshots/repeat-v1/10-home-profile-repeat-scan.png)、[本机概览](screenshots/repeat-v1/01-overview.png)。TaskCenter保存当前任务身份，复核任务也使用真实返回ID；配置YAML未保存时不能启动。只是U06局部流程，全部向导配置与系统DPI/真人仍待验。
+
+配置同步续轮：[冻结交互合同](10-profile-roundtrip-contract.md)。17项配置/API专项与7项真实Chrome操作通过；[1366首屏操作](screenshots/profile-roundtrip-v2/02-profile-saved-1366.png)增加启动按钮坐标断言，[1600高级配置](screenshots/profile-roundtrip-v2/01-roundtrip-saved-1600.png)。覆盖高级编辑后回填/仅同步改动、原文备份恢复、切换构建分支、逗号/空格目录、别名歧义拒绝与保存/重开。CRLF原文读回已修复。真实固件42文件及编译数据库SHA不变；无外部页面请求。初版首屏操作被挤出后已修复，保留v1截图/trace。该集合不代替完整U02、Windows系统DPI或工程师UAT；封存v10不含此实现。

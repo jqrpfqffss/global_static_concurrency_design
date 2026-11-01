@@ -481,10 +481,31 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
             for path in root.glob('*/profiles/*.yaml'):
                 no_links(path)
                 items.append(dict(id=path.stem, project_id=path.parent.parent.name,
-                                  yaml=path.read_text(encoding='utf-8'), revision=hashlib.sha256(path.read_bytes()).hexdigest()))
+                                  yaml=path.read_bytes().decode('utf-8'), revision=hashlib.sha256(path.read_bytes()).hexdigest()))
                 from ..config import configured_project_root
                 items[-1]['project_root'] = str(configured_project_root(path))
+                from ..config import read_yaml
+                project=read_yaml(path).get('project',{})
+                name=project.get('name') if isinstance(project,dict) else None
+                items[-1]['name']=name if isinstance(name,str) and name.strip() else path.stem
         return dict(items=items)
+
+    @app.post('/api/profiles/form')
+    def profile_form(payload: dict):
+        from .profile_forms import form_state
+        return form_state(payload.get('yaml'))
+
+    @app.post('/api/profiles/form-merge')
+    def profile_form_merge(payload: dict):
+        from .profile_forms import merge_form,backup_original
+        raw=payload.get('yaml');result=merge_form(raw,payload.get('changes'))
+        if result['yaml']!=raw:result['backup']=backup_original(settings,raw)
+        return result
+
+    @app.get('/api/profiles/drafts/{identity}')
+    def profile_draft(identity: str):
+        from .profile_forms import read_backup
+        return dict(yaml=read_backup(settings,identity),id=identity)
 
     @app.post('/api/storage/cleanup')
     def cleanup_start(payload: dict):

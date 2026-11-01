@@ -239,7 +239,11 @@ def main():
                         expect(start).to_be_enabled()
                         editor=page.get_by_label('高级完整 YAML',exact=True);raw=editor.input_value()
                         editor.fill(raw+'\n# unsaved UI gate check\n');expect(start).to_be_disabled()
-                        editor.fill(raw);expect(start).to_be_enabled();start.click()
+                        editor.fill(raw);expect(start).to_be_disabled()
+                        page.get_by_role('button',name='检查配置与工具路径',exact=True).click()
+                        expect(page.get_by_role('button',name='保存独立配置',exact=True)).to_be_enabled()
+                        page.get_by_role('button',name='保存独立配置',exact=True).click()
+                        expect(start).to_be_enabled();start.click()
                     else:
                         page.get_by_role('link',name='扫描任务',exact=True).click()
                         page.get_by_role('button',name='开始扫描',exact=True).click()

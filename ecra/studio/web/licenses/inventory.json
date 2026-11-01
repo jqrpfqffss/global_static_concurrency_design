@@ -13,6 +13,18 @@
       "notice_files": 1
     },
     {
+      "package": "ruamel.yaml",
+      "version": "0.18.16",
+      "file": "ruamel.yaml-0.18.16.json",
+      "notice_files": 1
+    },
+    {
+      "package": "ruamel.yaml.clib",
+      "version": "0.2.12",
+      "file": "ruamel.yaml.clib-0.2.12.json",
+      "notice_files": 1
+    },
+    {
       "package": "fastapi",
       "version": "0.136.3",
       "file": "fastapi-0.136.3.json",
