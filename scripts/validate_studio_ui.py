@@ -33,10 +33,13 @@ def main():
     parser.add_argument('--compile-database', type=Path)
     parser.add_argument('--native-scan', action='store_true', help='通过真实任务按钮停止并恢复扫描；需固件与真实数据库')
     parser.add_argument('--ai-failure', action='store_true', help='注入缺失复核工具的真实故障；不调用网络模型')
+    parser.add_argument('--repeat-scan',action='store_true',help='新增向导直接启动与首页同profile重扫；旧封存包不包含此入口')
     parser.add_argument('--allow-external-toolchain',action='store_true',help='明确允许已冻结编译数据库中的外部黄金工具链；不改写编译器路径')
     parser.add_argument('--engine', type=Path, default=TOOL)
     parser.add_argument('--python', type=Path, default=Path(sys.executable))
     args = parser.parse_args()
+    if args.repeat_scan and not (args.native_scan and args.firmware and args.compile_database):
+        parser.error('--repeat-scan requires --native-scan, --firmware and --compile-database')
     work = args.work.resolve(); work.mkdir(parents=True,exist_ok=False)
     output = args.evidence.resolve(); output.mkdir(parents=True,exist_ok=True)
     receipt = dict(passed=False, tests=[], screenshots=[], page_errors=[], external_requests=[],
@@ -88,6 +91,9 @@ def main():
             reviews = ReviewStore(work/'data/scans/golden-f030/reviews.db',provider.metadata())
             assert len(reviews.history()) == 0, 'Golden package must have no test human decisions'
             receipt['tests'].append(dict(name='preview_package_ui_import',status='PASS',related=['U19','U24'],limitation='Same host, no clean-machine claim'))
+            if args.repeat_scan:
+                page.get_by_role('link',name='项目概览',exact=True).click()
+                expect(page.get_by_role('button',name='按此配置重新扫描',exact=True)).to_have_count(0)
             def shot(name):
                 expect(page.locator('.activity')).to_have_count(0)
                 expect(page.get_by_text('正在加载…',exact=True)).to_have_count(0)
@@ -223,13 +229,20 @@ def main():
                 page.get_by_role('button',name='保存独立配置',exact=True).click()
                 expect(page.get_by_role('status').filter(has_text='配置已保存')).to_be_visible()
                 assert len(list((work/'data/projects').glob('*/profiles/*.yaml')))==1
-                receipt['tests'].append(dict(name='preview_four_step_profile_save_retains_input',status='PASS',related=['U02'],limitation='Path/configuration check only; native build and scan NOT_IMPLEMENTED'))
+                receipt['tests'].append(dict(name='preview_four_step_profile_save_retains_input',status='PASS',related=['U02'],limitation='Path/configuration check; actual extraction separately exercised only with --native-scan'))
                 shot('02-project-wizard')
                 if args.native_scan:
                     from ecra.report_package import sha256
                     source_before={str(path.relative_to(args.firmware)):sha256(path) for path in args.firmware.rglob('*') if path.is_file()}
-                    page.get_by_role('link',name='扫描任务',exact=True).click()
-                    page.get_by_role('button',name='开始扫描',exact=True).click()
+                    if args.repeat_scan:
+                        start=page.get_by_role('button',name='开始此配置扫描',exact=True)
+                        expect(start).to_be_enabled()
+                        editor=page.get_by_label('高级完整 YAML',exact=True);raw=editor.input_value()
+                        editor.fill(raw+'\n# unsaved UI gate check\n');expect(start).to_be_disabled()
+                        editor.fill(raw);expect(start).to_be_enabled();start.click()
+                    else:
+                        page.get_by_role('link',name='扫描任务',exact=True).click()
+                        page.get_by_role('button',name='开始扫描',exact=True).click()
                     stop=page.get_by_role('button',name='安全停止',exact=True)
                     expect(stop).to_be_enabled(timeout=20000)
                     stop.click()
@@ -275,6 +288,27 @@ def main():
                         shot('08-opencode-technical-failure')
                         receipt['tests'].append(dict(name='real_missing_review_tool_failure_keeps_static_database',status='PASS',related=['U15'],
                             limitation='Missing-command fault, no network model invocation or verdict accuracy claim'))
+                    if args.repeat_scan:
+                        old_hash=sha256(native/'scan.db')
+                        old_reviews=ReviewStore(native/'reviews.db',EvidenceProvider(native/'scan.db').metadata()).history()
+                        page.get_by_role('link',name='项目概览',exact=True).click()
+                        repeat=page.get_by_role('button',name='按此配置重新扫描',exact=True)
+                        expect(repeat).to_be_enabled();repeat.click()
+                        expect(page.get_by_role('heading',name='扫描任务中心',exact=True)).to_be_visible()
+                        expect(page.get_by_role('button',name='打开扫描结果',exact=True)).to_be_visible(timeout=180000)
+                        latest=sorted((json.loads(path.read_text(encoding='utf-8')) for path in (work/'data/work/tasks').glob('*/task.json')),key=lambda row:row['started'])[-1]
+                        assert latest['mode']=='scan' and latest['published'] and latest['scan_id']!=completed['scan_id']
+                        assert latest['profile_id']==completed['profile_id'] and latest['project_id']==completed['project_id']
+                        expect(page.locator('.task-detail .identity')).to_contain_text(latest['id'])
+                        assert sha256(native/'scan.db')==old_hash
+                        assert ReviewStore(native/'reviews.db',EvidenceProvider(native/'scan.db').metadata()).history()==old_reviews
+                        assert source_before=={str(path.relative_to(args.firmware)):sha256(path) for path in args.firmware.rglob('*') if path.is_file()}
+                        EvidenceProvider(work/'data/scans'/latest['scan_id']/'scan.db').validate(deep=True)
+                        receipt['repeat_native_task']=latest
+                        shot('10-home-profile-repeat-scan')
+                        receipt['tests'].append(dict(name='real_wizard_start_unsaved_yaml_gate_and_home_same_profile_repeat',status='PASS',related=['U02','U06'],limitation='Same host real 4TU; custom resource presets and full U02 matrix separate'))
+                        page.get_by_role('button',name='打开扫描结果',exact=True).click()
+                        expect(page.get_by_role('heading',name='先处理需要核实的变量',exact=True)).to_be_visible()
             # Four frozen core pages, plus human/import screenshots. Native
             # scan task page must truthfully show its gate, not mock progress.
             for route,name in [('项目概览','01-overview'),('扫描任务','04-scan-task-gate'),('变量与风险','03-evidence-workbench')]:

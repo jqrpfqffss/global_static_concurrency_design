@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from './api'
-const emit=defineEmits<{open:[scanId:string]}>()
+const emit=defineEmits<{open:[scanId:string],focus:[taskId:string]}>()
+const props=defineProps<{focusTask?:string}>()
 const profiles=ref<any[]>([]), tasks=ref<any[]>([]), selected=ref(''), profile=ref(''), detail=ref<any>(null)
 const resourcePreset=ref('auto'),peakGib=ref(16),workers=ref(4)
 const error=ref(''), notice=ref(''), busy=ref(false), logOffset=ref(0), search=ref('')
@@ -26,7 +27,9 @@ async function action(fn:()=>Promise<any>){busy.value=true;error.value='';notice
 async function start(){await action(async()=>{const p=currentProfile.value;if(!p)throw Error('请选择已保存的工程配置');const task=await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,resources:{preset:resourcePreset.value,peak_gib:peakGib.value,workers:workers.value}});selected.value=task.id;logOffset.value=0})}
 async function stop(){await action(async()=>{await api(`/tasks/${selected.value}/stop`,'POST',{});notice.value='停止请求已提交。引擎将中断当前工作并保留已验证 TU；上一次有效扫描仍可打开。'})}
 async function retry(){await action(async()=>{const task=await api(`/tasks/${selected.value}/retry`,'POST',{});selected.value=task.id;logOffset.value=0;notice.value='重新验证真实构建与完整输入闭包；只复用内容身份完全匹配的 TU 缓存。'})}
-onMounted(async()=>{try{profiles.value=(await api('/profiles')).items;profile.value=profiles.value[0]?.id||'';await poll();timer=setInterval(poll,1000)}catch(e:any){error.value=e.message}})
+watch(selected,(id)=>{if(id)emit('focus',id)})
+watch(()=>props.focusTask,(id)=>{if(id&&id!==selected.value){selected.value=id;logOffset.value=0;poll()}})
+onMounted(async()=>{try{profiles.value=(await api('/profiles')).items;profile.value=profiles.value[0]?.id||'';selected.value=props.focusTask||'';await poll();if(detail.value?.profile_id&&profiles.value.some(p=>p.id===detail.value.profile_id))profile.value=detail.value.profile_id;timer=setInterval(poll,1000)}catch(e:any){error.value=e.message}})
 onUnmounted(()=>{if(timer)clearInterval(timer)})
 </script>
 <template>

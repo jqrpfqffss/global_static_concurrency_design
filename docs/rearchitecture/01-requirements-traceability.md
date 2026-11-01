@@ -77,3 +77,5 @@ Phase 0–6 在各自完整门禁通过前保持 BLOCKED/进行中。允许独�
 2026-11-01续轮收据：`evidence/native-canonical-v3.json`、`evidence/gc-capacity-50gib.json`、`evidence/browser-canonical-v3.json`。完整实现进度以04-canonical-pipeline-progress.md为准；早期“未接入”状态已由此续轮更正，未覆盖的门禁保持FAIL/NOT_VERIFIED。
 
 U14续轮：CoverageService/真实覆盖页已接通。17项专项与8项F030浏览器操作验证2PARSED/2PARTIAL/236条缺口、完整关联证明、精确身份下钻、分页/重开、零关联TU、原始编译命令/归档源码和静态SHA不变；见browser-coverage-v4.json、ui/07-coverage-contract.md。该范围不代替所有UNKNOWN/失败原因及大工程场景，U14保持PARTIAL。
+
+U06续轮：向导保存后直接开始、首页按相同project/profile当前保存版本重扫、真实任务ID定位已接通。browser-repeat-v1.json的15项真实操作通过，包含停止恢复、缺工具复核和第二次独立原生扫描，原归档/人工/固件.git不变；高级YAML修改后启动禁用。仅4TU与当前保存版本，未解决表单修改回写高级YAML、全部构建模式与大工程门禁。见ui/08-repeat-scan-contract.md。

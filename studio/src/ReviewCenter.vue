@@ -2,11 +2,11 @@
 import { onMounted, ref } from 'vue'
 import { api } from './api'
 const props=defineProps<{scan:string, projectId:string, canReview:boolean}>()
-const emit=defineEmits<{tasks:[]}>()
+const emit=defineEmits<{tasks:[taskId?:string]}>()
 const profiles=ref<any[]>([]), profile=ref(''), page=ref<any>(null), offset=ref(0), busy=ref(false), error=ref(''), artifact=ref<any>(null), artifactName=ref('')
 const names:Record<string,string>={PENDING:'等待复核',RUNNING:'正在复核',DONE:'已通过答复与收据校验',TECH_FAILED:'技术失败',STALE:'证据已失效',CONFIRMED:'AI确认存在风险',LIKELY:'AI认为可能有风险',FALSE_POSITIVE:'AI认为静态误报',SAFE:'AI认为条件下安全',NEED_MORE_CONTEXT:'需要补充证据'}
 async function refresh(){page.value=await api(`/scans/${props.scan}/ai?offset=${offset.value}`)}
-async function start(mode:string){busy.value=true;error.value='';try{const p=profiles.value.find(p=>p.id===profile.value);if(!p)throw Error('请选择当前工程的复核配置');await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,mode,scan_id:props.scan});emit('tasks')}catch(e:any){error.value=e.message}finally{busy.value=false}}
+async function start(mode:string){busy.value=true;error.value='';try{const p=profiles.value.find(p=>p.id===profile.value);if(!p)throw Error('请选择当前工程的复核配置');const task=await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,mode,scan_id:props.scan});emit('tasks',task.id)}catch(e:any){error.value=e.message}finally{busy.value=false}}
 async function readArtifact(name:string, position=0){error.value='';try{artifactName.value=name;artifact.value=await api(`/scans/${props.scan}/ai-artifact?name=${encodeURIComponent(name)}&offset=${position}`)}catch(e:any){error.value=e.message}}
 function receipts(row:any){const names=new Set<string>();for(const record of [row,...(row.attempts||[])])for(const key of ['packet_file','prompt_file','stdout_file','stderr_file'])if(record[key])names.add(record[key]);return [...names]}
 onMounted(async()=>{try{profiles.value=(await api('/profiles')).items.filter((p:any)=>p.project_id===props.projectId);profile.value=profiles.value[0]?.id||'';await refresh()}catch(e:any){error.value=e.message}})
