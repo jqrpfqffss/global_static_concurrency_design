@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "optimization_accepted": false,
+  "scope": "CONTROLLED_REPLAY_NOT_NATIVE_G2_OR_G3:complete388TU same immutable extraction facts, no parse/build/global classify/publication",
+  "decision": "REVERTED_NO_MEMORY_BENEFIT",
+  "production_fact_parts_sha256": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+  "ordered_full_facts_sha256": "9be73ce4a5d4ed07a6ec173a068015cec068a249ace747678e9851b7557e905c",
+  "per_table_fingerprints_equal": true,
+  "input_files_unchanged": 776,
+  "count": 388,
+  "before": {
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\merge-memory-before-a8e-v1\\receipt.json",
+    "sha256": "a2e18816230670780e6215a578dcc118fbdf1e1dd43490cdaba85ef13a948841",
+    "merge_seconds": 453.594000000041,
+    "merged_private_bytes": 9710538752,
+    "peak_process_commit_bytes": 9913896960
+  },
+  "after": {
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\merge-memory-after-live-strings-v1\\receipt.json",
+    "sha256": "0b94336d9aa18de8a3c5c207a9081ed3d7378a28df060c6477261e84491ca5af",
+    "merge_seconds": 425.453,
+    "merged_private_bytes": 9784537088,
+    "peak_process_commit_bytes": 9993101312
+  },
+  "private_increase_bytes": 73998336,
+  "peak_increase_bytes": 79204352,
+  "timing_caveat": "Different concurrent disk loads; do not attribute elapsed change to interning",
+  "frozen_trial": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-live-strings-v1",
+  "trial_test_scope": "10 parser/layout focused,34 scan stability,4 packagedPython3.10.9 pooling/harness tests; actual F030 full facts/report hashes equal; not proof of useful performance"
+}
