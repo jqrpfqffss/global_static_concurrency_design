@@ -52,6 +52,15 @@ const fields: Record<string, string> = {
   concurrency_hints: '并发线索', shared_no_review_rejections: '未通过共享筛除的理由', unknown_reason_codes: '未知原因代码',
   coverage_reasons: '覆盖状态的依据', screening_blockers: '安全筛除的阻断条件', annotations: '证据注解',
   protection_details: '完整保护窗口', concurrency_relations: '执行域的并发关系', multi_field_coherence: '多字段一致性',
-  unknown_reason: '无法判断的具体原因', required_context: '需要补齐的条件', call_graph_slice: '完整相关调用子图'
+  unknown_reason: '无法判断的具体原因', required_context: '需要补齐的条件', call_graph_slice: '完整相关调用子图',
+  build_closure:'真实构建闭包',excluded_sources:'分析范围排除的源文件',excluded_from_build:'未进入当前构建的源文件',
+  unlisted_sources:'未列入清单的源文件',unlisted_headers:'未列入清单的头文件',excluded_headers_from_build:'未进入构建的头文件',
+  assembly_sources:'汇编源文件',cmake_steps:'CMake实际步骤',cmake_cache:'CMake构建缓存',compilers:'编译器来源',
+  external_tools:'外部工具来源',consumed_inputs:'实际消费的输入',file_coverage:'文件覆盖记录',unknown_reason_distribution:'原始未知原因分布',
+  source_file:'编译单元源文件',directory:'编译工作目录',original_arguments:'原始真实编译命令',arguments:'实际解析参数',
+  removed_arguments:'解析适配移除的参数',response_files:'编译响应文件',inferred_target:'推导的编译目标',missing_defines:'缺失的宏定义',
+  tu_id:'编译单元身份',system_include_dirs:'系统头文件路径',audit_role:'编译单元用途',parse_status:'原始解析状态',
+  diagnostics:'原始解析诊断',diagnostic:'原始诊断',includes:'实际包含的头文件',semantic_macros_digest:'语义宏摘要',
+  dynamic_predefined_inputs:'动态预定义宏输入',relevance_proofs:'全部对象关联证明',symbol_ids:'归档关联对象身份'
 }
 export function field(value: string) { return fields[value] || '技术字段：'+value }

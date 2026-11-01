@@ -51,3 +51,6 @@
 当前编译资产另跑十四项原生/复核故障/确认/调用/源码/清理流程通过：`evidence/browser-wire-v1.json`。20007行浏览器容量新增精确大整数/负零/JSON转义、407条前后页、长UTF-8前后段，并断言每页/段不累积；[实际证据截图](screenshots/legacy-v3/typed-evidence-bounded-pages.png)。当前占用带采样时间，可主动更新，迁移完成后刷新。Windows系统DPI、全部场景与独立工程师仍未验收；六项迁移不等于U21全部通过。
 
 排序续轮：按交互合同增加服务器白名单排序，默认顺序保留；排序/筛选/分页位置与人工继续位置共同保存。20007行浏览器九项通过（browser-capacity-sort-v1.json），最大API17,192B；改变顺序、跨页、关闭页面后继续、独立SQLite位置断言均实际执行。十四项主流程再通过（browser-sort-v1.json），静态库不变。该后续不在封存v8中，不能拿v8源码匹配收据冒称包含排序功能。
+
+
+覆盖诊断续轮：见[实施规格](07-coverage-contract.md)、[TU命令/零关联/源码](screenshots/coverage-v4/03-tu-filter-and-original-command-evidence.png)、[阻断返回重开](screenshots/coverage-v4/01-blocker-return-and-reopen.png)。8项F030真实浏览器操作、17项查询/API专项通过；首次可访问名称失败已修复，另一次失败为验证器相对定位器误用，均保留失败收据。系统DPI与独立工程师UAT仍未验收。

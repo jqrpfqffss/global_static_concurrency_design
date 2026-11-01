@@ -62,3 +62,14 @@
 `H:/ECRAStudio-build-20261101-canonical-v6/ECRA-Portable.zip`：504,252,703字节，SHA-256 `419432b2931549436c20594053a40d8dedef850002a232b4ae1d4b395f6f873c`。目录与长中文ZIP解压各26条命令通过，含真实ARM编译/链接、默认SQLite扫描及保存命令静态SHA不变；包内Python3.10.9真实Chrome十四项通过。当前100个程序源码/前端/许可文件与包逐字节一致。
 
 收据：`evidence/portable-canonical-v6.json`、`portable-source-match-v6.json`、`browser-portable-canonical-v6.json`；截图已归档ui/screenshots/v6。此候选不是完整重构发布，仍有本文件列明的实现和G1–G8门禁待完成。
+
+
+## 2026-11-01 覆盖诊断续轮
+
+已将覆盖页由通用树入口扩展为真实阻断、缺口分组、全部TU、构建范围四类查询，完整根索引继续保留。位置存入独立人工库，规范身份精确下钻，不靠名称前缀选择同名对象；返回/关闭重开恢复筛选、页码与当前证据。诊断/命令/头文件及源码使用归档完整证据。集合缺失、未知类型、非对象原条目和无法证明零关联分别提示。
+
+专项17项通过（evidence/regression-coverage-v3.json），F030浏览器8项通过（evidence/browser-coverage-v4.json），原生黄金2PARSED/2PARTIAL、236条原始缺口、5个覆盖阻断和成功零关联TU保持原值；最大API响应25,274B，scan.db SHA不变。另主流程11项与20007行容量/排序9项通过；这些范围不能相加为全源码回归。截图见ui/screenshots/coverage-v4。
+
+封存v8的1161项冻结回归、目录/解压各26条命令与包内14+6+8浏览器流程属于3590227运行时代码；排序45d8a56及本轮覆盖不在该包中。v8 ZIP为H:/ECRAStudio-build-20261101-legacy-v8/ECRA-Portable.zip，535,418,600B，SHA-256 ba72a7907a3a9a09de690174ac3289059ac4ee745e8ee345329cb8a55afdd178。必须重建才能交付本轮功能。旧v6/v8收据不能证明当前源码完整通过。
+
+完整重构仍未完成。生产dirty字节隔离、原.git/worktrees写入、全局外存求解、三类大型full/Diff逐字段对照、32GB资源/70%实盘收益、完整故障矩阵、干净离线机和工程师盲测继续未通过；U14是本轮已覆盖范围的部分验收，不标全场景PASS。

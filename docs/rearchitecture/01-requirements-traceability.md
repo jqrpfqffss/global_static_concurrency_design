@@ -75,3 +75,5 @@ Phase 0–6 在各自完整门禁通过前保持 BLOCKED/进行中。允许独�
 证据入口：`evidence/final-tests.json`、`evidence/native-equivalence.json`、`evidence/golden-roundtrip.json`、`evidence/browser-portable.json`、`evidence/portable-result.json`。本轮所有完整Phase继续BLOCKED；U24的已覆盖集合PASS不代表H6/G5/G6全部通过。
 
 2026-11-01续轮收据：`evidence/native-canonical-v3.json`、`evidence/gc-capacity-50gib.json`、`evidence/browser-canonical-v3.json`。完整实现进度以04-canonical-pipeline-progress.md为准；早期“未接入”状态已由此续轮更正，未覆盖的门禁保持FAIL/NOT_VERIFIED。
+
+U14续轮：CoverageService/真实覆盖页已接通。17项专项与8项F030浏览器操作验证2PARSED/2PARTIAL/236条缺口、完整关联证明、精确身份下钻、分页/重开、零关联TU、原始编译命令/归档源码和静态SHA不变；见browser-coverage-v4.json、ui/07-coverage-contract.md。该范围不代替所有UNKNOWN/失败原因及大工程场景，U14保持PARTIAL。

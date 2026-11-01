@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "scope": "Coverage service/API/filter focused regression; not full-current-tree or G1-G8 acceptance",
+  "implementation_parent": "45d8a56b7a4d56e3d503558d18eb1e2b9ace3341",
+  "tests": 17,
+  "failures": 0,
+  "errors": 0,
+  "seconds": 5.972,
+  "python": "CPython 3.10",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\coverage-api-3.log",
+  "log_sha256": "d8a4d34e69fe1f7cb802ac39d7df30bd11b96743b5c1d6953ae19b45528739d0",
+  "source_sha256": {
+    "ecra/studio/coverage.py": "02ca401c5a8dc3e8657cf9ea535285d3a5bce19087519c5c210909726864094f",
+    "ecra/studio/query.py": "7100616033cae065eeee9d9cdaa87240666a39910adc6c4f9514fc095603d0b5",
+    "ecra/studio/server.py": "b423dfbbd8ae1839f437360ea205ab26069f958e1d3db7444cc2da520c2c810f",
+    "studio/src/App.vue": "c8b56116feb3cf8b3a724766153705ad9d6cc02f65ed9b38f3667285f9c961c9",
+    "studio/src/api.ts": "c5d234a1bfc20906c1fb4b69ad8c25212a4685c692c1a470d88c2ef1f858682a",
+    "studio/src/CoverageCenter.vue": "fffd81107994431b75553530bb7cb5679c7083bd887f088d1f5f0a69f7aedee4",
+    "scripts/validate_studio_coverage.py": "467eac12d982b8f01a01839d031ef203294d2c7e5b0effe1d28bfb49eb7da624"
+  },
+  "failed_attempts": [
+    "coverage-api-1.log: MSYS Python lacks fastapi; failed, not counted",
+    "coverage-browser-1.log: TU select accessible name; fixed",
+    "coverage-browser-3.log: test locator scoped through ancestor; corrected test, not a product failure"
+  ],
+  "package_status": "Sealed v8 predates sorting and coverage; rebuild required"
+}

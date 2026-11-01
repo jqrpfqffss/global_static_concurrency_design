@@ -24,7 +24,7 @@ class QueryService:
         self.evidence = EvidenceProvider(self.path/'scan.db')
 
     def symbols(self, *, search='', classification='', human_decision='', handling_status='',
-                file='',function='',context='',coverage='',ai_state='',diff='',sort='priority',order='asc',offset=0, limit=50):
+                file='',function='',context='',coverage='',ai_state='',diff='',symbol_id='',sort='priority',order='asc',offset=0, limit=50):
         self.evidence._bounds(offset, limit)
         sorts={
             'priority':["CASE s.static_classification WHEN 'SUSPECT' THEN 0 WHEN 'UNKNOWN' THEN 1 ELSE 2 END"],
@@ -37,6 +37,8 @@ class QueryService:
             raise ValueError('列表排序只接受风险/名称/定义位置/待办优先级和升序/降序')
         ordering=','.join(field+' '+order.upper() for field in sorts[sort])+',s.ordinal ASC'
         terms, args = [], []
+        if symbol_id:
+            terms.append('s.symbol_id=?');args.append(symbol_id)
         if search:
             terms.append("(instr(s.name,?)>0 OR instr(coalesce(s.definition_file,''),?)>0 OR instr(s.symbol_id,?)>0)")
             args.extend([search]*3)

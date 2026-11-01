@@ -13,6 +13,36 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_coverage_endpoints_exact_identity_and_independent_position_survive_reopen(self):
+        from ecra.report_package import sha256
+        path=self.data/'scans/coverage-api';path.mkdir()
+        publish_scan(path/'scan.db',dict(variables=[dict(symbol_id=s,name='same',translation_units=['a.c']) for s in ['id','id-long']],
+            translation_units=[dict(source_file='a.c',parse_status='FAILED'),dict(source_file='zero.c',parse_status='PARSED')],
+            unknowns=[dict(kind='PARSE_FAILED',symbol_id='id',file='a.c')]),
+            dict(analysis_status='INCOMPLETE',coverage=dict(blocker_fanout=[dict(kind='PARSE_FAILED',symbol_ids=['id-long','id'],blocker_fanout=2)])),
+            scan_id='coverage-api',project_id='p')
+        before=sha256(path/'scan.db');base='/api/scans/coverage-api'
+        with patch.object(EvidenceProvider,'load',side_effect=AssertionError('full graph restored')):
+            self.assertEqual(self.client.get(base+'/coverage').json()['tu_records'],2)
+            self.assertEqual(self.client.get(base+'/coverage/groups').json()['items'][0]['raw'],'PARSE_FAILED')
+            self.assertEqual(self.client.get(base+'/coverage/issues').json()['total'],1)
+            page=self.client.get(base+'/coverage/blockers').json();node=page['items'][0]['node']
+            self.assertEqual(self.client.get(base+'/coverage/related',params=dict(node=node,offset=1,limit=1)).json()['items'][0]['symbol_id'],'id')
+            zero=self.client.get(base+'/coverage/tus?zero_only=true').json()
+            self.assertEqual(zero['items'][0]['summary']['source_file'],'zero.c')
+            self.assertEqual(self.client.get(base+'/symbols',params=dict(symbol_id='id')).json()['total'],1)
+            self.assertEqual(self.client.get(base+'/symbol',params=dict(symbol_id='id-long')).json()['symbol_id'],'id-long')
+            self.assertEqual(self.client.get(base+'/symbol',params=dict(symbol_id='id-')).status_code,400)
+            for suffix in ['/coverage/issues?limit=201','/coverage/related?node=-1','/coverage/tus?offset=-1']:
+                self.assertEqual(self.client.get(base+suffix).status_code,400,suffix)
+            position=dict(tab='blockers',offsets=dict(blockers=0),selected=dict(node=node,source='blockers'))
+            self.assertTrue(self.client.put(base+'/coverage/position',json=position).json()['saved'])
+            self.assertEqual(self.client.get(base+'/coverage/position').json(),position)
+        provider=EvidenceProvider(path/'scan.db');reopened=ReviewStore(path/'reviews.db',provider.metadata())
+        self.assertEqual(reopened.position('coverage'),position)
+        self.assertIsNone(reopened.position('workbench'))
+        self.assertEqual(sha256(path/'scan.db'),before)
+
     def test_legacy_unicode_and_numeric_precision_survive_the_actual_json_response(self):
         target=self.data/'scans/typed';target.mkdir()
         publish_scan(target/'scan.db',dict(probe=dict(unpaired='\ud800',large=2**80+1,negative=-0.0)),{},scan_id='typed',project_id='p')

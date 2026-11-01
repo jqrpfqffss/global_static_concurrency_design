@@ -219,15 +219,63 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     @app.get('/api/scans/{scan_id}/symbols')
     def symbols(scan_id: str, search: str='', classification: str='', human_decision: str='',
                 handling_status: str='',file: str='',function: str='',context: str='',coverage: str='',ai_state: str='',
-                diff: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
+                diff: str='',symbol_id: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
         from .query import QueryService
         provider, reviews = stores(scan_id)
         page = QueryService(scan_path(scan_id)).symbols(search=search, classification=classification,
             human_decision=human_decision,handling_status=handling_status,file=file,function=function,context=context,
-            coverage=coverage,ai_state=ai_state,diff=diff,sort=sort,order=order,offset=offset,limit=limit)
+            coverage=coverage,ai_state=ai_state,diff=diff,symbol_id=symbol_id,sort=sort,order=order,offset=offset,limit=limit)
         for item in page['items']:
             item['human'] = reviews.current(item['symbol_id'], provider.fingerprint(item['symbol_id']))
         return page
+
+    @app.get('/api/scans/{scan_id}/symbol')
+    def exact_symbol(scan_id: str, symbol_id: str):
+        from .query import QueryService
+        provider,reviews=stores(scan_id)
+        page=QueryService(scan_path(scan_id)).symbols(symbol_id=symbol_id,limit=1)
+        if not symbol_id or not page['items']:raise ValueError('当前归档未记录该规范身份；不能据此解释为无影响')
+        item=page['items'][0]
+        item['human']=reviews.current(symbol_id,provider.fingerprint(symbol_id))
+        return item
+
+    def coverage_service(scan_id):
+        from .coverage import CoverageService
+        return CoverageService(scan_path(scan_id)/'scan.db')
+
+    @app.get('/api/scans/{scan_id}/coverage')
+    def coverage_summary(scan_id: str):
+        return coverage_service(scan_id).summary()
+
+    @app.get('/api/scans/{scan_id}/coverage/groups')
+    def coverage_groups(scan_id: str,offset: int=0,limit: int=50):
+        return coverage_service(scan_id).groups(offset,limit)
+
+    @app.get('/api/scans/{scan_id}/coverage/issues')
+    def coverage_issues(scan_id: str,kind_node: int|None=None,missing_kind: bool=False,offset: int=0,limit: int=50):
+        return coverage_service(scan_id).issues(kind_node,missing_kind,offset,limit)
+
+    @app.get('/api/scans/{scan_id}/coverage/blockers')
+    def coverage_blockers(scan_id: str,offset: int=0,limit: int=50):
+        return coverage_service(scan_id).blockers(offset,limit)
+
+    @app.get('/api/scans/{scan_id}/coverage/tus')
+    def coverage_tus(scan_id: str,status_node: int|None=None,status_missing: bool=False,search: str='',
+                     zero_only: bool=False,offset: int=0,limit: int=50):
+        return coverage_service(scan_id).translation_units(status_node,status_missing,search,zero_only,offset,limit)
+
+    @app.get('/api/scans/{scan_id}/coverage/related')
+    def coverage_related(scan_id: str,node: int,offset: int=0,limit: int=50):
+        return coverage_service(scan_id).related(node,offset,limit)
+
+    @app.get('/api/scans/{scan_id}/coverage/position')
+    def coverage_position(scan_id: str):
+        return stores(scan_id)[1].position('coverage')
+
+    @app.put('/api/scans/{scan_id}/coverage/position')
+    def save_coverage_position(scan_id: str,payload: dict):
+        stores(scan_id)[1].position('coverage',payload)
+        return dict(saved=True)
 
     @app.get('/api/scans/{scan_id}/records/{relation}')
     def records(scan_id: str, relation: str, dataset: str='facts', symbol_id: str|None=None,
