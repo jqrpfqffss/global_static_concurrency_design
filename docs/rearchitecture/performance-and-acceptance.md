@@ -152,3 +152,6 @@ Portable前两次长路径构建实际失败：CMake TryCompile在ASCII构建根
 该包实际包含独立Git管理库、完整冲突选择列表物理复用、真实Git refs向导、任务JSON共享占用重试及可见错误恢复。截图见ui/screenshots/portable-v13；Windows原生DPI/干净离线机/第二台物理机/工程师UAT未验。v13为开发候选，未宣称完整重构或G8通过。
 
 原版完整独立备份已实际完成：57,773文件、46,427,649,982B，逐文件SHA与源复验通过，见inav-original-backup-v3.json。候选v5仍在运行；大型最终完整归档、全字段Diff、物理峰值≥70%收益及32GB真机继续未通过。H/I分区属于同一物理HDD，避免并发重任务干扰；原版图转码在候选结束后执行。先前被中断/失败的收据不覆盖、不重新标PASS。
+
+
+INAV v5实际结束为FAIL：4277.250秒、退出3、analysis_valid=false；Job峰值17,180,848,128B（原始读数不钳制，设置上限17,179,869,184B），采样private峰值17,179,201,536B、工作集17,084,760,064B。388TU冷提取完成后，在conflict_pairs为每个access/context创建实例字典时analysis.py474发生MemoryError；没有有效scan.db/标准归档，不能把10,773,364,343B失败目录当最终磁盘收益。完整收据见evidence/inav-selectors-native-v5-failed.json，64GiB主机不代替物理32GB。G3仍FAIL。原版图转码v3随后按顺序启动。

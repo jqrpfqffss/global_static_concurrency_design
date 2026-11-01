@@ -21,3 +21,6 @@
 已审计消费者：ecra/evidence.py仅把选择器读入新set求并集，diagnostics.py仅判空，scripts/preopencode_benchmark_scan.py仅拼接成新列表；持久化/比较/前端按只读证据读取。没有追加/排序原选择器的消费者。物理共享不能允许后续修改；如发现消费者需要修改，必须在那里复制，不能让一个pair的操作修改另一个pair的证据。
 
 须由tests/fixtures/e69_conflict_pairs.py冻结原函数独立对照全部字段/类型/对象键与数组顺序，包含inline边界、product、serial/reentrant/unknown、重复ID、路径数与witness。新增多域product及接近阈值inline的保留分配测量，不以数量统计代替比较；小型容量结果不得冒称G3。随后实际F030原生全字段比较、冻结完整回归和INAV完整原生门禁。任何未证明差异须撤回；G1/G3/G4在大工程未验前保持未通过。
+
+
+INAV v5实际结束为FAIL：4277.250秒、退出3、analysis_valid=false；Job峰值17,180,848,128B（原始读数不钳制，设置上限17,179,869,184B），采样private峰值17,179,201,536B、工作集17,084,760,064B。388TU冷提取完成后，在conflict_pairs为每个access/context创建实例字典时analysis.py474发生MemoryError；没有有效scan.db/标准归档，不能把10,773,364,343B失败目录当最终磁盘收益。完整收据见evidence/inav-selectors-native-v5-failed.json，64GiB主机不代替物理32GB。G3仍FAIL。原版图转码v3随后按顺序启动。

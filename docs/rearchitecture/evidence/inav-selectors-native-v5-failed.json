@@ -1,0 +1,113 @@
+{
+  "complete": false,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+  "mode": "canonical",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-selectors-v1",
+  "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+  "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "data_root": "H:\\ECRA-NATIVE-S5",
+  "safety_job_commit_limit_bytes": 17179869184,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+  "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+  "paging_samples_valid": 8095,
+  "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "started": "2026-11-01T12:04:09.055001+00:00",
+  "peaks": {
+    "working_set_bytes": 17084760064,
+    "private_bytes": 17179201536,
+    "peak_job_commit_bytes": 17180848128,
+    "sampled_output_logical_bytes": 10773364343,
+    "sampled_output_allocated_bytes": 10782512816
+  },
+  "samples": 8095,
+  "cache_reuse": null,
+  "diagnostic_fault": null,
+  "observer_script_sha256": "df805da306fd61b0abf643d620f9afb15472f4f933566a73b682a1eab738fa06",
+  "worker_temporary_root": "H:\\ECRA-NATIVE-S5\\work\\native-observer\\temporary",
+  "output_volume_free_at_start": 1008579850240,
+  "pid": 7052,
+  "seconds": 4277.249999999999,
+  "last": {
+    "seconds": 4276.7339999999995,
+    "available": true,
+    "working_set_bytes": 4254732288,
+    "private_bytes": 4266049536,
+    "peak_job_commit_bytes": 17180848128,
+    "limit_bytes": 17179869184,
+    "enforced_job_commit_limit_bytes": 17179869184,
+    "job_limit_flags": 8704,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "system_commit_bytes": 27017457664,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 39965896704,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 46374649856,
+    "system_commit_headroom_bytes": 58807996416,
+    "host_paging": {
+      "available": true,
+      "values": {
+        "pages_input_per_second": 0.0,
+        "pages_output_per_second": 0.0
+      },
+      "errors": {},
+      "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+    },
+    "disk_free_bytes": 997717159936,
+    "whole_volume_used_change_bytes": 10862690304,
+    "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+    "main_process_memory": {
+      "rss": 4218966016,
+      "vms": 4233510912,
+      "num_page_faults": 30457618,
+      "peak_wset": 17077420032,
+      "wset": 4218966016,
+      "peak_paged_pool": 340976,
+      "paged_pool": 326240,
+      "peak_nonpaged_pool": 1687648,
+      "nonpaged_pool": 578656,
+      "pagefile": 4233510912,
+      "peak_pagefile": 17174331392,
+      "private": 4233510912
+    },
+    "output_disk": {
+      "files": 5025,
+      "logical_bytes": 10773364343,
+      "allocated_bytes": 10782512816,
+      "unique_files": 5025,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.5779999999995198
+    },
+    "output_disk_observed_seconds": 4271.078
+  },
+  "exit_code": 3,
+  "final_output_disk": {
+    "files": 5025,
+    "logical_bytes": 10773364343,
+    "allocated_bytes": 10782512816,
+    "unique_files": 5025,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.5310000000008586
+  },
+  "output": "H:\\ECRA-NATIVE-S5\\scans\\native-golden",
+  "validity": {
+    "analysis_valid": false,
+    "state": "FAILED",
+    "error": "MemoryError: "
+  },
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-selectors-native-v5\\execution.json",
+  "raw_receipt_sha256": "86454a945ed50ce76634f934986fc8b08118a9e4b7c5236efca82d2d2ef34878",
+  "G3": "FAIL",
+  "scope_note": "Cold native388TU, input/config equal preflight, MemoryError in per-access/context instance construction at analysis.py474, not host commit exhaustion; no valid final graph and no disk reduction claim",
+  "exception_log": {
+    "path": "H:\\ECRA-NATIVE-S5\\scans\\native-golden\\diagnostics\\exception.log",
+    "sha256": "597e08f6ba954e8f302ae2191b7301645902ca4cfe7bb1bf4b847315b7fbf718",
+    "traceback": "\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-selectors-v1\\ecra\\cli.py\", line 556, in run\n    report = analyze(facts, cfg, cov, root=root, source_reader=read_verified_source)\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-selectors-v1\\ecra\\analysis.py\", line 1235, in analyze\n    member_conflicts = conflict_pairs(accesses, variable_relations, contexts)\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-selectors-v1\\ecra\\analysis.py\", line 474, in conflict_pairs\n    instances[key] = instance\nMemoryError\n"
+  }
+}

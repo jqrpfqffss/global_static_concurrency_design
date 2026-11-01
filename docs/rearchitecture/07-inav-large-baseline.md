@@ -76,3 +76,6 @@ scripts/measure_baseline_graph.py对已完成原生原版的两个完整JSON进�
 `evidence/inav-original-backup-v3.json`：源 I:/ECRA-O1 与独立 I:/ECRA-GOLDEN-O1 的57,773文件、46,427,649,982B全部逐文件SHA校验通过，源再次全量复验不变，清单SHA为bed35ca978b234f4afc04b6b0ced4949ddb3abc992f307d8a45e6689f2991875。复用中断副本前每个文件均已验证，未改写原版数据。只读仅指文件属性；H/I为同一物理HDD的两个分区，不是异机灾备或只读挂载。此前v2中断收据继续保留，不能改写为成功。
 
 候选 v5 使用冻结selectors引擎、原6b27配置，从H:/ECRA-NATIVE-S5独立冷提取388TU，Windows Job上限16GiB。启动前4123输入和779引擎文件核验通过，见inav-selectors-native-v5-preflight.json。当前完成提取、正在事实合并，没有最终成功收据；此前v3在16GiB下的MemoryError仍是实际FAIL，不能由提取阶段低内存覆盖。原版完整图转码排在候选之后，使用明确隔离的64MiB SQLite写缓存试验，不作为生产引擎或原生G2证明，见codec-cache64-diagnostic-v1.json。大型全字段对照与G1/G3/G4仍未关闭。
+
+
+INAV v5实际结束为FAIL：4277.250秒、退出3、analysis_valid=false；Job峰值17,180,848,128B（原始读数不钳制，设置上限17,179,869,184B），采样private峰值17,179,201,536B、工作集17,084,760,064B。388TU冷提取完成后，在conflict_pairs为每个access/context创建实例字典时analysis.py474发生MemoryError；没有有效scan.db/标准归档，不能把10,773,364,343B失败目录当最终磁盘收益。完整收据见evidence/inav-selectors-native-v5-failed.json，64GiB主机不代替物理32GB。G3仍FAIL。原版图转码v3随后按顺序启动。
