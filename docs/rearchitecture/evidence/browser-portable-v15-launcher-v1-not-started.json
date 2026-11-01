@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "status": "NOT_STARTED_CONTROLLER_BOUNDARY_ERROR",
+  "scope": "Controller mistakenly treated screenshot evidence path as a Studio data root inside source installation; refused before mkdir/process launch. Fixed only developer evidence-path validation, runtime data remains external.",
+  "stderr": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-launcher-v15-v1-driver.stderr.log",
+  "stderr_sha256": "e1bac99df3bdcd94191abe01716419b8ab9bbbf08f76b4bb2057a075024aabd9"
+}

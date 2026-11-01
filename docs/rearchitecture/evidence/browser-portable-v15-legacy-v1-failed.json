@@ -1,0 +1,16 @@
+{
+  "passed": false,
+  "scope": "Real Chrome legacy migration with immutable DB and persisted decision checks.\n\nUses a byte copy of an existing native result. It does not run a new firmware\nscan or substitute this conversion for the full U21/large-project gates.\n",
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable",
+  "python": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [
+    "wrong_owner_is_rejected_without_scan_publication",
+    "native_legacy_copy_converts_through_real_ui_job"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_windows_dpi": "NOT_VERIFIED",
+  "error": "Locator expected to have count '1'\nActual value: 0 \nCall log:\n  - Expect \"to_have_count\" with timeout 5000ms\n  - waiting for locator(\".symbol\")\n    - locator resolved to 5 elements\n    - unexpected value \"5\"\n    13 × locator resolved to 0 elements\n       - unexpected value \"0\"\n",
+  "traceback": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release\\scripts\\validate_legacy_ui.py\", line 97, in main\n    expect(page.locator('.symbol')).to_have_count(1);page.locator('.symbol').click()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22052, in to_have_count\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 454, in to_have_count\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to have count '1'\nActual value: 0 \nCall log:\n  - Expect \"to_have_count\" with timeout 5000ms\n  - waiting for locator(\".symbol\")\n    - locator resolved to 5 elements\n    - unexpected value \"5\"\n    13 × locator resolved to 0 elements\n       - unexpected value \"0\"\n\n",
+  "failure_scope": "Controller assumed HCLK was UNKNOWN, but this approved parsed input classifies it differently; no product mutation. v2 explicitly selects all static classes before canonical search, all6 pass; original failed receipt retained in output."
+}

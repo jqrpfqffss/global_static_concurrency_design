@@ -92,6 +92,9 @@ def main():
                 static_hash=sha256(scan/'scan.db')
                 receipt['tests'].append('native_legacy_copy_converts_through_real_ui_job')
                 page.get_by_role('button',name='无法判断 '+str(provider.counts()['UNKNOWN']),exact=True).click()
+                # Different approved native inputs can classify HCLK differently.
+                # Verify its identity in all classes, without altering evidence.
+                page.get_by_label('静态分类',exact=True).select_option('')
                 page.get_by_label('查找变量、文件或规范身份',exact=True).fill('HCLK')
                 page.get_by_role('button',name='搜索',exact=True).click()
                 expect(page.locator('.symbol')).to_have_count(1);page.locator('.symbol').click()

@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "scope": "Actual ECRA.cmd Studio entry with Windows-only PATH and private LOCALAPPDATA.\n\n--no-browser suppresses desktop disruption but uses the actual Studio launcher\nbranch. Real Chrome is the external test controller; the service runs embedded\nPython. Not a clean physical offline machine or literal desktop double-click.\n",
+  "command": [
+    "C:\\Windows\\System32\\cmd.exe",
+    "/d",
+    "/c",
+    "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\ECRA.cmd",
+    "--no-browser",
+    "--session-file",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-launcher-v15-v3\\session.json"
+  ],
+  "cwd": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-launcher-v15-v3\\unrelated cwd 中文",
+  "restricted_path": "C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\Wbem",
+  "tests": [
+    {
+      "name": "actual_cmd_uses_embedded_python_with_windows_only_path_and_private_default_data_root",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    },
+    {
+      "name": "actual_launcher_page_has_all_three_real_first_use_actions_without_external_requests",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    },
+    {
+      "name": "actual_launcher_imports_complete_builtin_native_archive_into_independent_user_data",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    },
+    {
+      "name": "launch_and_sample_leave_all_checked_program_assets_unchanged",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "physical_clean_offline_machine": "NOT_VERIFIED",
+  "literal_desktop_double_click": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "service_python": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\runtime\\python.exe",
+  "program_bytes_and_mtime_unchanged": true,
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-launcher-v15-v3\\private localappdata 中文\\ECRAStudio\\data",
+  "job": {
+    "available": true,
+    "working_set_bytes": 66646016,
+    "private_bytes": 50094080,
+    "peak_job_commit_bytes": 55758848,
+    "limit_bytes": 536870912,
+    "enforced_job_commit_limit_bytes": 536870912,
+    "job_limit_flags": 8704,
+    "processes": 3,
+    "sampled_processes": 3,
+    "write_bytes": 0
+  }
+}

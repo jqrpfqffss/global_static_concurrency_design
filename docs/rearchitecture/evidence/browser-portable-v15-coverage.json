@@ -1,0 +1,454 @@
+{
+  "passed": true,
+  "scope": "Real archived F030 coverage UI; not full U14/UAT or large-project certification.",
+  "tests": [
+    "native_archive_counts_and_partial_status_match_sql",
+    "canonical_identity_drill_return_and_reopen_selected_evidence",
+    "group_counts_server_paging_and_reopened_offset_no_zero_impact_inference",
+    "all_tus_parsed_file_zero_object_filters_original_commands_and_archived_source",
+    "real_build_scope_evidence_available_without_full_fact_restore",
+    "three_viewports_no_horizontal_page_overflow_not_windows_dpi",
+    "immutable_static_database_hash",
+    "bounded_real_api_no_page_errors_or_external_requests"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scan_id": "native-parsed-f030",
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\runtime\\python.exe",
+  "static_sha256": "f0e0f19b4e17cf2ce83bcdda0eabd54f5abb0346e08a4bde92d385ac6c3bdfc2",
+  "package_sha256": "76df60a1fc37e5dfb954ee9eab4994b667abc587e13f1a14bca347e2a3ca0625",
+  "archived_status": {
+    "analysis_status": "INCOMPLETE",
+    "unknowns": {
+      "id": 1838,
+      "hash": "17c0b6f3b44d829fd88297d6f819b0e5e33931444aac933a35784ed28356a981",
+      "kind": "list",
+      "length": 236
+    },
+    "translation_units": {
+      "id": 22567,
+      "hash": "3a61173ca12345fe00458362df1318f7496ae51a29b5750fe966b694627019d1",
+      "kind": "list",
+      "length": 4
+    },
+    "blockers": {
+      "id": 23031,
+      "hash": "b1c935f4ebfd739ae842d8c758361571f2adc5edcad480d5ddae2bb1164126cc",
+      "kind": "list",
+      "length": 5
+    },
+    "unknown_records": 236,
+    "tu_records": 4,
+    "tu_statuses": [
+      {
+        "node": 33,
+        "raw": "PARTIAL",
+        "value_kind": "str",
+        "total_bytes": 7,
+        "count": 2
+      },
+      {
+        "node": 679,
+        "raw": "PARSED",
+        "value_kind": "str",
+        "total_bytes": 6,
+        "count": 2
+      }
+    ],
+    "tu_status_types": 2,
+    "build": [
+      {
+        "key": "build_closure",
+        "id": 22659,
+        "hash": "cf8a10c0214923466ed5b3c9ad7933212b8fe846fb165e10e916bb5ff5df9865",
+        "kind": "object",
+        "length": 4
+      },
+      {
+        "key": "excluded_sources",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "excluded_from_build",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "unlisted_sources",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "unlisted_headers",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "excluded_headers_from_build",
+        "id": 23023,
+        "hash": "2ee4d3c42efe2d4d34c7115fb4f4cd1dcdbf0b1bfa69edcdc22835606eef4a7b",
+        "kind": "list",
+        "length": 2
+      },
+      {
+        "key": "assembly_sources",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "cmake_steps",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "cmake_cache",
+        "id": 173,
+        "hash": "dd79a4e166177b5e12babbb94b299d63b41c221cb7b5cb59a535a3e852d27e69",
+        "kind": "object",
+        "length": 0
+      },
+      {
+        "key": "compilers",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "external_tools",
+        "id": 34,
+        "hash": "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+        "kind": "list",
+        "length": 0
+      },
+      {
+        "key": "consumed_inputs",
+        "id": 23018,
+        "hash": "463fc7a42ba7cf503dbe24b52186f0686a73ae2fd4c97fd1a8b4bef0ba445567",
+        "kind": "object",
+        "length": 1
+      },
+      {
+        "key": "file_coverage",
+        "id": 23097,
+        "hash": "2a3140389e5c7dbf220f56a00ac63c339fefed28a49e81bc93c06a1d17877be1",
+        "kind": "list",
+        "length": 16
+      },
+      {
+        "key": "unknown_reason_distribution",
+        "id": 23059,
+        "hash": "04b1436073fc1449e2dbecbf694117e2e2b83ba81b840d3193eb4d18eee4fcfb",
+        "kind": "object",
+        "length": 4
+      }
+    ],
+    "unprojected_unknowns": 0,
+    "unprojected_tus": 0,
+    "objects_without_tu_origin": 0,
+    "ambiguous_tu_source_names": 0,
+    "tus_without_source_name": 0,
+    "association_collections_complete": true,
+    "zero_filter_available": true
+  },
+  "physical_second_machine": "NOT_VERIFIED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED",
+  "max_api_response_bytes": 25274,
+  "api_payloads": [
+    {
+      "path": "/api/bootstrap",
+      "bytes": 1255
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 366
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/summary",
+      "bytes": 1156
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage",
+      "bytes": 2742
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?limit=5",
+      "bytes": 1564
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 4
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/blockers?offset=0&limit=50",
+      "bytes": 3484
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=&symbol_id=&sort=priority&order=asc",
+      "bytes": 4747
+    },
+    {
+      "path": "/api/profiles",
+      "bytes": 12
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/related?node=23032&offset=0",
+      "bytes": 1398
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbol?symbol_id=c%3A%40_ebss",
+      "bytes": 293
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=&symbol_id=c%3A%40_ebss&sort=priority&order=asc",
+      "bytes": 377
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbol-functions?symbol_id=c%3A%40_ebss&offset=0",
+      "bytes": 807
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/human?symbol_id=c%3A%40_ebss",
+      "bytes": 206
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/nodes/242?limit=200",
+      "bytes": 10558
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/records/accesses?symbol_id=c%3A%40_ebss",
+      "bytes": 762
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/records/findings?dataset=report&symbol_id=c%3A%40_ebss",
+      "bytes": 818
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/source?file=",
+      "bytes": 161
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/nodes/23151?limit=200",
+      "bytes": 4898
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/nodes/34?limit=10&offset=0",
+      "bytes": 148
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage",
+      "bytes": 2742
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 171
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/blockers?offset=0&limit=50",
+      "bytes": 3484
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/related?node=23032&offset=0",
+      "bytes": 1398
+    },
+    {
+      "path": "/api/bootstrap",
+      "bytes": 1255
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 366
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/summary",
+      "bytes": 1156
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage",
+      "bytes": 2742
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 171
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/blockers?offset=0&limit=50",
+      "bytes": 3484
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/related?node=23032&offset=0",
+      "bytes": 1398
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?limit=5",
+      "bytes": 1564
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=&symbol_id=c%3A%40_ebss&sort=priority&order=asc",
+      "bytes": 377
+    },
+    {
+      "path": "/api/profiles",
+      "bytes": 12
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/groups?offset=0",
+      "bytes": 1074
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/issues?offset=0&limit=50",
+      "bytes": 25274
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/issues?offset=0&limit=50&kind_node=1921",
+      "bytes": 24136
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/issues?offset=50&limit=50&kind_node=1921",
+      "bytes": 3590
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/bootstrap",
+      "bytes": 1255
+    },
+    {
+      "path": "/api/scans",
+      "bytes": 366
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/summary",
+      "bytes": 1156
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage",
+      "bytes": 2742
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 144
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/groups?offset=0",
+      "bytes": 1074
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/issues?offset=50&limit=50&kind_node=1921",
+      "bytes": 3590
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?limit=5",
+      "bytes": 1564
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/symbols?search=&classification=&human_decision=&offset=0&limit=50&handling_status=&file=&function=&context=&coverage=&ai_state=&diff=&symbol_id=c%3A%40_ebss&sort=priority&order=asc",
+      "bytes": 377
+    },
+    {
+      "path": "/api/profiles",
+      "bytes": 12
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/related?node=2205&offset=0",
+      "bytes": 52
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/tus?offset=0&limit=50&search=&zero_only=false",
+      "bytes": 4068
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/tus?offset=0&limit=50&search=&zero_only=false&status_node=679",
+      "bytes": 2143
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/tus?offset=0&limit=50&search=utils.c&zero_only=false&status_node=679",
+      "bytes": 1170
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/tus?offset=0&limit=50&search=utils.c&zero_only=true&status_node=679",
+      "bytes": 1170
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/source-window?file=utils.c&line=1",
+      "bytes": 3227
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/nodes/22650?offset=0",
+      "bytes": 2059
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/nodes/22648?offset=0",
+      "bytes": 2948
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/coverage/position",
+      "bytes": 14
+    },
+    {
+      "path": "/api/scans/native-parsed-f030/nodes/22659?offset=0",
+      "bytes": 757
+    }
+  ]
+}

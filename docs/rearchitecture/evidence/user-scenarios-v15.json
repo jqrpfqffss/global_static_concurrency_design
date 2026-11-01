@@ -1,0 +1,204 @@
+{
+  "passed": false,
+  "scope": "Strict full U01-U24 status; subset evidence is not an entire-scenario PASS. One-host real package, not physical offline/DPI/UAT.",
+  "runtime": "b50103f / Portablev15",
+  "items": [
+    {
+      "id": "U01",
+      "title": "第一次使用、没配置 Python/YAML",
+      "required": "打开 ECRA，一页内能选择工程/导入结果/示例；有明确下一步",
+      "status": "PASS",
+      "verified_subset_and_remaining": "实际ECRA.cmd、Windows-only PATH、包内Python、私有默认数据根，首屏三入口/真实示例；非物理干净机双击。",
+      "evidence": "launcher,sample,main"
+    },
+    {
+      "id": "U02",
+      "title": "新建 STM32 工程",
+      "required": "4 步向导不丢输入，真实构建参数检查通过才允许扫描",
+      "status": "FAIL",
+      "verified_subset_and_remaining": "四步/回退/往返/目录/上下文已验；完整真实构建参数与执行计划在启动前尚未验证，不能把路径检查称作构建通过。",
+      "evidence": "main,profile,contexts,directories"
+    },
+    {
+      "id": "U03",
+      "title": "固件目录只读",
+      "required": "外部 workspace 构建/扫描成功，无新增 `.ecra`、源码/原正式 build 改动",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "42文件真实ACL只读DB扫描/原新对照/原数据不变已验；只读外置CMake全模式、物理只读挂载与生产写保护未齐。",
+      "evidence": "main; readonly-native-f030-v2"
+    },
+    {
+      "id": "U04",
+      "title": "Git Diff 分支选择",
+      "required": "显示 base/current/HEAD/未提交覆盖，真实版本与输入固定正确",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "真实refs/HEAD/dirty提示/分页/保存6项已验；dirty字节正式固定和大型原生Diff输入/结果尚未完成。",
+      "evidence": "git"
+    },
+    {
+      "id": "U05",
+      "title": "CMake/ARM/Git 不存在",
+      "required": "具体失败字段、修复路径和文案；不会先写污染数据",
+      "status": "FAIL",
+      "verified_subset_and_remaining": "工具缺失路径提示存在，但当前profile检查不是完整的、阻止启动的真实工具/编译环境门禁。",
+      "evidence": "profile,main"
+    },
+    {
+      "id": "U06",
+      "title": "首次/再次扫描",
+      "required": "第一次可在向导启动，之后从首页单击发起相同 profile 的扫描",
+      "status": "PASS",
+      "verified_subset_and_remaining": "F030通过向导启动、停止恢复后保存；首页同profile真实重扫，原结果/人工记录保留。仅已验小工程。",
+      "evidence": "main"
+    },
+    {
+      "id": "U07",
+      "title": "扫描中大项目",
+      "required": "正确阶段、TU 真实计数、RAM/磁盘实测、无假进度或假 ETA",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "小工程真实任务资源/日志与共享占用故障已验；388TU当前为CLI受控测量，不替代大型GUI验收。",
+      "evidence": "main"
+    },
+    {
+      "id": "U08",
+      "title": "中途停止/重启",
+      "required": "旧有效报告不丢；已提交 TU 可以安全复用；不能误称未完成扫描为安全",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "真实停止/恢复/旧指针和TU复用已有浏览器及单元证据；仍缺当前包原生任务中途服务/系统重启完整流程。",
+      "evidence": "main"
+    },
+    {
+      "id": "U09",
+      "title": "首页统计下钻",
+      "required": "卡片人数/变量数和实际筛选结果一致，OUT_OF_BUILD/容器不冒充安全数",
+      "status": "PASS",
+      "verified_subset_and_remaining": "实际SQL口径与卡片下钻/筛选一致；完整类别和统计来源保留，示例未伪装安全。",
+      "evidence": "main,sample,capacity"
+    },
+    {
+      "id": "U10",
+      "title": "超过 20,000 行结果",
+      "required": "浏览器不读取巨型 JSON；服务端分页/过滤/排序、操作不卡顿",
+      "status": "PASS",
+      "verified_subset_and_remaining": "20007行真实服务端分页/精确搜索/排序/恢复位置/有界响应；大整数、负零、代理字符及长文本完整分页。",
+      "evidence": "capacity"
+    },
+    {
+      "id": "U11",
+      "title": "查找 g_mfcInterface.msgSp",
+      "required": "能找到正确存储身份与读/写/RMW、main/IRQ、相关交错和代码来源",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "HCLK和g_counter精确身份/访问/归档源码已验；g_mfcInterface.msgSp所属工程按用户决定待验，不伪造该输入。",
+      "evidence": "main,sample"
+    },
+    {
+      "id": "U12",
+      "title": "主/IRQ 调用图",
+      "required": "完整相关边可按需逐段查看，无静默 top N 截断或遗漏下游访问",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "真实相关调用边双向查询和完整计数已验；尚缺当前包真实main/IRQ大型完整交错场景。",
+      "evidence": "main"
+    },
+    {
+      "id": "U13",
+      "title": "NVIC/PRIMASK/BASEPRI 不明确",
+      "required": "显示实际可证明配置与缺口，不编造能/不能抢占",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "保护/NVIC语义回归存在；当前包真实NVIC/PRIMASK/BASEPRI不明确的组合GUI流程未完整验收。",
+      "evidence": "main"
+    },
+    {
+      "id": "U14",
+      "title": "覆盖/解析失败",
+      "required": "UNKNOWN、失败 TU 和原因可下钻，不显示“全工程安全”",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "真实2PARSED/2PARTIAL、236原始缺口和覆盖阻断的8项下钻通过；完整失败TU/原因组合与大型输入仍待验。",
+      "evidence": "coverage"
+    },
+    {
+      "id": "U15",
+      "title": "OpenCode 关闭/失败/重试",
+      "required": "静态扫描仍可用，TECH_FAILED 不归档为 SAFE，失败后能继续",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "实际缺复核工具故障保持静态库、TECH_FAILED未变SAFE已验；真实联网工具修复/重试未验，两项opt-in跳过。",
+      "evidence": "main"
+    },
+    {
+      "id": "U16",
+      "title": "人工分批确认 1000 项",
+      "required": "确认部分后关闭软件重开，数量/状态/筛选/继续位置不丢",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "确认/筛选/页码/继续位置、真实服务重启已验；1000项分批人工操作压力场景未完整实测。",
+      "evidence": "main,sample,capacity"
+    },
+    {
+      "id": "U17",
+      "title": "误确认有/无风险",
+      "required": "撤销生成审计事件，原操作和理由仍可追溯",
+      "status": "PASS",
+      "verified_subset_and_remaining": "实际撤销追加审计事件，原确认及理由/历史继续可见；不覆盖旧事件。",
+      "evidence": "main"
+    },
+    {
+      "id": "U18",
+      "title": "源码/构建上下文变化",
+      "required": "旧人工确认不自动冒充当前确认，需重新确认可见",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "底层变化证据RECHECK/历史保留已有原生回归；当前包源码/构建变化后GUI继承和重新确认完整流程仍待验。",
+      "evidence": "main"
+    },
+    {
+      "id": "U19",
+      "title": "两台电脑复制完整包",
+      "required": "另一台无固件、无系统工具链仍能查看归档证据、继续确认",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "一台主机两独立根/服务/origin完整包与继续确认已验；无固件Viewer可实际启动；第二台物理机待验。",
+      "evidence": "collaboration,sample,launcher"
+    },
+    {
+      "id": "U20",
+      "title": "合并确认增量",
+      "required": "重复导入幂等；同一变量冲突显式解决，历史不被最后写入覆盖",
+      "status": "PASS",
+      "verified_subset_and_remaining": "两真实服务的GUI增量传播、重复导入、并行冲突、缺理由拒绝、全父分支显式解决及再导出重开7项通过。",
+      "evidence": "collaboration"
+    },
+    {
+      "id": "U21",
+      "title": "导入旧 `.ecra` / 工具 workspace",
+      "required": "归属校验、无损导入、缺证据降级、原数据在校验通过前保留",
+      "status": "FAIL",
+      "verified_subset_and_remaining": "真实完整旧结果归属/转换/审计原文件/确认/重复/失败保护6项通过；缺证据降级Viewer及大型双旧结果迁移仍未齐。",
+      "evidence": "legacy"
+    },
+    {
+      "id": "U22",
+      "title": "页面极端显示",
+      "required": "1366×768 与高 DPI 截图，操作与搜索可见，长变量名/摘要完整",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "1366/1600/1920及工作台/对话框主操作已验；浏览器密度模拟不作Windows原生系统DPI，全部极端状态/长名未齐。",
+      "evidence": "main,sample,directories,contexts"
+    },
+    {
+      "id": "U23",
+      "title": "数据占用超过 50GB",
+      "required": "空间组成可见；只清理无引用冗余，清理后仍可复核/查看/恢复",
+      "status": "NOT_VERIFIED",
+      "verified_subset_and_remaining": "实际GUI清理计划/恢复/二次确认释放通过；较早50GiB容量证据保留，当前包完整50GB场景仍未重验。",
+      "evidence": "main"
+    },
+    {
+      "id": "U24",
+      "title": "导出/导入损坏或恶意包",
+      "required": "不污染已有数据，不执行注入内容，错误可理解且可恢复",
+      "status": "PASS",
+      "verified_subset_and_remaining": "实际UI恶意/损坏结果包拒绝且旧库/人工记录不变；严格包校验单元覆盖另有证据，不等于G5全故障矩阵。",
+      "evidence": "main,legacy"
+    }
+  ],
+  "counts": {
+    "PASS": 7,
+    "FAIL": 3,
+    "NOT_VERIFIED": 14
+  }
+}

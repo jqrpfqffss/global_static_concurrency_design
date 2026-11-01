@@ -59,3 +59,5 @@ v7失败见[完整收据](evidence/inav-instances-native-v7-failed.json)；v8启
 | G8 | 当前实际包/中文解压/包内浏览器已验；干净离线物理Windows、原生系统DPI、第二台电脑、5–8工程师盲测仍NOT_VERIFIED |
 
 本阶段不宣称H1–H6、G1–G8或Phase0–6整体完成。原始备份、失败轮、冻结代码与人工历史全部保留。
+
+补充已验：当前包覆盖诊断8、真实两服务人工增量/冲突协作7、完整旧迁移6、实际ECRA.cmd启动4均通过。入口测试PATH仅有Windows目录，实际子进程为包内Python，在私有LOCALAPPDATA默认根落数据，全部被检程序字节/mtime不变；--no-browser仅抑制桌面浏览器弹窗，随后由真实Chrome进入同一服务，不冒充物理干净机双击。逐项状态见[U01–U24](ui/17-user-scenario-status.md)，当前7PASS/3FAIL/14NOT_VERIFIED，完整G7继续未通过。legacy首轮夹具把已改变分类的HCLK留在UNKNOWN筛选，launcher首轮提前匹配空态说明；修正控制器后重验，未改产品结果或校验。

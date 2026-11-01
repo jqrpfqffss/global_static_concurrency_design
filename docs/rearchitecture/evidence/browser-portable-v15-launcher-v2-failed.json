@@ -1,0 +1,41 @@
+{
+  "passed": false,
+  "scope": "Actual ECRA.cmd Studio entry with Windows-only PATH and private LOCALAPPDATA.\n\n--no-browser suppresses desktop disruption but uses the actual Studio launcher\nbranch. Real Chrome is the external test controller; the service runs embedded\nPython. Not a clean physical offline machine or literal desktop double-click.\n",
+  "command": [
+    "C:\\Windows\\System32\\cmd.exe",
+    "/d",
+    "/c",
+    "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\ECRA.cmd",
+    "--no-browser",
+    "--session-file",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-launcher-v15-v2\\session.json"
+  ],
+  "cwd": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-launcher-v15-v2\\unrelated cwd 中文",
+  "restricted_path": "C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\Wbem",
+  "tests": [
+    {
+      "name": "actual_cmd_uses_embedded_python_with_windows_only_path_and_private_default_data_root",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    },
+    {
+      "name": "actual_launcher_page_has_all_three_real_first_use_actions_without_external_requests",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "physical_clean_offline_machine": "NOT_VERIFIED",
+  "literal_desktop_double_click": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "service_python": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\runtime\\python.exe",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_portable_startup_ui.py\", line 90, in main\n    assert list((expected/'scans').glob('*/scan.db'))\nAssertionError\n",
+  "failure_scope": "Controller matched the sample notice already visible during import and asserted before commit. v3 waits for the real loaded overview; all4 pass. Program entry/runtime itself had started correctly; no relaxed product check."
+}

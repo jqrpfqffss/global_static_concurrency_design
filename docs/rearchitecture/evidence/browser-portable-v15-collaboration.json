@@ -1,0 +1,152 @@
+{
+  "passed": true,
+  "scope": "Actual two-origin Chrome collaboration on two isolated local data roots.\n\nUses a real existing native archive and real packaged servers. All mutations\nuse visible GUI controls; database reads independently check immutable events.\nThis is one physical host, not second-machine/offline-environment acceptance.\n",
+  "tests": [
+    {
+      "name": "two_real_servers_import_same_native_archive",
+      "status": "PASS",
+      "related": [
+        "U19",
+        "U20"
+      ],
+      "limitation": "Two isolated roots/origins on one physical host"
+    },
+    {
+      "name": "gui_delta_propagation_and_repeat_import_are_idempotent",
+      "status": "PASS",
+      "related": [
+        "U20"
+      ]
+    },
+    {
+      "name": "parallel_gui_decisions_keep_both_branch_sources_and_history",
+      "status": "PASS",
+      "related": [
+        "U20"
+      ]
+    },
+    {
+      "name": "missing_resolution_reason_is_rejected_without_changing_heads",
+      "status": "PASS",
+      "related": [
+        "U20",
+        "H4"
+      ]
+    },
+    {
+      "name": "explicit_gui_resolution_adds_event_with_every_branch_parent",
+      "status": "PASS",
+      "related": [
+        "U20"
+      ]
+    },
+    {
+      "name": "resolved_full_package_merges_existing_archive_and_survives_reopen",
+      "status": "PASS",
+      "related": [
+        "U19",
+        "U20"
+      ]
+    },
+    {
+      "name": "final_delta_idempotent_static_and_original_bytes_unchanged_no_external_requests",
+      "status": "PASS",
+      "related": [
+        "U20",
+        "H1",
+        "H4",
+        "H6"
+      ]
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-collaboration\\01-both-device-conflicts-visible.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-collaboration\\02-explicit-resolution-retains-history.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v15-collaboration\\03-imported-full-package-history-after-reopen.png"
+  ],
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable\\runtime\\python.exe",
+  "scan_id": "native-golden",
+  "symbol_id": "c:@HCLK",
+  "physical_second_computer": "NOT_VERIFIED",
+  "clean_offline_machine": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED",
+  "events": {
+    "e3805732-92fe-4d25-beae-3539baf70eba": {
+      "comment": "初始归档核对；仅用于协作流程验收",
+      "decision": "CONFIRMED_RISK",
+      "device": "device-09b7442446c644a1afdd0f6c36b6a538",
+      "event_id": "e3805732-92fe-4d25-beae-3539baf70eba",
+      "fingerprint": "a0bbab67a6b5f8888a693d492679edea93646c5c166de11ae353f6de4c7c2e58",
+      "handling_status": "TODO",
+      "parents": [],
+      "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+      "reviewer": "电脑A工程师",
+      "revision": 1,
+      "scan_id": "native-golden",
+      "symbol_id": "c:@HCLK",
+      "timestamp": "2026-11-01T17:47:17.909343+00:00"
+    },
+    "a2143275-ad5e-4a5b-8041-f1c3ca852a63": {
+      "comment": "电脑A：核对归档路径后提出无风险结论；协议测试",
+      "decision": "CONFIRMED_SAFE",
+      "device": "device-09b7442446c644a1afdd0f6c36b6a538",
+      "event_id": "a2143275-ad5e-4a5b-8041-f1c3ca852a63",
+      "fingerprint": "a0bbab67a6b5f8888a693d492679edea93646c5c166de11ae353f6de4c7c2e58",
+      "handling_status": "TODO",
+      "parents": [
+        "e3805732-92fe-4d25-beae-3539baf70eba"
+      ],
+      "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+      "reviewer": "电脑A工程师",
+      "revision": 2,
+      "scan_id": "native-golden",
+      "symbol_id": "c:@HCLK",
+      "timestamp": "2026-11-01T17:47:21.597400+00:00"
+    },
+    "b09adb7b-0fda-48f8-8a31-9d95ec3bc28f": {
+      "comment": "电脑B：NVIC 证据仍缺失，要求继续核实；协议测试",
+      "decision": "NEED_MORE_EVIDENCE",
+      "device": "device-f32b8074dc3848939f15a5e5ea5dadf5",
+      "event_id": "b09adb7b-0fda-48f8-8a31-9d95ec3bc28f",
+      "fingerprint": "a0bbab67a6b5f8888a693d492679edea93646c5c166de11ae353f6de4c7c2e58",
+      "handling_status": "TODO",
+      "parents": [
+        "e3805732-92fe-4d25-beae-3539baf70eba"
+      ],
+      "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+      "reviewer": "电脑B工程师",
+      "revision": 2,
+      "scan_id": "native-golden",
+      "symbol_id": "c:@HCLK",
+      "timestamp": "2026-11-01T17:47:22.115301+00:00"
+    },
+    "33fe8c13-b0ce-4456-8767-5b17fdb49118": {
+      "comment": "已核对两台电脑的原始事件、来源与归档证据；保留待补实测依据",
+      "decision": "NEED_MORE_EVIDENCE",
+      "device": "device-09b7442446c644a1afdd0f6c36b6a538",
+      "event_id": "33fe8c13-b0ce-4456-8767-5b17fdb49118",
+      "fingerprint": "a0bbab67a6b5f8888a693d492679edea93646c5c166de11ae353f6de4c7c2e58",
+      "handling_status": "TODO",
+      "parents": [
+        "a2143275-ad5e-4a5b-8041-f1c3ca852a63",
+        "b09adb7b-0fda-48f8-8a31-9d95ec3bc28f"
+      ],
+      "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+      "reviewer": "联合核对声明工程师",
+      "revision": 3,
+      "scan_id": "native-golden",
+      "symbol_id": "c:@HCLK",
+      "timestamp": "2026-11-01T17:47:25.111182+00:00"
+    }
+  },
+  "source_static_sha256": "0e102d98a1c93fd54491ecbb4e1d10fe91e5367ad23d53538a61dffc1a8474e2",
+  "imported_static_sha256": {
+    "A": "f6c0d3c0b47ec3701b5db59edc8c42c9423e650eadb07016f3f3a5f115fa25c9",
+    "B": "f6c0d3c0b47ec3701b5db59edc8c42c9423e650eadb07016f3f3a5f115fa25c9"
+  },
+  "original_unchanged": true,
+  "snapshot_scope": "SQLite Backup may change physical database header bytes; each imported immutable copy must retain its own initial SHA, full graph validation and exact source binding"
+}
