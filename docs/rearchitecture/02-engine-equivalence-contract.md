@@ -12,4 +12,8 @@
 
 比较失败应给出根、字段/数组 ordinal、类型及摘要差异；原黄金库不得由迁移器或清理程序覆盖。基线 archive 和输出单独保留，哈希核对失败必须停止。
 
+大型比较实现：`scripts/compare_native_graphs.py`对已完整入库的两个原始图先执行完整哈希/投影校验，再直接比较facts有序类型根；report按现有workflow.clean_report（逐项复核运行字段与status复位）以及本合同列出的generated_at/fingerprint/workspace.results_root、实际输入读取read_started_ns/read_completed_ns计算规范摘要。其他read_*_ns或嵌套同名字段不自动豁免。运行信封逐条记录原节点、类型、摘要及短原值，长值继续由未改写的原始图完整保留。没有EvidenceProvider.load，不构造完整facts/report或所有源文件名列表；第一处差异提供实际路径与值/类型/摘要。
+
+5项测试验证布尔/整数、负零、字段/数组顺序、重复、静态分类、未来字段、非豁免时间名、输入大小和损坏均不能被隐藏（native-graph-comparison-tests-v1.json）。原生2PARSED/2PARTIAL F030既有黄金另经流式旧JSON入图，facts根49e91182...和规范静态report根62fd77e0...均与独立候选完全相同，输入/候选原SHA不变（native-graph-parsed-f030-v1.json）；这是对既有真实扫描的新比较方法验证，不是本次新增原生扫描，也不代替388TU/完整Diff/三类工程的G1。
+
 本轮原生4TU比较首次严格比较发现 `coverage.consumed_inputs.<file>.read_completed_ns` 不同，原失败收据保存为 `evidence/native-equivalence-before-runtime-envelope.json`。该字段及 `read_started_ns` 是工具实际读取输入缓冲的审计时间，原始值另存 execution_envelope；相同记录的status/sha256/size仍逐字段比较。它们不描述固件执行顺序；访问、初始化、保护事件数组一律不排序、不移除。另行分离的运行字段只有generated_at、fingerprint、workspace.results_root。后续结果只能依据重新执行/检查的实际收据更新。

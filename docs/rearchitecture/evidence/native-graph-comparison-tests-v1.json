@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "scope": "Five typed/order/envelope/integrity tests, not native execution or full suite",
+  "tests": 5,
+  "seconds": 3.954,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-graph-comparison-tests-1.log",
+  "log_sha256": "7493a783bbb9fdaebb35f16cd05056bc4b795e0d86a19d4c5c9fe26738a788b0",
+  "source_sha256": "427998f4705cdb753464e490ec2c11f243772ab88db2c92fd27d381d4fd9ba98"
+}

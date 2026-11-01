@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "hashes": {
+    "facts": {
+      "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+      "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+    },
+    "report": {
+      "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+      "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+    }
+  },
+  "differences": {
+    "facts": null,
+    "report": null
+  },
+  "scope": "Streaming graph comparison of existing independently native 2PARSED/2PARTIAL F030 golden; no new native scan executed by this comparison",
+  "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+  "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-golden-candidate-v2\\data\\scans\\native-parsed-f030\\scan.db",
+  "deep_integrity_checked": true,
+  "complete_fact_graph_restore": false,
+  "large_native_G1": "NOT_VERIFIED",
+  "input_sha256_before": {
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\original-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\facts.json": "6a78f68208c9a45c50f36d6dcfbfab875e240c345936fba8f95330dec50d41e8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\original-data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\reports\\global_static_concurrency.json": "a94c9bc075600f6d5d718188e65ec22330bf865bac0bf1b59052344ac498cc9c",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-golden-candidate-v2\\data\\scans\\native-parsed-f030\\scan.db": "e9bf7493970b4f889d57f40499c2479a19c29e88e5eeeac69258d0ff830d48ff"
+  },
+  "originals_unchanged": true,
+  "earlier_native_receipt": "docs/rearchitecture/evidence/native-parsed-golden-v2.json"
+}
