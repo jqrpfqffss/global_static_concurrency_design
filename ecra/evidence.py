@@ -3,7 +3,7 @@
 Diagnostics are not taints. Every blocking gap retains its source and the
 specific storage/entry relation that can hide another conflicting access.
 """
-from collections import Counter, defaultdict, deque
+from collections import Counter, OrderedDict, defaultdict, deque
 from dataclasses import dataclass, field, fields
 
 from .common import digest
@@ -140,7 +140,9 @@ class EvidenceIndex:
                 entry_site_sample=[dict(file=row.get('file'), line=row.get('line'),
                                         function_id=row.get('function_id'), offset=row.get('offset'))
                                    for row in ordered[:8]]))
-        self.ancestor_cache = {}
+        self.ancestor_cache = OrderedDict()
+        self.ancestor_cache_members = 0
+        self.ancestor_cache_budget = 65536
         self.issue_identity_cache = {}
         self.gap_row_cache = {}
 
@@ -151,8 +153,40 @@ class EvidenceIndex:
                 for caller in self.reverse[todo.pop()] - found:
                     found.add(caller)
                     todo.append(caller)
+            # Evict only recomputable closures, never truncate a traversal.
+            if len(found) > self.ancestor_cache_budget:
+                return found
+            while self.ancestor_cache_members + len(found) > self.ancestor_cache_budget:
+                _, previous = self.ancestor_cache.popitem(last=False)
+                self.ancestor_cache_members -= len(previous)
             self.ancestor_cache[fid] = found
+            self.ancestor_cache_members += len(found)
+        else:
+            self.ancestor_cache.move_to_end(fid)
         return self.ancestor_cache[fid]
+
+    def runtime_ancestors(self, runtime):
+        # Native function IDs are strings. Keep the original expression for
+        # other inputs, including equal-but-differently-typed Python keys.
+        try:
+            native_ids = all(type(a['function_id']) is str for a in runtime)
+        except (KeyError, TypeError):
+            native_ids = False
+        if not native_ids:
+            return set().union(*(self.ancestors(a['function_id']) for a in runtime)) if runtime else set()
+        found, todo = set(), []
+        for access in runtime:
+            fid = access['function_id']
+            if fid not in found:
+                found.add(fid)
+                todo.append(fid)
+        # Closure(union(seeds)) == union(Closure(seed)); share one visited set
+        # instead of materializing and retaining one closure per access function.
+        while todo:
+            for caller in self.reverse[todo.pop()] - found:
+                found.add(caller)
+                todo.append(caller)
+        return found
 
     def entry_after_init_writes(self, issue, writers, proof):
         """An IRQ-only callback registration cannot race with proven init writes.
@@ -187,7 +221,7 @@ class EvidenceIndex:
         sid = variable['symbol_id']
         runtime = [a for a in accesses if a['access_kind'] in RUNTIME]
         writers = any(a['access_kind'] in WRITES for a in runtime)
-        ancestors = set().union(*(self.ancestors(a['function_id']) for a in runtime)) if runtime else set()
+        ancestors = self.runtime_ancestors(runtime)
         result = VariableEvidenceSlice(sid, variable.get('canonical_path', variable['qualified_name']),
             dict(file=variable.get('definition_file'), line=variable.get('definition_line')),
             variable.get('linkage', ''),

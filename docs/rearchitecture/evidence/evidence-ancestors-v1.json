@@ -1,0 +1,178 @@
+{
+  "passed": true,
+  "scope": "ADR013 protected evidence allocation: independent original complete slices, bounded cache recomputation, Python capacity and actual F030 complete native facts/report equality; not whole large-project gate",
+  "tests": 23,
+  "test_seconds": 1.675,
+  "test_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\evidence-ancestors-v1-tests.log",
+  "test_log_sha256": "5ef28f0910c36aee4e204f44efccb6a6326dfaa029fb1881aac41801fbdee256",
+  "capacity": {
+    "passed": true,
+    "scope": "Compare complete variable evidence against frozen e69; Python allocations only.",
+    "count": 2000,
+    "results": [
+      {
+        "engine": "e69",
+        "seconds": 2.2903766999988875,
+        "python_retained_bytes": 135097501,
+        "python_peak_bytes": 135262473,
+        "output_sha256": "2f6c444ebc0d7a43a1d354d0ea9275a692918479576d0c9811c83374b475e3c5",
+        "functions": 2000,
+        "call_edges": 1999,
+        "cached_closures": 2000
+      },
+      {
+        "engine": "current",
+        "seconds": 0.029293800002051285,
+        "python_retained_bytes": 1167600,
+        "python_peak_bytes": 1343104,
+        "output_sha256": "2f6c444ebc0d7a43a1d354d0ea9275a692918479576d0c9811c83374b475e3c5",
+        "functions": 2000,
+        "call_edges": 1999,
+        "cached_closures": 0
+      }
+    ],
+    "inputs_unchanged": true,
+    "original_sha256": "ac4ef73c86026a39b54996a661059fcc472595be40b8c28f6667fcf1259f1829",
+    "implementation_sha256": "9992b516092367cb5a6b688f1c386b65046b92d6d799091a122027e6d1d3171b",
+    "limits": "Capacity fixture only; excludes native RSS/Job, G1 large project, G3 and physical32GB"
+  },
+  "native": {
+    "passed": true,
+    "scope": "Actual F030 native production CLI under2GiB Job, complete ordered facts and normalized report comparison against original e69; no large G1/G3/physical32GB claim",
+    "manifest_sha256": "d372243e30e8ffbb175ba1aa1cf806492d55343a78ae678dad83a37cb3c68f96",
+    "frozen_files": 890,
+    "inputs": 44,
+    "inputs_unchanged": true,
+    "engine_unchanged": true,
+    "native": {
+      "complete": true,
+      "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+      "mode": "canonical",
+      "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1",
+      "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+      "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+      "data_root": "H:\\ECRA-ANC-P1",
+      "safety_job_commit_limit_bytes": 2147483648,
+      "controlled_limit_experiment": true,
+      "physical_32GB": "NOT_VERIFIED",
+      "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+      "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+      "paging_samples_valid": 53,
+      "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+      "logical_disk_peak_is_sampled_lower_bound": true,
+      "started": "2026-11-01T17:04:45.940787+00:00",
+      "peaks": {
+        "working_set_bytes": 181338112,
+        "private_bytes": 144621568,
+        "peak_job_commit_bytes": 146878464,
+        "sampled_output_logical_bytes": 14119153,
+        "sampled_output_allocated_bytes": 14262384
+      },
+      "samples": 53,
+      "cache_reuse": null,
+      "diagnostic_fault": null,
+      "observer_script_sha256": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe",
+      "worker_temporary_root": "H:\\ECRA-ANC-P1\\work\\native-observer\\temporary",
+      "output_volume_free_at_start": 966882627584,
+      "pid": 13416,
+      "seconds": 27.65599999999904,
+      "last": {
+        "seconds": 27.14099999999962,
+        "available": true,
+        "working_set_bytes": 147320832,
+        "private_bytes": 95444992,
+        "peak_job_commit_bytes": 146878464,
+        "limit_bytes": 2147483648,
+        "enforced_job_commit_limit_bytes": 2147483648,
+        "job_limit_flags": 8704,
+        "processes": 6,
+        "sampled_processes": 6,
+        "write_bytes": 0,
+        "system_commit_bytes": 23326121984,
+        "system_commit_limit_bytes": 85825454080,
+        "system_commit_peak_bytes": 39965896704,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 49986531328,
+        "system_commit_headroom_bytes": 62499332096,
+        "host_paging": {
+          "available": true,
+          "values": {
+            "pages_input_per_second": 17.25760211754613,
+            "pages_output_per_second": 0.0
+          },
+          "errors": {},
+          "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+        },
+        "disk_free_bytes": 966871687168,
+        "whole_volume_used_change_bytes": 10940416,
+        "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+        "main_process_memory": {
+          "rss": 46743552,
+          "vms": 44228608,
+          "num_page_faults": 500890,
+          "peak_wset": 61710336,
+          "wset": 46743552,
+          "peak_paged_pool": 305768,
+          "paged_pool": 305592,
+          "peak_nonpaged_pool": 19184,
+          "nonpaged_pool": 18928,
+          "pagefile": 44228608,
+          "peak_pagefile": 60280832,
+          "private": 44228608
+        },
+        "output_disk": {
+          "files": 80,
+          "logical_bytes": 2838663,
+          "allocated_bytes": 3002616,
+          "unique_files": 80,
+          "sampling_partial": false,
+          "unmeasured_files": 0,
+          "observation_seconds": 0.01600000000325963
+        },
+        "output_disk_observed_seconds": 15.796999999998661
+      },
+      "exit_code": 2,
+      "final_output_disk": {
+        "files": 84,
+        "logical_bytes": 14119153,
+        "allocated_bytes": 14262384,
+        "unique_files": 84,
+        "sampling_partial": false,
+        "unmeasured_files": 0,
+        "observation_seconds": 0.01599999999962165
+      },
+      "output": "H:\\ECRA-ANC-P1\\scans\\native-golden",
+      "validity": {
+        "analysis_valid": true,
+        "state": "STATIC_SCAN_SAVED",
+        "snapshot_status": "VERIFIED",
+        "fingerprint": "76659f047facd49396ce61b8b81b9d968c66562afccc4f34fa40c3c17c82b852"
+      }
+    },
+    "comparison": {
+      "passed": true,
+      "hashes": {
+        "facts": {
+          "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+          "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+        },
+        "report": {
+          "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+          "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+        }
+      },
+      "differences": {
+        "facts": null,
+        "report": null
+      },
+      "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+      "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+      "after": "H:\\ECRA-ANC-P1\\scans\\native-golden\\scan.db",
+      "deep_integrity_checked": true,
+      "complete_fact_graph_restore": false,
+      "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+    }
+  },
+  "full_regression": "PENDING_NEW_FROZEN_1263",
+  "large_native": "NOT_STARTED_PENDING_FULL_REGRESSION"
+}
