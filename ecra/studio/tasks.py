@@ -57,6 +57,10 @@ class TaskManager:
         cfg, _ = load_config(root, profile_path)
         from .resource_policy import policy
         limits=policy(resources)
+        from .resource_policy import host_pressure
+        from ..scan_diagnostics import memory
+        pressure=host_pressure(memory())
+        if pressure['stop']:raise ValueError(pressure['reason']+'；暂不启动扫描，请待提交额度/内存恢复后重试。')
         # Validate relative to the service's explicitly selected data root.
         analysis = dict(cfg['analysis'])
         if analysis.get('output', {}).get('location', 'user') == 'user':
@@ -115,13 +119,23 @@ class TaskManager:
                     '--gate',str(folder/'start'), '--stop',str(folder/'stop'), '--result',str(folder/'worker-result.json')]
                 process = None
                 try:
-                    process = subprocess.Popen(args, cwd=tool, env=env, stdout=stream, stderr=subprocess.STDOUT,
-                        creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
-                    budget.assign(process)
+                    if os.name=='nt':
+                        from .write_guard import OwnedProcess
+                        process=OwnedProcess(args,cwd=tool,env=env,log=stream)
+                        budget.assign(process);process.resume()
+                        def release_process():
+                            if process.poll() is None:
+                                budget.close();process.wait(timeout=10)
+                            process.close()
+                        ownership.callback(release_process)
+                    else:
+                        process=subprocess.Popen(args,cwd=tool,env=env,stdout=stream,stderr=subprocess.STDOUT)
+                        budget.assign(process)
                     (folder/'start').write_text('OWNED',encoding='ascii')
                 except BaseException as exc:
                     if process is not None:
                         process.terminate(); process.wait()
+                        if hasattr(process,'close'):process.close()
                     stream.close(); budget.close()
                     value.update(state='FAILED',error=str(exc),finished=now()); write_json(folder/'task.json',value)
                     raise
@@ -147,13 +161,15 @@ class TaskManager:
                         'system_physical_total_bytes','system_physical_available_bytes') if key in system})
                     sample['disk_free_bytes']=shutil.disk_usage(self.data).free
                     value['resources'].update({key:sample[key] for key in sample if key.startswith(('system_','disk_'))})
-                    soft=sample.get('private_bytes',0)>=value['resource_policy']['soft_bytes'] or sample.get('system_physical_available_bytes',2**63)<2*1024**3
+                    from .resource_policy import host_pressure
+                    pressure=host_pressure(sample);sample['host_pressure']=pressure;value['resources']['host_pressure']=pressure
+                    soft=sample.get('private_bytes',0)>=value['resource_policy']['soft_bytes'] or pressure['soft']
                     write_json(folder/'resource-pressure.json',dict(parallel_limit=1 if soft else value['resource_policy']['workers']))
-                    if soft:value['resource_notice']='达到软阈值：后续TU降至单并行，保留全部事实。'
+                    if soft:value['resource_notice']=(pressure['reason']+'；' if pressure['reason'] else '达到软阈值；')+'后续TU降至单并行，保留全部事实。'
                     else:value.pop('resource_notice',None)
-                    if sample.get('private_bytes',0)>=value['budget_bytes']*.9 or sample.get('system_physical_available_bytes',2**63)<512*1024**2 or sample['disk_free_bytes']<512*1024**2:
+                    if sample.get('private_bytes',0)>=value['budget_bytes']*.9 or pressure['stop'] or sample['disk_free_bytes']<512*1024**2:
                         (folder/'stop').write_text(now(),encoding='ascii')
-                        value['error']='接近资源硬阈值，已请求安全停止；保存已验证TU，上一有效快照保留。调整预算或释放空间后恢复。'
+                        value['error']=(pressure['reason']+'；' if pressure['stop'] else '接近资源硬阈值；')+'已请求安全停止，保存已验证TU，上一有效快照保留。资源恢复后重试。'
                     # Display history is bounded; the full measurements append
                     # to a durable JSONL receipt, never into an evidence cap.
                     with (folder/'resources.jsonl').open('a',encoding='utf-8') as output:

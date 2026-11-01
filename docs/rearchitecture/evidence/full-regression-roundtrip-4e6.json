@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "tests": 1205,
+  "failures": 4,
+  "skipped": 2,
+  "seconds": 1845.984,
+  "engine_commit": "4e6fe06dddae6bdfdd917415cf90bd2c911ff5f2",
+  "frozen_files": 733,
+  "frozen_files_unchanged": true,
+  "manifest_sha256": "c035f442854b4195ae693978eef1a957fd06905bee37b2ed8f0c4d75ba9a8e9b",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-roundtrip-4e6.log",
+  "log_sha256": "18181066eafff24182fa99677e58c4aeff8a71412151f3c9f7ff8e4663fd4770",
+  "python": "Isolated Windows venv3.10 redirector",
+  "failures_detail": [
+    "test_emergency_memory.test_main_and_worker_diagnostics_at_actual_commit_exhaustion: MAIN and WORKER subtests failed",
+    "test_emergency_memory.test_real_cli_commit_exhaustion_invalidates_previous_report",
+    "test_portable_build.test_pe_dependency_check_detects_missing_python_dll"
+  ],
+  "analysis": "Fault probe limited the Windows venv launcher PID rather than ready.json actual interpreter; separate PE fixture assumed the redirector imports python DLL. Fixes are subsequent, never rewrite this frozen run."
+}

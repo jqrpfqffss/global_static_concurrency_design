@@ -9,6 +9,18 @@ from ecra.studio.resource_policy import policy
 
 
 class ResourcePolicyTests(unittest.TestCase):
+    def test_host_commit_exhaustion_is_independent_of_free_physical_ram_and_unknown_metrics_are_not_zero(self):
+        from ecra.studio.resource_policy import host_pressure
+        gib=1024**3
+        low=host_pressure(dict(system_physical_available_bytes=42*gib,system_commit_bytes=95*gib,system_commit_limit_bytes=96*gib))
+        self.assertTrue(low['stop']);self.assertTrue(low['soft']);self.assertEqual(low['commit_headroom_bytes'],gib)
+        self.assertIn('提交额度',low['reason'])
+        soft=host_pressure(dict(system_physical_available_bytes=42*gib,system_commit_bytes=93*gib,system_commit_limit_bytes=96*gib))
+        self.assertTrue(soft['soft']);self.assertFalse(soft['stop'])
+        self.assertFalse(host_pressure(dict(system_physical_available_bytes=42*gib,system_commit_bytes=90*gib,system_commit_limit_bytes=96*gib))['soft'])
+        unknown=host_pressure({});self.assertIsNone(unknown['commit_headroom_bytes']);self.assertFalse(unknown['metrics_available'])
+        self.assertIsNone(host_pressure(dict(system_commit_bytes=10,system_commit_limit_bytes=2))['commit_headroom_bytes'])
+
     def test_child_temporary_files_ignore_inherited_firmware_temp_and_broker_environment_stays_unchanged(self):
         import json,os,subprocess,sys
         from ecra.studio.resource_policy import temporary_environment

@@ -1,0 +1,141 @@
+{
+  "complete": true,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+  "mode": "canonical",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-temporary-7d5",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "data_root": "H:\\ECRA-RECOVER-P2",
+  "safety_job_commit_limit_bytes": 2147483648,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+  "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+  "paging_samples_valid": 76,
+  "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "started": "2026-11-01T07:04:20.205463+00:00",
+  "peaks": {
+    "working_set_bytes": 147812352,
+    "private_bytes": 111632384,
+    "peak_job_commit_bytes": 131149824,
+    "sampled_output_logical_bytes": 14108600,
+    "sampled_output_allocated_bytes": 14246008
+  },
+  "samples": 76,
+  "cache_reuse": {
+    "previous_attempt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-recovery-fault-probe-v1",
+    "previous_execution_sha256": "29ac64726e19701d9e9d743da20aefec167bb094092a9152b983af1c025fbaa9",
+    "files": 4,
+    "bytes": 593795,
+    "copy_seconds": 0.14100000000325963,
+    "independent_copy": true,
+    "scope": "Recovery from real native TU cache; preprocessing/input/engine/hash gates are rerun; elapsed is not cold full-extraction timing"
+  },
+  "diagnostic_fault": null,
+  "worker_temporary_root": "H:\\ECRA-RECOVER-P2\\work\\native-observer\\temporary",
+  "output_volume_free_at_start": 84995956736,
+  "pid": 40792,
+  "seconds": 40.29699999996228,
+  "last": {
+    "seconds": 39.78099999995902,
+    "available": true,
+    "working_set_bytes": 60346368,
+    "private_bytes": 52408320,
+    "peak_job_commit_bytes": 131149824,
+    "limit_bytes": 2147483648,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "system_commit_bytes": 35026722816,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 103005323264,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 49774886912,
+    "system_commit_headroom_bytes": 50798731264,
+    "host_paging": {
+      "available": true,
+      "values": {
+        "pages_input_per_second": 2390.429985553739,
+        "pages_output_per_second": 0.0
+      },
+      "errors": {},
+      "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+    },
+    "disk_free_bytes": 84892155904,
+    "whole_volume_used_change_bytes": 103800832,
+    "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+    "main_process_memory": {
+      "rss": 49504256,
+      "vms": 46931968,
+      "num_page_faults": 522442,
+      "peak_wset": 62631936,
+      "wset": 49504256,
+      "peak_paged_pool": 313960,
+      "paged_pool": 310200,
+      "peak_nonpaged_pool": 19184,
+      "nonpaged_pool": 18064,
+      "pagefile": 46931968,
+      "peak_pagefile": 61288448,
+      "private": 46931968
+    },
+    "output_disk": {
+      "files": 78,
+      "logical_bytes": 14079839,
+      "allocated_bytes": 14233856,
+      "unique_files": 78,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    },
+    "output_disk_observed_seconds": 30.73399999999674
+  },
+  "exit_code": 2,
+  "final_output_disk": {
+    "files": 80,
+    "logical_bytes": 14108600,
+    "allocated_bytes": 14246008,
+    "unique_files": 80,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.015000000013969839
+  },
+  "output": "H:\\ECRA-RECOVER-P2\\scans\\native-golden",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "3510ae4cf198bef16cfbf80125983e6eb2224e81cead0aabba6d020ca6c2cee1"
+  },
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-recovery-resume-probe-v1\\execution.json",
+  "raw_receipt_sha256": "db83f45e62959e4aaccb89338fd225bd407e33bd44bee8c35fc171145f89ae6a",
+  "tu_cache": {
+    "hits": 2,
+    "extracted": 2,
+    "corrupt": 0,
+    "total": 4
+  },
+  "semantic_comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+    "after": "H:\\ECRA-RECOVER-P2\\scans\\native-golden\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  }
+}

@@ -1,5 +1,9 @@
 # H2 未提交输入隔离：实施合同（进行中）
 
+## 正式启动所有权修正（与源码写保护分开）
+
+已接入普通完整性OwnedProcess：Windows进程挂起创建、加入Job后才继续，解决venv转接器在文件gate前产生未受控真实解释器的问题。StartupInfoEx只继承NUL与日志句柄，创建失败无无Job回退，监视器关闭时回收本Job并等待后关闭句柄。真实venv/后代Job归属、受控OOM、当前源码Chrome15项停止/恢复/缺工具/再次扫描通过；见owned-job-regression-v2.json、browser-owned-job-v1.json、10-process-job-ownership.md。这**没有启用Low令牌或标签**；下述Low写保护仍为原型，H2/dirty完整隔离仍未通过。
+
 ## 已接入的任务临时目录控制
 
 `resource_policy.temporary_environment`只在调用方已验证并持有的任务目录创建独占temporary子目录，覆盖子进程TEMP/TMP/TMPDIR/SQLITE_TMPDIR，不改broker环境、不复用已有临时目录、不回退到继承的固件路径。TaskManager在进程启动和Job放行前调用，编译器、Python及SQLite文件后备临时表均继承该环境；仍不代表其他H2隔离问题已经解决。

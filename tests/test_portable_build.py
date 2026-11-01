@@ -302,7 +302,9 @@ class PortableCMakeTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('portable_validator',Path(__file__).parents[1]/'scripts/validate_portable.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        shutil.copy2(sys.executable,self.root/'python.exe')
+        # A Windows venv executable is a redirector; use the actual interpreter
+        # whose missing Python DLL this fixture is intended to detect.
+        shutil.copy2(getattr(sys,'_base_executable',sys.executable),self.root/'python.exe')
         machine, imports = module.pe_imports(self.root/'python.exe')
         self.assertIn(machine,(0x8664,0x14c))
         self.assertTrue(any(name.startswith('python') for name in imports))

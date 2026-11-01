@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "scope": "Overlapping focused sets; do NOT add counts or substitute them for full regression",
+  "sets": [
+    {
+      "passed": true,
+      "tests": 19,
+      "seconds": 6.098,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\host-commit-guard-v1.log",
+      "sha256": "471be99856aad89abfe8cf8521df29d68dc34ec2651532fdee27e44ffdef5e9a"
+    },
+    {
+      "passed": true,
+      "tests": 11,
+      "seconds": 85.777,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\host-commit-canonical-v1.log",
+      "sha256": "169cc730239ef901bbf2b0b845f2930421c6db07c562b94cb4fdd4a663d0f48c"
+    },
+    {
+      "passed": true,
+      "tests": 49,
+      "seconds": 16.768,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\owned-job-regression-v2.log",
+      "sha256": "4becec2d16eb6283c28229719228df34b7e44ddb474b9da0b2873972b589aa3b"
+    },
+    {
+      "passed": true,
+      "tests": 3,
+      "seconds": 0.732,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\owned-venv-race-v1.log",
+      "sha256": "3ff130a12f15608123bb0a7bc4bdefbad5aff6af1730044396bf55a580622270"
+    }
+  ],
+  "full_regression": "Frozen4e6 FAILED; fixed whole-suite rerun pending",
+  "gui": {
+    "passed": true,
+    "tests": 15,
+    "receipt": "browser-owned-job-v1.json"
+  },
+  "fault_scope": "Real suspended Windows venv startup, actual child Job membership and controlled allocator OOM. Low-integrity source write guard still not integrated.",
+  "initial_new_test_failure": "owned-job-regression-v1 raw Job historical peak assumption failed; preserved; v2 instead measures actual idle retained private commit and real queried Job policy. Raw peak never falsified."
+}

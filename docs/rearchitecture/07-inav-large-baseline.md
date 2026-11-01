@@ -1,5 +1,13 @@
 # INAV 388TU 新黄金输入与原生测量（进行中）
 
+## 整机提交耗尽与可验证恢复（最新）
+
+候选v2完成388TU后在归并阶段因观察器MemoryError被终止，观察到Job峰值7,925,542,912B，尚不是16GiB预算触顶的证据；原版图编码遇SQLite I/O error，独立备份也发生MemoryError。所有失败收据/部分目录保留：inav-canonical-native-v2-failed.json、inav-original-graph-v1-failed.json、inav-original-backup-v1-failed.json。同期Windows2004事件显示系统提交接近103GB额度；61.1GB Python进程创建时间在故障前8秒，**不是早已运行的备份进程**，此前归因已纠正。其消失后的完整命令行未捕获；并行venv故障测试的PID错误由源审计与独立无分配等待程序复现，见10-process-job-ownership.md，不能将未知归因写成已证实的备份内存收益。
+
+备份工具改用固定readinto缓冲及外层256MiB Job；显式引用旧失败收据，在全新观察目录inav-original-backup-v2逐一重验现存字节，错误副本拒绝覆盖，旧日志/manifest保留。原版完整JSON以2GiB预算在inav-original-graph-v2重新编码。两者仍进行中，不能提前称完整备份/全字段对照通过。
+
+恢复候选v3启动前4,123个源/Git/构建文件与717个冻结引擎文件全SHA复验无变化（inav-inputs-before-recovery-v3.json）。从失败v2独立复制776个TU缓存文件、5,371,819,011B，589.125秒；在I:/ECRA-N3重新执行原生预处理/输入/编译器/引擎/缓存哈希门禁并继续完整求解。不是旧报告/JSON回放，但也不是一次新的冷启动提取计时。前置真实F030故障后恢复验证2个PARSED缓存命中、2个PARTIAL重新提取、完整facts/report差异0；见native-recovery-resume-probe-v1.json。冷扫描性能、INAV语义等价和G3/G4继续未验，不以恢复时间冒充全量耗时。
+
 ## 2026-11-01 当前对照工作（覆盖下述较早的启动计划）
 
 原始I:/ECRA-O1的57,773文件已设置只读文件属性（不是ACL/只读挂载），独立I:/ECRA-GOLDEN-O1仍逐文件复制/复验，未完成前不称备份完成。见inav-original-file-attributes.json。

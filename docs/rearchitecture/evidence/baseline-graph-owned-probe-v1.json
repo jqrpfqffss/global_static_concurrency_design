@@ -1,0 +1,85 @@
+{
+  "complete": true,
+  "scope": "Encode a completed native baseline's raw JSON for bounded graph comparison.\n\nNever re-extracts firmware or restores complete facts. This is an encoding\ndiagnostic, not another native G2 scan or a standard offline result package.\nThe original native JSON and its observer receipt remain authoritative.\n",
+  "execution": "H:\\global_static_concurrency_design\\docs\\rearchitecture\\evidence\\native-resource-observer-probe-v2.json",
+  "execution_sha256": "3c6dddd4f41ffd053f648f605acd79b91b29c14df8b148614c3d9bde1bd2c8ac",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-temporary-7d5",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-owned-probe-v1",
+  "job_limit_bytes": 2147483648,
+  "peaks": {
+    "working_set_bytes": 43687936,
+    "private_bytes": 29097984,
+    "peak_job_commit_bytes": 29097984
+  },
+  "samples": 85,
+  "original_native_validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "e3b23410ecf707f9147e94d2485aba92728765a1f77d22e7d243677f66f738dd"
+  },
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results",
+  "temporary_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-owned-probe-v1\\worker\\temporary",
+  "observer_script_sha256": "216e53a7c4405d001ca229f223ed32f138dd0728f910bbb513194fc05e812477",
+  "pid": 21640,
+  "seconds": 46.48499999998603,
+  "last": {
+    "seconds": 45.85999999998603,
+    "available": true,
+    "working_set_bytes": 38678528,
+    "private_bytes": 23908352,
+    "peak_job_commit_bytes": 29097984,
+    "limit_bytes": 2147483648,
+    "enforced_job_commit_limit_bytes": 2147483648,
+    "job_limit_flags": 8704,
+    "processes": 3,
+    "sampled_processes": 3,
+    "write_bytes": 0,
+    "system_commit_bytes": 35610345472,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 103005323264,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 49072599040,
+    "disk": {
+      "files": 8,
+      "logical_bytes": 6088152,
+      "allocated_bytes": 6172928,
+      "unique_files": 8,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    },
+    "drive_free_bytes": 82578493440
+  },
+  "exit_code": 0,
+  "final_disk": {
+    "files": 7,
+    "logical_bytes": 6122242,
+    "allocated_bytes": 6127872,
+    "unique_files": 7,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.0
+  },
+  "conversion": {
+    "passed": true,
+    "source_json_unchanged": true,
+    "source_sha256": {
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\facts.json": "352aaae4622ba83ee41481cb75d39071490938dd3c491d1ddc8bcf38f547b286",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\probe-native-metrics-v2\\data\\projects\\firmware_1b46a7e5456fa22bd9bf\\results\\reports\\global_static_concurrency.json": "100f6674b3179b29cce6110881168bb49c635804f201ca1acef08767a44f6a1f"
+    },
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-owned-probe-v1\\original-graph.db",
+    "metadata": {
+      "scan_id": "original-native-comparison-only",
+      "project_id": "frozen-native-original",
+      "profile_id": "default",
+      "state": "LEGACY_READ_ONLY",
+      "facts_hash": "277001ffc4e5043b1fd253650baae9be0c9ed5cfa79da252d7a1fef6f624bf64",
+      "report_hash": "28351a16d60e2a88af2dc59688b038b23f174818b68a2d2c680913a388c0fb55"
+    },
+    "complete_fact_graph_restore": false,
+    "scope": "Streaming representation of existing independently native original; not new extraction, not standard full archive"
+  },
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\baseline-graph-owned-probe-v1\\execution.json",
+  "raw_receipt_sha256": "99efe6a038f73ffe8ae2cdbd69ce022f9a7ed3f05985ce46adac7fd34d0e7a23"
+}

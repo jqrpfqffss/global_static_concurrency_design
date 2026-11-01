@@ -13,6 +13,19 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_host_commit_pressure_blocks_new_task_without_altering_valid_scan_or_firmware(self):
+        from ecra.report_package import sha256
+        fw=Path(self.tmp.name)/'firmware';fw.mkdir()
+        raw=json.dumps(dict(version=1,project=dict(root=str(fw)),analysis=dict(output=dict(location='user'))))
+        saved=self.client.post('/api/profiles',json=dict(yaml=raw));self.assertEqual(saved.status_code,200,saved.text)
+        profile=saved.json();before=sha256(self.provider.path)
+        with patch('ecra.scan_diagnostics.memory',return_value=dict(system_physical_available_bytes=42*1024**3,
+                system_commit_bytes=95*1024**3,system_commit_limit_bytes=96*1024**3)):
+            refused=self.client.post('/api/tasks',json=dict(project_id=profile['project_id'],profile_id=profile['id'],revision=profile['revision']))
+        self.assertEqual(refused.status_code,400,refused.text);self.assertIn('提交额度',refused.json()['error'])
+        self.assertEqual(self.client.get('/api/tasks').json()['items'],[])
+        self.assertEqual(sha256(self.provider.path),before);self.assertEqual(list(fw.iterdir()),[])
+
     def test_profile_form_roundtrip_backup_survives_reopen_and_bad_edits_preserve_source(self):
         import hashlib
         fw=Path(self.tmp.name)/'firmware';fw.mkdir()

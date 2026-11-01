@@ -1,0 +1,662 @@
+{
+  "passed": true,
+  "implementation_commit": "4e6fe06dddae6bdfdd917415cf90bd2c911ff5f2",
+  "files": 109,
+  "source": "Frozen733 actual tracked working files",
+  "items": [
+    {
+      "file": "ecra/__init__.py",
+      "source_sha256": "1a57828454d39f2670fce85e9c32150abdca021dc6a16e9757e7e5c58bda113f",
+      "package_sha256": "1a57828454d39f2670fce85e9c32150abdca021dc6a16e9757e7e5c58bda113f",
+      "matches": true
+    },
+    {
+      "file": "ecra/analysis.py",
+      "source_sha256": "291ec9f20ef367e90d466e23e06d4ab2a2708099d1c826651c5b5b113cd203a4",
+      "package_sha256": "291ec9f20ef367e90d466e23e06d4ab2a2708099d1c826651c5b5b113cd203a4",
+      "matches": true
+    },
+    {
+      "file": "ecra/async_semantics.py",
+      "source_sha256": "2f0e87c0f0a26a61f08a8e8c050df1ef9b8dcc2541facacc96127b976adec649",
+      "package_sha256": "2f0e87c0f0a26a61f08a8e8c050df1ef9b8dcc2541facacc96127b976adec649",
+      "matches": true
+    },
+    {
+      "file": "ecra/block_bitmap.py",
+      "source_sha256": "f17ccc6235e61a0c05c711a4293ebee83a3c558ca205ed62b950ba4cbca8091c",
+      "package_sha256": "f17ccc6235e61a0c05c711a4293ebee83a3c558ca205ed62b950ba4cbca8091c",
+      "matches": true
+    },
+    {
+      "file": "ecra/call_graph.py",
+      "source_sha256": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+      "package_sha256": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+      "matches": true
+    },
+    {
+      "file": "ecra/case_library.py",
+      "source_sha256": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2",
+      "package_sha256": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2",
+      "matches": true
+    },
+    {
+      "file": "ecra/cli.py",
+      "source_sha256": "a4f54b053ea1fa51a1d5497a9fd57199497d8e0d504f896d21cad43d953916f7",
+      "package_sha256": "a4f54b053ea1fa51a1d5497a9fd57199497d8e0d504f896d21cad43d953916f7",
+      "matches": true
+    },
+    {
+      "file": "ecra/common.py",
+      "source_sha256": "180a53e5baa5f2608ae492c9b3639e4dd093232f9025dc8674d29a5a41e64788",
+      "package_sha256": "180a53e5baa5f2608ae492c9b3639e4dd093232f9025dc8674d29a5a41e64788",
+      "matches": true
+    },
+    {
+      "file": "ecra/compilation.py",
+      "source_sha256": "161e92865e270ba92eb60c2f6f1ffddfe3badc3ffe3fb8a125508d68da74cbb5",
+      "package_sha256": "161e92865e270ba92eb60c2f6f1ffddfe3badc3ffe3fb8a125508d68da74cbb5",
+      "matches": true
+    },
+    {
+      "file": "ecra/config.py",
+      "source_sha256": "37b0005725b280a6fd797d868b3b621335290fd8f8f473e49c15155b28c4f311",
+      "package_sha256": "37b0005725b280a6fd797d868b3b621335290fd8f8f473e49c15155b28c4f311",
+      "matches": true
+    },
+    {
+      "file": "ecra/context_points.py",
+      "source_sha256": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+      "package_sha256": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+      "matches": true
+    },
+    {
+      "file": "ecra/controlflow.py",
+      "source_sha256": "eadf0ccb43df25136288346d4c9983b065d40cff3ec8346a09208b9857df3874",
+      "package_sha256": "eadf0ccb43df25136288346d4c9983b065d40cff3ec8346a09208b9857df3874",
+      "matches": true
+    },
+    {
+      "file": "ecra/decisions.py",
+      "source_sha256": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+      "package_sha256": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+      "matches": true
+    },
+    {
+      "file": "ecra/diagnostics.py",
+      "source_sha256": "75736e8abec4580d79d4dd988e48d08ee8566904f7cc49a9ae272fca66150c5c",
+      "package_sha256": "75736e8abec4580d79d4dd988e48d08ee8566904f7cc49a9ae272fca66150c5c",
+      "matches": true
+    },
+    {
+      "file": "ecra/emergency_memory.py",
+      "source_sha256": "34d201f592c8ca7697beaf595102a0132d21c6004cdbd4954c36fb3312dbbb75",
+      "package_sha256": "34d201f592c8ca7697beaf595102a0132d21c6004cdbd4954c36fb3312dbbb75",
+      "matches": true
+    },
+    {
+      "file": "ecra/evidence.py",
+      "source_sha256": "ac4ef73c86026a39b54996a661059fcc472595be40b8c28f6667fcf1259f1829",
+      "package_sha256": "ac4ef73c86026a39b54996a661059fcc472595be40b8c28f6667fcf1259f1829",
+      "matches": true
+    },
+    {
+      "file": "ecra/evidence_mcp.py",
+      "source_sha256": "ec552d516fafe0027b5012eae1312fb21b48485ecfa9bf6a28e74c26779816b4",
+      "package_sha256": "ec552d516fafe0027b5012eae1312fb21b48485ecfa9bf6a28e74c26779816b4",
+      "matches": true
+    },
+    {
+      "file": "ecra/evidence_reader.py",
+      "source_sha256": "1cd79f2f431b8e6976142f744ead398733b4ac5349ab49476a0fdadc0dc548e0",
+      "package_sha256": "1cd79f2f431b8e6976142f744ead398733b4ac5349ab49476a0fdadc0dc548e0",
+      "matches": true
+    },
+    {
+      "file": "ecra/extract.py",
+      "source_sha256": "583e73d70a2ee3250f4ac78afdebe0821211e451e89a4f463bc54cbc6bdda6a4",
+      "package_sha256": "583e73d70a2ee3250f4ac78afdebe0821211e451e89a4f463bc54cbc6bdda6a4",
+      "matches": true
+    },
+    {
+      "file": "ecra/fact_parts.py",
+      "source_sha256": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+      "package_sha256": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+      "matches": true
+    },
+    {
+      "file": "ecra/garbage_collection.py",
+      "source_sha256": "5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265",
+      "package_sha256": "5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265",
+      "matches": true
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "source_sha256": "55c263cdb1e5351e4f7ce2cf35587506ead08522b21efba0655cc6c4042f8e2b",
+      "package_sha256": "55c263cdb1e5351e4f7ce2cf35587506ead08522b21efba0655cc6c4042f8e2b",
+      "matches": true
+    },
+    {
+      "file": "ecra/history_archive.py",
+      "source_sha256": "e83b5df26b97e27219ecc689602c9ab2816e987c8a9c8e81883d9c598354a3cc",
+      "package_sha256": "e83b5df26b97e27219ecc689602c9ab2816e987c8a9c8e81883d9c598354a3cc",
+      "matches": true
+    },
+    {
+      "file": "ecra/html_evidence.py",
+      "source_sha256": "73e9e9c00191ed70d4dad282ce872e99f6d028ecd4798e02bda40cc4f7361fde",
+      "package_sha256": "73e9e9c00191ed70d4dad282ce872e99f6d028ecd4798e02bda40cc4f7361fde",
+      "matches": true
+    },
+    {
+      "file": "ecra/html_report.py",
+      "source_sha256": "aa04908272b393a315c93c05041991fd4501636b4054fd628a074c5e90ca0416",
+      "package_sha256": "aa04908272b393a315c93c05041991fd4501636b4054fd628a074c5e90ca0416",
+      "matches": true
+    },
+    {
+      "file": "ecra/human_reviews.py",
+      "source_sha256": "62aa85ecb51be4fe19a6e837e34b8b9a2ae672cc21da80fd84726a3729a4cf2a",
+      "package_sha256": "62aa85ecb51be4fe19a6e837e34b8b9a2ae672cc21da80fd84726a3729a4cf2a",
+      "matches": true
+    },
+    {
+      "file": "ecra/initialization.py",
+      "source_sha256": "43271805721f38f60ef61ed91b81b40d79f0419a5273b487cee978d1e28cc527",
+      "package_sha256": "43271805721f38f60ef61ed91b81b40d79f0419a5273b487cee978d1e28cc527",
+      "matches": true
+    },
+    {
+      "file": "ecra/input_snapshot.py",
+      "source_sha256": "bbfaf50f4628296777babda71f3dd6ed438b563e9eb8e4daefd21a10d2d17ce3",
+      "package_sha256": "bbfaf50f4628296777babda71f3dd6ed438b563e9eb8e4daefd21a10d2d17ce3",
+      "matches": true
+    },
+    {
+      "file": "ecra/interrupts.py",
+      "source_sha256": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+      "package_sha256": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+      "matches": true
+    },
+    {
+      "file": "ecra/json_rows.py",
+      "source_sha256": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0",
+      "package_sha256": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0",
+      "matches": true
+    },
+    {
+      "file": "ecra/legacy_import.py",
+      "source_sha256": "dec5dd60435c0f6089a55b6bb767329f25135d12adc7d23d365f0c113a969853",
+      "package_sha256": "dec5dd60435c0f6089a55b6bb767329f25135d12adc7d23d365f0c113a969853",
+      "matches": true
+    },
+    {
+      "file": "ecra/linker_symbols.py",
+      "source_sha256": "2df476c852a851aa27f5b4e21b75931ffa1b034d8035078e00d81560075d9f9e",
+      "package_sha256": "2df476c852a851aa27f5b4e21b75931ffa1b034d8035078e00d81560075d9f9e",
+      "matches": true
+    },
+    {
+      "file": "ecra/lock_owner.py",
+      "source_sha256": "ef731dc6dc4bda789a06a40692f2d51061c6d88e33a1fddc8752c7410ad9f4e0",
+      "package_sha256": "ef731dc6dc4bda789a06a40692f2d51061c6d88e33a1fddc8752c7410ad9f4e0",
+      "matches": true
+    },
+    {
+      "file": "ecra/macro_semantics.py",
+      "source_sha256": "d9879e9eae91ca8e33875fb35a8e0e90992bc11a1253a8f0539783580ec236be",
+      "package_sha256": "d9879e9eae91ca8e33875fb35a8e0e90992bc11a1253a8f0539783580ec236be",
+      "matches": true
+    },
+    {
+      "file": "ecra/missing_source.py",
+      "source_sha256": "3975809bc7971c1f6fa5e822fbd63b6c24828f043fd5c800bff0f9fea8d5fd86",
+      "package_sha256": "3975809bc7971c1f6fa5e822fbd63b6c24828f043fd5c800bff0f9fea8d5fd86",
+      "matches": true
+    },
+    {
+      "file": "ecra/multicore.py",
+      "source_sha256": "8858200160656e7863e234fc4812aa795ca9a0781561558086403166947af511",
+      "package_sha256": "8858200160656e7863e234fc4812aa795ca9a0781561558086403166947af511",
+      "matches": true
+    },
+    {
+      "file": "ecra/nonlocal_jumps.py",
+      "source_sha256": "21188550e1e36b5f110b9f45bf7088f31080784921d03d01bfcfb3a1523033ed",
+      "package_sha256": "21188550e1e36b5f110b9f45bf7088f31080784921d03d01bfcfb3a1523033ed",
+      "matches": true
+    },
+    {
+      "file": "ecra/nvic.py",
+      "source_sha256": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+      "package_sha256": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+      "matches": true
+    },
+    {
+      "file": "ecra/nvic_extract.py",
+      "source_sha256": "315cb099ecfc7f7eedd99ce4f8cc3022bf87058d7b18b542fb466ad19e49c041",
+      "package_sha256": "315cb099ecfc7f7eedd99ce4f8cc3022bf87058d7b18b542fb466ad19e49c041",
+      "matches": true
+    },
+    {
+      "file": "ecra/physical.py",
+      "source_sha256": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+      "package_sha256": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+      "matches": true
+    },
+    {
+      "file": "ecra/pointer_extract.py",
+      "source_sha256": "8533db5792bee3e25870f28d05c193754f76f87496773376263fef85ff0fd2fb",
+      "package_sha256": "8533db5792bee3e25870f28d05c193754f76f87496773376263fef85ff0fd2fb",
+      "matches": true
+    },
+    {
+      "file": "ecra/points_to.py",
+      "source_sha256": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+      "package_sha256": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+      "matches": true
+    },
+    {
+      "file": "ecra/portable.py",
+      "source_sha256": "c67fecadd79f4ba7aa676c216b5f79c1bd8e7843513ecf072e4c133192eaea81",
+      "package_sha256": "c67fecadd79f4ba7aa676c216b5f79c1bd8e7843513ecf072e4c133192eaea81",
+      "matches": true
+    },
+    {
+      "file": "ecra/protection.py",
+      "source_sha256": "ae246acefc86ae7ab7fe7c91df02829a219e5e894485cc6d78b1fa854b3e46f5",
+      "package_sha256": "ae246acefc86ae7ab7fe7c91df02829a219e5e894485cc6d78b1fa854b3e46f5",
+      "matches": true
+    },
+    {
+      "file": "ecra/report.py",
+      "source_sha256": "0d93be9c3cf98c539819e8627c0764a9bb381013a549b126a69d017b4ddfe1d4",
+      "package_sha256": "0d93be9c3cf98c539819e8627c0764a9bb381013a549b126a69d017b4ddfe1d4",
+      "matches": true
+    },
+    {
+      "file": "ecra/report_package.py",
+      "source_sha256": "fdc4a60191fd11332be681e8de44f77dda25a2004c0beff4933ac3dc579a8001",
+      "package_sha256": "fdc4a60191fd11332be681e8de44f77dda25a2004c0beff4933ac3dc579a8001",
+      "matches": true
+    },
+    {
+      "file": "ecra/review.py",
+      "source_sha256": "c2863a470906110780c7227caaec78232d2253dbb8657d34006d5de5a3418f82",
+      "package_sha256": "c2863a470906110780c7227caaec78232d2253dbb8657d34006d5de5a3418f82",
+      "matches": true
+    },
+    {
+      "file": "ecra/review_context.py",
+      "source_sha256": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88",
+      "package_sha256": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88",
+      "matches": true
+    },
+    {
+      "file": "ecra/review_contract.py",
+      "source_sha256": "4a1b83f64c0192e8e3b123b61f5d51aec9120927ae7b65906667e5f115bf55bb",
+      "package_sha256": "4a1b83f64c0192e8e3b123b61f5d51aec9120927ae7b65906667e5f115bf55bb",
+      "matches": true
+    },
+    {
+      "file": "ecra/review_integrity.py",
+      "source_sha256": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804",
+      "package_sha256": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804",
+      "matches": true
+    },
+    {
+      "file": "ecra/review_language.py",
+      "source_sha256": "00a24bac1bf43595e6b74f15b0c79f5bc3a8e949c798fabf49b39bfd52f83d0f",
+      "package_sha256": "00a24bac1bf43595e6b74f15b0c79f5bc3a8e949c798fabf49b39bfd52f83d0f",
+      "matches": true
+    },
+    {
+      "file": "ecra/review_presentation.py",
+      "source_sha256": "8ceb94ea1c45f5ef3ebdd219dab6fa112ca0e86cda3a94813a3ccd50d4e84f13",
+      "package_sha256": "8ceb94ea1c45f5ef3ebdd219dab6fa112ca0e86cda3a94813a3ccd50d4e84f13",
+      "matches": true
+    },
+    {
+      "file": "ecra/review_summary.py",
+      "source_sha256": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06",
+      "package_sha256": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06",
+      "matches": true
+    },
+    {
+      "file": "ecra/scan_diagnostics.py",
+      "source_sha256": "b40184b3a59314e654ca6f26a80724408344949fa0666c84b5644a9eaa0e3f75",
+      "package_sha256": "b40184b3a59314e654ca6f26a80724408344949fa0666c84b5644a9eaa0e3f75",
+      "matches": true
+    },
+    {
+      "file": "ecra/scan_persistence.py",
+      "source_sha256": "47608f0f8a07562396836a35d80a7606a0843dc0592d5fa15f317146e3223fb7",
+      "package_sha256": "47608f0f8a07562396836a35d80a7606a0843dc0592d5fa15f317146e3223fb7",
+      "matches": true
+    },
+    {
+      "file": "ecra/scan_store.py",
+      "source_sha256": "d78715854f1f9cfc45908e04b398ece2823cd4eca40cd5df7dd0bf378a4a2028",
+      "package_sha256": "d78715854f1f9cfc45908e04b398ece2823cd4eca40cd5df7dd0bf378a4a2028",
+      "matches": true
+    },
+    {
+      "file": "ecra/scope.py",
+      "source_sha256": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+      "package_sha256": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+      "matches": true
+    },
+    {
+      "file": "ecra/shared_json.py",
+      "source_sha256": "5b134b0b6c837c7ddd06390097f54d2c8ccf4303d61d73f75e938c8d3a46c6f2",
+      "package_sha256": "5b134b0b6c837c7ddd06390097f54d2c8ccf4303d61d73f75e938c8d3a46c6f2",
+      "matches": true
+    },
+    {
+      "file": "ecra/solver_reachability.py",
+      "source_sha256": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+      "package_sha256": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+      "matches": true
+    },
+    {
+      "file": "ecra/stale_writeback.py",
+      "source_sha256": "246a9fbc0616a2674e3553fca1921a55d48f23b8ecfdcafb3df9297e41eac32a",
+      "package_sha256": "246a9fbc0616a2674e3553fca1921a55d48f23b8ecfdcafb3df9297e41eac32a",
+      "matches": true
+    },
+    {
+      "file": "ecra/storage.py",
+      "source_sha256": "36e4e4f0f90049b03e319770c3c54f81e5d954afd292b802ca41d6aeffc8a71a",
+      "package_sha256": "36e4e4f0f90049b03e319770c3c54f81e5d954afd292b802ca41d6aeffc8a71a",
+      "matches": true
+    },
+    {
+      "file": "ecra/storage_activity.py",
+      "source_sha256": "b4c0256738b2be0be537bee235dde230b6a7d3b6c4db8a50c8b7045b8069a3f1",
+      "package_sha256": "b4c0256738b2be0be537bee235dde230b6a7d3b6c4db8a50c8b7045b8069a3f1",
+      "matches": true
+    },
+    {
+      "file": "ecra/streamed_evidence.py",
+      "source_sha256": "fe9ba6a0c8edf0dd165c512432244088be6ee4aa729361ad3ee64d06f119328a",
+      "package_sha256": "fe9ba6a0c8edf0dd165c512432244088be6ee4aa729361ad3ee64d06f119328a",
+      "matches": true
+    },
+    {
+      "file": "ecra/supplemental.py",
+      "source_sha256": "2a8787eb89d120bed6329c1904cf4e4d956d9f62a7b66b67d7ba7acff6fcc048",
+      "package_sha256": "2a8787eb89d120bed6329c1904cf4e4d956d9f62a7b66b67d7ba7acff6fcc048",
+      "matches": true
+    },
+    {
+      "file": "ecra/target_set.py",
+      "source_sha256": "45cf1a746e26cb7eed47fbaad21c876a8f00489bf7eb1b57411f69bf6205c47b",
+      "package_sha256": "45cf1a746e26cb7eed47fbaad21c876a8f00489bf7eb1b57411f69bf6205c47b",
+      "matches": true
+    },
+    {
+      "file": "ecra/tu_cache.py",
+      "source_sha256": "47bea2e867aa37983fd9543e5258edddce3b61a22a01aa63dbeaf2f1edefcd07",
+      "package_sha256": "47bea2e867aa37983fd9543e5258edddce3b61a22a01aa63dbeaf2f1edefcd07",
+      "matches": true
+    },
+    {
+      "file": "ecra/vectors.py",
+      "source_sha256": "f475ac221f91fcea4eefbaee4cf098ff3b9e454c10d924d234f65722be1f7ed2",
+      "package_sha256": "f475ac221f91fcea4eefbaee4cf098ff3b9e454c10d924d234f65722be1f7ed2",
+      "matches": true
+    },
+    {
+      "file": "ecra/workflow.py",
+      "source_sha256": "3265a93ce91773e04254ac04ea42ed9c446caef3f3e45d1beb78e676648257a3",
+      "package_sha256": "3265a93ce91773e04254ac04ea42ed9c446caef3f3e45d1beb78e676648257a3",
+      "matches": true
+    },
+    {
+      "file": "ecra/working_snapshot.py",
+      "source_sha256": "3ccacf231ca7194083505fb3e100ec3ab54d2100942f168a946e13a95734950a",
+      "package_sha256": "3ccacf231ca7194083505fb3e100ec3ab54d2100942f168a946e13a95734950a",
+      "matches": true
+    },
+    {
+      "file": "ecra/workspace.py",
+      "source_sha256": "ca7d77e4947020ee455f01a3542f28334c925ed0b8384f4104d2c23ae45625cd",
+      "package_sha256": "ca7d77e4947020ee455f01a3542f28334c925ed0b8384f4104d2c23ae45625cd",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/__init__.py",
+      "source_sha256": "ac93a35b67b29431d8b45b820b1bb5cdca0789f19a4f5bc580c07ebbd951d80e",
+      "package_sha256": "ac93a35b67b29431d8b45b820b1bb5cdca0789f19a4f5bc580c07ebbd951d80e",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/__main__.py",
+      "source_sha256": "d9f2f9e67ba6266d671a690be866329f5c31b2767c389d73033fb0ec07377c76",
+      "package_sha256": "d9f2f9e67ba6266d671a690be866329f5c31b2767c389d73033fb0ec07377c76",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/cleanup_jobs.py",
+      "source_sha256": "f1080434936df48c9ec2e90b71ea404f63d10690662e52e7c160a8458b621488",
+      "package_sha256": "f1080434936df48c9ec2e90b71ea404f63d10690662e52e7c160a8458b621488",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/coverage.py",
+      "source_sha256": "02ca401c5a8dc3e8657cf9ea535285d3a5bce19087519c5c210909726864094f",
+      "package_sha256": "02ca401c5a8dc3e8657cf9ea535285d3a5bce19087519c5c210909726864094f",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/migration_jobs.py",
+      "source_sha256": "91d73729959ee4db43dfcce41f0b253469588d565575c88f4476105bc5670286",
+      "package_sha256": "91d73729959ee4db43dfcce41f0b253469588d565575c88f4476105bc5670286",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/process_budget.py",
+      "source_sha256": "177707e669ea57188765c828647872d67d682b3beccb4c8705a3a9b5dd9b627a",
+      "package_sha256": "177707e669ea57188765c828647872d67d682b3beccb4c8705a3a9b5dd9b627a",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/profile_forms.py",
+      "source_sha256": "5728d94b640cea28462f79395051617ed2b33a02733e194d3320feb7db28107d",
+      "package_sha256": "5728d94b640cea28462f79395051617ed2b33a02733e194d3320feb7db28107d",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/query.py",
+      "source_sha256": "7100616033cae065eeee9d9cdaa87240666a39910adc6c4f9514fc095603d0b5",
+      "package_sha256": "7100616033cae065eeee9d9cdaa87240666a39910adc6c4f9514fc095603d0b5",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/resource_policy.py",
+      "source_sha256": "ab66f06546b7276afe66cf646d9d31a1a32ef707643c7b63ab0750bda03e7483",
+      "package_sha256": "ab66f06546b7276afe66cf646d9d31a1a32ef707643c7b63ab0750bda03e7483",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/server.py",
+      "source_sha256": "f6c0658e5ede2325bdccf8d335a7e63be4bbc8a0d9f9cc2d78e0ec13078047c0",
+      "package_sha256": "f6c0658e5ede2325bdccf8d335a7e63be4bbc8a0d9f9cc2d78e0ec13078047c0",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/source_view.py",
+      "source_sha256": "48b6faabd1052f5de901ae7e795638bd8dfbd3ea58ce1003cb8453f06a58cf2e",
+      "package_sha256": "48b6faabd1052f5de901ae7e795638bd8dfbd3ea58ce1003cb8453f06a58cf2e",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/task_worker.py",
+      "source_sha256": "d319e6ab2246708fa257df7933477047f176891984538f164b2422b7bce4bff6",
+      "package_sha256": "d319e6ab2246708fa257df7933477047f176891984538f164b2422b7bce4bff6",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/tasks.py",
+      "source_sha256": "d1c4a368932b62d146518cc9f68c8abdfed671ade3abbb78f8bcf4fa37d7a45d",
+      "package_sha256": "d1c4a368932b62d146518cc9f68c8abdfed671ade3abbb78f8bcf4fa37d7a45d",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/write_guard.py",
+      "source_sha256": "73dcfe6e3f05e42b740bad70f7f2abef6094ec30ee1a0fa54a5a8950e25fe62c",
+      "package_sha256": "73dcfe6e3f05e42b740bad70f7f2abef6094ec30ee1a0fa54a5a8950e25fe62c",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/assets/index-Dr33n8f3.js",
+      "source_sha256": "1c82fcfbf144ba2b705f1b14dda41d4f4c1b543cc902939004d5a9c17193897a",
+      "package_sha256": "1c82fcfbf144ba2b705f1b14dda41d4f4c1b543cc902939004d5a9c17193897a",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/assets/index-KB25z8hH.css",
+      "source_sha256": "6338ea0bb94a845496eaf82945edd293d7391e7070f3ff960e2d55e9c5aec846",
+      "package_sha256": "6338ea0bb94a845496eaf82945edd293d7391e7070f3ff960e2d55e9c5aec846",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/favicon.svg",
+      "source_sha256": "9ee65b090446ade828db8035a3f1882b2988e7728b712f0754a93fbe16570e7d",
+      "package_sha256": "9ee65b090446ade828db8035a3f1882b2988e7728b712f0754a93fbe16570e7d",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/index.html",
+      "source_sha256": "d875a58a10005e87e30bdf9da533b3908a352590859bf6a9bbea89781ea2aba9",
+      "package_sha256": "d875a58a10005e87e30bdf9da533b3908a352590859bf6a9bbea89781ea2aba9",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/annotated-doc-0.0.4.json",
+      "source_sha256": "985af4d1695053253f59caa800bf859ec2dad329d86131a8956514092410820b",
+      "package_sha256": "985af4d1695053253f59caa800bf859ec2dad329d86131a8956514092410820b",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/annotated-types-0.7.0.json",
+      "source_sha256": "4461f5ae761881ac2432f5b61b4a3e362197c141773b88384c224ab7c82a5074",
+      "package_sha256": "4461f5ae761881ac2432f5b61b4a3e362197c141773b88384c224ab7c82a5074",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/anyio-4.13.0.json",
+      "source_sha256": "d98b029e209b5cac07b74f3006645f6de122da25982a724e37b01f469d3fb3e6",
+      "package_sha256": "d98b029e209b5cac07b74f3006645f6de122da25982a724e37b01f469d3fb3e6",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/click-8.4.1.json",
+      "source_sha256": "94eb3c2ac6ef40a300ad97b41f3338354d39fc600204eec82520166c7309e496",
+      "package_sha256": "94eb3c2ac6ef40a300ad97b41f3338354d39fc600204eec82520166c7309e496",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/colorama-0.4.6.json",
+      "source_sha256": "3d249637b95c414b1e1a28f5204a35a745bff359908efd19d6fa1937c06ad9e5",
+      "package_sha256": "3d249637b95c414b1e1a28f5204a35a745bff359908efd19d6fa1937c06ad9e5",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/exceptiongroup-1.3.1.json",
+      "source_sha256": "57b9de59bf4679f45d6a819458da3ffbc4b3428317d6ed74b7b5ff1927b5b8ea",
+      "package_sha256": "57b9de59bf4679f45d6a819458da3ffbc4b3428317d6ed74b7b5ff1927b5b8ea",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/fastapi-0.136.3.json",
+      "source_sha256": "877c702ac4895c38daae2a5fb53d7130cf6c286802f941010071b6eb415043f4",
+      "package_sha256": "877c702ac4895c38daae2a5fb53d7130cf6c286802f941010071b6eb415043f4",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/h11-0.16.0.json",
+      "source_sha256": "57c277633fcf2ef7817cb07542cfc49025cae7bde8b7433233b3d9408518c8b6",
+      "package_sha256": "57c277633fcf2ef7817cb07542cfc49025cae7bde8b7433233b3d9408518c8b6",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/idna-3.18.json",
+      "source_sha256": "dcbb4c15b418af6d00eaefda37ee81ec8aa1a1b3d61acd0d34980d354718e32c",
+      "package_sha256": "dcbb4c15b418af6d00eaefda37ee81ec8aa1a1b3d61acd0d34980d354718e32c",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/inventory.json",
+      "source_sha256": "9db66d38bdc5bd65fa093fff7bd56561f08670fd3bee43cfdf59b31ae4bed375",
+      "package_sha256": "9db66d38bdc5bd65fa093fff7bd56561f08670fd3bee43cfdf59b31ae4bed375",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/libclang-18.1.1.json",
+      "source_sha256": "5bc45b95e4043d04f03003a2739fb79b29da34de7db5ccd5ec8e42e3b9ca469a",
+      "package_sha256": "5bc45b95e4043d04f03003a2739fb79b29da34de7db5ccd5ec8e42e3b9ca469a",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/pydantic-2.13.4.json",
+      "source_sha256": "2ad4ac801ef88df8e6708128ee309d03e86e77c96d819f06f1556198e5eb2473",
+      "package_sha256": "2ad4ac801ef88df8e6708128ee309d03e86e77c96d819f06f1556198e5eb2473",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/pydantic-core-2.46.4.json",
+      "source_sha256": "34c0cfd713624ea0c53127fb85f9af9e664580d01fae2b3bc79a5b411feb5f1b",
+      "package_sha256": "34c0cfd713624ea0c53127fb85f9af9e664580d01fae2b3bc79a5b411feb5f1b",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/PyYAML-6.0.3.json",
+      "source_sha256": "b33e6f8a243ab54a2a1c0d81a1b1dfcf3a2c68ca2f35f6314c37c17a1b4bdce2",
+      "package_sha256": "b33e6f8a243ab54a2a1c0d81a1b1dfcf3a2c68ca2f35f6314c37c17a1b4bdce2",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/ruamel.yaml-0.18.16.json",
+      "source_sha256": "e120c73b6e83276b42b41420cb0e595732a2b20e21ecef14d9a1c36f4437ef52",
+      "package_sha256": "e120c73b6e83276b42b41420cb0e595732a2b20e21ecef14d9a1c36f4437ef52",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/ruamel.yaml.clib-0.2.12.json",
+      "source_sha256": "71a713385d0323899d9ecf3699961c93bba593d18d8e391da9636c8bb86f9b9f",
+      "package_sha256": "71a713385d0323899d9ecf3699961c93bba593d18d8e391da9636c8bb86f9b9f",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/starlette-1.2.1.json",
+      "source_sha256": "3e9c35db1bb1c0bddb3e1075ad9ab55777d8c95d026beed93bd7cedd1ee3460a",
+      "package_sha256": "3e9c35db1bb1c0bddb3e1075ad9ab55777d8c95d026beed93bd7cedd1ee3460a",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/typing-extensions-4.15.0.json",
+      "source_sha256": "826225c4bfaa05a9d91b4488b7aa600746d504b3ad3dfa92f396f339f3ca921d",
+      "package_sha256": "826225c4bfaa05a9d91b4488b7aa600746d504b3ad3dfa92f396f339f3ca921d",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/typing-inspection-0.4.2.json",
+      "source_sha256": "65f04795ed2e40aab6b8c813161c11d9f0ce68c0a203d0120e5992f9b82fb85d",
+      "package_sha256": "65f04795ed2e40aab6b8c813161c11d9f0ce68c0a203d0120e5992f9b82fb85d",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/uvicorn-0.49.0.json",
+      "source_sha256": "fa2e2f9b7f2b6c339580210e98376b746adae4dc3259f79b7b806d2d428343f9",
+      "package_sha256": "fa2e2f9b7f2b6c339580210e98376b746adae4dc3259f79b7b806d2d428343f9",
+      "matches": true
+    },
+    {
+      "file": "ecra/studio/web/licenses/vue-LICENSE.txt",
+      "source_sha256": "5818899c48b48d0c1e898741974b91ffaf938962349b32e25d4b37a031771364",
+      "package_sha256": "5818899c48b48d0c1e898741974b91ffaf938962349b32e25d4b37a031771364",
+      "matches": true
+    }
+  ]
+}

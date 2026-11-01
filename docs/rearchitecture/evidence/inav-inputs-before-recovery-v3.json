@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Every originally frozen INAV source/Git/build file before verified-TU recovery;717 frozen engine files also rehashed",
+  "counts": {
+    "source": 3545,
+    "real_build": 578
+  },
+  "differences": [],
+  "manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "engine_manifest_sha256": "f5e022ae81ceda7db3c92013466047935a5339f2ffb1e97730e6c413825a08d3",
+  "seconds": 158.76500000001397,
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-inputs-before-recovery-v3.json",
+  "raw_receipt_sha256": "fea77e2165ae849ffcbc677a4db293b12d86f65d728b51bd96c4d41ef4d0dd30"
+}

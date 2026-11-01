@@ -40,6 +40,9 @@ def wait_limit(args):
         if time.monotonic() > deadline:
             raise RuntimeError('Explicit Job limit was not applied')
         time.sleep(0.05)
+    value=json.loads((args.evidence/'limit.json').read_text(encoding='utf-8'))
+    if value.get('pid')!=os.getpid() or value.get('process_commit_limit_bytes')!=int(args.limit_mib*1024**2):
+        raise RuntimeError('Fault allocator PID or commit limit mismatches; refusing allocation')
 
 
 def cli_probe(args):
@@ -169,24 +172,38 @@ def main():
     args.evidence.mkdir(parents=True, exist_ok=False)
     begin = time.monotonic()
     command = [str(args.python), '-u', str(Path(__file__).resolve()), *sys.argv[1:], '--inside']
-    with (args.evidence / 'console.log').open('w', encoding='utf-8') as log:
-        child = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-                                 creationflags=subprocess.CREATE_NO_WINDOW)
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+    from ecra.studio.write_guard import OwnedProcess
+    from ecra.studio.process_budget import ProcessBudget
+    budget=ProcessBudget(512*1024**2);child=controller=None
+    try:
+      with (args.evidence / 'console.log').open('w', encoding='utf-8') as log:
+        child=OwnedProcess(command,cwd=args.engine,env=os.environ.copy(),log=log)
+        budget.assign(child);child.resume()
         while not (args.evidence / 'ready.json').is_file():
             if child.poll() is not None:
                 raise RuntimeError('Child failed before test limit:\n' +
                                    (args.evidence/'console.log').read_text(encoding='utf-8', errors='replace'))
             if time.monotonic()-begin > args.setup_timeout_seconds:
-                child.terminate()
                 raise RuntimeError('Child setup timed out')
             time.sleep(0.05)
+        actual=json.loads((args.evidence/'ready.json').read_text(encoding='utf-8'))['pid']
+        if not budget.contains(actual):raise RuntimeError('Declared real allocator is not in the owned512MiB Job')
         controller = subprocess.Popen([sys.executable, str(Path(__file__).with_name('windows_memory_limit.py')),
-            '--pid', str(child.pid), '--gib', str(args.limit_mib/1024), '--evidence', str(args.evidence/'limit.json')],
+            '--pid', str(actual), '--gib', str(args.limit_mib/1024), '--evidence', str(args.evidence/'limit.json')],
             stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
-        code = child.wait()
+        code = child.wait(timeout=120)
         controller.wait(timeout=10)
+        peak=budget.sample()['peak_job_commit_bytes']
+    finally:
+        budget.close()
+        if child is not None:
+            child.wait(timeout=10);child.close()
+        if controller is not None and controller.poll() is None:
+            controller.wait(timeout=10)
     dump(args.evidence / 'execution.json', dict(controlled_fault_injection=True, full_scan_acceptance=False,
-        exit_code=code, seconds=time.monotonic()-begin, command=command))
+        exit_code=code, seconds=time.monotonic()-begin, command=command,launcher_pid=child.pid,
+        allocator_pid=actual,allocator_in_owned_job=True,outer_job_limit_bytes=512*1024**2,outer_peak_job_commit_bytes=peak))
     return code
 
 

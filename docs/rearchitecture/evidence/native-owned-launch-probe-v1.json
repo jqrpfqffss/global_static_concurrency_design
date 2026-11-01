@@ -1,0 +1,130 @@
+{
+  "complete": true,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+  "mode": "canonical",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-temporary-7d5",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "data_root": "H:\\ECRA-OWNED-METRIC-1",
+  "safety_job_commit_limit_bytes": 2147483648,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+  "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+  "paging_samples_valid": 114,
+  "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "started": "2026-11-01T07:25:13.447486+00:00",
+  "peaks": {
+    "working_set_bytes": 197349376,
+    "private_bytes": 149790720,
+    "peak_job_commit_bytes": 150597632,
+    "sampled_output_logical_bytes": 14120303,
+    "sampled_output_allocated_bytes": 16102064
+  },
+  "samples": 114,
+  "cache_reuse": null,
+  "diagnostic_fault": null,
+  "observer_script_sha256": "df805da306fd61b0abf643d620f9afb15472f4f933566a73b682a1eab738fa06",
+  "worker_temporary_root": "H:\\ECRA-OWNED-METRIC-1\\work\\native-observer\\temporary",
+  "output_volume_free_at_start": 82685579264,
+  "pid": 37928,
+  "seconds": 61.17200000002049,
+  "last": {
+    "seconds": 60.67200000002049,
+    "available": true,
+    "working_set_bytes": 62038016,
+    "private_bytes": 43003904,
+    "peak_job_commit_bytes": 150597632,
+    "limit_bytes": 2147483648,
+    "enforced_job_commit_limit_bytes": 2147483648,
+    "job_limit_flags": 8704,
+    "processes": 3,
+    "sampled_processes": 3,
+    "write_bytes": 0,
+    "system_commit_bytes": 35771039744,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 103005323264,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 48953274368,
+    "system_commit_headroom_bytes": 50054414336,
+    "host_paging": {
+      "available": true,
+      "values": {
+        "pages_input_per_second": 3.964154529086191,
+        "pages_output_per_second": 0.0
+      },
+      "errors": {},
+      "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+    },
+    "disk_free_bytes": 82552229888,
+    "whole_volume_used_change_bytes": 133349376,
+    "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+    "main_process_memory": {
+      "rss": 3563520,
+      "vms": 831488,
+      "num_page_faults": 927,
+      "peak_wset": 3620864,
+      "wset": 3563520,
+      "peak_paged_pool": 34832,
+      "paged_pool": 34656,
+      "peak_nonpaged_pool": 4856,
+      "nonpaged_pool": 4344,
+      "pagefile": 831488,
+      "peak_pagefile": 888832,
+      "private": 831488
+    },
+    "output_disk": {
+      "files": 84,
+      "logical_bytes": 2939257,
+      "allocated_bytes": 16102064,
+      "unique_files": 84,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.3130000000237487
+    },
+    "output_disk_observed_seconds": 46.375
+  },
+  "exit_code": 2,
+  "final_output_disk": {
+    "files": 87,
+    "logical_bytes": 14120303,
+    "allocated_bytes": 14262824,
+    "unique_files": 87,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.031000000017229468
+  },
+  "output": "H:\\ECRA-OWNED-METRIC-1\\scans\\native-golden",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "3510ae4cf198bef16cfbf80125983e6eb2224e81cead0aabba6d020ca6c2cee1"
+  },
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-owned-launch-probe-v1\\execution.json",
+  "raw_receipt_sha256": "f385096c2f6ad1f83c7e8291a1d002946b7b9760c35746fdcc9b5a73e34ef7ea",
+  "semantic_comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+    "after": "H:\\ECRA-OWNED-METRIC-1\\scans\\native-golden\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  }
+}

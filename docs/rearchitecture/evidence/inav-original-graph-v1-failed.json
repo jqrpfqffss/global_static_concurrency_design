@@ -1,0 +1,60 @@
+{
+  "complete": false,
+  "scope": "Encode a completed native baseline's raw JSON for bounded graph comparison.\n\nNever re-extracts firmware or restores complete facts. This is an encoding\ndiagnostic, not another native G2 scan or a standard offline result package.\nThe original native JSON and its observer receipt remain authoritative.\n",
+  "execution": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-native-v1\\execution.json",
+  "execution_sha256": "35df1855a94eaad73a279b309dccc103214d10c4a63bb9ffa82efe1098e05233",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-temporary-7d5",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v1",
+  "job_limit_bytes": 2147483648,
+  "peaks": {
+    "working_set_bytes": 49401856,
+    "private_bytes": 36925440,
+    "peak_job_commit_bytes": 36925440
+  },
+  "samples": 5615,
+  "original_native_validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "3d92ef785ff468464968473938a188fa28ee625f711a79975d582695e9b7fab8"
+  },
+  "source": "I:\\ECRA-O1\\projects\\firmware_5a9c0c24c12d3378438e\\results",
+  "temporary_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v1\\worker\\temporary",
+  "pid": 33260,
+  "seconds": 2881.0,
+  "last": {
+    "seconds": 2880.5,
+    "available": true,
+    "working_set_bytes": 35971072,
+    "private_bytes": 23613440,
+    "peak_job_commit_bytes": 36925440,
+    "limit_bytes": 2147483648,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "disk": {
+      "files": 7,
+      "logical_bytes": 3956704854,
+      "allocated_bytes": 4012413088,
+      "unique_files": 7,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.2029999999795109
+    },
+    "drive_free_bytes": 83627331584
+  },
+  "exit_code": 1,
+  "final_disk": {
+    "files": 5,
+    "logical_bytes": 2371715,
+    "allocated_bytes": 2379784,
+    "unique_files": 5,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.0
+  },
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v1\\execution.json",
+  "raw_receipt_sha256": "c2af988a68979aaf3985f94af9178eb5390c14591acd54dfdf57806d982c4ac7",
+  "phase_status": "FAILED_RETAINED_NOT_ACCEPTED",
+  "host_commit_context": "Concurrent Windows2004 exhaustion; graph I/O causal relation not independently proven; scan observer failed, not evidence of16GiB Job limit reached"
+}

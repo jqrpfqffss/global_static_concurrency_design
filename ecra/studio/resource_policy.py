@@ -2,6 +2,22 @@
 import os
 
 
+def host_pressure(sample):
+    """Commit capacity can run out even when physical RAM is mostly free."""
+    available=sample.get('system_physical_available_bytes')
+    used,limit=sample.get('system_commit_bytes'),sample.get('system_commit_limit_bytes')
+    headroom=limit-used if type(used) is int and type(limit) is int and 0<=used<=limit else None
+    physical=available if type(available) is int and available>=0 else None
+    soft=(headroom is not None and headroom<4*1024**3) or (physical is not None and physical<2*1024**3)
+    stop=(headroom is not None and headroom<2*1024**3) or (physical is not None and physical<512*1024**2)
+    if headroom is not None and headroom<4*1024**3:
+        reason=f'整机提交额度仅余 {headroom/1024**3:.2f} GiB；这与空闲物理内存及本任务预算不同'
+    elif physical is not None and physical<2*1024**3:reason=f'整机可用物理内存仅余 {physical/1024**3:.2f} GiB'
+    else:reason=''
+    return dict(soft=soft,stop=stop,commit_headroom_bytes=headroom,physical_available_bytes=physical,
+        metrics_available=headroom is not None and physical is not None,reason=reason)
+
+
 def policy(value=None):
     value=value or {}
     preset=value.get('preset','auto')

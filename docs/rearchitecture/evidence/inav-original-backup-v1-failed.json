@@ -1,0 +1,19 @@
+{
+  "passed": false,
+  "state": "FAILED",
+  "source": "I:\\ECRA-O1",
+  "destination": "I:\\ECRA-GOLDEN-O1",
+  "execution": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-native-v1\\execution.json",
+  "execution_sha256": "35df1855a94eaad73a279b309dccc103214d10c4a63bb9ffa82efe1098e05233",
+  "files": 57773,
+  "logical_bytes": 46427649982,
+  "scope": "Keep an independent, completely verified, read-only native baseline copy.\n\nOnly accepts a completed native observer receipt. Never removes a source or\npartial destination. Read-only means Windows file attributes, not an ACL mount.\n",
+  "copied_files": 32202,
+  "copied_bytes": 41491185093,
+  "seconds": 4904.2179999999935,
+  "error": "",
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-backup-v1\\acceptance.json",
+  "raw_receipt_sha256": "6f819cb618a3ad05c0c2d9310e5952c8ee8d7fc990d990231a5c8163f06eed8d",
+  "phase_status": "FAILED_RETAINED_NOT_ACCEPTED",
+  "host_commit_context": "Concurrent Windows2004 exhaustion; graph I/O causal relation not independently proven; scan observer failed, not evidence of16GiB Job limit reached"
+}

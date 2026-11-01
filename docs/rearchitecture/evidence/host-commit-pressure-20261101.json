@@ -1,0 +1,23 @@
+{
+  "scope": "Windows event2004;61.1GB PID17076 created06:52:25Z, NOT old backup process; exact vanished commandline not captured. Venv PID ownership hazard independently reproduced with a waiting, non-allocating child.",
+  "events": [
+    {
+      "message": "Windows 成功诊断出虚拟内存不足的情况。以下程序使用了大部分虚拟内存: python.exe (17076) 使用了 61144150016 字节；python.exe (34804) 使用了 7918034944 字节；Code.exe (31904) 使用了 3028557824 字节。",
+      "id": 2004,
+      "time": "2026-11-01T06:52:33.4145771Z"
+    },
+    {
+      "message": "Windows 成功诊断出虚拟内存不足的情况。以下程序使用了大部分虚拟内存: python.exe (34804) 使用了 7732166656 字节；Code.exe (31904) 使用了 3028193280 字节；cpptools.exe (11536) 使用了 975818752 字节。",
+      "id": 2004,
+      "time": "2026-11-01T06:52:25.3079187Z"
+    },
+    {
+      "message": "Windows 成功诊断出虚拟内存不足的情况。以下程序使用了大部分虚拟内存: python.exe (40600) 使用了 17065656320 字节；python.exe (34804) 使用了 7358119936 字节；Code.exe (31904) 使用了 3024785408 字节。",
+      "id": 2004,
+      "time": "2026-11-01T06:52:04.5469536Z"
+    }
+  ],
+  "raw_receipt_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\host-commit-pressure-20261101.json",
+  "raw_receipt_sha256": "7f319890782f506a9cf58f257d53c1edad1d5e83d5f68de8023df2d1aa740080",
+  "backup_before_peak": "NOT_MEASURED; never compare61GB as its before memory"
+}

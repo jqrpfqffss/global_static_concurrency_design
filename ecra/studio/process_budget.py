@@ -42,6 +42,20 @@ class ProcessBudget:
         if self.handle and not self.kernel.AssignProcessToJobObject(self.handle, int(process._handle)):
             raise ctypes.WinError(ctypes.get_last_error())
 
+    def contains(self,pid):
+        """Verify a declared worker PID belongs to this exact owned Job."""
+        if not self.handle or type(pid) is not int or pid<=0:return False
+        self.kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD]
+        self.kernel.OpenProcess.restype=wintypes.HANDLE
+        self.kernel.IsProcessInJob.argtypes=[wintypes.HANDLE,wintypes.HANDLE,ctypes.POINTER(wintypes.BOOL)]
+        process=self.kernel.OpenProcess(0x1000,False,pid)
+        if not process:return False
+        try:
+            answer=wintypes.BOOL()
+            if not self.kernel.IsProcessInJob(process,self.handle,ctypes.byref(answer)):raise ctypes.WinError(ctypes.get_last_error())
+            return bool(answer.value)
+        finally:self.kernel.CloseHandle(process)
+
     def sample(self):
         if not self.handle:
             return dict(available=False, reason='此版本的进程树预算只在 Windows Job Object 下验证')
@@ -80,6 +94,7 @@ class ProcessBudget:
                 self.kernel.CloseHandle(handle)
         return dict(available=True, working_set_bytes=rss, private_bytes=private,
                     peak_job_commit_bytes=info.peak_job, limit_bytes=self.limit,
+                    enforced_job_commit_limit_bytes=info.job_limit,job_limit_flags=info.basic.flags,
                     processes=count, sampled_processes=sampled, write_bytes=info.io.write_bytes)
 
     def close(self):

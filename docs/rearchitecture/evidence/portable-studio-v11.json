@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "format": "DEVELOPMENT_CANDIDATE_NOT_COMPLETE",
+  "implementation_commit": "4e6fe06dddae6bdfdd917415cf90bd2c911ff5f2",
+  "bundle": "H:\\ECRAStudio-build-20261101-studio-v11\\ECRA-Portable",
+  "archive": "H:\\ECRAStudio-build-20261101-studio-v11\\ECRA-Portable.zip",
+  "archive_bytes": 535693209,
+  "archive_sha256": "de815af2529068f3f470387de4fb53abf092b67b18b8ea06a7c59c7122bd0b96",
+  "checks": {
+    "uncompressed": {
+      "result": "PASS",
+      "commands": 26,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v11\\portable-evidence\\uncompressed\\acceptance.json",
+      "sha256": "89abb6b85dbf2d0821df459e19f1a9f1997768cd8f6206e56f84ff8419b524fa",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Expected exit2 INCOMPLETE retained; not all commands exit0"
+    },
+    "zip-extracted": {
+      "result": "PASS",
+      "commands": 26,
+      "receipt": "H:\\ECRAStudio-build-20261101-studio-v11\\portable-evidence\\zip-extracted\\acceptance.json",
+      "sha256": "b880c3a975d44d4d616a26d942a8471bf68298d8f1808338756218b8c41beb56",
+      "exit_codes": {
+        "0": 20,
+        "2": 6
+      },
+      "note": "Expected exit2 INCOMPLETE retained; not all commands exit0"
+    }
+  },
+  "real_chrome": {
+    "main": {
+      "passed": true,
+      "tests": 15,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\studio-main-portable-v11\\acceptance.json",
+      "sha256": "a575a2907297c5567458656ab19d01abba0aeebaff37b47eed9b2ec45821906d"
+    },
+    "profile": {
+      "passed": true,
+      "tests": 7,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\profile-roundtrip-portable-v11\\acceptance.json",
+      "sha256": "c2cef7b97a545e9563a591306366f46b82fad989492a592556bc352e67543ad3"
+    }
+  },
+  "matched_runtime_files": 109,
+  "runtime_scope": "Includes owned worker temporary directory and YAML/form sync; does NOT include subsequent host commit pressure guard",
+  "complete_regression": "FAIL: frozen4e6 1205 tests,4 failure assertions/2 opt-in skips under venv; see full-regression-roundtrip-4e6.json. Subsequent fixes not in this sealed bundle.",
+  "physical_second_computer": "NOT_VERIFIED",
+  "clean_offline_windows": "NOT_VERIFIED",
+  "system_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "large_native_G1_G4": "NOT_PASSED"
+}

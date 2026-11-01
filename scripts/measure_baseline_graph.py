@@ -30,11 +30,15 @@ def main():
     execution=no_links(args.execution);original=json.loads(execution.read_text(encoding='utf-8'))
     if not original.get('complete') or original.get('validity',{}).get('analysis_valid') is not True:raise ValueError('Original native run has not completed input validation')
     source=no_links(original['output']);engine=no_links(args.engine);work=no_links(args.work)
+    from ecra.config import configured_project_root
+    firmware=configured_project_root(original['config'])
     if work.exists():raise FileExistsError('Preserve all previous comparison attempts')
     if any(work==root or work.is_relative_to(root) or root.is_relative_to(work) for root in [source,engine]):raise ValueError('Diagnostic output must not overlap source baseline or engine')
+    if work==firmware or work.is_relative_to(firmware):raise ValueError('Comparison work cannot enter firmware')
     facts=source/'facts.json';report=source/'reports/global_static_concurrency.json'
     if not facts.is_file() or not report.is_file():raise ValueError('Complete original JSON inputs are missing')
     work.mkdir(parents=True)
+    (work/'observer.py').write_bytes(Path(__file__).read_bytes())
     if shutil.disk_usage(work).free<20*1024**3:raise ValueError('Keep20GiB free before large graph conversion')
     child_work=work/'worker';child_work.mkdir();env=temporary_environment(child_work,dict(os.environ,PYTHONIOENCODING='utf-8'))
     code=r'''import json,sys,time
@@ -64,16 +68,21 @@ raise SystemExit(0 if unchanged else 1)
     result=dict(complete=False,scope=__doc__,execution=str(execution),execution_sha256=sha256(execution),
         engine=str(engine),work=str(work),job_limit_bytes=args.limit_gib*1024**3,peaks={},samples=0,
         original_native_validity=original['validity'],source=str(source),temporary_root=env['TEMP'])
+    result['observer_script_sha256']=sha256(work/'observer.py')
     def save():(work/'execution.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     budget=ProcessBudget(result['job_limit_bytes']);process=None;start=time.monotonic();last_disk=last_report=0;disk={}
     save()
     try:
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
-            process=subprocess.Popen([sys.executable,'-B','-X','utf8','-c',code,str(engine),str(work/'start'),str(execution),str(work)],
-                cwd=engine,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
-            budget.assign(process);result['pid']=process.pid;(work/'start').write_text('OWNED',encoding='ascii')
+            from ecra.studio.write_guard import OwnedProcess
+            process=OwnedProcess([sys.executable,'-B','-X','utf8','-c',code,str(engine),str(work/'start'),str(execution),str(work)],cwd=engine,env=env,log=log)
+            budget.assign(process);process.resume();result['pid']=process.pid;(work/'start').write_text('OWNED',encoding='ascii')
             while process.poll() is None:
                 elapsed=time.monotonic()-start;sample=dict(seconds=elapsed,**budget.sample())
+                from ecra.scan_diagnostics import memory
+                system=memory();sample.update({k:v for k,v in system.items() if k.startswith('system_')})
+                if system.get('system_commit_limit_bytes',2**63)-system.get('system_commit_bytes',0)<2*1024**3:
+                    result['safety_stop']='Host commit headroom below2GiB';budget.close();break
                 if not disk or elapsed-last_disk>=30:disk=directory_size(work);last_disk=elapsed
                 sample['disk']=disk;sample['drive_free_bytes']=shutil.disk_usage(work).free
                 for name in ['working_set_bytes','private_bytes','peak_job_commit_bytes']:
@@ -92,10 +101,11 @@ raise SystemExit(0 if unchanged else 1)
         result['complete']=process.returncode==0 and result.get('conversion',{}).get('passed') is True and 'safety_stop' not in result
         save();print(json.dumps(dict(complete=result['complete'],peaks=result['peaks'],seconds=result['seconds'])))
         return 0 if result['complete'] else 1
-    except BaseException as exc:result.update(complete=False,error=str(exc));save();raise
+    except BaseException as exc:result.update(complete=False,error=str(exc),error_type=type(exc).__name__);save();raise
     finally:
         budget.close()
         if process is not None and process.poll() is None:process.wait(timeout=30)
+        if process is not None:process.close()
 
 
 if __name__=='__main__':raise SystemExit(main())

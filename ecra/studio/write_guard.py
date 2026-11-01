@@ -1,4 +1,7 @@
-"""Windows low-integrity write guard; NOT integrated with formal scans yet.
+"""Windows suspended launch and an optional low-integrity write guard.
+
+OwnedProcess supplies formal Job ownership at ordinary integrity. Low-integrity
+GuardedProcess and directory labels remain a separate, unintegrated prototype.
 
 This is an execution prerequisite, not proof of input/build equivalence. It only
 labels a newly created private directory, never a firmware/install directory.
@@ -52,6 +55,7 @@ class Windows:
         define(self.kernel,'InitializeProcThreadAttributeList',[pointer,w.DWORD,w.DWORD,ctypes.POINTER(ctypes.c_size_t)])
         define(self.kernel,'UpdateProcThreadAttribute',[pointer,w.DWORD,ctypes.c_size_t,pointer,ctypes.c_size_t,pointer,pointer])
         define(self.kernel,'DeleteProcThreadAttributeList',[pointer],None)
+        define(self.kernel,'CreateProcessW',[w.LPCWSTR,w.LPWSTR,pointer,pointer,w.BOOL,w.DWORD,pointer,w.LPCWSTR,ctypes.POINTER(StartupEx),ctypes.POINTER(ProcessInfo)])
         define(self.adv,'OpenProcessToken',[w.HANDLE,w.DWORD,handle_pointer])
         define(self.adv,'CreateRestrictedToken',[w.HANDLE,w.DWORD,w.DWORD,pointer,w.DWORD,pointer,w.DWORD,pointer,handle_pointer])
         define(self.adv,'ConvertStringSidToSidW',[w.LPCWSTR,ctypes.POINTER(pointer)])
@@ -121,12 +125,12 @@ def create_private_directory(path,*,source_root):
 
 class GuardedProcess:
     """Starts suspended. Caller assigns its Job before explicitly resuming."""
-    def __init__(self,argv,*,cwd,env,log):
+    def __init__(self,argv,*,cwd,env,log,_low_integrity=True):
         import msvcrt
         self.api=api=Windows();self.args=list(map(str,argv));self._handle=None;self._thread=None;self.returncode=None
         executable=Path(self.args[0])
         if not executable.is_absolute() or not executable.is_file():raise ValueError('Use an existing absolute executable path')
-        token=api.low_token();duplicates=[];attributes=None;attributes_ready=False
+        token=api.low_token() if _low_integrity else None;duplicates=[];attributes=None;attributes_ready=False
         try:
             def duplicate(raw):
                 handle=w.HANDLE();api.check(api.kernel.DuplicateHandle(api.kernel.GetCurrentProcess(),raw,api.kernel.GetCurrentProcess(),ctypes.byref(handle),0,True,2))
@@ -145,12 +149,13 @@ class GuardedProcess:
             command=ctypes.create_unicode_buffer(subprocess.list2cmdline(self.args))
             environment=ctypes.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(env.items(),key=lambda item:item[0].upper()))+'\0\0')
             info=ProcessInfo();flags=0x4|0x400|0x80000|0x8000000  # suspended, Unicode env, explicit handle list, no window
-            api.check(api.adv.CreateProcessAsUserW(token,str(executable),command,None,None,True,flags,environment,str(cwd),ctypes.byref(startup),ctypes.byref(info)))
+            if token:api.check(api.adv.CreateProcessAsUserW(token,str(executable),command,None,None,True,flags,environment,str(cwd),ctypes.byref(startup),ctypes.byref(info)))
+            else:api.check(api.kernel.CreateProcessW(str(executable),command,None,None,True,flags,environment,str(cwd),ctypes.byref(startup),ctypes.byref(info)))
             self._handle=info.process;self._thread=info.thread;self.pid=info.pid
         finally:
             if attributes_ready:api.kernel.DeleteProcThreadAttributeList(attributes)
             for handle in duplicates:api.kernel.CloseHandle(handle)
-            api.kernel.CloseHandle(token)
+            if token:api.kernel.CloseHandle(token)
 
     def resume(self):
         if self._thread:
@@ -164,6 +169,7 @@ class GuardedProcess:
         return self.returncode
 
     def wait(self,timeout=None):
+        if self.returncode is not None:return self.returncode
         result=self.api.kernel.WaitForSingleObject(self._handle,0xffffffff if timeout is None else max(0,int(timeout*1000)))
         if result==258:raise subprocess.TimeoutExpired(self.args,timeout)
         if result!=0:raise ctypes.WinError(ctypes.get_last_error())
@@ -175,3 +181,13 @@ class GuardedProcess:
     def close(self):
         if self._thread:self.api.kernel.CloseHandle(self._thread);self._thread=None
         if self._handle:self.api.kernel.CloseHandle(self._handle);self._handle=None
+
+
+class OwnedProcess(GuardedProcess):
+    """Ordinary-integrity process suspended before any launcher can fork.
+
+    Caller must assign its Job then resume. This provides ownership only;
+    it never labels private directories or establishes source write protection.
+    """
+    def __init__(self,argv,*,cwd,env,log):
+        super().__init__(argv,cwd=cwd,env=env,log=log,_low_integrity=False)

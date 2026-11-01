@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "scope": "Real venv allocator PID matches inner128MiB cap and belongs to outer512MiB Job; diagnostic only, not native scan G3",
+  "execution": {
+    "controlled_fault_injection": true,
+    "full_scan_acceptance": false,
+    "exit_code": 0,
+    "seconds": 0.46899999998277053,
+    "command": [
+      "H:\\ECRAStudio-dev-20261101-yaml\\Scripts\\python.exe",
+      "-u",
+      "H:\\global_static_concurrency_design\\scripts\\probe_diagnostic_memory.py",
+      "--engine",
+      "H:/global_static_concurrency_design",
+      "--python",
+      "H:/ECRAStudio-dev-20261101-yaml/Scripts/python.exe",
+      "--evidence",
+      "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/venv-job-allocator-proof-v1",
+      "--origin",
+      "MAIN",
+      "--limit-mib",
+      "128",
+      "--inside"
+    ],
+    "launcher_pid": 10928,
+    "allocator_pid": 27076,
+    "allocator_in_owned_job": true,
+    "outer_job_limit_bytes": 536870912,
+    "outer_peak_job_commit_bytes": 141668352
+  },
+  "limit": {
+    "controlled_fault_injection": true,
+    "pid": 27076,
+    "process_commit_limit_bytes": 134217728,
+    "applied_unix": 1793517504.5462322,
+    "source": "Windows Job Object JOB_OBJECT_LIMIT_PROCESS_MEMORY"
+  },
+  "result": {
+    "controlled_fault_injection": true,
+    "full_scan_acceptance": false,
+    "diagnostic_handling_complete": true,
+    "experimental_private_and_python_reserves": false,
+    "origin": "MAIN",
+    "interpreter": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+    "memory": {
+      "private_bytes": 12701696,
+      "working_set_bytes": 20631552,
+      "peak_working_set_bytes": 24260608,
+      "peak_process_commit_bytes": 134217728,
+      "system_commit_bytes": 33902862336,
+      "system_commit_limit_bytes": 85825454080,
+      "system_commit_peak_bytes": 103005323264,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 50513285120
+    }
+  },
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\venv-job-allocator-proof-v1"
+}

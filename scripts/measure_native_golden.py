@@ -37,10 +37,13 @@ def main():
     parser.add_argument('--work',type=Path,required=True)
     parser.add_argument('--mode',choices=['legacy','canonical'],required=True)
     parser.add_argument('--limit-gib',type=int,required=True)
+    parser.add_argument('--reuse-tu-cache-from',type=Path,help='Explicit failed same-engine native attempt; replay preprocessing and verify every TU cache, not fresh extraction timing')
+    parser.add_argument('--inject-stop-before-merge',action='store_true',help='Explicit diagnostic fault after real extraction; never a successful native benchmark')
     args=parser.parse_args()
     if os.name!='nt':parser.error('This measurement requires real Windows Job accounting')
     if not 2<=args.limit_gib<=32:parser.error('Choose an explicit safety cap between 2 and 32GiB')
-    work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
+    if args.inject_stop_before_merge and args.mode!='canonical':parser.error('Fault injection is canonical diagnostic only')
+    work=args.work.resolve()
     data=args.data_root.resolve();engine=args.engine.resolve();config=args.config.resolve()
     if data.exists():raise FileExistsError('Use a fresh data root; never mix another scan into the measurement')
     if data==engine or data.is_relative_to(engine):raise ValueError('Measurement data cannot enter the engine installation')
@@ -50,7 +53,41 @@ def main():
         raise ValueError('Measurement data cannot overlap the firmware input')
     if work==source or work.is_relative_to(source) or work.is_relative_to(engine):
         raise ValueError('Observer evidence cannot enter firmware or the engine installation')
+    work.mkdir(parents=True,exist_ok=False)
+    observer_source=Path(__file__).read_bytes();(work/'observer.py').write_bytes(observer_source)
     data.mkdir(parents=True)
+    cache_reuse=None
+    if args.reuse_tu_cache_from:
+        if args.mode!='canonical':raise ValueError('Cache recovery diagnostic is canonical only')
+        previous_path=args.reuse_tu_cache_from.resolve();previous=json.loads((previous_path/'execution.json').read_text(encoding='utf-8'))
+        if previous.get('complete') is not False or Path(previous['engine']).resolve()!=engine or previous['config_sha256']!=sha256(config):
+            raise ValueError('Recovery requires a failed native attempt on exactly the same engine and config')
+        from ecra.config import load_config
+        from ecra.workspace import WorkspaceResolver,no_links
+        from scripts.freeze_native_baseline import hash_file
+        cfg,_=load_config(source,config)
+        old_ws=WorkspaceResolver.resolve(source,dict(cfg['analysis'],output=dict(location='custom',custom_dir=previous['data_root'])))
+        new_ws=WorkspaceResolver.resolve(source,dict(cfg['analysis'],output=dict(location='custom',custom_dir=str(data)))).initialize()
+        old_cache=no_links(Path(old_ws.cache_root)/'tu-v1');new_cache=no_links(Path(new_ws.cache_root)/'tu-v1');new_cache.mkdir(parents=True)
+        if not old_cache.is_dir():raise ValueError('Failed native attempt has no preserved TU cache')
+        buffer=bytearray(1024**2);view=memoryview(buffer);count=total=0;started_copy=time.monotonic()
+        for original in old_cache.iterdir():
+            no_links(original)
+            if not original.is_file() or original.suffix not in {'.facts','.json'}:raise ValueError('Unknown failed TU cache entry; retain it and investigate')
+            target=new_cache/original.name
+            with original.open('rb',buffering=0) as reader,target.open('xb',buffering=0) as writer:
+                while size:=reader.readinto(buffer):
+                    part=view[:size];written=0
+                    while written<size:
+                        actual=writer.write(part[written:])
+                        if not actual:raise OSError('Cache copy made no progress')
+                        written+=actual
+                writer.flush();os.fsync(writer.fileno())
+            if hash_file(original,buffer)!=hash_file(target,buffer):raise ValueError('Independent failed-TU cache copy mismatch')
+            shutil.copystat(original,target);count+=1;total+=original.stat().st_size
+        cache_reuse=dict(previous_attempt=str(previous_path),previous_execution_sha256=sha256(previous_path/'execution.json'),files=count,
+            bytes=total,copy_seconds=time.monotonic()-started_copy,independent_copy=True,
+            scope='Recovery from real native TU cache; preprocessing/input/engine/hash gates are rerun; elapsed is not cold full-extraction timing')
     # No engine imports before ownership: children wait at this gate before the
     # actual public legacy CLI or production canonical worker body is entered.
     code='''import sys,time,runpy,json
@@ -78,8 +115,11 @@ if mode=='legacy':
  sys.argv=[str(engine/'run_ecra.py'),'--config',str(config),'--scan-mode','full','--no-review']
  runpy.run_path(str(engine/'run_ecra.py'),run_name='__main__')
 else:
- from ecra.cli import run
- raise SystemExit(run(root,config,no_review=True,scan_mode='full',_workspace=ws,_cache_enabled=True))
+ import ecra.cli as cli
+ if sys.argv[6]=='True':
+  def interrupted_merge(*args,**kwargs):raise RuntimeError('EXPLICIT_DIAGNOSTIC_STOP_BEFORE_MERGE')
+  cli.merge=interrupted_merge
+ raise SystemExit(cli.run(root,config,no_review=True,scan_mode='full',_workspace=ws,_cache_enabled=True))
 '''
     result=dict(complete=False,scope=__doc__,mode=args.mode,engine=str(engine),config=str(config),
         config_sha256=sha256(config),data_root=str(data),safety_job_commit_limit_bytes=args.limit_gib*1024**3,
@@ -88,7 +128,9 @@ else:
         system_paging_rate='PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA',paging_samples_valid=0,
         canonical_scope='Production CLI body, not TaskManager publication wrapper',
         logical_disk_peak_is_sampled_lower_bound=True,
-        started=datetime.now(timezone.utc).isoformat(),peaks={},samples=0)
+        started=datetime.now(timezone.utc).isoformat(),peaks={},samples=0,cache_reuse=cache_reuse,
+        diagnostic_fault='STOP_BEFORE_MERGE' if args.inject_stop_before_merge else None)
+    result['observer_script_sha256']=sha256(work/'observer.py')
     receipt=work/'execution.json'
     def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     save();process=None;paging=None;budget=ProcessBudget(result['safety_job_commit_limit_bytes']);started=time.monotonic()
@@ -96,7 +138,7 @@ else:
         import psutil
         try:paging=PagingRates()
         except OSError as exc:result.update(system_paging_rate='NOT_MEASURED',paging_error=str(exc))
-        env=dict(os.environ,PYTHONIOENCODING='utf-8',GIT_OPTIONAL_LOCKS='0')
+        env=dict(os.environ,PYTHONIOENCODING='utf-8',GIT_OPTIONAL_LOCKS='0',ECRA_JOB_STOP_FILE=str(work/'stop'))
         if args.mode=='canonical':
             from ecra.studio.resource_policy import temporary_environment
             owned=data/'work/native-observer';owned.mkdir(parents=True)
@@ -105,13 +147,20 @@ else:
         result['output_volume_free_at_start']=shutil.disk_usage(data).free
         save()
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
-            process=subprocess.Popen([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode],
-                cwd=engine,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
-            budget.assign(process);result['pid']=process.pid;save();(work/'start').write_text('OWNED',encoding='ascii')
+            from ecra.studio.write_guard import OwnedProcess
+            process=OwnedProcess([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode,str(args.inject_stop_before_merge)],cwd=engine,env=env,log=log)
+            budget.assign(process);process.resume();result['pid']=process.pid;save();(work/'start').write_text('OWNED',encoding='ascii')
             last_disk=last_report=0;disk={}
             while process.poll() is None:
                 elapsed=time.monotonic()-started;sample=dict(seconds=elapsed,**budget.sample())
                 system=memory();sample.update({k:v for k,v in system.items() if k.startswith('system_')})
+                commit_headroom=system.get('system_commit_limit_bytes',2**63)-system.get('system_commit_bytes',0)
+                sample['system_commit_headroom_bytes']=commit_headroom
+                if commit_headroom<4*1024**3:
+                    (work/'stop').write_text('HOST_COMMIT_PRESSURE',encoding='ascii')
+                    result['host_commit_stop_requested']=True
+                if commit_headroom<2*1024**3:
+                    result['safety_stop']='Host commit headroom below2GiB; not a scan Job limit result';budget.close();break
                 if paging is not None:
                     sample['host_paging']=paging.sample()
                     if sample['host_paging']['available']:result['paging_samples_valid']+=1
@@ -150,11 +199,12 @@ else:
         save();print(json.dumps(dict(complete=result['complete'],exit_code=process.returncode,seconds=result['seconds'],peaks=result['peaks'])),flush=True)
         return 0 if result['complete'] else 1
     except BaseException as exc:
-        result.update(complete=False,error=str(exc),seconds=time.monotonic()-started);save();raise
+        result.update(complete=False,error=str(exc),error_type=type(exc).__name__,seconds=time.monotonic()-started);save();raise
     finally:
         if paging is not None:paging.close()
         budget.close()
         if process is not None and process.poll() is None:process.wait(timeout=30)
+        if process is not None:process.close()
 
 
 if __name__=='__main__':raise SystemExit(main())
