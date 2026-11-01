@@ -1,5 +1,7 @@
 # H2 未提交输入隔离：实施合同（进行中）
 
+固定提交管理库已独立：prepare_current/base现在只在WorkspaceResolver所属git-snapshots登记新worktree；原.git不再承载这些新登记。真实Git6项、冻结workspace20项与Diff49项局部通过，旧树不改写/删除，详见[ADR-010](09-independent-git-adr.md)。复杂Git布局仍明确拒绝，完整只读挂载/dirty隔离/大型full-Diff仍未验，不能据此称H2通过；封存v12不含此后续实现。
+
 ## 正式启动所有权修正（与源码写保护分开）
 
 已接入普通完整性OwnedProcess：Windows进程挂起创建、加入Job后才继续，解决venv转接器在文件gate前产生未受控真实解释器的问题。StartupInfoEx只继承NUL与日志句柄，创建失败无无Job回退，监视器关闭时回收本Job并等待后关闭句柄。真实venv/后代Job归属、受控OOM、当前源码Chrome15项停止/恢复/缺工具/再次扫描通过；见owned-job-regression-v2.json、browser-owned-job-v1.json、10-process-job-ownership.md。这**没有启用Low令牌或标签**；下述Low写保护仍为原型，H2/dirty完整隔离仍未通过。

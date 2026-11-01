@@ -47,7 +47,8 @@ def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=
         raise ValueError('Portable 差异模式缺少离线 Git：请将完整 MinGit 解压到 tools/git（包含 cmd/git.exe）')
     try:
         proc = subprocess.run([exe, '-c', 'core.longpaths=true', '-C', str(root), *args], stdout=_stdout,
-                              stderr=subprocess.PIPE, timeout=300)
+                              stderr=subprocess.PIPE, timeout=300,
+                              env=dict(os.environ, GIT_OPTIONAL_LOCKS='0'))
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError(f'Git 无法运行，差异扫描未完成：{exc}') from exc
     if proc.returncode not in _returncodes or (_reject_stderr and proc.stderr):
@@ -862,10 +863,11 @@ def prepare_current(root, out, cfg, pinned, progress):
     # Keep Windows Git's administrative paths bounded. The complete SHA is
     # always checked before reuse; a shortened-name collision is rejected.
     directory = no_links(Path(workspace.worktree_root)/('current-' + pinned['head_sha'][:16]))
-    if not directory.exists():
-        directory.parent.mkdir(parents=True, exist_ok=True)
-        git(root, 'worktree', 'add', '--detach', str(directory), pinned['head_sha'])
-    pinned['current_gitdir_reference'] = _relative_worktree_gitdir(root, directory, pinned['head_sha'])
+    from .independent_git import prepare
+    from .scan_persistence import is_canonical
+    private = prepare(Path(pinned['repository_root']), directory, pinned['head_sha'], workspace,
+                      allow_legacy_project=not is_canonical(out))
+    pinned['current_gitdir_reference'] = _relative_worktree_gitdir(private['repository'], directory, pinned['head_sha'])
     source = directory/pinned['project_subdir']
     pinned['current_source_root'] = str(source)
     source, current_cfg = current_context(root, cfg, pinned)
@@ -900,12 +902,13 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     from .workspace import context, no_links
     workspace = context(root, cfg['analysis'])
     directory = no_links(Path(workspace.worktree_root)/('base-' + pinned['base_sha'][:16]))
-    if not directory.exists():
-        directory.parent.mkdir(parents=True, exist_ok=True)
-        git(repo, 'worktree', 'add', '--detach', str(directory), pinned['base_sha'])
+    from .independent_git import prepare
+    from .scan_persistence import is_canonical
+    private = prepare(repo, directory, pinned['base_sha'], workspace,
+                      allow_legacy_project=not is_canonical(out))
     if text(directory, 'rev-parse', 'HEAD') != pinned['base_sha']:
         raise ValueError('基准工作树身份不一致；禁止复用')
-    pinned['base_gitdir_reference'] = _relative_worktree_gitdir(repo, directory, pinned['base_sha'])
+    pinned['base_gitdir_reference'] = _relative_worktree_gitdir(private['repository'], directory, pinned['base_sha'])
     base_root = directory/pinned['project_subdir']
     baseline = copy.deepcopy(cfg)
     baseline['analysis']['git_diff']['enabled'] = False

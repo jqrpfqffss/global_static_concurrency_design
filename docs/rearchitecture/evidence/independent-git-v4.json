@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "scope": "Fixed revision Git management isolation only; not complete H2/readonly mount/dirty snapshots/large-native G1",
+  "checks": [
+    {
+      "tests": 6,
+      "seconds": 15.475,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\independent-git-v4.log",
+      "sha256": "38503392b04858e79581a24b00781e042b0814a78c6c547ce92492e45c670005",
+      "scope": "Current source:6 real Git isolation/failure/layout cases"
+    },
+    {
+      "tests": 20,
+      "seconds": 228.875,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\independent-git-workspace-v3.log",
+      "sha256": "ba9f4f69e2a9d074770fa806d3e197034a7c9a0215083544f4a4c7d4841bb1b9",
+      "scope": "Immutable v3 source:existing ARM/CMake workspace tests; later custom-hook rejection separate"
+    },
+    {
+      "tests": 49,
+      "seconds": 467.681,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\independent-git-diff-v2.log",
+      "sha256": "e9d16c28a6ca59d78f60b6efad7b0581ec10c4c642491b6d6eeefd8e223571cc",
+      "scope": "Live working source before custom-hook rejection; scan source stable during this successful run"
+    }
+  ],
+  "source_sha256": {
+    "ecra/independent_git.py": "3cd14d0f0a2de72436536a3f7a2bca18cf3747c60fa0a0828910ee9de1d48e29",
+    "ecra/git_diff.py": "e5e147e2f58fd3004a804c9c7a06114a9f2d947dba59fbbb37ade0af022748e1",
+    "tests/test_independent_git.py": "599efdcea0386f8b83db7112e913a7a4941c8d95c28b8ece9430413d1c5bbb76"
+  },
+  "workspace_frozen_files": 765,
+  "workspace_frozen_source_unchanged": true,
+  "workspace_manifest_sha256": "4ded3dea92f3dc012698b3a43b6a87336931ad6e8430af3e727bfab79eb5f14b",
+  "full_regression": "RUNNING_SEPARATELY_NOT_YET_PASSED",
+  "legacy_project_scope": "Explicit legacy/development output only; formal canonical source-overlap gate unchanged",
+  "native_F030_full_Diff_comparison": "NOT_VERIFIED",
+  "unsupported_layouts": "Explicit refusal:relative includes/extensions/shallow/alternates/custom hooks; no silent flattening",
+  "failure_history": [
+    "v1 test fixture attempted to modify read-only temporary Git object; test-owned chmod added",
+    "workspace v1 edited engine during live tests and failed2; retained; immutable workspace v3 passed20",
+    "Git diff v1 rejected explicit legacy project fixtures; compatibility limited to noncanonical path; v2 passed49"
+  ]
+}
