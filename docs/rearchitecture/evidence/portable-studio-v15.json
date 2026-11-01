@@ -1,0 +1,115 @@
+{
+  "passed": true,
+  "status": "DEVELOPMENT_CANDIDATE_SCOPED_ACCEPTANCE_PASS",
+  "scope": "Sealed actual Portablev15: frozen1264 regression, directory/Chinese extracted27+27 CLI,11 real Chrome groups, all120 source items equal. Not whole refactor/H1-H6/G1-G8 pass.",
+  "runtime_head": "b50103f685b832aa17cbbc6ffe9d85d2604a2202",
+  "bundle": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable",
+  "zip": "H:\\ECRAStudio-build-20261102-studio-v15\\ECRA-Portable.zip",
+  "zip_bytes": 545003832,
+  "zip_sha256": "d0a0e3bfe7ab5462da013acbf8e69f38b49d172b70750e1790973a783f77aaf7",
+  "source_manifest_sha256": "b3146bfb0aa8de31fab52d7ee19213dbfe91d2c03b6145ec0da6e6d643afa282",
+  "frozen_files": 893,
+  "source_match_files": 120,
+  "full_regression": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1264,
+    "passed_tests": 1262,
+    "skipped": 2,
+    "seconds": 2391.546,
+    "controller_seconds": 2395.4530000000013,
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v15-release",
+    "frozen_files": 893,
+    "differences": [],
+    "manifest_sha256": "b3146bfb0aa8de31fab52d7ee19213dbfe91d2c03b6145ec0da6e6d643afa282",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v15.log",
+    "log_sha256": "b8f7a389dd13ad97b14060566fe2b6857b67f9cc63a60aff630c974dbb72c636",
+    "scope": "Frozen b50103f runtime with ADR013 and fixed Portable teaching program alias; live OpenCode opt-in skipped"
+  },
+  "test_python": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+  "package_python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "cli": {
+    "uncompressed": {
+      "commands": 27,
+      "exit0": 21,
+      "expected_incomplete_exit2": 6
+    },
+    "zip-extracted": {
+      "commands": 27,
+      "exit0": 21,
+      "expected_incomplete_exit2": 6
+    }
+  },
+  "browsers": [
+    {
+      "name": "sample",
+      "tests": 10,
+      "receipt": "browser-portable-v15-sample.json"
+    },
+    {
+      "name": "main",
+      "tests": 16,
+      "receipt": "browser-portable-v15-main.json"
+    },
+    {
+      "name": "profile",
+      "tests": 7,
+      "receipt": "browser-portable-v15-profile.json"
+    },
+    {
+      "name": "contexts",
+      "tests": 8,
+      "receipt": "browser-portable-v15-contexts.json"
+    },
+    {
+      "name": "directories",
+      "tests": 7,
+      "receipt": "browser-portable-v15-directories.json"
+    },
+    {
+      "name": "git",
+      "tests": 6,
+      "receipt": "browser-portable-v15-git.json"
+    },
+    {
+      "name": "capacity",
+      "tests": 9,
+      "receipt": "browser-portable-v15-capacity.json"
+    },
+    {
+      "name": "coverage",
+      "tests": 8,
+      "receipt": "browser-portable-v15-coverage.json"
+    },
+    {
+      "name": "legacy",
+      "tests": 6,
+      "receipt": "browser-portable-v15-legacy.json"
+    },
+    {
+      "name": "collaboration",
+      "tests": 7,
+      "receipt": "browser-portable-v15-collaboration.json"
+    },
+    {
+      "name": "launcher",
+      "tests": 4,
+      "receipt": "browser-portable-v15-launcher.json"
+    }
+  ],
+  "user_scenarios": {
+    "PASS": 7,
+    "FAIL": 3,
+    "NOT_VERIFIED": 14
+  },
+  "all_gates_passed": false,
+  "current_source_full_suite": "RUNNING_FROZEN1272_4b3c406; later development-only validation tools, actual120 runtime items still byte-identical",
+  "large_native": "RUNNING_COLD388TU_V8",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_machine": "NOT_VERIFIED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED",
+  "observed_utc": "2026-11-01T18:14:27.660017+00:00"
+}

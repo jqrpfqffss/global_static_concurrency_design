@@ -1,0 +1,155 @@
+{
+  "observed_utc": "2026-11-01T18:14:27.664006+00:00",
+  "scope": "Point-in-time unfinished tasks; none labelled passed before final receipt",
+  "jobs": {
+    "native_v8": {
+      "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-ancestors-native-v8\\execution.json",
+      "snapshot": {
+        "complete": false,
+        "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+        "mode": "canonical",
+        "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1",
+        "config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+        "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+        "data_root": "H:\\ECRA-NATIVE-A8",
+        "safety_job_commit_limit_bytes": 17179869184,
+        "controlled_limit_experiment": true,
+        "physical_32GB": "NOT_VERIFIED",
+        "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+        "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+        "paging_samples_valid": 4070,
+        "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+        "logical_disk_peak_is_sampled_lower_bound": true,
+        "started": "2026-11-01T17:38:24.916830+00:00",
+        "peaks": {
+          "working_set_bytes": 2046877696,
+          "private_bytes": 1921019904,
+          "peak_job_commit_bytes": 1925222400,
+          "sampled_output_logical_bytes": 6320021755,
+          "sampled_output_allocated_bytes": 6326686152
+        },
+        "samples": 4070,
+        "cache_reuse": null,
+        "diagnostic_fault": null,
+        "observer_script_sha256": "80ea19463d3903ccf81af46c10371e74b84fe07aba2ce5e89813fb4ed6184dbe",
+        "worker_temporary_root": "H:\\ECRA-NATIVE-A8\\work\\native-observer\\temporary",
+        "output_volume_free_at_start": 963672424448,
+        "pid": 27932,
+        "seconds": 2158.905999999999,
+        "last": {
+          "seconds": 2158.905999999999,
+          "available": true,
+          "working_set_bytes": 1685241856,
+          "private_bytes": 1554325504,
+          "peak_job_commit_bytes": 1925222400,
+          "limit_bytes": 17179869184,
+          "enforced_job_commit_limit_bytes": 17179869184,
+          "job_limit_flags": 8704,
+          "processes": 18,
+          "sampled_processes": 18,
+          "write_bytes": 0,
+          "system_commit_bytes": 24690589696,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 39965896704,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 49144950784,
+          "system_commit_headroom_bytes": 61134864384,
+          "host_paging": {
+            "available": true,
+            "values": {
+              "pages_input_per_second": 15.520457860404864,
+              "pages_output_per_second": 0.0
+            },
+            "errors": {},
+            "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+          },
+          "disk_free_bytes": 957061509120,
+          "whole_volume_used_change_bytes": 6610915328,
+          "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+          "main_process_memory": {
+            "rss": 103084032,
+            "vms": 101822464,
+            "num_page_faults": 22640919,
+            "peak_wset": 104910848,
+            "wset": 103084032,
+            "peak_paged_pool": 340976,
+            "paged_pool": 340800,
+            "peak_nonpaged_pool": 28576,
+            "nonpaged_pool": 28320,
+            "pagefile": 101822464,
+            "peak_pagefile": 102871040,
+            "private": 101822464
+          },
+          "output_disk": {
+            "files": 4002,
+            "logical_bytes": 6320021755,
+            "allocated_bytes": 6326686152,
+            "unique_files": 4002,
+            "sampling_partial": false,
+            "unmeasured_files": 0,
+            "observation_seconds": 0.6409999999996217
+          },
+          "output_disk_observed_seconds": 2157.7339999999967
+        }
+      },
+      "status": "RUNNING"
+    },
+    "original_json_hash_v2": {
+      "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-json-hash-v2\\execution.json",
+      "snapshot": {
+        "complete": false,
+        "scope": "Read-only full original JSON hash validation under2GiB Job; existing native provenance retained. Same physical HDD as other tasks; no timing attribution, no G1 candidate/G3/G4 claim",
+        "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-json-hash-v1",
+        "manifest_sha256": "52b9e10e204902a0d5005928e7c5eb1594feccab93725e3fd27512ea32eab98a",
+        "frozen_files": 897,
+        "job_limit_bytes": 2147483648,
+        "peaks": {
+          "working_set_bytes": 41443328,
+          "private_bytes": 30326784,
+          "peak_job_commit_bytes": 31662080
+        },
+        "samples": 2843,
+        "pid": 7752,
+        "seconds": 2873.436999999998,
+        "last": {
+          "seconds": 2873.436999999998,
+          "available": true,
+          "working_set_bytes": 40665088,
+          "private_bytes": 29499392,
+          "peak_job_commit_bytes": 31662080,
+          "limit_bytes": 2147483648,
+          "enforced_job_commit_limit_bytes": 2147483648,
+          "job_limit_flags": 8704,
+          "processes": 2,
+          "sampled_processes": 2,
+          "write_bytes": 0,
+          "disk": {
+            "files": 7,
+            "logical_bytes": 83983529,
+            "allocated_bytes": 85733384,
+            "unique_files": 7,
+            "sampling_partial": false,
+            "unmeasured_files": 0,
+            "observation_seconds": 0.0
+          }
+        }
+      },
+      "status": "RUNNING"
+    },
+    "native_compare_export_import": {
+      "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v8-comparison-package-v1\\execution.json",
+      "snapshot": {
+        "passed": false,
+        "status": "WAITING_NATIVE_V8",
+        "scope": "Strict full native comparison then standard complete export/import, bounded2GiB validation Job; no physical32GB or whole G4 pass",
+        "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-json-hash-v1",
+        "manifest_sha256": "52b9e10e204902a0d5005928e7c5eb1594feccab93725e3fd27512ea32eab98a"
+      },
+      "status": "WAITING_NATIVE_V8"
+    },
+    "current_full1272": {
+      "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-acceptance-4b3.json",
+      "status": "RUNNING"
+    }
+  }
+}

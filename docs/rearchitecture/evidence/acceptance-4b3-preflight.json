@@ -1,0 +1,9 @@
+{
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-acceptance-4b3",
+  "manifest_sha256": "ccd51f29277b6d63ac82015fbbdb36687a284c673a5976e1da3cb7321743a969",
+  "files": 982,
+  "tests": 1272,
+  "packaged_runtime_items": 120,
+  "runtime_differences": [],
+  "scope": "Current all-source suite includes later developer scripts; byte-identical runtime is independently bound to actualv15 package"
+}

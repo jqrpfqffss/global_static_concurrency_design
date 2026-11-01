@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1264,
+  "passed_tests": 1262,
+  "skipped": 2,
+  "seconds": 2391.546,
+  "controller_seconds": 2395.4530000000013,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v15-release",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v15-release",
+  "frozen_files": 893,
+  "differences": [],
+  "manifest_sha256": "b3146bfb0aa8de31fab52d7ee19213dbfe91d2c03b6145ec0da6e6d643afa282",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v15.log",
+  "log_sha256": "b8f7a389dd13ad97b14060566fe2b6857b67f9cc63a60aff630c974dbb72c636",
+  "scope": "Frozen b50103f runtime with ADR013 and fixed Portable teaching program alias; live OpenCode opt-in skipped"
+}

@@ -12,7 +12,7 @@
 
 此包的原目录与长中文路径ZIP解压各27条真实命令PASS（各21条退出0，6条按原语义INCOMPLETE退出2）。包内Python3.10.9的真实Chrome分别通过：示例10、主流程16、配置往返7、上下文8、目录选择7、Git选择6、20007行容量/排序9；这些是独立专项，不相加成全套回归。已人工查看1366教学工作台、任务页截图；搜索、对象、详情标签、依据框和主要确认动作可见。其余布局由相应脚本断言，不冒充Windows系统DPI或工程师盲测。
 
-v15整套1264项冻结回归仍在运行；当前仅将CLI/浏览器/资产一致性子范围标PASS，见[阶段包收据](evidence/portable-studio-v15-runtime-ui.json)、[源码一致性](evidence/portable-source-match-v15.json)及[实际截图](ui/screenshots/portable-v15)。未以旧包或较早全套结果代替当前v15完整验收。
+v15整套1264项冻结回归已完成：1262PASS/2项联网OpenCode opt-in SKIP，2391.546秒，893个文件在引擎和测试副本中SHA均未改变。全套环境为CPython3.10.11；实际包内CPython3.10.9另经27+27真实命令及11组真实Chrome验证。见[封存阶段收据](evidence/portable-studio-v15.json)、[完整回归](evidence/full-regression-studio-v15.json)、[源码一致性](evidence/portable-source-match-v15.json)及[实际截图](ui/screenshots/portable-v15)。封存只覆盖所列范围，不代表完整重构或全部门禁通过。后续新增开发验收工具已冻结982文件（4b3c406，manifest ccd51f29277b6d63ac82015fbbdb36687a284c673a5976e1da3cb7321743a969）并运行当前1272项全套；120个实际分发运行时条目仍逐字节一致，该后续全套尚无最终收据。
 
 v14因解压启动器的程序路径Junction被示例读取拒绝而实际失败，无已发布ZIP；[失败收据](evidence/portable-studio-v14-failed.json)保留。修复只读程序资产的位置解析后重建v15，数据写入路径的链接拒绝仍受真实Windows测试保护。
 
