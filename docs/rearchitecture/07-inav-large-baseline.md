@@ -1,5 +1,15 @@
 # INAV 388TU 新黄金输入与原生测量（进行中）
 
+## 观察器后续版本与当前长任务范围
+
+当前长任务inav-original-native-v1继续使用启动时的旧观察器；没有事后为它补造早期分页/分配峰值。新版scripts/native_metrics.py为以后运行增加[FileStandardInfo分配字节](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info)、[同句柄卷号与128位文件身份](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info)以避免硬链接重复计算；这不是os.stat的逻辑文件大小。遍历是每15秒采样的下界，排除目录/MFT元数据和备用数据流；消失/无法读取的文件显式记录partial。不能据此宣布完整G4或70%收益。
+
+系统分页由[PDH语言无关计数器](https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhaddenglishcounterw)采集Memory Pages Input/sec及Pages Output/sec，使用[格式化浮点值与有效状态](https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetformattedcountervalue)。这是整机采样，不能归因于单个ECRA；计数器失败时保留错误，禁止补0。物理32GB与系统非ECRA负载仍需独立记录。
+
+3项真实Windows专项通过：硬链接两路径只算一个物理文件；256MiB稀疏文件实际分配远小于逻辑长度；真实PDH预热后有效。新观察器实际4TU原生canonical运行23.954秒完成，analysis_valid=true且仍INCOMPLETE，46个有效分页样本，Job峰值142,188,544B、采样分配峰值14,262,384B；见evidence/native-resource-observer-probe-v3.json。这是采集链验证，不是INAV/32GB/70%门禁。
+
+候选1b573a1已按实际工作字节冻结在continuation-h3/frozen-engine-allocation-1b5，共686文件及旁置逐文件SHA清单；包含权威图文件身份缓存、投影小工作集验证、ADR-009精确冲突分配优化。全套回归正在该冻结目录运行；原版长任务结束后再单独运行候选。v9包早于这些运行时变更，不能继续宣称v9与当前源码逐字节一致。
+
 仅使用任务书获准的公开INAV副本 `I:/ecra_stm32_validation/inav-h743-20261026`。实际HEAD为f25434a9e2e58db1ad2ce3b87529a78393cad139，存在一处既有未提交改动 `src/main/drivers/serial_uart_stm32h7xx.c`；未执行原仓库checkout/reset/clean或修改原索引。旧配置含已废弃target_ref/compare_mode，另存改为当前base_ref/current_ref语法；本次全量关闭Diff。没有修改工具工作区中的用户config/semantics.yaml。
 
 只读元数据盘点见evidence/inav-input-inventory.json：原.ecra共115,696个文件、106,941,865,853逻辑字节，原build约1.865GB；这些历史数据完整保留，没有以其删除量计算新格式收益。不是当前引擎磁盘峰值测量。

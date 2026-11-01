@@ -1,0 +1,96 @@
+{
+  "complete": true,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+  "mode": "canonical",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-allocation-1b5",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "data_root": "H:\\ECRA-METRIC-3",
+  "safety_job_commit_limit_bytes": 2147483648,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+  "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+  "paging_samples_valid": 46,
+  "canonical_scope": "Production CLI body, not TaskManager publication wrapper",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "started": "2026-11-01T02:07:22.967758+00:00",
+  "peaks": {
+    "working_set_bytes": 178356224,
+    "private_bytes": 141049856,
+    "peak_job_commit_bytes": 142188544,
+    "sampled_output_logical_bytes": 14119408,
+    "sampled_output_allocated_bytes": 14262384
+  },
+  "samples": 46,
+  "pid": 39244,
+  "seconds": 23.95400000002701,
+  "last": {
+    "seconds": 23.42200000002049,
+    "available": true,
+    "working_set_bytes": 35495936,
+    "private_bytes": 18939904,
+    "peak_job_commit_bytes": 142188544,
+    "limit_bytes": 2147483648,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "system_commit_bytes": 57138855936,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 100864864256,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 28809854976,
+    "host_paging": {
+      "available": true,
+      "values": {
+        "pages_input_per_second": 28.81648395094743,
+        "pages_output_per_second": 0.0
+      },
+      "errors": {},
+      "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+    },
+    "disk_free_bytes": 90335444992,
+    "output_disk": {
+      "files": 80,
+      "logical_bytes": 2834339,
+      "allocated_bytes": 3059960,
+      "unique_files": 80,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.014999999955762178
+    },
+    "output_disk_observed_seconds": 15.735000000044238
+  },
+  "exit_code": 2,
+  "final_output_disk": {
+    "files": 84,
+    "logical_bytes": 14119408,
+    "allocated_bytes": 14262384,
+    "unique_files": 84,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.0
+  },
+  "output": "H:\\ECRA-METRIC-3\\scans\\native-golden",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "3510ae4cf198bef16cfbf80125983e6eb2224e81cead0aabba6d020ca6c2cee1"
+  },
+  "observer_source_sha256": {
+    "scripts\\measure_native_golden.py": "d9b1db41945440b42a880e4450aee2a76cf42ef73ca9b1449f6c4a918a4150e2",
+    "scripts\\native_metrics.py": "34320bb6d495ec5205525b2c636c50790c4061ebb83499185b07b7cb7b80f03a"
+  },
+  "metric_tests": {
+    "tests": 3,
+    "seconds": 1.85,
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-metrics-3.log",
+    "sha256": "d583d8d6c0d4b7e08e6dd0225b7fa5d850ad37f5f2cc18d34e1a491498dc4b44",
+    "scope": "Actual Windows normal/sparse allocation, hard-link identity and language-neutral host PDH counters"
+  },
+  "earlier_failures": [
+    "v1: Windows DirEntry.stat st_ino is zero; replaced with same-handle FileIdInfo identity",
+    "v2: sparse allocation grain on this host is1MiB, larger than the test assumption; retain exact measured bytes and assert significant difference from256MiB logical length"
+  ]
+}

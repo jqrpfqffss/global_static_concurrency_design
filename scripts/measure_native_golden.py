@@ -3,7 +3,8 @@
 Windows Job accounting includes every descendant. The explicit safety memory cap
 is recorded; hitting it is a controlled failure, never labelled a natural OOM.
 This harness does not establish semantic equivalence, a physical 32GB test, or
-the complete G4 disk gate. Directory sizes below are sampled logical sizes.
+the complete G4 disk gate. File allocation is a sampled lower bound excluding
+directory/MFT metadata and alternate data streams. Paging rates are host-wide.
 """
 import argparse
 from datetime import datetime,timezone
@@ -20,23 +21,12 @@ sys.path.insert(0,str(TOOL))
 from ecra.studio.process_budget import ProcessBudget
 from ecra.scan_diagnostics import memory
 from ecra.report_package import sha256
+from scripts.native_metrics import directory_size,PagingRates
 
 
 def logical_size(folder):
-    files=total=0;partial=False;pending=[str(folder)]
-    while pending:
-        try:
-            with os.scandir(pending.pop()) as entries:
-                for entry in entries:
-                    try:
-                        info=entry.stat(follow_symlinks=False)
-                        if entry.is_symlink() or getattr(info,'st_file_attributes',0)&0x400:
-                            raise ValueError('Unexpected link in owned benchmark output')
-                        if entry.is_dir(follow_symlinks=False):pending.append(entry.path)
-                        elif entry.is_file(follow_symlinks=False):files+=1;total+=info.st_size
-                    except FileNotFoundError:partial=True
-        except FileNotFoundError:partial=True
-    return dict(files=files,logical_bytes=total,sampling_partial=partial)
+    # Preserve the previous helper name for existing benchmark callers.
+    return directory_size(folder)
 
 
 def main():
@@ -93,15 +83,19 @@ else:
 '''
     result=dict(complete=False,scope=__doc__,mode=args.mode,engine=str(engine),config=str(config),
         config_sha256=sha256(config),data_root=str(data),safety_job_commit_limit_bytes=args.limit_gib*1024**3,
-        controlled_limit_experiment=True,physical_32GB='NOT_VERIFIED',physical_disk_peak='NOT_MEASURED',
-        system_paging_rate='NOT_MEASURED',canonical_scope='Production CLI body, not TaskManager publication wrapper',
+        controlled_limit_experiment=True,physical_32GB='NOT_VERIFIED',
+        physical_disk_peak='SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS',
+        system_paging_rate='PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA',paging_samples_valid=0,
+        canonical_scope='Production CLI body, not TaskManager publication wrapper',
         logical_disk_peak_is_sampled_lower_bound=True,
         started=datetime.now(timezone.utc).isoformat(),peaks={},samples=0)
     receipt=work/'execution.json'
     def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
-    save();process=None;budget=ProcessBudget(result['safety_job_commit_limit_bytes']);started=time.monotonic()
+    save();process=None;paging=None;budget=ProcessBudget(result['safety_job_commit_limit_bytes']);started=time.monotonic()
     try:
         import psutil
+        try:paging=PagingRates()
+        except OSError as exc:result.update(system_paging_rate='NOT_MEASURED',paging_error=str(exc))
         env=dict(os.environ,PYTHONIOENCODING='utf-8',GIT_OPTIONAL_LOCKS='0')
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
             process=subprocess.Popen([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode],
@@ -111,15 +105,20 @@ else:
             while process.poll() is None:
                 elapsed=time.monotonic()-started;sample=dict(seconds=elapsed,**budget.sample())
                 system=memory();sample.update({k:v for k,v in system.items() if k.startswith('system_')})
+                if paging is not None:
+                    sample['host_paging']=paging.sample()
+                    if sample['host_paging']['available']:result['paging_samples_valid']+=1
                 sample['disk_free_bytes']=shutil.disk_usage(data).free
                 try:sample['main_process_memory']=psutil.Process(process.pid).memory_info()._asdict()
                 except psutil.NoSuchProcess:pass
                 if elapsed-last_disk>=15 or not disk:
                     disk=logical_size(data);last_disk=elapsed
                 sample['output_disk']=disk
+                sample['output_disk_observed_seconds']=last_disk
                 for key in ['working_set_bytes','private_bytes','peak_job_commit_bytes']:
                     result['peaks'][key]=max(result['peaks'].get(key,0),sample.get(key,0))
                 result['peaks']['sampled_output_logical_bytes']=max(result['peaks'].get('sampled_output_logical_bytes',0),disk['logical_bytes'])
+                result['peaks']['sampled_output_allocated_bytes']=max(result['peaks'].get('sampled_output_allocated_bytes',0),disk['allocated_bytes'])
                 result['samples']+=1;samples.write(json.dumps(sample,separators=(',',':'))+'\n');samples.flush()
                 result.update(seconds=elapsed,last=sample)
                 if elapsed-last_report>=30:
@@ -133,6 +132,7 @@ else:
             result['peaks']['peak_job_commit_bytes']=max(result['peaks'].get('peak_job_commit_bytes',0),final.get('peak_job_commit_bytes',0))
             result.update(exit_code=process.returncode,seconds=time.monotonic()-started,final_output_disk=logical_size(data))
             result['peaks']['sampled_output_logical_bytes']=max(result['peaks'].get('sampled_output_logical_bytes',0),result['final_output_disk']['logical_bytes'])
+            result['peaks']['sampled_output_allocated_bytes']=max(result['peaks'].get('sampled_output_allocated_bytes',0),result['final_output_disk']['allocated_bytes'])
         if (work/'output.json').is_file():
             out=Path(json.loads((work/'output.json').read_text())['output']);result['output']=str(out)
             if (out/'result_validity.json').is_file():result['validity']=json.loads((out/'result_validity.json').read_text(encoding='utf-8'))
@@ -143,6 +143,7 @@ else:
     except BaseException as exc:
         result.update(complete=False,error=str(exc),seconds=time.monotonic()-started);save();raise
     finally:
+        if paging is not None:paging.close()
         budget.close()
         if process is not None and process.poll() is None:process.wait(timeout=30)
 
