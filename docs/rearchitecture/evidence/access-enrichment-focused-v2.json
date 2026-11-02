@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "tests": 5,
+  "seconds": 1.61,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\access-enrichment-focused-v2.log",
+  "log_sha256": "10d0a336e547bfc4f1c4932831f4fbce67ae7ed5c9a094fdd4aabc7ee8212651",
+  "scope": "Independent frozen original ordered loop,40 seeded full-field comparisons,LRU0..3,unknown changing membership,bounded retained-allocation fixture; not full1302 regression or large nativeG1/G3",
+  "original_block_sha256": "7635719f65ca00c5e1962eacc0e8b938250d511cffafdf34ef7943ddaad46715"
+}

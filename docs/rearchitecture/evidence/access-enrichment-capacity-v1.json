@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "scope": "Measure complete access-container allocation against the frozen v19 loop.\n\nThis is a capacity fixture, not INAV/native G1/G2, a physical32GB G3 run, or a\ndisk-reduction claim. Both passes retain every access/path/duplicate and hash\nthe complete ordered result after measuring Python allocation. No firmware,\narchive, cache or original baseline is modified.\n",
+  "metrics": [
+    {
+      "engine": "frozen_v19_loop",
+      "accesses": 128000,
+      "by_var_accesses": 128000,
+      "ordered_full_sha256": "e33713acc6b05c53e27ed6fae1f76548788a90b0b543bec8ab32709767ff365a",
+      "measured_python_live_bytes": 135197861,
+      "measured_python_peak_bytes": 135201573,
+      "instrumented_seconds": 1.610000000000582
+    },
+    {
+      "engine": "candidate",
+      "accesses": 128000,
+      "by_var_accesses": 128000,
+      "ordered_full_sha256": "e33713acc6b05c53e27ed6fae1f76548788a90b0b543bec8ab32709767ff365a",
+      "measured_python_live_bytes": 74780560,
+      "measured_python_peak_bytes": 74786528,
+      "instrumented_seconds": 0.46799999999348074
+    }
+  ],
+  "implementation_sha256": {
+    "H:\\global_static_concurrency_design\\ecra\\analysis.py": "65fcd936e7b009457771e4d293ac03100469d0d012d60b08f01f0c894a13d1cf",
+    "H:\\global_static_concurrency_design\\ecra\\access_enrichment.py": "b880e0fb8fa538dde5327d0722e4ba11ce6dd49c496e233ab400865880f4ac16",
+    "H:\\global_static_concurrency_design\\tests\\fixtures\\v19_access_enrichment.py": "082b839a62596b00905e7743a6d338e2faa3da4c5cc45920ce46120f785887d0",
+    "H:\\global_static_concurrency_design\\tests\\test_access_enrichment.py": "67e70415675cd7c1aa6024b29027d7333c19d263876be7f29bb3cdf338be2532"
+  },
+  "implementation_differences": [],
+  "native_scan": "NOT_EXERCISED",
+  "physical32GB": "NOT_VERIFIED",
+  "large_G1_G3": "NOT_VERIFIED"
+}

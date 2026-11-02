@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "tests": 5,
+  "failures": 41,
+  "reason": "Incorrect new test assertion required the defaultdict events map to stay unchanged; both original and candidate add missing-function empty entries by the original events[fid] lookup. All preceding full output equality assertions passed. Test corrected to compare post-map mutation with independent original, not erase this behavior.",
+  "source_sha256": "b880e0fb8fa538dde5327d0722e4ba11ce6dd49c496e233ab400865880f4ac16",
+  "scope": "Initial focused attempt; failed test is retained, not counted as PASS"
+}
