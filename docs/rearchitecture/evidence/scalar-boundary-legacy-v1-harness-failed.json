@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "tests_reported": 31,
+  "errors": 1,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scalar-boundary-legacy-v1.log",
+  "log_sha256": "7bebb95939815298d3f6291fa5155ab8e1ca3678589fa7c24cfb3601f02fb59e",
+  "reason": "Explicit unittest module invocation omitted tests directory from sys.path; pre-existing test_saved_json imports test_ecra without package prefix. Re-run with the discovery-compatible path; do not count this attempt as PASS."
+}

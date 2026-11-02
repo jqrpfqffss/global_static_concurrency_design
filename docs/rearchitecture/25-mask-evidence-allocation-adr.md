@@ -30,6 +30,8 @@
 | 既有保护/for-CFG/旧值覆盖/NVIC/完整调用图交互 | 96项中95 PASS、1项真实联网OpenCode opt-in SKIP，22.616s | [交互回归](evidence/mask-evidence-interactions-v1.json)；不是完整1307项冻结回归 |
 | 实际同输入F0304TU | 原配置路径/原字节/编译闭包/工具链，42.219s，预期INCOMPLETE exit2；完整facts及严格规范report差异0，42原输入与92引擎文件不变 | [实际原生](evidence/mask-evidence-native-exact-v1.json)，未调整归一化 |
 | 容量CFG/25000访问/50000观察/10000窗口 | 全字段有序摘要相同；保留Python分配24343336→3879227字节，峰值35156416→14765906；带tracemalloc运行1.156→1.750s | [容量收据](evidence/mask-evidence-capacity-v1.json)。不宣称速度提高，额外查找有CPU代价；不外推真实大型G3或G4 |
-| 全部1307项/新实包/大型冷原生 | 尚未完成，另需冻结后实际运行；v20只含ADR-018 | NOT_VERIFIED；原G3 FAIL仍有效 |
+| 全部1307项/实包 | 1305 PASS、2项真实联网opt-in SKIP，1894.012s；v21实际包十三组Chrome和目录/中文路径ZIP各27项CLI通过 | [回归](evidence/full-regression-studio-v21.json)、[实包汇总](evidence/portable-studio-v21-seal.json)。旧候选仍受[标量完整性勘误](27-scalar-byte-boundary-integrity.md)影响，不是全门禁通过 |
+| 大型分配归因 | 同一388TU严格缓存/预处理，明确声明内存替换访问/遮罩分配实现；v7首变量前private 14688907264字节、traced live 2071992443字节；原v4分别19137482752及4893393440字节 | [v7诊断](evidence/inav-preclass-allocation-v7.json)。原引擎文件SHA、原缓存不变不代表运行时没有注入；含tracemalloc/快照，没有静态库，不作G1/G2/G3或32GB通过 |
+| 最终大型冷原生 | 需绑定标量修复后的最终冻结源，当前未启动 | NOT_VERIFIED；原G3 FAIL仍有效 |
 
 开发机复现：`py -3.10 -m unittest tests.test_mask_evidence_allocation tests.test_protection_index tests.test_controlflow_for tests.test_stale_writeback tests.test_nvic_recovery tests.test_call_graph_scaling -v`；容量命令：`py -3.10 scripts/validate_mask_evidence_allocation.py --work <新的独立诊断目录> --symbols 5000`。实际原生对照以收据原配置/输入和`scripts/compare_native_graphs.py`为准，不可用不同宏/路径替代黄金输入。

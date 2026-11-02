@@ -12,6 +12,39 @@ from ecra.scan_store import publish_scan, EvidenceProvider
 
 
 class ReportPackageTests(unittest.TestCase):
+    def test_rehashed_zip_cannot_add_unhashed_scalar_tail_or_change_existing_human_history(self):
+        valid = self.base/'existing-valid'
+        import_report(self.package, valid)
+        original_static = (valid/'scans/scan-1/scan.db').read_bytes()
+        original_reviews = (valid/'scans/scan-1/reviews.db').read_bytes()
+        source = self.base/'tail-source'; source.mkdir()
+        publish_scan(source/'scan.db', dict(variables=[dict(symbol_id='s', name='g',
+            static_classification='UNKNOWN', future_note='')]), dict(findings=[]),
+            scan_id='tail-scan', project_id='tail-test')
+        provider = EvidenceProvider(source/'scan.db')
+        store = ReviewStore(source/'reviews.db', provider.metadata())
+        store.append('s', provider.fingerprint('s'), decision='NEED_MORE_EVIDENCE',
+            reviewer='自动化完整性验收声明', comment='不作为实际固件结论')
+        original = self.base/'tail-original.ecra-report'; export_report(source, original)
+        with sqlite3.connect(source/'scan.db') as conn:
+            conn.execute('UPDATE nodes SET value=? WHERE id=?', (sqlite3.Binary(b'UNHASHED_TAIL'),
+                provider.resolve('facts', ['variables', 0, 'future_note'])))
+        forged = self.base/'tail-forged.ecra-report'
+        with zipfile.ZipFile(original) as zipped, zipfile.ZipFile(forged, 'w', compression=zipfile.ZIP_DEFLATED) as out:
+            changed = (source/'scan.db').read_bytes()
+            manifest = json.loads(zipped.read('manifest.json'))
+            manifest['files']['scan.db'] = dict(size=len(changed), sha256=hashlib.sha256(changed).hexdigest())
+            for name in zipped.namelist():
+                out.writestr(name, json.dumps(manifest).encode() if name == 'manifest.json' else
+                    changed if name == 'scan.db' else zipped.read(name))
+        with self.assertRaisesRegex(ValueError, '字节长度'):
+            import_report(forged, valid)
+        with self.assertRaisesRegex(ValueError, '字节长度'):
+            export_report(source, self.base/'bad-source-export.ecra-report')
+        self.assertFalse((valid/'scans/tail-scan').exists())
+        self.assertEqual((valid/'scans/scan-1/scan.db').read_bytes(), original_static)
+        self.assertEqual((valid/'scans/scan-1/reviews.db').read_bytes(), original_reviews)
+
     def test_mutating_a_later_convenience_receipt_cannot_mutate_archived_object(self):
         from ecra.scan_persistence import archive_audit
         from ecra.report_package import sha256

@@ -1,0 +1,29 @@
+{
+  "scope": "Private unit databases,actual validator byte-boundary check;not real scan/data",
+  "cases": [
+    {
+      "case": "empty",
+      "declared_bytes": 0,
+      "accepted_by_old_validator": true,
+      "binding_unchanged": true
+    },
+    {
+      "case": "short",
+      "declared_bytes": 1,
+      "accepted_by_old_validator": false,
+      "binding_unchanged": true
+    },
+    {
+      "case": "chunk",
+      "declared_bytes": 1048576,
+      "accepted_by_old_validator": true,
+      "binding_unchanged": true
+    },
+    {
+      "case": "chunk-plus1",
+      "declared_bytes": 1048577,
+      "accepted_by_old_validator": false,
+      "binding_unchanged": true
+    }
+  ]
+}

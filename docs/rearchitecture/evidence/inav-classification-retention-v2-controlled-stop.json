@@ -1,0 +1,65 @@
+{
+  "passed": false,
+  "status": "CONTROLLED_STOP_OBSOLETE24GiB_DIAGNOSTIC",
+  "reason": "Already failed16GiB target;over9hours,no valid archive;retention attribution is complete. Preserve all inputs/raw cache/logs/pending files,run final frozen lower-memory cold candidate instead.",
+  "pid": 21368,
+  "verified_creation_time": 1793580999.131086,
+  "owned_engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1",
+  "owned_data_root": "H:\\ECRA-DIAG-R2",
+  "seconds_before_stop": 32761.937999999995,
+  "job_peak_bytes": 18449494016,
+  "published_scan_database": false,
+  "original_gold_backup_untouched": true,
+  "retained_top_level_files": [
+    {
+      "name": "doctor.json",
+      "bytes": 100035,
+      "mtime_ns": 1793581004315236800
+    },
+    {
+      "name": "input_closure.json",
+      "bytes": 5128434,
+      "mtime_ns": 1793585783857786700
+    },
+    {
+      "name": "input_manifest.json",
+      "bytes": 129206,
+      "mtime_ns": 1793585907836395900
+    },
+    {
+      "name": "result_validity.json",
+      "bytes": 104,
+      "mtime_ns": 1793581001568761000
+    },
+    {
+      "name": "run.json",
+      "bytes": 234,
+      "mtime_ns": 1793581001566761200
+    },
+    {
+      "name": "run.log",
+      "bytes": 72248,
+      "mtime_ns": 1793585911242385400
+    },
+    {
+      "name": "scan.db.850e6898331042b6af483ada98a20be2.pending",
+      "bytes": 13462347776,
+      "mtime_ns": 1793613054182464500
+    },
+    {
+      "name": "scan.db.850e6898331042b6af483ada98a20be2.pending-journal",
+      "bytes": 26112,
+      "mtime_ns": 1793585923410041600
+    },
+    {
+      "name": "storage.json",
+      "bytes": 174,
+      "mtime_ns": 1793581001305799400
+    }
+  ],
+  "raw_response_paths": 776,
+  "native_G1": "NOT_VERIFIED",
+  "G3": "FAIL",
+  "timestamp_unix": 1793613789.1010616,
+  "stop_action": "Terminate only the verified own Python producer. Parent observer remains to close its own Job,record failure and verify all frozen input/engine hashes. No file deletion/move."
+}

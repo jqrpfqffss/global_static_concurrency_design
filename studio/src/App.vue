@@ -73,7 +73,7 @@ async function copyName() { if (selected.value) await navigator.clipboard.writeT
 async function run(task: () => Promise<any>) {
   if (busy.value) { error.value = '上一项操作仍在进行，请等待完成后重试。'; return }
   busy.value = true; error.value = ''; notice.value = ''
-  try { return await task() } catch (e: any) { error.value = e.message } finally { busy.value = false }
+  try { return await task() } catch (e: any) { if (notice.value.startsWith('正在')) notice.value = ''; error.value = e.message } finally { busy.value = false }
 }
 async function readPage(task: () => Promise<any>) { const startedRoute=route.value; try { await task() } catch (e: any) { if(!busy.value && !error.value && route.value===startedRoute) error.value='页面信息读取失败：'+e.message } }
 let refreshGeneration=0

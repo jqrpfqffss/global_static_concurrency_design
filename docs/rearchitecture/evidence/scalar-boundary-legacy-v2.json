@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "tests": 43,
+  "seconds": 115.005,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scalar-boundary-legacy-v2.log",
+  "log_sha256": "f351cf01c97879dfe8d12b3e39e16647724e6cef170d5505ca2b5599c0b91c37",
+  "scope": "Actual selected unittest modules; full1315 and actual new Portable independently required",
+  "recorded_utc": "2026-11-02T11:12:13.144227+00:00"
+}

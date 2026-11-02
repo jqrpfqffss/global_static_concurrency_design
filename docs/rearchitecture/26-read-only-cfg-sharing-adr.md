@@ -26,7 +26,11 @@
 | 独立原合并器 | 5项PASS、6.551s，25组seeded弱定义/解析失败/常量剪枝/重复行，各表及输入逻辑字段有序对照；2400CFG/24000节点全部保留的容量分配更低 | [专项](evidence/cfg-sharing-focused-v2.json) |
 | 原Unicode失败门禁 | 首轮正例误含孤立代理字符，原合并器拒绝；修正为双方均须UnicodeEncodeError的负例，未放宽common.digest | [首轮FAIL保留](evidence/cfg-sharing-focused-v1-failed.json) |
 | 实际同输入F0304TU | 完整facts与严格规范report差异0；原配置路径/字节/工具链、42原文件与93引擎文件未变，预期INCOMPLETE exit2 | [原生收据](evidence/cfg-sharing-native-exact-v1.json)；不是大型G1/G3 |
-| 完整388TU归并回放 | 独立94文件冻结试验，原I:/ECRA-N3完整388个原生TU响应，776原始文件前后SHA，完整根与全部表指纹对照原9be73ce...；12GiB受控Job | RUNNING，不将部分内存采样标为收益；本机收据H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/cfg-merge-replay-v1/execution.json |
-| 完整1312回归/新实包/最终大型冷扫描 | 尚未完成，须按本源码冻结后验收 | NOT_VERIFIED。v20/v21的旧冻结收据不能替代此版本 |
+| 完整388TU归并回放 | 独立94文件冻结试验，原I:/ECRA-N3完整388个原生TU响应，776原始文件前后SHA不变；完整根9be73ce...及全部表指纹与独立原版一致。12GiB受控Job实际完成；归并后private 9710538752→4338974720字节，主进程峰值commit 9913896960→4550012928字节 | [PASS，完整收据](evidence/cfg-merge-replay-v1.json)。只覆盖归并，不包含Clang/全局分类/发布，不是大型原生G1/G2/G3 |
+| 回放时间 | 原归并453.594s，新归并548.797s，含输入哈希/完整指纹的控制器1618.047s | 有额外CPU成本，HDD并发环境也不同，不宣称提速；没有用采样替代全量指纹 |
+| 完整1312回归/实包 | 1310 PASS、2项opt-in SKIP，1824.918s；v22实际构建/目录和中文路径ZIP各27项CLI完成，十三组浏览器未运行 | [回归](evidence/full-regression-studio-v22.json)、[实际构建](evidence/portable-studio-v22-build-v1.json)。v22仍有随后发现的[标量完整性缺口](27-scalar-byte-boundary-integrity.md)，不是发布通过 |
+| 最终修复版冷原生/完整对照 | 必须绑定标量修复后冻结源；当前未启动 | NOT_VERIFIED，原G3 FAIL继续有效 |
 
 候选提交仅证明表中已验范围，完整Phase2仍未通过。若完整388TU根/表不一致或实际内存没有收益，应回退此分配候选，不能修改对照规范。旧24GiB retention诊断在9小时后仍未发布有效库，已受控停止，原始基线/备份/完整TU缓存及未发布现场保留；不计作成功或自然OOM。其独立停止收据和4123输入/890引擎文件后验另行封存。新冷扫描队列必须指向最终冻结源码，不能调用被撤销的v9队列。
+
+[实际停止收据](evidence/inav-classification-retention-v2-controlled-stop.json)、[最终运行结果](evidence/inav-classification-retention-v2-final.json)、[4123输入/890引擎完整SHA后验](evidence/inav-classification-retention-v2-postflight.json)保留该失败现场的事实：运行32792.813s后退出15、未发布有效库，Job峰值18449494016字节。没有删除原数据或把停止伪装成成功。

@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "tests": 27,
+  "seconds": 11.17,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scalar-boundary-regression-v1.log",
+  "log_sha256": "db1bfe117aba3c1318a1e92bd083773b1f757fa9c4bb8e9a626641bea4339882",
+  "scope": "Actual selected unittest modules; full1315 and actual new Portable independently required",
+  "recorded_utc": "2026-11-02T11:12:13.143229+00:00"
+}

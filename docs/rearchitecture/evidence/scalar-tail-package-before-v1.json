@@ -1,0 +1,9 @@
+{
+  "scope": "Private synthetic malicious-package integrity test only;no real firmware/archive touched",
+  "confirmed_package_defect": true,
+  "accepted": true,
+  "error": null,
+  "original_root_binding_unchanged": true,
+  "imported_unhashed_note": "UNHASHED_FORGED_TAIL",
+  "prior_event_retained_under_unchanged_fingerprint": true
+}

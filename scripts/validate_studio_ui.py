@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--repeat-scan',action='store_true',help='新增向导直接启动与首页同profile重扫；旧封存包不包含此入口')
     parser.add_argument('--task-metadata-sharing-fault',action='store_true',help='真实Windows已完成任务文件共享拒绝/解除，验证轮询错误恢复与首屏操作')
     parser.add_argument('--allow-external-toolchain',action='store_true',help='明确允许已冻结编译数据库中的外部黄金工具链；不改写编译器路径')
+    parser.add_argument('--scalar-tail-adversary',action='store_true',help='真实F030包追加未哈希标量并重算外层摘要，验证GUI拒绝且旧人工历史不变')
     parser.add_argument('--engine', type=Path, default=TOOL)
     parser.add_argument('--python', type=Path, default=Path(sys.executable))
     args = parser.parse_args()
@@ -180,6 +181,44 @@ def main():
             expect(page.get_by_role('alert')).to_contain_text('不允许的路径')
             assert len(reviews.history(symbol))==2 and not (work/'escape.txt').exists()
             receipt['tests'].append(dict(name='preview_malicious_package_preserves_prior_scan',status='PASS',related=['U24']))
+            if args.scalar_tail_adversary:
+                import hashlib,sqlite3
+                from ecra.scan_store import _hash_start
+                from ecra.report_package import sha256
+                stage=work/'scalar-tail-fixture';stage.mkdir()
+                forged_id='adversarial-scalar-tail-only'
+                with zipfile.ZipFile(args.package) as zipped:
+                    manifest=json.loads(zipped.read('manifest.json'))
+                    for name in ('scan.db','reviews.db'):(stage/name).write_bytes(zipped.read(name))
+                    with sqlite3.connect(stage/'scan.db') as conn:
+                        empty=conn.execute('SELECT id FROM nodes WHERE hash=?',(_hash_start('str',0).hexdigest(),)).fetchone()
+                        assert empty is not None,'The actual golden F030 input must contain the vulnerable scalar boundary'
+                        conn.execute('UPDATE nodes SET value=? WHERE id=?',(sqlite3.Binary(b'UNHASHED_ADVERSARIAL_TAIL'),empty[0]))
+                        conn.execute('UPDATE scans SET scan_id=?',(forged_id,))
+                    with sqlite3.connect(stage/'reviews.db') as conn:
+                        assert conn.execute('SELECT count(*) FROM events').fetchone()[0]==0
+                        conn.execute('UPDATE binding SET scan_id=?',(forged_id,))
+                    manifest['scan_id']=forged_id
+                    for name in ('scan.db','reviews.db'):
+                        value=(stage/name).read_bytes()
+                        manifest['files'][name]=dict(size=len(value),sha256=hashlib.sha256(value).hexdigest())
+                    forged=work/'scalar-tail-forged.ecra-report'
+                    with zipfile.ZipFile(forged,'w',compression=zipfile.ZIP_DEFLATED) as out:
+                        for name in zipped.namelist():
+                            out.writestr(name,json.dumps(manifest).encode() if name=='manifest.json' else
+                                (stage/name).read_bytes() if name in {'scan.db','reviews.db'} else zipped.read(name))
+                static_before=sha256(provider.path);events_before=reviews.history()
+                with page.expect_response(lambda r:r.request.method=='POST' and r.url.endswith('/api/import')) as response:
+                    page.get_by_label('选择 .ecra-report',exact=True).set_input_files(str(forged))
+                assert response.value.status==400
+                expect(page.get_by_role('alert')).to_contain_text('字节长度',timeout=60000)
+                expect(page.get_by_role('status').filter(has_text='正在校验')).to_have_count(0)
+                assert not (work/'data/scans'/forged_id).exists()
+                assert sha256(provider.path)==static_before and reviews.history()==events_before
+                shot('11-unhashed-scalar-package-rejected')
+                receipt['tests'].append(dict(name='real_rehashed_f030_package_scalar_tail_rejected_before_publication',
+                    status='PASS',related=['U24','G6','H4','H6'],
+                    scope='Actual F030 archive bytes; only bad-input header retarget and forged scalar/outer hashes. No mock page/API or actual safety declaration.'))
             # UI cleanup runs against a real, explicitly unreferenced CAS object.
             # This small lifecycle test is separate from the 50-GiB disk test.
             import hashlib

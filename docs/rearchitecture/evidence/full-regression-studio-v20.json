@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1302,
+  "passed_tests": 1300,
+  "skipped": 2,
+  "seconds": 1899.455,
+  "controller_seconds": 1904.2339999999967,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v20",
+  "frozen_files": 1322,
+  "differences": [],
+  "manifest_sha256": "4d30926d34d173621bb2ca2af03d3ee40b2f8c611b20f536a073f070a8551f61",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v20.log",
+  "log_sha256": "3c95ea705c2e73530821c87484af06c7e99476df79c6b25ce9fea37d5bb2a655",
+  "scope": "Frozen 3042cc97c713cb40f97b54117cf481d65adb2b03 complete current1302; Bounded immutable access context allocation and independent frozen original loop. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+}

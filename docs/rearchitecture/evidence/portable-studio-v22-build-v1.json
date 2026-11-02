@@ -1,0 +1,21 @@
+{
+  "exit_code": 0,
+  "seconds": 486.93700000000536,
+  "command": [
+    "C:/Program Files/PowerShell/7/pwsh.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v22\\build_portable.ps1",
+    "-OutputDir",
+    "H:/ECRAStudio-build-20261102-studio-v22",
+    "-CacheDir",
+    "H:/global_static_concurrency_design/.tools-cache",
+    "-GitSource",
+    "H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/tools/git"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-studio-v22-build-v1.log",
+  "log_sha256": "46c3400b5665d4b658c13056359f8d361d02f4f590db8fb8057971f872cdbd70",
+  "scope": "Actual frozen release build including uncompressed and Chinese-path ZIP extracted CLI acceptance; browser and full regression separately required"
+}

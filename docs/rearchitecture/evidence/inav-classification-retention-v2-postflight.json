@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "inputs": 4123,
+  "input_differences": [],
+  "engine_files": 890,
+  "engine_differences": [],
+  "verification_seconds": 70.61000000000058,
+  "observed_utc": "2026-11-02T10:04:23.067542+00:00"
+}

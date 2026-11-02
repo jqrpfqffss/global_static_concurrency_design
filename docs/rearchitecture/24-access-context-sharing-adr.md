@@ -23,7 +23,8 @@
 | 独立原循环 | 5项PASS，含40组seeded完整比较、0..3缓存逐出、自定义动态membership旁路、重复运行与原访问独立字段 | [专项](evidence/access-enrichment-focused-v2.json)。首轮测试错误假设defaultdict不能新增空bucket，原/新都按原语义新增；[失败保留](evidence/access-enrichment-focused-v1-failed.json)，改测原/新后映射一致 |
 | 实际F0304TU | 原配置路径/字节/宏/编译DB/toolchain，原生34.359s、预期INCOMPLETE exit2；全部有序typed facts及严格规范report差异0，42原文件与91引擎文件前后不变 | [原生收据](evidence/access-context-native-exact-v1.json)，不是大型G1/G3 |
 | 128000访问容量fixture | 保留分配135197861→74780560字节，峰值135201573→74786528；完整有序根摘要相同，全部访问及by_var次数保留 | [容量收据](evidence/access-enrichment-capacity-v1.json)，不将tracemalloc局部指标/带仪器时间外推为原生进程峰值或独占性能 |
-| 全部1302项冻结回归 | 待后续实际运行 | NOT_VERIFIED，不能借用v19的1297项收据 |
-| 大型同输入 | 原诊断未应用本改造且仍在发布；分配探针独立运行 | NOT_VERIFIED；此前G3 FAIL继续有效 |
+| 全部1302项冻结回归 | 1300 PASS、2项真实联网opt-in SKIP，1899.455s；v20实际包十三组Chrome及目录/中文路径ZIP各27项CLI通过 | [回归](evidence/full-regression-studio-v20.json)、[实包汇总](evidence/portable-studio-v20-seal.json)。随后发现的标量完整性缺口令旧候选G6 FAIL，不能据旧测试宣称可发布 |
+| 大型分配归因 | 同一388TU严格缓存/预处理，声明仅在内存替换原访问容器分配循环，首变量前private 19137482752→16708554752字节，traced live 4893393440→3490494348字节 | [独立v6诊断](evidence/inav-preclass-allocation-v6.json)。有tracemalloc/快照仪器，不是未修改旧运行时或原生G1/G2/G3，无静态库 |
+| 大型原生 | 旧retention发布诊断已受控停止，现场保留；修复版完整冷原生尚未启动 | NOT_VERIFIED；此前G3 FAIL继续有效 |
 
 完整重构仍未完成。全局工作集、生产H2沙箱及其余未完目标不因本候选自动关闭。

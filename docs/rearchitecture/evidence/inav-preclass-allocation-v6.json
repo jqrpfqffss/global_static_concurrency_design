@@ -1,0 +1,334 @@
+{
+  "passed": true,
+  "status": "PROBE_CAPTURED_NO_STATIC_RESULT",
+  "scope": "CONTROLLED_REPLAY_ONLY: v4 same strict original cache/preprocessing with declared in-memory replacement of only the original access-enrichment allocation loop by committed3042 candidate; no source file edit, no native engine identity/G1/G2/G3 claim, no static report published. Both attribution probes use tracemalloc1frame, not native performance.",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1",
+  "engine_files": 890,
+  "input_files": 4123,
+  "data_root": "H:\\ECRA-MEM-PREP-A6",
+  "job_limit_bytes": 30064771072,
+  "full_4123_hash_check": "NOT_REPEATED_HERE; preceding v1 verified all bytes before and after; this probe checks all stats and original CLI consumed-closure gates afresh",
+  "restored_original_path_sha256": "bf5c0de7e797679c1e635d5dd6b4ff005c54f098e9fcd182f8868a2a280dafe8",
+  "old_cache_files": 776,
+  "peaks": {
+    "working_set_bytes": 18569457664,
+    "private_bytes": 18775085056,
+    "peak_job_commit_bytes": 18913288192
+  },
+  "pid": 24296,
+  "seconds": 1595.0,
+  "exit_code": 1,
+  "cache-progress": {
+    "validated_unique_tus": 388,
+    "hits": 388,
+    "misses": 0,
+    "corrupt": 0,
+    "tu": "src/main/telemetry/telemetry.c"
+  },
+  "allocation-probe": {
+    "status": "BEFORE_FIRST_VARIABLE",
+    "symbol_id": "c:@BuffLength",
+    "private_bytes": 16708554752,
+    "traced_live_bytes": 3490494348,
+    "traced_peak_bytes": 3822311432,
+    "tracemalloc_overhead_bytes": 692794160,
+    "available_physical_bytes": 20191416320,
+    "issue_identity_cache": 0,
+    "gap_row_cache": 0,
+    "scope": "Diagnostic allocation attribution only; instrumented memory is not native G3 measurement",
+    "largest_retained_sites": [
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 39,
+        "bytes": 925615456,
+        "count": 832388,
+        "source": "a['reachability'] = ('PROVEN_UNREACHABLE' if fid in unreachable or a.get('context_proven_unreachable') else"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 236,
+        "bytes": 577244520,
+        "count": 3206914,
+        "source": "observation = dict(context_id=cid, irq_state={0:'ENABLED', 1:'DISABLED'}.get(state.get('irq'), 'UNKNOWN'),"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 284,
+        "bytes": 571124808,
+        "count": 1528335,
+        "source": "node_ids=sorted(between), complete=complete_window,"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 304,
+        "bytes": 371102528,
+        "count": 2014742,
+        "source": "self.facts['mask_windows'] = [dict(symbol_id=sid, context_id=cid, **row)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 767,
+        "bytes": 287849264,
+        "count": 33144,
+        "source": "access_pool[key] = sorted({ident for i in indices for sid in members"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 38,
+        "bytes": 87969208,
+        "count": 79109,
+        "source": "a[\"contexts\"] = shared[0]"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 741,
+        "bytes": 87753544,
+        "count": 324453,
+        "source": "evidence = grouped[key] = dict(kind='MULTI_FIELD_COHERENCE',"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 41,
+        "bytes": 60588432,
+        "count": 54486,
+        "source": "a[\"call_chains\"] = shared[1]"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 44,
+        "bytes": 60142520,
+        "count": 54085,
+        "source": "a['call_graph_slice'] = fid"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 241,
+        "bytes": 58911648,
+        "count": 1187344,
+        "source": "self.observations[access['access_id']].append(observation)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 289,
+        "bytes": 56794152,
+        "count": 1031212,
+        "source": "basepri_values=sorted({s['base'] for s in mask_states if s.get('base') is not None}),"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 303,
+        "bytes": 34405112,
+        "count": 614377,
+        "source": "access['mask_states'] = self.observations.get(access['access_id'], [])"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 47,
+        "bytes": 30762828,
+        "count": 567164,
+        "source": "a['resolved_call_edge_count'] = len(graph_slice['call_edge_indices'])"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 42,
+        "bytes": 21943096,
+        "count": 19733,
+        "source": "a[\"all_call_chains\"] = shared[2]"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 320,
+        "bytes": 20972448,
+        "count": 3,
+        "source": "self.functions = {f['function_id']: f for f in self._function_rows}"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\evidence.py",
+        "line": 88,
+        "bytes": 20972448,
+        "count": 3,
+        "source": "self.function_files = {f['function_id']: f.get('file') for f in facts['functions']}"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\initialization.py",
+        "line": 96,
+        "bytes": 20972032,
+        "count": 3,
+        "source": "self.functions = {row['function_id']: row for row in facts.get('functions', ())}"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\call_graph.py",
+        "line": 141,
+        "bytes": 18152728,
+        "count": 150481,
+        "source": "result = dict(function_id=fid, function_ids=sorted(ancestors), call_edge_indices=calls,"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-preclass-allocation-v6\\analysis-instrumented.py",
+        "line": 1070,
+        "bytes": 17719744,
+        "count": 23903,
+        "source": "variable['concurrency_hints'] = writeback_hints[variable['symbol_id']]"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\initialization.py",
+        "line": 98,
+        "bytes": 16777432,
+        "count": 2,
+        "source": "self.function_ids = set(self.functions)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 744,
+        "bytes": 16453072,
+        "count": 218720,
+        "source": "reader_physical_context=reader['physical'], member_symbol_ids=list(key[3]),"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 48,
+        "bytes": 14895664,
+        "count": 507598,
+        "source": "a['unresolved_call_edge_count'] = len(graph_slice['unresolved_issue_indices'])"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 59,
+        "bytes": 12001488,
+        "count": 25093,
+        "source": "by_var[a[\"symbol_id\"]].append(a)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 780,
+        "bytes": 10036944,
+        "count": 4222,
+        "source": "return {sid: sorted(rows, key=lambda row: ("
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\evidence.py",
+        "line": 108,
+        "bytes": 9571544,
+        "count": 4617,
+        "source": "self.by_symbol[issue['symbol_id']].append(issue)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\protection.py",
+        "line": 323,
+        "bytes": 8805544,
+        "count": 8855,
+        "source": "self.windows_by_symbol[window['symbol_id']].append(window)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 742,
+        "bytes": 7873920,
+        "count": 109360,
+        "source": "coherence_id='MC-' + digest(key)[:20],"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\call_graph.py",
+        "line": 138,
+        "bytes": 7201410,
+        "count": 40028,
+        "source": "calls = sorted({index for edge in edges for index in self.call_indices_by_edge.get(edge, ())})"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 747,
+        "bytes": 6958152,
+        "count": 108713,
+        "source": "witness=dict(writer_function_id=writer['first'], reader_function_id=reader['first']),"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 56,
+        "bytes": 5826480,
+        "count": 80640,
+        "source": "a[\"protection_evidence\"] = [e for e in events[fid] if e[\"event_kind\"] in {\"lock_enter\", \"lock_exit\"}]"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 45,
+        "bytes": 4543632,
+        "count": 4086,
+        "source": "a['call_chain_representation'] = facts['context_call_graph']['representation']"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 33,
+        "bytes": 3999496,
+        "count": 49789,
+        "source": "{cid: routes for cid, routes in all_call_paths.get(fid, {}).items() if cid in access_paths})"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\call_graph.py",
+        "line": 139,
+        "bytes": 2837922,
+        "count": 39955,
+        "source": "unresolved = sorted({index for function in ancestors"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 30,
+        "bytes": 2820416,
+        "count": 44069,
+        "source": "access_paths = {cid: route for cid, route in paths.get(fid, {}).items()"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\call_graph.py",
+        "line": 119,
+        "bytes": 2631560,
+        "count": 9751,
+        "source": "reverse[callee].add(caller)"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+        "line": 32,
+        "bytes": 2624776,
+        "count": 49890,
+        "source": "shared = (sorted(access_paths), access_paths,"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\call_graph.py",
+        "line": 143,
+        "bytes": 2111462,
+        "count": 37739,
+        "source": "recursive_edges=[e for e in self.facts['recursive_edges'] if tuple(e) in edges],"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\call_graph.py",
+        "line": 105,
+        "bytes": 1834848,
+        "count": 22233,
+        "source": "self.call_indices_by_edge[(call.get('caller_function_id'),"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\evidence.py",
+        "line": 101,
+        "bytes": 1532480,
+        "count": 5065,
+        "source": "self.reverse[call['callee_function_id']].add(call['caller_function_id'])"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1\\ecra\\analysis.py",
+        "line": 738,
+        "bytes": 1423040,
+        "count": 14434,
+        "source": "key = (root_id, writer['physical'], reader['physical'], tuple(sorted(common)))"
+      }
+    ]
+  },
+  "declared-runtime-instrumentation": {
+    "candidate": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v20\\ecra\\access_enrichment.py",
+    "candidate_sha256": "b880e0fb8fa538dde5327d0722e4ba11ce6dd49c496e233ab400865880f4ac16",
+    "instrumented_source_file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-preclass-allocation-v6\\analysis-instrumented.py",
+    "original_loop_sha256": "7635719f65ca00c5e1962eacc0e8b938250d511cffafdf34ef7943ddaad46715",
+    "instrumented_analyze_source_sha256": "90690db1857e4dcf9768d45a2b32fe4b23ebfd2a03cdb75d66bb3725cdf93a27",
+    "scope": "Code substitution is explicit instrumentation only; old on-disk cache implementation identity is not claimed as this runtime identity; planned stop before first variable forbids publication"
+  },
+  "engine_differences": [],
+  "cache_unchanged": true,
+  "input_stat_differences": [],
+  "no_static_database_published": true
+}

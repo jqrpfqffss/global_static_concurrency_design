@@ -10,6 +10,35 @@ from ecra.scan_store import EvidenceProvider, GraphWriter, publish_scan,SCHEMA
 
 
 class ScanStoreTests(unittest.TestCase):
+    def test_every_scalar_byte_is_bound_at_empty_and_chunk_boundaries(self):
+        for name, value in [('empty', ''), ('short', 'x'), ('chunk', 'x'*(1024**2)),
+                            ('after-chunk', 'x'*(1024**2+1)), ('unicode-chunk', 'x'*(1024**2-1)+'😀')]:
+            with self.subTest(name=name):
+                path = Path(self.temp.name)/(name+'.db')
+                publish_scan(path, dict(variables=[], future_value=value), dict(findings=[]), scan_id=name, project_id='test')
+                provider = EvidenceProvider(path)
+                provider.validate(deep=True)
+                node = provider.resolve('facts', ['future_value'])
+                with closing(sqlite3.connect(path)) as conn, conn:
+                    raw = conn.execute('SELECT value FROM nodes WHERE id=?', (node,)).fetchone()[0]
+                    conn.execute('UPDATE nodes SET value=? WHERE id=?', (sqlite3.Binary(raw+b'unhashed-tail'), node))
+                with self.assertRaisesRegex(ValueError, '字节长度'):
+                    provider.validate(deep=True)
+
+    def test_typed_scalar_storage_and_container_payload_cannot_hide_unhashed_data(self):
+        cases = [('text-scalar', "UPDATE nodes SET value='' WHERE id=?", ['empty']),
+                 ('container-payload', "UPDATE nodes SET value=x'7461696c' WHERE id=?", ['list']),
+                 ('fractional-length', 'UPDATE nodes SET length=0.5 WHERE id=?', ['empty'])]
+        for name, sql, route in cases:
+            with self.subTest(name=name):
+                path = Path(self.temp.name)/(name+'.db')
+                publish_scan(path, dict(variables=[], empty='', list=[]), dict(findings=[]), scan_id=name, project_id='test')
+                provider = EvidenceProvider(path)
+                with closing(sqlite3.connect(path)) as conn, conn:
+                    conn.execute(sql, (provider.resolve('facts', route),))
+                with self.assertRaises(ValueError):
+                    provider.validate(deep=True)
+
     def test_bound_immutable_roots_reuse_shared_graph_beyond_the_python_cache_without_changing_hashes(self):
         shared=dict(rows=[dict(shared_record=i,trace=['main','irq',i]) for i in range(180)])
         values=[('facts',dict(variables=[],first=shared,churn=[dict(churn=i) for i in range(200)],again=shared)),

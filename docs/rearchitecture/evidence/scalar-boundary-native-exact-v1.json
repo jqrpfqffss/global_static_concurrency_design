@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "hashes": {
+    "facts": {
+      "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+      "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+    },
+    "report": {
+      "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+      "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+    }
+  },
+  "differences": {
+    "facts": null,
+    "report": null
+  },
+  "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+  "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+  "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scalar-boundary-native-exact-v1\\data\\scans\\native-exact\\scan.db",
+  "deep_integrity_checked": true,
+  "complete_fact_graph_restore": false,
+  "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1",
+  "original_files_unchanged": true,
+  "original_differences": [],
+  "engine_files": 93,
+  "engine_changed": [],
+  "exact_config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "actual_config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "identity": {
+    "project_name": "firmware",
+    "project_name_source": "归档工程根目录名；未记录工程显示名称",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "project_chip": "STM32F030",
+    "project_core": "Cortex-M0",
+    "configured_target": null,
+    "build_variant": null,
+    "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+    "config_file": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/golden-parsed-f030/semantics.yaml",
+    "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+    "metadata_note": null,
+    "generated_at": "2026-11-02T10:52:45.823708+00:00",
+    "recorded_git_commit": "unknown",
+    "diff": null,
+    "analysis_status": "INCOMPLETE",
+    "oversized_fields": [],
+    "note": "身份只说明本归档的来源；不表示当前源码已重验、芯片自动识别或全工程安全。"
+  },
+  "native_exit_code": 2,
+  "native_seconds": 26.625,
+  "scope_note": "Exact original config path/bytes, actual F0304TU firmware/macros/DB/toolchain. Only explicit external WorkspaceResolver output changes; additive provenance identity is outside static facts/report comparison. Allocation-only access context sharing plus immutable mask evidence/record layout and complete CFG-body physical sharing are under test; complete scalar byte validation is under test;no normalization changes. Not large G1/G3."
+}
