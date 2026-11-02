@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "scope": "Measure ordered mask evidence against a frozen independent original module.\n\nGenerated CFG/access capacity inputs exercise the real MaskAnalysis.run method.\nThis is not a native project, largeG1/G2/G3, physical32GB, hardware test or disk\nsaving. Every original observation, window, duplicate and array remains hashed.\n",
+  "metrics": [
+    {
+      "engine": "frozen_v19_mask_analysis",
+      "accesses": 25000,
+      "windows": 10000,
+      "observations": 50000,
+      "ordered_full_sha256": "492c71077c3a06e96c6eee161347df665b09ea08f8a1e76ceffa044c1ffa7078",
+      "measured_python_live_bytes": 24343336,
+      "measured_python_peak_bytes": 35156416,
+      "instrumented_seconds": 1.1560000000026776
+    },
+    {
+      "engine": "candidate",
+      "accesses": 25000,
+      "windows": 10000,
+      "observations": 50000,
+      "ordered_full_sha256": "492c71077c3a06e96c6eee161347df665b09ea08f8a1e76ceffa044c1ffa7078",
+      "measured_python_live_bytes": 3879227,
+      "measured_python_peak_bytes": 14765906,
+      "instrumented_seconds": 1.75
+    }
+  ],
+  "implementation_sha256": {
+    "H:\\global_static_concurrency_design\\ecra\\protection.py": "8d42f4f4a9f743fd3b71dcceb531f32a962a2102015b77c36ba7b03407460a48",
+    "H:\\global_static_concurrency_design\\ecra\\read_only_evidence.py": "5dd3db9465f745ddec00e6fe5e19b8e3b4eb5787e829da7f62afc5d02b0809d4",
+    "H:\\global_static_concurrency_design\\ecra\\json_rows.py": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0",
+    "H:\\global_static_concurrency_design\\tests\\fixtures\\v19_mask_analysis.py": "ae246acefc86ae7ab7fe7c91df02829a219e5e894485cc6d78b1fa854b3e46f5",
+    "H:\\global_static_concurrency_design\\tests\\test_mask_evidence_allocation.py": "8fc56c25ac7763bab957d59ce260446f5511995c04b07f0bf26121f378b6a44b"
+  },
+  "implementation_differences": [],
+  "native_scan": "NOT_EXERCISED",
+  "physical32GB": "NOT_VERIFIED",
+  "large_G1_G3": "NOT_VERIFIED"
+}

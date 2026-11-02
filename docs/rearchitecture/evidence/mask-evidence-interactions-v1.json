@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "tests": 96,
+  "passed_tests": 95,
+  "skipped": 1,
+  "seconds": 22.616,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\mask-evidence-interactions-v1.log",
+  "log_sha256": "de7dcfd1b2319aebdf9ce6256342d7b7db10ee1239737c3e19a3d92b1b9fb687",
+  "scope": "Frozen original complete MaskAnalysis flow comparison,physical typed/layout sharing; not complete1307 suite or large nativeG1/G3",
+  "skip_reason": "opt-in live OpenCode review"
+}

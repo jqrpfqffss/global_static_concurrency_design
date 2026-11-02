@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "status": "FAILED_OR_INCOMPLETE_DIAGNOSTIC",
+  "scope": "Allocation attribution using fresh original preprocessing and strictly eligible read-only warm native TU cache; stops before first variable. Not new Clang extraction/G1/G2/G3, no valid report. Tracemalloc overhead excluded from native performance claims.",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-ancestor-v1",
+  "engine_files": 890,
+  "input_files": 4123,
+  "data_root": "H:\\ECRA-MEM-PREP-A3",
+  "job_limit_bytes": 30064771072,
+  "full_4123_hash_check": "NOT_REPEATED_HERE; preceding v1 verified all bytes before and after; this probe checks all stats and original CLI consumed-closure gates afresh",
+  "restored_original_path_sha256": "bf5c0de7e797679c1e635d5dd6b4ff005c54f098e9fcd182f8868a2a280dafe8",
+  "old_cache_files": 776,
+  "peaks": {
+    "working_set_bytes": 677916672,
+    "private_bytes": 566280192,
+    "peak_job_commit_bytes": 578891776
+  },
+  "pid": 10524,
+  "seconds": 135.625,
+  "exit_code": 3,
+  "cache-progress": {
+    "hits": 24,
+    "misses": 0,
+    "corrupt": 0,
+    "tu": "lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c"
+  },
+  "engine_differences": [],
+  "cache_unchanged": true,
+  "input_stat_differences": [],
+  "no_static_database_published": true
+}

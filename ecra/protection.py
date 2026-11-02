@@ -22,6 +22,8 @@ def join(left, right):
 class MaskAnalysis:
     def __init__(self, facts, cfg):
         self.facts, self.cfg = facts, cfg
+        from .read_only_evidence import ReadOnlyEvidence
+        self.read_only_evidence = ReadOnlyEvidence()
         self.graphs = {g['function_id']: g for g in facts.get('control_flow', [])}
         self.by_function = defaultdict(list)
         self.observations = defaultdict(list)
@@ -238,7 +240,7 @@ class MaskAnalysis:
                                    reachable=ident in incoming, complete=bool(complete_flow and ident not in unordered))
                 if access['access_kind'] in {'READ', 'WRITE', 'RMW'} and ident in incoming:
                     by_symbol[access['symbol_id']].add(ident)
-            self.observations[access['access_id']].append(observation)
+            self.observations[access['access_id']].append(self.read_only_evidence.record(observation, share=True))
         # Include descendant accesses at their parent call sites. Otherwise
         # Read(); enable(); disable(); Write() hides the open window when
         # Read and Write live in different helper functions.
@@ -281,12 +283,12 @@ class MaskAnalysis:
             mask_states = [incoming.get(i, {}) for i in between]
             complete_window = bool(complete_flow and not (between & unordered))
             self.windows[(sid, cid)].append(dict(function_id=fid, cfg_id=graph['cfg_id'],
-                node_ids=sorted(between), complete=complete_window,
+                node_ids=self.read_only_evidence.integer_list(sorted(between)), complete=complete_window,
                 primask=complete_window and all(s.get('irq') == 1 for s in mask_states)
                         and not any(interruptible.get(i, False) for i in between),
                 faultmask=complete_window and all(s.get('fault') == 1 for s in mask_states)
                         and not any(interruptible.get(i, False) for i in between),
-                basepri_values=sorted({s['base'] for s in mask_states if s.get('base') is not None}),
+                basepri_values=self.read_only_evidence.integer_list(sorted({s['base'] for s in mask_states if s.get('base') is not None})),
                 basepri_known=complete_window and all(s.get('base') is not None for s in mask_states)
                               and not any(interruptible.get(i, False) for i in between)))
         final = outgoing.get(graph['exit'], dict(irq=None, base=None))
@@ -301,7 +303,7 @@ class MaskAnalysis:
                 self.evaluate(binding['function_id'], dict(irq=0, base=0, fault=0), binding['context_id'])
         for access in self.facts['accesses']:
             access['mask_states'] = self.observations.get(access['access_id'], [])
-        self.facts['mask_windows'] = [dict(symbol_id=sid, context_id=cid, **row)
+        self.facts['mask_windows'] = [self.read_only_evidence.record(dict(symbol_id=sid, context_id=cid, **row))
             for (sid, cid), rows in self.windows.items() for row in rows]
 
 

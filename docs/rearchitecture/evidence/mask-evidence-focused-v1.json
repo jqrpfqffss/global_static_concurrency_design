@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "tests": 5,
+  "passed_tests": 5,
+  "skipped": 0,
+  "seconds": 1.757,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\mask-evidence-focused-v1.log",
+  "log_sha256": "ca560c89cbbeb2c8a8e86228e83c6b29a59de616023172f3c3b47f0329ac9a7e",
+  "scope": "Frozen original complete MaskAnalysis flow comparison,physical typed/layout sharing; not complete1307 suite or large nativeG1/G3",
+  "skip_reason": null
+}
