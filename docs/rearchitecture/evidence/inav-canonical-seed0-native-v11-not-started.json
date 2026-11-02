@@ -1,0 +1,30 @@
+{
+  "status": "CANCELLED_BEFORE_NATIVE_START",
+  "passed": false,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v26",
+  "data_root": "H:\\ECRA-NATIVE-A11-SEED0",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-seed0-native-v11",
+  "seed": "0",
+  "source_date_epoch": "1793577600",
+  "scope": "Fresh current full native paired with unmodified original seed0 v3, same shared config and original compile environment. Explicit16GiB Job, physical32GB NOT_VERIFIED. Concurrent on same host/HDD; timing is not isolated attribution.",
+  "native_started": false,
+  "reason": "Use the new storage-policy candidate after its own full regression; never relabel v26 native results as v27.",
+  "controller": {
+    "pid": 15024,
+    "created": 1793644068.7897985,
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/run-canonical-seed0-native-v11.py"
+    ],
+    "console_children": [
+      {
+        "pid": 16596,
+        "created": 1793644068.8410485
+      }
+    ]
+  },
+  "previous_queue_sha256": "5054d62a648aee5fcb7da38fbdfa3044ab6d98329da5c55f10985d2a9f66bf4e"
+}

@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "tests": 56,
+  "failures": 0,
+  "errors": 0,
+  "seconds": 29.867,
+  "command": [
+    "py",
+    "-3.10",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tests.test_storage_compaction",
+    "tests.test_studio_api",
+    "tests.test_studio_resource_policy",
+    "tests.test_scan_store",
+    "tests.test_bounded_extraction",
+    "tests.test_extraction_runtime_cache",
+    "-v"
+  ],
+  "scope": "Actual unified tool transcript; this execution did not write a separate raw log. Includes real Windows compression/links/file-locks, API and typed graph contracts. Full frozen regression separately required; no large gate claim.",
+  "evidence": "exec session72787 completed exit0; Ran56 tests in29.867s, OK"
+}

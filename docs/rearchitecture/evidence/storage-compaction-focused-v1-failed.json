@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "tests": 12,
+  "failures": 1,
+  "errors": 0,
+  "seconds": 2.732,
+  "command": "py -3.10 -B -X utf8 -m unittest tests.test_storage_compaction -v",
+  "evidence": "Actual tool transcript: test_unreadable_allocation_is_unknown_and_never_a_false_zero failed; 811008 was not None",
+  "cause": "Failure injection compared an unexpanded temporary path with the canonical long path; the intended exception did not fire. Corrected the test to compare resolved paths; product code unchanged for this failure."
+}

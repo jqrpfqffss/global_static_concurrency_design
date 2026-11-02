@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "scope": "First real F030 compression run: native execution completed; receipt controller wrongly asserted every TU cacheable",
+  "actual_storage_rows": {
+    "worker": 4,
+    "cache": 2,
+    "authority": 1
+  },
+  "expected_controller_rows": {
+    "worker": 4,
+    "cache": 4,
+    "authority": 1
+  },
+  "actual_parse_statuses": [
+    "PARTIAL",
+    "PARTIAL",
+    "PARSED",
+    "PARSED"
+  ],
+  "original_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-compaction-native-exact-v1\\scan.log",
+  "error": "AssertionError after full compare: only PARSED TU can be cached, existing partial/failed semantics must be retained."
+}

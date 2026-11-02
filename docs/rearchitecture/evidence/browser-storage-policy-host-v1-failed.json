@@ -1,0 +1,24 @@
+{
+  "passed": false,
+  "tests": [],
+  "commands": [
+    [
+      "C:\\Windows\\System32\\cmd.exe",
+      "/d",
+      "/c",
+      "H:\\global_static_concurrency_design\\ECRA.cmd",
+      "--data-root",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v1\\data",
+      "--no-browser",
+      "--session-file",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v1\\session-1.json"
+    ]
+  ],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "engine": "H:\\global_static_concurrency_design",
+  "scope": "Actual launcher/Chrome policy persistence, native files and package roundtrip.\n\nApproved F030 only; no large G4, physical clean-PC, DPI or engineer UAT claim.\n",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_storage_policy_ui.py\", line 97, in main\n    choose('off');shot('01-off-policy-saved');passed('actual_GUI_atomic_policy_save_and_readback')\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_storage_policy_ui.py\", line 95, in choose\n    section=settings();section.get_by_label('新扫描空间策略',exact=True).select_option(mode);section.get_by_role('button',name='保存空间策略',exact=True).click()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 19842, in select_option\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_locator.py\", line 628, in select_option\n    return await self._frame.select_option(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_frame.py\", line 808, in select_option\n    return await self._channel.send(\"selectOption\", self._timeout, params)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_connection.py\", line 69, in send\n    return await self._connection.wrap_api_call(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_connection.py\", line 563, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Locator.select_option: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".storage-policy-settings\").get_by_label(\"新扫描空间策略\", exact=True)\n\n"
+}

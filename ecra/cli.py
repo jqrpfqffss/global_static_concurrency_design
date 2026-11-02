@@ -270,6 +270,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     source_token = None
     diff_pin = base_summary_file = None
     tu_cache = None
+    storage = None
     try:
         # Keep previous logs/diagnostics intact until they have been archived.
         diagnostics.stage('扫描准备与历史归档', announce=False)
@@ -283,6 +284,13 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         previous_ids = set()
         from .scan_persistence import is_canonical, previous_finding_ids
         if is_canonical(out):
+            if out.parent==Path(workspace.workspace_root)/'scans':
+                from .storage_policy import snapshot as storage_snapshot
+                from .storage_compaction import ScanStorage
+                marker=read_json(out/'storage.json')
+                fixed=storage_snapshot(workspace.workspace_root,marker.get('storage_policy'))
+                marker['storage_policy']=fixed;write_json(out/'storage.json',marker)
+                storage=ScanStorage(workspace.workspace_root,out,workspace.cache_root,fixed)
             previous_ids=previous_finding_ids(out,workspace)
         old_report = out / "reports/global_static_concurrency.json"
         if old_report.is_file():
@@ -502,6 +510,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
                 if tu_cache is not None:
                     tu_cache.store(unit, response, part)
+                    if storage is not None and part.get('parse_status')=='PARSED':
+                        storage.compress(tu_cache.folder/(tu_cache.key(unit)+'.facts'),'cache')
             else:
                 # A timed-out/failed extraction supplies no safe facts. Keep
                 # the parse gap; final discovery still verifies its inputs.
@@ -510,6 +520,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 parts.append_metadata(response, part)
             else:
                 parts.append(response, part)
+            if storage is not None:
+                storage.compress(response,'worker')
             diagnostics.completed_units = i+1
             diagnostics.fact_counts = parts.counts
             del part

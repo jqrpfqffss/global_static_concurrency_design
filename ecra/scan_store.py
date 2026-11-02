@@ -283,11 +283,11 @@ def _project(connection, dataset, root, *, source=None):
 
 
 def publish_scan(path, facts, report, *, scan_id, project_id, profile_id='default', provenance=None,
-                 validation_state='UNVERIFIED'):
+                 validation_state='UNVERIFIED',compact=None):
     """Publish once, never overwrite a valid archive, including on failure."""
     return _publish(path, lambda writer: writer.put_roots(
         [('facts', facts), ('report', report), ('provenance', provenance or {})]),
-        scan_id=scan_id, project_id=project_id, profile_id=profile_id, validation_state=validation_state)
+        scan_id=scan_id, project_id=project_id, profile_id=profile_id, validation_state=validation_state,compact=compact)
 
 
 def publish_json_scan(path, facts_path, report_path, *, scan_id, project_id, profile_id='default',
@@ -314,7 +314,7 @@ def publish_json_scan(path, facts_path, report_path, *, scan_id, project_id, pro
         profile_id=profile_id, validation_state=validation_state)
 
 
-def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_state):
+def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_state,compact=None):
     if validation_state not in {'UNVERIFIED', 'LEGACY_READ_ONLY', 'STATIC_VALIDATED'}:
         raise ValueError('未知静态快照有效性状态')
     path = Path(path)
@@ -347,6 +347,15 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
             conn.execute('PRAGMA cache_size=-65536')
             if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):
                 raise ValueError('scan.db 完整性/引用校验失败')
+        if compact is not None:
+            try:
+                compact(temp)
+            except BaseException:
+                # This private new authority is not referenced or published.
+                # Preserve failed compaction for diagnosis; never replace an
+                # older published scan or expose a partially checked file.
+                os.rename(temp,temp.with_suffix('.compaction-failed'))
+                raise
         # NTFS/ext4 hard-link publication is atomic and exclusive. A crash
         # cannot expose an empty claim file or overwrite an older archive.
         os.link(temp, path)

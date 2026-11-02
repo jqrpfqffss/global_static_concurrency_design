@@ -35,7 +35,10 @@ def execute(args):
         finally:
             finished.set()
     from ..scan_persistence import run_canonical
-    return run_canonical(configured_project_root(args.config), args.config, scan_id=args.scan_id, profile_id=args.profile_id,_budget_owned=True)
+    import json
+    fixed_storage=json.loads((args.result.parent/'storage-policy.json').read_text('utf-8'))
+    return run_canonical(configured_project_root(args.config), args.config, scan_id=args.scan_id, profile_id=args.profile_id,
+                         _budget_owned=True,_storage_policy=fixed_storage)
 
 
 def main():

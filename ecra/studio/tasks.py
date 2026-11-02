@@ -103,6 +103,9 @@ class TaskManager:
                 ownership.enter_context(DataActivity(self.data,exclusive=True,purpose='scan-budget'))
                 ident = uuid.uuid4().hex
                 folder = no_links(self.work/ident); folder.mkdir()
+                from ..storage_policy import snapshot as storage_snapshot
+                fixed_storage=storage_snapshot(self.data)
+                write_json(folder/'storage-policy.json',fixed_storage)
                 (folder/'semantics.yaml').write_bytes(Path(profile_path).read_bytes())
                 # Preserve the existing adjacent-library contract when the task's
                 # config is fixed outside the editable profile directory.
@@ -115,7 +118,7 @@ class TaskManager:
                              project_id=ws.project_id, project_root=str(root),
                              profile_id=profile_id, profile_revision=sha256(folder/'semantics.yaml'), state='RUNNING', started=now(),budget_bytes=limits['peak_bytes'],resource_policy=limits,
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
-                             checkpoint_mode='INPUT_VERIFIED_TU_CACHE', samples=[], resources={})
+                             checkpoint_mode='INPUT_VERIFIED_TU_CACHE',storage_policy=fixed_storage, samples=[], resources={})
                 write_json(folder/'task.json', value)
                 budget = ProcessBudget(value['budget_bytes'])
                 ownership.callback(budget.close)

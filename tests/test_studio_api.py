@@ -148,12 +148,13 @@ class StudioAPITests(unittest.TestCase):
         self.assertEqual(result['negative']['binary_value'],'-0x0.0p+0')
 
     def test_storage_sampling_tolerates_live_temp_removal_without_masking_import_errors(self):
-        from ecra.workspace import no_links
+        import os
         temporary=self.data/'work/transient';temporary.mkdir(parents=True)
+        original=os.scandir
         def racing(path):
-            if Path(path).name=='transient':raise FileNotFoundError('temporary directory was removed by its owner')
-            return no_links(path)
-        with patch('ecra.studio.server.no_links',side_effect=racing):
+            if isinstance(path,(str,Path)) and Path(path).name=='transient':raise FileNotFoundError('temporary directory was removed by its owner')
+            return original(path)
+        with patch('ecra.storage_usage.os.scandir',side_effect=racing):
             response=self.client.get('/api/storage')
         self.assertEqual(response.status_code,200,response.text)
         self.assertTrue(response.json()['sampling_partial'])

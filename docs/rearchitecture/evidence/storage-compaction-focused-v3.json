@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "tests": 14,
+  "failures": 0,
+  "errors": 0,
+  "seconds": 2.913,
+  "command": [
+    "py",
+    "-3.10",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tests.test_storage_compaction",
+    "-v"
+  ],
+  "scope": "Actual tool transcript, no separate raw log. Final capability ordering checks unsupported capability before NTFS FileIdInfo. Unsupported-filesystem case is an injected capability result on an actual NTFS file, not physical FAT/UNC validation. Existing13 actual file/API cases rerun and pass."
+}

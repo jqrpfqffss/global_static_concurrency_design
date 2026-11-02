@@ -1,0 +1,474 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "actual_GUI_atomic_policy_save_and_readback",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_native_scan_keeps_startup_policy_after_GUI_changes_future_default",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_launcher_restart_preserves_saved_policy",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_next_native_scan_compresses_closed_worker_cache_authority_preserving_old_scan",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_GUI_complete_logical_and_allocated_category_measurement",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_GUI_standard_package_from_compressed_source_imports_all_typed_roots",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_GUI_stale_revision_refuses_to_overwrite_other_window",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_GUI_corrupt_policy_requires_explicit_backup_and_preserves_original_bytes",
+      "status": "PASS"
+    }
+  ],
+  "commands": [
+    [
+      "C:\\Windows\\System32\\cmd.exe",
+      "/d",
+      "/c",
+      "H:\\global_static_concurrency_design\\ECRA.cmd",
+      "--data-root",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data",
+      "--no-browser",
+      "--session-file",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\session-1.json"
+    ],
+    [
+      "C:\\Windows\\System32\\cmd.exe",
+      "/d",
+      "/c",
+      "H:\\global_static_concurrency_design\\ECRA.cmd",
+      "--data-root",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data",
+      "--no-browser",
+      "--session-file",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\session-2.json"
+    ],
+    [
+      "C:\\Windows\\System32\\cmd.exe",
+      "/d",
+      "/c",
+      "H:\\global_static_concurrency_design\\ECRA.cmd",
+      "--data-root",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\viewer",
+      "--no-browser",
+      "--session-file",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\session-3.json"
+    ],
+    [
+      "C:\\Windows\\System32\\cmd.exe",
+      "/d",
+      "/c",
+      "H:\\global_static_concurrency_design\\ECRA.cmd",
+      "--data-root",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data",
+      "--no-browser",
+      "--session-file",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\session-4.json"
+    ],
+    [
+      "C:\\Windows\\System32\\cmd.exe",
+      "/d",
+      "/c",
+      "H:\\global_static_concurrency_design\\ECRA.cmd",
+      "--data-root",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data",
+      "--no-browser",
+      "--session-file",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\session-5.json"
+    ]
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\01-off-policy-saved.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\02-running-task-keeps-off-after-next-policy-auto.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\03-reopened-auto-policy.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\04-actual-auto-native-complete.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\05-real-logical-and-allocated-categories.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\06-independent-viewer-imports-compressed-source-package.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\07-concurrent-revision-refused.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4-evidence\\08-explicit-corrupt-policy-backup-and-repair.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "engine": "H:\\global_static_concurrency_design",
+  "scope": "Actual launcher/Chrome policy persistence, native files and package roundtrip.\n\nApproved F030 only; no large G4, physical clean-PC, DPI or engineer UAT claim.\n",
+  "actual_native": [
+    {
+      "task": "e466e5e202d246ceb6355ede65507982",
+      "scan": "e466e5e202d246ceb6355ede65507982",
+      "policy": "off",
+      "rows": [
+        {
+          "file": "scans\\e466e5e202d246ceb6355ede65507982\\workers\\TU-00000.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        },
+        {
+          "file": "scans\\e466e5e202d246ceb6355ede65507982\\workers\\TU-00001.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        },
+        {
+          "file": "projects\\firmware_1b46a7e5456fa22bd9bf\\results\\cache\\formal\\tu-v1\\8148b1719221290664ddff8d64b44966621b81911c47b46fdf2e06b30cc69470.facts",
+          "kind": "cache",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        },
+        {
+          "file": "scans\\e466e5e202d246ceb6355ede65507982\\workers\\TU-00002.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        },
+        {
+          "file": "projects\\firmware_1b46a7e5456fa22bd9bf\\results\\cache\\formal\\tu-v1\\0bc7d2ba55c3aa6004cc886cf5a2529ecf935cd9152c8f76c9351d47fa21b9e9.facts",
+          "kind": "cache",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        },
+        {
+          "file": "scans\\e466e5e202d246ceb6355ede65507982\\workers\\TU-00003.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        },
+        {
+          "file": "scans\\e466e5e202d246ceb6355ede65507982\\scan.db.29b8316223c24d55a7bd077ea27ea0d7.pending",
+          "kind": "authority",
+          "policy": {
+            "mode": "off",
+            "revision": "07daa02f341c053b67744103c62e297c9ecaaaba4b32c03d22e598cc0b49d7fe",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "SKIPPED_POLICY_OFF",
+          "byte_verified": false
+        }
+      ]
+    },
+    {
+      "task": "837bb874d60745d2a7acd6e28769e403",
+      "scan": "837bb874d60745d2a7acd6e28769e403",
+      "policy": "auto",
+      "rows": [
+        {
+          "file": "scans\\837bb874d60745d2a7acd6e28769e403\\workers\\TU-00000.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 36864,
+            "logical_bytes": 33266,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "b7cb5a00000006000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "3707ce3fd3bda93912c79069dfe7a80d4a96f81379efda54658a835413488505",
+          "after": {
+            "allocated_bytes": 12288,
+            "logical_bytes": 33266,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "b7cb5a00000006000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "3707ce3fd3bda93912c79069dfe7a80d4a96f81379efda54658a835413488505",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 24576,
+          "seconds": 0.031000000002677552
+        },
+        {
+          "file": "scans\\837bb874d60745d2a7acd6e28769e403\\workers\\TU-00001.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 1253376,
+            "logical_bytes": 1250841,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "bccb5a0000000a000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "34866229f25456a95e396fffe4d54ec9e9b562a0803cad23d5222398f145d2ae",
+          "after": {
+            "allocated_bytes": 327680,
+            "logical_bytes": 1250841,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "bccb5a0000000a000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "34866229f25456a95e396fffe4d54ec9e9b562a0803cad23d5222398f145d2ae",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 925696,
+          "seconds": 0.0629999999946449
+        },
+        {
+          "file": "projects\\firmware_1b46a7e5456fa22bd9bf\\results\\cache\\formal\\tu-v1\\8148b1719221290664ddff8d64b44966621b81911c47b46fdf2e06b30cc69470.facts",
+          "kind": "cache",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 540672,
+            "logical_bytes": 538614,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "bacb5a00000008000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+          "after": {
+            "allocated_bytes": 159744,
+            "logical_bytes": 538614,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "bacb5a00000008000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 380928,
+          "seconds": 0.031000000002677552
+        },
+        {
+          "file": "scans\\837bb874d60745d2a7acd6e28769e403\\workers\\TU-00002.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 540672,
+            "logical_bytes": 538614,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "afcb5a00000002000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+          "after": {
+            "allocated_bytes": 159744,
+            "logical_bytes": 538614,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "afcb5a00000002000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 380928,
+          "seconds": 0.15600000000267755
+        },
+        {
+          "file": "projects\\firmware_1b46a7e5456fa22bd9bf\\results\\cache\\formal\\tu-v1\\0bc7d2ba55c3aa6004cc886cf5a2529ecf935cd9152c8f76c9351d47fa21b9e9.facts",
+          "kind": "cache",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 40960,
+            "logical_bytes": 40583,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "a9cb5a0000000a000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+          "after": {
+            "allocated_bytes": 16384,
+            "logical_bytes": 40583,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "a9cb5a0000000a000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 24576,
+          "seconds": 0.031000000002677552
+        },
+        {
+          "file": "scans\\837bb874d60745d2a7acd6e28769e403\\workers\\TU-00003.response.json",
+          "kind": "worker",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 40960,
+            "logical_bytes": 40583,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "aecb5a00000002000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+          "after": {
+            "allocated_bytes": 16384,
+            "logical_bytes": 40583,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "aecb5a00000002000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 24576,
+          "seconds": 0.01600000000325963
+        },
+        {
+          "file": "scans\\837bb874d60745d2a7acd6e28769e403\\scan.db.312f842885b64d8b922638bdec2807e0.pending",
+          "kind": "authority",
+          "policy": {
+            "mode": "auto",
+            "revision": "383fd2790948000f4819bd570434ba9bb4c997dd9477380ef79f6a71b40067b1",
+            "valid": true,
+            "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-policy-ui-host-v4\\data"
+          },
+          "status": "COMPRESSED",
+          "byte_verified": true,
+          "before": {
+            "allocated_bytes": 8970240,
+            "logical_bytes": 8970240,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "dacb5a00000002000000000000000000"
+            ],
+            "attributes": 32
+          },
+          "before_sha256": "4d0a1cb7255c342aa85205c63c1043f3c0e0789b0ff0fa543380fab16e6e63c9",
+          "after": {
+            "allocated_bytes": 5971968,
+            "logical_bytes": 8970240,
+            "links": 1,
+            "identity": [
+              11993215010780568015,
+              "dacb5a00000002000000000000000000"
+            ],
+            "attributes": 2080
+          },
+          "after_sha256": "4d0a1cb7255c342aa85205c63c1043f3c0e0789b0ff0fa543380fab16e6e63c9",
+          "compression_format": 2,
+          "allocated_reduction_bytes": 2998272,
+          "seconds": 0.3899999999994179
+        }
+      ]
+    }
+  ],
+  "original_files": 44,
+  "original_changes": [],
+  "engine_files": 99,
+  "engine_changes": [],
+  "package_sha256": "e57d79986d26f5045ec04362e5fd0e0f667f4fa82e94d29aeb34fce36843219f",
+  "old_scan_sha256": "d25f2074d723e864806561d963021830bad358df5dc15496ae5f0bd438a7ba59"
+}

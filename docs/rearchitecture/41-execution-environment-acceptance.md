@@ -10,7 +10,7 @@
 | 消费者43项 | 43PASS，168.546s；在增加random分支之前执行，最新完整回归仍需覆盖全部 | [消费者v2](evidence/execution-environment-consumers-v2.json) |
 | 最新真实F030 | facts/report完整有序、类型敏感比较差异0，33.109s；原输入与95个引擎文件后验无变化 | [原生v2](evidence/execution-environment-native-exact-v2.json) |
 | 原消费者控制失败 | 漏加tests搜索路径导致test_saved_json依赖无法导入，31项中1导入错误；不改生产代码，在新v2重跑43PASS | [原失败](evidence/execution-environment-consumers-v1.json) |
-| 完整回归/大型成对原生 | 待冻结v26运行1355项完整回归，随后同d1bc配置/seed0/日期epoch启动新的16GiB冷原生；尚无完成收据 | NOT_VERIFIED，不借v25或旧冷原生结果 |
+| 完整回归/大型成对原生 | v26已冻结2007文件，1355项完整回归正在独立副本执行；尚未启动的v11原生队列已核对身份撤销，改为等待含新空间策略的v27冻结回归后启动；不是已运行扫描被停止 | [未启动撤销](evidence/inav-canonical-seed0-native-v11-not-started.json)，大型对照NOT_VERIFIED |
 
 F030严格facts摘要49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f，report摘要62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6，原/新相同。原配置d13805dc...路径/字节不变；仍有真实INCOMPLETE覆盖，不将exit2写成SAFE。
 

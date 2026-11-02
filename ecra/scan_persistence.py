@@ -195,9 +195,16 @@ def persist(out, facts, report, reviews):
                 entry.update(encoding='utf-8-replace', text=raw.decode('utf-8', errors='replace'))
             archived.append(entry)
         provenance['archived_sources'] = archived
+        # Only new private authority files pass the callback. Existing published
+        # archives and all human/AI databases keep their original bytes.
+        compact=None
+        if out.parent.name=='scans' and settings.get('storage_policy') is not None:
+            from .storage_compaction import ScanStorage
+            storage=ScanStorage(out.parent.parent,out,out.parent.parent/'cache',settings['storage_policy'])
+            compact=lambda path:storage.compress(path,'authority')
         publish_scan(database, facts, clean_report(report), scan_id=settings['scan_id'],
                      project_id=settings['project_id'], profile_id=settings.get('profile_id', 'default'),
-                     provenance=provenance, validation_state='UNVERIFIED')
+                     provenance=provenance, validation_state='UNVERIFIED',compact=compact)
         ReviewStore(out/'reviews.db', EvidenceProvider(database).metadata())
     append_runtime(out, report, reviews)
 
@@ -261,7 +268,7 @@ def archive_audit(out):
 
 
 def run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_budget_owned=False):
+                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_budget_owned=False,_storage_policy=None):
     from .config import load_config
     from .workspace import formal_workspace
     from .storage_activity import DataActivity
@@ -274,7 +281,7 @@ def run_canonical(root, config_path=None, no_review=False, doctor_only=False, re
         activities.enter_context(DataActivity(workspace.workspace_root))
         if not _budget_owned:activities.enter_context(DataActivity(workspace.workspace_root,exclusive=True,purpose='scan-budget'))
         return _run_canonical(root,config_path,no_review,doctor_only,review_safe_sample,review_shared_sample,
-                              scan_mode,scan_id=scan_id,profile_id=profile_id,_expected_root=workspace.workspace_root)
+                              scan_mode,scan_id=scan_id,profile_id=profile_id,_expected_root=workspace.workspace_root,_storage_policy=_storage_policy)
 
 
 @contextmanager
@@ -337,7 +344,7 @@ def previous_finding_ids(out,workspace):
 
 
 def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None):
+                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None,_storage_policy=None):
     """Run the unchanged pipeline in a unique external, persistent scan area.
 
     No latest pointer is changed until all original post-publication input
@@ -355,6 +362,8 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
     workspace = formal_workspace(root,cfg['analysis'])
     if _expected_root is not None and workspace.workspace_root!=_expected_root:
         raise ValueError('启动期间配置的数据根已变化，请重新开始扫描')
+    from .storage_policy import snapshot as storage_snapshot
+    fixed_policy=storage_snapshot(workspace.workspace_root,_storage_policy)
     workspace.initialize()
     workspace.bind(cfg['analysis'])
     with project_scan_lock(root,cfg['analysis']):
@@ -366,7 +375,7 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
         workspace = replace(workspace, results_root=str(out), cache_root=str(Path(workspace.cache_root)/'formal'),
                             snapshots_root=str(out/'snapshots'))
         write_json(out/MARKER, dict(version=1, scan_id=ident, project_id=workspace.project_id,
-                                   profile_id=profile_id, config_file=str(config_file)))
+                                   profile_id=profile_id, config_file=str(config_file),storage_policy=fixed_policy))
         code = run(root, config_path, no_review, doctor_only, review_safe_sample, review_shared_sample,
                    scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True)
         validity = json.loads((out/'result_validity.json').read_text(encoding='utf-8'))

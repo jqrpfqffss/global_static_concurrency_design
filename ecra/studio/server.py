@@ -512,30 +512,21 @@ def _create_app(data_root, *, token, authority, startup):
             raise ValueError('导出文件身份无效')
         return FileResponse(no_links(data/'exports'/name), filename=name, media_type='application/octet-stream')
 
+    @app.get('/api/storage/policy')
+    def storage_policy():
+        from ..storage_policy import status
+        return status(data)
+
+    @app.post('/api/storage/policy')
+    def save_storage_policy(payload:dict):
+        from ..storage_policy import save,PolicyConflict
+        try:return save(data,mode=payload.get('mode'),revision=payload.get('revision'),repair=payload.get('repair') is True)
+        except PolicyConflict as exc:return JSONResponse(dict(error=str(exc)),status_code=409)
+
     @app.get('/api/storage')
     def storage():
-        totals = {}
-        partial = False
-        for name in ('scans', 'projects', 'cache', 'work', 'exports', 'settings'):
-            root = no_links(data/name)
-            totals[name] = 0
-            if root.exists():
-                try:
-                    for file in root.rglob('*'):
-                        try:
-                            no_links(file)
-                            if file.is_file():
-                                totals[name] += file.stat().st_size
-                        except FileNotFoundError:
-                            partial = True  # a live task removed its own temp
-                except FileNotFoundError:
-                    partial = True
-        import shutil
-        usage=shutil.disk_usage(data)
-        from datetime import datetime,timezone
-        return dict(bytes=totals, sampled_at=datetime.now(timezone.utc).isoformat(),sampling_partial=partial, cleanup_available=True,
-                    physical_disk_free_bytes=usage.free,physical_disk_total_bytes=usage.total,
-                    reason='目录数值为逻辑字节；空间整理先验证完整引用与哈希，再预览、隔离及二次确认释放。')
+        from ..storage_usage import measure
+        return measure(data)
 
     @app.get('/api/profiles')
     def profiles():
