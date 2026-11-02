@@ -50,3 +50,6 @@ v23包含ADR-018/019/020的等价分配实现，以及[标量完整性修复与�
 G3此前FAIL保持；新冷原生和物理32GB未验。G4全策略物理峰值/最终标准归档70%目标、完整大型full/Diff语义、生产H2写保护/脏输入隔离、全部故障矩阵、巨型双旧来源迁移、GUI数据根切换/搬迁仍未完成。其余TMFC/H747及DMA/回调/RTOS真实工程按用户指令`NOT_VERIFIED_USER_DEFERRED`；第二物理电脑、干净离线PC、原生WindowsDPI、真实OpenCode联网、工程师UAT继续NOT_VERIFIED。不因程序构建或自动化GUI子流程通过改变这些状态。
 
 v23包ZIP 600439088字节，SHA `7021cfbf68e648ac85d58b5f430f9b57fafbddf56b30b1640faf1214f68c0f97`；29880个分发文件全部校验，121个实际运行时源文件逐项匹配冻结清单。[当前U01–U24](ui/25-user-scenario-status-v23.md)为12 PASS/12 NOT_VERIFIED，完整G7仍FAIL。后续[schema3候选](30-compact-sqlite-layout-adr.md)不包含于此v23包，其专项/新冻结验收单独记录。
+
+
+后续实测：该冷原生已于北京时间2026-11-03有效完成，详细资源/范围/后验见[真实冷原生v10](36-cold-inav-native-v10.md)。上表RUNNING为当时状态，不再代表当前；新完整语义对照及标准协议仍在验证中，不提前标PASS。
