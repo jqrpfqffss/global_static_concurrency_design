@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "status": "SUPERSEDED_BEFORE_PREFLIGHT_OR_ANY_NATIVE_WORKER",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v21",
+  "source_head": "5e622b9703a6bc60db9256797bdc7b03bf0a4334",
+  "data_root": "H:/ECRA-NATIVE-A9",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-allocation-native-v9",
+  "scope": "Fresh cold388TU native after exact1307 and diagnostic attribution; no recycled cache, no changed budget/semantics; physical32GB NOT_VERIFIED",
+  "reason": "Include independently tested read-only CFG-body allocation before choosing the final cold engine; no v9 input hashing/extraction/output created",
+  "stopped_controller_pids": [
+    26816
+  ]
+}

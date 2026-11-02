@@ -16,6 +16,8 @@ CONFLICT_PAIR_INLINE_LIMIT = 4096
 
 def merge(parts):
     from .points_to import resolve_linkage
+    from .cfg_sharing import ReadOnlyGraphPool
+    cfg_bodies = ReadOnlyGraphPool()
     parts = resolve_linkage(parts)
     facts = {t: [] for t in TABLES}
     variables, functions = {}, {}
@@ -57,7 +59,12 @@ def merge(parts):
         for t in ([part['_table']] if part.get('_table') in TABLES[2:] else
                   () if part.get('_table') else TABLES[2:]):
             for row in part.get(t, []):
-                unique_rows[t][digest(row)] = row
+                key = digest(row)
+                if t == 'control_flow' and type(row) is dict:
+                    for field in ('nodes', 'parameters', 'unsupported'):
+                        if field in row:
+                            row[field] = cfg_bodies.share(row[field])
+                unique_rows[t][key] = row
     facts["variables"] = sorted(variables.values(), key=lambda x: x["symbol_id"])
     facts["functions"] = sorted(functions.values(), key=lambda x: x["function_id"])
     for t in TABLES[2:]:

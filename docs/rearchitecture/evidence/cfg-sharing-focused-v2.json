@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 5,
+  "seconds": 6.551,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\cfg-sharing-focused-v2.log",
+  "log_sha256": "c19dcf77af8391acdc87b98f3940fe10078f320f887e9ae6984bd61c36b583ba",
+  "scope": "Independent frozen original merge,25 seeded weak/parse/pruned-table cases,ordered types/collision/bypass,complete2400CFG24000node capacity;not full1312 or large nativeG1/G3"
+}

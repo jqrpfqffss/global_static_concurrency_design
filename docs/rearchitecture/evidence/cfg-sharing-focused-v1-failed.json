@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "tests": 5,
+  "errors": 27,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\cfg-sharing-focused-v1.log",
+  "log_sha256": "ca0bec0a4fef9069739176ad93c70fae8d14cc24846ff6805de7cd72049ba809",
+  "reason": "New positive fixture accidentally used a lone surrogate that the original common.digest rejects with UnicodeEncodeError. Preserve that original gate as an explicit dual-implementation rejection test; use valid Unicode in positive cases. No candidate equality failure was treated as PASS."
+}
