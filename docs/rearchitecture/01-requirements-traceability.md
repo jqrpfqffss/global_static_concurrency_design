@@ -1,4 +1,5 @@
-> 当前已封存候选：[v23实包与真实异常恢复](28-frozen-v23-and-cold-native-acceptance.md)，运行时c311aa4；1315项1313PASS/2联网SKIP、13组112浏览器断言、额外5项崩溃恢复、原2000保留+新1000确认/三次重启通过。[U01–U24](ui/25-user-scenario-status-v23.md)：12PASS/12待验。INAV388TU已提取、全局分析继续；G3原FAIL及其余未验项保持。schema3源码候选另验，旧v19/v20/v21/v22的[标量完整性勘误](27-scalar-byte-boundary-integrity.md)保留。
+> 当前已封存候选：[v24 schema3/完整流式校验实包](33-frozen-v24-acceptance.md)，运行时aac467f；1330项1328PASS/2联网SKIP、13组112个Chrome断言与额外5项实际崩溃恢复通过。v23第三批1000确认单独保留，不充作v24新批次。INAV冷原生388TU已提取、全局分析完成，持久化仍在运行；完整大库对照/G3/G4未关闭。历史检索为后续源码候选，未包含在v24包内。
+
 
 # 需求追踪与阶段门禁
 

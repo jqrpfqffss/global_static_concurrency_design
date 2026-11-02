@@ -37,3 +37,6 @@ v23冷原生和第三批确认继续绑定c311aa4冻结源；其结果不包含s
 完整DBSTAT只读查询53.375s，512MiB受控Job峰值86,081,536字节，原图前后完整SHA 660dffb2...不变。宿主原Python缺少DBSTAT，使用已有MSYS2 SQLite3.51.1作为独立观察工具，未替换产品SQLite。[首轮汇总FAIL](evidence/graph-storage-attribution-v1-metric-contract-failed.json)源于误把B-tree总和当成整个文件；差4096字节。[SQLite合同](https://www.sqlite.org/dbstat.html)明确不计空闲、pointer-map和lock页；本文件头实查freelist=0、auto-vacuum=0，一页lock恰解释4096差值。后续审计复用全部原始测量和两次源SHA，未伪装重新运行或改写首轮收据。
 
 [F030完整布局试验](evidence/sqlite-layout-f030-v1.json)是全部字段相同的独立物理副本对照；后续真实原生的归档元数据更丰富，不把两者不同provenance的文件大小直接相减作为格式收益。
+
+
+2026-11-02后续实际验收：本schema3/流式校验源码aac467f已进入[v24实包封存](evidence/portable-studio-v24-seal.json)，完整1330项1328PASS/2联网SKIP、13组112项真实Chrome与额外5项实际崩溃/重试通过。上表原待验保留为当时状态；本次只关闭该冻结源码的本地回归/打包子范围，完整大型库/G1/G3/G4仍待真实生产结果。

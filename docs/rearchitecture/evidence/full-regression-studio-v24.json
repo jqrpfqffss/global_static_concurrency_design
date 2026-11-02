@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1330,
+  "passed_tests": 1328,
+  "skipped": 2,
+  "seconds": 1970.369,
+  "controller_seconds": 1977.672000000006,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v24",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v24",
+  "frozen_files": 1706,
+  "differences": [],
+  "manifest_sha256": "1d9c0a5487c79f69350bba13eae37d1ee7eed70d52adba35302f9350e4cd424a",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v24.log",
+  "log_sha256": "4217205554190241c665aa2f8202d1a2ccfc1f7c08bf20a411d4f131da880e5e",
+  "scope": "Frozen schema3 physical layout, exact old schema registry and streamed full integrity validation; expected1330 with two live opt-in skips. Current actual package and large native gates independently required"
+}

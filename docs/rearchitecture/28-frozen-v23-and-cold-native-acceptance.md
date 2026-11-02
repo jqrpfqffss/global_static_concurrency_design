@@ -16,7 +16,7 @@ v23包含ADR-018/019/020的等价分配实现，以及[标量完整性修复与�
 | 实包GUI | 四组受影响场景加九组其他场景，主流程包含新标量恶意包负例，13组112断言 | 全部PASS；另有5项实际异常退出恢复通过 | [封存收据](evidence/portable-studio-v23-seal.json)、[崩溃与重试](evidence/browser-scan-crash-recovery-v5.json)，物理DPI/干净机/UAT另验 |
 | 升级续确认 | 同一原版完整INAV验证根，保留既有2000事件，v23实际GUI再逐项追加1000暂无法确认 | PASS，2012.094s；三次重启，共3000，原静态图SHA与原事件不变 | [第三批收据](evidence/browser-review-upgrade-third-batch-v23-v1.json)，不是新版大型原生或UAT |
 | 大型冷原生 | 同一冻结源、原INAV配置/4123输入，16GiB Windows Job，新数据根，无缓存迁移/运行时注入 | RUNNING，实际388TU全部冷提取完成，正在全局分析；尚未有效发布 | [全部输入启动前校验](evidence/inav-canonical-allocation-native-v10-preflight.json)；本机`inav-canonical-allocation-native-v10/execution.json`动态记录，原G3 FAIL未关闭，不是32GB真机 |
-| 大型完整对照/标准包 | 使用同一修复版验证器，原17.8GB全图与新库深检/有序全字段对照，再完整标准包导出/严格导入第二数据根 | WAITING_NATIVE，NOT_VERIFIED | 本机`inav-cold-v10-comparison-package-v1/execution.json`，不是第二物理电脑或G4通过 |
+| 大型完整对照/标准包 | 使用同一修复版验证器，原17.8GB全图与新库深检/有序全字段对照，再完整标准包导出/严格导入第二数据根 | WAITING_NATIVE，NOT_VERIFIED | 本机`inav-cold-v10-comparison-package-v2/execution.json`（等待v24完整1330通过及冷原生；[v1在验证前撤销收据](evidence/inav-cold-v10-comparison-package-v1-superseded.json)），不是第二物理电脑或G4通过 |
 
 ## 已有大型实测，不能混用范围
 

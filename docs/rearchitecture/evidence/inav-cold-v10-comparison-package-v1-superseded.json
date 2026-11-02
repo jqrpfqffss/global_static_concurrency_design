@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "status": "SUPERSEDED_BEFORE_ANY_VALIDATION",
+  "original_pending_receipt_sha256": "1d331ffcf6c763037e6ff8a76aaae64cac36504e72010cce38281c5378c6a8fb",
+  "stopped_verified_controller": {
+    "pid": 26252,
+    "created": 1793618139.5674112,
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/run-cold-v10-comparison-package-v1.py"
+    ]
+  },
+  "new_controller": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-cold-v10-comparison-package-v2.py",
+  "scope": "Only idle waiting observer stopped. Native producer and original graph not touched; no comparison, archive export/import or human writes had begun. Replacement requires frozen1330 and full same logical gates with unchanged normalization.",
+  "recorded_utc": "2026-11-02T15:01:56.916619+00:00"
+}
