@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 36,
+  "seconds": 116.183,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scan-identity-focused-v1.log",
+  "log_sha256": "38c4251eabedb470c91069fc2e520bd11254bb77e66aade9d6770fb9a7f9f844",
+  "scope": "Actual focused identity/canonical/API/package checks; not an entire new full-suite or physicalPC validation"
+}

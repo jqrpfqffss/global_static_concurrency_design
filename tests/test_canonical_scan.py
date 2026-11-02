@@ -28,7 +28,7 @@ class CanonicalScanTests(unittest.TestCase):
             arguments=['arm-none-eabi-gcc','-mcpu=cortex-m7','-mthumb','-c','main.c','-o',str(self.native_build/'main.o')])]),encoding='utf-8')
         self.data = self.base/'data'
         self.config = self.base/'semantics.yaml'
-        self.config.write_text(json.dumps(dict(version=1,project=dict(root=str(self.root)),
+        self.config.write_text(json.dumps(dict(version=1,project=dict(root=str(self.root),name='真实固件 · M7裸核'),
             analysis=dict(compile_database=str(database),output=dict(location='custom',custom_dir=str(self.data))),
             contexts=[dict(id='main',kind='MAIN',functions=['main']),dict(id='irq',kind='ISR',functions=['ISR'])],
             review=dict(enabled=False,prepare_packets=False))),encoding='utf-8')
@@ -44,6 +44,10 @@ class CanonicalScanTests(unittest.TestCase):
     def test_native_sqlite_only_scan_resume_and_full_package_retain_evidence(self):
         before = {p.name:sha256(p) for p in self.root.iterdir()}
         out,cfg = self.run_scan()
+        from ecra.scan_identity import query
+        identity=query(EvidenceProvider(out/'scan.db'))
+        self.assertEqual(identity['project_name'],'真实固件 · M7裸核')
+        self.assertEqual(identity['config_sha256'],sha256(self.config))
         self.assertFalse((out/'facts.json').exists())
         self.assertFalse((out/'facts.db').exists())
         self.assertFalse((out/'index.html').exists())

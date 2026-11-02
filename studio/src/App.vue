@@ -15,6 +15,7 @@ import GitVersions from './GitVersions.vue'
 import ContextEditor from './ContextEditor.vue'
 import DirectoryBrowser from './DirectoryBrowser.vue'
 import BuildPreflight from './BuildPreflight.vue'
+import ScanIdentity from './ScanIdentity.vue'
 const navigation = [ ['overview','项目概览'], ['projects','工程配置'], ['tasks','扫描任务'], ['variables','变量与风险'], ['coverage','覆盖与诊断'], ['opencode','OpenCode 复核'], ['reviews','人工确认'], ['history','历史与对比'], ['sharing','数据与共享'] ]
 const route = ref(location.hash.slice(2) || 'overview'), compact = ref(false)
 const bootstrap = ref<any>(null), scans = ref<any[]>([]), scan = ref(localStorage.getItem('ecra-scan') || ''), summary = ref<any>(null)
@@ -54,6 +55,7 @@ const editedProfile=computed(()=>profileList.value.find(p=>p.id===profileId.valu
 const savedProfileReady=computed(()=>!!editedProfile.value&&savedYaml.value===yaml.value)
 const isSample=computed(()=>summary.value?.binding?.profile_id==='builtin-stm32-demo'||currentScan.value?.profile_id==='builtin-stm32-demo')
 async function openSample(){const origin=route.value;await run(async()=>{const result=await api('/sample/open','POST',{});scan.value=result.scan_id;await refresh();if(route.value===origin)go('overview');notice.value='已打开内置教学示例；内容来自真实扫描归档，保留未知与覆盖缺口。'})}
+async function openScan(id:string){const origin=route.value;await run(async()=>{scan.value=id;await refresh();if(route.value===origin)go('overview')})}
 function newProject(){newProfile();go('projects')}
 const repeatProfile=computed(()=>currentScan.value?.mode==='LOCAL_SNAPSHOT'?profileList.value.find(p=>p.project_id===summary.value?.binding.project_id&&p.id===summary.value?.binding.profile_id):null)
 function rememberTask(id:string){taskFocus.value=id;sessionStorage.setItem('ecra-task-focus',id)}
@@ -74,19 +76,31 @@ async function run(task: () => Promise<any>) {
   try { return await task() } catch (e: any) { error.value = e.message } finally { busy.value = false }
 }
 async function readPage(task: () => Promise<any>) { const startedRoute=route.value; try { await task() } catch (e: any) { if(!busy.value && !error.value && route.value===startedRoute) error.value='页面信息读取失败：'+e.message } }
+let refreshGeneration=0
 async function refresh() {
-  scans.value = (await api('/scans')).items
+  const generation=++refreshGeneration, result=await api('/scans')
+  if(generation!==refreshGeneration)return
+  scans.value = result.items
   if (!scans.value.some(x => x.scan_id === scan.value)) scan.value = scans.value[0]?.scan_id || ''
-  if (scan.value) { summary.value = await api(apiScan.value + '/summary'); if(!localStorage.getItem('ecra-filters-'+scan.value))extra.value.diff=summary.value.diff?'selected':''; priorityItems.value=(await api(apiScan.value+'/symbols?limit=5')).items; await loadList() }
+  if (scan.value) {
+    const id=scan.value,base=`/scans/${encodeURIComponent(id)}`,value=await api(base+'/summary')
+    if(generation!==refreshGeneration||scan.value!==id)return
+    summary.value=value
+    if(!localStorage.getItem('ecra-filters-'+id))extra.value.diff=value.diff?'selected':''
+    const priorities=await api(base+'/symbols?limit=5')
+    if(generation!==refreshGeneration||scan.value!==id)return
+    priorityItems.value=priorities.items; await loadList()
+  }
   else summary.value = null
   await loadProfiles()
 }
 async function loadList() {
   if (!scan.value) return
+  const id=scan.value
   loading.value = true
   try {
     const value = await api(apiScan.value + `/symbols?${new URLSearchParams({search:search.value,classification:classification.value,human_decision:humanFilter.value,offset:String(offset.value),limit:'50',...extra.value})}`)
-    items.value = value.items; total.value = value.total
+    if(scan.value===id){items.value = value.items; total.value = value.total}
   } finally { loading.value = false }
 }
 async function rememberList(){
@@ -199,7 +213,7 @@ function openProfile(profile: any) { if(busy.value)return;profileId.value = prof
 function newProfile(){if(busy.value)return;profileId.value='';profileRevision.value='';savedYaml.value='';yaml.value='';profileCheck.value=null;formSnapshot.value=null;yamlBackup.value=null;projectName.value='';projectRoot.value='';buildMode.value='cmake';target.value='';toolchain.value='';variant.value='Debug';include.value='';exclude.value='';baseRef.value='';currentRef.value='HEAD';contextRows.value=initialContexts();contextsEditable.value=true;contextsReason.value='';systemHeaders.value='default';wizardStep.value=1;notice.value='';error.value=''}
 watch(yaml,()=>{profileCheck.value=null;savedYaml.value='';preflightReady.value=''},{flush:'sync'})
 function keydown(event: KeyboardEvent) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && isWorkbench.value) { event.preventDefault(); document.getElementById('variable-search')?.focus() } if (event.key === 'Escape') { compact.value = false; selected.value = null } }
-watch(scan, () => { localStorage.setItem('ecra-scan', scan.value); summary.value=null;items.value=[];priorityItems.value=[];selected.value = null; human.value = null; fromCoverage.value=false;offset.value = 0; restoreFilters(scan.value) })
+watch(scan, () => { localStorage.setItem('ecra-scan', scan.value); summary.value=null;items.value=[];priorityItems.value=[];selected.value = null; human.value = null; fromCoverage.value=false;offset.value = 0; restoreFilters(scan.value) },{flush:'sync'})
 watch(route, () => { if(route.value==='overview' && scan.value) readPage(async()=>{priorityItems.value=(await api(apiScan.value+'/symbols?limit=5')).items}); if (route.value === 'sharing' || route.value === 'settings') readPage(async () => { storage.value = await api('/storage') }); if (route.value === 'projects') readPage(async () => { profileList.value = (await api('/profiles')).items }) })
 onMounted(async () => { window.addEventListener('hashchange', hashed); window.addEventListener('keydown', keydown); restoreFilters(scan.value); await run(async () => { bootstrap.value = await api('/bootstrap'); await refresh() }) })
 onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.removeEventListener('keydown', keydown) })
@@ -211,7 +225,7 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
       <nav aria-label="主导航"><a v-for="[id,title] in navigation" :key="id" :href="'#/'+id" :aria-current="route===id ? 'page' : undefined" @click="go(id)">{{ title }}</a></nav>
       <div class="sidebar-bottom"><a href="#/settings" @click="go('settings')">设置与验收状态</a><small>本地数据 · 中文<br>开发预览 · 发布门禁未通过</small></div>
     </aside>
-    <div class="main-shell"><header><button class="menu" aria-label="展开导航" @click="compact=!compact">☰</button><strong>{{ currentScan?.project_id?.slice(0,16) || '尚未选择工程结果' }}</strong><span class="header-scan">{{ scan || '未扫描' }}</span><span class="badge">{{ scan ? (currentScan?.mode==='LOCAL_SNAPSHOT'?'本机扫描快照':'归档证据模式') : '等待工程或结果包' }}</span></header>
+    <div class="main-shell"><header><button class="menu" aria-label="展开导航" @click="compact=!compact">☰</button><ScanIdentity :key="scan" :scan="scan" :binding="summary?.binding?.scan_id===scan?summary.binding:null" :identity="summary?.binding?.scan_id===scan?summary.identity:null" :mode="currentScan?.mode||''" /></header>
       <main><div v-if="isSample && ['overview','variables','coverage','opencode','reviews','sharing'].includes(route)" class="banner warning" role="note">{{bootstrap?.sample?.notice||'教学示例 · 真实扫描归档 · 非用户工程；未链接固件，无硬件验证。'}}</div><div v-if="error" class="banner error" role="alert">{{ error }}</div><div v-if="notice" class="banner" role="status">{{ notice }}</div><p v-if="busy" class="activity" role="status">正在提交或读取，请稍候…</p><div v-if="summary?.legacy_warning" class="banner warning" role="note">旧归档证据模式：{{summary.legacy_warning}} <button @click="go('sharing')">查看旧文件与复核历史</button></div>
         <template v-if="route==='overview'">
           <div class="page-heading"><div><h1>{{ summary?.legacy_degraded?'查看未验证的旧原件':scan ? '先处理需要核实的变量' : '开始使用 ECRA Studio' }}</h1><p>{{ scan ? '静态、AI 与人工结论分别保留；归档不能替代当前源码核对。' : '选择工程配置，或导入同事发来的完整结果包。' }}</p></div><button v-if="scan&&!summary?.legacy_degraded" class="primary" :disabled="busy" @click="continueReview">继续人工确认</button></div>
@@ -253,9 +267,9 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
           </template><div v-else class="empty"><h2>选择左侧对象查看完整证据</h2><p>支持同名static的独立身份。Ctrl+F查找，Esc返回列表。</p></div></section></div><section v-else class="panel empty">尚无结果包。请先从“数据与共享”导入。</section>
         </template>
         <template v-else-if="route==='coverage'"><CoverageCenter v-if="scan&&summary" :key="scan" :scan="scan" :roots="summary.roots" @symbol="openCoverageSymbol"/><p v-else>{{scan?'正在读取当前归档；若读取失败，请查看上方诊断。':'尚无可查看的归档。'}}</p></template>
-        <template v-else-if="route==='history'"><h1>历史与对比</h1><p>打开保存的不可变静态快照。“本轮未观察到”不等于已修复。跨版本自动继承尚未验收。</p><section class="panel"><article v-for="item in scans" class="history-row"><div><strong>{{ item.scan_id }}</strong><p>{{ item.project_id }} · {{ item.profile_id }} · {{ label(item.state) }}</p></div><button @click="run(async()=>{scan=item.scan_id;await refresh();go('overview')})">打开结果</button></article><p v-if="!scans.length">尚无扫描历史。</p></section></template>
-        <template v-else-if="route==='sharing'"><div class="page-heading"><div><h1>数据与共享</h1><p>完整包可在无原固件的电脑查看归档并继续确认。导出可能含敏感代码与备注，请按团队规则分享。</p></div></div><div class="overview-columns"><section class="panel"><h2>导入完整结果</h2><p>校验ZIP路径、数据库结构、全部证据哈希与人工历史后原子发布；失败保留已有数据。</p><label>选择 .ecra-report<input type="file" accept=".ecra-report" :disabled="busy" @change="importFile($event)"></label><template v-if="scan"><h3>合并人工确认增量</h3><label>选择 .ecra-review-delta<input type="file" accept=".ecra-review-delta" :disabled="busy" @change="importFile($event,true)"></label><p>重复导入去重；并行决定保留双方事件，进入显式冲突。</p></template></section><section class="panel"><h2>导出当前归档</h2><p>{{ scan || '尚未选择归档' }}</p><div v-if="scan" class="actions"><button :disabled="busy" @click="exportFile('full')">导出标准完整包</button><button :disabled="busy" @click="exportFile('delta')">导出人工确认增量</button></div><h3>真实数据占用</h3><p class="muted">采样时间 {{storage?.sampled_at || '尚未读取'}}</p><button :disabled="busy" @click="run(async()=>{storage=await api('/storage')})">更新空间占用</button><p v-for="(bytes,name) in storage?.bytes">{{ name }}：{{ (Number(bytes)/1024/1024).toFixed(2) }} MiB</p><p class="muted">{{ storage?.reason }}</p></section></div><MigrationCenter @completed="readPage(async()=>{storage=await api('/storage');scans=(await api('/scans')).items})" @open="async(id:string)=>{scan=id;await refresh();go('overview')}" /><LegacyArchive v-if="summary?.legacy_warning" :key="scan" :scan="scan" :degraded="summary.legacy_degraded" @evidence="go('coverage')" /><CleanupCenter /></template>
-        <template v-else-if="route==='tasks'"><TaskCenter :focus-task="taskFocus" @focus="rememberTask" @open="async(id:string)=>{scan=id;await refresh();go('overview')}" /></template>
+        <template v-else-if="route==='history'"><h1>历史与对比</h1><p>打开保存的不可变静态快照。“本轮未观察到”不等于已修复。跨版本自动继承尚未验收。</p><section class="panel"><article v-for="item in scans" class="history-row"><div><strong>{{ item.scan_id }}</strong><p>{{ item.project_id }} · {{ item.profile_id }} · {{ label(item.state) }}</p></div><button :disabled="busy" @click="openScan(item.scan_id)">打开结果</button></article><p v-if="!scans.length">尚无扫描历史。</p></section></template>
+        <template v-else-if="route==='sharing'"><div class="page-heading"><div><h1>数据与共享</h1><p>完整包可在无原固件的电脑查看归档并继续确认。导出可能含敏感代码与备注，请按团队规则分享。</p></div></div><div class="overview-columns"><section class="panel"><h2>导入完整结果</h2><p>校验ZIP路径、数据库结构、全部证据哈希与人工历史后原子发布；失败保留已有数据。</p><label>选择 .ecra-report<input type="file" accept=".ecra-report" :disabled="busy" @change="importFile($event)"></label><template v-if="scan"><h3>合并人工确认增量</h3><label>选择 .ecra-review-delta<input type="file" accept=".ecra-review-delta" :disabled="busy" @change="importFile($event,true)"></label><p>重复导入去重；并行决定保留双方事件，进入显式冲突。</p></template></section><section class="panel"><h2>导出当前归档</h2><p>{{ scan || '尚未选择归档' }}</p><div v-if="scan" class="actions"><button :disabled="busy" @click="exportFile('full')">导出标准完整包</button><button :disabled="busy" @click="exportFile('delta')">导出人工确认增量</button></div><h3>真实数据占用</h3><p class="muted">采样时间 {{storage?.sampled_at || '尚未读取'}}</p><button :disabled="busy" @click="run(async()=>{storage=await api('/storage')})">更新空间占用</button><p v-for="(bytes,name) in storage?.bytes">{{ name }}：{{ (Number(bytes)/1024/1024).toFixed(2) }} MiB</p><p class="muted">{{ storage?.reason }}</p></section></div><MigrationCenter @completed="readPage(async()=>{storage=await api('/storage');scans=(await api('/scans')).items})" @open="openScan" /><LegacyArchive v-if="summary?.legacy_warning" :key="scan" :scan="scan" :degraded="summary.legacy_degraded" @evidence="go('coverage')" /><CleanupCenter /></template>
+        <template v-else-if="route==='tasks'"><TaskCenter :focus-task="taskFocus" @focus="rememberTask" @open="openScan" /></template>
         <template v-else-if="route==='opencode'"><ReviewCenter v-if="scan&&summary" :key="scan" :scan="scan" :project-id="summary.binding.project_id" :can-review="summary.can_review" @tasks="openTasks"/><section v-else class="panel"><h1>OpenCode 复核</h1><p>先打开已保存的真实扫描或结果包。</p></section></template>
         <template v-else><h1>设置与验收状态</h1><section class="panel"><h2>独立数据根</h2><p class="identity">{{ bootstrap?.data_root }}</p><p>可在启动前设置 ECRA_DATA_ROOT 为其他盘的绝对路径。升级软件不覆盖此数据目录。</p><h2>明确的能力边界</h2><p v-for="item in bootstrap?.limits">{{ item }}</p><p>大型原生全量/Diff、32GB资源、干净机Portable及真实工程师盲测尚未完成，不宣称完整发布。</p></section></template>
       </main>

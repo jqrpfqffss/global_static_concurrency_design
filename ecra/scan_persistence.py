@@ -175,6 +175,9 @@ def persist(out, facts, report, reviews):
             raw = path.read_bytes()
             if hashlib.sha256(raw).hexdigest() != expected:
                 raise ValueError('归档输入已改变: '+file)
+            if settings.get('config_file') and path.resolve() == Path(settings['config_file']).resolve():
+                from .scan_identity import capture
+                provenance['display_identity'] = capture(raw, file, report.get('coverage', {}))
             import gzip
             compressed = gzip.compress(raw, mtime=0)
             object_hash = hashlib.sha256(compressed).hexdigest()
@@ -357,7 +360,8 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
         out.mkdir(parents=True, exist_ok=False)
         workspace = replace(workspace, results_root=str(out), cache_root=str(Path(workspace.cache_root)/'formal'),
                             snapshots_root=str(out/'snapshots'))
-        write_json(out/MARKER, dict(version=1, scan_id=ident, project_id=workspace.project_id, profile_id=profile_id))
+        write_json(out/MARKER, dict(version=1, scan_id=ident, project_id=workspace.project_id,
+                                   profile_id=profile_id, config_file=str(config_file)))
         code = run(root, config_path, no_review, doctor_only, review_safe_sample, review_shared_sample,
                    scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True)
         validity = json.loads((out/'result_validity.json').read_text(encoding='utf-8'))

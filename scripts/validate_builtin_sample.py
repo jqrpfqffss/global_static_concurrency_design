@@ -24,6 +24,7 @@ def main():
     for name in ['work','evidence']:parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--engine',type=Path,default=TOOL)
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
+    parser.add_argument('--identity-layout',action='store_true',help='Check the current identity dialog, fixed close action and archive fallback without live source')
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=True)
@@ -171,6 +172,25 @@ def main():
             assert bounds and bounds['y']>=0 and bounds['y']+bounds['height']<=height
             shot('05-workbench-actions-'+str(width))
         passed('review_search_and_all_decision_actions_fit_first_viewport_with_sample_banner')
+        if args.identity_layout:
+            identity=json.load(urllib.request.urlopen(urllib.request.Request(base+'/api/scans/'+opened['scan_id']+'/summary',headers={'X-ECRA-Session':info['token']})))['identity']
+            assert '目录名' in identity['project_name_source'] and identity['configured_target'] is None
+            for width,height in [(1366,768),(1600,900),(1920,1080)]:
+                page.set_viewport_size(dict(width=width,height=height));page.evaluate('scrollTo(0,0)')
+                trigger=button('查看当前工程与构建身份');trigger.click()
+                dialog=page.get_by_role('dialog',name='当前工程与构建身份',exact=True)
+                expect(dialog).to_contain_text(identity['project_name'])
+                expect(dialog).to_contain_text('未记录；不能从变量或芯片名称推断')
+                close=dialog.get_by_role('button',name='关闭身份详情',exact=True)
+                expect(close).to_be_in_viewport(ratio=1)
+                box=close.bounding_box();assert box and 0<=box['y'] and box['y']+box['height']<=height
+                dialog.locator('dl').evaluate('(el)=>el.scrollTop=el.scrollHeight')
+                expect(dialog.get_by_text('归档记录的Git提交',exact=True)).to_be_visible()
+                shot('06-identity-archive-'+str(width))
+                page.keyboard.press('Escape');expect(dialog).not_to_be_visible();expect(trigger).to_be_focused()
+                expect(page.locator('.detail-heading h2')).to_have_text('g_counter')
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            passed('archived_identity_unknown_fields_three_viewports_fixed_close_and_escape_keeps_selected_variable')
         assert before=={p.name:(sha256(p),p.stat().st_mtime_ns) for p in assets.iterdir() if p.is_file()}
         assert not list((work/'data/work/tasks').glob('*/task.json'))
         receipt.update(scan_id=opened['scan_id'],facts_hash=binding['facts_hash'],report_hash=binding['report_hash'],static_database_unchanged=True,

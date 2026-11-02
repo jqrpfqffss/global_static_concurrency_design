@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
     parser.add_argument('--cmake-example',action='store_true',help='Also actually build the repository teaching ARM object target in an independent source copy')
     parser.add_argument('--allow-external-toolchain',action='store_true',help='Explicitly allow the approved frozen database compiler; never substitute its arguments')
+    parser.add_argument('--identity-acceptance',action='store_true',help='Also verify archived identity, four-card drilldown, human undo and real CMake scan identity')
     args=parser.parse_args()
     from ecra.config import configured_project_root,read_yaml
     from ecra.workspace import no_links,studio_data_root
@@ -38,6 +39,7 @@ def main():
     database_before=(sha256(database),database.stat().st_mtime_ns)
     original_cfg_sha=sha256(config)
     cfg['analysis']['output']=dict(location='user')
+    if args.identity_acceptance:cfg['project']['name']='F030真实控制板 · 中文工程与长构建身份逐项验收'
     if args.allow_external_toolchain:cfg['analysis']['allow_external_toolchain']=True
     raw=json.dumps(cfg,ensure_ascii=False,indent=2)
     receipt=dict(passed=False,tests=[],screenshots=[],page_errors=[],external_requests=[],scope=__doc__,
@@ -145,6 +147,62 @@ def main():
         assert all(not (native/n).exists() for n in ('facts.json','facts.db','index.html','reports','inventory'))
         receipt['native_scan']=dict(task=completed['id'],database=str(native/'scan.db'),sha256=sha256(native/'scan.db'))
         shot('03-precheck-then-native-publication');passed('repair_recheck_then_actual_wizard_scan_publishes_only_valid_authority_database')
+        if args.identity_acceptance:
+            button('打开扫描结果').click()
+            expect(page.get_by_role('heading',name='先处理需要核实的变量',exact=True)).to_be_visible()
+            expected_name=cfg['project']['name'];binding=get('/scans/'+completed['scan_id']+'/summary')
+            assert binding['identity']['project_name']==expected_name
+            # The input-bound config is a separately saved profile, not the original input YAML.
+            profile=next(p for p in get('/profiles')['items'] if p['id']==binding['binding']['profile_id'])
+            import hashlib
+            assert binding['identity']['config_sha256']==hashlib.sha256(profile['yaml'].encode('utf-8')).hexdigest()
+            for width,height in ((1366,768),(1600,900),(1920,1080)):
+                page.set_viewport_size(dict(width=width,height=height))
+                identity_button=button('查看当前工程与构建身份');expect(identity_button).to_contain_text(expected_name)
+                box=page.locator('header').bounding_box();assert box and box['height']==60
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+                identity_button.click();dialog=page.get_by_role('dialog',name='当前工程与构建身份',exact=True)
+                expect(dialog).to_contain_text(str(root));expect(dialog).to_contain_text(binding['identity']['config_sha256'])
+                expect(dialog).to_contain_text('部分覆盖（INCOMPLETE）');shot('06-identity-'+str(width))
+                page.keyboard.press('Escape');expect(dialog).not_to_be_visible();expect(identity_button).to_be_focused()
+            passed('native_identity_uses_snapshot_config_and_fits_three_viewports_with_escape_focus_return')
+            for state,title in [('SUSPECT','静态疑似'),('UNKNOWN','无法判断'),('SAFE_PROVEN','当前构建已证明安全'),('PENDING','人工待确认')]:
+                page.get_by_role('link',name='项目概览',exact=True).click()
+                expected=binding['human_counts'].get('PENDING',0) if state=='PENDING' else binding['static_counts'].get(state,0)
+                with page.expect_response(lambda r:'/symbols?' in r.url and 'limit=50' in r.url and
+                    ('human_decision=PENDING' in r.url if state=='PENDING' else 'classification='+state+'&' in r.url)) as response:
+                    button(title+' '+str(expected)).click()
+                assert response.value.json()['total']==expected
+                expect(page.locator('.symbol')).to_have_count(min(50,expected))
+            passed('all_four_overview_cards_drill_into_exact_same_persisted_denominators')
+            page.get_by_label('静态分类',exact=True).select_option('')
+            page.get_by_label('人工状态',exact=True).select_option('')
+            page.get_by_label('查找变量、文件或规范身份',exact=True).fill('HCLK');button('搜索').click()
+            expect(page.locator('.symbol')).to_have_count(1);page.locator('.symbol').click()
+            symbol=EvidenceProvider(native/'scan.db').symbols(search='HCLK')['items'][0]['symbol_id']
+            from ecra.human_reviews import ReviewStore
+            store=ReviewStore(native/'reviews.db',EvidenceProvider(native/'scan.db').metadata());events_before=store.history(symbol)
+            page.get_by_label('确认者',exact=True).fill('U17自动化撤销验收声明')
+            reason=page.get_by_label('依据 / 修改或撤销理由',exact=True);reason.fill('临时风险决定，用于验证撤销审计，不作为安全证明')
+            button('确认有风险').click();expect(page.locator('.conclusion')).to_contain_text('人工确认有风险')
+            reason.fill('复核后撤销临时测试决定，保留原始理由');button('撤销上次确认').click()
+            expect(page.locator('.conclusion')).to_contain_text('待确认')
+            events=store.history(symbol);assert len(events)==len(events_before)+2
+            assert events[-2]['decision']=='CONFIRMED_RISK' and events[-1]['decision']=='PENDING'
+            assert events[-2]['comment']=='临时风险决定，用于验证撤销审计，不作为安全证明'
+            assert events[-1]['comment']=='撤销 '+events[-2]['event_id']+'：复核后撤销临时测试决定，保留原始理由'
+            assert sha256(native/'scan.db')==receipt['native_scan']['sha256']
+            shot('07-human-undo-retains-original-event');passed('actual_human_undo_appends_event_and_preserves_original_reason_and_static_database')
+            page.get_by_role('link',name='工程配置',exact=True).click()
+            page.locator('button.profile').filter(has_text=profile['name']).click()
+            changed=json.loads(profile['yaml']);changed['project']['name']='当前已保存配置已改名，不能覆盖旧批次'
+            save(json.dumps(changed,ensure_ascii=False))
+            page.get_by_role('link',name='历史与对比',exact=True).click()
+            page.locator('.history-row').filter(has_text=completed['scan_id']).get_by_role('button',name='打开结果',exact=True).click()
+            expect(button('查看当前工程与构建身份')).to_contain_text(expected_name)
+            assert get('/scans/'+completed['scan_id']+'/summary')['identity']==binding['identity']
+            assert sha256(native/'scan.db')==receipt['native_scan']['sha256']
+            passed('editing_current_profile_cannot_relabel_archived_scan_identity')
         if args.cmake_example:
             demo=work/'teaching-source';demo.mkdir()
             for name in ('main.c','other.c','shared.h','CMakeLists.txt'):
@@ -185,6 +243,17 @@ def main():
             assert demo_before=={p.name:(sha256(p),p.stat().st_mtime_ns) for p in demo.iterdir()}
             shot('05-cmake-target-release-checked');receipt['cmake_plan']=cmake_plan['check']
             passed('real_cmake_arm_target_release_build_after_form_repair_preserves_source_and_shows_all_commands')
+            if args.identity_acceptance:
+                start.click();expect(button('打开扫描结果')).to_be_visible(timeout=240000)
+                cmake_task=next(t for t in get('/tasks')['items'] if t['mode']=='scan' and t['project_root']==str(demo) and t['state']=='COMPLETE')
+                identity=get('/scans/'+cmake_task['scan_id']+'/summary')['identity']
+                assert identity['configured_target']=='demo' and identity['build_variant']=='Release'
+                assert identity['project_name']=='真实ARM教学对象构建'
+                button('打开扫描结果').click();button('查看当前工程与构建身份').click()
+                expect(page.get_by_role('dialog',name='当前工程与构建身份',exact=True)).to_contain_text('Release')
+                shot('08-real-cmake-native-build-identity');page.keyboard.press('Escape')
+                assert demo_before=={p.name:(sha256(p),p.stat().st_mtime_ns) for p in demo.iterdir()}
+                passed('actual_native_cmake_target_and_cache_variant_are_archived_and_visible')
         assert sha256(sample/'scan.db')==sample_sha
         assert before=={str(p.relative_to(root)):(sha256(p),p.stat().st_size,p.stat().st_mtime_ns) for p in root.rglob('*') if p.is_file()}
         assert database_before==(sha256(database),database.stat().st_mtime_ns) and original_cfg_sha==sha256(config)

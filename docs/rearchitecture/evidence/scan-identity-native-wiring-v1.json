@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 1,
+  "seconds": 8.677,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scan-identity-native-wiring-v1.log",
+  "log_sha256": "62f419b4c15d4fbf34ba5435dba7f49b998ebb20f17bdc57109c315d06dcece0",
+  "scope": "Actual focused identity/canonical/API/package checks; not an entire new full-suite or physicalPC validation"
+}
