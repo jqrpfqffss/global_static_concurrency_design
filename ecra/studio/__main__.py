@@ -31,6 +31,8 @@ def main(argv=None):
         target.write_text(json.dumps(dict(url=url, authority=authority, token=app.state.session_token)), encoding='utf-8')
     print('ECRA Studio；完整发布门禁状态见 docs/rearchitecture。', flush=True)
     print('数据目录：' + str(app.state.data_root), flush=True)
+    if app.state.preference_warning:
+        print('启动设置恢复提示：' + app.state.preference_warning, flush=True)
     print('浏览器入口：' + url, flush=True)
     print('关闭本启动窗口或按 Ctrl+C 结束本地服务。', flush=True)
     server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=sock.getsockname()[1], log_level='warning'))

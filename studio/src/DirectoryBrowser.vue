@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from './api'
-const props=defineProps<{title:string,start:string,root?:string}>()
+const props=defineProps<{title:string,start:string,root?:string,purpose?:'data'}>()
 const emit=defineEmits<{selected:[value:{path:string,relative:string|null}],close:[]}>()
 const dialog=ref<HTMLDialogElement|null>(null),state=ref<any>(null),pathText=ref(props.start),search=ref(''),error=ref(''),loading=ref(false)
 const history=ref<(string|null)[]>([]),cursor=ref<string|null>(null)
@@ -27,7 +27,7 @@ onBeforeUnmount(()=>{generation++})
   <Teleport to="body">
     <dialog ref="dialog" class="directory-dialog" :aria-label="title" @cancel.prevent="emit('close')">
       <h2>{{title}}</h2>
-      <p class="muted">只读目录浏览，不上传源码、不创建文件夹。{{root?'范围选择限制在当前固件根内。':'选择后仅登记路径；构建仍须检查。'}}</p>
+      <p class="muted">只读目录浏览，不上传源码、不创建文件夹。{{purpose==='data'?'选择后仍须检查归属与权限，再保存为下次启动目录。':root?'范围选择限制在当前固件根内。':'选择后仅登记路径；构建仍须检查。'}}</p>
       <form class="directory-path" @submit.prevent="navigate(pathText)"><label>要浏览的绝对目录<input aria-label="要浏览的绝对目录" v-model="pathText" :disabled="loading"></label><button :disabled="loading">打开目录</button></form>
       <div class="actions"><button type="button" :disabled="loading" @click="navigate(root||'')">{{root?'返回工程根目录':'本机驱动器'}}</button><button type="button" :disabled="loading||!state?.parent" @click="navigate(state.parent)">返回父目录</button></div>
       <p v-if="error" class="banner error" role="alert">{{error}}</p>

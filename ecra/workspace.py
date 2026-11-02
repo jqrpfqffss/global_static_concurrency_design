@@ -47,6 +47,12 @@ def user_data_root():
         if not Path(value).is_absolute():
             raise ValueError('ECRA_DATA_ROOT 必须是绝对路径')
         return no_links(value)
+    from .studio_preferences import preferred_data_root
+    return no_links(preferred_data_root(default_user_data_root()))
+
+
+def default_user_data_root():
+    """Original system default, also used by the explicit settings recovery UI."""
     if os.name == 'nt':
         local = os.environ.get('LOCALAPPDATA')
         if not local or not Path(local).is_absolute():

@@ -27,6 +27,23 @@ class JSONResponse(BaseJSONResponse):
 
 
 def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
+    from ..studio_preferences import startup_selection
+    selection = startup_selection(data_root)
+    try:
+        return _create_app(selection['root'], token=token, authority=authority, startup=selection)
+    except (ValueError, OSError) as exc:
+        if selection['source'] != 'GUI_DEFAULT':
+            raise
+        from ..workspace import default_user_data_root
+        fallback = studio_data_root(default_user_data_root())
+        if fallback == selection['root']:
+            raise
+        recovery = dict(root=fallback, source='RECOVERY_DEFAULT', warning='已保存目录无法打开：'+str(exc)+
+                        '。当前在系统默认目录恢复设置，原数据保留；请到设置页核对。')
+        return _create_app(fallback, token=token, authority=authority, startup=recovery)
+
+
+def _create_app(data_root, *, token, authority, startup):
     data = studio_data_root(data_root)
     data.mkdir(parents=True, exist_ok=True)
     from .tasks import TaskManager
@@ -48,6 +65,7 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     app.state.task_manager = tasks
     app.state.session_token = session
     app.state.data_root = data
+    app.state.preference_warning = startup['warning']
     settings = no_links(data/'settings'); settings.mkdir(exist_ok=True)
     device_path = no_links(settings/'device.json')
     if not device_path.exists():
@@ -121,11 +139,31 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     def bootstrap():
         from .sample import sample_info
         return dict(product='ECRA Studio', data_root=str(data), protocol=1,
+            data_root_source=startup['source'], preference_warning=startup['warning'],
             sample=sample_info(),
             scan_pipeline='SQLITE_NATIVE_SCAN',
             capabilities=['archive_viewer', 'human_reviews', 'report_packages', 'review_delta', 'profile_validation', 'native_scan_tasks', 'legacy_json_import', 'real_build_preflight'],
             limits=['大型工程资源门禁及完整 U01–U24 尚未全部通过。',
                     '归档内容校验不等于当前源码重新验证；确认者为用户声明，未经认证。'])
+
+    @app.get('/api/settings/data-root')
+    def data_root_settings():
+        from ..studio_preferences import status
+        return status(data, startup['source'], startup['warning'])
+
+    @app.post('/api/settings/data-root/preview')
+    def preview_data_root(payload: dict):
+        from ..studio_preferences import preview
+        return preview(payload.get('path'), data)
+
+    @app.put('/api/settings/data-root')
+    def save_data_root(payload: dict):
+        from ..studio_preferences import save, PreferenceConflict
+        try:
+            return save(payload.get('path'), data, plan_id=payload.get('plan_id'),
+                        revision=payload.get('revision'), repair=payload.get('repair') is True)
+        except PreferenceConflict as exc:
+            return JSONResponse(dict(error=str(exc)), status_code=409)
 
     @app.post('/api/sample/open')
     def open_builtin_sample():

@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "seconds": 27.859,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tests.test_studio_preferences",
+    "tests.test_studio_history",
+    "tests.test_scan_identity",
+    "tests.test_studio_api",
+    "-v"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\preferences-focused-v2.log"
+}
