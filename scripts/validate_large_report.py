@@ -241,7 +241,7 @@ def report_selection(folder):
 
 def audit_sqlite(folder):
     """Audit the authority directly; never manufacture legacy HTML/JSON."""
-    from ecra.scan_store import EvidenceProvider,connect_readonly,SCHEMA,SUPPORTED_VERSIONS
+    from ecra.scan_store import EvidenceProvider,connect_readonly,schema_for_version,SUPPORTED_VERSIONS
     from ecra.report_package import validate_schema,validate_objects,sha256
     from ecra.human_reviews import SCHEMA as REVIEW_SCHEMA
     started=time.monotonic();folder=Path(folder).resolve();checks={};result=dict(format='SQLITE_AUTHORITY',checks=checks)
@@ -249,7 +249,7 @@ def audit_sqlite(folder):
     checks['complete_typed_graph_and_projections']=True
     with closing(connect_readonly(folder/'scan.db')) as conn:
         version=conn.execute('PRAGMA user_version').fetchone()[0]
-    validate_schema(folder/'scan.db',SCHEMA,version)
+    validate_schema(folder/'scan.db',schema_for_version(version),version)
     checks['known_static_schema']=version in SUPPORTED_VERSIONS
     checks['legacy_copies_absent']=all(not (folder/name).exists() for name in
         ('facts.json','facts.db','index.html','opencode_review.html','diff_index.html','inventory','reports'))

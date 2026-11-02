@@ -1,0 +1,249 @@
+{
+  "passed": false,
+  "status": "FAIL",
+  "scope": "Read-only full dbstat B-tree allocation of original complete comparison graph; not production new storage,not a standard archive/G4 reduction. All graph pages rather than a content sample. Independent512MiB Job; query and observer hashes have separate times.",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+  "sqlite": "D:\\msys2\\mingw64\\bin\\sqlite3.exe",
+  "sqlite_sha256": "23a026d89805acfd5f7a99d8088faa772a290643642001d44d1fc87a3685d461",
+  "physical_native": "NOT_EXERCISED",
+  "source_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "hash_before_seconds": 205.39100000000326,
+  "pid": 15652,
+  "peaks": {
+    "working_set_bytes": 94167040,
+    "private_bytes": 86081536,
+    "peak_job_commit_bytes": 86081536
+  },
+  "query_seconds": 53.375,
+  "exit_code": 0,
+  "allocations": [
+    {
+      "name": "edges",
+      "pageno": 1376024,
+      "pgsize": 5636194304,
+      "ncell": 158269769,
+      "payload": 3370682484,
+      "unused": 1144615157,
+      "mx_payload": 162
+    },
+    {
+      "name": "sqlite_autoindex_edges_1",
+      "pageno": 678170,
+      "pgsize": 2777784320,
+      "ncell": 156897586,
+      "payload": 1961901230,
+      "unused": 337052296,
+      "mx_payload": 15
+    },
+    {
+      "name": "edge_child",
+      "pageno": 551625,
+      "pgsize": 2259456000,
+      "ncell": 156897586,
+      "payload": 1502888193,
+      "unused": 279255553,
+      "mx_payload": 11
+    },
+    {
+      "name": "nodes",
+      "pageno": 533266,
+      "pgsize": 2184257536,
+      "ncell": 19437145,
+      "payload": 1695743345,
+      "unused": 346792136,
+      "mx_payload": 577
+    },
+    {
+      "name": "sqlite_autoindex_nodes_1",
+      "pageno": 392592,
+      "pgsize": 1608056832,
+      "ncell": 18905356,
+      "payload": 1353893943,
+      "unused": 192735721,
+      "mx_payload": 72
+    },
+    {
+      "name": "records",
+      "pageno": 267584,
+      "pgsize": 1096024064,
+      "ncell": 7710742,
+      "payload": 1016369078,
+      "unused": 20992663,
+      "mx_payload": 323
+    },
+    {
+      "name": "record_function",
+      "pageno": 204875,
+      "pgsize": 839168000,
+      "ncell": 7443885,
+      "payload": 663460673,
+      "unused": 150062123,
+      "mx_payload": 200
+    },
+    {
+      "name": "record_symbol",
+      "pageno": 154054,
+      "pgsize": 631005184,
+      "ncell": 7443885,
+      "payload": 535511375,
+      "unused": 69704597,
+      "mx_payload": 196
+    },
+    {
+      "name": "record_source",
+      "pageno": 65794,
+      "pgsize": 269492224,
+      "ncell": 7443885,
+      "payload": 213018700,
+      "unused": 33351593,
+      "mx_payload": 157
+    },
+    {
+      "name": "record_target",
+      "pageno": 65791,
+      "pgsize": 269479936,
+      "ncell": 7443885,
+      "payload": 213047073,
+      "unused": 33310866,
+      "mx_payload": 157
+    },
+    {
+      "name": "sqlite_autoindex_records_1",
+      "pageno": 62213,
+      "pgsize": 254824448,
+      "ncell": 7443885,
+      "payload": 204619059,
+      "unused": 27127182,
+      "mx_payload": 43
+    },
+    {
+      "name": "symbols",
+      "pageno": 794,
+      "pgsize": 3252224,
+      "ncell": 17356,
+      "payload": 3051413,
+      "unused": 89965,
+      "mx_payload": 342
+    },
+    {
+      "name": "sqlite_autoindex_symbols_1",
+      "pageno": 365,
+      "pgsize": 1495040,
+      "ncell": 16566,
+      "payload": 1263205,
+      "unused": 177271,
+      "mx_payload": 172
+    },
+    {
+      "name": "symbol_name",
+      "pageno": 174,
+      "pgsize": 712704,
+      "ncell": 16566,
+      "payload": 575071,
+      "unused": 85851,
+      "mx_payload": 101
+    },
+    {
+      "name": "symbol_class",
+      "pageno": 95,
+      "pgsize": 389120,
+      "ncell": 16566,
+      "payload": 289366,
+      "unused": 48920,
+      "mx_payload": 19
+    },
+    {
+      "name": "sqlite_autoindex_symbols_2",
+      "pageno": 47,
+      "pgsize": 192512,
+      "ncell": 16566,
+      "payload": 115704,
+      "unused": 26550,
+      "mx_payload": 7
+    },
+    {
+      "name": "sqlite_schema",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 32,
+      "payload": 3693,
+      "unused": 157,
+      "mx_payload": 315
+    },
+    {
+      "name": "roots",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 3,
+      "payload": 41,
+      "unused": 4035,
+      "mx_payload": 17
+    },
+    {
+      "name": "sqlite_autoindex_roots_1",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 3,
+      "payload": 32,
+      "unused": 4047,
+      "mx_payload": 14
+    },
+    {
+      "name": "projects",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 1,
+      "payload": 29,
+      "unused": 4055,
+      "mx_payload": 29
+    },
+    {
+      "name": "sqlite_autoindex_projects_1",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 1,
+      "payload": 25,
+      "unused": 4060,
+      "mx_payload": 25
+    },
+    {
+      "name": "profiles",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 1,
+      "payload": 32,
+      "unused": 4052,
+      "mx_payload": 32
+    },
+    {
+      "name": "sqlite_autoindex_profiles_1",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 1,
+      "payload": 10,
+      "unused": 4075,
+      "mx_payload": 10
+    },
+    {
+      "name": "scans",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 1,
+      "payload": 213,
+      "unused": 3870,
+      "mx_payload": 213
+    },
+    {
+      "name": "sqlite_autoindex_scans_1",
+      "pageno": 1,
+      "pgsize": 4096,
+      "ncell": 1,
+      "payload": 34,
+      "unused": 4051,
+      "mx_payload": 34
+    }
+  ],
+  "accounted_bytes": 17831821312,
+  "source_unchanged": true,
+  "observer_seconds": 331.45299999999406
+}

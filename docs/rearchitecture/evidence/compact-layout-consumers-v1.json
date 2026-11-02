@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 43,
+  "seconds": 115.385,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\compact-layout-consumers-v1.log",
+  "log_sha256": "dd4550f7d0746446758b9ed005de0cfd239bce5d43d79d23ee58fcdc7ee071be",
+  "scope": "Actual current schema3 selected regression; full1322 frozen/package/large-native not yet run"
+}

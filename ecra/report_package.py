@@ -12,7 +12,7 @@ import tempfile
 import zipfile
 
 from .human_reviews import ReviewStore
-from .scan_store import EvidenceProvider, connect_readonly, SCHEMA, SCHEMA_VERSION, SUPPORTED_VERSIONS
+from .scan_store import EvidenceProvider, connect_readonly, schema_for_version, SUPPORTED_VERSIONS
 from .workspace import no_links
 from .storage_activity import guarded_operation, scan_data_root
 
@@ -247,6 +247,9 @@ def validate_objects(directory, manifest, *, max_raw_bytes=128*1024**3):
 @guarded_operation(lambda args:scan_data_root(args['scan_directory']))
 def export_report(scan_directory, destination):
     source, destination = no_links(scan_directory), no_links(destination)
+    with closing(connect_readonly(source/'scan.db')) as conn:
+        schema_version = conn.execute('PRAGMA user_version').fetchone()[0]
+    validate_schema(source/'scan.db', schema_for_version(schema_version), schema_version)
     provider = EvidenceProvider(source/'scan.db')
     binding = provider.validate(deep=True)
     if destination.exists():
@@ -272,8 +275,6 @@ def export_report(scan_directory, destination):
                 if not item.is_file() or sha256(item) != item.name:
                     raise ValueError('归档证据对象损坏')
                 files[name] = item
-        with closing(connect_readonly(source/'scan.db')) as conn:
-            schema_version = conn.execute('PRAGMA user_version').fetchone()[0]
         manifest = dict(format='ECRA_REPORT', version=1, schema_version=schema_version,
             scan_id=binding['scan_id'], project_id=binding['project_id'], facts_hash=binding['facts_hash'],
             report_hash=binding['report_hash'], capabilities=['archived_evidence', 'human_decisions'],
@@ -328,7 +329,8 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
                 manifest = json.loads(zipped.read(info))
             except (KeyError, json.JSONDecodeError) as exc:
                 raise ValueError('结果包缺少有效清单') from exc
-            if (manifest.get('format') != 'ECRA_REPORT' or manifest.get('version') != 1
+            if (manifest.get('format') != 'ECRA_REPORT' or type(manifest.get('version')) is not int
+                    or manifest.get('version') != 1 or type(manifest.get('schema_version')) is not int
                     or manifest.get('schema_version') not in SUPPORTED_VERSIONS):
                 raise ValueError('未知结果包/schema版本，请使用匹配版本软件')
             if not all(isinstance(manifest.get(k), str) and IDENTITY.fullmatch(manifest[k]) for k in ('scan_id', 'project_id')):
@@ -359,7 +361,7 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
                     raise ValueError('结果包 SHA-256 校验失败')
                 if OBJECT.fullmatch(member.filename) and record['sha256'] != Path(member.filename).name:
                     raise ValueError('证据对象内容身份错误')
-        validate_schema(stage/'scan.db', SCHEMA, manifest['schema_version'])
+        validate_schema(stage/'scan.db', schema_for_version(manifest['schema_version']), manifest['schema_version'])
         provider = EvidenceProvider(stage/'scan.db')
         binding = provider.validate(deep=True)
         validate_objects(stage, manifest, max_raw_bytes=max_bytes)

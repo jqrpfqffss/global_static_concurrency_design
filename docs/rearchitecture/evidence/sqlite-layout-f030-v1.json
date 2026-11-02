@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "scope": "Private physical-layout trial; not a production schema or native/G4 proof.",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+  "source_sha256": "1c3b3bb6dce080154f5c27fdd27e75270f20f3645c43ecdb4bf080e911a68e7e",
+  "source_unchanged": true,
+  "trial": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\sqlite-layout-f030-v1\\layout-trial.db",
+  "trial_sha256": "1ca502e8ed04b92709259c364563050d137357337c47137fd311b5c68698d3eb",
+  "declared_schema_sha256": "f70c4f7f29a536b369355668f1e47733a41c516d69e23cdf6809415f9f4fc36d",
+  "before_bytes": 10665984,
+  "after_bytes": 8044544,
+  "before_allocated_bytes": 10665984,
+  "after_allocated_bytes": 8044544,
+  "convert_seconds": 4.640999999988708,
+  "total_seconds": 8.280999999988126,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\sqlite-layout-f030-v1\\layout-trial.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "old_package_validator_rejects_trial": true,
+  "production_storage_changed": false,
+  "large_native_G1": "NOT_EXERCISED",
+  "whole_policy_G4": "NOT_EXERCISED"
+}

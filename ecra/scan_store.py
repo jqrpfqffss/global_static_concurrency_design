@@ -15,9 +15,9 @@ import sqlite3
 import struct
 import uuid
 
-SCHEMA_VERSION = 2
-SUPPORTED_VERSIONS = {1, 2}
-SCHEMA = """
+SCHEMA_VERSION = 3
+SUPPORTED_VERSIONS = {1, 2, 3}
+LEGACY_SCHEMA = """
 CREATE TABLE nodes (
  id INTEGER PRIMARY KEY, hash TEXT UNIQUE, kind TEXT NOT NULL,
  value BLOB, length INTEGER NOT NULL CHECK(length>=0));
@@ -57,6 +57,30 @@ CREATE VIEW irq_priorities AS SELECT * FROM records WHERE dataset='facts' AND re
 CREATE VIEW coverage_gaps AS SELECT * FROM records WHERE dataset='facts' AND relation='unknowns';
 CREATE VIEW translation_units AS SELECT * FROM records WHERE dataset='facts' AND relation='translation_units';
 """
+
+# Cluster only the two composite primary keys. Logical rows/IDs, values and
+# query ordering are unchanged; NULL rows remain in records, outside the four
+# selective indexes. Never apply this DDL to an existing user database.
+SCHEMA = LEGACY_SCHEMA.replace(
+    'PRIMARY KEY(parent,ordinal));', 'PRIMARY KEY(parent,ordinal)) WITHOUT ROWID;'
+).replace(
+    'PRIMARY KEY(dataset,relation,ordinal));',
+    'PRIMARY KEY(dataset,relation,ordinal)) WITHOUT ROWID;'
+)
+for _index, _column in (('symbol', 'symbol_id'), ('function', 'function_id'),
+                        ('source', 'source_id'), ('target', 'target_id')):
+    SCHEMA = SCHEMA.replace(
+        f'CREATE INDEX record_{_index} ON records(dataset,relation,{_column},ordinal);',
+        f'CREATE INDEX record_{_index} ON records(dataset,relation,{_column},ordinal) '
+        f'WHERE {_column} IS NOT NULL;'
+    )
+
+
+def schema_for_version(version):
+    """Exact, closed format registry; bool is not an integer protocol version."""
+    if type(version) is not int or version not in SUPPORTED_VERSIONS:
+        raise ValueError('不支持的 scan.db schema；请使用匹配版本的 ECRA Studio')
+    return LEGACY_SCHEMA if version in {1, 2} else SCHEMA
 
 
 def connect_readonly(path):
