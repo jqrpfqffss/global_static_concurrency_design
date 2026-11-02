@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from './api'
+import BuildPreflight from './BuildPreflight.vue'
 const emit=defineEmits<{open:[scanId:string],focus:[taskId:string]}>()
 const props=defineProps<{focusTask?:string}>()
 const profiles=ref<any[]>([]), tasks=ref<any[]>([]), selected=ref(''), profile=ref(''), detail=ref<any>(null)
 const resourcePreset=ref('auto'),peakGib=ref(16),workers=ref(4)
 const error=ref(''), pollError=ref(''), notice=ref(''), busy=ref(false), logOffset=ref(0), search=ref('')
 const names:Record<string,string>={RUNNING:'正在扫描',STOP_REQUESTED:'停止请求已发送',COMPLETE:'扫描已发布',FAILED:'扫描失败',INTERRUPTED:'已停止 / 上次中断'}
-function taskName(task:any){if(task.mode&&task.mode!=='scan')return ({RUNNING:'正在复核',COMPLETE:'复核执行已结束',FAILED:'复核执行失败'} as Record<string,string>)[task.state]||names[task.state]||task.state;return names[task.state]||task.state}
+function taskName(task:any){if(task.mode==='precheck')return ({RUNNING:'正在检查真实构建',STOP_REQUESTED:'检查停止请求已发送',COMPLETE:'编译输入检查通过',FAILED:'真实构建检查失败',INTERRUPTED:'检查已停止'} as Record<string,string>)[task.state]||task.state;if(task.mode&&task.mode!=='scan')return ({RUNNING:'正在复核',COMPLETE:'复核执行已结束',FAILED:'复核执行失败'} as Record<string,string>)[task.state]||names[task.state]||task.state;return names[task.state]||task.state}
 const active=computed(()=>tasks.value.some(x=>['RUNNING','STOP_REQUESTED'].includes(x.state)))
 const currentProfile=computed(()=>profiles.value.find(x=>x.id===profile.value))
 const chartMax=computed(()=>Math.max(1,...(detail.value?.samples||[]).map((s:any)=>s.working_set_bytes||0)))
@@ -39,10 +40,10 @@ onUnmounted(()=>{if(timer)clearInterval(timer)})
   <div v-if="error" class="banner error" role="alert">{{error}}</div><div v-if="notice" class="banner" role="status">{{notice}}</div>
   <div v-if="pollError" class="banner warning" role="alert"><strong>任务状态暂时无法读取，正在重试；保留上次真实详情。</strong><details><summary>查看读取失败原因</summary>{{pollError}}</details></div>
   <section class="panel task-controls"><details :open="!detail"><summary>扫描配置与资源预算 · {{currentProfile?.project_root || '尚未选择工程'}}</summary><label>工程与构建配置<select v-model="profile" aria-label="扫描工程配置" :disabled="busy||active"><option v-for="p in profiles" :value="p.id">{{p.project_root}} · {{p.id.slice(0,8)}}</option></select></label>
-    <div class="resource-settings"><label>资源预设<select aria-label="资源预设" v-model="resourcePreset" :disabled="busy||active"><option value="auto">自动</option><option value="low">低内存</option><option value="high">高性能</option><option value="manual">手动预算</option></select></label><label v-if="resourcePreset==='manual'">进程树峰值提交预算（GiB）<input type="number" min="2" max="64" v-model.number="peakGib" :disabled="busy||active"></label><label>最大 TU 并行数<input type="number" min="1" max="8" v-model.number="workers" :disabled="busy||active||resourcePreset==='low'"></label></div></details><button class="primary" :disabled="busy||active||!profile" @click="start">开始扫描</button><p v-if="!profiles.length">请先在“工程配置”保存真实构建配置。</p>
-    <p>输出保存在当前独立数据根。开始后才执行真实构建、Clang 和输入一致性检查。自动默认软目标 12 GiB、峰值提交预算 16 GiB；低内存采用 6/8 GiB。接近阈值降低后续TU并行并请求安全停止，同一数据根共享一个扫描预算。目标能否满足须由真实工程测量。</p>
+    <div class="resource-settings"><label>资源预设<select aria-label="资源预设" v-model="resourcePreset" :disabled="busy||active"><option value="auto">自动</option><option value="low">低内存</option><option value="high">高性能</option><option value="manual">手动预算</option></select></label><label v-if="resourcePreset==='manual'">进程树峰值提交预算（GiB）<input type="number" min="2" max="64" v-model.number="peakGib" :disabled="busy||active"></label><label>最大 TU 并行数<input type="number" min="1" max="8" v-model.number="workers" :disabled="busy||active||resourcePreset==='low'"></label></div></details><button class="primary" :disabled="busy||active||!profile" @click="start">检查并扫描</button><p v-if="!profiles.length">请先在“工程配置”保存真实构建配置。</p>
+    <p>输出保存在当前独立数据根。开始后先检查真实构建、全部TU编译输入，通过后才提取事实；失败保留外部诊断和上次有效结果。自动默认软目标 12 GiB、峰值提交预算 16 GiB；低内存采用 6/8 GiB。接近阈值降低后续TU并行并请求安全停止，同一数据根共享一个扫描预算。目标能否满足须由真实工程测量。</p>
   </section>
-  <div class="overview-columns task-columns"><section class="panel task-detail"><h2>任务与阶段</h2><details class="task-history"><summary>任务历史 · {{tasks.length}} 项</summary><button v-for="task in tasks" class="profile" :class="{selected:selected===task.id}" @click="selected=task.id;logOffset=0;poll()">{{taskName(task)}} · {{task.started}}<small>{{task.project_root}}</small></button></details>
+  <div class="overview-columns task-columns"><section class="panel task-detail"><h2>任务与阶段</h2><details v-if="currentProfile"><summary>预先检查并查看全部编译命令</summary><BuildPreflight :profile="currentProfile" @tasks="(id:string)=>{selected=id;logOffset=0;poll()}" /></details><details class="task-history"><summary>任务历史 · {{tasks.length}} 项</summary><button v-for="task in tasks" class="profile" :class="{selected:selected===task.id}" @click="selected=task.id;logOffset=0;poll()">{{taskName(task)}} · {{task.started}}<small>{{task.project_root}}</small></button></details>
     <template v-if="detail"><h3>{{taskName(detail)}}</h3><p class="identity">{{detail.id}} · {{detail.profile_id}}</p><p>{{detail.project_root}}</p>
       <ol class="task-stages"><li v-for="stage in detail.stages" :key="stage.started"><strong>{{stage.stage}}</strong> · {{stage.status==='RUNNING'?'进行中，剩余量未知':stage.status==='COMPLETE'?'阶段结束':stage.status}}<span v-if="stage.seconds"> · {{stage.seconds.toFixed(1)}} s</span></li></ol>
       <p v-if="detail.memory">TU 解析完成 {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>

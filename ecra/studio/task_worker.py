@@ -14,7 +14,12 @@ def execute(args):
     os.environ['ECRA_DATA_ROOT'] = str(args.data_root)
     os.environ['ECRA_JOB_STOP_FILE'] = str(args.stop)
     from ..config import configured_project_root
-    if args.mode != 'scan':
+    if args.mode in {'scan', 'precheck'}:
+        from .preflight import run_preflight
+        run_preflight(args.config, args.data_root, args.result.parent/'preflight',
+                      progress=lambda text: print(text, flush=True))
+        if args.mode == 'precheck': return 0
+    else:
         import threading
         import _thread
         finished=threading.Event()
@@ -41,7 +46,7 @@ def main():
     parser.add_argument('--profile-id', required=True)
     parser.add_argument('--gate', type=Path, required=True)
     parser.add_argument('--stop', type=Path, required=True)
-    parser.add_argument('--mode', choices=['scan','review','review-failed'], default='scan')
+    parser.add_argument('--mode', choices=['scan','precheck','review','review-failed'], default='scan')
     parser.add_argument('--result', type=Path, required=True)
     args = parser.parse_args()
     error=None

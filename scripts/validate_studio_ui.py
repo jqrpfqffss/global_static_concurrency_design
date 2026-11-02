@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--engine', type=Path, default=TOOL)
     parser.add_argument('--python', type=Path, default=Path(sys.executable))
     args = parser.parse_args()
+    supports_precheck=(args.engine/'ecra/studio/preflight.py').is_file()
     if args.repeat_scan and not (args.native_scan and args.firmware and args.compile_database):
         parser.error('--repeat-scan requires --native-scan, --firmware and --compile-database')
     if args.task_metadata_sharing_fault and (os.name!='nt' or not args.native_scan):
@@ -239,17 +240,21 @@ def main():
                     source_before={str(path.relative_to(args.firmware)):sha256(path) for path in args.firmware.rglob('*') if path.is_file()}
                     if args.repeat_scan:
                         start=page.get_by_role('button',name='开始此配置扫描',exact=True)
-                        expect(start).to_be_enabled()
+                        if supports_precheck:
+                            expect(start).to_be_disabled();page.get_by_role('button',name='检查真实构建',exact=True).click()
+                        expect(start).to_be_enabled(timeout=180000)
                         editor=page.get_by_label('高级完整 YAML',exact=True);raw=editor.input_value()
                         editor.fill(raw+'\n# unsaved UI gate check\n');expect(start).to_be_disabled()
                         editor.fill(raw);expect(start).to_be_disabled()
                         page.get_by_role('button',name='检查配置与工具路径',exact=True).click()
                         expect(page.get_by_role('button',name='保存独立配置',exact=True)).to_be_enabled()
                         page.get_by_role('button',name='保存独立配置',exact=True).click()
-                        expect(start).to_be_enabled();start.click()
+                        if supports_precheck:
+                            page.get_by_role('button',name='重新检查真实构建',exact=True).click()
+                        expect(start).to_be_enabled(timeout=180000);start.click()
                     else:
                         page.get_by_role('link',name='扫描任务',exact=True).click()
-                        page.get_by_role('button',name='开始扫描',exact=True).click()
+                        page.get_by_role('button',name='检查并扫描' if supports_precheck else '开始扫描',exact=True).click()
                     stop=page.get_by_role('button',name='安全停止',exact=True)
                     expect(stop).to_be_enabled(timeout=20000)
                     stop.click()
@@ -264,7 +269,7 @@ def main():
                     page.set_viewport_size(dict(width=1600,height=900))
                     shot('04-scan-published')
                     tasks=[json.loads(path.read_text(encoding='utf-8')) for path in (work/'data/work/tasks').glob('*/task.json')]
-                    completed=next(item for item in tasks if item['state']=='COMPLETE')
+                    completed=next(item for item in tasks if item['state']=='COMPLETE' and item['mode']=='scan')
                     assert any(item['state']=='INTERRUPTED' for item in tasks)
                     assert completed['resources']['available'] and completed['resources']['peak_job_commit_bytes']>0
                     native=work/'data/scans'/completed['scan_id']

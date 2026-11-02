@@ -1,0 +1,92 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "four_steps_preserve_database_and_saved_configuration_alone_cannot_enable_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_all_tu_compiler_and_input_checks_are_persisted_and_every_command_pages_without_truncation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "checked_plan_and_wizard_scan_action_fit_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "any_unsaved_yaml_change_revokes_wizard_start_even_when_text_is_restored",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_missing_compiler_blocks_gate_with_path_and_repair_and_preserves_previous_archive",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "repair_recheck_then_actual_wizard_scan_publishes_only_valid_authority_database",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v2-evidence\\01-build-plan-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v2-evidence\\01-build-plan-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v2-evidence\\02-missing-compiler-blocked.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v2-evidence\\03-precheck-then-native-publication.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome U02/U05 subset: build gate, full commands, repair and native scan.\n\nUses only explicitly supplied firmware/config and repository teaching sources.\nNo mock API, online model, physical32GB, native DPI or engineer UAT claim.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "source_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": {
+    "task": "00ad0d98adcd4df1bc2ec20f908d70a4",
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v2\\data\\scans\\00ad0d98adcd4df1bc2ec20f908d70a4\\scan.db",
+    "sha256": "0b738bb8e38834f0da317dfa1971f1fd2f222cbec4d272ad6cb3d69177d8c4d8"
+  },
+  "firmware_unchanged_files": 42,
+  "original_database_unchanged": true,
+  "original_config_unchanged": true
+}

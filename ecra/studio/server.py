@@ -117,7 +117,7 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
         return dict(product='ECRA Studio', data_root=str(data), protocol=1,
             sample=sample_info(),
             scan_pipeline='SQLITE_NATIVE_SCAN',
-            capabilities=['archive_viewer', 'human_reviews', 'report_packages', 'review_delta', 'profile_validation', 'native_scan_tasks', 'legacy_json_import'],
+            capabilities=['archive_viewer', 'human_reviews', 'report_packages', 'review_delta', 'profile_validation', 'native_scan_tasks', 'legacy_json_import', 'real_build_preflight'],
             limits=['大型工程资源门禁及完整 U01–U24 尚未全部通过。',
                     '归档内容校验不等于当前源码重新验证；确认者为用户声明，未经认证。'])
 
@@ -568,6 +568,11 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     def task_detail(task_id: str, offset: int=0, limit: int=65536):
         return tasks.detail(task_id, offset=offset, limit=limit)
 
+    @app.get('/api/tasks/{task_id}/plan')
+    def build_plan(task_id: str, offset: int=0, limit: int=20):
+        from .preflight import plan_page
+        return plan_page(tasks.directory(task_id)/'preflight', offset=offset, limit=limit)
+
     @app.post('/api/tasks/{task_id}/stop')
     def stop_task(task_id: str):
         return tasks.stop(task_id)
@@ -607,10 +612,14 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
                 raise ValueError('配置输出与当前 Studio 数据根不同；请使用 output.location: user。')
             checks = []
             for tool in ('cmake', 'arm-none-eabi-gcc', 'git'):
-                resolved = tool_path(tool)
-                found = Path(resolved).is_file() or shutil.which(resolved) is not None
+                repair = ''
+                try:
+                    resolved = tool_path(tool)
+                    found = Path(resolved).is_file() or shutil.which(resolved) is not None
+                except ValueError as exc:
+                    resolved = str(exc); found = False; repair = str(exc)
                 checks.append(dict(tool=tool, path=resolved, available=found,
-                    repair='' if found else '请在Portable工具清单中安装/核对 '+tool+'，并重新检查。'))
+                    repair='' if found else repair or '请在Portable工具清单中安装/核对 '+tool+'，并重新检查。'))
             return dict(project_id=ws.project_id, project_root=str(root), data_root=ws.workspace_root,
                         checks=checks, ready_for_scan=False,
                         note='配置与工具路径检查；启动扫描后才执行真实构建、Clang、输入闭包及持久化校验。')

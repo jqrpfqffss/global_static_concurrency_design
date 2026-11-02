@@ -1,0 +1,73 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "four_steps_preserve_database_and_saved_configuration_alone_cannot_enable_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_all_tu_compiler_and_input_checks_are_persisted_and_every_command_pages_without_truncation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "checked_plan_and_wizard_scan_action_fit_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "any_unsaved_yaml_change_revokes_wizard_start_even_when_text_is_restored",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_missing_compiler_blocks_gate_with_path_and_repair_and_preserves_previous_archive",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v1-evidence\\01-build-plan-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v1-evidence\\01-build-plan-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-ui-v1-evidence\\02-missing-compiler-blocked.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome U02/U05 subset: build gate, full commands, repair and native scan.\n\nUses only explicitly supplied firmware/config and repository teaching sources.\nNo mock API, online model, physical32GB, native DPI or engineer UAT claim.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "source_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_build_preflight_ui.py\", line 129, in main\n    assert not [t for t in get('/tasks')['items'] if t['mode']=='scan']\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22896, in to_be_enabled\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 796, in to_be_enabled\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to be enabled\nActual value: disabled \nCall log:\n  - Expect \"to_be_enabled\" with timeout 180000ms\n  - waiting for get_by_role(\"button\", name=\"开始此配置扫描\", exact=True)\n    359 × locator resolved to <button disabled class=\"primary\">开始此配置扫描</button>\n        - unexpected value \"disabled\"\n\nAria snapshot:\n- button \"开始此配置扫描\" [disabled]\n"
+}

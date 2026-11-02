@@ -1,0 +1,133 @@
+{
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+  "seconds": 2.7189999999973224,
+  "scope": "Read-only complete original graph list element counts, not measured native memory",
+  "totals": {
+    "slice.symbol_id": {
+      "elements": 884764,
+      "max_length": 166,
+      "unique_nodes": 12172,
+      "unique_elements": 884764
+    },
+    "slice.canonical_path": {
+      "elements": 352800,
+      "max_length": 92,
+      "unique_nodes": 10122,
+      "unique_elements": 312084
+    },
+    "slice.definition": {
+      "elements": 24346,
+      "max_length": 3,
+      "unique_nodes": 1959,
+      "unique_elements": 3919
+    },
+    "slice.linkage": {
+      "elements": 98942,
+      "max_length": 10,
+      "unique_nodes": 3,
+      "unique_elements": 26
+    },
+    "slice.direct_access_ids": {
+      "elements": 79489,
+      "max_length": 462,
+      "unique_nodes": 3502,
+      "unique_elements": 79489
+    },
+    "slice.alias_access_ids": {
+      "elements": 873908,
+      "max_length": 14928,
+      "unique_nodes": 6004,
+      "unique_elements": 873908
+    },
+    "slice.address_taken": {
+      "elements": 91406,
+      "max_length": 452,
+      "unique_nodes": 7306,
+      "unique_elements": 91406
+    },
+    "slice.address_escapes": {
+      "elements": 117423,
+      "max_length": 544,
+      "unique_nodes": 2034,
+      "unique_elements": 117423
+    },
+    "slice.function_ids": {
+      "elements": 2055315,
+      "max_length": 1636,
+      "unique_nodes": 2248,
+      "unique_elements": 370770
+    },
+    "slice.physical_contexts": {
+      "elements": 39578,
+      "max_length": 39,
+      "unique_nodes": 59,
+      "unique_elements": 474
+    },
+    "slice.call_edge_indices": {
+      "elements": 6779865,
+      "max_length": 5930,
+      "unique_nodes": 2203,
+      "unique_elements": 1118969
+    },
+    "slice.call_edges_reference": {
+      "elements": 194752,
+      "max_length": 16,
+      "unique_nodes": 1,
+      "unique_elements": 16
+    },
+    "slice.unresolved_edges": {
+      "elements": 52898,
+      "max_length": 57,
+      "unique_nodes": 112,
+      "unique_elements": 1989
+    },
+    "slice.protection": {
+      "elements": 953397,
+      "max_length": 14928,
+      "unique_nodes": 7261,
+      "unique_elements": 953397
+    },
+    "slice.whole_object_effects": {
+      "elements": 921093,
+      "max_length": 14927,
+      "unique_nodes": 4261,
+      "unique_elements": 921093
+    },
+    "slice.critical_gaps": {
+      "elements": 787341,
+      "max_length": 1068,
+      "unique_nodes": 2309,
+      "unique_elements": 781109
+    },
+    "blocking_evidence": {
+      "elements": 787341,
+      "max_length": 1068,
+      "unique_nodes": 2309,
+      "unique_elements": 781109
+    },
+    "protection_details": {
+      "elements": 953397,
+      "max_length": 14928,
+      "unique_nodes": 7261,
+      "unique_elements": 953397
+    },
+    "concurrency_relations": {
+      "elements": 604672,
+      "max_length": 741,
+      "unique_nodes": 45,
+      "unique_elements": 5870
+    },
+    "conflict_pairs": {
+      "elements": 707677,
+      "max_length": 3990,
+      "unique_nodes": 1320,
+      "unique_elements": 707677
+    },
+    "multi_field_coherence": {
+      "elements": 1223437,
+      "max_length": 15264,
+      "unique_nodes": 570,
+      "unique_elements": 668882
+    }
+  }
+}

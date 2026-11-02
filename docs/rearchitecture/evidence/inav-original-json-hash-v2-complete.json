@@ -1,0 +1,58 @@
+{
+  "complete": true,
+  "scope": "Read-only full original JSON hash validation under2GiB Job; existing native provenance retained. Same physical HDD as other tasks; no timing attribution, no G1 candidate/G3/G4 claim",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-json-hash-v1",
+  "manifest_sha256": "52b9e10e204902a0d5005928e7c5eb1594feccab93725e3fd27512ea32eab98a",
+  "frozen_files": 897,
+  "job_limit_bytes": 2147483648,
+  "peaks": {
+    "working_set_bytes": 45023232,
+    "private_bytes": 36315136,
+    "peak_job_commit_bytes": 37097472
+  },
+  "samples": 7147,
+  "pid": 7752,
+  "seconds": 7227.405999999999,
+  "last": {
+    "seconds": 7226.391,
+    "available": true,
+    "working_set_bytes": 38043648,
+    "private_bytes": 30744576,
+    "peak_job_commit_bytes": 37097472,
+    "limit_bytes": 2147483648,
+    "enforced_job_commit_limit_bytes": 2147483648,
+    "job_limit_flags": 8704,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "disk": {
+      "files": 11,
+      "logical_bytes": 318036458,
+      "allocated_bytes": 318132232,
+      "unique_files": 11,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    }
+  },
+  "exit_code": 0,
+  "final_disk": {
+    "files": 12,
+    "logical_bytes": 318054617,
+    "allocated_bytes": 318075392,
+    "unique_files": 12,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 0.0
+  },
+  "engine_differences": [],
+  "comparison": {
+    "passed": true,
+    "scope": "Independent direct raw JSON hashes equal the deeply validated complete original graph; not comparison with a new native candidate",
+    "facts_hash": "9da30821f449de364352f533134d80e731e031f44bbe69ec86d8f287ac12b6c2",
+    "raw_report_hash": "40f6e6e125d18f039e1dacf82baa87f7fc7a9f8c07815745a7b55ad81a24836e",
+    "normalized_report_hash": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db",
+    "graph_unchanged": true,
+    "raw_json_unchanged": true
+  }
+}

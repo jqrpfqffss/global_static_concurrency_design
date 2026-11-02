@@ -142,7 +142,7 @@ def tool_environment():
 
 def tool_path(name):
     root = bundle_root()
-    paths = {'cmake': 'cmake/bin/cmake.exe', 'ninja': 'ninja/ninja.exe',
+    paths = {'cmake': 'cmake/bin/cmake.exe', 'ninja': 'ninja/ninja.exe', 'git': 'git/cmd/git.exe',
              'mingw32-make': 'mingw/bin/mingw32-make.exe', 'gcc': 'mingw/bin/gcc.exe',
              'g++': 'mingw/bin/g++.exe', 'arm-none-eabi-gcc': 'arm-gcc/bin/arm-none-eabi-gcc.exe',
              'arm-none-eabi-g++': 'arm-gcc/bin/arm-none-eabi-g++.exe'}

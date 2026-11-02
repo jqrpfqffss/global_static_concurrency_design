@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1272,
+  "passed_tests": 1270,
+  "skipped": 2,
+  "seconds": 2347.971,
+  "controller_seconds": 2352.5790000000015,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-acceptance-4b3",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-acceptance-4b3",
+  "frozen_files": 982,
+  "differences": [],
+  "manifest_sha256": "ccd51f29277b6d63ac82015fbbdb36687a284c673a5976e1da3cb7321743a969",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-acceptance-4b3.log",
+  "log_sha256": "e3dc194a8d1be9a6b9394f67645bdaaa98cbdb4880d4fa53e3cbab6b1a3a5bd9",
+  "scope": "Frozen4b3c406 current complete source with13 direct JSON/graph comparisons, actual launcher/ACL validation scripts; all120 packaged runtime items exactly match v15; live OpenCode opt-in skipped"
+}

@@ -41,6 +41,7 @@ def main():
     parser.add_argument('--profile-id',default='same-golden-input')
     parser.add_argument('--reuse-tu-cache-from',type=Path,help='Explicit failed same-engine native attempt; replay preprocessing and verify every TU cache, not fresh extraction timing')
     parser.add_argument('--inject-stop-before-merge',action='store_true',help='Explicit diagnostic fault after real extraction; never a successful native benchmark')
+    parser.add_argument('--classification-diagnostics',action='store_true',help='Observe classification cache sizes without changing engine inputs or results; diagnostic run, not an uninstrumented benchmark')
     args=parser.parse_args()
     from ecra.report_package import IDENTITY
     if not IDENTITY.fullmatch(args.scan_id) or not IDENTITY.fullmatch(args.profile_id):parser.error('Scan/profile identity is invalid')
@@ -94,7 +95,7 @@ def main():
             scope='Recovery from real native TU cache; preprocessing/input/engine/hash gates are rerun; elapsed is not cold full-extraction timing')
     # No engine imports before ownership: children wait at this gate before the
     # actual public legacy CLI or production canonical worker body is entered.
-    code='''import sys,time,runpy,json
+    code=r'''import sys,time,runpy,json
 from pathlib import Path
 engine,gate,config,data,mode=map(Path,sys.argv[1:6])
 mode=str(mode)
@@ -120,11 +121,35 @@ if mode=='legacy':
  runpy.run_path(str(engine/'run_ecra.py'),run_name='__main__')
 else:
  import ecra.cli as cli
+ if sys.argv[9]=='True':
+  from ecra.evidence import EvidenceIndex
+  from ecra.scan_diagnostics import memory
+  original_build=EvidenceIndex.build
+  classification_rows=0
+  shallow_totals={}
+  def observed_build(self,variable,*args,**kwargs):
+   global classification_rows
+   classification_rows+=1
+   if classification_rows%64==1:
+    value=dict(variable_ordinal=classification_rows,symbol_id=variable['symbol_id'],memory=memory(),
+      issue_identity_cache=len(self.issue_identity_cache),gap_row_cache=len(self.gap_row_cache),
+      issue_cache_container_bytes=sys.getsizeof(self.issue_identity_cache),gap_cache_container_bytes=sys.getsizeof(self.gap_row_cache),
+      ancestor_cache_members=self.ancestor_cache_members,
+      completed_evidence_shallow_bytes=dict(shallow_totals),
+      scope='Diagnostic pre-build samples; shallow totals may count shared containers repeatedly and exclude nested rows/scalars, not retained-heap attribution')
+    with (out/'diagnostics/classification-observations.jsonl').open('a',encoding='utf-8') as stream:
+     stream.write(json.dumps(value,ensure_ascii=True)+'\n')
+   result=original_build(self,variable,*args,**kwargs)
+   for key,item in vars(result).items():
+    shallow_totals[key]=shallow_totals.get(key,0)+sys.getsizeof(item)
+   return result
+  EvidenceIndex.build=observed_build
  if sys.argv[6]=='True':
   def interrupted_merge(*args,**kwargs):raise RuntimeError('EXPLICIT_DIAGNOSTIC_STOP_BEFORE_MERGE')
   cli.merge=interrupted_merge
  raise SystemExit(cli.run(root,config,no_review=True,scan_mode='full',_workspace=ws,_cache_enabled=True))
 '''
+    compile(code, '<owned-native-worker>', 'exec')
     result=dict(complete=False,scope=__doc__,mode=args.mode,engine=str(engine),config=str(config),
         config_sha256=sha256(config),data_root=str(data),safety_job_commit_limit_bytes=args.limit_gib*1024**3,
         controlled_limit_experiment=True,physical_32GB='NOT_VERIFIED',
@@ -133,7 +158,8 @@ else:
         canonical_scope='Production CLI body, not TaskManager publication wrapper',
         logical_disk_peak_is_sampled_lower_bound=True,
         started=datetime.now(timezone.utc).isoformat(),peaks={},samples=0,cache_reuse=cache_reuse,
-        diagnostic_fault='STOP_BEFORE_MERGE' if args.inject_stop_before_merge else None)
+        diagnostic_fault='STOP_BEFORE_MERGE' if args.inject_stop_before_merge else None,
+        classification_diagnostics=args.classification_diagnostics)
     result['observer_script_sha256']=sha256(work/'observer.py')
     receipt=work/'execution.json'
     def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
@@ -152,7 +178,7 @@ else:
         save()
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
             from ecra.studio.write_guard import OwnedProcess
-            process=OwnedProcess([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode,str(args.inject_stop_before_merge),args.scan_id,args.profile_id],cwd=engine,env=env,log=log)
+            process=OwnedProcess([sys.executable,'-X','utf8','-B','-c',code,str(engine),str(work/'start'),str(config),str(data),args.mode,str(args.inject_stop_before_merge),args.scan_id,args.profile_id,str(args.classification_diagnostics)],cwd=engine,env=env,log=log)
             budget.assign(process);process.resume();result['pid']=process.pid;save();(work/'start').write_text('OWNED',encoding='ascii')
             last_disk=last_report=0;disk={}
             while process.poll() is None:

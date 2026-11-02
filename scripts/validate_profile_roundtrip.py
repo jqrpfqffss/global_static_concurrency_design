@@ -61,7 +61,7 @@ def main():
         def check_save():
             button('检查配置与工具路径').click();expect(button('保存独立配置')).to_be_enabled()
             button('保存独立配置').click();expect(page.get_by_role('status').filter(has_text='配置已保存')).to_be_visible()
-            expect(button('开始此配置扫描')).to_be_enabled()
+            expect(button('开始此配置扫描')).to_be_disabled() if (args.engine/'ecra/studio/preflight.py').is_file() else expect(button('开始此配置扫描')).to_be_enabled()
         def shot(name):
             expect(page.locator('.activity')).to_have_count(0)
             path=output/(name+'.png');page.screenshot(path=str(path),full_page=True);receipt['screenshots'].append(str(path))

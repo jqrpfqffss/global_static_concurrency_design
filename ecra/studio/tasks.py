@@ -81,9 +81,9 @@ class TaskManager:
         ws = formal_workspace(root, analysis)
         if Path(ws.workspace_root) != self.data:
             raise ValueError('配置的数据根与当前 Studio 不同；请在配置中使用 output.location: user，或从该数据根启动 Studio。')
-        if mode not in {'scan','review','review-failed'}:
+        if mode not in {'scan','precheck','review','review-failed'}:
             raise ValueError('未知任务模式')
-        if mode!='scan':
+        if mode not in {'scan','precheck'}:
             from ..scan_store import EvidenceProvider
             if not isinstance(scan_id,str) or not IDENTITY.fullmatch(scan_id):
                 raise ValueError('复核扫描身份无效')
@@ -110,9 +110,10 @@ class TaskManager:
                     source=no_links(Path(profile_path).parent/name)
                     if source.is_file():
                         (folder/name).write_bytes(source.read_bytes())
-                value = dict(id=ident, scan_id=ident if mode=='scan' else scan_id, mode=mode,
+                from ..report_package import sha256
+                value = dict(id=ident, scan_id=ident if mode in {'scan','precheck'} else scan_id, mode=mode,
                              project_id=ws.project_id, project_root=str(root),
-                             profile_id=profile_id, state='RUNNING', started=now(),budget_bytes=limits['peak_bytes'],resource_policy=limits,
+                             profile_id=profile_id, profile_revision=sha256(folder/'semantics.yaml'), state='RUNNING', started=now(),budget_bytes=limits['peak_bytes'],resource_policy=limits,
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
                              checkpoint_mode='INPUT_VERIFIED_TU_CACHE', samples=[], resources={})
                 write_json(folder/'task.json', value)
@@ -210,7 +211,8 @@ class TaskManager:
             result=read_task_json(folder/'worker-result.json') if (folder/'worker-result.json').is_file() else {}
             if result.get('error'):
                 value['error']=result['error']
-            value['state'] = 'COMPLETE' if process.returncode in {0,1,2} and published and result.get('operation_completed') else (
+            checked = (folder/'preflight/preflight.json').is_file() and read_task_json(folder/'preflight/preflight.json').get('passed')
+            value['state'] = 'COMPLETE' if process.returncode in {0,1,2} and (checked if value['mode']=='precheck' else published) and result.get('operation_completed') else (
                 'INTERRUPTED' if process.returncode==130 else 'FAILED')
             value['published'] = published
             write_json(folder/'task.json',value)
@@ -231,6 +233,10 @@ class TaskManager:
         value['log'] = dict(text=raw.decode('utf-8',errors='replace'), offset=offset,
                             next_offset=offset+len(raw), total=log.stat().st_size)
         diagnostics = self.data/'scans'/value['scan_id']/'diagnostics'
+        preflight = folder/'preflight/preflight.json'
+        if preflight.is_file():
+            value['preflight'] = read_task_json(preflight)
+            if value['mode']=='precheck' or not diagnostics.exists(): diagnostics=folder/'preflight/diagnostics'
         for key, name in [('stages','scan_stages.json'),('failure','exception.json'),('memory','memory_profile.json'),('tu_cache','tu_cache.json'),('progress','scan_progress.json')]:
             path = diagnostics/name
             if path.is_file():
