@@ -4,7 +4,8 @@
 #
 # 日常运行：在本工具根目录执行 `py -3.10 run_ecra.py`。
 # 工具会按本文件完成：定位 project.root → （可选）清理构建目录 → CMake 配置和
-# 构建 → 扫描全局/static 变量 → 在 <工具>/workspace/projects/<工程身份>/results/ 生成 HTML、JSON、Markdown、SQLite。
+# 构建 → 扫描全局/static 变量 → 在独立用户数据根 projects/<工程身份>/results/ 生成旧 CLI 报告。
+# Studio 预览另用权威 scan.db；完整扫描消费者迁移尚未完成，见 docs/rearchitecture。
 #
 # 扫描新项目时，不创建新的 semantics.yaml：
 #   A. 修改 project.root 为新固件根目录；
@@ -77,11 +78,12 @@ analysis:
   # 独立 TU 并行提取；全局指针/并发分析仍使用完整合并后的事实。
   extraction_workers: 8
 
-  # 默认工具侧 workspace，自动按项目身份隔离；无须填写路径。
-  # output: {location: tool}
+  # 默认独立用户数据根（%LOCALAPPDATA%/ECRAStudio/data），按项目身份隔离。
+  # 可设置绝对路径 ECRA_DATA_ROOT；配置位置不是扫描语义。
+  # output: {location: user}
   # 外置数据盘：output: {location: custom, custom_dir: "D:/ECRA_Data"}
-  # 旧固件内输出：output: {location: project} 并配合 output_dir
-  # 报告、日志、缓存和状态都在工具侧 workspace；无需修改固件忽略规则。
+  # tool/project 仅旧 CLI 兼容；Studio 正式路径校验会拒绝，请先保留并迁移旧数据。
+  # 报告、日志、缓存和状态都在独立数据根；无需修改固件忽略规则。
   # output_dir: .ecra  # 旧默认值仍接受，并迁移到工具侧
 
   # 自动从真实 Arm GCC 编译命令探测标准头文件目录。STM32 + Arm GCC 通常保持 true。
