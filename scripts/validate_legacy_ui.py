@@ -72,10 +72,12 @@ def main():
                 page.get_by_role('link',name='数据与共享',exact=True).click()
                 migration=page.locator('section[aria-label="旧结果只读迁移"]')
                 migration.get_by_label('旧结果目录（绝对路径）',exact=True).fill(str(source))
-                migration.get_by_label('旧记录中的原工程目录',exact=True).fill(str(work))
+                wrong_owner=work/'unrelated-original-firmware';wrong_owner.mkdir()
+                migration.get_by_label('旧记录中的原工程目录',exact=True).fill(str(wrong_owner))
                 migration.get_by_role('button',name='检查旧目录与归属',exact=True).click()
                 expect(migration.get_by_role('alert')).to_contain_text('归属与所选原工程不一致')
                 assert not (work/'data/scans').exists()
+                assert list(wrong_owner.iterdir())==[]
                 receipt['tests'].append('wrong_owner_is_rejected_without_scan_publication')
                 migration.get_by_label('旧记录中的原工程目录',exact=True).fill(root)
                 migration.get_by_role('button',name='检查旧目录与归属',exact=True).click()

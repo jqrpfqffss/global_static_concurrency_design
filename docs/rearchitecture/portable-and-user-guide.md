@@ -1,3 +1,5 @@
+> 最新实包：[v17验收与剩余门禁](20-portable-v17-acceptance.md)及[U01–U24当前逐项表](ui/21-user-scenario-status-v17.md)。1287项1285PASS/2联网SKIP，13组包内Chrome通过，真实1000对象确认/三次重启通过；G3仍FAIL，完整重构未完成。后续源码工程身份栏不属于v17包。
+
 # ECRA Studio 操作说明
 
 当前为开发验收候选，完整重构发布门禁尚未通过。本说明描述当前源码功能；每个Portable包须有自己的源码清单和实包验收收据。历史包、测试结果与未通过项见[性能与验收记录](performance-and-acceptance.md)，不能用旧包收据证明新代码。

@@ -1,0 +1,52 @@
+{
+  "passed": true,
+  "scope": "Real Chrome 1000-item review/resume on a byte copy of a real native graph.\n\nThe approved original INAV comparison graph is never modified. This is a UI\ncapacity/restart check, not a new native scan, candidate G1, physical-PC or UAT.\n",
+  "requested": 1000,
+  "completed": 1000,
+  "tests": [
+    {
+      "name": "actual_service_restart_after_350",
+      "status": "PASS",
+      "events": 350
+    },
+    {
+      "name": "actual_service_restart_after_700",
+      "status": "PASS",
+      "events": 700
+    },
+    {
+      "name": "actual_service_restart_after_1000",
+      "status": "PASS",
+      "events": 1000
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v17-human1000\\batch-350.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v17-human1000\\batch-700.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v17-human1000\\batch-1000.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+  "state": "COMPLETE",
+  "copied_bytes": 17179869184,
+  "seconds": 2862.9839999999967,
+  "static_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "native_counts": {
+    "CONTAINER": 3197,
+    "NON_STORAGE": 53,
+    "SAFE_PROVEN": 8632,
+    "SUSPECT": 1318,
+    "UNKNOWN": 3366
+  },
+  "classification": "UNKNOWN",
+  "graph_bytes": 17831825408,
+  "source_copy_verified": true,
+  "original_unchanged": true,
+  "static_unchanged": true,
+  "events": 1000,
+  "distinct_native_symbols": 1000
+}

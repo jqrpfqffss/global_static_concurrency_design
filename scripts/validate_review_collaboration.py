@@ -27,6 +27,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ['scan','engine','python','work','evidence']:parser.add_argument('--'+name,type=Path,required=True)
     args=parser.parse_args();work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
+    (work/'controller.py').write_bytes(Path(__file__).read_bytes())
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=False)
     source=args.scan.resolve();before={p.relative_to(source).as_posix():sha256(p) for p in source.rglob('*') if p.is_file()}
     staging=work/'input-copy';shutil.copytree(source,staging)
@@ -46,10 +47,14 @@ def main():
                 '--no-browser','--session-file',str(session)],cwd=args.engine.resolve(),stdout=log,stderr=subprocess.STDOUT,
                 env=dict(os.environ,PYTHONIOENCODING='utf-8'),creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
             servers.append(server);deadline=time.monotonic()+60
-            while not session.exists():
-                if server.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Server '+device+' did not start')
-                time.sleep(.1)
-            info=json.loads(session.read_text(encoding='utf-8'))
+            while True:
+                if server.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Server '+device+' did not publish a complete session')
+                try:
+                    info=json.loads(session.read_text(encoding='utf-8'))
+                    if not all(isinstance(info.get(k),str) and info[k] for k in ['url','authority','token']):raise ValueError('Invalid session identity')
+                    break
+                except (FileNotFoundError,PermissionError,json.JSONDecodeError):
+                    time.sleep(.05)
             while True:
                 try:
                     urllib.request.urlopen(urllib.request.Request('http://'+info['authority']+'/api/bootstrap',headers={'X-ECRA-Session':info['token']}),timeout=1).close();break

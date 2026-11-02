@@ -1,3 +1,5 @@
+> 最新实包：[v17验收与剩余门禁](20-portable-v17-acceptance.md)及[U01–U24当前逐项表](ui/21-user-scenario-status-v17.md)。1287项1285PASS/2联网SKIP，13组包内Chrome通过，真实1000对象确认/三次重启通过；G3仍FAIL，完整重构未完成。后续源码工程身份栏不属于v17包。
+
 # 需求追踪与阶段门禁
 
 > 当前状态入口：[v15逐项U01–U24](ui/17-user-scenario-status.md)与[后续真实构建门禁阶段](17-build-preflight-stage-20261102.md)。下方早期矩阵保留为历史，不将PARTIAL视为完整PASS。

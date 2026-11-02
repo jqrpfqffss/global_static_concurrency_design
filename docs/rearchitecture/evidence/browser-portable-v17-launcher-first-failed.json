@@ -1,0 +1,40 @@
+{
+  "passed": false,
+  "scope": "Actual ECRA.cmd Studio entry with Windows-only PATH and private LOCALAPPDATA.\n\n--no-browser suppresses desktop disruption but uses the actual Studio launcher\nbranch. Real Chrome is the external test controller; the service runs embedded\nPython. Not a clean physical offline machine or literal desktop double-click.\n",
+  "command": [
+    "C:\\Windows\\System32\\cmd.exe",
+    "/d",
+    "/c",
+    "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable\\ECRA.cmd",
+    "--no-browser",
+    "--session-file",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-launcher\\session.json"
+  ],
+  "cwd": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-launcher\\unrelated cwd 中文",
+  "restricted_path": "C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\Wbem",
+  "tests": [
+    {
+      "name": "actual_cmd_uses_embedded_python_with_windows_only_path_and_private_default_data_root",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    },
+    {
+      "name": "actual_launcher_page_has_all_three_real_first_use_actions_without_external_requests",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "G8"
+      ]
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "physical_clean_offline_machine": "NOT_VERIFIED",
+  "literal_desktop_double_click": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "service_python": "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable\\runtime\\python.exe",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v17\\scripts\\validate_portable_startup_ui.py\", line 88, in main\n    expect(page.get_by_role('heading',name='先处理需要核实的变量',exact=True)).to_be_visible(timeout=30000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 23019, in to_be_visible\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 841, in to_be_visible\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect \"to_be_visible\" with timeout 30000ms\n  - waiting for get_by_role(\"heading\", name=\"先处理需要核实的变量\", exact=True)\n\nAria snapshot:\n- complementary:\n  - text: ECRA Studio\n  - paragraph: 并发风险分析工作台\n  - navigation \"主导航\":\n    - link \"项目概览\":\n      - /url: \"#/overview\"\n    - link \"工程配置\":\n      - /url: \"#/projects\"\n    - link \"扫描任务\":\n      - /url: \"#/tasks\"\n    - link \"变量与风险\":\n      - /url: \"#/variables\"\n    - link \"覆盖与诊断\":\n      - /url: \"#/coverage\"\n    - link \"OpenCode 复核\":\n      - /url: \"#/opencode\"\n    - link \"人工确认\":\n      - /url: \"#/reviews\"\n    - link \"历史与对比\":\n      - /url: \"#/history\"\n    - link \"数据与共享\":\n      - /url: \"#/sharing\"\n  - link \"设置与验收状态\":\n    - /url: \"#/settings\"\n  - text: 本地数据 · 中文 开发预览 · 发布门禁未通过\n- banner:\n  - strong: 尚未选择工程结果\n  - text: 未扫描 等待工程或结果包\n- main:\n  - status: 正在提交或读取，请稍候…\n  - heading \"开始使用 ECRA Studio\" [level=1]\n  - paragraph: 选择工程配置，或导入同事发来的完整结果包。\n  - heading \"选择开始方式\" [level=2]\n  - paragraph: 新建工程后按四步确认真实构建；也可导入历史结果，或先从真实教学归档熟悉证据与人工确认。\n  - button \"新建工程\" [disabled]\n  - button \"导入历史结果\" [disabled]\n  - button \"打开示例\" [disabled]\n  - paragraph: 教学示例 · 真实扫描归档 · 非用户工程。2个TU实际ARM对象编译/Clang分析，未链接固件、无硬件验证；未知与覆盖缺口按实保存。\n"
+}

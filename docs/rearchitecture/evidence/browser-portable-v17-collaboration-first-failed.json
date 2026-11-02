@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "scope": "Actual two-origin Chrome collaboration on two isolated local data roots.\n\nUses a real existing native archive and real packaged servers. All mutations\nuse visible GUI controls; database reads independently check immutable events.\nThis is one physical host, not second-machine/offline-environment acceptance.\n",
+  "tests": [],
+  "page_errors": [],
+  "external_requests": [],
+  "screenshots": [],
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable\\runtime\\python.exe",
+  "scan_id": "native-golden",
+  "symbol_id": "c:@HCLK",
+  "physical_second_computer": "NOT_VERIFIED",
+  "clean_offline_machine": "NOT_VERIFIED",
+  "independent_engineer_uat": "NOT_VERIFIED",
+  "error": "Expecting value: line 1 column 1 (char 0)",
+  "traceback": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v17\\scripts\\validate_review_collaboration.py\", line 52, in main\n    info=json.loads(session.read_text(encoding='utf-8'))\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\json\\__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\json\\decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\json\\decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
+}

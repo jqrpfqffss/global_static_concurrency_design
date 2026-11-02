@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1287,
+  "passed_tests": 1285,
+  "skipped": 2,
+  "seconds": 1884.521,
+  "controller_seconds": 1888.1399999999994,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v17",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v17",
+  "frozen_files": 1034,
+  "differences": [],
+  "manifest_sha256": "8545f683f266487e252632b65bbdb95fbeaddb9a337f520be0808979380246ec",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v17.log",
+  "log_sha256": "98eb602312da7cfd8221265e3f0685d66d3bd5b1c465bf40ffde1b8bbef5fca3",
+  "scope": "Frozen efc8556 complete current1287; new legacy raw archive and deep-TEMP alias fix. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+}

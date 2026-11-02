@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1280,
+  "passed_tests": 1278,
+  "skipped": 2,
+  "seconds": 2577.495,
+  "controller_seconds": 2582.6719999999987,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-preflight-v16",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-preflight-v16",
+  "frozen_files": 1009,
+  "differences": [],
+  "manifest_sha256": "01ee3f1838d16094094208d7b864633f05e11673b2c2c888ac4c39f1c9b94b5d",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-preflight-v16.log",
+  "log_sha256": "f97b1f25ed8deaacd96cab44df5b28645708c6dedc84585f92270311bc02a89a",
+  "scope": "Frozen3f7cec8 runtime plus explicit developer external-toolchain check option;1280 full tests expected, live OpenCode opt-in skipped. New precheck and Portable Git mapping included; new actual package separately required"
+}

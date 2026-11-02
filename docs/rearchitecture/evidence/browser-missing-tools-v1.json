@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "scope": "Real Chrome fault injection: missing CMake/Ninja/Git in private tool roots.\n\nUses current source with intentionally incomplete private Portable asset roots.\nNinja case copies the actual CMake distribution; no API/tool process is mocked.\nNeither an installed package nor original firmware is edited. Not G8 clean-PC QA.\n",
+  "tests": [
+    {
+      "name": "actual_missing_cmake_blocks_before_native_data",
+      "status": "PASS",
+      "required_field": "analysis.cmake",
+      "asset_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\missing-tools-ui-v1\\cmake\\deliberately-incomplete-assets"
+    },
+    {
+      "name": "actual_missing_ninja_blocks_before_native_data",
+      "status": "PASS",
+      "required_field": "analysis.cmake.generator",
+      "asset_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\missing-tools-ui-v1\\ninja\\deliberately-incomplete-assets"
+    },
+    {
+      "name": "actual_missing_git_blocks_before_native_data",
+      "status": "PASS",
+      "required_field": "analysis.git_diff",
+      "asset_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\missing-tools-ui-v1\\git\\deliberately-incomplete-assets"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\missing-tools-ui-v1-evidence\\cmake-missing.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\missing-tools-ui-v1-evidence\\ninja-missing.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\missing-tools-ui-v1-evidence\\git-missing.png"
+  ],
+  "original_files_unchanged": 42
+}

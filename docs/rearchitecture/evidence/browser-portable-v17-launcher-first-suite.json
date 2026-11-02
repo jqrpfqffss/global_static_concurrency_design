@@ -1,0 +1,30 @@
+{
+  "passed": false,
+  "scope": "Real Chrome against actual package runtime; independent data roots, no network model; no native DPI/physical second-machine/clean offline host/UAT claim",
+  "results": [
+    {
+      "name": "launcher",
+      "passed": false,
+      "exit_code": 1,
+      "expected_tests": 4,
+      "tests": 2,
+      "seconds": 40.9059999999954,
+      "receipt": "H:\\global_static_concurrency_design\\output\\playwright\\portable-v17-launcher\\acceptance.json",
+      "receipt_sha256": "7c5fb99a16a1abc26e3ba7bc646e11e07efd586b08b267b6028c45eaa3520ae5",
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-launcher.log",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v17\\scripts\\validate_portable_startup_ui.py",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-launcher",
+        "--evidence",
+        "H:\\global_static_concurrency_design\\output\\playwright\\portable-v17-launcher",
+        "--bundle",
+        "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable"
+      ]
+    }
+  ]
+}

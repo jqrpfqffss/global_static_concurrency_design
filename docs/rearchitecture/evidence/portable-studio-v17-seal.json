@@ -1,0 +1,195 @@
+{
+  "format": "ECRA_PORTABLE_STAGE_RECEIPT_V1",
+  "recorded_utc": "2026-11-02T02:58:39.697124+00:00",
+  "passed": true,
+  "all_gates_passed": false,
+  "source_head": "efc8556d0666edb308abd05e81509c7f3df51680",
+  "frozen_files": 1034,
+  "source_manifest_sha256": "8545f683f266487e252632b65bbdb95fbeaddb9a337f520be0808979380246ec",
+  "program_entry": "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable\\ECRA.cmd",
+  "zip_path": "H:\\ECRAStudio-build-20261102-studio-v17\\ECRA-Portable.zip",
+  "zip_bytes": 554445191,
+  "zip_sha256": "4296e6cec3acc8f78007fee81185dc524a70ca11a6f18e37558b8602bd0b2e67",
+  "distribution_files_verified": 29364,
+  "runtime_source_files_matched": 117,
+  "runtime_source_differences": [],
+  "distribution_assets_verified_at": "2026-11-02T02:55:41.788510+00:00",
+  "regression": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1287,
+    "passed_tests": 1285,
+    "skipped": 2,
+    "seconds": 1884.521,
+    "controller_seconds": 1888.1399999999994,
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v17",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v17",
+    "frozen_files": 1034,
+    "differences": [],
+    "manifest_sha256": "8545f683f266487e252632b65bbdb95fbeaddb9a337f520be0808979380246ec",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v17.log",
+    "log_sha256": "98eb602312da7cfd8221265e3f0685d66d3bd5b1c465bf40ffde1b8bbef5fca3",
+    "scope": "Frozen efc8556 complete current1287; new legacy raw archive and deep-TEMP alias fix. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+  },
+  "browser_groups": [
+    {
+      "group": "sample",
+      "selected_attempt": "sample-v2",
+      "tests": 10,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-sample-v2.json",
+      "sha256": "01910aa0541be1fe14d85f61fc81aeacd5ce879257a409c2350c4b2ae5a9d778"
+    },
+    {
+      "group": "main",
+      "selected_attempt": "main",
+      "tests": 16,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-main.json",
+      "sha256": "3c5507a4131b2fc696dcd683c4781d7eb17d465cfc2fb555e32560fb5a372ae0"
+    },
+    {
+      "group": "profile",
+      "selected_attempt": "profile",
+      "tests": 7,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-profile.json",
+      "sha256": "880b4ac1f188d533fc22c6f83461226d61040d91bb375c8d1da1280966534170"
+    },
+    {
+      "group": "contexts",
+      "selected_attempt": "contexts",
+      "tests": 8,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-contexts.json",
+      "sha256": "b14954d5c755f8fcd46d578c5a7026ff6dc2d5141374e7e1c3d24d49237b13ce"
+    },
+    {
+      "group": "directories",
+      "selected_attempt": "directories",
+      "tests": 7,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-directories.json",
+      "sha256": "328227f04df3e14d94e880f05fe84980bc2195dc1c1a87ec5f6d920a9fb46cc3"
+    },
+    {
+      "group": "git",
+      "selected_attempt": "git",
+      "tests": 6,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-git.json",
+      "sha256": "d2cde8b7505732fa61240fb657810268bf0d857d7f34bfdebd39c2eba9d02544"
+    },
+    {
+      "group": "capacity",
+      "selected_attempt": "capacity",
+      "tests": 9,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-capacity.json",
+      "sha256": "129c0da0de85824aceceb72220b18054da49c0bc6cc2335f3fb1e023038ba025"
+    },
+    {
+      "group": "preflight",
+      "selected_attempt": "preflight",
+      "tests": 8,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-preflight.json",
+      "sha256": "e1c8cf92a4c4ff6974bf7e12859fd71924ebfc681aa2570c606a11dbd1aa6a84"
+    },
+    {
+      "group": "coverage",
+      "selected_attempt": "coverage",
+      "tests": 8,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-coverage.json",
+      "sha256": "6e663a8260fd931d3fe389041f722f52630ba69dd029223eee96bd459b0dc153"
+    },
+    {
+      "group": "legacy",
+      "selected_attempt": "legacy-v2",
+      "tests": 6,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-legacy-v2.json",
+      "sha256": "60882c7e171dd51972d9c224fd6fc9f7b40f0b4f9bee5a431d48aab478a72878"
+    },
+    {
+      "group": "legacy-degraded",
+      "selected_attempt": "legacy-degraded",
+      "tests": 6,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-legacy-degraded.json",
+      "sha256": "851a5f32016e58d6d29e12c328fd14219df758b4a2fba18f862017c0ce6df276"
+    },
+    {
+      "group": "collaboration",
+      "selected_attempt": "collaboration-v2",
+      "tests": 7,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-collaboration-v2.json",
+      "sha256": "0c21c36411503ff1dea1509e08b7ebed3ce8afae91cc59f2b64b94bfa8ffd2dd"
+    },
+    {
+      "group": "launcher",
+      "selected_attempt": "launcher-v2",
+      "tests": 4,
+      "passed": true,
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-launcher-v2.json",
+      "sha256": "eeb06a1e2a8fb63c9c20cf4a392ceada57d55309a86c2abadcd95a7ea05b98e7"
+    }
+  ],
+  "preserved_first_failures": [
+    {
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-sample-first-failed.json",
+      "sha256": "1dbb8346a018b00248c73f5eff7f5ec0666e146a954dddcc43443cce8d71756a"
+    },
+    {
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-legacy-first-failed.json",
+      "sha256": "70f9c2b2d546f8eea15f01703ad0bffd507842351bf19bd8c510e111e07c9a05"
+    },
+    {
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-collaboration-first-failed.json",
+      "sha256": "2b2286446f8315e7aaf1d4cad15961afe28b1b1dfa2f88f9a14b03b01f27fd07"
+    },
+    {
+      "path": "docs/rearchitecture/evidence/browser-portable-v17-launcher-first-failed.json",
+      "sha256": "7c5fb99a16a1abc26e3ba7bc646e11e07efd586b08b267b6028c45eaa3520ae5"
+    }
+  ],
+  "cli": [
+    {
+      "kind": "uncompressed",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v17-cli-uncompressed.json",
+      "sha256": "2b7359d3f2cbabdd7862b1b5dc839230c4fc6a71e2bb432206256829a2e57d26"
+    },
+    {
+      "kind": "zip-extracted",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v17-cli-zip-extracted.json",
+      "sha256": "18a4a258b9591b21ecedd901c18cc7c9d39389f205552a7b643ffb08d3fd1fd3"
+    }
+  ],
+  "human_batch": {
+    "completed": 1000,
+    "restarts": [
+      350,
+      700,
+      1000
+    ],
+    "scope": "Independent byte copy of original real INAV graph; not a new native G1/G3 scan"
+  },
+  "limits": [
+    "Not physical clean offline Windows PC",
+    "Not second physical computer",
+    "Not native Windows DPI matrix",
+    "Not engineer UAT",
+    "Actual launcher import first attempt exceeded unchanged 30s under concurrent load; same controller retry passed",
+    "First collaboration controller read an incomplete session JSON; retry waits for a complete session without changing the program",
+    "G3 16GiB target failed; large v2 native still publishing; no claimed G1/G4 pass",
+    "Other G2 inputs user-deferred"
+  ]
+}
