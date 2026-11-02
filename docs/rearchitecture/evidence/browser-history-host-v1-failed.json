@@ -1,0 +1,166 @@
+{
+  "passed": false,
+  "scope": "Real Chrome catalog operations using existing approved native scan archives.\n\nNo invented scan identities, dates, analysis fields or human events. Copies of\npreviously completed native archives are isolated from the originals. One\nexplicit corrupt database is a negative fixture, not a simulated scan result.\nThis is not new native/G1/G2/physical second-PC/DPI/UAT acceptance.\n",
+  "engine": "H:\\global_static_concurrency_design",
+  "python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "tests": [
+    {
+      "name": "actual23_native_archive_identity_set_and_server_pagination",
+      "status": "PASS"
+    },
+    {
+      "name": "page_offset_survives_actual_browser_reload_during_parent_bootstrap",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\history-host-v1\\01-real-native-archives-page-one.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\history-host-v1\\02-reopened-page-two.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "source_archives": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\9a984191cb3446d0a86fe745cd478916",
+      "scan_id": "9a984191cb3446d0a86fe745cd478916",
+      "scan_sha256": "3ac483c52262f7d3f3174315ed4251bcf7f6c19a35b9a94aaf1c3dd5439bc2dc",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\39933fd8df8a4f31b837fc506888e8f5",
+      "scan_id": "39933fd8df8a4f31b837fc506888e8f5",
+      "scan_sha256": "18c10c5db175f7fae9cbc0d8c8db845e9fd3626720ff056545bcdfc0e69523e4",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\c4fc4747e275423f9c27c71649d67393",
+      "scan_id": "c4fc4747e275423f9c27c71649d67393",
+      "scan_sha256": "aa457ce10373b1ca8209ffaa06c5f18949b6ba8aca3fe02aa45307430efa2cfe",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\755ee1ef192b4f3da9bc4ffc1042e3b1",
+      "scan_id": "755ee1ef192b4f3da9bc4ffc1042e3b1",
+      "scan_sha256": "0d83a951ed464a888680f6e4a648e10ef661f5c19c1803a1e2ba11abe9c8e2f7",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\6afe2bd0046f4dcfa97180f479bc931c",
+      "scan_id": "6afe2bd0046f4dcfa97180f479bc931c",
+      "scan_sha256": "a07d1c7ab4931df3fb5d07eb1ef6e0214375e4ddfc8a6adce8493d5e97cca8d2",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\cf18c713fcf74b5bb6e78b385c551462",
+      "scan_id": "cf18c713fcf74b5bb6e78b385c551462",
+      "scan_sha256": "f84f75a5ec5937624be633d618f9d559c8e050150304b39feafa6f0511ea5264",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\5a43deefd34f4f07ad8fc3a70c028f49",
+      "scan_id": "5a43deefd34f4f07ad8fc3a70c028f49",
+      "scan_sha256": "a4ddf771c2609b4dc89bc3212e705d4d04a314196f9503c7aeef76c158c60d52",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\23485e03d0814817af4a19cce892503c",
+      "scan_id": "23485e03d0814817af4a19cce892503c",
+      "scan_sha256": "790844c421f3ce6043fffcbb4f884b40a074c0d26b395d9f12a071c858465951",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\b249ffe20c8c42d9803240c93c20ea23",
+      "scan_id": "b249ffe20c8c42d9803240c93c20ea23",
+      "scan_sha256": "438d46a0e63e25f7c921a082b1c47c7bd25b7817e85b024e9500d2f9d65ab3fe",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\c92b3b39b503448a9bb7ff5fb41c482c",
+      "scan_id": "c92b3b39b503448a9bb7ff5fb41c482c",
+      "scan_sha256": "952c38ce73a8fac5443c6957f579ff3cd19264f6f0b3739d4252526f27308591",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\06fe1c74893a41058e3e09feebb3081a",
+      "scan_id": "06fe1c74893a41058e3e09feebb3081a",
+      "scan_sha256": "6d954a5cb44f1a76692f069e1c7499c5789c33f116b6c2f3e4fc323d86132fab",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\86f80f223810428a87661de2e9b1b962",
+      "scan_id": "86f80f223810428a87661de2e9b1b962",
+      "scan_sha256": "9bba94a7a53546dc2c226271d7fa9ad1aa53ba9d55e0a40ee60ebdc90e9d2f06",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v3\\data\\scans\\47eb8aa0b658428fa65671993db02c58",
+      "scan_id": "47eb8aa0b658428fa65671993db02c58",
+      "scan_sha256": "35cf53499e437b732cf458b28b82467eecd5ee5984ffd751b2877b0a4081eb54",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\707336aa1c3b4c6497a79276f6c6ae8e",
+      "scan_id": "707336aa1c3b4c6497a79276f6c6ae8e",
+      "scan_sha256": "58c0c2d0825b1d700391a3545e256948908706f35369c9b0dd7093c7a307e80b",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\142b3ac94e5542169c400cc350ab0fa5",
+      "scan_id": "142b3ac94e5542169c400cc350ab0fa5",
+      "scan_sha256": "7a23f9c859918aac2f940da6a202f939bfe32b1ed757e1d165bcdb4b1b766886",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\bf276a8774b940479eb9e0babf2425d1",
+      "scan_id": "bf276a8774b940479eb9e0babf2425d1",
+      "scan_sha256": "8672ddebeaa735b29961a8e1af4473776d7b63fc3f4dee3a4bfba5a48dbdec55",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\1238fb825ea84dd08e3b9eb9d7b28ff9",
+      "scan_id": "1238fb825ea84dd08e3b9eb9d7b28ff9",
+      "scan_sha256": "27bd0595a0178a417bd8123507cb92e314ec97bf56d6c81cfd5a028745d1a47e",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\abdd3c4eda6c4e03b5b7c0ae4edecb60",
+      "scan_id": "abdd3c4eda6c4e03b5b7c0ae4edecb60",
+      "scan_sha256": "6687a83df274fcbb2e3208fb4508d7f0e72086749626ee48c2f35ba18388c685",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\5943bb6089f24944bba6c19d7294e308",
+      "scan_id": "5943bb6089f24944bba6c19d7294e308",
+      "scan_sha256": "c561d2f29d02a57c22f209c198e34b4bb44b6c7d8c14e5202419fddadb857170",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\247eed88170d41b6ba73254822070336",
+      "scan_id": "247eed88170d41b6ba73254822070336",
+      "scan_sha256": "824c1ecce4c036882b079a7604bb9ca87a65e9c7d86ebac5cea4abbb59cc334e",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\cfb049563dc045aeb9071909f7e4e9de",
+      "scan_id": "cfb049563dc045aeb9071909f7e4e9de",
+      "scan_sha256": "5975c2a8dd486ff3b7d267d51e803cc1938c1db9a943f4dc18f71bc2d1abf1f5",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\855a380c66ba47c9893f88829daaa214",
+      "scan_id": "855a380c66ba47c9893f88829daaa214",
+      "scan_sha256": "151f1997cbaa81e55616faebbbc9bbd9a36d7017c95f61d227e4bfefa7cdc0f8",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-main\\data\\scans\\c4c8342314b54add84bc3fe8c858236f",
+      "scan_id": "c4c8342314b54add84bc3fe8c858236f",
+      "scan_sha256": "f313fdf553112485c6f4757e89b54b36c7cfd7e795ceeb36926f8aee1d62d770",
+      "events": 0
+    }
+  ],
+  "native_DPI": "NOT_VERIFIED",
+  "engineer_UAT": "NOT_VERIFIED",
+  "physical_second_PC": "NOT_VERIFIED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_history_ui.py\", line 118, in main\n    page.get_by_label('历史扫描模式',exact=True).select_option('FULL')\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 19842, in select_option\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_locator.py\", line 628, in select_option\n    return await self._frame.select_option(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_frame.py\", line 808, in select_option\n    return await self._channel.send(\"selectOption\", self._timeout, params)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_connection.py\", line 69, in send\n    return await self._connection.wrap_api_call(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_connection.py\", line 563, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Locator.select_option: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_label(\"历史扫描模式\", exact=True)\n\n"
+}

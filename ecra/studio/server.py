@@ -155,6 +155,13 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
                 result.append(item)
         return dict(items=result)
 
+    @app.get('/api/history')
+    def history(project: str='', profile: str='', core: str='', git: str='', scan_mode: str='', state: str='',
+                date_from: str='', date_to: str='', offset: int=0, limit: int=20):
+        from .history import history as query_history
+        return query_history(data, project=project, profile=profile, core=core, git=git, scan_mode=scan_mode,
+                             state=state, date_from=date_from, date_to=date_to, offset=offset, limit=limit)
+
     @app.get('/api/scans/{scan_id}/summary')
     def summary(scan_id: str):
         provider, reviews = stores(scan_id)

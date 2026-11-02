@@ -16,6 +16,7 @@ import ContextEditor from './ContextEditor.vue'
 import DirectoryBrowser from './DirectoryBrowser.vue'
 import BuildPreflight from './BuildPreflight.vue'
 import ScanIdentity from './ScanIdentity.vue'
+import HistoryCenter from './HistoryCenter.vue'
 const navigation = [ ['overview','项目概览'], ['projects','工程配置'], ['tasks','扫描任务'], ['variables','变量与风险'], ['coverage','覆盖与诊断'], ['opencode','OpenCode 复核'], ['reviews','人工确认'], ['history','历史与对比'], ['sharing','数据与共享'] ]
 const route = ref(location.hash.slice(2) || 'overview'), compact = ref(false)
 const bootstrap = ref<any>(null), scans = ref<any[]>([]), scan = ref(localStorage.getItem('ecra-scan') || ''), summary = ref<any>(null)
@@ -148,8 +149,9 @@ async function saveDecision(decision: string, undo = false) {
     summary.value = updated; await loadList(); notice.value = '已保存，静态分类保持独立。'; if(comment.value===submittedComment)comment.value = ''
   })
 }
-async function continueReview() {
+async function continueReview(historyId?:unknown) {
   await run(async()=>{
+  if(typeof historyId==='string'){scan.value=historyId;await refresh();if(scan.value!==historyId||summary.value?.binding?.scan_id!==historyId)throw Error('所选历史归档已不可用；请返回历史重新查询。')}
   go('reviews')
   const position = await api(apiScan.value + '/position')
   if (position) {
@@ -272,7 +274,7 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
           </template><div v-else class="empty"><h2>选择左侧对象查看完整证据</h2><p>支持同名static的独立身份。Ctrl+F查找，Esc返回列表。</p></div></section></div><section v-else class="panel empty">尚无结果包。请先从“数据与共享”导入。</section>
         </template>
         <template v-else-if="route==='coverage'"><CoverageCenter v-if="scan&&summary" :key="scan" :scan="scan" :roots="summary.roots" @symbol="openCoverageSymbol"/><p v-else>{{scan?'正在读取当前归档；若读取失败，请查看上方诊断。':'尚无可查看的归档。'}}</p></template>
-        <template v-else-if="route==='history'"><h1>历史与对比</h1><p>打开保存的不可变静态快照。“本轮未观察到”不等于已修复。跨版本自动继承尚未验收。</p><section class="panel"><article v-for="item in scans" class="history-row"><div><strong>{{ item.scan_id }}</strong><p>{{ item.project_id }} · {{ item.profile_id }} · {{ label(item.state) }}</p></div><button :disabled="busy" @click="openScan(item.scan_id)">打开结果</button></article><p v-if="!scans.length">尚无扫描历史。</p></section></template>
+        <template v-else-if="route==='history'"><HistoryCenter v-if="bootstrap" :data-root="bootstrap.data_root" :busy="busy" @open="openScan" @continue="continueReview" /></template>
         <template v-else-if="route==='sharing'"><div class="page-heading"><div><h1>数据与共享</h1><p>完整包可在无原固件的电脑查看归档并继续确认。导出可能含敏感代码与备注，请按团队规则分享。</p></div></div><div class="overview-columns"><section class="panel"><h2>导入完整结果</h2><p>校验ZIP路径、数据库结构、全部证据哈希与人工历史后原子发布；失败保留已有数据。</p><label>选择 .ecra-report<input type="file" accept=".ecra-report" :disabled="busy" @change="importFile($event)"></label><template v-if="scan"><h3>合并人工确认增量</h3><label>选择 .ecra-review-delta<input type="file" accept=".ecra-review-delta" :disabled="busy" @change="importFile($event,true)"></label><p>重复导入去重；并行决定保留双方事件，进入显式冲突。</p></template></section><section class="panel"><h2>导出当前归档</h2><p>{{ scan || '尚未选择归档' }}</p><div v-if="scan" class="actions"><button :disabled="busy" @click="exportFile('full')">导出标准完整包</button><button :disabled="busy" @click="exportFile('delta')">导出人工确认增量</button></div><h3>真实数据占用</h3><p class="muted">采样时间 {{storage?.sampled_at || '尚未读取'}}</p><button :disabled="busy" @click="run(async()=>{storage=await api('/storage')})">更新空间占用</button><p v-for="(bytes,name) in storage?.bytes">{{ name }}：{{ (Number(bytes)/1024/1024).toFixed(2) }} MiB</p><p class="muted">{{ storage?.reason }}</p></section></div><MigrationCenter @completed="readPage(async()=>{storage=await api('/storage');scans=(await api('/scans')).items})" @open="openScan" /><LegacyArchive v-if="summary?.legacy_warning" :key="scan" :scan="scan" :degraded="summary.legacy_degraded" @evidence="go('coverage')" /><CleanupCenter /></template>
         <template v-else-if="route==='tasks'"><TaskCenter :focus-task="taskFocus" @focus="rememberTask" @open="openScan" /></template>
         <template v-else-if="route==='opencode'"><ReviewCenter v-if="scan&&summary" :key="scan" :scan="scan" :project-id="summary.binding.project_id" :can-review="summary.can_review" @tasks="openTasks"/><section v-else class="panel"><h1>OpenCode 复核</h1><p>先打开已保存的真实扫描或结果包。</p></section></template>

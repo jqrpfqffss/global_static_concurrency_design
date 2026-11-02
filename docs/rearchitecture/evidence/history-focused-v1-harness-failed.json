@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "tests": 7,
+  "errors": 7,
+  "seconds": 1.03,
+  "classification": "TEST_HARNESS_API_NAME_ERROR",
+  "error": "AttributeError: 'ReviewStore' object has no attribute 'record'",
+  "correction": "Use existing ReviewStore.append without changing production event semantics",
+  "raw_output": "Observed in exec tool transcript; first raw logfile was not saved",
+  "superseded_by": "history-focused-v2.json"
+}

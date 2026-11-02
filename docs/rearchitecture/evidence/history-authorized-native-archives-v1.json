@@ -1,0 +1,28 @@
+{
+  "scope": "23 actual previously validated F030 native scan archives from approved UI acceptance roots; no invented scan IDs, fields, events or firmware inputs",
+  "directories": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\9a984191cb3446d0a86fe745cd478916",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\39933fd8df8a4f31b837fc506888e8f5",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\c4fc4747e275423f9c27c71649d67393",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\755ee1ef192b4f3da9bc4ffc1042e3b1",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\6afe2bd0046f4dcfa97180f479bc931c",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\cf18c713fcf74b5bb6e78b385c551462",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\5a43deefd34f4f07ad8fc3a70c028f49",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\23485e03d0814817af4a19cce892503c",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\b249ffe20c8c42d9803240c93c20ea23",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\c92b3b39b503448a9bb7ff5fb41c482c",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\06fe1c74893a41058e3e09feebb3081a",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\86f80f223810428a87661de2e9b1b962",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v3\\data\\scans\\47eb8aa0b658428fa65671993db02c58",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\707336aa1c3b4c6497a79276f6c6ae8e",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\142b3ac94e5542169c400cc350ab0fa5",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\bf276a8774b940479eb9e0babf2425d1",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\1238fb825ea84dd08e3b9eb9d7b28ff9",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\abdd3c4eda6c4e03b5b7c0ae4edecb60",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\5943bb6089f24944bba6c19d7294e308",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\247eed88170d41b6ba73254822070336",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\cfb049563dc045aeb9071909f7e4e9de",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\855a380c66ba47c9893f88829daaa214",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-main\\data\\scans\\c4c8342314b54add84bc3fe8c858236f"
+  ]
+}
