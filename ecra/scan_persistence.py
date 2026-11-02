@@ -178,6 +178,11 @@ def persist(out, facts, report, reviews):
             if settings.get('config_file') and path.resolve() == Path(settings['config_file']).resolve():
                 from .scan_identity import capture
                 provenance['display_identity'] = capture(raw, file, report.get('coverage', {}))
+                import os
+                provenance['execution_environment'] = dict(
+                    parent_python_hash_seed=os.environ.get('PYTHONHASHSEED'),
+                    extraction_python_hash_seed=os.environ.get('PYTHONHASHSEED') or '0',
+                    source_date_epoch=os.environ.get('SOURCE_DATE_EPOCH'))
             import gzip
             compressed = gzip.compress(raw, mtime=0)
             object_hash = hashlib.sha256(compressed).hexdigest()

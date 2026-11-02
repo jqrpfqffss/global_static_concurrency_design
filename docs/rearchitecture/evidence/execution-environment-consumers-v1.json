@@ -1,0 +1,12 @@
+{
+  "passed": false,
+  "tests": 31,
+  "failures": 0,
+  "errors": 1,
+  "skipped": 0,
+  "seconds": 134.32799999999406,
+  "engine_changes": [],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\execution-environment-consumers-v1.log",
+  "log_sha256": "2e0be35ca1fb69af59926a7b7e9f256ad28c1260feb3458aef220510a50dfd0c",
+  "scope": "Actual latest cache/seed changes: streamed, legacy, saved and canonical consumer regression; not full or large G1"
+}

@@ -123,6 +123,8 @@ class TaskManager:
                 ownership.callback(stream.close)
                 from .resource_policy import temporary_environment
                 env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'
+                if not env.get('PYTHONHASHSEED'):
+                    env['PYTHONHASHSEED']='0'
                 env['ECRA_DATA_ROOT']=str(self.data)
                 env['ECRA_RESOURCE_PRESSURE_FILE']=str(folder/'resource-pressure.json')
                 env['ECRA_EXTRACTION_WORKERS']=str(limits['workers'])

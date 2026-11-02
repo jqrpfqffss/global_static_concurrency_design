@@ -10,7 +10,7 @@
 
 [独立诊断收据](evidence/blackbox-hash-seed-probe-v1.json)保留13类组件摘要与多重集摘要，完整响应/逐行向量在本机blackbox-hash-seed-probe-v1，各2GiB受控Job。已有全图六字段差异和求解evaluations 40853/40975仍待完整解释；观察到的符号分类0差异不能替代全字段证明。
 
-新代码只固定执行随机性：ECRA.cmd、正式任务及TU提取环境在未指定或空seed时采用0，显式seed保留；TU缓存绑定有效提取seed及SOURCE_DATE_EPOCH，保留旧缓存并使不匹配项失效。实际父seed（可能未指定）、有效提取seed和日期epoch保存在新归档provenance，不能把父解释器未固定误称固定。提取器内部遍历、排序、策略/阈值、关系、重复次数和比较器不改。SOURCE_DATE_EPOCH不会成为产品默认，只在本次控制基线成对固定。
+新代码只固定执行随机性：ECRA.cmd、正式任务及TU提取环境在未指定或空seed时采用0，显式seed保留；TU缓存绑定有效提取seed及SOURCE_DATE_EPOCH，保留旧缓存并使不匹配项失效。显式random没有稳定顺序身份，因此只复用同一缓存实例内的本轮条目，不复用另一轮；原条目保留。实际父seed（可能未指定）、有效提取seed和日期epoch保存在新归档provenance，不能把父解释器未固定误称固定。提取器内部遍历、排序、策略/阈值、关系、重复次数和比较器不改。SOURCE_DATE_EPOCH不会成为产品默认，只在本次控制基线成对固定。
 
 | 新控制对照 | 协议 |
 |---|---|

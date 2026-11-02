@@ -18,8 +18,15 @@ class TUCache:
         import sys
         from clang import cindex
         self.environment = dict(python=sys.version, libclang=file_digest(cindex.conf.lib._name),
+                                python_hash_seed=os.environ.get('PYTHONHASHSEED') or '0',
+                                source_date_epoch=os.environ.get('SOURCE_DATE_EPOCH'),
                                 search_path=os.environ.get('PATH'), include=os.environ.get('CPATH'),
                                 c_include=os.environ.get('C_INCLUDE_PATH'), cpp_include=os.environ.get('CPLUS_INCLUDE_PATH'))
+        # An explicit random seed does not identify reproducible worker
+        # ordering. Keep this run's entries, but never reuse another run's.
+        if self.environment['python_hash_seed'] == 'random':
+            import uuid
+            self.environment['random_seed_session'] = uuid.uuid4().hex
         self.hits = self.misses = self.corrupt = 0
 
     def key(self, unit):

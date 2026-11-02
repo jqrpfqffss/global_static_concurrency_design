@@ -10,6 +10,23 @@ from ecra.common import write_json
 
 
 class BoundedExtractionTests(unittest.TestCase):
+    def test_actual_worker_environment_defaults_seed_without_mutating_caller_or_overriding_explicit_seed(self):
+        for value in [None, '', '0', '1', 'random']:
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);environment={'CUSTOM_CONTEXT':'retained'}
+                if value is not None:environment['PYTHONHASHSEED']=value
+                before=dict(environment);seen=[]
+                def worker(argv,**kwargs):
+                    seen.append(dict(kwargs['env']))
+                    write_json(Path(argv[-1]),dict(parse_status='PARSED'))
+                    return SimpleNamespace(returncode=0,stderr='')
+                with patch('ecra.cli.execute',worker):
+                    result=list(extraction_responses(root,[dict(tu_id='one',source_file='a.c')],
+                        dict(analysis=dict(extraction_workers=1)),root,environment,root,root))
+                self.assertEqual(len(result),1)
+                self.assertEqual(seen,[dict(before,PYTHONHASHSEED=value or '0')])
+                self.assertEqual(environment,before)
+
     def test_soft_pressure_reduces_admission_and_then_restores_parallelism_without_dropping_tus(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);pressure=root/'pressure.json';write_json(pressure,dict(parallel_limit=1))

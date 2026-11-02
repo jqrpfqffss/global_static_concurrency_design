@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "tests": 43,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "seconds": 113.28100000000268,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validation-cache-consumers-v2.log",
+  "scope": "Existing streamed/legacy/save/canonical consumers against bounded validation page cache; no complete large or package claim"
+}

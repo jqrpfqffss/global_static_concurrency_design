@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 49,
+  "seconds": 44.84399999999732,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tests.test_extraction_runtime_cache",
+    "tests.test_bounded_extraction",
+    "tests.test_integrity_validation_stream",
+    "tests.test_scan_schema_layout",
+    "tests.test_scan_store",
+    "tests.test_report_package",
+    "-v"
+  ],
+  "source_test_bytes_unchanged": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\execution-environment-focused-v2.log",
+  "log_sha256": "4d7b19cfef1e133d6540b28b79b71dd762400df380ed97e4f385f6c5119459a7",
+  "scope": "Actual effective extraction seed, runtime-bound TU cache, complete stream validation and archive contracts. Not full regression or large G1."
+}

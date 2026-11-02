@@ -341,6 +341,10 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
                 conn.execute('INSERT INTO profiles VALUES (?,?)', (profile_id, project_id))
                 conn.execute('INSERT INTO scans VALUES (?,?,?,?,?,?)',
                     (scan_id, project_id, profile_id, validation_state, roots['facts'][1], roots['report'][1]))
+            # The authority is fully committed here. Only the ensuing complete
+            # checks use this connection-local read cache; writer sync and
+            # transaction policy above are unchanged.
+            conn.execute('PRAGMA cache_size=-65536')
             if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):
                 raise ValueError('scan.db 完整性/引用校验失败')
         # NTFS/ext4 hard-link publication is atomic and exclusive. A crash
@@ -431,6 +435,10 @@ class EvidenceProvider:
 
     def validate(self, *, deep=False):
         with closing(connect_readonly(self.path)) as conn:
+            # Session-only, demand-allocated page cache for complete checks.
+            # Not a process memory cap or a limit on evidence/relationships.
+            # Metadata and ordinary paged reads keep their original budget.
+            conn.execute('PRAGMA cache_size=-65536')
             # Keep graph hashes and rebuilt query projections on one read view.
             conn.execute('BEGIN')
             if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):

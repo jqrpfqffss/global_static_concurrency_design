@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "seconds": 26.514999999999418,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tests.test_integrity_validation_stream",
+    "tests.test_scan_schema_layout",
+    "tests.test_scan_store",
+    "tests.test_report_package",
+    "-v"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validation-cache-focused-v2.log"
+}

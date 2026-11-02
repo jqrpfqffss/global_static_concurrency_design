@@ -4,6 +4,7 @@ cd /d "%~dp0"
 title ECRA Studio - Local Workbench
 set "ECRA_CONFIG_HOME=%~dp0config"
 set "PYTHONDONTWRITEBYTECODE=1"
+if not defined PYTHONHASHSEED set "PYTHONHASHSEED=0"
 if exist "%~dp0runtime\python.exe" (
   set "ECRA_PY=%~dp0runtime\python.exe"
   set "ECRA_PORTABLE_ROOT=%~dp0"

@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "scope": "Read-only bounded diagnostic fragments, NOT full validation/G1/native speed. No OS cache purge, old case first; compare logical ReadFile counts not exclusive wall-clock speed. No runtime changes to the running native/full validator.",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+  "source_stat_before": [
+    17831825408,
+    1793549944887471900
+  ],
+  "sqlite": "3.40.1",
+  "cases": [
+    {
+      "cache_kib": 2048,
+      "seconds": 21.046999999991385,
+      "read_calls": 49196,
+      "read_bytes": 201494576,
+      "user_cpu": 4.875,
+      "system_cpu": 0.515625,
+      "fragments": [
+        {
+          "lower_parent": 0,
+          "rows": 250000
+        },
+        {
+          "lower_parent": 10494797,
+          "rows": 250000
+        },
+        {
+          "lower_parent": 20889594,
+          "rows": 250000
+        }
+      ],
+      "ordered_tuple_sha256": "c4583ad2e862963514ee38c5ee8a21412c0c3e210240c733fb72d34506a3bb85",
+      "rss": 19386368
+    },
+    {
+      "cache_kib": 65536,
+      "seconds": 4.734000000011292,
+      "read_calls": 17179,
+      "read_bytes": 70352944,
+      "user_cpu": 4.53125,
+      "system_cpu": 0.125,
+      "fragments": [
+        {
+          "lower_parent": 0,
+          "rows": 250000
+        },
+        {
+          "lower_parent": 10494797,
+          "rows": 250000
+        },
+        {
+          "lower_parent": 20889594,
+          "rows": 250000
+        }
+      ],
+      "ordered_tuple_sha256": "c4583ad2e862963514ee38c5ee8a21412c0c3e210240c733fb72d34506a3bb85",
+      "rss": 87814144
+    }
+  ],
+  "source_stat_after": [
+    17831825408,
+    1793549944887471900
+  ]
+}

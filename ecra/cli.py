@@ -98,6 +98,11 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
     """
     from collections import deque
     from concurrent.futures import ThreadPoolExecutor
+    # Library-argument facts include complete set-derived inventories. Keep
+    # their emission repeatable while respecting an explicitly selected seed.
+    env = dict(env)
+    if not env.get('PYTHONHASHSEED'):
+        env['PYTHONHASHSEED'] = '0'
     def job(unit):
         request = worker_dir / (unit['tu_id'] + '.request.json')
         response = worker_dir / (unit['tu_id'] + '.response.json')
@@ -403,6 +408,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         parts, all_includes = FactParts(), set()
         tool_root = Path(__file__).resolve().parent.parent
         env = os.environ.copy()
+        if not env.get('PYTHONHASHSEED'):
+            env['PYTHONHASHSEED'] = '0'
         env["PYTHONPATH"] = str(tool_root) + os.pathsep + env.get("PYTHONPATH", "")
         explicit = [config_file, compilation['compile_database'], *sources, *response_files]
         # Complete baseline caches must bind the executable inputs too, not

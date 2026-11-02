@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "scope": "Actual low integrity F030 native prototype only, existing GuardedProcess, no synthetic restricted SID injection. Not production per-job capsule/broker/cache isolation or fullH2.",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v25",
+  "capsule": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\low-native-f030-v1\\capsule",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "exit_code": 0,
+  "seconds": 23.812999999994645,
+  "job": {
+    "available": true,
+    "working_set_bytes": 0,
+    "private_bytes": 0,
+    "peak_job_commit_bytes": 146239488,
+    "limit_bytes": 2147483648,
+    "enforced_job_commit_limit_bytes": 2147483648,
+    "job_limit_flags": 8704,
+    "processes": 0,
+    "sampled_processes": 0,
+    "write_bytes": 0
+  },
+  "native": {
+    "native_exit_code": 2,
+    "sentinel_write_denied": true,
+    "output": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\low-native-f030-v1\\capsule\\data\\scans\\native-low"
+  },
+  "original_inputs_unchanged": true,
+  "sentinel_unchanged": true,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\low-native-f030-v1\\capsule\\data\\scans\\native-low\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  }
+}

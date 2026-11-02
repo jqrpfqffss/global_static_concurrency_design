@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "scope": "Actual readonly observer output-overlap refusal in private fixture; no original benchmark root written",
+  "exit_code": 1,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "scripts/measure_storage_policy.py",
+    "--spec",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\allocation-observer-boundary-v1\\spec.json",
+    "--output",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\allocation-observer-boundary-v1\\retained\\receipt.json"
+  ],
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\measure_storage_policy.py\", line 119, in <module>\n    if __name__=='__main__':raise SystemExit(main())\n  File \"H:\\global_static_concurrency_design\\scripts\\measure_storage_policy.py\", line 76, in main\n    raise ValueError('Observation output and temporary ledger must be outside every retained input root')\nValueError: Observation output and temporary ledger must be outside every retained input root\n"
+}
