@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "state": "COMPLETE",
+  "scope": "Real Chrome v23 upgrade/third-batch check on the explicitly marked U16 test root.\n\nAppend only: the previous2000 declarations and immutable real INAV graph remain.\nNo graph copy/reset, mocked page, new native scan, physicalPC/DPI or UAT claim.\n",
+  "existing_events": 2000,
+  "requested": 1000,
+  "completed": 1000,
+  "data_root": "H:\\ECRA-U16-INAV-v1\\data",
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v23\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261102-studio-v23\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [
+    {
+      "name": "v23_opens_existing_v17_v19_batches_without_reset",
+      "status": "PASS",
+      "old_events": 2000
+    },
+    {
+      "name": "restart_after_new_350",
+      "status": "PASS",
+      "total_events": 2350
+    },
+    {
+      "name": "restart_after_new_700",
+      "status": "PASS",
+      "total_events": 2700
+    },
+    {
+      "name": "restart_after_new_1000",
+      "status": "PASS",
+      "total_events": 3000
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-upgrade-third-batch-v23-v1\\upgrade-batch-350.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-upgrade-third-batch-v23-v1\\upgrade-batch-700.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-upgrade-third-batch-v23-v1\\upgrade-batch-1000.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_scan": "NOT_EXERCISED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "static_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "static_bytes": 17831825408,
+  "seconds": 2012.0939999999973,
+  "events": 3000,
+  "old_events_preserved": 2000,
+  "new_distinct_symbols": 1000,
+  "static_unchanged": true,
+  "save_seconds": {
+    "median": 1.139999999999418,
+    "p95": 1.7030000000086147,
+    "maximum": 8.078000000008615
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "passed": false,
+  "status": "FAILED",
+  "scope": "Actual owned-worker/service crash and GUI retry against approved F030 inputs.\n\nNo mocked API/process result. Each run needs a fresh private root. Existing native\narchives, human declarations and input bytes must survive both injected crashes.\nThis is not a power-loss/system-reboot, large-native or full G5 certification.\n",
+  "tests": [],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v23\\ECRA-Portable",
+  "python": "H:\\ECRAStudio-build-20261102-studio-v23\\ECRA-Portable\\runtime\\python.exe",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "original_config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "physical32GB": "NOT_VERIFIED",
+  "power_loss": "NOT_VERIFIED",
+  "full_G5": "NOT_CLOSED",
+  "engineer_UAT": "NOT_VERIFIED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_scan_crash_recovery_ui.py\", line 118, in main\n    start_service();profile=api('/profiles',dict(yaml=raw,id='crash-recovery-f030'))\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_scan_crash_recovery_ui.py\", line 68, in api\n    with urllib.request.urlopen(request,timeout=30) as response:return json.load(response)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\request.py\", line 216, in urlopen\n    return opener.open(url, data, timeout)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\request.py\", line 525, in open\n    response = meth(req, response)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\request.py\", line 634, in http_response\n    response = self.parent.error(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\request.py\", line 563, in error\n    return self._call_chain(*args)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 403: Forbidden\n"
+}

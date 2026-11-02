@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1315,
+  "passed_tests": 1313,
+  "skipped": 2,
+  "seconds": 1953.141,
+  "controller_seconds": 1958.452999999994,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v23",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v23",
+  "frozen_files": 1565,
+  "differences": [],
+  "manifest_sha256": "b390056b27c5855581a31bba8a0c358e10d34879957e4d710eae93dc3fa6920f",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v23.log",
+  "log_sha256": "069dc9ffdb63089712859aeb357ca920ba7b139bb93b69e1b54c2be4bb6e0bbc",
+  "scope": "Frozen c311aa4ec2f392ea66887e1ad502bf0e0c2825ac complete current1315; scalar byte boundary and failed pending-notice regression; Bounded immutable access context plus full mask evidence allocation; all three independent frozen originals including unchanged merge algorithm. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+}

@@ -1,4 +1,4 @@
-> 最新已封存候选：[v19实包与升级续确认](23-portable-v19-and-upgrade-acceptance.md)，运行时034ecb5604；1297项1295PASS/2联网SKIP、13组实包Chrome及原1000保留+新1000确认/三次重启通过。[当前U01–U24](ui/22-user-scenario-status-v19.md)：11PASS/13待验。G3仍FAIL，完整重构未完成；下方旧阶段记录按其原版本理解。
+> 当前已封存候选：[v23实包与真实异常恢复](28-frozen-v23-and-cold-native-acceptance.md)，运行时c311aa4；1315项1313PASS/2联网SKIP、13组112浏览器断言、额外5项崩溃恢复、原2000保留+新1000确认/三次重启通过。[U01–U24](ui/25-user-scenario-status-v23.md)：12PASS/12待验。INAV388TU已提取、全局分析继续；G3原FAIL及其余未验项保持。schema3源码候选另验，旧v19/v20/v21/v22的[标量完整性勘误](27-scalar-byte-boundary-integrity.md)保留。
 
 # 续轮验收：真实实现与未通过门禁（2026-11-01）
 

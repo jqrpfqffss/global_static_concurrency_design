@@ -1,0 +1,194 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Exact v23 candidate local acceptance, thirteen real Chrome groups and1315 frozen regression; not full refactor, physicalPC/32GB/DPI/UAT or all G gates",
+  "recorded_utc": "2026-11-02T12:16:42.750453+00:00",
+  "source_head": "c311aa4ec2f392ea66887e1ad502bf0e0c2825ac",
+  "frozen_files": 1565,
+  "source_manifest_sha256": "b390056b27c5855581a31bba8a0c358e10d34879957e4d710eae93dc3fa6920f",
+  "program_entry": "H:\\ECRAStudio-build-20261102-studio-v23\\ECRA-Portable\\ECRA.cmd",
+  "zip_path": "H:\\ECRAStudio-build-20261102-studio-v23\\ECRA-Portable.zip",
+  "zip_bytes": 600439088,
+  "zip_sha256": "7021cfbf68e648ac85d58b5f430f9b57fafbddf56b30b1640faf1214f68c0f97",
+  "runtime_source_files_matched": 121,
+  "runtime_source_differences": [],
+  "distribution_files_verified": 29880,
+  "distribution_verification": {
+    "passed": true,
+    "files": 29880,
+    "runtime_matches": 121,
+    "files_manifest_sha256": "10d0c80df1d1444624a66c1d0c8932e51d3653c83b6d51097cacca474c7f6945",
+    "recorded_utc": "2026-11-02T12:16:40.596409+00:00"
+  },
+  "regression": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1315,
+    "passed_tests": 1313,
+    "skipped": 2,
+    "seconds": 1953.141,
+    "controller_seconds": 1958.452999999994,
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v23",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v23",
+    "frozen_files": 1565,
+    "differences": [],
+    "manifest_sha256": "b390056b27c5855581a31bba8a0c358e10d34879957e4d710eae93dc3fa6920f",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v23.log",
+    "log_sha256": "069dc9ffdb63089712859aeb357ca920ba7b139bb93b69e1b54c2be4bb6e0bbc",
+    "scope": "Frozen c311aa4ec2f392ea66887e1ad502bf0e0c2825ac complete current1315; scalar byte boundary and failed pending-notice regression; Bounded immutable access context plus full mask evidence allocation; all three independent frozen originals including unchanged merge algorithm. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+  },
+  "browser_groups": [
+    {
+      "name": "preflight",
+      "tests": 16,
+      "passed": true,
+      "seconds": 159.5,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-preflight.json",
+      "sha256": "fe9200bd8d0076bbc038d11d2ccefa6aa4c0215f8cf3d4d0ea287e0931cae7c3"
+    },
+    {
+      "name": "sample",
+      "tests": 11,
+      "passed": true,
+      "seconds": 33.20299999999406,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-sample.json",
+      "sha256": "9dea986eb3ab5b6db8b7f9b1aa2e0a98cf106d6d3554fe7e9051dfcc99704f30"
+    },
+    {
+      "name": "main",
+      "tests": 17,
+      "passed": true,
+      "seconds": 120.59399999999732,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-main.json",
+      "sha256": "c428fb974333d14e8e7aa68c7cae4774689394656e82b8f7b39d52a0b7d832b3"
+    },
+    {
+      "name": "legacy-degraded",
+      "tests": 6,
+      "passed": true,
+      "seconds": 90.125,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-legacy-degraded.json",
+      "sha256": "c884cfcd9317fb863451e877abcaf9dd198851e4ca8959912ce2089df585a180"
+    },
+    {
+      "name": "profile",
+      "tests": 7,
+      "passed": true,
+      "seconds": 7.671999999991385,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-profile.json",
+      "sha256": "743409ba5a6c4e72908ceabd734bce177fd6bf49c761e105cda06ff6913ae109"
+    },
+    {
+      "name": "contexts",
+      "tests": 8,
+      "passed": true,
+      "seconds": 9.953000000008615,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-contexts.json",
+      "sha256": "f50fe0bf9f8bc4156496eb42dbefab5b3dc926ed6caaf759d523ca698d927108"
+    },
+    {
+      "name": "directories",
+      "tests": 7,
+      "passed": true,
+      "seconds": 8.406000000002678,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-directories.json",
+      "sha256": "35f7cbaf595507484667e46364260ec36dcd43b3e686b80b7d9da4c7e180ebd5"
+    },
+    {
+      "name": "git",
+      "tests": 6,
+      "passed": true,
+      "seconds": 21.5,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-git.json",
+      "sha256": "e4ef66289dd9f9240518741ab25d7720c0104f63e6a1085f9bf76c551bf50b30"
+    },
+    {
+      "name": "capacity",
+      "tests": 9,
+      "passed": true,
+      "seconds": 28.46799999999348,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-capacity.json",
+      "sha256": "f7133264d25c83b7ee3933eaa84c737b1825382b57103c3a815b0770ad3e72d6"
+    },
+    {
+      "name": "coverage",
+      "tests": 8,
+      "passed": true,
+      "seconds": 18.937000000005355,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-coverage.json",
+      "sha256": "6878bcbac3fdc9c3fa49359c31cced50b413db7ad1fbe492e8e8b5e9c4ab7846"
+    },
+    {
+      "name": "legacy",
+      "tests": 6,
+      "passed": true,
+      "seconds": 99.89099999998871,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-legacy.json",
+      "sha256": "d7173788ed221e2e2bc0be55c1c8762dc10ab1dfe5b1fdc6ab1b97a5ac370e9d"
+    },
+    {
+      "name": "collaboration",
+      "tests": 7,
+      "passed": true,
+      "seconds": 50.85900000001129,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-collaboration.json",
+      "sha256": "597537969ba145927d2d11483877d42d6b25241bc4064f9d2826bdef481c092e"
+    },
+    {
+      "name": "launcher",
+      "tests": 4,
+      "passed": true,
+      "seconds": 8.593999999997322,
+      "path": "docs/rearchitecture/evidence/browser-portable-v23-launcher.json",
+      "sha256": "d1639c678740969d3d0efbc9e6eed6fdde0a070ab55f2e8ca162bcbf63d997e9"
+    }
+  ],
+  "cli": [
+    {
+      "kind": "uncompressed",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v23-cli-uncompressed.json",
+      "sha256": "0c1a1b21193baca52951d9e208d4239a9be339ff6962f120c237e11be6026f65"
+    },
+    {
+      "kind": "zip-extracted",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v23-cli-zip-extracted.json",
+      "sha256": "7ce69f5aa5d66d5ba43e1f0506ecffe214eddfa753cae46471b605420ddf6b46"
+    }
+  ],
+  "gates": {
+    "G1": "Full exact F030 facts/report comparison PASS; large native comparison NOT_VERIFIED",
+    "G2": "Other real inputs NOT_VERIFIED_USER_DEFERRED",
+    "G3": "FAIL16GiB; physical32GB NOT_VERIFIED",
+    "G4": "NOT_VERIFIED; no claimed70percent reduction",
+    "G5": "NOT_CLOSED_FULL_FAILURE_MATRIX",
+    "G6": "PASS_MEASURED_SCALAR_BOUNDARY_AND_PACKAGE_SUBSETS_NOT_FULL_LARGE_PROTOCOL",
+    "G7": "NOT_CLOSED_ALL_USER_SCENARIOS",
+    "G8": "PASS_LOCAL_PACKAGE_NOT_PHYSICAL_CLEAN_PC"
+  },
+  "upgrade_human_batch": {
+    "passed": true,
+    "receipt": "docs/rearchitecture/evidence/browser-review-upgrade-third-batch-v23-v1.json",
+    "sha256": "4367b5ad3c973733d0dbf07da22b35b6b76685b6e18fb9b44b5406f52f9394cc",
+    "old_events_preserved": 2000,
+    "new_distinct_symbols": 1000,
+    "events": 3000,
+    "static_graph_unchanged": true,
+    "scope": "Original actual INAV comparison graph, not new native scan or physical secondPC/UAT"
+  },
+  "retained_failure": "v18 actual rapid-undo input-loss failure and working-source-change rejection remain committed",
+  "additional_crash_recovery": {
+    "passed": true,
+    "tests": 5,
+    "receipt": "docs/rearchitecture/evidence/browser-scan-crash-recovery-v5.json",
+    "sha256": "9b515493af041980658f7d9ef6eecb4f6785a5f6c38bbc9674e0ee7a132c03d5",
+    "controller_sha256": "7a50387b89e14014e6815c48b1ab058ee0d834d4d6c1ea9f2d3f3c2bd9c534e4",
+    "scope": "Two real owned process crashes, service reopen and GUI retry with validated TU cache; not fullG5 or physical reboot",
+    "supersedes_screenshot_stability_only": "v4 functional assertions PASS retained; v5 additionally waits for initial global loading indicator to disappear"
+  }
+}

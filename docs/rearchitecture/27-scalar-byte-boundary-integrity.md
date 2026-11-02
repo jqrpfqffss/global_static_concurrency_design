@@ -1,4 +1,4 @@
-# 标量字节边界与失败界面状态修正（源码验收通过，实包待验）
+# 标量字节边界与失败界面状态修正（v23实包已验，完整G6未关闭）
 
 ## 已确认的缺口
 
@@ -25,7 +25,8 @@ GUI控制器增加`--scalar-tail-adversary`：以真实F030标准包的独立副
 | 旧格式/流式/保存消费者 | 首轮显式模块运行遗漏tests目录，test_saved_json按原代码import test_ecra失败；按discover相同路径设置后43项PASS、115.005s | [首轮FAIL](evidence/scalar-boundary-legacy-v1-harness-failed.json)、[更正后专项](evidence/scalar-boundary-legacy-v2.json)；未修改原消费者来适应测试 |
 | Vue/TypeScript与实际源码GUI | vue-tsc/vite实际构建成功；真实Chrome17项PASS、无页面异常/外部请求，重算摘要的真实F030恶意包被400拒绝，旧静态库/全部人工事件未变；失败后无“正在校验”提示 | [浏览器收据](evidence/browser-scalar-tail-host-v1.json)、[实际截图](ui/screenshots/scalar-tail-host-v1/11-unhashed-scalar-package-rejected.png)。不是新Portable/物理DPI/UAT |
 | 实际同输入F030原生 | 完整facts及严格规范report差异0，42原输入与93引擎文件前后不变、原配置SHA不变，预期INCOMPLETE exit2；驱动含验证共26.625s | [原生对照](evidence/scalar-boundary-native-exact-v1.json)，不是大型G1/G3 |
-| 完整1315项/新Portable/最终大型冷扫描 | 须在本修复提交后冻结源码运行 | NOT_VERIFIED，不借用v20/v21/v22旧收据 |
+| 完整1315项/新Portable | v23冻结源1313 PASS、2项真实联网opt-in SKIP，1953.141s，源/测试副本逐文件不变；实际包十三组112断言通过，主流程17项包含本次重算摘要攻击；目录与中文路径ZIP各27命令通过 | [完整回归](evidence/full-regression-studio-v23.json)、[v23封存](evidence/portable-studio-v23-seal.json)、[实包攻击拒绝截图](ui/screenshots/portable-v23/main-11-unhashed-scalar-package-rejected.png)，不是全G6或干净物理PC |
+| 最终大型冷扫描 | v23同输入388TU实际提取已完成，归并/分析继续；完整对照/标准包往返等待有效库 | RUNNING，不预填G1/G3 PASS，见[阶段28](28-frozen-v23-and-cold-native-acceptance.md) |
 
 旧候选程序包不覆盖或删除；其原测试结果仅证明当时已测场景，不能声称已拒绝此新增恶意输入。当前完整G6/H6与发布门禁仍未关闭。新的默认验收必须包含本修复，最终冷扫描也必须绑定修复后冻结源。
 

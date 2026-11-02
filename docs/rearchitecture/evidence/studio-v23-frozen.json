@@ -1,0 +1,9 @@
+{
+  "head": "c311aa4ec2f392ea66887e1ad502bf0e0c2825ac",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v23",
+  "files": 1565,
+  "manifest_sha256": "b390056b27c5855581a31bba8a0c358e10d34879957e4d710eae93dc3fa6920f",
+  "expected_tests": 1315,
+  "package_target": "H:/ECRAStudio-build-20261102-studio-v23",
+  "all_gates_passed": false
+}
