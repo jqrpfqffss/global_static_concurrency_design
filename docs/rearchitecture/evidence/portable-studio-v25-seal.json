@@ -1,0 +1,209 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Exact v25 candidate local acceptance, thirteen real Chrome groups and1351 frozen regression; not full refactor, physicalPC/32GB/DPI/UAT or all G gates",
+  "recorded_utc": "2026-11-02T16:56:12.281884+00:00",
+  "source_head": "dca72be3114126608896b9b8c5397faa9fe4e49e",
+  "frozen_files": 1856,
+  "source_manifest_sha256": "e3243371291522daa28cafa6ca44fbc20262982d9de750550c4e6de98af264af",
+  "program_entry": "H:\\ECRAStudio-build-20261103-studio-v25\\ECRA-Portable\\ECRA.cmd",
+  "zip_path": "H:\\ECRAStudio-build-20261103-studio-v25\\ECRA-Portable.zip",
+  "zip_bytes": 626219593,
+  "zip_sha256": "5e2398ba402c2ce24c46a66c11656b761823686ec173f3e6e2c52eb1552a62fd",
+  "runtime_source_files_matched": 123,
+  "runtime_source_differences": [],
+  "distribution_files_verified": 30157,
+  "distribution_verification": {
+    "passed": true,
+    "files": 30157,
+    "runtime_matches": 123,
+    "files_manifest_sha256": "44850a2ec9d49d0d5cd672f569afec8da0a1dc3db7125820743732a540f94549",
+    "recorded_utc": "2026-11-02T16:56:10.672229+00:00"
+  },
+  "regression": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1351,
+    "passed_tests": 1349,
+    "skipped": 2,
+    "seconds": 1939.639,
+    "controller_seconds": 1944.9840000000113,
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v25",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v25",
+    "frozen_files": 1856,
+    "differences": [],
+    "manifest_sha256": "e3243371291522daa28cafa6ca44fbc20262982d9de750550c4e6de98af264af",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v25.log",
+    "log_sha256": "c70510fecc57fcb1337ff6e7c8f18e7a032932b3ad2706eb8f3bc8206735e817",
+    "scope": "Frozen paged archive history and saved startup root selection/recovery; expected1351 with two live opt-in skips. Actual package and large native gates separately required"
+  },
+  "browser_groups": [
+    {
+      "name": "preflight",
+      "tests": 16,
+      "passed": true,
+      "seconds": 191.875,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-preflight.json",
+      "sha256": "6d8f395fc9f841ee8a3844150e68d8d491d984f6e8dead84141f96fbef4c9a86"
+    },
+    {
+      "name": "sample",
+      "tests": 11,
+      "passed": true,
+      "seconds": 46.25,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-sample.json",
+      "sha256": "3ed91148e8b8ffc2ee20333a465984bf32b63d72ddea3ea57e6b0169eaef3931"
+    },
+    {
+      "name": "main",
+      "tests": 17,
+      "passed": true,
+      "seconds": 128.32799999999406,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-main.json",
+      "sha256": "a1fc60aac7601673b42ea9b54639fca89c226f7f6981f2b5a158d69dcd0b2194"
+    },
+    {
+      "name": "legacy-degraded",
+      "tests": 6,
+      "passed": true,
+      "seconds": 88.07800000000861,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-legacy-degraded.json",
+      "sha256": "e1e29c0fccf2b1f24c575b54393090582bb4600e2d8716bc41e7c52281675b30"
+    },
+    {
+      "name": "profile",
+      "tests": 7,
+      "passed": true,
+      "seconds": 8.34299999999348,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-profile.json",
+      "sha256": "733f67ed1cb3f8e628838c760e5867a03f83998cdb30c9c26ccdf041e62853c1"
+    },
+    {
+      "name": "contexts",
+      "tests": 8,
+      "passed": true,
+      "seconds": 10.953000000008615,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-contexts.json",
+      "sha256": "7dc5f470441a457daf0632894fcae2f8d455da347c95323533473eba317ad559"
+    },
+    {
+      "name": "directories",
+      "tests": 7,
+      "passed": true,
+      "seconds": 9.125,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-directories.json",
+      "sha256": "a0807aee5e9a3c90a0df578a269f76d5b3eb67eb9bd1e0029889e6842c7e773c"
+    },
+    {
+      "name": "git",
+      "tests": 6,
+      "passed": true,
+      "seconds": 23.687000000005355,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-git.json",
+      "sha256": "45d8347b3648ec0a563cd9514a01bb5558a395a8823ffdd442d189cd3ff6e12e"
+    },
+    {
+      "name": "capacity",
+      "tests": 9,
+      "passed": true,
+      "seconds": 30.764999999999418,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-capacity.json",
+      "sha256": "55e63b89c41def48b8caa9fbb90fdaaae85bcf6135966eb1d6f76e11f4ff6406"
+    },
+    {
+      "name": "coverage",
+      "tests": 8,
+      "passed": true,
+      "seconds": 19.827999999994063,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-coverage.json",
+      "sha256": "b17f674324b79df277cd130cddf180e03f659eb8789797cae8ec4f2c779c7226"
+    },
+    {
+      "name": "legacy",
+      "tests": 6,
+      "passed": true,
+      "seconds": 105.0619999999908,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-legacy.json",
+      "sha256": "256f7aee501eaff034531ec71e00b4d4065bf8876fc4c4245ae47c013746c7c8"
+    },
+    {
+      "name": "collaboration",
+      "tests": 7,
+      "passed": true,
+      "seconds": 56.92200000000594,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-collaboration.json",
+      "sha256": "e0a94f7a8abc9b1521c1230ee2f9659f9d36242bd7e65df9717df0bece77f809"
+    },
+    {
+      "name": "launcher",
+      "tests": 4,
+      "passed": true,
+      "seconds": 9.921999999991385,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-launcher.json",
+      "sha256": "446adf62c0852400005fceaf5ca192199c67ce706a29ff3c29a1936ae58e13b3"
+    }
+  ],
+  "cli": [
+    {
+      "kind": "uncompressed",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v25-cli-uncompressed.json",
+      "sha256": "cd335cf72b5136e96199863d42a6d2182f6a4c85d3a9f25284424d3c6ecd5800"
+    },
+    {
+      "kind": "zip-extracted",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v25-cli-zip-extracted.json",
+      "sha256": "70787953bd7db7257e1064a4db03c34b02466b337eeb70b33fe971a60a2a1af6"
+    }
+  ],
+  "gates": {
+    "G1": "FAIL_OBSERVED_LARGE_FACTS_ACCESS_ORDER_DIFFERENCE; raw root and exact first field mismatch retained, complete integrity still running; F030 remains PASS",
+    "G2": "Other real inputs NOT_VERIFIED_USER_DEFERRED",
+    "G3": "PASS_COMPLETED_COLD_V23_CLI16GiB_JOB_SUBSCOPE; physical32GB and current-v25 largeGUI NOT_VERIFIED",
+    "G4": "FAIL_MEASURED_CURRENT_RETAINED_DATA_PLUS_COMMON_BUILD40.2058percent_BEFORE_STANDARD_PACKAGE; completeG4 not closed",
+    "G5": "PASS_ACTUAL_WORKER_AND_SERVICE_CRASH_RETRY_SUBSET_NOT_FULL_FAILURE_MATRIX",
+    "G6": "PASS_MEASURED_SCALAR_BOUNDARY_AND_PACKAGE_SUBSETS_NOT_FULL_LARGE_PROTOCOL",
+    "G7": "NOT_CLOSED_ALL_USER_SCENARIOS",
+    "G8": "PASS_LOCAL_PACKAGE_NOT_PHYSICAL_CLEAN_PC"
+  },
+  "upgrade_human_batch": "NOT_REPEATED_IN_V25; v23 third1000 receipt remains separate historical evidence,not borrowed as this runtime proof",
+  "retained_failure": "v18 actual rapid-undo input-loss failure and working-source-change rejection remain committed",
+  "extra_browser_groups": [
+    {
+      "name": "history",
+      "passed": true,
+      "tests": 8,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-history.json",
+      "sha256": "6d2100d655e62b62f9e0df6217400aad7fa43ee2a71d6b482eb46cb9c1b725c8"
+    },
+    {
+      "name": "data-root",
+      "passed": true,
+      "tests": 6,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-data-root.json",
+      "sha256": "72a9b6734e2a373932d03044ed245bed90f61e84f4172c94dceeaaa3fce97028"
+    },
+    {
+      "name": "crash-recovery",
+      "passed": true,
+      "tests": 5,
+      "path": "docs/rearchitecture/evidence/browser-portable-v25-crash-recovery.json",
+      "sha256": "d3432fb1593378ea81ee7d12e1915475182c9f4784e82f953fc71b56ffb7939e"
+    }
+  ],
+  "actual_crash_recovery": {
+    "passed": true,
+    "tests": 5,
+    "receipt": "docs/rearchitecture/evidence/browser-portable-v25-crash-recovery.json"
+  },
+  "all_actual_browser_groups": 16,
+  "overlapping_browser_assertions": 131,
+  "source_scope": "Exact dca72be history and saved-root package. Later readonly page-cache source change is not included.",
+  "metadata_audit": "Corrected inherited V24 caption to V25; all actual test/package/hash data unchanged, no additional 1000 batch claimed.",
+  "late_large_mismatch_receipt": "docs/rearchitecture/evidence/inav-cold-v10-first-mismatch-diagnostic-v1.json"
+}

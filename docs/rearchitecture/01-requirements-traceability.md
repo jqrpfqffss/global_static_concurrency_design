@@ -1,4 +1,5 @@
-> 当前已封存候选：[v24 schema3/完整流式校验实包](33-frozen-v24-acceptance.md)，运行时aac467f；1330项1328PASS/2联网SKIP、13组112个Chrome断言与额外5项实际崩溃恢复通过。v23第三批1000确认单独保留，不充作v24新批次。[INAV冷原生v10已有效保存](36-cold-inav-native-v10.md)，CLI峰值提交10648195072 B/16095.766s，4123输入与1565引擎SHA后验一致；完整大型对照/标准包正在验证，物理32GB及G4仍待验。历史检索与GUI启动目录选择已进v25冻结候选dca72be，1351完整回归/新实包正在运行；v24不含这两项新功能。
+> 当前已封存[v25历史检索/GUI启动目录实包](39-frozen-v25-and-large-gate-errata.md)，运行时dca72be，1351项1349PASS/2联网SKIP、16组131个Chrome断言通过；[U场景](ui/28-user-scenario-status-v25.md)11PASS/13待验。大型冷原生已完成但G1发现访问事实等字段差异，当前FAIL；G4同口径实测下降40.2058%，FAIL。正在以[固定执行环境的独立原版](40-fixed-execution-environment-baseline.md)重新建立严格对照；原数据和所有失败保留。后续缓存/seed代码不在v25包内。
+
 
 
 # 需求追踪与阶段门禁

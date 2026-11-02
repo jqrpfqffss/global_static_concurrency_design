@@ -1,0 +1,33 @@
+{
+  "scope": "Read-only first-field diagnostic on declared facts root mismatch; DOES NOT replace pending complete deep integrity/comparison or normalize any field.",
+  "before": {
+    "kind": "object",
+    "hash": "9da30821f449de364352f533134d80e731e031f44bbe69ec86d8f287ac12b6c2",
+    "length": 55
+  },
+  "after": {
+    "kind": "object",
+    "hash": "7a5c1742310947fd1d51feab010abb8a08793277a480a5769bd7d828f68a1f6a",
+    "length": 55
+  },
+  "difference": {
+    "path": [
+      "accesses",
+      43096,
+      "symbol_id"
+    ],
+    "before": {
+      "kind": "str",
+      "hash": "30002d9f0d61a923f578e09b00e2cc7d09e60027d62e53c414c9e1a8bd75abae",
+      "length": 77,
+      "value": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex"
+    },
+    "after": {
+      "kind": "str",
+      "hash": "61b2be7cbc0b98c84f96ce32fd63d9c99a552491a1f1b312d22e497436c672a4",
+      "length": 85,
+      "value": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[*]"
+    }
+  },
+  "seconds": 2.577999999994063
+}

@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1351,
+  "passed_tests": 1349,
+  "skipped": 2,
+  "seconds": 1939.639,
+  "controller_seconds": 1944.9840000000113,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v25",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v25",
+  "frozen_files": 1856,
+  "differences": [],
+  "manifest_sha256": "e3243371291522daa28cafa6ca44fbc20262982d9de750550c4e6de98af264af",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v25.log",
+  "log_sha256": "c70510fecc57fcb1337ff6e7c8f18e7a032932b3ad2706eb8f3bc8206735e817",
+  "scope": "Frozen paged archive history and saved startup root selection/recovery; expected1351 with two live opt-in skips. Actual package and large native gates separately required"
+}

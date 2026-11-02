@@ -1,0 +1,37 @@
+{
+  "status": "CONTROLLED_STOP_AFTER_OBSERVED_G1_FACTS_MISMATCH",
+  "passed": false,
+  "scope": "Only this owned read-only verifier stopped after confirmed field/root mismatch and independently reproduced original hash-seed nondeterminism. Native producer already completed and was not stopped. Not natural failure/OOM or completed deep validation; no archive published.",
+  "controller": {
+    "pid": 27332,
+    "created": 1793631716.9653077,
+    "script": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/run-cold-v10-comparison-package-v2.py"
+  },
+  "owned_descendants": [
+    {
+      "pid": 8396,
+      "created": 1793631716.9775753,
+      "name": "conhost.exe"
+    },
+    {
+      "pid": 27428,
+      "created": 1793636273.575169,
+      "name": "python.exe"
+    },
+    {
+      "pid": 27064,
+      "created": 1793636273.5871372,
+      "name": "conhost.exe"
+    }
+  ],
+  "phase": {
+    "phase": "STRICT_DEEP_FULL_FACTS_NORMALIZED_REPORT_COMPARISON",
+    "observed": 1793636273.778093
+  },
+  "execution_before_sha256": "3c0c09c71e8be8cda4c8936e90e10cf8cfbea26e6fd8dec2bf81efe4f6d08f5f",
+  "observed_utc": "2026-11-02T18:09:04.119119+00:00",
+  "G1": "FAIL_FIRST_FIELD_OBSERVED",
+  "complete_deep_validation": false,
+  "standard_archive": "NOT_RUN_AFTER_SEMANTIC_MISMATCH",
+  "owned_descendants_gone": true
+}

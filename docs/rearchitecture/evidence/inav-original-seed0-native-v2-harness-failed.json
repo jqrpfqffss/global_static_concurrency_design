@@ -1,0 +1,43 @@
+{
+  "exit_code": 1,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v25\\scripts\\measure_native_golden.py",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\engine",
+    "--config",
+    "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+    "--data-root",
+    "I:\\ECRA-O2-SEED0",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-seed0-native-v2",
+    "--mode",
+    "legacy",
+    "--limit-gib",
+    "32"
+  ],
+  "preflight": {
+    "passed": true,
+    "inputs": 4123,
+    "input_differences": [],
+    "engine_files": 699,
+    "engine_manifest_sha256": "a49370260d4e4e962a749ad03532c26ecbe124ae90f0e0664dcf10b54d9832bb",
+    "config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+    "seconds": 6.155999999988126,
+    "seed": "0",
+    "source_date_epoch": "1793577600"
+  },
+  "postflight": {
+    "passed": true,
+    "inputs": 4123,
+    "input_differences": [],
+    "engine_files": 699,
+    "engine_differences": []
+  },
+  "seed": "0",
+  "source_date_epoch": "1793577600",
+  "scope": "Fresh unmodified original engine native reference with explicitly frozen execution env: PYTHONHASHSEED0 and SOURCE_DATE_EPOCH1793577600. Original uncontrolled-seed baseline remains unchanged; no comparison normalization changes."
+}

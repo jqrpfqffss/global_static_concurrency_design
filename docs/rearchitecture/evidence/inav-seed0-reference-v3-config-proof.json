@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "source_config": "I:\\ECRAStudio-data\\rearchitecture-20261101\\inav-golden-f254-v1\\semantics-native-golden.yaml",
+  "source_config_sha256": "6b27a1b0ad1e675ff2f7ceb421c286fe32d8823a8da65fea0e1f8eee033e75e2",
+  "variant_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-reference-v3-config\\semantics.yaml",
+  "variant_sha256": "d1bc911bfc315eb94e6d15177f7b33efa170363fa139763a703122d4ea435d04",
+  "only_change": "analysis.output.custom_dir: owned legacy reference output I:/ECRA-O1 to fresh I:/ECRA-O3-SEED0",
+  "all_other_parsed_values_and_original_bytes_retained": true,
+  "scope": "One shared variant config/path/bytes for the new controlled original and candidate pair; old6b27 baseline/config unchanged; no scan-semantic settings or normalization changes"
+}

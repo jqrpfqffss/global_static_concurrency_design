@@ -1,0 +1,25 @@
+{
+  "scope": "Current complete old and cold-v10 data roots plus exact common external build workspace, before standard package export. No source golden/program/validation-backup duplication counted as production retention. Current files only, no old physical peak claim.",
+  "policies": {
+    "original-e69": [
+      {
+        "name": "data",
+        "path": "I:/ECRA-O1"
+      },
+      {
+        "name": "shared-build",
+        "path": "I:/ECRA-B1"
+      }
+    ],
+    "native-cold-v10-c311": [
+      {
+        "name": "data",
+        "path": "H:/ECRA-NATIVE-A10"
+      },
+      {
+        "name": "shared-build",
+        "path": "I:/ECRA-B1"
+      }
+    ]
+  }
+}

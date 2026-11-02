@@ -1,0 +1,963 @@
+{
+  "scope": "Read-only root and small-window diagnostic, not full deep validation",
+  "sides": {
+    "before": {
+      "roots": [
+        [
+          "variables",
+          "c78a8525690c8de0c431d0cf81333efb80ae3907a5738fa35b5d7d5e7d2b9dff",
+          "list",
+          16566
+        ],
+        [
+          "functions",
+          "5fbc2afde0c56eee637b855c660dbc8e211d196532609a3afa94f29d2b96650d",
+          "list",
+          491011
+        ],
+        [
+          "accesses",
+          "97a421251a37d042b58dd941571c4845e83bd324e82617075264b067f5750c70",
+          "list",
+          1208049
+        ],
+        [
+          "calls",
+          "955019c69aa16c433fe827bd5a8b54d219f1dc55405812bd06facb8106b4c4e4",
+          "list",
+          20224
+        ],
+        [
+          "unknowns",
+          "9769a04a10068988328676afc7fc4ac716110afbbb51bcae5b9a186aff09c30b",
+          "list",
+          1534856
+        ],
+        [
+          "protection_events",
+          "1e48aeb94b07ebcdebf72a0517d781b666bf5bce3d059da90dd83035f8c5c23c",
+          "list",
+          17324
+        ],
+        [
+          "registrations",
+          "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+          "list",
+          0
+        ],
+        [
+          "snapshots",
+          "1db297f36992dc513d0bc48956015f629780e088a5252f88c5b076935c367ef7",
+          "list",
+          5738
+        ],
+        [
+          "pointer_constraints",
+          "57f8bba35a00d74b0036d614906bf5c79804b0b8c416658a30fa94cd99dfad58",
+          "list",
+          198583
+        ],
+        [
+          "semantic_calls",
+          "ae7a079c593ed6ff307af8f40659964cb45790ed2d4b978411836c7b9acc16ac",
+          "list",
+          109033
+        ],
+        [
+          "indirect_accesses",
+          "9991ca21110d1a9f939b821b68ea54c39dfca126e6bebfb8c8c6adc9346c1215",
+          "list",
+          400926
+        ],
+        [
+          "irq_priority_events",
+          "727a09622f994aefacc89e15565dd510364fcb00ff10c575ff974745bd7a504e",
+          "list",
+          820
+        ],
+        [
+          "control_flow",
+          "345439d5f574c84c4cf49546a6a63ad26a663275f42a40940a001e07d3514636",
+          "list",
+          491009
+        ],
+        [
+          "pointer_storage",
+          "832f084bc3aee2ac7bce826f23643efbc45bb75147fa57ebe538a08cd2518953",
+          "list",
+          1284508
+        ],
+        [
+          "constant_regions",
+          "b5a632cc0d08f7e5c2814292f4c814462dea6de27518ae1122e0ff61d9322c1d",
+          "list",
+          11
+        ],
+        [
+          "nvic_programs",
+          "ba991611af62125bafd3e15af4584dcf03a29f16f30877d79cd8c64b5b7c1b02",
+          "list",
+          491009
+        ],
+        [
+          "nvic_globals",
+          "9e06f4a3ee7da6f6be966d9117743b9728de9b7ea007e0f7a555aed77178d787",
+          "list",
+          1768
+        ],
+        [
+          "nvic_irq_definitions",
+          "3f0a5df7450bb37a9a9a5da7ef185de5cfca839f48859e0b156f8a5ffa05e8cd",
+          "list",
+          148
+        ],
+        [
+          "constant_pruned_evidence",
+          "e1dc6af013f6fc108b119803562edf11b9ac158ebc68c281c66efce000ebc7d8",
+          "list",
+          15
+        ],
+        [
+          "translation_units",
+          "8b8e3dc88f1af88e3769a830132a3d2be2ad546f65a57e7bdbdfd620d076217a",
+          "list",
+          388
+        ],
+        [
+          "failed_tu_preprocessing",
+          "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+          "list",
+          0
+        ],
+        [
+          "assembly_vector_entries",
+          "10eb79590b63c23c524f49125091dfac2a85d855a53128ee8a561a97f3b54ac0",
+          "list",
+          55
+        ],
+        [
+          "build_closure",
+          "7c5d321bebfe93280bf153c5125a25e9935852f5b5d0b3564457ada336619c4b",
+          "object",
+          6
+        ],
+        [
+          "pointer_solver_pruning",
+          "059703acf96dc0fc1aa7cf8aabb3529c9c8dbf29ee6efb112e5d56bd51e84978",
+          "object",
+          8
+        ],
+        [
+          "points_to_stats",
+          "69b10abce04aa2d4d2b33ed34f04d4d131a772019ca5d8f24ad918f1e86dc0e2",
+          "object",
+          5
+        ],
+        [
+          "hardware_contexts",
+          "9a16377e576424689aa092cfbe2c9d8d3e5f5595cbf54a26ac34a9585c216608",
+          "list",
+          1
+        ],
+        [
+          "address_escapes",
+          "42d71096d1c807f8e37deea3c4a154cdc434f72ac13b9b11ca1efd9e63aefb75",
+          "list",
+          5056
+        ],
+        [
+          "resolved_pointer_facts",
+          "9b6edbfa31c19db8e15e92d8f3529c937859e1a39c6632485054b4f4aed95c6a",
+          "list",
+          14649
+        ],
+        [
+          "pointer_targets",
+          "dab417584faf1c76ce7bcc73320f885913b56cab24cabdd5e21a53aeb1cbf5c2",
+          "list",
+          9398
+        ],
+        [
+          "pointer_model_applied",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "vector_entries",
+          "10eb79590b63c23c524f49125091dfac2a85d855a53128ee8a561a97f3b54ac0",
+          "list",
+          55
+        ],
+        [
+          "resolved_assembly_references",
+          "5a74c337769c006a84603cb782c6c4da0ea870f3da1063f15a2507f79815ec4d",
+          "list",
+          171
+        ],
+        [
+          "physical_contexts",
+          "0ca170220cff1b7e1a94d7cfcee8b9549137b7dca72a9e0b83d5b01023484297",
+          "list",
+          57
+        ],
+        [
+          "logical_context_map",
+          "aa46efc14352d09c377cbffac9a6c16a75e6b7e09b8998c36165968f5308e943",
+          "object",
+          58
+        ],
+        [
+          "context_bindings",
+          "cdef48d73ea83bd4c50f90a21e65ef5d0df38d3ee29d0d67a206da11b862df48",
+          "list",
+          9307
+        ],
+        [
+          "contexts",
+          "a7a224100ae2246ab9f2d60291c63621523e43a7e9adc06f2742d15ab08fb28d",
+          "list",
+          57
+        ],
+        [
+          "recursive_edges",
+          "4d7ecd18407e719877c6a6718ce6fe2f44b26c8fc27b6f5926fff2103bb942c1",
+          "list",
+          14
+        ],
+        [
+          "all_call_paths",
+          "4481e2cea702eb2949bd537728406f907dca0742fb2055b47a5a3f78bc15f31a",
+          "object",
+          4270
+        ],
+        [
+          "context_call_graph",
+          "fe0ff8a7022926784e04db09a35b3a9d7d758544a8701888aec211f30f611c33",
+          "object",
+          9
+        ],
+        [
+          "context_insensitive_pointer_model",
+          "0c8ee53e77b58da489eb807ec8a5387a9164caae02277ab997354355ebf71cc0",
+          "object",
+          5
+        ],
+        [
+          "context_pruned_uncertainties",
+          "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+          "list",
+          0
+        ],
+        [
+          "context_points_to_stats",
+          "b5d57b9e24fcfe0b8e46600892cc08ed2d048f7aaf96aaf302863109d2ebcc90",
+          "object",
+          7
+        ],
+        [
+          "context_pointer_model_applied",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "array_resources_canonicalized",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "struct_containers",
+          "338739374bc6a89a9b6ed792eae0b5076c377ab197ee86e2a6b291e66bfc1342",
+          "list",
+          793
+        ],
+        [
+          "member_resources_canonicalized",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "nvic_resolved_events",
+          "379979b949c8b8df2d5abc9497cabe5dc0d5136588b81e86b9adee40e00eb3b2",
+          "list",
+          39
+        ],
+        [
+          "nvic_lifecycle_barriers",
+          "d8080f263ea0428541ad79183707e4847b24f21054a391c5849ac3d840944601",
+          "list",
+          6629
+        ],
+        [
+          "nvic_priorities",
+          "6cd93416ccc0478dd5cef0c6fa9901d6acc307a1308a744de5d09a5c191cce20",
+          "list",
+          54
+        ],
+        [
+          "nvic_recovery",
+          "ba330ef186567f219fcc557aba70196053e062dd02230b60fabd4cead11e4522",
+          "object",
+          6
+        ],
+        [
+          "preemption_relations",
+          "4b1efed4b9ba25fbcc00f6d3bec16cadb67faa76a76db36c3b6efe8b377677d3",
+          "list",
+          1596
+        ],
+        [
+          "assembly_references",
+          "2ed0f5ecd5d058b1290d626d7f5b129a01f0ccd7442573bde3a2fc87d9b351a3",
+          "list",
+          173
+        ],
+        [
+          "call_graph_slices",
+          "4761ff28e2c1e10714387d4e3397641af00af82cef58c360a653423bbde9b4b2",
+          "object",
+          36849
+        ],
+        [
+          "mask_windows",
+          "c24762c82e6756158467b656e42fe7c0988ab76bb24a67fef5e7d9eeba811cc9",
+          "list",
+          1007369
+        ],
+        [
+          "multi_field_coherence",
+          "a833399941d03fc420d6d432be26426ede03b65152ae3fbed8c386f21b104e05",
+          "list",
+          109360
+        ]
+      ],
+      "window": [
+        {
+          "ordinal": 43094,
+          "node_hash": "c744592bc1930377193148d477affb28b55ddf4ef24743bff90606936e86d62f",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::u.fieldIndex",
+          "access_id": "A-22374cc74c74fc851ba4",
+          "line": 1736,
+          "column": 9,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43095,
+          "node_hash": "7465d2758c89a24ed6178ba9e64c061e735d69c054ec435b66b1f6059ee501e4",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-9dd5a18b017157283191",
+          "line": 1737,
+          "column": 13,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43096,
+          "node_hash": "2d492e0e09921bb5037baa907ebd29048009af0ee4a4dd0e4c351e49838271f1",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-4eebea6cfa5c783e71da",
+          "line": 1741,
+          "column": 68,
+          "via_api": "strlen",
+          "parse_confidence": "conservative"
+        },
+        {
+          "ordinal": 43097,
+          "node_hash": "a5da25c15d39510e39f00d35c216a36e03fe3d02a88870c6a5d1ae652e928f4c",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[*]",
+          "access_id": "A-47e46b5f2baa342a8b8d",
+          "line": 1741,
+          "column": 68,
+          "via_api": "strlen",
+          "parse_confidence": "conservative"
+        },
+        {
+          "ordinal": 43098,
+          "node_hash": "36d9c0fef8e7b8e7d6f117973bb9c9aea3c7082b8126f1799b38ad30bd2d9d2d",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[0]",
+          "access_id": "A-9e692a9da3388fc4b52c",
+          "line": 1741,
+          "column": 68,
+          "via_api": "strlen",
+          "parse_confidence": "conservative"
+        },
+        {
+          "ordinal": 43099,
+          "node_hash": "de4a25fc5ab6d90b24c628b27147d1b35f1dda94840bf887288568b7c095db93",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[*]",
+          "access_id": "A-181908d7ca049e8b66bb",
+          "line": 1741,
+          "column": 68,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43100,
+          "node_hash": "1bcc40735ed9e8ef60cf4d45681b1cafedcf1d91045b61d1bca5b7b4972481f4",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[0]",
+          "access_id": "A-2b8ebae0c7847ca84af5",
+          "line": 1741,
+          "column": 68,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43101,
+          "node_hash": "73d0a50c6efa3b152d01addb7dd57ce27df817b168176db349bee14c92540ac9",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-7b18991c91bd5b2f91ae",
+          "line": 1741,
+          "column": 93,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43102,
+          "node_hash": "fb1058acf2988fb1f9e99447b9aa610bc93c4dd003762d28768305be67b3bd60",
+          "symbol_id": "c:@blackboxHeaderBudget",
+          "access_id": "A-273ef8222c4e8f7f632d",
+          "line": 1747,
+          "column": 9,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43103,
+          "node_hash": "c5dc55806cc68cb53c9c873c1c405db3fad38e1a5cc4e8d76c1437e4bf8c67f2",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-548b9abacff5dc76bba8",
+          "line": 1747,
+          "column": 66,
+          "via_api": null,
+          "parse_confidence": "exact"
+        }
+      ]
+    },
+    "after": {
+      "roots": [
+        [
+          "variables",
+          "c78a8525690c8de0c431d0cf81333efb80ae3907a5738fa35b5d7d5e7d2b9dff",
+          "list",
+          16566
+        ],
+        [
+          "functions",
+          "5fbc2afde0c56eee637b855c660dbc8e211d196532609a3afa94f29d2b96650d",
+          "list",
+          491011
+        ],
+        [
+          "accesses",
+          "d17a6f33d6adaffe5ec5681c0fc1ac2ca629d72a331ded2a5c18a087fb2d44c2",
+          "list",
+          1208049
+        ],
+        [
+          "calls",
+          "955019c69aa16c433fe827bd5a8b54d219f1dc55405812bd06facb8106b4c4e4",
+          "list",
+          20224
+        ],
+        [
+          "unknowns",
+          "fd4a738a679aa1c8a9833d0a02973174ade14d8aec5c556fc22c204b1ad24cda",
+          "list",
+          1534856
+        ],
+        [
+          "protection_events",
+          "1e48aeb94b07ebcdebf72a0517d781b666bf5bce3d059da90dd83035f8c5c23c",
+          "list",
+          17324
+        ],
+        [
+          "registrations",
+          "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+          "list",
+          0
+        ],
+        [
+          "snapshots",
+          "d7ea8f3df3c04bd202ed322b268fcb82dc94af98239573accd125c027396472e",
+          "list",
+          5738
+        ],
+        [
+          "pointer_constraints",
+          "57f8bba35a00d74b0036d614906bf5c79804b0b8c416658a30fa94cd99dfad58",
+          "list",
+          198583
+        ],
+        [
+          "semantic_calls",
+          "ae7a079c593ed6ff307af8f40659964cb45790ed2d4b978411836c7b9acc16ac",
+          "list",
+          109033
+        ],
+        [
+          "indirect_accesses",
+          "9991ca21110d1a9f939b821b68ea54c39dfca126e6bebfb8c8c6adc9346c1215",
+          "list",
+          400926
+        ],
+        [
+          "irq_priority_events",
+          "727a09622f994aefacc89e15565dd510364fcb00ff10c575ff974745bd7a504e",
+          "list",
+          820
+        ],
+        [
+          "control_flow",
+          "345439d5f574c84c4cf49546a6a63ad26a663275f42a40940a001e07d3514636",
+          "list",
+          491009
+        ],
+        [
+          "pointer_storage",
+          "832f084bc3aee2ac7bce826f23643efbc45bb75147fa57ebe538a08cd2518953",
+          "list",
+          1284508
+        ],
+        [
+          "constant_regions",
+          "b5a632cc0d08f7e5c2814292f4c814462dea6de27518ae1122e0ff61d9322c1d",
+          "list",
+          11
+        ],
+        [
+          "nvic_programs",
+          "ba991611af62125bafd3e15af4584dcf03a29f16f30877d79cd8c64b5b7c1b02",
+          "list",
+          491009
+        ],
+        [
+          "nvic_globals",
+          "9e06f4a3ee7da6f6be966d9117743b9728de9b7ea007e0f7a555aed77178d787",
+          "list",
+          1768
+        ],
+        [
+          "nvic_irq_definitions",
+          "3f0a5df7450bb37a9a9a5da7ef185de5cfca839f48859e0b156f8a5ffa05e8cd",
+          "list",
+          148
+        ],
+        [
+          "constant_pruned_evidence",
+          "e1dc6af013f6fc108b119803562edf11b9ac158ebc68c281c66efce000ebc7d8",
+          "list",
+          15
+        ],
+        [
+          "translation_units",
+          "8b8e3dc88f1af88e3769a830132a3d2be2ad546f65a57e7bdbdfd620d076217a",
+          "list",
+          388
+        ],
+        [
+          "failed_tu_preprocessing",
+          "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+          "list",
+          0
+        ],
+        [
+          "assembly_vector_entries",
+          "10eb79590b63c23c524f49125091dfac2a85d855a53128ee8a561a97f3b54ac0",
+          "list",
+          55
+        ],
+        [
+          "build_closure",
+          "7c5d321bebfe93280bf153c5125a25e9935852f5b5d0b3564457ada336619c4b",
+          "object",
+          6
+        ],
+        [
+          "pointer_solver_pruning",
+          "059703acf96dc0fc1aa7cf8aabb3529c9c8dbf29ee6efb112e5d56bd51e84978",
+          "object",
+          8
+        ],
+        [
+          "points_to_stats",
+          "902db7dc5ce94b03e9871703bdd6a999d4394d80859f1363e8ddc44cdc09bd21",
+          "object",
+          5
+        ],
+        [
+          "hardware_contexts",
+          "9a16377e576424689aa092cfbe2c9d8d3e5f5595cbf54a26ac34a9585c216608",
+          "list",
+          1
+        ],
+        [
+          "address_escapes",
+          "42d71096d1c807f8e37deea3c4a154cdc434f72ac13b9b11ca1efd9e63aefb75",
+          "list",
+          5056
+        ],
+        [
+          "resolved_pointer_facts",
+          "9b6edbfa31c19db8e15e92d8f3529c937859e1a39c6632485054b4f4aed95c6a",
+          "list",
+          14649
+        ],
+        [
+          "pointer_targets",
+          "dab417584faf1c76ce7bcc73320f885913b56cab24cabdd5e21a53aeb1cbf5c2",
+          "list",
+          9398
+        ],
+        [
+          "pointer_model_applied",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "vector_entries",
+          "10eb79590b63c23c524f49125091dfac2a85d855a53128ee8a561a97f3b54ac0",
+          "list",
+          55
+        ],
+        [
+          "resolved_assembly_references",
+          "5a74c337769c006a84603cb782c6c4da0ea870f3da1063f15a2507f79815ec4d",
+          "list",
+          171
+        ],
+        [
+          "physical_contexts",
+          "0ca170220cff1b7e1a94d7cfcee8b9549137b7dca72a9e0b83d5b01023484297",
+          "list",
+          57
+        ],
+        [
+          "logical_context_map",
+          "aa46efc14352d09c377cbffac9a6c16a75e6b7e09b8998c36165968f5308e943",
+          "object",
+          58
+        ],
+        [
+          "context_bindings",
+          "cdef48d73ea83bd4c50f90a21e65ef5d0df38d3ee29d0d67a206da11b862df48",
+          "list",
+          9307
+        ],
+        [
+          "contexts",
+          "a7a224100ae2246ab9f2d60291c63621523e43a7e9adc06f2742d15ab08fb28d",
+          "list",
+          57
+        ],
+        [
+          "recursive_edges",
+          "4d7ecd18407e719877c6a6718ce6fe2f44b26c8fc27b6f5926fff2103bb942c1",
+          "list",
+          14
+        ],
+        [
+          "all_call_paths",
+          "4481e2cea702eb2949bd537728406f907dca0742fb2055b47a5a3f78bc15f31a",
+          "object",
+          4270
+        ],
+        [
+          "context_call_graph",
+          "fe0ff8a7022926784e04db09a35b3a9d7d758544a8701888aec211f30f611c33",
+          "object",
+          9
+        ],
+        [
+          "context_insensitive_pointer_model",
+          "22579ba8d6b017eb189b465713708dfc1b87e97f4fa86c4991e3eb933b7935f8",
+          "object",
+          5
+        ],
+        [
+          "context_pruned_uncertainties",
+          "a0d3a836411812fd5e0ba9cb088a68b3af5729c126fce0b3ef9d3741066c585a",
+          "list",
+          0
+        ],
+        [
+          "context_points_to_stats",
+          "b5d57b9e24fcfe0b8e46600892cc08ed2d048f7aaf96aaf302863109d2ebcc90",
+          "object",
+          7
+        ],
+        [
+          "context_pointer_model_applied",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "array_resources_canonicalized",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "struct_containers",
+          "338739374bc6a89a9b6ed792eae0b5076c377ab197ee86e2a6b291e66bfc1342",
+          "list",
+          793
+        ],
+        [
+          "member_resources_canonicalized",
+          "f305a1df88a3003bf42e6dbd762e23ffc67300b5a7d4787e6b2d3f679c7ef1bc",
+          "bool",
+          1
+        ],
+        [
+          "nvic_resolved_events",
+          "379979b949c8b8df2d5abc9497cabe5dc0d5136588b81e86b9adee40e00eb3b2",
+          "list",
+          39
+        ],
+        [
+          "nvic_lifecycle_barriers",
+          "d8080f263ea0428541ad79183707e4847b24f21054a391c5849ac3d840944601",
+          "list",
+          6629
+        ],
+        [
+          "nvic_priorities",
+          "6cd93416ccc0478dd5cef0c6fa9901d6acc307a1308a744de5d09a5c191cce20",
+          "list",
+          54
+        ],
+        [
+          "nvic_recovery",
+          "ba330ef186567f219fcc557aba70196053e062dd02230b60fabd4cead11e4522",
+          "object",
+          6
+        ],
+        [
+          "preemption_relations",
+          "4b1efed4b9ba25fbcc00f6d3bec16cadb67faa76a76db36c3b6efe8b377677d3",
+          "list",
+          1596
+        ],
+        [
+          "assembly_references",
+          "2ed0f5ecd5d058b1290d626d7f5b129a01f0ccd7442573bde3a2fc87d9b351a3",
+          "list",
+          173
+        ],
+        [
+          "call_graph_slices",
+          "4761ff28e2c1e10714387d4e3397641af00af82cef58c360a653423bbde9b4b2",
+          "object",
+          36849
+        ],
+        [
+          "mask_windows",
+          "c24762c82e6756158467b656e42fe7c0988ab76bb24a67fef5e7d9eeba811cc9",
+          "list",
+          1007369
+        ],
+        [
+          "multi_field_coherence",
+          "4b8089270abba46e78eff0462610573a9d6a23fd5e3032b61adc7bf3ac118d08",
+          "list",
+          109360
+        ]
+      ],
+      "window": [
+        {
+          "ordinal": 43094,
+          "node_hash": "c744592bc1930377193148d477affb28b55ddf4ef24743bff90606936e86d62f",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::u.fieldIndex",
+          "access_id": "A-22374cc74c74fc851ba4",
+          "line": 1736,
+          "column": 9,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43095,
+          "node_hash": "7465d2758c89a24ed6178ba9e64c061e735d69c054ec435b66b1f6059ee501e4",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-9dd5a18b017157283191",
+          "line": 1737,
+          "column": 13,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43096,
+          "node_hash": "a5da25c15d39510e39f00d35c216a36e03fe3d02a88870c6a5d1ae652e928f4c",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[*]",
+          "access_id": "A-47e46b5f2baa342a8b8d",
+          "line": 1741,
+          "column": 68,
+          "via_api": "strlen",
+          "parse_confidence": "conservative"
+        },
+        {
+          "ordinal": 43097,
+          "node_hash": "36d9c0fef8e7b8e7d6f117973bb9c9aea3c7082b8126f1799b38ad30bd2d9d2d",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[0]",
+          "access_id": "A-9e692a9da3388fc4b52c",
+          "line": 1741,
+          "column": 68,
+          "via_api": "strlen",
+          "parse_confidence": "conservative"
+        },
+        {
+          "ordinal": 43098,
+          "node_hash": "2d492e0e09921bb5037baa907ebd29048009af0ee4a4dd0e4c351e49838271f1",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-4eebea6cfa5c783e71da",
+          "line": 1741,
+          "column": 68,
+          "via_api": "strlen",
+          "parse_confidence": "conservative"
+        },
+        {
+          "ordinal": 43099,
+          "node_hash": "de4a25fc5ab6d90b24c628b27147d1b35f1dda94840bf887288568b7c095db93",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[*]",
+          "access_id": "A-181908d7ca049e8b66bb",
+          "line": 1741,
+          "column": 68,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43100,
+          "node_hash": "1bcc40735ed9e8ef60cf4d45681b1cafedcf1d91045b61d1bca5b7b4972481f4",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@blackboxFieldHeaderNames::element::[0]",
+          "access_id": "A-2b8ebae0c7847ca84af5",
+          "line": 1741,
+          "column": 68,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43101,
+          "node_hash": "73d0a50c6efa3b152d01addb7dd57ce27df817b168176db349bee14c92540ac9",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-7b18991c91bd5b2f91ae",
+          "line": 1741,
+          "column": 93,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43102,
+          "node_hash": "fb1058acf2988fb1f9e99447b9aa610bc93c4dd003762d28768305be67b3bd60",
+          "symbol_id": "c:@blackboxHeaderBudget",
+          "access_id": "A-273ef8222c4e8f7f632d",
+          "line": 1747,
+          "column": 9,
+          "via_api": null,
+          "parse_confidence": "exact"
+        },
+        {
+          "ordinal": 43103,
+          "node_hash": "c5dc55806cc68cb53c9c873c1c405db3fad38e1a5cc4e8d76c1437e4bf8c67f2",
+          "symbol_id": "tu::src/main/blackbox/blackbox.c::c:blackbox.c@xmitState::member::headerIndex",
+          "access_id": "A-548b9abacff5dc76bba8",
+          "line": 1747,
+          "column": 66,
+          "via_api": null,
+          "parse_confidence": "exact"
+        }
+      ]
+    }
+  },
+  "root_field_differences": [
+    [
+      [
+        "accesses",
+        "97a421251a37d042b58dd941571c4845e83bd324e82617075264b067f5750c70",
+        "list",
+        1208049
+      ],
+      [
+        "accesses",
+        "d17a6f33d6adaffe5ec5681c0fc1ac2ca629d72a331ded2a5c18a087fb2d44c2",
+        "list",
+        1208049
+      ]
+    ],
+    [
+      [
+        "unknowns",
+        "9769a04a10068988328676afc7fc4ac716110afbbb51bcae5b9a186aff09c30b",
+        "list",
+        1534856
+      ],
+      [
+        "unknowns",
+        "fd4a738a679aa1c8a9833d0a02973174ade14d8aec5c556fc22c204b1ad24cda",
+        "list",
+        1534856
+      ]
+    ],
+    [
+      [
+        "snapshots",
+        "1db297f36992dc513d0bc48956015f629780e088a5252f88c5b076935c367ef7",
+        "list",
+        5738
+      ],
+      [
+        "snapshots",
+        "d7ea8f3df3c04bd202ed322b268fcb82dc94af98239573accd125c027396472e",
+        "list",
+        5738
+      ]
+    ],
+    [
+      [
+        "points_to_stats",
+        "69b10abce04aa2d4d2b33ed34f04d4d131a772019ca5d8f24ad918f1e86dc0e2",
+        "object",
+        5
+      ],
+      [
+        "points_to_stats",
+        "902db7dc5ce94b03e9871703bdd6a999d4394d80859f1363e8ddc44cdc09bd21",
+        "object",
+        5
+      ]
+    ],
+    [
+      [
+        "context_insensitive_pointer_model",
+        "0c8ee53e77b58da489eb807ec8a5387a9164caae02277ab997354355ebf71cc0",
+        "object",
+        5
+      ],
+      [
+        "context_insensitive_pointer_model",
+        "22579ba8d6b017eb189b465713708dfc1b87e97f4fa86c4991e3eb933b7935f8",
+        "object",
+        5
+      ]
+    ],
+    [
+      [
+        "multi_field_coherence",
+        "a833399941d03fc420d6d432be26426ede03b65152ae3fbed8c386f21b104e05",
+        "list",
+        109360
+      ],
+      [
+        "multi_field_coherence",
+        "4b8089270abba46e78eff0462610573a9d6a23fd5e3032b61adc7bf3ac118d08",
+        "list",
+        109360
+      ]
+    ]
+  ]
+}
