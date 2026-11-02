@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "scope": "Complete synthetic graph verifier SQL/heap measurement, not nativeG1/G3/G4.",
+  "objects": 12000,
+  "source_sha256": "ba3e007f300b61f2d66283303a6b226c8c44f7bd6d2d622853a61f996307cc79",
+  "original_lf_sha256": "2ae0baba1580a5d7392fc6a1ef47c86edc48632fc756328c5ffb42ea4633be13",
+  "fixture_sha256": "9b674ad7c52189aea423f170b2cb19e1c95d6757b8f1122982dc9601b183193b",
+  "fixture_bytes": 10489856,
+  "results": [
+    {
+      "name": "original",
+      "source_sql_statements": 96032,
+      "seconds": 2.5939999999973224,
+      "traced_current_bytes": 38990,
+      "traced_peak_bytes": 66412,
+      "binding": {
+        "scan_id": "validation-fixture",
+        "project_id": "validation-only",
+        "profile_id": "default",
+        "state": "UNVERIFIED",
+        "facts_hash": "fe09331318fe40d47ed4b8113fd1d2a3ef8295dcacba56bb11ecf9a7ee263a16",
+        "report_hash": "483b30c30acddf2c05125cf7e94b6af5ddd450a2955c8ed0a854e30b2c60f069"
+      }
+    },
+    {
+      "name": "streamed",
+      "source_sql_statements": 23,
+      "seconds": 1.2970000000059372,
+      "traced_current_bytes": 10883,
+      "traced_peak_bytes": 363678,
+      "binding": {
+        "scan_id": "validation-fixture",
+        "project_id": "validation-only",
+        "profile_id": "default",
+        "state": "UNVERIFIED",
+        "facts_hash": "fe09331318fe40d47ed4b8113fd1d2a3ef8295dcacba56bb11ecf9a7ee263a16",
+        "report_hash": "483b30c30acddf2c05125cf7e94b6af5ddd450a2955c8ed0a854e30b2c60f069"
+      }
+    }
+  ],
+  "timing_scope": "Both traced/counted, original first then streamed; not exclusive native performance. Source statements only; complete projection rebuild is unchanged."
+}

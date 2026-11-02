@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 42,
+  "seconds": 26.623,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\stream-validation-focused-v2.log",
+  "log_sha256": "2d0d01de3d3ec2804655869104bace7edc50b3b2ebd25756e50c25ae035a1e07",
+  "scope": "Actual full-reference stream validation or legacy/stream/saved/canonical consumers; not complete1330 frozen regression/package/large native gates"
+}

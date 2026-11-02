@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "scope": "Fresh F030 database copies only; native filesystem compression diagnostic.",
+  "production_integrated": false,
+  "files": [
+    {
+      "name": "schema2",
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+      "copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ntfs-compression-probe-f030-v1\\schema2.db",
+      "sha256": "1c3b3bb6dce080154f5c27fdd27e75270f20f3645c43ecdb4bf080e911a68e7e",
+      "bytes_unchanged": true,
+      "logical_bytes": 10665984,
+      "file_standard_allocation_before": 10665984,
+      "file_standard_allocation_after": 7733248,
+      "physical_before": {
+        "file_compression_info_bytes": 10665984,
+        "get_compressed_file_size_bytes": 10665984,
+        "format": 0,
+        "cluster_shift": 0
+      },
+      "physical_after": {
+        "file_compression_info_bytes": 7733248,
+        "get_compressed_file_size_bytes": 7733248,
+        "format": 2,
+        "cluster_shift": 12
+      },
+      "compress_seconds": 0.23500000000058208,
+      "deep_integrity_passed": true
+    },
+    {
+      "name": "schema3",
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\compact-layout-native-exact-v1\\data\\scans\\native-exact\\scan.db",
+      "copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ntfs-compression-probe-f030-v1\\schema3.db",
+      "sha256": "7d695b88dd9b48e13642148892901309def57815d236db0b00ae5fc44e43fd73",
+      "bytes_unchanged": true,
+      "logical_bytes": 8957952,
+      "file_standard_allocation_before": 8957952,
+      "file_standard_allocation_after": 5963776,
+      "physical_before": {
+        "file_compression_info_bytes": 8957952,
+        "get_compressed_file_size_bytes": 8957952,
+        "format": 0,
+        "cluster_shift": 0
+      },
+      "physical_after": {
+        "file_compression_info_bytes": 5963776,
+        "get_compressed_file_size_bytes": 5963776,
+        "format": 2,
+        "cluster_shift": 12
+      },
+      "compress_seconds": 0.20300000000861473,
+      "deep_integrity_passed": true
+    }
+  ]
+}

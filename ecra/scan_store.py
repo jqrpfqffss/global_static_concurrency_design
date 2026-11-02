@@ -351,6 +351,71 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
     return roots
 
 
+def _validate_nodes(conn):
+    """Hash every node/edge in two ordered streams on the caller's snapshot.
+
+    The key set is acceleration only: larger objects use the complete original
+    SQL duplicate check. Large strings never enter the metadata row payload.
+    """
+    edges=iter(conn.execute('SELECT e.parent,e.ordinal,e.key,n.hash FROM edges e '
+                            'LEFT JOIN nodes n ON n.id=e.child ORDER BY e.parent,e.ordinal'))
+    edge=next(edges,None)
+    nodes=conn.execute('SELECT id,hash,kind,length,typeof(value) AS payload_type,'
+        'length(value) AS payload_bytes,CASE WHEN typeof(value)=\'blob\' '
+        'AND typeof(length)=\'integer\' AND length BETWEEN 0 AND 4096 '
+        'AND length(value)<=4096 THEN value ELSE NULL END AS small_payload FROM nodes ORDER BY id')
+    for node in nodes:
+        kind=node['kind'];length=node['length'];ident=node['id']
+        if kind not in {'object','list','null','bool','int','float','str'}:
+            raise ValueError('未知证据编码类型')
+        if type(length) is not int or length<0:
+            raise ValueError('证据长度类型损坏')
+        if edge is not None and edge['parent']<ident:
+            raise ValueError('证据边的父节点缺失')
+        hasher=_hash_start(kind,length)
+        if kind in {'object','list'}:
+            if node['payload_type']!='null':
+                raise ValueError('容器证据包含未编码的标量数据')
+            count=0;keys=set() if kind=='object' else None;sql_keys=False
+            while edge is not None and edge['parent']==ident:
+                if edge['ordinal']!=count:
+                    raise ValueError('证据数组顺序/完整性损坏')
+                key=edge['key']
+                if (kind=='list')!=(key is None) or (kind=='object' and not isinstance(key,str)):
+                    raise ValueError('证据容器键类型损坏')
+                if edge['hash'] is None:raise ValueError('证据边的子节点缺失')
+                if not isinstance(edge['hash'],str):raise ValueError('证据边的哈希编码类型损坏')
+                _hash_edge(hasher,key,edge['hash'])
+                if keys is not None:
+                    if key in keys:raise ValueError('证据映射键重复')
+                    if len(keys)<4096:keys.add(key)
+                    else:keys=None;sql_keys=True
+                count+=1;edge=next(edges,None)
+            if count!=length:raise ValueError('证据段缺失')
+            if sql_keys and conn.execute('SELECT 1 FROM edges WHERE parent=? GROUP BY key HAVING count(*)>1 LIMIT 1',(ident,)).fetchone():
+                raise ValueError('证据映射键重复')
+        else:
+            if node['payload_type']!='blob' or node['payload_bytes']!=length:
+                raise ValueError('证据标量字节长度/编码类型损坏，拒绝不完整哈希范围')
+            if edge is not None and edge['parent']==ident:
+                raise ValueError('标量证据包含非法容器边')
+            if kind!='str' or length<=4096:
+                payload=node['small_payload'] if length<=4096 else conn.execute('SELECT value FROM nodes WHERE id=?',(ident,)).fetchone()[0]
+                hasher.update(payload)
+                if kind=='str':_decode(kind,payload)
+                elif _scalar(_decode(kind,payload))!=(kind,payload):
+                    raise ValueError('非规范化的证据标量编码')
+            else:
+                import codecs
+                decoder=codecs.getincrementaldecoder('utf-8')(errors='surrogatepass')
+                for offset in range(0,length,1024**2):
+                    part=conn.execute('SELECT substr(value,?,?) FROM nodes WHERE id=?',(offset+1,1024**2,ident)).fetchone()[0]
+                    if len(part)!=min(1024**2,length-offset):raise ValueError('证据标量字节长度损坏')
+                    hasher.update(part);decoder.decode(part,final=offset+len(part)==length)
+        if hasher.hexdigest()!=node['hash']:raise ValueError('证据哈希校验失败')
+    if edge is not None:raise ValueError('证据边的父节点缺失')
+
+
 class EvidenceProvider:
     """One read-only query protocol for UI and review evidence navigation."""
     def __init__(self, path):
@@ -378,49 +443,7 @@ class EvidenceProvider:
                 if root is None or root[0] != scan[name + '_hash']:
                     raise ValueError('静态库权威根与扫描摘要不一致')
             if deep:
-                for node in conn.execute('SELECT id,hash,kind,length,typeof(value) AS payload_type,'
-                                         'length(value) AS payload_bytes FROM nodes ORDER BY id'):
-                    if node['kind'] not in {'object','list','null','bool','int','float','str'}:
-                        raise ValueError('未知证据编码类型')
-                    if type(node['length']) is not int or node['length'] < 0:
-                        raise ValueError('证据长度类型损坏')
-                    if node['kind'] in {'object', 'list'}:
-                        if node['payload_type'] != 'null':
-                            raise ValueError('容器证据包含未编码的标量数据')
-                        hasher = _hash_start(node['kind'], node['length'])
-                        count = 0
-                        for edge in conn.execute('SELECT e.ordinal,e.key,n.hash FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=? ORDER BY e.ordinal', (node['id'],)):
-                            if edge['ordinal'] != count:
-                                raise ValueError('证据数组顺序/完整性损坏')
-                            if (node['kind'] == 'list') != (edge['key'] is None):
-                                raise ValueError('证据容器键类型损坏')
-                            _hash_edge(hasher, edge['key'], edge['hash'])
-                            count += 1
-                        if count != node['length']:
-                            raise ValueError('证据段缺失')
-                        if node['kind'] == 'object' and conn.execute('SELECT 1 FROM edges WHERE parent=? GROUP BY key HAVING count(*)>1 LIMIT 1', (node['id'],)).fetchone():
-                            raise ValueError('证据映射键重复')
-                    else:
-                        if node['payload_type'] != 'blob' or node['payload_bytes'] != node['length']:
-                            raise ValueError('证据标量字节长度/编码类型损坏，拒绝不完整哈希范围')
-                        hasher = _hash_start(node['kind'], node['length'])
-                        if conn.execute('SELECT 1 FROM edges WHERE parent=? LIMIT 1', (node['id'],)).fetchone():
-                            raise ValueError('标量证据包含非法容器边')
-                        if node['kind'] == 'str':
-                            import codecs
-                            decoder = codecs.getincrementaldecoder('utf-8')(errors='surrogatepass')
-                        for offset in range(0,node['length'],1024*1024):
-                            part = conn.execute('SELECT substr(value,?,?) FROM nodes WHERE id=?',
-                                                (offset+1,1024*1024,node['id'])).fetchone()[0]
-                            hasher.update(part)
-                            if node['kind']=='str':
-                                decoder.decode(part,final=offset+len(part)==node['length'])
-                        if node['kind'] != 'str':
-                            payload = conn.execute('SELECT value FROM nodes WHERE id=?',(node['id'],)).fetchone()[0]
-                            if _scalar(_decode(node['kind'],payload)) != (node['kind'],payload):
-                                raise ValueError('非规范化的证据标量编码')
-                    if hasher.hexdigest() != node['hash']:
-                        raise ValueError('证据哈希校验失败')
+                _validate_nodes(conn)
                 # Rebuild only projections in a file-backed disposable index,
                 # comparing every row against this same immutable read view.
                 import tempfile
