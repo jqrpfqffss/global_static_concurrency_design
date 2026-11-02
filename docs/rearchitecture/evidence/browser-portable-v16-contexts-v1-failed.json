@@ -1,0 +1,24 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "ordinary_main_isr_task_and_explicit_compiler_header_generation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: ordinary context forms and exact advanced roundtrip.\n\nUses an already authorized, read-only firmware path. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-preflight-v16\\scripts\\validate_context_forms.py\", line 104, in main\n    editor.fill(advanced);check_save();profile_path=next((work/'data/projects').glob('*/profiles/*.yaml'))\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-preflight-v16\\scripts\\validate_context_forms.py\", line 70, in check_save\n    expect(button('开始此配置扫描')).to_be_enabled()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22896, in to_be_enabled\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 796, in to_be_enabled\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to be enabled\nActual value: disabled \nCall log:\n  - Expect \"to_be_enabled\" with timeout 5000ms\n  - waiting for get_by_role(\"button\", name=\"开始此配置扫描\", exact=True)\n    14 × locator resolved to <button disabled class=\"primary\">开始此配置扫描</button>\n       - unexpected value \"disabled\"\n\nAria snapshot:\n- button \"开始此配置扫描\" [disabled]\n"
+}

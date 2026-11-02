@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
+    (work/'controller.py').write_bytes(Path(__file__).read_bytes())
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=True)
     receipt=dict(passed=False,tests=[],screenshots=[],page_errors=[],external_requests=[],
         scope=__doc__,firmware=str(args.firmware.resolve()),compile_database=str(args.compile_database.resolve()),
@@ -67,7 +68,7 @@ def main():
         def check_save():
             button('检查配置与工具路径').click();expect(button('保存独立配置')).to_be_enabled()
             button('保存独立配置').click();expect(page.get_by_role('status').filter(has_text='配置已保存')).to_be_visible()
-            expect(button('开始此配置扫描')).to_be_enabled()
+            expect(button('开始此配置扫描')).to_be_disabled() if (args.engine/'ecra/studio/preflight.py').is_file() else expect(button('开始此配置扫描')).to_be_enabled()
         field('工程名称').fill('F030 入口配置')
         field('固件目录（绝对路径）').fill(str(args.firmware.resolve()));button('下一步').click()
         field('真实构建方式').select_option('database');field('编译数据库路径').fill(str(args.compile_database.resolve()))

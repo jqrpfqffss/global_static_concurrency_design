@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "status": "FAILED_CONTROLLER_BEFORE_SERVER",
+  "scope": "Owned source copy retained readonly attributes; unlink facts.json denied; original untouched. v2 omits facts.json while copying, preserving original/copy attributes.",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\legacy-degraded-ui-v1"
+}

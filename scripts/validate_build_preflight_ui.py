@@ -25,6 +25,7 @@ def main():
     parser.add_argument('--engine',type=Path,default=TOOL)
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
     parser.add_argument('--cmake-example',action='store_true',help='Also actually build the repository teaching ARM object target in an independent source copy')
+    parser.add_argument('--allow-external-toolchain',action='store_true',help='Explicitly allow the approved frozen database compiler; never substitute its arguments')
     args=parser.parse_args()
     from ecra.config import configured_project_root,read_yaml
     from ecra.workspace import no_links,studio_data_root
@@ -37,6 +38,7 @@ def main():
     database_before=(sha256(database),database.stat().st_mtime_ns)
     original_cfg_sha=sha256(config)
     cfg['analysis']['output']=dict(location='user')
+    if args.allow_external_toolchain:cfg['analysis']['allow_external_toolchain']=True
     raw=json.dumps(cfg,ensure_ascii=False,indent=2)
     receipt=dict(passed=False,tests=[],screenshots=[],page_errors=[],external_requests=[],scope=__doc__,
                  firmware=str(root),source_config=str(config),native_dpi='NOT_VERIFIED',engineer_uat='NOT_VERIFIED')
@@ -151,6 +153,9 @@ def main():
             original_args=rows[0].get('arguments') or split_command(rows[0]['command'])
             from ecra.portable import resolved_executable
             compiler=resolved_executable(original_args[0],rows[0].get('directory',root))
+            tools_bundle=args.engine if (args.engine/'portable-lock.json').is_file() else Path(os.environ.get('ECRA_PORTABLE_ROOT',''))
+            if (tools_bundle/'portable-lock.json').is_file():
+                compiler=tools_bundle/'tools/arm-gcc/bin/arm-none-eabi-gcc.exe'
             toolchain=contract/'arm-toolchain.cmake'
             toolchain.write_text('set(CMAKE_SYSTEM_NAME Generic)\nset(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)\nset(CMAKE_C_COMPILER "'+compiler.as_posix()+'")\n','utf-8')
             page.get_by_role('link',name='工程配置',exact=True).click();button('新建工程配置').click()

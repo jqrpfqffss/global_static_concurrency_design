@@ -24,7 +24,7 @@ def runtime_environment():
     names = ('PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH',
              'GCC_EXEC_PREFIX', 'COMPILER_PATH', 'CC', 'CXX', 'ASM', 'CFLAGS', 'CXXFLAGS',
              'LDFLAGS', 'INCLUDE', 'LIB', 'CMAKE_GENERATOR', 'CMAKE_MAKE_PROGRAM',
-             'CMAKE_TOOLCHAIN_FILE', 'LIBCLANG_PATH', 'ECRA_PORTABLE_ROOT')
+             'CMAKE_TOOLCHAIN_FILE', 'LIBCLANG_PATH', 'ECRA_PORTABLE_ROOT', 'ECRA_PATH_ALIAS_ROOT')
     return dict(schema=1, python=sys.version, variables={key: os.environ.get(key) for key in names})
 
 

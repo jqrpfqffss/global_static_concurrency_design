@@ -4,11 +4,12 @@ import { api } from './api'
 const emit=defineEmits<{open:[id:string],completed:[]}>()
 const source=ref(''),project=ref(''),plan=ref<any>(null),job=ref<any>(null),history=ref<any>(null)
 const error=ref(''),checking=ref(false),busy=ref(false)
+const allowDegraded=ref(false)
 let timer:ReturnType<typeof setTimeout>|undefined
 const phases:Record<string,string>={PREPARING:'核对来源',COPYING:'捕获与校验旧文件',CONVERTING:'转换完整事实与报告',VALIDATING:'校验证据与关系',COMPLETE:'迁移完成',FAILED:'迁移失败',RUNNING:'迁移执行中',INTERRUPTED:'上次迁移已中断'}
 const title=(s:string)=>phases[s]||s
 async function refresh(offset=0){try{history.value=await api('/migrations?offset='+offset)}catch(e:any){error.value=e.message}}
-async function inspect(){checking.value=true;error.value='';plan.value=null;try{plan.value=await api('/migrations/preview','POST',{source:source.value,project_root:project.value})}catch(e:any){error.value=e.message}finally{checking.value=false}}
+async function inspect(){checking.value=true;error.value='';plan.value=null;try{plan.value=await api('/migrations/preview','POST',{source:source.value,project_root:project.value,allow_degraded:allowDegraded.value})}catch(e:any){error.value=e.message}finally{checking.value=false}}
 async function poll(){
   try{
     if(!job.value)return
@@ -19,11 +20,11 @@ async function poll(){
 }
 async function start(){
   busy.value=true;error.value=''
-  try{job.value=await api('/migrations','POST',{source:source.value,project_root:project.value,revision:plan.value.revision});plan.value=null;await poll()}
+  try{job.value=await api('/migrations','POST',{source:source.value,project_root:project.value,revision:plan.value.revision,allow_degraded:allowDegraded.value});plan.value=null;await poll()}
   catch(e:any){error.value=e.message;busy.value=false}
 }
 async function view(item:any){clearTimeout(timer);job.value=item;error.value='';await poll()}
-watch([source,project],()=>plan.value=null)
+watch([source,project,allowDegraded],()=>plan.value=null)
 onMounted(async()=>{try{await refresh();const live=history.value.items.find((item:any)=>item.state==='RUNNING');if(live)await view(live)}catch(e:any){error.value=e.message}})
 onUnmounted(()=>clearTimeout(timer))
 </script>
@@ -36,10 +37,12 @@ onUnmounted(()=>clearTimeout(timer))
       <label>旧结果目录（绝对路径）<input v-model="source" :disabled="busy" placeholder="D:/Firmware/Board/.ecra"></label>
       <label>旧记录中的原工程目录<input v-model="project" :disabled="busy" placeholder="D:/Firmware/Board"></label>
     </div>
+    <label class="degraded-option"><input type="checkbox" v-model="allowDegraded" :disabled="busy||checking">证据不全时只保存原文件，按未验证归档查看（不恢复可信变量或安全结论）</label>
     <button :disabled="busy||checking||!source.trim()||!project.trim()" @click="inspect">检查旧目录与归属</button>
     <p v-if="checking" role="status">正在核对身份与文件清单，剩余量未知…</p>
     <section v-if="plan" class="banner warning" aria-label="旧迁移计划">
-      <h3>归属匹配 · 旧归档只读转换</h3><p class="identity">{{plan.source}}</p>
+      <h3>{{plan.degraded?'证据不全 · 未验证原件归档': '归属匹配 · 旧归档只读转换'}}</h3><p class="identity">{{plan.source}}</p>
+      <p v-for="reason in plan.missing_evidence">{{reason}}</p>
       <p>{{plan.files}} 个原文件 · {{(plan.logical_bytes/1024/1024).toFixed(2)}} MiB。转换时另需SQLite、证据与暂存空间，当前不承诺磁盘收益。</p>
       <p>{{plan.warning}}</p><button :disabled="busy" @click="start">开始只读迁移</button>
     </section>
@@ -55,3 +58,4 @@ onUnmounted(()=>clearTimeout(timer))
     </details>
   </section>
 </template>
+<style scoped>.degraded-option{display:flex;align-items:flex-start;gap:8px;margin-top:16px}.degraded-option input[type=checkbox]{display:inline-block;width:18px;min-width:18px;height:18px;margin:2px 0}</style>

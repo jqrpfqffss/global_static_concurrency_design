@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { api } from './api'
-const props=defineProps<{scan:string}>()
+const props=defineProps<{scan:string,degraded?:boolean}>()
 const emit=defineEmits<{evidence:[]}>()
 const files=ref<any>(null),text=ref<any>(null),selected=ref<any>(null),error=ref(''),busy=ref(false)
 async function page(offset=0){busy.value=true;error.value='';try{files.value=await api(`/scans/${encodeURIComponent(props.scan)}/legacy-files?offset=${offset}`)}catch(e:any){error.value=e.message}finally{busy.value=false}}
@@ -11,7 +11,7 @@ onMounted(()=>page())
 </script>
 <template>
   <section class="panel" aria-label="旧归档原文件与复核历史">
-    <h2>旧归档原文件与复核历史</h2><p>旧文件按SHA-256保留；旧HTML、脚本和数据库只显示原字节。完整facts/report已转换为权威证据，字段类型、顺序和重复均保留。原文件不会作为代码执行。</p>
+    <h2>旧归档原文件与复核历史</h2><p>旧文件按SHA-256保留；旧HTML、脚本和数据库只显示原字节。<template v-if="degraded">当前仅为未验证原件归档，未恢复可信静态证据，不能从零对象推断零风险。</template><template v-else>完整facts/report已转换为权威证据，字段类型、顺序和重复均保留。</template>原文件不会作为代码执行。</p>
     <div v-if="error" class="banner error" role="alert">{{error}}</div>
     <p v-if="busy" role="status">正在读取归档文件清单或片段…</p>
     <article v-for="item in files?.items" :key="item.ordinal" class="history-row"><div><strong class="identity">{{item.file}}</strong><p>{{item.size}} 字节 · {{item.disposition==='CANONICAL_REENCODED'?'完整逻辑已入权威库':'原字节审计已保留'}}</p><small class="identity">SHA-256 {{item.sha256}}</small></div><button v-if="item.disposition==='OPAQUE_AUDIT_PRESERVED'" :disabled="busy" @click="open(item)">查看归档片段</button><button v-else @click="emit('evidence')">查看完整权威证据</button></article>

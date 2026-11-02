@@ -21,6 +21,79 @@ from ecra.workspace import WorkspaceResolver
 
 
 class LegacyImportTests(unittest.TestCase):
+    def test_degraded_import_rejects_data_inside_even_plain_firmware_before_creating_it(self):
+        forbidden=self.root/'ecra-data';before=self.original_hashes()
+        with self.assertRaisesRegex(ValueError,'独立于原固件'):
+            legacy_import.convert(self.old,self.root,forbidden,allow_degraded=True)
+        self.assertFalse(forbidden.exists());self.assertEqual(self.original_hashes(),before)
+
+    def test_explicit_missing_facts_degraded_archive_retains_every_byte_and_roundtrips_without_inventing_symbols(self):
+        (self.old/'facts.json').unlink();before=self.original_hashes()
+        plan=legacy_import.inspect(self.old,self.root,self.data,allow_degraded=True)
+        self.assertTrue(plan['degraded']);self.assertEqual(plan['state'],'UNVERIFIED')
+        first=self.convert(allow_degraded=True);scan=self.data/'scans'/first['scan_id'];provider=EvidenceProvider(scan/'scan.db')
+        self.assertEqual(provider.validate(deep=True)['state'],'UNVERIFIED');self.assertEqual(provider.counts(),{})
+        self.assertEqual(provider.load('facts'),{'legacy_archive_only':True})
+        self.assertEqual(provider.load('report')['analysis_status'],'UNVERIFIED')
+        provenance=provider.load('provenance');self.assertTrue(provenance['legacy_degraded'])
+        self.assertTrue(provenance['missing_evidence'])
+        rows=provenance['legacy_inputs'];self.assertTrue(all(r['disposition']=='OPAQUE_AUDIT_PRESERVED' for r in rows))
+        self.assertEqual(len(rows),len(before))
+        for row in rows:self.assertEqual((scan/'evidence'/row['sha256']).read_bytes(),(self.old/row['file']).read_bytes())
+        self.assertEqual(self.original_hashes(),before)
+        original=sha256(scan/'scan.db');again=self.convert(allow_degraded=True)
+        self.assertTrue(again['repeated']);self.assertEqual(again['scan_id'],first['scan_id']);self.assertEqual(sha256(scan/'scan.db'),original)
+        package=self.base/'degraded.ecra-report';export_report(scan,package)
+        imported=import_report(package,self.base/'viewer');other=self.base/'viewer/scans'/imported['scan_id']
+        self.assertEqual(EvidenceProvider(other/'scan.db').roots(),provider.roots())
+        for p in (scan/'evidence').iterdir():self.assertEqual((other/'evidence'/p.name).read_bytes(),p.read_bytes())
+
+    def test_missing_identity_and_report_are_opaque_but_known_wrong_owner_and_live_wal_still_fail(self):
+        for name in ['run.json','scan_state.json',legacy_import.REPORT]:(self.old/name).unlink()
+        with self.assertRaises(OSError):self.convert()
+        result=self.convert(allow_degraded=True);scan=self.data/'scans'/result['scan_id']
+        provider=EvidenceProvider(scan/'scan.db');self.assertEqual(provider.counts(),{})
+        self.assertFalse(provider.load('provenance')['legacy_identity_verified'])
+        self.assertTrue(any(row['file']=='facts.json' and row['disposition']=='OPAQUE_AUDIT_PRESERVED' for row in provider.load('provenance')['legacy_inputs']))
+        (self.old/'run.json').write_text(json.dumps(dict(project_root=str(self.base/'wrong'))),'utf-8')
+        with self.assertRaisesRegex(ValueError,'归属'):self.convert(allow_degraded=True)
+        (self.old/'run.json').unlink();(self.old/'facts.db-wal').write_bytes(b'live')
+        with self.assertRaisesRegex(ValueError,'恢复文件'):self.convert(allow_degraded=True)
+
+    def test_available_checkpoint_hash_mismatch_cannot_be_bypassed_by_degraded_option(self):
+        (self.old/legacy_import.REPORT).unlink()
+        state=json.loads((self.old/'scan_state.json').read_text('utf-8'));state['facts_sha256']='0'*64
+        (self.old/'scan_state.json').write_text(json.dumps(state),'utf-8');before=self.original_hashes()
+        with self.assertRaisesRegex(ValueError,'旧检查点'):self.convert(allow_degraded=True)
+        self.assertEqual(self.original_hashes(),before);self.assertFalse((self.data/'scans').exists())
+
+    def test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions(self):
+        (self.old/'facts.json').unlink()
+        app=create_app(self.data,token='degraded-token',authority='127.0.0.1:12345')
+        with TestClient(app,base_url='http://127.0.0.1:12345',headers={'x-ecra-session':'degraded-token','origin':'http://127.0.0.1:12345'}) as client:
+            payload=dict(source=str(self.old),project_root=str(self.root))
+            self.assertEqual(client.post('/api/migrations/preview',json=payload).status_code,400)
+            preview=client.post('/api/migrations/preview',json=dict(payload,allow_degraded=True))
+            self.assertEqual(preview.status_code,200,preview.text);plan=preview.json();self.assertTrue(plan['degraded'])
+            start=client.post('/api/migrations',json=dict(payload,allow_degraded=True,revision=plan['revision']))
+            self.assertEqual(start.status_code,200,start.text);ident=start.json()['id'];deadline=time.monotonic()+10
+            while True:
+                job=client.get('/api/migrations/'+ident).json()
+                if job['state']!='RUNNING':break
+                if time.monotonic()>deadline:self.fail('migration did not finish')
+                time.sleep(.02)
+            self.assertEqual(job['state'],'COMPLETE',job);scan=job['scan_id']
+            summary=client.get('/api/scans/'+scan+'/summary')
+            self.assertEqual(summary.status_code,200,summary.text);value=summary.json()
+            self.assertTrue(value['legacy_degraded']);self.assertFalse(value['can_confirm']);self.assertFalse(value['can_review'])
+            self.assertEqual(value['static_counts'],{});self.assertEqual(value['total'],0)
+            denied=client.post('/api/scans/'+scan+'/human',json=dict(symbol_id='invented',reviewer='no',decision='CONFIRMED_SAFE'))
+            self.assertEqual(denied.status_code,400);self.assertIn('未验证原件',denied.json()['error'])
+            files=client.get('/api/scans/'+scan+'/legacy-files').json()['items']
+            text=next(row for row in files if row['file']=='review/answer.txt')
+            raw=client.get('/api/scans/'+scan+'/legacy-file?ordinal='+str(text['ordinal'])).json()
+            self.assertIn('<script>',raw['text']);self.assertEqual(raw['source'],'归档旧文件原始字节；仅文本/十六进制查看，不作为当前安全证明')
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='ECRA 旧归档 '); self.addCleanup(self.temp.cleanup)
         self.base=Path(self.temp.name); self.root=self.base/'firmware'; self.root.mkdir()

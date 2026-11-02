@@ -111,6 +111,12 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
         binding = provider.metadata()
         return provider, ReviewStore(path/'reviews.db', binding, device=device)
 
+    def degraded_legacy(provider):
+        try:
+            return provider.node(provider.resolve('provenance', ['legacy_degraded'])).get('value') is True
+        except KeyError:
+            return False
+
     @app.get('/api/bootstrap')
     def bootstrap():
         from .sample import sample_info
@@ -167,10 +173,12 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
             legacy_warning = provider.node(provider.resolve('provenance', ['legacy_warning'])).get('value')
         except KeyError:
             legacy_warning = None
+        degraded = degraded_legacy(provider)
         return dict(binding=binding, static_counts=counts, human_counts=grouped, total=total,
                     counting_basis='完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。',
-                    mode=mode,legacy_warning=legacy_warning,diff=QueryService(scan_path(scan_id)).diff_summary(),
-                    can_review=(scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
+                    mode=mode,legacy_warning=legacy_warning,legacy_degraded=degraded,can_confirm=not degraded,
+                    diff=QueryService(scan_path(scan_id)).diff_summary(),
+                    can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
     @app.get('/api/scans/{scan_id}/ai')
     def ai_records(scan_id: str, offset: int=0, limit: int=50):
@@ -375,6 +383,8 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     @app.post('/api/scans/{scan_id}/human')
     def save_human(scan_id: str, payload: dict):
         provider, reviews = stores(scan_id)
+        if degraded_legacy(provider):
+            raise ValueError('未验证原件归档没有可信变量证据，不能保存当前人工结论；请查看原文件或导入完整结果')
         symbol = payload['symbol_id']
         fingerprint = provider.fingerprint(symbol)
         if payload.get('fingerprint') != fingerprint:
@@ -413,11 +423,11 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
 
     @app.post('/api/migrations/preview')
     def migration_preview(payload: dict):
-        return migrations.preview(payload['source'], payload['project_root'])
+        return migrations.preview(payload['source'], payload['project_root'], allow_degraded=payload.get('allow_degraded',False))
 
     @app.post('/api/migrations')
     def migration_start(payload: dict):
-        return migrations.start(payload['source'], payload['project_root'], payload['revision'])
+        return migrations.start(payload['source'], payload['project_root'], payload['revision'], allow_degraded=payload.get('allow_degraded',False))
 
     @app.get('/api/migrations')
     def migration_history(offset: int=0, limit: int=50):

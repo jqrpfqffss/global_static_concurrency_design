@@ -67,6 +67,29 @@ class PortableCMakeTests(unittest.TestCase):
             self.addCleanup(alias.rmdir)
             self.assertEqual((target/'keep.txt').read_text(), 'owned fixture')
 
+    @unittest.skipUnless(os.name == 'nt', 'actual Windows deep TEMP junction')
+    def test_deep_supervised_temp_falls_back_to_bounded_independent_same_file_alias(self):
+        import ecra.portable as portable
+        target=self.root/'actual-build';target.mkdir();payload=target/'original.txt';payload.write_bytes(b'unchanged')
+        before=(payload.read_bytes(),payload.stat().st_mtime_ns)
+        deep=self.root/('deep-task-'*12)/('owned-'*12);deep.mkdir(parents=True)
+        with patch.dict(portable._BUILD_ALIASES,{},clear=True),patch('ecra.portable.tempfile.gettempdir',return_value=str(deep)),patch('ecra.portable._short_path',side_effect=str),patch.dict(os.environ,{'ECRA_PATH_ALIAS_ROOT':''}):
+            alias=Path(build_path(target,prefer_junction=True));self.addCleanup(alias.rmdir)
+            self.assertLessEqual(len(str(alias)),120)
+            self.assertFalse(str(alias).startswith(str(deep)))
+            self.assertEqual(alias.resolve(),target);self.assertTrue(os.path.samefile(alias/'original.txt',payload))
+            self.assertEqual(before,(payload.read_bytes(),payload.stat().st_mtime_ns))
+
+    @unittest.skipUnless(os.name == 'nt', 'actual Windows alias boundaries')
+    def test_explicit_alias_root_cannot_enter_firmware_or_use_relative_or_program_tree(self):
+        import ecra.portable as portable
+        target=self.root/'firmware';target.mkdir();(target/'CMakeLists.txt').write_text('project(keep)')
+        values=[str(target/'aliases'),'relative-alias',str(Path(portable.__file__).parent/'aliases')]
+        for value in values:
+            with self.subTest(value=value),patch.dict(portable._BUILD_ALIASES,{},clear=True),patch.dict(os.environ,{'ECRA_PATH_ALIAS_ROOT':value}),patch('ecra.portable._short_path',side_effect=str):
+                with self.assertRaises(ValueError):build_path(target,prefer_junction=True)
+        self.assertEqual([p.name for p in target.iterdir()],['CMakeLists.txt'])
+
     def test_make_cache_from_another_machine_rejected(self):
         self.cache(CMAKE_GENERATOR='MinGW Makefiles',CMAKE_MAKE_PROGRAM='X:/old/mingw32-make.exe')
         with self.assertRaisesRegex(ValueError,'旧电脑路径'):

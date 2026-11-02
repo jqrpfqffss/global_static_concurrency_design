@@ -54,3 +54,5 @@
 大型原生full/Diff全字段对照、32GB实机、磁盘70%目标、全部故障矩阵、干净离线机、物理双电脑、系统高DPI及独立工程师盲测尚未全部通过。具体代码、测试、PASS/FAIL/NOT_VERIFIED与每个包的独立收据见[需求追踪](01-requirements-traceability.md)及[性能与验收记录](performance-and-acceptance.md)。真实浏览器自动化不是工程师盲测或硬件验证。
 
 开发复现使用 `py -3.10 -B -m unittest discover -s tests -v`；不能把发现0项的退出0当作全套通过。前端源码构建需要开发端Node，最终使用端不需要。构建包须使用全新输出目录；不含.git的冻结源通过旁置逐文件SHA清单验证，包内保留SOURCE-SNAPSHOT.json，实际交付仍须独立实包复验。
+
+源码新增：旧目录缺完整事实/报告/身份时，可显式勾选“证据不全时只保存原文件”，预览缺失项后迁移为UNVERIFIED原件归档。全部现存字节保留并可标准包往返；此时不恢复可信变量，不提供人工确认/复核，不把零对象当零风险。已知归属冲突、活动WAL和已有检查点哈希错误仍拒绝。此功能和深TEMP短路径修复需要后续新包，v16不包含降级Viewer且实测深CMake失败，详见[阶段记录](19-legacy-and-portable-stage-20261102.md)。

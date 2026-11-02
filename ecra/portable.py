@@ -62,7 +62,7 @@ def build_path(value, *, prefer_junction=False):
     """Same files under an ASCII spelling for Make 4.4.1's ANSI subprocess API.
 
     Prefer native 8.3 names. On volumes without them, keep a deterministic
-    junction in the user's ASCII temp directory so CMakeCache/compile_commands
+    junction in a bounded user-owned ASCII directory so CMakeCache/compile_commands
     paths remain valid on later commands. Existing unrelated paths are refused.
     """
     path = Path(value).absolute()
@@ -91,11 +91,23 @@ def build_path(value, *, prefer_junction=False):
     if compact or not str(alias).isascii():
         import hashlib
         import time
-        parent = Path(tempfile.gettempdir())/'ECRA-paths'
+        parent = Path(os.environ.get('ECRA_PATH_ALIAS_ROOT') or Path(tempfile.gettempdir())/'ECRA-paths')
+        spelling = Path(_short_path(parent))
+        if not os.environ.get('ECRA_PATH_ALIAS_ROOT') and (not str(spelling).isascii() or len(str(spelling))+33 > 120):
+            local = os.environ.get('LOCALAPPDATA')
+            if not local or not Path(local).is_absolute():
+                raise ValueError('短构建别名需要独立用户目录；请设置绝对、短ASCII的 ECRA_PATH_ALIAS_ROOT')
+            parent = Path(local)/'ECRAStudio/path-aliases'
+        if not parent.is_absolute():
+            raise ValueError('ECRA_PATH_ALIAS_ROOT 必须是独立的绝对路径')
+        from .workspace import studio_data_root
+        parent = studio_data_root(parent)
+        if parent == root or parent.is_relative_to(root) or root.is_relative_to(parent):
+            raise ValueError('短构建别名根不可与实际源码/构建目标重叠：'+str(parent))
         parent.mkdir(parents=True,exist_ok=True)
         parent = Path(_short_path(parent))
-        if not str(parent).isascii():
-            raise ValueError('GNU Make 4.4.1 需要 ASCII 兼容路径；请设置可写的 ASCII TEMP 目录或将工具/工程放入 ASCII 路径')
+        if not str(parent).isascii() or len(str(parent))+33 > 120:
+            raise ValueError('短构建别名仍过长或非ASCII；请选择独立且更短的 ECRA_PATH_ALIAS_ROOT：'+str(parent))
         alias = parent/hashlib.sha256(str(root).casefold().encode('utf-8')).hexdigest()[:32]
         try:
             if not os.path.lexists(alias):

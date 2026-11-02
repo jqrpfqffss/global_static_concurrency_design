@@ -49,23 +49,40 @@ def paths(source):
                 yield path
 
 
-def inspect(source, project_root, data_root):
+def inspect(source, project_root, data_root, *, allow_degraded=False):
     """Validate the explicitly selected archive against the existing resolver."""
     for value in (source, project_root):
         if not isinstance(value, (str, Path)) or not Path(value).is_absolute():
             raise ValueError('旧结果目录和原工程目录都必须是绝对路径')
     source, root, data = no_links(source), no_links(project_root), studio_data_root(data_root)
+    if data == root or data.is_relative_to(root) or root.is_relative_to(data):
+        raise ValueError('旧迁移数据根必须独立于原固件目录，拒绝创建数据：'+str(data))
     if not source.is_dir():
         raise ValueError('旧结果目录不存在；请选择包含 run.json 和 scan_state.json 的目录')
     if source == data or source.is_relative_to(data) or data.is_relative_to(source):
         raise ValueError('旧来源与当前数据根重叠；拒绝递归导入自己的数据')
     if (source/'scan.db').exists():
         raise ValueError('此目录已经是新版权威格式，请从原Studio导出标准.ecra-report包后导入')
-    run = small_json(source/'run.json'); state = small_json(source/'scan_state.json')
-    if (canonical(run.get('project_root', '')) != canonical(root)
-            or canonical(state.get('project_root', '')) != canonical(root)
-            or state.get('schema') != 1 or not isinstance(state.get('fingerprint'), str) or not state['fingerprint']):
+    if type(allow_degraded) is not bool:
+        raise ValueError('缺证据归档选项必须为布尔值')
+    missing = []
+    def identity(name):
+        file = source/name
+        if not file.is_file() and allow_degraded:
+            missing.append('缺少身份记录 '+name); return {}
+        value = small_json(file)
+        declared = value.get('project_root')
+        if declared and (not isinstance(declared,str) or canonical(declared) != canonical(root)):
+            raise ValueError('旧结果归属与所选原工程不一致；不能通过降级选项绕过已知归属冲突')
+        if not declared and allow_degraded: missing.append(name+' 缺少工程身份')
+        return value
+    run = identity('run.json'); state = identity('scan_state.json')
+    valid_identity = (canonical(run.get('project_root', '')) == canonical(root)
+            and canonical(state.get('project_root', '')) == canonical(root)
+            and state.get('schema') == 1 and isinstance(state.get('fingerprint'), str) and bool(state['fingerprint']))
+    if not valid_identity and not allow_degraded:
         raise ValueError('旧结果归属与所选原工程不一致；不根据目录名称猜测工程身份')
+    if not valid_identity: missing.append('原检查点身份或版本不可验证')
     workspace = WorkspaceResolver.resolve(root, dict(output=dict(location='custom', custom_dir=str(data))))
     # A resolver-owned tool workspace has an additional exact owner marker.
     marker = source.parent/'project.json' if source.name == 'results' else source/'project.json'
@@ -80,19 +97,28 @@ def inspect(source, project_root, data_root):
     elif source == root/'.ecra':
         kind = 'FIRMWARE_LEGACY'
     if not (source/'facts.json').is_file():
-        raise ValueError('缺少完整facts.json：旧facts.db不能无损恢复全部字段类型与顺序；未导入为有效结果，原数据保留')
+        if not allow_degraded:
+            raise ValueError('缺少完整facts.json：旧facts.db不能无损恢复全部字段类型与顺序；可显式选择只保留原件的未验证归档，原数据保留')
+        missing.append('缺少完整facts.json，旧facts.db不能无损恢复全部字段类型与顺序')
     if not (source/REPORT).is_file():
-        raise ValueError('缺少完整静态报告：请选择旧结果根目录；原数据保留')
+        if not allow_degraded: raise ValueError('缺少完整静态报告：请选择旧结果根目录；可选择未验证原件归档，原数据保留')
+        missing.append('缺少完整静态报告 '+REPORT)
     total, count = 0, 0
     for file in paths(source):
         count += 1; total += file.stat().st_size
     if marker.is_file() and marker.parent != source:
         count += 1; total += marker.stat().st_size
+    if not count: raise ValueError('旧目录没有可捕获的原文件，未创建空归档')
+    warning = ('未验证原件归档：缺少可信静态证据或身份，仅逐字节保存全部现存文件。'
+        '零可核验对象不等于零风险；不生成变量/SAFE/AI或人工结论。原目录不会删除或改写。'
+        if missing else
+        '只转换已归档的完整事实与报告，不重新证明当前源码。缺失的原始源码不会从当前工程冒充补齐。'
+        '旧AI和人工文件逐字节保留；无法验证其合同的决定不会自动变成当前确认。原目录不会删除或改写。')
     return dict(source=str(source), project_root=str(root), project_id=workspace.project_id,
         repository_root=workspace.repository_root, source_kind=kind, files=count, logical_bytes=total,
-        state='LEGACY_READ_ONLY', source_reverification=False,
-        warning='只转换已归档的完整事实与报告，不重新证明当前源码。缺失的原始源码不会从当前工程冒充补齐。'
-            '旧AI和人工文件逐字节保留；无法验证其合同的决定不会自动变成当前确认。原目录不会删除或改写。')
+        state='UNVERIFIED' if missing else 'LEGACY_READ_ONLY', source_reverification=False,
+        allow_degraded=allow_degraded, degraded=bool(missing), missing_evidence=missing,
+        identity_verified=valid_identity, warning=warning)
 
 
 def _copy(source, target, expected):
@@ -116,9 +142,10 @@ def _write_inventory(conn, destination, metadata):
         stream.write(']}')
 
 
-def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=None):
+def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=None, allow_degraded=False):
     """One atomic import; interrupted pending trees are retained for diagnosis."""
     data = studio_data_root(data_root)
+    inspect(source, project_root, data, allow_degraded=allow_degraded)
     data.mkdir(parents=True, exist_ok=True)
     from contextlib import nullcontext
     if _lease is not None and (_lease.root != data or _lease.purpose != 'legacy-import'
@@ -126,7 +153,7 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
         raise ValueError('迁移监督器未持有活动锁')
     with DataActivity(data), (nullcontext(_lease) if _lease is not None else
             DataActivity(data, exclusive=True, purpose='legacy-import')):
-        plan = inspect(source, project_root, data)
+        plan = inspect(source, project_root, data, allow_degraded=allow_degraded)
         source = Path(plan['source']); ident = 'legacy-'+uuid.uuid4().hex
         work = no_links(data/'work/legacy'); work.mkdir(parents=True, exist_ok=True)
         stage = no_links(work/ident); stage.mkdir()
@@ -151,9 +178,9 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                     if ':' in name or '\\' in name or '..' in Path(name).parts:
                         raise ValueError('旧审计路径不安全，拒绝导入：'+name)
                     size, hashed = file.stat().st_size, sha256(file)
-                    disposition = 'CANONICAL_REENCODED' if name in REENCODED else 'OPAQUE_AUDIT_PRESERVED'
+                    disposition = 'CANONICAL_REENCODED' if name in REENCODED and not plan['degraded'] else 'OPAQUE_AUDIT_PRESERVED'
                     conn.execute('INSERT INTO files VALUES (?,?,?,?,?,?)', (name, name.casefold(), str(file), size, hashed, disposition))
-                    if name in {'facts.json', REPORT}:
+                    if disposition == 'CANONICAL_REENCODED':
                         target = copies/('facts.json' if name == 'facts.json' else 'report.json')
                     elif disposition == 'OPAQUE_AUDIT_PRESERVED':
                         target = evidence/hashed
@@ -168,8 +195,8 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                             raise ValueError('旧审计对象SHA冲突/损坏')
                     progress(dict(stage='COPYING', message='逐文件捕获与校验：'+name, files=number, total=plan['files']))
                 conn.commit()
-                state_hash = conn.execute("SELECT sha256 FROM files WHERE name='scan_state.json'").fetchone()[0]
-                checkpoint = small_json(evidence/state_hash)
+                state_row = conn.execute("SELECT sha256 FROM files WHERE name='scan_state.json'").fetchone()
+                checkpoint = small_json(evidence/state_row[0]) if state_row else {}
                 checkpoint_checks = {}
                 for key, name in [('facts_sha256','facts.json'),('manifest_sha256','input_manifest.json'),
                         ('input_closure_sha256','input_closure.json')]:
@@ -177,10 +204,13 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                         checkpoint_checks[key] = 'NOT_AVAILABLE'
                         continue
                     saved = conn.execute('SELECT sha256 FROM files WHERE name=?', (name,)).fetchone()
+                    if saved is None and plan['degraded']:
+                        checkpoint_checks[key] = 'MISSING_ARCHIVED_INPUT_UNVERIFIED'; continue
                     if saved is None or saved[0] != checkpoint[key]:
                         raise ValueError('旧检查点与归档字节不一致：'+name+'；未发布，原目录保留')
                     checkpoint_checks[key] = 'MATCHED_ARCHIVED_BYTES_ONLY'
-                identity = hashlib.sha256(b'ECRA_LEGACY_BYTES_V1\0'+plan['project_id'].encode()+b'\0'+canonical(source).encode()+b'\0')
+                namespace = b'ECRA_LEGACY_OPAQUE_V1\0' if plan['degraded'] else b'ECRA_LEGACY_BYTES_V1\0'
+                identity = hashlib.sha256(namespace+plan['project_id'].encode()+b'\0'+canonical(source).encode()+b'\0')
                 for row in conn.execute('SELECT name,size,sha256 FROM files ORDER BY name'):
                     raw = json.dumps(row,ensure_ascii=True,separators=(',',':')).encode()
                     identity.update(len(raw).to_bytes(8,'big')); identity.update(raw)
@@ -189,12 +219,20 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                 _write_inventory(conn, provenance, dict(legacy_migration_version=2,legacy_source_digest=source_digest,
                     project_root=plan['project_root'], source_directory=str(source), source_kind=plan['source_kind'],
                     source_reverification=False, legacy_checkpoint_checks=checkpoint_checks,
-                    legacy_warning=plan['warning'], archived_sources=[]))
+                    legacy_warning=plan['warning'], legacy_degraded=plan['degraded'],
+                    missing_evidence=plan['missing_evidence'], legacy_identity_verified=plan['identity_verified'], archived_sources=[]))
                 scan_id = 'legacy-'+source_digest
                 def update(message): progress(dict(stage='CONVERTING', message=message))
+                if plan['degraded']:
+                    # A navigation container, never inferred static evidence.
+                    # Every available old byte, including partial facts/report,
+                    # is retained in CAS rather than parsed as trusted symbols.
+                    from .common import write_json
+                    write_json(copies/'facts.json',dict(legacy_archive_only=True))
+                    write_json(copies/'report.json',dict(analysis_status='UNVERIFIED',limitations=[plan['warning']]))
                 publish_json_scan(pending/'scan.db', copies/'facts.json', copies/'report.json',
                     scan_id=scan_id, project_id=plan['project_id'], profile_id='legacy-import',
-                    provenance_path=provenance, progress=update)
+                    provenance_path=provenance, progress=update, validation_state=plan['state'])
                 progress(dict(stage='VALIDATING', message='逐节点、全关系与业务投影校验，剩余量未知'))
                 binding = EvidenceProvider(pending/'scan.db').validate(deep=True)
                 ReviewStore(pending/'reviews.db', binding)
@@ -226,7 +264,7 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                         raise ValueError('迁移期间旧workspace归属记录变化')
                 if current_count != conn.execute('SELECT count(*) FROM files').fetchone()[0]:
                     raise ValueError('迁移期间旧目录文件数量变化')
-                inspect(source, project_root, data)
+                inspect(source, project_root, data, allow_degraded=allow_degraded)
                 (pending/'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
                 scans = no_links(data/'scans'); scans.mkdir(exist_ok=True)
                 destination = no_links(scans/scan_id)
@@ -266,7 +304,7 @@ def convert(source, project_root, data_root, *, progress=lambda _: None, _lease=
                 except (ValueError,OSError) as exc: warnings.append('已验证的重复暂存暂未回收：'+str(exc))
             try: progress(dict(stage='COMPLETE', message='旧归档转换并发布完成；原目录保持不变', scan_id=ident))
             except Exception as exc: warnings.append('归档已发布；进度通知失败：'+str(exc))
-            return dict(scan_id=scan_id, state='LEGACY_READ_ONLY', repeated=repeated, source_preserved=True,
+            return dict(scan_id=scan_id, state=plan['state'], degraded=plan['degraded'], repeated=repeated, source_preserved=True,
                 warning=plan['warning'], cleanup_warnings=warnings)
         except BaseException as exc:
             receipt('FAILED', error=str(exc)); raise

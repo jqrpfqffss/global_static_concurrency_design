@@ -1,0 +1,675 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "four_steps_preserve_database_and_saved_configuration_alone_cannot_enable_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_all_tu_compiler_and_input_checks_are_persisted_and_every_command_pages_without_truncation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "checked_plan_and_wizard_scan_action_fit_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "any_unsaved_yaml_change_revokes_wizard_start_even_when_text_is_restored",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_missing_compiler_blocks_gate_with_path_and_repair_and_preserves_previous_archive",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "repair_recheck_then_actual_wizard_scan_publishes_only_valid_authority_database",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_cmake_missing_toolchain_is_visible_and_blocks_wizard_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_cmake_arm_target_release_build_after_form_repair_preserves_source_and_shows_all_commands",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1-evidence\\01-build-plan-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1-evidence\\01-build-plan-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1-evidence\\02-missing-compiler-blocked.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1-evidence\\03-precheck-then-native-publication.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1-evidence\\04-cmake-toolchain-blocked.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1-evidence\\05-cmake-target-release-checked.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome U02/U05 subset: build gate, full commands, repair and native scan.\n\nUses only explicitly supplied firmware/config and repository teaching sources.\nNo mock API, online model, physical32GB, native DPI or engineer UAT claim.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "source_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": {
+    "task": "4d227790909b41db9c8e49d5d2f09e09",
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\scans\\4d227790909b41db9c8e49d5d2f09e09\\scan.db",
+    "sha256": "e22fb4f1b51ed75ef45bfdcc00a10c0d9df505b0e376044039dd00abcb481c54"
+  },
+  "cmake_plan": {
+    "passed": true,
+    "state": "PRECHECK_READY",
+    "config_sha256": "3c82a43e6303a29a3b55f9f811b0159ea1044a479731543e2adfbaaace45e8e8",
+    "started": "2026-11-02T01:36:27.447176+00:00",
+    "tools": [
+      {
+        "field": "analysis.cmake / CMake",
+        "path": "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+        "version": "cmake version 3.29.6\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+        "sha256": "2f7ab077ad3128c6250c462dc01e8615be4f5d51e62eb7d567fabab2eeeea89b",
+        "available": true
+      },
+      {
+        "field": "analysis.cmake.generator / ninja",
+        "path": "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\ninja\\ninja.exe",
+        "version": "1.13.2",
+        "sha256": "e52a7ad9538d9618c67a0bd777964e2eec8a30f68b810a2f6adce1f2daf847b8",
+        "available": true
+      },
+      {
+        "field": "Clang AST",
+        "path": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native\\libclang.dll",
+        "sha256": "b13ec96d9a036d6c6c36dd09e00415ead7acc7fcfd40e721bf33ea86b3490f9d",
+        "available": true
+      },
+      {
+        "field": "编译数据库 / main.c",
+        "path": "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\arm-gcc\\bin\\arm-none-eabi-gcc.exe",
+        "version": "arm-none-eabi-gcc.exe (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1 20210824 (release)\nCopyright (C) 2020 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "sha256": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac",
+        "available": true
+      }
+    ],
+    "project_id": "51855e28f5aab5694b3e407d5b8368be30aaed0be44e161bb44520939523f7f8",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\teaching-source",
+    "analysis_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\teaching-source",
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data",
+    "build_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\projects\\teaching-source_51855e28f5aab5694b3e\\builds\\6aea85e9e995aa2c5363b497",
+    "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\projects\\teaching-source_51855e28f5aab5694b3e\\builds\\6aea85e9e995aa2c5363b497\\ecra-target-compile_commands.json",
+    "target": "demo",
+    "variant": "Release",
+    "cmake_steps": [
+      {
+        "stage": "configure",
+        "command": [
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+          "-S",
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\teaching-source",
+          "-B",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\ECRAST~1\\PATH-A~1\\b5cc66542029e43ca8690dca4504ea80\\6aea85e9e995aa2c5363b497",
+          "-G",
+          "Ninja",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_TOOLCHAIN_FILE=H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\input-contract\\arm-toolchain.cmake",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DCMAKE_MAKE_PROGRAM:FILEPATH=H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\ninja\\ninja.exe"
+        ],
+        "exit_code": 0,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\work\\tasks\\a680b8a681e54331b9d6aaab920fae5f\\preflight\\cmake-configure.log",
+        "consumed_inputs": {
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\teaching-source\\CMakeLists.txt": {
+            "status": "OK",
+            "sha256": "4eab75c8c3729ce67e06c7495c42edbc3d8eee5adf504be0c1834fde998e8f93",
+            "size": 136,
+            "read_completed_ns": 1793583389976164200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeDetermineSystem.cmake": {
+            "status": "OK",
+            "sha256": "75fd69926dda46803b0cdc465b7eccb121dec262abf97c7ac8fa9ac77f285f5e",
+            "size": 9589,
+            "read_completed_ns": 1793583389976164200
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\input-contract\\arm-toolchain.cmake": {
+            "status": "OK",
+            "sha256": "51b7868c07090e6c7b20667c4445d73190fc3e6289817fa03ca89f117e42c977",
+            "size": 202,
+            "read_completed_ns": 1793583389977161900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeSystem.cmake.in": {
+            "status": "OK",
+            "sha256": "892560781b19d01b3adaf08b5da235cd99bcee414e5b4ce80d99c585d6b66e35",
+            "size": 578,
+            "read_completed_ns": 1793583389978158500
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\projects\\teaching-source_51855e28f5aab5694b3e\\builds\\6aea85e9e995aa2c5363b497\\CMakeFiles\\3.29.6\\CMakeSystem.cmake": {
+            "status": "OK",
+            "sha256": "f6a095e4c308893197256552320b2c75ff3f5cb172b0d39d5fba9b3a7efab38a",
+            "size": 506,
+            "read_completed_ns": 1793583389979156000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeSystemSpecificInitialize.cmake": {
+            "status": "OK",
+            "sha256": "65ef4e8430a3f70903e4bb3656e8c6e9f39ab980f823784c8a7004673cceeb71",
+            "size": 1492,
+            "read_completed_ns": 1793583389981151900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeDetermineCCompiler.cmake": {
+            "status": "OK",
+            "sha256": "ed26e19580f2e1b6db06df59c50bc58564c144070584b76ccff911923acf2a7e",
+            "size": 9057,
+            "read_completed_ns": 1793583389982148300
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeDetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "b08ab96abdd4a814a5150968fa88552687974cf17008083ec56c70da5c90d572",
+            "size": 7671,
+            "read_completed_ns": 1793583389983145700
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeDetermineCompilerId.cmake": {
+            "status": "OK",
+            "sha256": "c1b84dfd55558fe523f33a47e0dc2c7bf6c4b09b179a2098a506a94d4a166527",
+            "size": 54817,
+            "read_completed_ns": 1793583389984142600
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeCompilerIdDetection.cmake": {
+            "status": "OK",
+            "sha256": "a246d8e42fb2f1b8c95a815f7f898e0d5cea2ebd31b08280595e8789cc6dfcde",
+            "size": 5060,
+            "read_completed_ns": 1793583389985140100
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\ADSP-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "817ea53868a6e888ecf2cf9be9ab8f62552c4d5b54181e0c2f787dc7dafeeb1c",
+            "size": 493,
+            "read_completed_ns": 1793583389985140100
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\ARMCC-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "6ab3dff235e725af0f7a0c537d11b7368183b49777c02d19508f35aa331eae5b",
+            "size": 747,
+            "read_completed_ns": 1793583389986137900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\ARMClang-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "122b22c309d7f17864c00458d63f8ca4415fbef020f6cd3d4169051c9ee4fc79",
+            "size": 539,
+            "read_completed_ns": 1793583389987135300
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\AppleClang-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "a127501ee54a94a4fb147af4485b1c5534250141685ccd168fb983dbfd0e15eb",
+            "size": 292,
+            "read_completed_ns": 1793583389988132200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Clang-DetermineCompilerInternal.cmake": {
+            "status": "OK",
+            "sha256": "bfbe3afacdd57c9c60d49f1bbfea298d5bbdcaeed29ac46a46fd7c6aefc914c0",
+            "size": 560,
+            "read_completed_ns": 1793583389989130200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Borland-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "911ca508802309e28bc90afc063014430b68ed32066e36827d6476df8d17cede",
+            "size": 267,
+            "read_completed_ns": 1793583389990127200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Bruce-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "996d0305c505c6330a4ea8cb54f47908d052c54468884daf95fca2f18a5b150a",
+            "size": 46,
+            "read_completed_ns": 1793583389991124200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Clang-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "1c2bdaea4494ec6ee5b8ceaea1b091fa143c5d6e4274aa8c2d542dee17c67d0c",
+            "size": 128,
+            "read_completed_ns": 1793583389992121700
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Compaq-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "c0b034627f0f80bd2184a0af914e42254a6d53105474014b5b341c5ffb9d596c",
+            "size": 353,
+            "read_completed_ns": 1793583389993119100
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Cray-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "bcd86455ac77197a187fb02a217a6645d87ba8171913644027e9e3b9ef9c37d0",
+            "size": 225,
+            "read_completed_ns": 1793583389994116400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\CrayClang-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "45702bf66ae39eca4c69e87703043e36da5c929d0a2b301fa0883da4a79646e4",
+            "size": 389,
+            "read_completed_ns": 1793583389995113300
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Embarcadero-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "3dfc229c255b4a4b113da38c3792d48582872c7422472f86ba7d02bcb8b0c59c",
+            "size": 394,
+            "read_completed_ns": 1793583389995113300
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Fujitsu-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "9f1352bee0d9e9e71bf854a89f9fe6c0d0025b67c5f81b72ff7df763c30477f8",
+            "size": 646,
+            "read_completed_ns": 1793583389996110400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\FujitsuClang-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "df1c613989a9ced1b2b38e681ee90ed7727158e06d741695af391c0a7ea81575",
+            "size": 373,
+            "read_completed_ns": 1793583389997107900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\GHS-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "f5f4425e44240e2a913b827f3d23d40f8ddaf9384ee3de8fe2e6502ea8ced51c",
+            "size": 413,
+            "read_completed_ns": 1793583389998105400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\GNU-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "93a5a93573bd653826e844cf1586f5493e0bb5b9d87ff5ec05d8416c7d549781",
+            "size": 380,
+            "read_completed_ns": 1793583389998105400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\HP-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "8297272e36721ace2d66a5639150bc7f1fcb49456ce70636f84f7360483575c1",
+            "size": 326,
+            "read_completed_ns": 1793583389999102900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\IAR-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "0f294d3fa2df36efbeb46de60dbe5aa75565372bc64d55cb5d37d40709b73f2f",
+            "size": 2158,
+            "read_completed_ns": 1793583390000101400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\IBMClang-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "37ee3320a1ef0378c9b405a64a45ca7fa272e5c4be9772c8a0142ce0c4159cf1",
+            "size": 421,
+            "read_completed_ns": 1793583390001098000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Intel-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "112392e6cbbf7bf650af3865eff73007b829d6c84ae044e11e9ae4540c2f5862",
+            "size": 2047,
+            "read_completed_ns": 1793583390002095000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\IntelLLVM-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "26e15a01b302679e6f3679359cfd2daeaabed1dfdc1d7ed09e1d3aab3f5b3578",
+            "size": 1720,
+            "read_completed_ns": 1793583390003092500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\LCC-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "aea7e2976d027619dce0bbd1d2125acb65430564937453b99ccb9465992a93e6",
+            "size": 751,
+            "read_completed_ns": 1793583390004089800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\MSVC-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "301b1ea7c2fc7ad6afee63a5e10ad5c8d2c54d1ff3f0ed0fdadb29bdd38be3f9",
+            "size": 664,
+            "read_completed_ns": 1793583390005087200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\NVHPC-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "32add69c344dcaa43c9d58d13a4dd0485abf1acfab1c98b13abe87b3ca049c92",
+            "size": 374,
+            "read_completed_ns": 1793583390005087200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\NVIDIA-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "250411bdae770c159319b160a4a7a35c23caf47c3953b4e6f2c8e2118acfa893",
+            "size": 1129,
+            "read_completed_ns": 1793583390006085800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\OpenWatcom-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "33ffd48e11a0718fea7251cd8fa5dbc10624df5c80401db2e0cb448bb428a76e",
+            "size": 397,
+            "read_completed_ns": 1793583390007082500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\OrangeC-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "c201394423340daa6d97e69269719ff89ee8558d8569bd4d98715106118e0fe1",
+            "size": 313,
+            "read_completed_ns": 1793583390007082500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\PGI-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "67586eafe2b572852c3e02809dae3a486f2e7a0c6bb8454460d5070109660908",
+            "size": 337,
+            "read_completed_ns": 1793583390008078600
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\PathScale-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "9bed6570207de8fbc9f6f4c242ad5d0b9e6d57388a531871bbbd9028182be6c4",
+            "size": 350,
+            "read_completed_ns": 1793583390009075800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\SCO-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "64a67818e2ecfae75a062c62b213a648d6b081c1b974ed9b3a1511c60025b0ea",
+            "size": 56,
+            "read_completed_ns": 1793583390010074500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\SDCC-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "677d886aed1b540ee451147dc41730f87fc200ede9b7b53bd6ad157bc8299de8",
+            "size": 668,
+            "read_completed_ns": 1793583390010074500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\SunPro-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "d748aa2d8ce9d50dea0f960d0ebb66024812c5e60e290297573c80473a608066",
+            "size": 635,
+            "read_completed_ns": 1793583390011072400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\TI-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "aef911a56b7f6e78957c83274a358db2506c1b07eaa8dfa06d75b30517cd0473",
+            "size": 419,
+            "read_completed_ns": 1793583390011072400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\TIClang-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "e1eb498dd60dab9ce139ad4f66175e397bf07f4fc6f7b441d5f0e05f959fbdc2",
+            "size": 470,
+            "read_completed_ns": 1793583390012067900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Tasking-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "ad8ec234765ef93d5b3a4b8ad6bcdd2f414b9166f330b2bf37185533ddfe3056",
+            "size": 500,
+            "read_completed_ns": 1793583390013067000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\TinyCC-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "b6de9407b3feb7b372d50d52110f6ded7e497e46bfdf3cc0fd1c05accd289e60",
+            "size": 50,
+            "read_completed_ns": 1793583390013067000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\VisualAge-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "b5183f324af0e268d73bccbe96b9045d4c3f4d386c2120b3d143f910f2055ea4",
+            "size": 177,
+            "read_completed_ns": 1793583390014063700
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\IBMCPP-C-DetermineVersionInternal.cmake": {
+            "status": "OK",
+            "sha256": "471fd3e4f74f8079767b7789ae256eba5a234bf881be8f64cd6fafb89c6ccee4",
+            "size": 273,
+            "read_completed_ns": 1793583390015061500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\Watcom-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "0cd6dcd25de9f7aedf9d92da46754963edf1edf3972d91f2c07e024cb969b4fb",
+            "size": 403,
+            "read_completed_ns": 1793583390015061500
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\XL-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "bdbb33cc6c4cf5e268fd03e9648a3b7e674714729f48ac1b86090dd828a4524c",
+            "size": 178,
+            "read_completed_ns": 1793583390016058800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\XLClang-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "2d38cf08c1a8fddc59c4e33ce3b61378f6c47b6fb21d9a7dead194fb8ceb7c7a",
+            "size": 411,
+            "read_completed_ns": 1793583390017056000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\zOS-C-DetermineCompiler.cmake": {
+            "status": "OK",
+            "sha256": "b9b39f4093bde5c9b00657aeca6526c5e258de701dcfd952225533821625164b",
+            "size": 158,
+            "read_completed_ns": 1793583390018052900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeFindBinUtils.cmake": {
+            "status": "OK",
+            "sha256": "b890db5123a57a153a7394e8f9405df1467c7c9fca5a9bbdd5926ee88ff7b6c6",
+            "size": 12034,
+            "read_completed_ns": 1793583390051961800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\GNU-FindBinUtils.cmake": {
+            "status": "OK",
+            "sha256": "d435b29eb88c274ee36a1902535ef317b19bc92b1755b137abd07ad735313630",
+            "size": 1867,
+            "read_completed_ns": 1793583390052959100
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeCCompiler.cmake.in": {
+            "status": "OK",
+            "sha256": "0aa5a39eb665f59e4bb7b2a6ef865bb7a3c46beb65e6f3518f96ddda9a0c5ff2",
+            "size": 3578,
+            "read_completed_ns": 1793583390053956700
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\projects\\teaching-source_51855e28f5aab5694b3e\\builds\\6aea85e9e995aa2c5363b497\\CMakeFiles\\3.29.6\\CMakeCCompiler.cmake": {
+            "status": "OK",
+            "sha256": "6edaaa36e33376c352a6ccecd8d7a7224cf92d134efcabda52fdd36fe61a13d1",
+            "size": 3349,
+            "read_completed_ns": 1793583390054953800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeSystemSpecificInformation.cmake": {
+            "status": "OK",
+            "sha256": "0283561f399763afb6bf1030c54eed4f2ff2cdf7f2d2291b4f9d873327baced2",
+            "size": 2752,
+            "read_completed_ns": 1793583390055951000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeGenericSystem.cmake": {
+            "status": "OK",
+            "sha256": "7f5c77c126a48a661457241d5a8e0d21bef8e80c3356575d2c3f8f8a968ebfe5",
+            "size": 8024,
+            "read_completed_ns": 1793583390055951000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeInitializeConfigs.cmake": {
+            "status": "OK",
+            "sha256": "3ddd2e1e1a643fe34000d9263245e38cd8a4fc1b018891f6523661a4601e296d",
+            "size": 1613,
+            "read_completed_ns": 1793583390056948000
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Platform\\Generic.cmake": {
+            "status": "OK",
+            "sha256": "741194c89231f0f69752b642f5bb8f62f88906202b579c133d6387261964bf6a",
+            "size": 844,
+            "read_completed_ns": 1793583390057945400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeCInformation.cmake": {
+            "status": "OK",
+            "sha256": "a8a75a26239d2c97f1dca4dac60a4fcfdb2d342927c0295bdf89c56e61332bb5",
+            "size": 7113,
+            "read_completed_ns": 1793583390058943200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeLanguageInformation.cmake": {
+            "status": "OK",
+            "sha256": "d675a6a4f9b3040b2b77fb9593014d226caad9eba387f610bbef18f83c4fcde5",
+            "size": 1290,
+            "read_completed_ns": 1793583390059939900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\GNU-C.cmake": {
+            "status": "OK",
+            "sha256": "428b3e8a66a2077b2c8885de5a00eff937cf8d799475fe2337871f0ca2972db0",
+            "size": 1811,
+            "read_completed_ns": 1793583390060938300
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\GNU.cmake": {
+            "status": "OK",
+            "sha256": "96546b6beee728cfb8ba984c7aa257f80a24651ca042fa13e1639d244d003ed5",
+            "size": 9390,
+            "read_completed_ns": 1793583390060938300
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Compiler\\CMakeCommonCompilerMacros.cmake": {
+            "status": "OK",
+            "sha256": "dc32e044eb6923139fdfc6a72c0fd402536ad6153afc3b34bfcb0299ff66229d",
+            "size": 7520,
+            "read_completed_ns": 1793583390061934800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeCommonLanguageInclude.cmake": {
+            "status": "OK",
+            "sha256": "9b11c0ac519d625d9dd34b6fe1cf230273c4470163359212a78bc41e1d98da4e",
+            "size": 1166,
+            "read_completed_ns": 1793583390062932700
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeTestCCompiler.cmake": {
+            "status": "OK",
+            "sha256": "eb32ee43eb7738c8098279c13cce171a8325acf28d7db98751766aa1bfada41f",
+            "size": 3693,
+            "read_completed_ns": 1793583390063929800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeTestCompilerCommon.cmake": {
+            "status": "OK",
+            "sha256": "62ddbef6d7bad57e76bb24282bc32b5d453392f25a50a4a2f545eedcab53e547",
+            "size": 1362,
+            "read_completed_ns": 1793583390063929800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeDetermineCompilerABI.cmake": {
+            "status": "OK",
+            "sha256": "f30e5c3dbf8d2736d734d9439c088efe898f4e42c49387514250affdc4c3e01e",
+            "size": 10307,
+            "read_completed_ns": 1793583390064927200
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Internal\\CMakeDetermineLinkerId.cmake": {
+            "status": "OK",
+            "sha256": "9a0a18058fe44ea22c1700061e96a7e7909d67df8153c7556de6c35aad356946",
+            "size": 3974,
+            "read_completed_ns": 1793583390065925900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeParseImplicitIncludeInfo.cmake": {
+            "status": "OK",
+            "sha256": "afd2a8f5e59fa9f316b0279eb5897d5b8be4978d877dd793ad514a8a157e3fda",
+            "size": 10070,
+            "read_completed_ns": 1793583390066921800
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeParseImplicitLinkInfo.cmake": {
+            "status": "OK",
+            "sha256": "63554a91eb20ee9a083ce2bfd980f80c09ba601d9a01a1e85a45be3bd0e81585",
+            "size": 17073,
+            "read_completed_ns": 1793583390067918900
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeParseLibraryArchitecture.cmake": {
+            "status": "OK",
+            "sha256": "6421d62a71eb0f79f82485d6a216b1f3398ee422ce6c6dbfeac17896c1e25b72",
+            "size": 1782,
+            "read_completed_ns": 1793583390068916100
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeCCompilerABI.c": {
+            "status": "OK",
+            "sha256": "57d3a2bcceb36643f49614b4489578bcbd789d77def2351e1b94efc1adc90e08",
+            "size": 539,
+            "read_completed_ns": 1793583390070911400
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\CMakeDetermineCompileFeatures.cmake": {
+            "status": "OK",
+            "sha256": "339ef61046520f928d37210b061949fb82df3cecfe49520d5ab2237648cacd52",
+            "size": 10535,
+            "read_completed_ns": 1793583390071908700
+          },
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\share\\cmake-3.29\\Modules\\Internal\\FeatureTesting.cmake": {
+            "status": "OK",
+            "sha256": "d09a3ee46eaa840e1ede76e19f9a6af56c2df38aa4b3f37f147e4b0d83b8fac0",
+            "size": 5214,
+            "read_completed_ns": 1793583390071908700
+          }
+        }
+      },
+      {
+        "stage": "target-closure",
+        "command": [
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\ninja\\ninja.exe",
+          "-C",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\ECRAST~1\\PATH-A~1\\b5cc66542029e43ca8690dca4504ea80\\6aea85e9e995aa2c5363b497",
+          "-t",
+          "compdb-targets",
+          "-x",
+          "demo"
+        ],
+        "exit_code": 0,
+        "target": "demo",
+        "translation_units": 2,
+        "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\projects\\teaching-source_51855e28f5aab5694b3e\\builds\\6aea85e9e995aa2c5363b497\\ecra-target-compile_commands.json"
+      },
+      {
+        "stage": "build",
+        "command": [
+          "H:\\ECRAStudio-build-20261102-studio-v16\\ECRA-Portable\\tools\\cmake\\bin\\cmake.exe",
+          "--build",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\ECRAST~1\\PATH-A~1\\b5cc66542029e43ca8690dca4504ea80\\6aea85e9e995aa2c5363b497",
+          "--config",
+          "Release",
+          "--target",
+          "demo"
+        ],
+        "exit_code": 0,
+        "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\build-preflight-deep-tools-v17-v1\\data\\work\\tasks\\a680b8a681e54331b9d6aaab920fae5f\\preflight\\cmake-build.log"
+      }
+    ],
+    "git": null,
+    "engine_digest": "0578da4d6c466283abcc5512610edffc12e15ecf08000aa07244d9d564f20601",
+    "translation_units": 2,
+    "input_files": 89,
+    "snapshot_status": "VERIFIED",
+    "plan_sha256": "f8e62a33d7e84a00863ff06721cf84e37888739f2f5a8df601558aa676fef9cb",
+    "note": "真实构建与全部TU编译输入检查通过；尚未进行并发风险分类。正式扫描会重新检查输入与覆盖。",
+    "finished": "2026-11-02T01:36:32.780683+00:00"
+  },
+  "firmware_unchanged_files": 42,
+  "original_database_unchanged": true,
+  "original_config_unchanged": true
+}

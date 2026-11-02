@@ -45,12 +45,12 @@ class MigrationJobs:
             with conn: yield conn
         finally: conn.close()
 
-    def preview(self, source, project_root):
-        plan = inspect(source, project_root, self.data)
+    def preview(self, source, project_root, *, allow_degraded=False):
+        plan = inspect(source, project_root, self.data, allow_degraded=allow_degraded)
         return dict(plan, revision=revision(plan))
 
-    def start(self, source, project_root, expected):
-        plan = inspect(source, project_root, self.data)
+    def start(self, source, project_root, expected, *, allow_degraded=False):
+        plan = inspect(source, project_root, self.data, allow_degraded=allow_degraded)
         if expected != revision(plan):
             raise ValueError('旧来源、归属或文件清单已变化；请重新检查迁移计划')
         lease = DataActivity(self.data, exclusive=True, purpose='legacy-import').__enter__()
@@ -66,7 +66,7 @@ class MigrationJobs:
             update({})
             def run():
                 try:
-                    result = convert(source, project_root, self.data, progress=update, _lease=lease)
+                    result = convert(source, project_root, self.data, progress=update, _lease=lease, allow_degraded=allow_degraded)
                     update(dict(state='COMPLETE', result=result, scan_id=result['scan_id']))
                 except Exception as exc:
                     (self.folder/(ident+'.trace.txt')).write_text(traceback.format_exc(), encoding='utf-8')
