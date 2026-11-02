@@ -1,0 +1,271 @@
+{
+  "passed": true,
+  "status": "COMPLETE",
+  "scope": "Read-only B-tree allocation diagnostic, using an explicit DBSTAT-enabled CLI.\n\nDeveloper measurement only: no database rewrite, cleanup or native-G4 claim.\nWindows Python's SQLite need not include DBSTAT; the supplied local executable\nis versioned/hashed separately and never becomes a Portable dependency.\n",
+  "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\identity-native-exact-v1\\data\\scans\\native-exact\\scan.db",
+  "source_binding": {
+    "scan_id": "native-exact",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "profile_id": "default",
+    "state": "UNVERIFIED",
+    "facts_hash": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+    "report_hash": "4a7216119c9dd11af4afef2be21645ef9777cf8ecd93c02d3c77190bc6538ba2"
+  },
+  "source_bytes": 11317248,
+  "expected_source_sha256": "625df61f2a0787f57f6f1e9685593719690f63f79934c12ee699b5f702662823",
+  "sqlite_executable": "D:\\msys2\\mingw64\\bin\\sqlite3.exe",
+  "sqlite_executable_sha256": "23a026d89805acfd5f7a99d8088faa772a290643642001d44d1fc87a3685d461",
+  "sqlite_version": "3.51.1 2025-11-28 17:28:25 281fc0e9afc38674b9b0991943b9e9d1e64c6cbdb133d35f6f5c87ff6af3alt1 (64-bit)",
+  "documentation": "https://sqlite.org/dbstat.html",
+  "budget_bytes": 1073741824,
+  "peaks": {
+    "working_set_bytes": 1363968,
+    "private_bytes": 434176,
+    "peak_job_commit_bytes": 21192704
+  },
+  "query_deadline_seconds": 60.0,
+  "command": [
+    "D:\\msys2\\mingw64\\bin\\sqlite3.exe",
+    "-batch",
+    "-readonly",
+    "-init",
+    "NUL",
+    "-json",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\identity-native-exact-v1\\data\\scans\\native-exact\\scan.db",
+    "PRAGMA trusted_schema=OFF; PRAGMA query_only=ON; PRAGMA cache_size=-32768; SELECT name,pageno AS btree_pages,ncell AS btree_cells,pgsize AS logical_page_bytes,payload AS payload_bytes,unused AS unused_bytes,mx_payload AS max_cell_payload_bytes FROM dbstat WHERE aggregate=TRUE ORDER BY pgsize DESC;"
+  ],
+  "seconds": 2.062000000005355,
+  "dbstat_seconds": 2.0310000000026776,
+  "btree_allocations": [
+    {
+      "name": "nodes",
+      "btree_pages": 727,
+      "btree_cells": 23893,
+      "logical_page_bytes": 2977792,
+      "payload_bytes": 2533052,
+      "unused_bytes": 310871,
+      "max_cell_payload_bytes": 437091
+    },
+    {
+      "name": "edges",
+      "btree_pages": 727,
+      "btree_cells": 112449,
+      "logical_page_bytes": 2977792,
+      "payload_bytes": 1688388,
+      "unused_bytes": 623335,
+      "max_cell_payload_bytes": 127
+    },
+    {
+      "name": "sqlite_autoindex_nodes_1",
+      "btree_pages": 462,
+      "btree_cells": 23320,
+      "logical_page_bytes": 1892352,
+      "payload_bytes": 1632272,
+      "unused_bytes": 184580,
+      "max_cell_payload_bytes": 70
+    },
+    {
+      "name": "sqlite_autoindex_edges_1",
+      "btree_pages": 390,
+      "btree_cells": 111726,
+      "logical_page_bytes": 1597440,
+      "payload_bytes": 1058819,
+      "unused_bytes": 198767,
+      "max_cell_payload_bytes": 11
+    },
+    {
+      "name": "edge_child",
+      "btree_pages": 323,
+      "btree_cells": 111726,
+      "logical_page_bytes": 1323008,
+      "payload_bytes": 838062,
+      "unused_bytes": 145896,
+      "max_cell_payload_bytes": 8
+    },
+    {
+      "name": "record_function",
+      "btree_pages": 28,
+      "btree_cells": 1670,
+      "logical_page_bytes": 114688,
+      "payload_bytes": 81393,
+      "unused_bytes": 27953,
+      "max_cell_payload_bytes": 76
+    },
+    {
+      "name": "records",
+      "btree_pages": 26,
+      "btree_cells": 1694,
+      "logical_page_bytes": 106496,
+      "payload_bytes": 92806,
+      "unused_bytes": 5064,
+      "max_cell_payload_bytes": 100
+    },
+    {
+      "name": "record_symbol",
+      "btree_pages": 17,
+      "btree_cells": 1670,
+      "logical_page_bytes": 69632,
+      "payload_bytes": 47116,
+      "unused_bytes": 17306,
+      "max_cell_payload_bytes": 64
+    },
+    {
+      "name": "record_target",
+      "btree_pages": 17,
+      "btree_cells": 1670,
+      "logical_page_bytes": 69632,
+      "payload_bytes": 46792,
+      "unused_bytes": 17630,
+      "max_cell_payload_bytes": 78
+    },
+    {
+      "name": "sqlite_autoindex_records_1",
+      "btree_pages": 16,
+      "btree_cells": 1670,
+      "logical_page_bytes": 65536,
+      "payload_bytes": 43057,
+      "unused_bytes": 17281,
+      "max_cell_payload_bytes": 35
+    },
+    {
+      "name": "record_source",
+      "btree_pages": 16,
+      "btree_cells": 1670,
+      "logical_page_bytes": 65536,
+      "payload_bytes": 46552,
+      "unused_bytes": 13786,
+      "max_cell_payload_bytes": 53
+    },
+    {
+      "name": "sqlite_schema",
+      "btree_pages": 1,
+      "btree_cells": 32,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 3693,
+      "unused_bytes": 157,
+      "max_cell_payload_bytes": 315
+    },
+    {
+      "name": "roots",
+      "btree_pages": 1,
+      "btree_cells": 3,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 34,
+      "unused_bytes": 4042,
+      "max_cell_payload_bytes": 15
+    },
+    {
+      "name": "sqlite_autoindex_roots_1",
+      "btree_pages": 1,
+      "btree_cells": 3,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 32,
+      "unused_bytes": 4047,
+      "max_cell_payload_bytes": 14
+    },
+    {
+      "name": "symbols",
+      "btree_pages": 1,
+      "btree_cells": 15,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 897,
+      "unused_bytes": 3131,
+      "max_cell_payload_bytes": 107
+    },
+    {
+      "name": "sqlite_autoindex_symbols_1",
+      "btree_pages": 1,
+      "btree_cells": 15,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 258,
+      "unused_bytes": 3785,
+      "max_cell_payload_bytes": 42
+    },
+    {
+      "name": "sqlite_autoindex_symbols_2",
+      "btree_pages": 1,
+      "btree_cells": 15,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 72,
+      "unused_bytes": 3971,
+      "max_cell_payload_bytes": 5
+    },
+    {
+      "name": "symbol_class",
+      "btree_pages": 1,
+      "btree_cells": 15,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 224,
+      "unused_bytes": 3819,
+      "max_cell_payload_bytes": 17
+    },
+    {
+      "name": "symbol_name",
+      "btree_pages": 1,
+      "btree_cells": 15,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 207,
+      "unused_bytes": 3836,
+      "max_cell_payload_bytes": 29
+    },
+    {
+      "name": "projects",
+      "btree_pages": 1,
+      "btree_cells": 1,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 70,
+      "unused_bytes": 4014,
+      "max_cell_payload_bytes": 70
+    },
+    {
+      "name": "sqlite_autoindex_projects_1",
+      "btree_pages": 1,
+      "btree_cells": 1,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 68,
+      "unused_bytes": 4017,
+      "max_cell_payload_bytes": 68
+    },
+    {
+      "name": "profiles",
+      "btree_pages": 1,
+      "btree_cells": 1,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 75,
+      "unused_bytes": 4009,
+      "max_cell_payload_bytes": 75
+    },
+    {
+      "name": "sqlite_autoindex_profiles_1",
+      "btree_pages": 1,
+      "btree_cells": 1,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 10,
+      "unused_bytes": 4075,
+      "max_cell_payload_bytes": 10
+    },
+    {
+      "name": "scans",
+      "btree_pages": 1,
+      "btree_cells": 1,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 231,
+      "unused_bytes": 3852,
+      "max_cell_payload_bytes": 231
+    },
+    {
+      "name": "sqlite_autoindex_scans_1",
+      "btree_pages": 1,
+      "btree_cells": 1,
+      "logical_page_bytes": 4096,
+      "payload_bytes": 15,
+      "unused_bytes": 4070,
+      "max_cell_payload_bytes": 15
+    }
+  ],
+  "btree_logical_bytes": 11317248,
+  "unattributed_logical_bytes": 0,
+  "omissions": "DBSTAT excludes freelist/pointer-map/lock pages; also excludes filesystem metadata, all other archives/cache/build/worktree/WAL and physical-disk peak",
+  "source_sha256": "625df61f2a0787f57f6f1e9685593719690f63f79934c12ee699b5f702662823",
+  "source_unchanged": true
+}

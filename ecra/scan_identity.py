@@ -20,6 +20,8 @@ def capture(config_raw, config_file, coverage):
     cmake = analysis.get('cmake', {}) if isinstance(analysis, dict) else {}
     cache = coverage.get('cmake_cache', {})
     record.update(project_name=_text(project.get('name')) if isinstance(project, dict) else None,
+                  project_chip=_text(project.get('chip')) if isinstance(project, dict) else None,
+                  project_core=_text(project.get('core')) if isinstance(project, dict) else None,
                   configured_target=_text(cmake.get('target')) if isinstance(cmake, dict) else None,
                   build_variant=_text(cache.get('CMAKE_BUILD_TYPE')) if isinstance(cache, dict) else None)
     return record
@@ -47,6 +49,7 @@ def query(provider):
     pin = {key: scalar('report', ['git_diff', 'pin', key]) for key in
            ['base_ref', 'current_ref', 'base_sha', 'head_sha', 'include_uncommitted']}
     return dict(project_name=name, project_name_source=origin, project_root=root,
+                project_chip=archived('project_chip'), project_core=archived('project_core'),
                 configured_target=archived('configured_target'),
                 build_variant=archived('build_variant') or scalar('report', ['coverage', 'cmake_cache', 'CMAKE_BUILD_TYPE']),
                 compile_database=scalar('report', ['coverage', 'compile_database']),

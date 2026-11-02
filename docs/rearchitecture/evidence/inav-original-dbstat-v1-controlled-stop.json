@@ -1,0 +1,6 @@
+{
+  "reason": "DBSTAT B-tree walk exceeded2h45m on shared mechanical disk; stop this read-only optional measurement to prioritize native publication. No optimization/G4 pass claimed.",
+  "pid": 14416,
+  "observed_utc": "2026-11-02T06:11:27.850358+00:00",
+  "readonly": true
+}

@@ -1,0 +1,40 @@
+{
+  "passed": false,
+  "status": "FAILED",
+  "scope": "Read-only B-tree allocation diagnostic, using an explicit DBSTAT-enabled CLI.\n\nDeveloper measurement only: no database rewrite, cleanup or native-G4 claim.\nWindows Python's SQLite need not include DBSTAT; the supplied local executable\nis versioned/hashed separately and never becomes a Portable dependency.\n",
+  "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+  "source_binding": {
+    "scan_id": "original-native-comparison-only",
+    "project_id": "frozen-native-original",
+    "profile_id": "default",
+    "state": "LEGACY_READ_ONLY",
+    "facts_hash": "9da30821f449de364352f533134d80e731e031f44bbe69ec86d8f287ac12b6c2",
+    "report_hash": "40f6e6e125d18f039e1dacf82baa87f7fc7a9f8c07815745a7b55ad81a24836e"
+  },
+  "source_bytes": 17831825408,
+  "expected_source_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "sqlite_executable": "D:\\msys2\\mingw64\\bin\\sqlite3.exe",
+  "sqlite_executable_sha256": "23a026d89805acfd5f7a99d8088faa772a290643642001d44d1fc87a3685d461",
+  "sqlite_version": "3.51.1 2025-11-28 17:28:25 281fc0e9afc38674b9b0991943b9e9d1e64c6cbdb133d35f6f5c87ff6af3alt1 (64-bit)",
+  "documentation": "https://sqlite.org/dbstat.html",
+  "budget_bytes": 1073741824,
+  "peaks": {
+    "working_set_bytes": 1363968,
+    "private_bytes": 434176,
+    "peak_job_commit_bytes": 46301184
+  },
+  "query_deadline_seconds": 1.0,
+  "command": [
+    "D:\\msys2\\mingw64\\bin\\sqlite3.exe",
+    "-batch",
+    "-readonly",
+    "-init",
+    "NUL",
+    "-json",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-graph-v3-cache64\\original-graph.db",
+    "PRAGMA trusted_schema=OFF; PRAGMA query_only=ON; PRAGMA cache_size=-32768; SELECT name,pageno AS btree_pages,ncell AS btree_cells,pgsize AS logical_page_bytes,payload AS payload_bytes,unused AS unused_bytes,mx_payload AS max_cell_payload_bytes FROM dbstat WHERE aggregate=TRUE ORDER BY pgsize DESC;"
+  ],
+  "seconds": 0.01600000000325963,
+  "safety_stop": "DIAGNOSTIC_QUERY_TIME_LIMIT",
+  "error": "RuntimeError('DBSTAT exited 1; preserve raw dbstat.json')"
+}

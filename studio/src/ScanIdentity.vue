@@ -5,7 +5,7 @@ import './scan-identity.css'
 const props=defineProps<{scan:string,binding:any,identity:any,mode:string}>()
 const dialog=ref<HTMLDialogElement|null>(null),trigger=ref<HTMLButtonElement|null>(null)
 const project=computed(()=>props.identity?.project_name||'工程名称未记录')
-const build=computed(()=>`${props.identity?.configured_target||'目标未记录'} · ${props.identity?.build_variant||'变体未记录'}`)
+const build=computed(()=>`${props.identity?.configured_target||'目标未记录'} · ${props.identity?.build_variant||'变体未记录'} · 核心声明 ${props.identity?.project_core||'未记录'}`)
 const status=computed(()=>props.binding?.state?label(props.binding.state):'结果身份读取中')
 async function open(){await nextTick();dialog.value?.showModal()}
 function close(){dialog.value?.close();trigger.value?.focus()}
@@ -22,6 +22,7 @@ function close(){dialog.value?.close();trigger.value?.focus()}
       <dl class="scan-identity-fields">
         <dt>工程名称</dt><dd>{{project}}<small>{{identity?.project_name_source||'正在读取归档身份'}}</small></dd>
         <dt>归档工程根</dt><dd>{{identity?.project_root||'未记录'}}</dd>
+        <dt>芯片 / 核心（配置声明）</dt><dd>{{identity?.project_chip||'芯片未记录'}}<br>{{identity?.project_core||'核心未记录'}}</dd>
         <dt>配置目标</dt><dd>{{identity?.configured_target||'未记录；不能从变量或芯片名称推断'}}</dd>
         <dt>构建变体</dt><dd>{{identity?.build_variant||'未记录'}}</dd>
         <dt>实际编译数据库</dt><dd>{{identity?.compile_database||'未记录'}}</dd>

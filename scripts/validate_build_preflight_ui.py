@@ -4,6 +4,7 @@ Uses only explicitly supplied firmware/config and repository teaching sources.
 No mock API, online model, physical32GB, native DPI or engineer UAT claim.
 """
 import argparse
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,7 @@ import subprocess
 import sys
 import time
 import traceback
+import urllib.parse
 import urllib.request
 
 TOOL=Path(__file__).resolve().parents[1]
@@ -27,7 +29,12 @@ def main():
     parser.add_argument('--cmake-example',action='store_true',help='Also actually build the repository teaching ARM object target in an independent source copy')
     parser.add_argument('--allow-external-toolchain',action='store_true',help='Explicitly allow the approved frozen database compiler; never substitute its arguments')
     parser.add_argument('--identity-acceptance',action='store_true',help='Also verify archived identity, four-card drilldown, human undo and real CMake scan identity')
+    parser.add_argument('--inheritance-acceptance',action='store_true',help='Also rescan only the private teaching copy after real build/source changes and verify prior human SAFE is RECHECK_REQUIRED')
+    parser.add_argument('--review-write-pressure',action='store_true',help='Hold a real private reviews.db write lock and check fields remain disabled until commit')
     args=parser.parse_args()
+    if args.inheritance_acceptance and not (args.identity_acceptance and args.cmake_example):
+        parser.error('--inheritance-acceptance requires --identity-acceptance and --cmake-example')
+    if args.review_write_pressure and not args.identity_acceptance:parser.error('--review-write-pressure requires --identity-acceptance')
     from ecra.config import configured_project_root,read_yaml
     from ecra.workspace import no_links,studio_data_root
     config=no_links(args.config.resolve());root=configured_project_root(config)
@@ -163,6 +170,8 @@ def main():
                 assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
                 identity_button.click();dialog=page.get_by_role('dialog',name='当前工程与构建身份',exact=True)
                 expect(dialog).to_contain_text(str(root));expect(dialog).to_contain_text(binding['identity']['config_sha256'])
+                for key in ['chip','core']:
+                    if cfg['project'].get(key):expect(dialog).to_contain_text(cfg['project'][key])
                 expect(dialog).to_contain_text('部分覆盖（INCOMPLETE）');shot('06-identity-'+str(width))
                 page.keyboard.press('Escape');expect(dialog).not_to_be_visible();expect(identity_button).to_be_focused()
             passed('native_identity_uses_snapshot_config_and_fits_three_viewports_with_escape_focus_return')
@@ -184,7 +193,22 @@ def main():
             store=ReviewStore(native/'reviews.db',EvidenceProvider(native/'scan.db').metadata());events_before=store.history(symbol)
             page.get_by_label('确认者',exact=True).fill('U17自动化撤销验收声明')
             reason=page.get_by_label('依据 / 修改或撤销理由',exact=True);reason.fill('临时风险决定，用于验证撤销审计，不作为安全证明')
-            button('确认有风险').click();expect(page.locator('.conclusion')).to_contain_text('人工确认有风险')
+            if args.review_write_pressure:
+                import sqlite3
+                lock=sqlite3.connect(native/'reviews.db');lock.execute('BEGIN IMMEDIATE')
+                try:
+                    button('确认有风险').click()
+                    for control in [reason,page.get_by_label('确认者',exact=True),page.get_by_label('独立处理状态',exact=True)]:expect(control).to_be_disabled()
+                    with closing(sqlite3.connect((native/'reviews.db').resolve().as_uri()+'?mode=ro',uri=True)) as reader:
+                        assert reader.execute('SELECT count(*) FROM events WHERE symbol_id=?',(symbol,)).fetchone()[0]==len(events_before)
+                    page.keyboard.press('Escape');expect(page.locator('.detail-heading h2')).to_have_count(0)
+                finally:lock.rollback();lock.close()
+                expect(page.get_by_role('status').filter(has_text='已保存')).to_be_visible()
+                page.locator('.symbol').click();expect(page.locator('.detail-heading h2')).to_have_text('HCLK')
+                expect(reason).to_be_enabled()
+                passed('actual_sqlite_write_lock_disables_fields_and_commit_survives_escape_before_receipt')
+            else:button('确认有风险').click()
+            expect(page.locator('.conclusion')).to_contain_text('人工确认有风险')
             reason.fill('复核后撤销临时测试决定，保留原始理由');button('撤销上次确认').click()
             expect(page.locator('.conclusion')).to_contain_text('待确认')
             events=store.history(symbol);assert len(events)==len(events_before)+2
@@ -254,6 +278,62 @@ def main():
                 shot('08-real-cmake-native-build-identity');page.keyboard.press('Escape')
                 assert demo_before=={p.name:(sha256(p),p.stat().st_mtime_ns) for p in demo.iterdir()}
                 passed('actual_native_cmake_target_and_cache_variant_are_archived_and_visible')
+                if args.inheritance_acceptance:
+                    import yaml
+                    original_teaching={name:sha256(TOOL/'examples/stm32_demo'/name) for name in demo_before}
+                    receipt['inheritance_scans']=[]
+                    def selected_demo(task):
+                        page.get_by_role('link',name='变量与风险',exact=True).click()
+                        page.get_by_label('查找变量、文件或规范身份',exact=True).fill('g_counter');button('搜索').click()
+                        expect(page.locator('.symbol')).to_have_count(1);page.locator('.symbol').click()
+                        database=work/'data/scans'/task['scan_id']/'scan.db'
+                        provider=EvidenceProvider(database);item=provider.symbols(search='g_counter')['items'][0]
+                        store=ReviewStore(database.parent/'reviews.db',provider.metadata())
+                        return database,provider,item['symbol_id'],store
+                    def human_state(task,symbol):
+                        return get('/scans/'+task['scan_id']+'/human?symbol_id='+urllib.parse.quote(symbol,safe=''))
+                    def test_safe_decision():
+                        page.get_by_label('确认者',exact=True).fill('U18隔离教学档案自动化验收声明')
+                        page.get_by_label('依据 / 修改或撤销理由',exact=True).fill('只测试安全确认不会跨变化继承；此隔离教学决定不是固件安全证明或工程师UAT')
+                        button('确认无风险').click();expect(page.locator('.conclusion')).to_contain_text('人工确认无风险')
+                    def rescan_demo(variant=None):
+                        existing={t['id'] for t in get('/tasks')['items']}
+                        page.get_by_role('link',name='工程配置',exact=True).click()
+                        profile=next(p for p in get('/profiles')['items'] if p['project_root']==str(demo))
+                        page.locator('button.profile').filter(has_text=profile['name']).click()
+                        raw=profile['yaml']
+                        if variant:
+                            changed=yaml.safe_load(raw);changed['analysis']['cmake']['build_type']=variant;raw=json.dumps(changed,ensure_ascii=False)
+                        save(raw);check();expect(start).to_be_enabled(timeout=180000);start.click()
+                        expect(button('打开扫描结果')).to_be_visible(timeout=240000)
+                        task=next(t for t in get('/tasks')['items'] if t['id'] not in existing and t['mode']=='scan' and t['state']=='COMPLETE')
+                        button('打开扫描结果').click()
+                        expect(page.get_by_role('heading',name='先处理需要核实的变量',exact=True)).to_be_visible()
+                        return task
+                    prior_db,prior_provider,symbol,prior_store=selected_demo(cmake_task)
+                    test_safe_decision();old_event=prior_store.history(symbol)[-1];old_sha=sha256(prior_db)
+                    debug_task=rescan_demo('Debug')
+                    debug_db,debug_provider,new_symbol,debug_store=selected_demo(debug_task);assert new_symbol==symbol
+                    expect(page.locator('.conclusion')).to_contain_text('需重新确认')
+                    state=human_state(debug_task,symbol);assert state['decision']=='RECHECK_REQUIRED' and state['heads']==[]
+                    assert any(old_event in row['events'] for row in state['prior_reviews'])
+                    assert sha256(prior_db)==old_sha and prior_store.history(symbol)==[old_event]
+                    assert get('/scans/'+debug_task['scan_id']+'/summary')['identity']['build_variant']=='Debug'
+                    receipt['inheritance_scans'].append(dict(change='Release_to_Debug',before=cmake_task['scan_id'],after=debug_task['scan_id'],decision=state['decision']))
+                    shot('09-build-change-requires-confirmation');passed('actual_build_variant_change_keeps_prior_safe_event_as_history_and_requires_new_confirmation')
+                    test_safe_decision();debug_event=debug_store.history(symbol)[-1];debug_sha=sha256(debug_db)
+                    changed_file=demo/'main.c';raw=changed_file.read_text('utf-8');assert 'g_counter = g_counter + 1;' in raw
+                    changed_file.write_text(raw.replace('g_counter = g_counter + 1;','g_counter = g_counter + 3;',1),'utf-8')
+                    source_task=rescan_demo()
+                    source_db,source_provider,new_symbol,source_store=selected_demo(source_task);assert new_symbol==symbol
+                    expect(page.locator('.conclusion')).to_contain_text('需重新确认')
+                    state=human_state(source_task,symbol);assert state['decision']=='RECHECK_REQUIRED' and state['heads']==[]
+                    assert any(debug_event in row['events'] for row in state['prior_reviews'])
+                    assert any(old_event in row['events'] for row in state['prior_reviews'])
+                    assert sha256(prior_db)==old_sha and sha256(debug_db)==debug_sha
+                    assert original_teaching=={name:sha256(TOOL/'examples/stm32_demo'/name) for name in demo_before}
+                    receipt['inheritance_scans'].append(dict(change='private_teaching_source_RMW_expression',before=debug_task['scan_id'],after=source_task['scan_id'],decision=state['decision'],original_repository_sources_unchanged=True))
+                    shot('10-source-change-keeps-two-generations');passed('actual_private_source_change_keeps_two_generations_of_prior_events_without_inheriting_safe')
         assert sha256(sample/'scan.db')==sample_sha
         assert before=={str(p.relative_to(root)):(sha256(p),p.stat().st_size,p.stat().st_mtime_ns) for p in root.rglob('*') if p.is_file()}
         assert database_before==(sha256(database),database.stat().st_mtime_ns) and original_cfg_sha==sha256(config)

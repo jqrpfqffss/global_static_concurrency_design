@@ -135,12 +135,17 @@ async function loadSelection(item: any) {
 }
 async function saveDecision(decision: string, undo = false) {
   await run(async () => {
-    const result = await api(apiScan.value + '/human', 'POST', { symbol_id: selected.value.symbol_id, fingerprint: human.value.fingerprint,
-      decision, handling_status: handling.value, reviewer: reviewer.value, comment: comment.value, expected_heads: human.value.heads.map((e: any) => e.event_id), resolve: human.value.conflict, undo })
+    const submittedComment=comment.value,submittedScan=scan.value,submittedSymbol=selected.value.symbol_id,base=apiScan.value
+    const result = await api(base + '/human', 'POST', { symbol_id: submittedSymbol, fingerprint: human.value.fingerprint,
+      decision, handling_status: handling.value, reviewer: reviewer.value, comment: submittedComment, expected_heads: human.value.heads.map((e: any) => e.event_id), resolve: human.value.conflict, undo })
     if (!result.saved) throw new Error('确认尚未提交')
     localStorage.setItem('ecra-reviewer', reviewer.value)
-    human.value = await api(apiScan.value + '/human?symbol_id=' + encodeURIComponent(selected.value.symbol_id))
-    summary.value = await api(apiScan.value + '/summary'); await loadList(); notice.value = '已保存，静态分类保持独立。'; comment.value = ''
+    const saved=await api(base + '/human?symbol_id=' + encodeURIComponent(submittedSymbol))
+    if(scan.value!==submittedScan)return
+    if(selected.value?.symbol_id===submittedSymbol)human.value=saved
+    const updated=await api(base + '/summary')
+    if(scan.value!==submittedScan)return
+    summary.value = updated; await loadList(); notice.value = '已保存，静态分类保持独立。'; if(comment.value===submittedComment)comment.value = ''
   })
 }
 async function continueReview() {
@@ -263,7 +268,7 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
             <section v-if="detailTab==='source' && sourceLocation" class="detail-group"><SourceViewer :scan="scan" :file="sourceLocation.file" :line="sourceLocation.line"/></section>
             <section v-show="detailTab==='history'" class="detail-group"><h3>不可变确认历史 · {{ human?.history?.length || 0 }} 个本轮事件</h3><section v-if="human?.prior_reviews?.length" class="banner warning"><h4>旧扫描确认仅作为历史，当前证据须重新确认</h4><details v-for="prior in human.prior_reviews"><summary>旧扫描 {{prior.binding.scan_id}} · {{prior.events.length}} 个原始事件</summary><article v-for="event in prior.events" class="history-event"><strong>{{label(event.decision)}}</strong><p>{{event.reviewer}} · {{event.timestamp}} · {{event.device}}</p><p>{{event.comment}}</p><small>旧证据指纹 {{event.fingerprint}}</small></article></details></section><article v-for="event in human?.history" class="history-event"><strong>{{ label(event.decision) }} · {{ label(event.handling_status) }}</strong><p>{{ event.reviewer }} · {{ event.timestamp }} · {{ event.device }}</p><p>{{ event.comment }}</p><small>{{ event.event_id }}</small></article></section>
             </div>
-            <section class="review-controls"><div class="review-content"><p class="muted">确认者为未经认证的声明；操作不改变静态/AI分类。</p><div v-if="human?.conflict" class="banner error">离线并行确认冲突：先核对“人工历史”，填写依据后显式合并全部分支。</div><div class="review-fields"><label>确认者<input v-model="reviewer" placeholder="姓名或团队声明"></label><label>独立处理状态<select v-model="handling" aria-label="独立处理状态"><option v-for="state in ['TODO','FIXING','TO_VERIFY','CLOSED','ACCEPTED_RISK']" :value="state">{{ label(state) }}</option></select></label></div><label>依据 / 修改或撤销理由<textarea v-model="comment" rows="2" placeholder="确认无风险必须填写依据或证据引用"></textarea></label></div><div class="decision-actions"><button :disabled="busy || !reviewer.trim()" @click="saveDecision('CONFIRMED_RISK')">确认有风险</button><button :disabled="busy || !reviewer.trim() || !comment.trim()" @click="saveDecision('CONFIRMED_SAFE')">确认无风险</button><button :disabled="busy || !reviewer.trim()" @click="saveDecision('NEED_MORE_EVIDENCE')">暂无法确认</button><button :disabled="busy || !comment.trim() || !human?.heads?.length || human?.conflict" @click="saveDecision('PENDING', true)">撤销上次确认</button></div></section>
+            <section class="review-controls"><div class="review-content"><p class="muted">确认者为未经认证的声明；操作不改变静态/AI分类。</p><div v-if="human?.conflict" class="banner error">离线并行确认冲突：先核对“人工历史”，填写依据后显式合并全部分支。</div><div class="review-fields"><label>确认者<input v-model="reviewer" :disabled="busy" placeholder="姓名或团队声明"></label><label>独立处理状态<select v-model="handling" :disabled="busy" aria-label="独立处理状态"><option v-for="state in ['TODO','FIXING','TO_VERIFY','CLOSED','ACCEPTED_RISK']" :value="state">{{ label(state) }}</option></select></label></div><label>依据 / 修改或撤销理由<textarea v-model="comment" :disabled="busy" rows="2" placeholder="确认无风险必须填写依据或证据引用"></textarea></label></div><div class="decision-actions"><button :disabled="busy || !reviewer.trim()" @click="saveDecision('CONFIRMED_RISK')">确认有风险</button><button :disabled="busy || !reviewer.trim() || !comment.trim()" @click="saveDecision('CONFIRMED_SAFE')">确认无风险</button><button :disabled="busy || !reviewer.trim()" @click="saveDecision('NEED_MORE_EVIDENCE')">暂无法确认</button><button :disabled="busy || !comment.trim() || !human?.heads?.length || human?.conflict" @click="saveDecision('PENDING', true)">撤销上次确认</button></div></section>
           </template><div v-else class="empty"><h2>选择左侧对象查看完整证据</h2><p>支持同名static的独立身份。Ctrl+F查找，Esc返回列表。</p></div></section></div><section v-else class="panel empty">尚无结果包。请先从“数据与共享”导入。</section>
         </template>
         <template v-else-if="route==='coverage'"><CoverageCenter v-if="scan&&summary" :key="scan" :scan="scan" :roots="summary.roots" @symbol="openCoverageSymbol"/><p v-else>{{scan?'正在读取当前归档；若读取失败，请查看上方诊断。':'尚无可查看的归档。'}}</p></template>

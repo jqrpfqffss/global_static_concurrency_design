@@ -82,3 +82,9 @@ class ScanIdentityTests(unittest.TestCase):
     def test_malformed_optional_config_shapes_do_not_create_synthetic_identity(self):
         actual=capture(b'project: []\nanalysis: {cmake: false}\n','config.yaml',dict(cmake_cache=False))
         self.assertIsNone(actual['project_name']);self.assertIsNone(actual['configured_target']);self.assertIsNone(actual['build_variant'])
+
+    def test_chip_and_core_are_exact_archived_declarations_never_inferred_from_names(self):
+        record=capture(b'project: {name: STM32H7, chip: STM32H747, core: Cortex-M4}\n','config.yaml',{})
+        actual=query(self.provider(provenance=dict(display_identity=record)))
+        self.assertEqual(actual['project_chip'],'STM32H747');self.assertEqual(actual['project_core'],'Cortex-M4')
+        self.assertIsNone(actual['configured_target'])

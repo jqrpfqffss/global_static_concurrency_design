@@ -1,0 +1,115 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "four_steps_preserve_database_and_saved_configuration_alone_cannot_enable_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_all_tu_compiler_and_input_checks_are_persisted_and_every_command_pages_without_truncation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "checked_plan_and_wizard_scan_action_fit_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "any_unsaved_yaml_change_revokes_wizard_start_even_when_text_is_restored",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_missing_compiler_blocks_gate_with_path_and_repair_and_preserves_previous_archive",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "repair_recheck_then_actual_wizard_scan_publishes_only_valid_authority_database",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "native_identity_uses_snapshot_config_and_fits_three_viewports_with_escape_focus_return",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "all_four_overview_cards_drill_into_exact_same_persisted_denominators",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\01-build-plan-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\01-build-plan-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\02-missing-compiler-blocked.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\03-precheck-then-native-publication.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\06-identity-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\06-identity-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v1\\06-identity-1920.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome U02/U05 subset: build gate, full commands, repair and native scan.\n\nUses only explicitly supplied firmware/config and repository teaching sources.\nNo mock API, online model, physical32GB, native DPI or engineer UAT claim.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "source_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": {
+    "task": "ee7155c145a64a3ebb0118509df47970",
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-review-write-pressure-v1\\data\\scans\\ee7155c145a64a3ebb0118509df47970\\scan.db",
+    "sha256": "136ffb0c2bea5e545bbafeb2048003b5c292a06fbeb1d49e7bf931c1888cf991"
+  },
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_build_preflight_ui.py\", line 199, in main\n    assert len(store.history(symbol))==len(events_before)\n  File \"H:\\global_static_concurrency_design\\ecra\\human_reviews.py\", line 253, in history\n    with self.connection() as conn:\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\contextlib.py\", line 135, in __enter__\n    return next(self.gen)\n  File \"H:\\global_static_concurrency_design\\ecra\\human_reviews.py\", line 99, in connection\n    conn.execute('BEGIN IMMEDIATE')\nsqlite3.OperationalError: database is locked\n"
+}

@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "tests": [],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome U02/U05 subset: build gate, full commands, repair and native scan.\n\nUses only explicitly supplied firmware/config and repository teaching sources.\nNo mock API, online model, physical32GB, native DPI or engineer UAT claim.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "source_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_build_preflight_ui.py\", line 64, in main\n    try:get('/bootstrap');break\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_build_preflight_ui.py\", line 62, in get\n    with urllib.request.urlopen(urllib.request.Request(base+'/api'+path,headers={'X-ECRA-Session':info['token']}),timeout=30) as r:return json.load(r)\nNameError: free variable 'urllib' referenced before assignment in enclosing scope\n"
+}

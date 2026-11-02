@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "tests": 65,
+  "seconds": 307.044,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\host-path-and-review-fix-focused-v1.log",
+  "log_sha256": "3bbc07765471763346a60478aeda5a10dab01349367aafe71af81887809cae0b",
+  "scope": "Focused source run; immutable full candidate regression separately required",
+  "failures": 1,
+  "reason": "Working source was edited during this run; engine-change guard correctly rejected a mixed implementation. This is a failed test run, not a regression PASS."
+}

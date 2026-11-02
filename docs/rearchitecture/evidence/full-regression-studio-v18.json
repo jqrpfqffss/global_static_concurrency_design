@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1295,
+  "passed_tests": 1293,
+  "skipped": 2,
+  "seconds": 1876.043,
+  "controller_seconds": 1880.921000000002,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v18",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v18",
+  "frozen_files": 1173,
+  "differences": [],
+  "manifest_sha256": "e5ec0a129618fd1465efc8369e8061b53e4e915deae44bcbef33e64bfd9870d4",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v18.log",
+  "log_sha256": "0fc0c5d92fbcd00a345d2ee312543dc4318deea202e8be1b8560dab98d45b9d4",
+  "scope": "Frozen f445212a24e1341463dbc42030d9d388f187c111 complete current1295; archived identity and asynchronous navigation. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+}

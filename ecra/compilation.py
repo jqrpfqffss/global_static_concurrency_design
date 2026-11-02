@@ -127,8 +127,12 @@ def configure_cmake(root, analysis, progress, build_firmware):
             probe = probe_tool(tool, lock['version_patterns'].get(tool))
             if not probe.get('matching', probe['running']):
                 raise ValueError(f'Portable 工具版本不匹配: {probe}')
+    # Host-installed ARM/Make tools have the same Win32 path limits as the
+    # Portable copies. TryCompile adds >100 characters below the managed root.
+    needs_alias = bool(bundle_root()) or (os.name == 'nt' and
+        (len(str(build)) > 120 or not str(root).isascii() or not str(build).isascii()))
     source_path = build_path(root) if bundle_root() else str(root)
-    build_command_path = build_path(build, prefer_junction=True) if bundle_root() else str(build)
+    build_command_path = build_path(build, prefer_junction=True) if needs_alias else str(build)
     if source_path != str(root) or build_command_path != str(build):
         progress(f'GNU Make 路径兼容别名（同一目录）: {root} -> {source_path}; {build} -> {build_command_path}')
     command = [cmake, '-S', source_path, '-B', build_command_path, '-G', generator]

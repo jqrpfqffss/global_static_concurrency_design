@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -207,6 +208,24 @@ class CanonicalScanTests(unittest.TestCase):
         self.assertEqual(raw[:4],b'\x7fELF')
         self.assertEqual(int.from_bytes(raw[18:20],'little'),40)
         self.assertTrue((out/'scan.db').is_file())
+
+    @unittest.skipUnless(os.name == 'nt', 'actual Windows host-tool path limit')
+    def test_actual_deep_host_cmake_keeps_real_files_and_arm_build_under_short_alias(self):
+        self.data=self.base/('deep-owned-build-'*3)/'data'
+        cfg=json.loads(self.config.read_text('utf-8'))
+        cfg['analysis']['output']['custom_dir']=str(self.data)
+        self.config.write_text(json.dumps(cfg),'utf-8')
+        with patch('ecra.compilation.bundle_root',return_value=None):
+            self.test_actual_cmake_external_arm_object_build_does_not_create_firmware_outputs()
+        cfg,_=load_config(self.root,self.config);out=output_path(self.root,cfg)
+        from ecra.compilation import cmake_build_directory
+        actual=cmake_build_directory(self.root,cfg['analysis'])
+        self.assertGreater(len(str(actual)),180)
+        steps=read_json(out/'doctor.json')['cmake_steps']
+        configure=next(row['command'] for row in steps if row['stage']=='configure')
+        alias=Path(configure[configure.index('-B')+1])
+        self.assertNotEqual(str(alias),str(actual));self.assertTrue(os.path.samefile(alias,actual))
+        self.assertLess(len(str(alias)),len(str(actual)))
 
     def test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html(self):
         import subprocess,sys

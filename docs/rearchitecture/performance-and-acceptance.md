@@ -1,3 +1,5 @@
+> 最新源码阶段：[确认提交与宿主深路径](22-review-and-host-path-stage-20261102.md)。v18冻结1295回归通过，但实际快速撤销失败，不能标实包通过；修复后的新候选须独立验收。
+
 > 最新实包：[v17验收与剩余门禁](20-portable-v17-acceptance.md)及[U01–U24当前逐项表](ui/21-user-scenario-status-v17.md)。1287项1285PASS/2联网SKIP，13组包内Chrome通过，真实1000对象确认/三次重启通过；G3仍FAIL，完整重构未完成。后续源码工程身份栏不属于v17包。
 
 > 当前阶段以[2026-11-02实现/验收](16-stage-status-20261102.md)、[v15封存收据](evidence/portable-studio-v15.json)和[U01–U24逐项状态](ui/17-user-scenario-status.md)为入口。v15冻结1264项1262PASS/2联网SKIP，目录/中文解压27+27命令及11组包内浏览器通过；U场景7PASS/3FAIL/14待验。大型v8、当前1272项源码全套、完整H1–H6/G1–G8仍未关闭。下文保留前轮记录，不将旧状态当作当前实现或以旧收据证明新代码。

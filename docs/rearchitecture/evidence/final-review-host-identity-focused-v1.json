@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "tests": 10,
+  "seconds": 9.577,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\final-review-host-identity-focused-v1.log",
+  "log_sha256": "e0477859b2991d391a6612b46a72290f71b1237a46c49296ab31838431ce12bc",
+  "scope": "Focused source run; immutable full candidate regression separately required"
+}

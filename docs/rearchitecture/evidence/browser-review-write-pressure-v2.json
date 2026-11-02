@@ -1,0 +1,161 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "four_steps_preserve_database_and_saved_configuration_alone_cannot_enable_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_all_tu_compiler_and_input_checks_are_persisted_and_every_command_pages_without_truncation",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "checked_plan_and_wizard_scan_action_fit_1366_and_1600",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "any_unsaved_yaml_change_revokes_wizard_start_even_when_text_is_restored",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_missing_compiler_blocks_gate_with_path_and_repair_and_preserves_previous_archive",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "repair_recheck_then_actual_wizard_scan_publishes_only_valid_authority_database",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "native_identity_uses_snapshot_config_and_fits_three_viewports_with_escape_focus_return",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "all_four_overview_cards_drill_into_exact_same_persisted_denominators",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_sqlite_write_lock_disables_fields_and_commit_survives_escape_before_receipt",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_human_undo_appends_event_and_preserves_original_reason_and_static_database",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "editing_current_profile_cannot_relabel_archived_scan_identity",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "actual_cmake_missing_toolchain_is_visible_and_blocks_wizard_scan",
+      "status": "PASS",
+      "related": [
+        "U02",
+        "U05",
+        "U06",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\01-build-plan-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\01-build-plan-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\02-missing-compiler-blocked.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\03-precheck-then-native-publication.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\06-identity-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\06-identity-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\06-identity-1920.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\07-human-undo-retains-original-event.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-write-pressure-v2\\04-cmake-toolchain-blocked.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome U02/U05 subset: build gate, full commands, repair and native scan.\n\nUses only explicitly supplied firmware/config and repository teaching sources.\nNo mock API, online model, physical32GB, native DPI or engineer UAT claim.\n",
+  "firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "source_config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "native_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": {
+    "task": "7f6d3d47009e4a018f821a9ce5cb543f",
+    "database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-review-write-pressure-v2\\data\\scans\\7f6d3d47009e4a018f821a9ce5cb543f\\scan.db",
+    "sha256": "75396479e240e1445fb29157af7cc8667c8b5f8067e2858fb3ab81de142b846a"
+  },
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_build_preflight_ui.py\", line 257, in main\n    expect(start).to_be_enabled(timeout=180000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22896, in to_be_enabled\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 796, in to_be_enabled\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to be enabled\nActual value: disabled \nCall log:\n  - Expect \"to_be_enabled\" with timeout 180000ms\n  - waiting for get_by_role(\"button\", name=\"开始此配置扫描\", exact=True)\n    359 × locator resolved to <button disabled class=\"primary\">开始此配置扫描</button>\n        - unexpected value \"disabled\"\n\nAria snapshot:\n- button \"开始此配置扫描\" [disabled]\n"
+}
