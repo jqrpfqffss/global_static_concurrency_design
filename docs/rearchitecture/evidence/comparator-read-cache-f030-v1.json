@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "cache_kib": 2048,
+      "seconds": 1.7179999999934807,
+      "result": {
+        "passed": true,
+        "hashes": {
+          "facts": {
+            "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+            "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+          },
+          "report": {
+            "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+            "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+          }
+        },
+        "differences": {
+          "facts": null,
+          "report": null
+        },
+        "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+        "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+        "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-compaction-native-exact-v2\\data\\scans\\native-exact\\scan.db",
+        "deep_integrity_checked": true,
+        "complete_fact_graph_restore": false,
+        "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+      }
+    },
+    {
+      "cache_kib": 65536,
+      "seconds": 1.5940000000118744,
+      "result": {
+        "passed": true,
+        "hashes": {
+          "facts": {
+            "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+            "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+          },
+          "report": {
+            "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+            "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+          }
+        },
+        "differences": {
+          "facts": null,
+          "report": null
+        },
+        "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+        "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+        "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\storage-compaction-native-exact-v2\\data\\scans\\native-exact\\scan.db",
+        "deep_integrity_checked": true,
+        "complete_fact_graph_restore": false,
+        "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+      }
+    }
+  ],
+  "source_databases_unchanged": true,
+  "differences": [],
+  "comparator_file_sha256": "427998f4705cdb753464e490ec2c11f243772ab88db2c92fd27d381d4fd9ba98",
+  "comparator_file_unchanged": true,
+  "scope": "Complete existing F030 graph comparison at explicit2MiB and64MiB readonly connection caches. Only comparator connection-local page cache changes; original deep validators/type/order/duplicates/normalization/envelope checks unchanged. Warm concurrent timing is not acceleration attribution; no large G1 claim."
+}

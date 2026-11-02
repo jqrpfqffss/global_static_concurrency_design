@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1369,
+  "passed_tests": 1367,
+  "skipped": 2,
+  "seconds": 2016.572,
+  "controller_seconds": 2022.5629999999946,
+  "source_head": "1493c051165973838b35653e26ce1a0943e419d3",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v27",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v27",
+  "frozen_files": 2043,
+  "differences": [],
+  "manifest_sha256": "d925196bf93f2ddb3f51e887c642b9706abd1cb8c8663e4ebac07703176a64ee",
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-v"
+  ],
+  "effective_parent_seed": "0",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v27.log",
+  "log_sha256": "958f70a402009ad23de1dfa9c37c3a10c57ced1decab6b118e9311bf1a73b426",
+  "scope": "Frozen owned-file lossless compression/storage policy/allocation UI plus effective seed/cache/provenance and validation cache; expected1369 with two live opt-in skips. Not Portable or large G1."
+}

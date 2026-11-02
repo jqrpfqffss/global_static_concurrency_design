@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1355,
+  "passed_tests": 1353,
+  "skipped": 2,
+  "seconds": 2397.319,
+  "controller_seconds": 2404.577999999994,
+  "source_head": "e7894b2d6e426d1aa1ca4f05044883596569c65b",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v26",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v26",
+  "frozen_files": 2007,
+  "differences": [],
+  "manifest_sha256": "45478d5b89ce5fdc67187f86a9709bea40ae7abb456ebdad8bed6538ab938a83",
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-v"
+  ],
+  "effective_parent_seed": "0",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v26.log",
+  "log_sha256": "0327c9f6580c69876cb0823af0d85e493c8cfd70618d75853c395275477282f8",
+  "scope": "Frozen effective seed/cache/provenance and validation cache; expected1355 with two live opt-in skips. Not Portable or large G1."
+}

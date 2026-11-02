@@ -1,5 +1,7 @@
 > 当前已封存[v25历史检索/GUI启动目录实包](39-frozen-v25-and-large-gate-errata.md)，运行时dca72be，1351项1349PASS/2联网SKIP、16组131个Chrome断言通过；[U场景](ui/28-user-scenario-status-v25.md)11PASS/13待验。大型冷原生已完成但G1发现访问事实等字段差异，当前FAIL；G4同口径实测下降40.2058%，FAIL。正在以[固定执行环境的独立原版](40-fixed-execution-environment-baseline.md)重新建立严格对照；原数据和所有失败保留。后续缓存/seed代码不在v25包内。
 
+> 2026-11-03后续进度：v27源码1493c05已冻结2043文件，完整1369项1367PASS/2联网SKIP，498.438s实包构建及两份27CLI验收通过；17组真实实包浏览器验收与新大型固定seed对照正在执行，尚未封存/关闭门禁。空间策略及源码真实GUI见[43号验收](43-storage-policy-and-native-compaction-acceptance.md)，新严格对照协议见[44号记录](44-fixed-environment-pair-and-verifier.md)。v25仍为上一已完整封存实包，不把新进度借为v25内容。
+
 
 
 # 需求追踪与阶段门禁
@@ -47,10 +49,10 @@
 
 | 技术门禁 | 必需证据 | 当前状态 |
 |---|---|---|
-| G1 | 同输入、全字段全关系与 Diff 逐项一致 | NOT_VERIFIED |
+| G1 | 同输入、全字段全关系与 Diff 逐项一致 | FAIL（已观察旧冷v10六字段差异；新固定环境完整对照待验） |
 | G2 | INAV 388 TU + TMFC/H747 或等价 + DMA/回调/RTOS 真工程 | NOT_VERIFIED |
-| G3 | 32GB Windows 12/16GB 资源实测 | FAIL（7d5严格16GiB受控失败；新选择器冷扫描待验，物理32GB仍NOT_VERIFIED） |
-| G4 | 同引擎输入前后磁盘峰值/最终大小、至少70% | NOT_VERIFIED |
+| G3 | 32GB Windows 12/16GB 资源实测 | NOT_VERIFIED（旧失败保留，c311冷CLI16GiB子范围已过；新v27及物理32GB/完整GUI仍待验） |
+| G4 | 同引擎输入前后磁盘峰值/最终大小、至少70% | FAIL（旧完整口径40.2058%；v27压缩/标准包全口径待验） |
 | G5 | 完整故障注入矩阵、旧归档不污染 | NOT_VERIFIED |
 | G6 | 外键/哈希/包/事件/Viewer 一致 | NOT_VERIFIED |
 | G7 | U01–U24 浏览器/数据库/截图 | FAIL |
