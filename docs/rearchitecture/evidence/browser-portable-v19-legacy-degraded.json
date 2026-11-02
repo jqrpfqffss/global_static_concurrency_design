@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "scope": "Real Chrome: explicit unverified legacy archive, raw bytes and offline transfer.\n\nAn owned copy of the approved native legacy result loses facts.json deliberately.\nOriginal firmware/results are never edited; no native/DPI/physical-second-PC claim.\n",
+  "tests": [
+    {
+      "name": "strict_default_rejects_missing_facts_and_preserves_existing_archive",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "explicit_real_ui_migration_publishes_only_unverified_navigation_and_complete_original_bytes",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "untrusted_original_html_is_segmented_text_and_never_executed",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "all_static_review_routes_and_backend_reject_invented_safety_conclusions",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "standard_package_roundtrip_to_independent_real_service_preserves_every_original_and_unverified_status",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "repeated_degraded_migration_is_idempotent_and_all_originals_and_prior_authority_remain_unchanged",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v19-legacy-degraded\\01-explicit-degraded-plan.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v19-legacy-degraded\\02-raw-html-text-only.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v19-legacy-degraded\\03-independent-viewer-after-standard-package.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "physical_second_computer": "NOT_VERIFIED",
+  "native_dpi": "NOT_VERIFIED",
+  "scan_id": "legacy-43cd6f6087b725dff8ec08f16904f51f86a20ab2c4ebe9e29fbb191b1c449ac7",
+  "original_files": 63,
+  "captured_files": 63,
+  "package_sha256": "582f645f2326cc1cac4950aaa7ed504654e821a33c7490c8c21591bfada6dce7",
+  "static_sha256": "2850d525156e9f9f0c29cac7fd84ca9c4c8ad6ec43d6ecedb6aa5dfe76117087"
+}

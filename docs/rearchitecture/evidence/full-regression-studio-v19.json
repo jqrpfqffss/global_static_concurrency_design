@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 1297,
+  "passed_tests": 1295,
+  "skipped": 2,
+  "seconds": 1919.477,
+  "controller_seconds": 1923.952999999994,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v19",
+  "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v19",
+  "frozen_files": 1211,
+  "differences": [],
+  "manifest_sha256": "86c2b983dc4beeb8f25005284f258a1a126751f1c356cf0486886ececeef3ab9",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v19.log",
+  "log_sha256": "a8c7daebcb1837e7aa24f9bf1aabf2cdae148013469dc7d79e8c6c00995fd549",
+  "scope": "Frozen 034ecb5604011b319b6d040ba88e4f2160ca5754 complete current1297; transaction fields, host alias and archived core. Live OpenCode opt-in skipped; actual package and large native gates separately required"
+}

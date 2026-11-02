@@ -1,11 +1,4 @@
-> 最新源码阶段：[确认提交与宿主深路径](22-review-and-host-path-stage-20261102.md)。v18冻结1295回归通过，但实际快速撤销失败，不能标实包通过；修复后的新候选须独立验收。
-
-> 最新实包：[v17验收与剩余门禁](20-portable-v17-acceptance.md)及[U01–U24当前逐项表](ui/21-user-scenario-status-v17.md)。1287项1285PASS/2联网SKIP，13组包内Chrome通过，真实1000对象确认/三次重启通过；G3仍FAIL，完整重构未完成。后续源码工程身份栏不属于v17包。
-
-> 当前阶段以[2026-11-02实现/验收](16-stage-status-20261102.md)、[v15封存收据](evidence/portable-studio-v15.json)和[U01–U24逐项状态](ui/17-user-scenario-status.md)为入口。v15冻结1264项1262PASS/2联网SKIP，目录/中文解压27+27命令及11组包内浏览器通过；U场景7PASS/3FAIL/14待验。大型v8、当前1272项源码全套、完整H1–H6/G1–G8仍未关闭。下文保留前轮记录，不将旧状态当作当前实现或以旧收据证明新代码。
-
-> 最新续作：[真实构建门禁阶段](17-build-preflight-stage-20261102.md)。1272回归已完成；INAV v8实际FAIL，未产生有效大归档；原版JSON直接摘要已通过。新源码真实构建门禁已实测，尚不能借用v15实包PASS。
-
+> 最新已封存候选：[v19实包与升级续确认](23-portable-v19-and-upgrade-acceptance.md)，运行时034ecb5604；1297项1295PASS/2联网SKIP、13组实包Chrome及原1000保留+新1000确认/三次重启通过。[当前U01–U24](ui/22-user-scenario-status-v19.md)：11PASS/13待验。G3仍FAIL，完整重构未完成；下方旧阶段记录按其原版本理解。
 
 # 续轮验收：真实实现与未通过门禁（2026-11-01）
 

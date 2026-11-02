@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "state": "COMPLETE",
+  "scope": "Real Chrome upgrade/second-batch check on the explicitly marked U16 test root.\n\nAppend only: the previous1000 declarations and immutable real INAV graph remain.\nNo graph copy/reset, mocked page, new native scan, physicalPC/DPI or UAT claim.\n",
+  "existing_events": 1000,
+  "requested": 1000,
+  "completed": 1000,
+  "data_root": "H:\\ECRA-U16-INAV-v1\\data",
+  "engine": "H:\\ECRAStudio-build-20261102-studio-v19\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261102-studio-v19\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [
+    {
+      "name": "v19_opens_existing_v17_batch_without_reset",
+      "status": "PASS",
+      "old_events": 1000
+    },
+    {
+      "name": "restart_after_new_350",
+      "status": "PASS",
+      "total_events": 1350
+    },
+    {
+      "name": "restart_after_new_700",
+      "status": "PASS",
+      "total_events": 1700
+    },
+    {
+      "name": "restart_after_new_1000",
+      "status": "PASS",
+      "total_events": 2000
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-upgrade-batch-v19-v1\\upgrade-batch-350.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-upgrade-batch-v19-v1\\upgrade-batch-700.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\review-upgrade-batch-v19-v1\\upgrade-batch-1000.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_scan": "NOT_EXERCISED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "static_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "static_bytes": 17831825408,
+  "seconds": 2867.813000000009,
+  "events": 2000,
+  "old_events_preserved": 1000,
+  "new_distinct_symbols": 1000,
+  "static_unchanged": true,
+  "save_seconds": {
+    "median": 1.4530000000086147,
+    "p95": 2.125,
+    "maximum": 4.0310000000026776
+  }
+}
