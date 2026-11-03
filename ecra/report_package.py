@@ -18,6 +18,7 @@ from .storage_activity import guarded_operation, scan_data_root
 
 IDENTITY = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z')
 OBJECT = re.compile(r'evidence/[a-f0-9]{64}\Z')
+MAX_PACKAGE_RATIO = 2000
 
 
 def sha256(path):
@@ -245,7 +246,9 @@ def validate_objects(directory, manifest, *, max_raw_bytes=128*1024**3):
 
 
 @guarded_operation(lambda args:scan_data_root(args['scan_directory']))
-def export_report(scan_directory, destination):
+def export_report(scan_directory, destination, *, compression='compact'):
+    if not isinstance(compression,str) or compression not in {'compact','deflate'}:
+        raise ValueError('完整包压缩只支持 compact（省空间）或 deflate（快速）')
     source, destination = no_links(scan_directory), no_links(destination)
     with closing(connect_readonly(source/'scan.db')) as conn:
         schema_version = conn.execute('PRAGMA user_version').fetchone()[0]
@@ -290,10 +293,22 @@ def export_report(scan_directory, destination):
                 manifest['audit_indices']=local['audit_indices']
         validate_objects(source, manifest)
         archive = stage/'result.pending'
-        with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
-            zipped.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, sort_keys=True))
-            for name, path in files.items():
-                zipped.write(path, name)
+        def encode(compact):
+            with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as zipped:
+                zipped.writestr('manifest.json',json.dumps(manifest,ensure_ascii=False,sort_keys=True))
+                for name,path in files.items():
+                    method=zipfile.ZIP_BZIP2 if compact and name=='scan.db' else zipfile.ZIP_DEFLATED
+                    zipped.write(path,name,compress_type=method,compresslevel=9 if method==zipfile.ZIP_BZIP2 else 6)
+        encode(compression=='compact')
+        if compression=='compact':
+            with zipfile.ZipFile(archive) as zipped:
+                database=zipped.getinfo('scan.db')
+                fallback=database.file_size>max(1,database.compress_size)*MAX_PACKAGE_RATIO
+            if fallback:
+                # Re-encode the same frozen files, preserving the established
+                # importer budget. This is a fresh private pending, never an
+                # existing user archive, and publication still happens last.
+                encode(False)
         # Export is exclusive; existing user packages are never overwritten.
         # Atomic and exclusive on NTFS/ext4. A process crash must not expose a
         # partially copied package at the final user-visible filename.
@@ -302,7 +317,7 @@ def export_report(scan_directory, destination):
 
 
 @guarded_operation(lambda args:args['data_root'])
-def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=100000, max_ratio=2000):
+def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=100000, max_ratio=MAX_PACKAGE_RATIO):
     data = no_links(data_root)
     work = no_links(data/'work'); work.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='import-', dir=work) as folder:

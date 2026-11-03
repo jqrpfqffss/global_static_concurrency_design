@@ -1,0 +1,334 @@
+{
+  "passed": true,
+  "hashes": {
+    "facts": {
+      "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+      "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+    },
+    "report": {
+      "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+      "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+    }
+  },
+  "differences": {
+    "facts": null,
+    "report": null
+  },
+  "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+  "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+  "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data\\scans\\native-exact\\scan.db",
+  "deep_integrity_checked": true,
+  "complete_fact_graph_restore": false,
+  "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "71489dc803abd67b6f62e995222d31b771dbfa79c2a2479a185b47a2176c8894"
+  },
+  "source_head": "5cf7b61d6a3ea5e3f999077e492f048a88ff51b1",
+  "effective_hash_seed": "0",
+  "original_files_unchanged": true,
+  "original_differences": [],
+  "engine_files": 101,
+  "engine_changed": [],
+  "exact_config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "actual_config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+  "identity": {
+    "project_name": "firmware",
+    "project_name_source": "归档工程根目录名；未记录工程显示名称",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "project_chip": "STM32F030",
+    "project_core": "Cortex-M0",
+    "configured_target": null,
+    "build_variant": null,
+    "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+    "config_file": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/golden-parsed-f030/semantics.yaml",
+    "config_sha256": "d13805dc6818a9ad8c2c9cbcfdc72dffc27830b42168890323c0534484a1bcb7",
+    "metadata_note": null,
+    "generated_at": "2026-11-03T11:43:08.184193+00:00",
+    "recorded_git_commit": "unknown",
+    "diff": null,
+    "analysis_status": "INCOMPLETE",
+    "oversized_fields": [],
+    "note": "身份只说明本归档的来源；不表示当前源码已重验、芯片自动识别或全工程安全。"
+  },
+  "native_exit_code": 2,
+  "native_cli_seconds": 36.92200000002049,
+  "validation_and_scan_envelope_seconds": 64.53100000001723,
+  "writer_cache_kib": 65536,
+  "validation_read_cache_kib": 524288,
+  "scope_note": "New writer64MiB is under test. Exact original config path/bytes, actual F0304TU firmware/macros/DB/toolchain. Only explicit external WorkspaceResolver output changes; additive provenance identity is outside static facts/report comparison. Allocation-only access context sharing plus immutable mask evidence/record layout and complete CFG-body physical sharing are under test; complete scalar byte validation and schema3 physical composite-key/partial-index layout plus complete streamed integrity validation are under test;no normalization changes. All actual4TU responses, all actual cacheable content-bound payloads and new private authority are byte-verified and transparently compressed. No existing/golden archive attributes changed; original source/config/DB hashes unchanged. Physical allocation/new policy is under test. Not large G1/G3. CLI body time and full validation envelope are explicitly separate.",
+  "storage_rows": [
+    {
+      "file": "scans\\native-exact\\workers\\TU-00000.response.json",
+      "kind": "worker",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 36864,
+        "logical_bytes": 33266,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "04565e00000007000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "3707ce3fd3bda93912c79069dfe7a80d4a96f81379efda54658a835413488505",
+      "after": {
+        "allocated_bytes": 12288,
+        "logical_bytes": 33266,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "04565e00000007000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "3707ce3fd3bda93912c79069dfe7a80d4a96f81379efda54658a835413488505",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 24576,
+      "seconds": 0.8120000000053551
+    },
+    {
+      "file": "scans\\native-exact\\workers\\TU-00001.response.json",
+      "kind": "worker",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 1253376,
+        "logical_bytes": 1250841,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "0c565e0000000a000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "34866229f25456a95e396fffe4d54ec9e9b562a0803cad23d5222398f145d2ae",
+      "after": {
+        "allocated_bytes": 327680,
+        "logical_bytes": 1250841,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "0c565e0000000a000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "34866229f25456a95e396fffe4d54ec9e9b562a0803cad23d5222398f145d2ae",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 925696,
+      "seconds": 0.5780000000086147
+    },
+    {
+      "file": "projects\\firmware_1b46a7e5456fa22bd9bf\\results\\cache\\tu-v1\\a259cc29c88540d45301c60afbf3bbe9f3d8033854740dd14ad71d50eb15edec.facts",
+      "kind": "cache",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 540672,
+        "logical_bytes": 538614,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "1b565e00000002000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+      "after": {
+        "allocated_bytes": 159744,
+        "logical_bytes": 538614,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "1b565e00000002000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 380928,
+      "seconds": 0.15599999998812564
+    },
+    {
+      "file": "scans\\native-exact\\workers\\TU-00002.response.json",
+      "kind": "worker",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 540672,
+        "logical_bytes": 538614,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "15565e00000005000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+      "after": {
+        "allocated_bytes": 159744,
+        "logical_bytes": 538614,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "15565e00000005000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "e9105d1fb1e335fecf45608c5bd9683f1ac90d859a2e49aa3d1b40b5bfaf26e2",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 380928,
+      "seconds": 0.20300000000861473
+    },
+    {
+      "file": "projects\\firmware_1b46a7e5456fa22bd9bf\\results\\cache\\tu-v1\\3b7fce98012a3f3d845b34db6061b3581770b604564034f35e505eca3991b13c.facts",
+      "kind": "cache",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 40960,
+        "logical_bytes": 40583,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "22565e00000002000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+      "after": {
+        "allocated_bytes": 16384,
+        "logical_bytes": 40583,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "22565e00000002000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 24576,
+      "seconds": 0.14100000000325963
+    },
+    {
+      "file": "scans\\native-exact\\workers\\TU-00003.response.json",
+      "kind": "worker",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 40960,
+        "logical_bytes": 40583,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "1a565e00000006000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+      "after": {
+        "allocated_bytes": 16384,
+        "logical_bytes": 40583,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "1a565e00000006000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "3ce94993bac0b9cc94e66d3b8f758cb214a127540bbbfb1500a209051529b11a",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 24576,
+      "seconds": 0.11000000001513399
+    },
+    {
+      "file": "scans\\native-exact\\scan.db.9e5be647ceab4b27aaf5c251960fd13b.pending",
+      "kind": "authority",
+      "policy": {
+        "mode": "auto",
+        "revision": "missing",
+        "valid": true,
+        "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v34-v1\\data"
+      },
+      "status": "COMPRESSED",
+      "byte_verified": true,
+      "before": {
+        "allocated_bytes": 8962048,
+        "logical_bytes": 8962048,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "3f565e00000002000000000000000000"
+        ],
+        "attributes": 32
+      },
+      "before_sha256": "91c5cd52d53759929bd5ecc6bc8de0c340dfdbddc3f573abaf9454252295d028",
+      "after": {
+        "allocated_bytes": 5967872,
+        "logical_bytes": 8962048,
+        "links": 1,
+        "identity": [
+          11993215010780568015,
+          "3f565e00000002000000000000000000"
+        ],
+        "attributes": 2080
+      },
+      "after_sha256": "91c5cd52d53759929bd5ecc6bc8de0c340dfdbddc3f573abaf9454252295d028",
+      "compression_format": 2,
+      "allocated_reduction_bytes": 2994176,
+      "seconds": 0.5780000000086147
+    }
+  ],
+  "storage_kinds": {
+    "worker": 4,
+    "cache": 2,
+    "authority": 1
+  },
+  "actual_parse_statuses": [
+    "PARTIAL",
+    "PARTIAL",
+    "PARSED",
+    "PARSED"
+  ]
+}

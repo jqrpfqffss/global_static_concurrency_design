@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "scope": "Complete ordered native facts and normalized report equal original; standard complete archive strict export/import with matching full roots on one host",
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+        "after": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa"
+      },
+      "report": {
+        "before": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db",
+        "after": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-seed0-graph-v1\\original-graph.db",
+    "after": "H:\\ECRA-NATIVE-A12-SEED0\\scans\\native-golden\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "archive": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-v12-comparison-package-v1\\inav-seed0-v12-full.ecra-report",
+  "archive_bytes": 4008043398,
+  "archive_sha256": "0e52a72c04fe66399241eae1406f8490a23b637465f13c76d7121c6613640b08",
+  "export_seconds": 3599.0780000000086,
+  "import_seconds": 2290.4220000000205,
+  "imported": {
+    "scan_id": "native-golden",
+    "imported_events": 0,
+    "repeated": false
+  },
+  "restored_binding": {
+    "scan_id": "native-golden",
+    "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+    "profile_id": "same-golden-input",
+    "state": "UNVERIFIED",
+    "facts_hash": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+    "report_hash": "7b9232c11317d89aa8fa0a27471062d0d92dcb4afdbab99fd721ff178b0a5331"
+  },
+  "source_database_unchanged": true,
+  "G4": "NOT_CLOSED_REQUIRES_WHOLE_POLICY_PHYSICAL_DISK_AND_COMMON_BUILD_CACHE_ACCOUNTING",
+  "physical_second_computer": "NOT_VERIFIED",
+  "physical32GB": "NOT_VERIFIED"
+}

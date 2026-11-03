@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "scope": "Encoding decision pilot on one actual128MiB prefix only; not full archive, G4 or representative throughput.",
+  "rows": [
+    {
+      "codec": "bzip2-9",
+      "raw_bytes": 134217728,
+      "raw_sha256": "5a25e49ced139a910d1f30f4e134627f9c6ed680a7faed29e9772244a02f07ee",
+      "compressed_bytes": 38479200,
+      "seconds": 8.671999999991385
+    },
+    {
+      "codec": "lzma1-8MiB",
+      "raw_bytes": 134217728,
+      "raw_sha256": "5a25e49ced139a910d1f30f4e134627f9c6ed680a7faed29e9772244a02f07ee",
+      "compressed_bytes": 27370167,
+      "seconds": 41.735000000015134
+    }
+  ],
+  "all_gates_passed": false
+}

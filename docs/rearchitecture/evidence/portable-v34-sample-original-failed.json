@@ -1,0 +1,108 @@
+{
+  "passed": false,
+  "tests": [
+    {
+      "name": "three_first_use_entries_have_real_routes_and_visible_actions",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "sample_opens_actual_native_archive_with_explicit_teaching_identity",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "teaching_label_does_not_misidentify_project_configuration_or_real_task_pages",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "real_unknown_card_drills_to_same_count_and_actual_canonical_variable",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "archived_real_source_is_available_without_a_firmware_parameter",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "human_confirmation_and_teaching_label_survive_browser_reload",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "reopening_existing_sample_is_idempotent_and_preserves_confirmation",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    },
+    {
+      "name": "standard_export_retains_complete_real_graph_and_human_event",
+      "status": "PASS",
+      "related": [
+        "U01",
+        "U09",
+        "U16",
+        "U19",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v34-sample-evidence\\01-first-use-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v34-sample-evidence\\01-first-use-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v34-sample-evidence\\02-real-sample-overview.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v34-sample-evidence\\03-archived-demo-code.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome + local Studio: three first-use entries and a real native-built archive.\n\nNo firmware path or toolchain is passed to the viewer. No mock API, native scan,\nnetwork model, or physical second-machine/DPI/UAT claim is made by this script.\n",
+  "engine": "H:\\ECRAStudio-build-20261103-studio-v34\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261103-studio-v34\\ECRA-Portable\\runtime\\python.exe",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "native_scan": "NOT_EXERCISED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v34\\scripts\\validate_builtin_sample.py\", line 145, in main\n    info=json.loads(session.read_text('utf-8'));base='http://'+info['authority']\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\json\\__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\json\\decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\json\\decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
+}

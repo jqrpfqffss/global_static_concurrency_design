@@ -1,6 +1,6 @@
-> 最新已完整封存本机候选包为[v32](57-frozen-v32-acceptance.md)，运行时49960e：1392项1390PASS/2联网SKIP、2088.997s；20组162个重叠Chrome/VHD断言，30749份分发文件全SHA、129份运行时匹配。另有[U16第四批](60-u16-fourth-batch-v32-acceptance.md)实际新增1000、三次重启、最终4000事件且原件3000不变；[本包U矩阵](ui/34-user-scenario-status-v32.md)12PASS/12待验。完整重构仍未完成。
+> 最新已完整封存本机候选包为[v34](63-frozen-v34-acceptance.md)，运行时5cf7b61：1401项1399PASS/2联网SKIP，21组166个重叠Chrome/VHD断言，31088份分发文件全SHA、129份运行时匹配。首次示例会话就绪探针失败原件保留，相同运行时11项完整重验通过；没有改写旧失败。完整重构仍未完成。
 
-> 后续5bcfa01的[512MiB完整校验读取缓存](58-validation-read-cache-adr.md)已独立冻结v33并运行1392项全套及大图只读对照，尚无最终结果；[多核发布迁移](59-multicore-publication-adr.md)为后续源码，亦不在v32中。388TU冷v13及[整范围存储观察](56-whole-storage-scope-observer.md)继续执行；原版/v27冷v12事实根一致只是诊断，完整规范化报告及含标准包G4未关闭。旧失败、其他工程用户延期、物理机/DPI/UAT待验保留。
+> 固定环境e69/1493c05冷v12的[大型全字段对照、标准包与严格导入](62-fixed-seed-full-package-and-size-failure.md)已通过；含4.01GB标准包实际降低69.865%，尺寸目标仍FAIL。当前writer64MiB冷v13、新512MiB独立读取及新原生包界面仍在执行。后续源码[完整归档压缩/原子会话/调用加载状态](64-complete-archive-compression-adr.md)不在v34；其他工程用户延期、物理机/DPI/UAT和剩余实现缺口保留。
 
 # 2026-10-31 续轮：真实扫描链与验收进度
 

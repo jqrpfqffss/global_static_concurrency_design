@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "summary": {
+    "summary_ok": false,
+    "tests": 29,
+    "passed_tests": 28,
+    "seconds": 26.478,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\archive-compression-focused-v1.log",
+  "log_sha256": "38a86ee648c96647f57a76956edda2e8ca483907d13d298920355015e61c7f9b",
+  "cause": "Command referenced a nonexistent test_native_download module; actual module is test_studio_downloads. Failure retained; separate final33 passed."
+}

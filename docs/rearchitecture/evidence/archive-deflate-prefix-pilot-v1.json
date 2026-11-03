@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "scope": "Compression pilot only: one real128MiB prefix, not full archive equivalence or G4 size acceptance.",
+  "rows": [
+    {
+      "level": 6,
+      "raw_bytes": 134217728,
+      "raw_sha256": "5a25e49ced139a910d1f30f4e134627f9c6ed680a7faed29e9772244a02f07ee",
+      "compressed_bytes": 49550667,
+      "seconds": 3.984000000025844
+    },
+    {
+      "level": 9,
+      "raw_bytes": 134217728,
+      "raw_sha256": "5a25e49ced139a910d1f30f4e134627f9c6ed680a7faed29e9772244a02f07ee",
+      "compressed_bytes": 49523779,
+      "seconds": 7.0
+    }
+  ],
+  "all_gates_passed": false
+}

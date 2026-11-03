@@ -1,0 +1,97 @@
+{
+  "passed": true,
+  "scope": "Protected engine file bytes only: producer1493c05 versus candidate5cf7b61. Does not replace current full native/storage/consumer verification.",
+  "files": [
+    {
+      "file": "ecra/analysis.py",
+      "before": "b1d7cd8287c4a840888cbdb253fa36ae9ef2aca8882aaf1c722573742a4c10a4",
+      "after": "b1d7cd8287c4a840888cbdb253fa36ae9ef2aca8882aaf1c722573742a4c10a4",
+      "same": true
+    },
+    {
+      "file": "ecra/points_to.py",
+      "before": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+      "after": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+      "same": true
+    },
+    {
+      "file": "ecra/context_points.py",
+      "before": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+      "after": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+      "same": true
+    },
+    {
+      "file": "ecra/solver_reachability.py",
+      "before": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+      "after": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+      "same": true
+    },
+    {
+      "file": "ecra/call_graph.py",
+      "before": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+      "after": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+      "same": true
+    },
+    {
+      "file": "ecra/protection.py",
+      "before": "8d42f4f4a9f743fd3b71dcceb531f32a962a2102015b77c36ba7b03407460a48",
+      "after": "8d42f4f4a9f743fd3b71dcceb531f32a962a2102015b77c36ba7b03407460a48",
+      "same": true
+    },
+    {
+      "file": "ecra/nvic.py",
+      "before": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+      "after": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+      "same": true
+    },
+    {
+      "file": "ecra/interrupts.py",
+      "before": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+      "after": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+      "same": true
+    },
+    {
+      "file": "ecra/physical.py",
+      "before": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+      "after": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+      "same": true
+    },
+    {
+      "file": "ecra/decisions.py",
+      "before": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+      "after": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+      "same": true
+    },
+    {
+      "file": "ecra/extract.py",
+      "before": "583e73d70a2ee3250f4ac78afdebe0821211e451e89a4f463bc54cbc6bdda6a4",
+      "after": "583e73d70a2ee3250f4ac78afdebe0821211e451e89a4f463bc54cbc6bdda6a4",
+      "same": true
+    },
+    {
+      "file": "ecra/fact_parts.py",
+      "before": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+      "after": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+      "same": true
+    },
+    {
+      "file": "ecra/scope.py",
+      "before": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+      "after": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+      "same": true
+    },
+    {
+      "file": "ecra/input_snapshot.py",
+      "before": "365e6807cfeeedcc89cc2b83055c94a1797ed9336637fa815131207d71607c51",
+      "after": "365e6807cfeeedcc89cc2b83055c94a1797ed9336637fa815131207d71607c51",
+      "same": true
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "before": "e5e147e2f58fd3004a804c9c7a06114a9f2d947dba59fbbb37ade0af022748e1",
+      "after": "e5e147e2f58fd3004a804c9c7a06114a9f2d947dba59fbbb37ade0af022748e1",
+      "same": true
+    }
+  ],
+  "all_gates_passed": false
+}

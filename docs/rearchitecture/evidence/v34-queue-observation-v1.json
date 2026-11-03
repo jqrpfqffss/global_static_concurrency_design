@@ -1,0 +1,97 @@
+{
+  "passed": false,
+  "status": "IN_PROGRESS_NOT_FULL_ACCEPTANCE",
+  "recorded_utc": "2026-11-03T11:14:56.000505+00:00",
+  "candidate_head": "5cf7b61d6a3ea5e3f999077e492f048a88ff51b1",
+  "frozen_files": 2808,
+  "manifest_sha256": "0394bea612b4e97a1e83ba1c65d66239a3b17e56e93f33c48a50c1591eb22916",
+  "observations": [
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-and-native-v34-v1-queue.json",
+      "file_sha256": "d0cf15af3ccde70f3ccea3790d07b04d05e2c85b5c79d3f8bf753dcad7b47d26",
+      "observed": {
+        "passed": false,
+        "status": "RUNNING_FROZEN_1401"
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\v34-build-and-browser-v1-queue.json",
+      "file_sha256": "c958c0004bd407c7d04d44a6b3741c8811a9f6e8e95ef3ac5a801e8e1a1be44a",
+      "observed": {
+        "passed": false,
+        "status": "WAITING_EXACT1401_AND_F030_NATIVE"
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\packaged-multicore-case-v34-v1-queue.json",
+      "file_sha256": "13a97b1789e75468bb1eb29c778a799e480d6a606e3c50895268f7740907b21b",
+      "observed": {
+        "passed": false,
+        "status": "WAITING_EXACT_V34_BUILD"
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-v12-reader512-v1\\execution.json",
+      "file_sha256": "83eb2de39fc61ce8bb2ccd792b340a78c4426cf1088320bb3ac8e465d921ab95",
+      "observed": {
+        "passed": false,
+        "status": "RUNNING_READONLY_COMPARISON",
+        "seconds": 2596.0780000000086,
+        "peaks": {
+          "working_set_bytes": 591970304,
+          "private_bytes": 600240128,
+          "peak_job_commit_bytes": 600240128
+        },
+        "source_head": "5bcfa0190687308b3b1c7ec4c4cd35efe07db52d"
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-v12-reader512-v1\\phase.json",
+      "file_sha256": "383a0feaf9a36220e37afb7fbc502e33d27a2a152fcb2493fe56db72e9920b66",
+      "observed": {
+        "phase": "COMPLETE_DEEP_VALIDATION_ORIGINAL"
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-v12-comparison-package-v1\\execution.json",
+      "file_sha256": "cbb527c7506a6532a65ff2f0ebeedb244792f734e7f0ba23f62ec7d8f1ec65dd",
+      "observed": {
+        "passed": false,
+        "status": "RUNNING_VALIDATION",
+        "seconds": 10141.75,
+        "peaks": {
+          "working_set_bytes": 110493696,
+          "private_bytes": 100909056,
+          "peak_job_commit_bytes": 100909056
+        }
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-seed0-native-v13\\execution.json",
+      "file_sha256": "e48a141c3795cc31f667b1000857f89f9f319f2d459ede1d31d05eadd611f83c",
+      "observed": {
+        "complete": false,
+        "seconds": 7671.609999999986,
+        "peaks": {
+          "working_set_bytes": 10062090240,
+          "private_bytes": 10015072256,
+          "peak_job_commit_bytes": 10026094592,
+          "sampled_output_logical_bytes": 16219076703,
+          "sampled_output_allocated_bytes": 8297584520
+        }
+      }
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v12-report-metadata-diagnostic-v1\\execution.json",
+      "file_sha256": "f817de34226b491065b742467df19b9f3e7659ca5464630ade790ce967b76cdd",
+      "observed": {
+        "passed": true,
+        "status": "PASS_DIAGNOSTIC_ONLY",
+        "seconds": 426.9059999999881,
+        "job_peak_commit_bytes": 119984128
+      }
+    }
+  ],
+  "all_gates_passed": false,
+  "scope": "Timestamped status only. A running task is not a completed gate; original v27/native-v12, current writer-v32/native-v13 and v33/v34 readers remain separate. Full v33 completed separately. No physical32GB/secondPC/UAT/large G1/G4 claim."
+}

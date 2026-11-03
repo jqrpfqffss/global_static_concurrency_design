@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "status": "PASS_DIAGNOSTIC_ONLY",
+  "diagnostic_only": true,
+  "all_gates_passed": false,
+  "pid": 21820,
+  "seconds": 426.9059999999881,
+  "job_peak_commit_bytes": 119984128,
+  "result": {
+    "passed": true,
+    "diagnostic_only": true,
+    "full_G1": "NOT_CLOSED_DEEP_CHECKS_AND_POSTFLIGHT_SHA_PENDING",
+    "facts_metadata_hashes": {
+      "before": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+      "after": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa"
+    },
+    "normalized_report_metadata_hashes": {
+      "before": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db",
+      "after": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db"
+    },
+    "normalized_report_first_difference": null,
+    "complete_fact_restore": false,
+    "deep_validation_executed": false,
+    "input_preflight_full_sha256": [
+      {
+        "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-seed0-graph-v1\\original-graph.db",
+        "size": 13169061888,
+        "mtime_ns": 1793692459420570600,
+        "sha256": "5e81230d2120d40882b9a20be2df8373a99df2390cb9ee791ee95a2bc2b2c01d"
+      },
+      {
+        "path": "H:\\ECRA-NATIVE-A12-SEED0\\scans\\native-golden\\scan.db",
+        "size": 12590489600,
+        "mtime_ns": 1793674246468976200,
+        "sha256": "2b8721a4149ed5a944bc0e9cf90111da4b1b370b2cbf3ab5dc17cd9a34f2ed38"
+      }
+    ],
+    "input_file_identity_before": {
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-seed0-graph-v1\\original-graph.db": {
+        "size": 13169061888,
+        "mtime_ns": 1793692459420570600,
+        "file_id": 562949959484536
+      },
+      "H:\\ECRA-NATIVE-A12-SEED0\\scans\\native-golden\\scan.db": {
+        "size": 12590489600,
+        "mtime_ns": 1793674246468976200,
+        "file_id": 562949959417585
+      }
+    },
+    "input_file_identity_after": {
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-seed0-graph-v1\\original-graph.db": {
+        "size": 13169061888,
+        "mtime_ns": 1793692459420570600,
+        "file_id": 562949959484536
+      },
+      "H:\\ECRA-NATIVE-A12-SEED0\\scans\\native-golden\\scan.db": {
+        "size": 12590489600,
+        "mtime_ns": 1793674246468976200,
+        "file_id": 562949959417585
+      }
+    },
+    "seconds": 426.2969999999914,
+    "normalization_contract_unchanged": true,
+    "normalizer_sha256": "427998f4705cdb753464e490ec2c11f243772ab88db2c92fd27d381d4fd9ba98",
+    "scope": "Complete normalized report hash traversal using existing stored node hashes and unchanged normalizer; facts root metadata diagnostic only. Full byte/deep graph validation and final SHA remain in independent live pipelines. Same original seed0 and frozen-v27 native-v12 producer, not a v33 native scan.",
+    "all_gates_passed": false,
+    "job_limit_bytes": 2147483648,
+    "job_peak_commit_bytes": 136212480,
+    "exit_code": 0
+  }
+}

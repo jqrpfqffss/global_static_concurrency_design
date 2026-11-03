@@ -1,7 +1,9 @@
 import argparse
 import json
+import os
 from pathlib import Path
 import socket
+import tempfile
 import threading
 import webbrowser
 
@@ -28,7 +30,17 @@ def main(argv=None):
     if args.session_file:
         target = no_links(args.session_file)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(dict(url=url, authority=authority, token=app.state.session_token)), encoding='utf-8')
+        from ..common import replace_file
+        pending=None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w',encoding='utf-8',dir=target.parent,
+                    prefix=target.name+'.',suffix='.pending',delete=False) as stream:
+                pending=Path(stream.name)
+                json.dump(dict(url=url,authority=authority,token=app.state.session_token),stream,ensure_ascii=False)
+                stream.flush();os.fsync(stream.fileno())
+            replace_file(pending,target)
+        finally:
+            if pending is not None:pending.unlink(missing_ok=True)
     print('ECRA Studio；完整发布门禁状态见 docs/rearchitecture。', flush=True)
     print('数据目录：' + str(app.state.data_root), flush=True)
     if app.state.preference_warning:

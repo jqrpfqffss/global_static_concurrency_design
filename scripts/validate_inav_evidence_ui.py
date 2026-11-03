@@ -226,9 +226,13 @@ def main():
             with closing(connect_readonly(scan/'scan.db')) as conn:
                 rank=conn.execute("SELECT count(*) FROM records WHERE dataset='facts' AND relation='calls' AND target_id=? AND ordinal<?",(callee,edge['ordinal'])).fetchone()[0]
             body=children(node)
+            # Expanding a real large archive can outlast Playwright's default
+            # five-second assertion. Await the actual first page and row count
+            # before selecting the SQL-ranked witness; never fabricate a page.
+            expect(body.locator(':scope > p').first).to_contain_text('显示 1–',timeout=120000)
             for offset in range(50,(rank//50)*50+1,50):
                 body.locator(':scope > button').filter(has_text='继续完整调用边').click();expect(body.locator(':scope > p').first).to_contain_text('显示 '+str(offset+1)+'–',timeout=120000)
-            article=body.locator(':scope > article').nth(rank%50);node=article.locator(':scope > .call-node');expect(node).to_have_count(1)
+            article=body.locator(':scope > article').nth(rank%50);node=article.locator(':scope > .call-node');expect(node).to_have_count(1,timeout=120000)
             root_button(node).click()
         expect(root_button(node)).to_contain_text('main');shot('04-real-main-witness-not-all-path-enumeration');passed('archived_main_witness_expands_real_context_allowed_edges_to_main')
         page.get_by_role('tab',name='时序与访问',exact=True).click();expect(page.locator('.finding-card')).to_contain_text(finding['summary']['protection_note'])

@@ -12,6 +12,7 @@ from pathlib import Path
 import sys
 import time
 import traceback
+import zipfile
 import urllib.parse
 import urllib.request
 
@@ -19,6 +20,7 @@ import urllib.request
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ['engine','python','package','work','evidence']:p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--compression-acceptance',action='store_true')
     args=p.parse_args();sys.path.insert(0,str(args.engine))
     from ecra.workspace import no_links,studio_data_root
     from ecra.report_package import import_report,import_delta,sha256
@@ -97,6 +99,8 @@ def main():
         assert all(event in events for event in previous);event=reviews.current(symbol,provider.fingerprint(symbol))['heads'][0]
         passed('real_gui_human_event_saved_without_changing_static_authority')
         page.get_by_role('link',name='数据与共享',exact=True).click();expect(page.locator('.activity')).to_have_count(0,timeout=120000)
+        if args.compression_acceptance:
+            page.get_by_label('完整包压缩',exact=True).select_option('compact')
         with page.expect_download(timeout=180000) as operation:page.get_by_role('button',name='导出标准完整包',exact=True).click()
         downloaded=operation.value;target=work/'downloaded-full.ecra-report';downloaded.save_as(target)
         assert downloaded.failure() is None
@@ -112,15 +116,40 @@ def main():
         assert restored_provider.metadata()==binding and sha256(restored_scan/'evidence'/payload_hash)==payload_hash
         assert ReviewStore(restored_scan/'reviews.db',binding).history()==events
         passed('complete_download_strictly_imports_same_authority_all_cas_bytes_and_human_events_into_independent_root')
+        if args.compression_acceptance:
+            def complete_payload_hashes(path):
+                hashes={}
+                with zipfile.ZipFile(path) as zipped:
+                    for entry in zipped.infolist():
+                        digest=hashlib.sha256()
+                        with zipped.open(entry) as stream:
+                            while chunk:=stream.read(1024**2):digest.update(chunk)
+                        hashes[entry.filename]=digest.hexdigest()
+                return hashes
+            with zipfile.ZipFile(target) as zipped:assert zipped.getinfo('scan.db').compress_type==zipfile.ZIP_BZIP2
+            page.get_by_label('完整包压缩',exact=True).select_option('deflate')
+            with page.expect_download(timeout=180000) as operation:page.get_by_role('button',name='导出标准完整包',exact=True).click()
+            fast_download=operation.value;fast=work/'downloaded-fast.ecra-report';fast_download.save_as(fast)
+            assert fast_download.failure() is None and fast_download.url.startswith(origin+'/export-download/')
+            assert sha256(fast)==sha256(data/'exports'/fast_download.suggested_filename)
+            result['native_download_events']+=1
+            with zipfile.ZipFile(fast) as zipped:assert zipped.getinfo('scan.db').compress_type==zipfile.ZIP_DEFLATED
+            assert complete_payload_hashes(target)==complete_payload_hashes(fast)
+            fast_root=work/'fast-independent-viewer-data';fast_import=import_report(fast,fast_root)
+            fast_scan=fast_root/'scans'/fast_import['scan_id']
+            assert EvidenceProvider(fast_scan/'scan.db').metadata()==binding and ReviewStore(fast_scan/'reviews.db',binding).history()==events
+            result['complete_archive_encodings']=dict(compact_bytes=target.stat().st_size,fast_bytes=fast.stat().st_size,
+                fast_sha256=sha256(fast),all_uncompressed_payloads_identical=True)
+            shot('01b-real-full-package-compression-choice');passed('real_gui_compact_and_fast_keep_every_complete_payload_and_human_event')
         with page.expect_download(timeout=120000) as operation:page.get_by_role('button',name='导出人工确认增量',exact=True).click()
         downloaded=operation.value;delta=work/'downloaded.ecra-review-delta';downloaded.save_as(delta)
         assert downloaded.failure() is None and sha256(delta)==sha256(data/'exports'/downloaded.suggested_filename)
         assert downloaded.url.startswith(origin+'/export-download/');result['native_download_events']+=1
         assert import_delta(delta,restored_scan)['imported_events']==0
-        assert page.evaluate('window.__wholeFileBlobCalls')==0 and result['native_download_events']==result['ticket_requests']==2
+        assert page.evaluate('window.__wholeFileBlobCalls')==0 and result['native_download_events']==result['ticket_requests']==(3 if args.compression_acceptance else 2)
         shot('02-real-review-delta-native-download');passed('review_delta_native_download_is_byte_exact_and_reimport_remains_idempotent')
         result.update(static_sha256_after=sha256(scan/'scan.db'),source_package_sha256_after=sha256(args.package),human_events_after=len(reviews.history()))
-        result['passed']=len(result['tests'])==4 and result['static_sha256_after']==static_before and result['source_package_sha256_after']==package_before and not result['external_requests'] and not result['page_errors']
+        result['passed']=len(result['tests'])==(5 if args.compression_acceptance else 4) and result['static_sha256_after']==static_before and result['source_package_sha256_after']==package_before and not result['external_requests'] and not result['page_errors']
         save();return 0 if result['passed'] else 1
     except BaseException:
         result['error']=traceback.format_exc()

@@ -1,0 +1,191 @@
+{
+  "passed": true,
+  "recorded_utc": "2026-11-03T13:36:20.097963+00:00",
+  "seconds": 1446.125,
+  "scope": "Read-only Windows file allocation for explicit, complete retention scopes.\n\nFile-backed identity ledger deduplicates hardlinks within each policy. No file\ncontents, attributes, compression or user data are changed. Reports exclude\ndirectory/MFT/ADS allocation and cannot reconstruct a historical peak. Scope\nand stability must be reviewed before a result is used for the G4 gate.\n",
+  "spec": {
+    "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+    "standard_archive_included": true,
+    "policies": {
+      "original": [
+        {
+          "name": "data",
+          "path": "I:/ECRA-O3-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:/ECRA-B1"
+        }
+      ],
+      "current": [
+        {
+          "name": "data",
+          "path": "H:/ECRA-NATIVE-A12-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:/ECRA-B1"
+        },
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-v12-comparison-package-v1\\inav-seed0-v12-full.ecra-report"
+        }
+      ]
+    },
+    "excluded_verification_only": [
+      "Independent raw baseline backups",
+      "Original JSON comparison graph",
+      "Frozen source and software distribution",
+      "Independent validation import root"
+    ]
+  },
+  "policies": {
+    "original": {
+      "roots": [
+        {
+          "name": "data",
+          "path": "I:\\ECRA-O3-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:\\ECRA-B1"
+        }
+      ],
+      "files": 58354,
+      "logical_bytes": 47552902122,
+      "allocated_bytes": 47665101856,
+      "unique_files": 58354,
+      "categories": {
+        "settings_and_other_retained_files": {
+          "files": 12632,
+          "logical_bytes": 6191917483,
+          "allocated_bytes": 6218052272,
+          "unique_files": 12632
+        },
+        "legacy_derived_reports": {
+          "files": 41642,
+          "logical_bytes": 21627112833,
+          "allocated_bytes": 21703692336,
+          "unique_files": 41642
+        },
+        "legacy_facts_db": {
+          "files": 1,
+          "logical_bytes": 7502356480,
+          "allocated_bytes": 7502356480,
+          "unique_files": 1
+        },
+        "legacy_facts_json": {
+          "files": 1,
+          "logical_bytes": 5709798006,
+          "allocated_bytes": 5709799424,
+          "unique_files": 1
+        },
+        "raw_worker_responses": {
+          "files": 2716,
+          "logical_bytes": 5391114817,
+          "allocated_bytes": 5397177464,
+          "unique_files": 2716
+        },
+        "diagnostics_and_audit": {
+          "files": 781,
+          "logical_bytes": 5393838,
+          "allocated_bytes": 7585792,
+          "unique_files": 781
+        },
+        "shared_build_or_worktree": {
+          "files": 581,
+          "logical_bytes": 1125208665,
+          "allocated_bytes": 1126438088,
+          "unique_files": 581
+        }
+      },
+      "stable": true,
+      "verification_files": 58354,
+      "differences": []
+    },
+    "current": {
+      "roots": [
+        {
+          "name": "data",
+          "path": "H:\\ECRA-NATIVE-A12-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:\\ECRA-B1"
+        },
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-v12-comparison-package-v1\\inav-seed0-v12-full.ecra-report"
+        }
+      ],
+      "files": 8279,
+      "logical_bytes": 28519550806,
+      "allocated_bytes": 14363843800,
+      "unique_files": 8279,
+      "categories": {
+        "settings_and_other_retained_files": {
+          "files": 11,
+          "logical_bytes": 5433424,
+          "allocated_bytes": 5448696,
+          "unique_files": 11
+        },
+        "ai_human_db": {
+          "files": 1,
+          "logical_bytes": 1671168,
+          "allocated_bytes": 1671168,
+          "unique_files": 1
+        },
+        "canonical_static_db": {
+          "files": 1,
+          "logical_bytes": 12590489600,
+          "allocated_bytes": 6392291328,
+          "unique_files": 1
+        },
+        "raw_worker_responses": {
+          "files": 3099,
+          "logical_bytes": 5391671773,
+          "allocated_bytes": 1410152352,
+          "unique_files": 3099
+        },
+        "diagnostics_and_audit": {
+          "files": 1145,
+          "logical_bytes": 6338651,
+          "allocated_bytes": 8293136,
+          "unique_files": 1145
+        },
+        "archived_evidence_objects": {
+          "files": 2664,
+          "logical_bytes": 18875116,
+          "allocated_bytes": 25178472,
+          "unique_files": 2664
+        },
+        "cache": {
+          "files": 776,
+          "logical_bytes": 5371819011,
+          "allocated_bytes": 1386323968,
+          "unique_files": 776
+        },
+        "shared_build_or_worktree": {
+          "files": 581,
+          "logical_bytes": 1125208665,
+          "allocated_bytes": 1126438088,
+          "unique_files": 581
+        },
+        "exports": {
+          "files": 1,
+          "logical_bytes": 4008043398,
+          "allocated_bytes": 4008046592,
+          "unique_files": 1
+        }
+      },
+      "stable": true,
+      "verification_files": 8279,
+      "differences": []
+    }
+  },
+  "historical_disk_peak": "NOT_RECONSTRUCTABLE",
+  "standard_package": "NOT_INCLUDED_UNLESS_EXPLICIT_SCOPE",
+  "full_G4": "NOT_CLOSED_BY_THIS_OBSERVER",
+  "retained_file_contents_read_or_written": false,
+  "allocation_scope": "NTFS FILE_STANDARD_INFO allocation, hardlink-deduplicated per policy; excludes directory/MFT/ADS"
+}

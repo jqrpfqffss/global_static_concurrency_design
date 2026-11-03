@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "summary": {
+    "summary_ok": true,
+    "tests": 33,
+    "passed_tests": 33,
+    "seconds": 26.827,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\archive-compression-focused-final-v1.log",
+  "log_sha256": "e0056732bf137b95cc4eab712a391d657bb1f45f8cdd47ee1faaab0034dd18ca",
+  "scope": "7new complete-archive codec/API/ratio/failure/idempotence tests plus related tests. Default compact, exact full payloads, immutable events, unchanged2000 ratio with real64MiB extreme-ratio fallback. Not full1408 suite/large70percent or new Portable.",
+  "all_gates_passed": false
+}

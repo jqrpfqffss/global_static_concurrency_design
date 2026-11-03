@@ -12,11 +12,25 @@ import sys
 import time
 import traceback
 import urllib.request
+import urllib.parse
 
 TOOL=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(TOOL))
 from ecra.report_package import sha256
 import yaml
+
+
+def session_ready(session,server,deadline):
+    """Existence precedes a completed write on old launchers; await valid JSON."""
+    while True:
+        try:
+            info=json.loads(session.read_text(encoding='utf-8'))
+            if all(isinstance(info.get(key),str) and info[key] for key in ['url','authority','token']):return info
+        except (OSError,ValueError):
+            pass
+        if server.poll() is not None or time.monotonic()>deadline:
+            raise RuntimeError('Studio session did not become ready; private server log retained')
+        time.sleep(.1)
 
 
 def main():
@@ -25,6 +39,7 @@ def main():
     parser.add_argument('--engine',type=Path,default=TOOL)
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
     parser.add_argument('--identity-layout',action='store_true',help='Check the current identity dialog, fixed close action and archive fallback without live source')
+    parser.add_argument('--call-loading-acceptance',action='store_true',help='Hold/abort a real call request, then verify actual retry and loaded rows')
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=True)
@@ -42,10 +57,7 @@ def main():
     browser=context=playwright=None
     try:
         deadline=time.monotonic()+60
-        while not session.exists():
-            if server.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Studio failed to start; see server.log')
-            time.sleep(.1)
-        info=json.loads(session.read_text(encoding='utf-8'));base='http://'+info['authority']
+        info=session_ready(session,server,deadline);base='http://'+info['authority']
         while True:
             try:
                 urllib.request.urlopen(urllib.request.Request(base+'/api/bootstrap',headers={'X-ECRA-Session':info['token']}),timeout=1).close();break
@@ -106,6 +118,50 @@ def main():
         expect(page.locator('.source-code')).to_contain_text('g_counter')
         assert sha256(out/'scan.db')==static_sha;shot('03-archived-demo-code')
         passed('archived_real_source_is_available_without_a_firmware_parameter')
+        if args.call_loading_acceptance:
+            def current_api(path):
+                request=urllib.request.Request(base+'/api'+path,headers={'X-ECRA-Session':info['token']})
+                with urllib.request.urlopen(request,timeout=120) as response:return json.load(response)
+            functions=current_api('/scans/'+opened['scan_id']+'/symbol-functions?'+urllib.parse.urlencode(dict(symbol_id=symbol)))
+            assert functions['items']
+            chosen=None
+            for direction in ['upstream','downstream']:
+                for index,function in enumerate(functions['items']):
+                    expected=current_api('/scans/'+opened['scan_id']+'/call-neighbors?'+urllib.parse.urlencode(dict(function_id=function['function_id'],direction=direction)))
+                    if chosen is None or expected['total']>chosen[3]['total']:chosen=(direction,index,function,expected)
+            direction,index,function,expected=chosen
+            page.get_by_role('tab',name='调用与保护',exact=True).click();tree=page.locator('.call-tree')
+            roots=tree.locator(':scope > div > .call-node');expect(roots).to_have_count(functions['total'],timeout=120000)
+            tree.get_by_label('调用查询方向',exact=True).select_option(direction)
+            node=roots.nth(index);expand=node.locator(':scope > button.call-function');held=[];aborted=False
+            pattern=base+'/api/scans/'+opened['scan_id']+'/call-neighbors?**'
+            def hold_real_request(route):held.append(route)
+            page.route(pattern,hold_real_request)
+            try:
+                expand.click();end=time.monotonic()+30
+                while not held:
+                    if time.monotonic()>end:raise TimeoutError('Real call request not observed')
+                    page.wait_for_timeout(20)
+                expect(node.get_by_role('status')).to_have_text('正在读取调用边…')
+                expect(expand).to_be_disabled();expect(node.locator(':scope > .call-children')).to_have_count(0)
+                shot('03a-real-call-request-loading-not-empty')
+                for pending in held:pending.abort('connectionfailed')
+                aborted=True
+            finally:
+                if not aborted:
+                    for pending in held:
+                        try:pending.continue_()
+                        except Exception:pass
+                page.unroute(pattern,hold_real_request)
+            expect(node.locator(':scope > .banner.error')).to_contain_text('调用边读取失败',timeout=120000)
+            retry=node.get_by_role('button',name='重试读取调用边',exact=True);expect(retry).to_be_visible()
+            retry.scroll_into_view_if_needed()
+            shot('03b-real-call-network-failure-can-retry');retry.click()
+            expect(node.get_by_role('status')).to_have_count(0,timeout=120000)
+            body=node.locator(':scope > .call-children');expect(body.locator(':scope > p').first).to_contain_text(str(expected['total'])+' 条',timeout=120000)
+            expect(body.locator(':scope > article')).to_have_count(len(expected['items']),timeout=120000)
+            receipt['call_loading_state']=dict(function_id=function['function_id'],direction=direction,total=expected['total'],displayed=len(expected['items']),real_request_held=True,real_network_failure=True,actual_retry=True)
+            shot('03c-real-call-retry-loaded-actual-rows');passed('actual_call_loading_network_failure_and_retry_preserve_real_page_not_fake_empty')
         field('确认者').fill('示例验收');field('依据 / 修改或撤销理由').fill('教学确认，仅用于验证示例工作流')
         button('确认有风险').click();expect(page.get_by_role('status').filter(has_text='已保存')).to_be_visible()
         fingerprint=provider.fingerprint(symbol);reviews=ReviewStore(out/'reviews.db',binding)
@@ -139,10 +195,7 @@ def main():
             '--no-browser','--session-file',str(session)],cwd=args.engine,env=dict(os.environ,PYTHONIOENCODING='utf-8'),
             stdout=log,stderr=subprocess.STDOUT,creationflags=flags)
         deadline=time.monotonic()+60
-        while not session.exists():
-            if server.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Studio restart failed')
-            time.sleep(.1)
-        info=json.loads(session.read_text('utf-8'));base='http://'+info['authority']
+        info=session_ready(session,server,deadline);base='http://'+info['authority']
         while True:
             try:
                 urllib.request.urlopen(urllib.request.Request(base+'/api/bootstrap',headers={'X-ECRA-Session':info['token']}),timeout=1).close();break

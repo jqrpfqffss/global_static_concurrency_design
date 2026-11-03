@@ -517,12 +517,24 @@ def _create_app(data_root, *, token, authority, startup):
 
     @app.post('/api/scans/{scan_id}/export')
     def export(scan_id: str, payload: dict):
+        kind=payload.get('kind','full')
+        if not isinstance(kind,str) or kind not in {'full','delta'}:raise ValueError('请选择标准完整包或人工确认增量')
+        compression=payload.get('compression','compact')
+        if kind=='full' and (not isinstance(compression,str) or compression not in {'compact','deflate'}):
+            raise ValueError('完整包压缩只支持 compact（省空间）或 deflate（快速）')
         exports = no_links(data/'exports'); exports.mkdir(exist_ok=True)
         ident = uuid.uuid4().hex
-        delta = payload.get('kind') == 'delta'
+        delta = kind=='delta'
         name = ident + ('.ecra-review-delta' if delta else '.ecra-report')
-        (export_delta if delta else export_report)(scan_path(scan_id), exports/name)
-        return dict(download='/api/download/'+name, filename=name)
+        if delta:
+            export_delta(scan_path(scan_id),exports/name)
+            return dict(download='/api/download/'+name,filename=name)
+        export_report(scan_path(scan_id),exports/name,compression=compression)
+        import zipfile
+        with zipfile.ZipFile(exports/name) as zipped:
+            actual='compact' if zipped.getinfo('scan.db').compress_type==zipfile.ZIP_BZIP2 else 'deflate'
+        return dict(download='/api/download/'+name,filename=name,compression=actual,
+                    compression_fallback=actual!=compression)
 
     @app.get('/api/download/{name}')
     def download(name: str):
