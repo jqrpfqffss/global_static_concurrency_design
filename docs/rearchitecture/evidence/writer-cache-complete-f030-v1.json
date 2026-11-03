@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "scope": "Complete real F030 graph encoding A/B; not native scan or large performance.",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v31-v1\\data\\scans\\native-exact\\scan.db",
+  "source_sha256_before": "81b4f16bc35cb22aabcfc7147b2759c4752fe44d3a0dcc33381473f7f99e0b00",
+  "cases": [
+    {
+      "passed": true,
+      "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v31",
+      "scan_store_sha256": "79409368ca12a3d4625142b58ddbcbc9b155a45d62898257457654e7e50ee219",
+      "sqlite_version": "3.40.1",
+      "publication_seconds": 5.967999999993481,
+      "actual_cache_pragmas": [
+        "PRAGMA cache_size=-8192",
+        "PRAGMA cache_size=-65536"
+      ],
+      "roots": {
+        "facts": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "provenance": "37555a0a581ad6de030c0eedc29ad1643d56a0266fc768f4ae131036244570cf",
+        "report": "7d202e84e198c4b8cbab7202a7ced7ae66a94ef743d3c9fa11a7db0ecc0031fe"
+      },
+      "full_typed_graphs_restored": true,
+      "scope": "Complete approved F030 facts/report/provenance encoding only; no partial facts, no large/native or physical32GB claim",
+      "name": "writer8MiB",
+      "job_peak_commit_bytes": 51261440,
+      "database_bytes": 8904704,
+      "database_sha256": "3343d0b068c8c7a09a9bb8d2b84f6243cb0774089b63b4c66bd73a4b7a428348"
+    },
+    {
+      "passed": true,
+      "engine": "H:\\global_static_concurrency_design",
+      "scan_store_sha256": "75de677f1bebf827b6db688f70a039921e18953d021a8d1db62edb7df40fa23e",
+      "sqlite_version": "3.40.1",
+      "publication_seconds": 5.75,
+      "actual_cache_pragmas": [
+        "PRAGMA cache_size=-65536",
+        "PRAGMA cache_size=-65536"
+      ],
+      "roots": {
+        "facts": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+        "provenance": "37555a0a581ad6de030c0eedc29ad1643d56a0266fc768f4ae131036244570cf",
+        "report": "7d202e84e198c4b8cbab7202a7ced7ae66a94ef743d3c9fa11a7db0ecc0031fe"
+      },
+      "full_typed_graphs_restored": true,
+      "scope": "Complete approved F030 facts/report/provenance encoding only; no partial facts, no large/native or physical32GB claim",
+      "name": "writer64MiB",
+      "job_peak_commit_bytes": 51396608,
+      "database_bytes": 8904704,
+      "database_sha256": "3343d0b068c8c7a09a9bb8d2b84f6243cb0774089b63b4c66bd73a4b7a428348"
+    }
+  ],
+  "source_sha256_after": "81b4f16bc35cb22aabcfc7147b2759c4752fe44d3a0dcc33381473f7f99e0b00",
+  "complete_database_bytes_identical": true,
+  "all_roots_identical": true,
+  "performance_claim": "NOT_VERIFIED_LARGE; small complete F030 graph and OS cache/concurrency cannot establish large speedup"
+}

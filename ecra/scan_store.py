@@ -326,7 +326,10 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
         with closing(sqlite3.connect(temp)) as conn:
             conn.execute('PRAGMA foreign_keys=ON')
             conn.execute('PRAGMA synchronous=FULL')
-            conn.execute('PRAGMA cache_size=-8192')
+            # Bounded writer page cache: leave the ordered graph, unique
+            # indexes, FULL synchronization and one publication transaction
+            # intact. No setting is persisted into existing user databases.
+            conn.execute('PRAGMA cache_size=-65536')
             conn.execute('PRAGMA temp_store=FILE')
             conn.executescript(SCHEMA)
             conn.execute(f'PRAGMA user_version={SCHEMA_VERSION}')
@@ -342,7 +345,7 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
                 conn.execute('INSERT INTO scans VALUES (?,?,?,?,?,?)',
                     (scan_id, project_id, profile_id, validation_state, roots['facts'][1], roots['report'][1]))
             # The authority is fully committed here. Only the ensuing complete
-            # checks use this connection-local read cache; writer sync and
+            # checks keep the same connection-local cache; writer sync and
             # transaction policy above are unchanged.
             conn.execute('PRAGMA cache_size=-65536')
             if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):

@@ -1,0 +1,15 @@
+{
+  "summary_ok": true,
+  "tests": 48,
+  "passed_tests": 48,
+  "seconds": 14.519,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\writer-cache-focused-v1.log",
+  "log_sha256": "0f0a56cc3ef22c54bca8e710e36ac8fb75720164317ddb29ffad237900d0d713",
+  "scope": "48 related tests for writer64MiB; not a full regression/large-native claim"
+}
