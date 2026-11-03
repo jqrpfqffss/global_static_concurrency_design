@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "command": "npm.cmd run build",
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-download-frontend-build-v1.log",
+  "log_sha256": "b960073db86bc98052288eb32039c92fc23bf6eec5f727ff13a9f1dccdefa5b4",
+  "scope": "Actual vue-tsc+Vite; native download implemented, no new Portable/large-native claim"
+}

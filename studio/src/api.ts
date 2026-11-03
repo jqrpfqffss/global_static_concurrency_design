@@ -19,11 +19,12 @@ export async function upload(path: string, file: File): Promise<any> {
   return result
 }
 export async function download(path: string, filename: string) {
-  const response = await fetch(path, { headers: { 'X-ECRA-Session': sessionStorage.getItem('ecra-session') || '' } })
-  if (!response.ok) throw new Error('读取导出包失败')
-  const url = URL.createObjectURL(await response.blob())
-  const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click()
-  URL.revokeObjectURL(url)
+  if (!/^\/api\/download\/[a-f0-9]{32}\.ecra-(?:report|review-delta)$/.test(path)) throw new Error('导出文件地址无效，请重新导出')
+  const grant = await api(path.slice(4) + '/ticket', 'POST')
+  const url = new URL(grant.download, location.origin)
+  if (url.origin !== location.origin || !/^\/export-download\/[A-Za-z0-9_-]{43}$/.test(url.pathname) || url.search || url.hash) throw new Error('下载地址不属于本机会话')
+  const anchor = document.createElement('a'); anchor.href = url.href; anchor.download = filename
+  document.body.append(anchor); anchor.click(); anchor.remove()
 }
 const labels: Record<string, string> = {
   SUSPECT: '静态疑似', UNKNOWN: '无法判断', SAFE_PROVEN: '本构建已证明安全', SHARED_NO_REVIEW: '共享但无需复核',

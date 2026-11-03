@@ -1,0 +1,52 @@
+{
+  "passed": false,
+  "tests": [],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome native downloads, complete archives and human-event round trips.\n\nUses the approved F030 archive plus a clearly declared64MiB unreferenced CAS\ntransport fixture. This is not an additional native firmware scan, INAV/G4,\nphysical second-PC, native Windows DPI or a multi-GiB transport measurement.\n",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "large_INAV_package": "NOT_VERIFIED",
+  "native_download_requests": 0,
+  "ticket_requests": 0,
+  "scan_id": "golden-f030",
+  "binding": {
+    "scan_id": "golden-f030",
+    "project_id": "stm32f030-public",
+    "profile_id": "default",
+    "state": "STATIC_VALIDATED",
+    "facts_hash": "277001ffc4e5043b1fd253650baae9be0c9ed5cfa79da252d7a1fef6f624bf64",
+    "report_hash": "379c11a5ae80a2d645c6d07fa0fc157f8c427da9e2cc4d54d983c69db8628abf"
+  },
+  "source_package_sha256": "4c1d0f7e1f91dbf56173b37a672a4a083ea333de9607608dc906e1772465bd28",
+  "static_sha256_before": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "transport_fixture": {
+    "bytes": 67108864,
+    "sha256": "55cc9b06c9c07a3a37ac0f29f270637c187a4dd46e3de5ffc0f5ca8b5d4876ba",
+    "kind": "DECLARED_UNREFERENCED_RANDOM_CAS_NOT_FIRMWARE_EVIDENCE"
+  },
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "ecra.studio",
+    "--data-root",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-download-ui-host-v1-work\\data",
+    "--no-browser",
+    "--session-file",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-download-ui-host-v1-work\\session.json"
+  ],
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_native_download_ui.py\", line 95, in main\n    expect(page.locator('.detail-summary')).to_contain_text('人工：确认有风险',timeout=120000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 21705, in to_contain_text\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 301, in to_contain_text\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to contain text '人工：确认有风险'\nActual value: Exceptions复制全名c:@Exceptions静态：无法判断；人工：人工确认有风险。此处展示归档分析证据，不代表目标板实测。 \nCall log:\n  - Expect \"to_contain_text\" with timeout 120000ms\n  - waiting for locator(\".detail-summary\")\n    5 × locator resolved to <div class=\"detail-summary\">…</div>\n      - unexpected value \"Exceptions复制全名c:@Exceptions静态：无法判断；人工：待确认。此处展示归档分析证据，不代表目标板实测。\"\n    236 × locator resolved to <div class=\"detail-summary\">…</div>\n        - unexpected value \"Exceptions复制全名c:@Exceptions静态：无法判断；人工：人工确认有风险。此处展示归档分析证据，不代表目标板实测。\"\n\nAria snapshot:\n- heading \"Exceptions\" [level=2]\n- button \"复制全名\"\n- paragraph: c:@Exceptions\n- paragraph: 静态：无法判断；人工：人工确认有风险。此处展示归档分析证据，不代表目标板实测。\n",
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-download-ui-host-v1\\acceptance.json",
+  "original_receipt_sha256": "2f3d93fb9b97c3c981187c0cd47b165a69810077b2778ef3021b5859ab9f9c4b",
+  "published_screenshots": [
+    {
+      "file": "ui/screenshots/continuation-20261103/native-download-ui-host-v1-failed.png",
+      "sha256": "f3462a267e2306c8cc1d63666843536afac26a8a674f8fbf0c802ba69a892c49"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "summary_ok": true,
+  "tests": 25,
+  "passed_tests": 25,
+  "seconds": 13.987,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-download-focused-v2.log",
+  "log_sha256": "cad3348c96a6b1b194c8f12e77f71a7a680ad58b042c7cce361166302685532c",
+  "scope": "Actual native-download/API/archive regression; first4errors are a Python3.10 test harness API incompatibility, retained. No large-native/Portable gate closure."
+}

@@ -66,6 +66,8 @@ def _create_app(data_root, *, token, authority, startup):
     app.state.session_token = session
     app.state.data_root = data
     app.state.preference_warning = startup['warning']
+    from .downloads import DownloadTickets
+    downloads=DownloadTickets(data/'exports');app.state.download_tickets=downloads
     settings = no_links(data/'settings'); settings.mkdir(exist_ok=True)
     device_path = no_links(settings/'device.json')
     if not device_path.exists():
@@ -507,10 +509,18 @@ def _create_app(data_root, *, token, authority, startup):
 
     @app.get('/api/download/{name}')
     def download(name: str):
-        import re
-        if not re.fullmatch(r'[a-f0-9]{32}\.ecra-(?:report|review-delta)', name):
-            raise ValueError('导出文件身份无效')
-        return FileResponse(no_links(data/'exports'/name), filename=name, media_type='application/octet-stream')
+        return FileResponse(downloads.path(name), filename=name, media_type='application/octet-stream')
+
+    @app.post('/api/download/{name}/ticket')
+    def download_ticket(name: str):
+        return downloads.issue(name)
+
+    @app.get('/export-download/{ticket}')
+    def native_download(ticket: str):
+        from .downloads import DownloadExpired
+        try:path=downloads.resolve(ticket)
+        except DownloadExpired as exc:return JSONResponse(dict(error=str(exc)),status_code=410)
+        return FileResponse(path,filename=path.name,media_type='application/octet-stream')
 
     @app.get('/api/storage/policy')
     def storage_policy():

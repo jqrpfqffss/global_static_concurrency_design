@@ -6,6 +6,8 @@
 
 # 需求追踪与阶段门禁
 
+新增H5/H6/U19/U20传输子范围：[49号原生下载](49-native-browser-download.md)实际25项/4组完整包与增量/8组历史通过；完整静态源SHA和人工事件保留。仅70MB容量实测，不能关闭多GiB INAV、物理第二台机器或完整G6/G8；新下载不在冻结1379轮/现有v27实包中。
+
 > 当前状态入口：[v15逐项U01–U24](ui/17-user-scenario-status.md)与[后续真实构建门禁阶段](17-build-preflight-stage-20261102.md)。下方早期矩阵保留为历史，不将PARTIAL视为完整PASS。
 
 
