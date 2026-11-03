@@ -1,0 +1,18 @@
+{
+  "scope": "Current fixed-seed native-v13 complete generated data root plus the same shared external build and complete archive-validation work directory, observed from before native start through standard full export/import. No firmware-source bytes or independent raw baseline/validation-import/software copies are counted as retained producer data. This is non-atomic sampled file allocation, not exact whole-volume usage or an automatic G4 result.",
+  "roots": [
+    {"name": "complete-native-data-root", "path": "H:/ECRA-NATIVE-A13-SEED0", "allow_missing_until_created": true},
+    {"name": "common-external-build", "path": "I:/ECRA-B1"},
+    {"name": "complete-archive-and-validation-work", "path": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/inav-seed0-v13-comparison-package-v1"}
+  ],
+  "gate": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/inav-seed0-v13-comparison-package-v1/execution.json",
+  "phase_file": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/inav-seed0-v13-comparison-package-v1/phase.json",
+  "excluded": [
+    "Independent original raw backup and original comparison graph",
+    "Other versioned benchmark validation data roots, not referenced by this fresh isolated producer",
+    "Frozen source, program distribution and independent imported verification root H:/ECRA-INAV-ROUNDTRIP-SEED0-V13",
+    "This read-only observer's own ledger and samples directory",
+    "Directory/MFT/ADS allocation and open unlinked temporary files cannot be enumerated by this observer"
+  ],
+  "final_size_target": "Use the separate stable two-pass whole-retention ledger including the actual full archive; do not infer70percent from this sampler"
+}

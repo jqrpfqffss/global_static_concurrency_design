@@ -1,0 +1,15 @@
+{
+  "pid": 26416,
+  "created": 1793692991.5257068,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/seal-studio-v31-v1.py"
+  ],
+  "reason": "Waiting sealer must publish audited native source identity; original copied controller stale bdfc literal retained separately. No build/browser/native process cancelled.",
+  "state": "WAITING_EXACT1392_AND_F030_NATIVE",
+  "script_sha256": "0878068453a43f80c9d6e0e2f94cc65c39dab7db6640d3849c05726355d6b385",
+  "cancelled_before_output": true
+}

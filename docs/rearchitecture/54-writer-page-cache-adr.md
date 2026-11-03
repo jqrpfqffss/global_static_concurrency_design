@@ -15,7 +15,7 @@ SQLite文档规定负cache_size按当时页大小折算KiB，连接关闭后失�
 | 可复用脚本实际复测 | 同样整库逐字节一致；源库SHA保持81b4f16b…；完整3根均相同 | [A/B v2](evidence/writer-cache-complete-f030-v2.json) |
 | 输出整库SHA | 两轮两种缓存均`3343d0b068c8c7a09a9bb8d2b84f6243cb0774089b63b4c66bd73a4b7a428348` | 同上 |
 | 小图编码观察值 | v2写入6.469s→5.641s，Job峰值51273728B→51712000B；不是大型速度/RAM提升证明 | 同上 |
-| 大型原生/完整回归 | 新版独立冻结1392项及388TU冷重扫待执行；旧v31的1392项不能冒充本变更已验 | NOT_VERIFIED |
+| 大型原生/完整回归 | 新版49960e冻结1392项1390PASS/2SKIP、2088.997s，原生F030再验差异0、CLI25.109s；388TU冷v13已开始。旧v31回归仍不冒充本变更已验 | 全套/F030 PASS；大型NOT_VERIFIED |
 
 已验源码文件SHA由旧`79409368ca12a3d4625142b58ddbcbc9b155a45d62898257457654e7e50ee219`变为`75de677f1bebf827b6db688f70a039921e18953d021a8d1db62edb7df40fa23e`。原生试验先于提交执行，收据明确`source_worktree_dirty:true`和父HEAD30513de，没有伪称该缓存变更已在v31中。
 

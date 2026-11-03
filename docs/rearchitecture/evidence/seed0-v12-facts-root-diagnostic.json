@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "recorded_utc": "2026-11-03T09:41:09.103898+00:00",
+  "scope": "Read-only metadata diagnostic only; not full deep/normalized-report G1 and not a new native scan",
+  "before": "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/inav-original-seed0-graph-v1/original-graph.db",
+  "after": "H:/ECRA-NATIVE-A12-SEED0/scans/native-golden/scan.db",
+  "original_facts_hash": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+  "current_facts_hash": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+  "raw_facts_root_identical": true,
+  "full_comparison": "RUNNING_SEPARATELY; no early PASS"
+}

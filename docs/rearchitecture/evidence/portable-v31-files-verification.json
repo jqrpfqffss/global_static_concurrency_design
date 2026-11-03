@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "files": 30743,
+  "runtime_matches": 129,
+  "differences": [],
+  "files_manifest_sha256": "8e32bc53467384c4bc0ba798de4754bdc59ddd9328a13148bf5d51da7d7e1f7f",
+  "recorded_utc": "2026-11-03T09:01:04.426361+00:00"
+}

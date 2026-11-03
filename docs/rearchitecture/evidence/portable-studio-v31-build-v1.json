@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "seconds": 572.8129999999946,
+  "command": [
+    "C:/Program Files/PowerShell/7/pwsh.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v31\\build_portable.ps1",
+    "-OutputDir",
+    "H:\\ECRAStudio-build-20261103-studio-v31",
+    "-CacheDir",
+    "H:/global_static_concurrency_design/.tools-cache",
+    "-GitSource",
+    "H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/tools/git"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-studio-v31-build-v1.log",
+  "log_sha256": "7d11322683372dc8babad6ecbdff0f4bf04ab704b739e2eb58410451065596fd",
+  "source_head": "30513deb015b9e3df690f9ecbe5c2223b25bcc1c",
+  "manifest_sha256": "44aa597dec1e20c10bde577b3346db3450e5e38901e549afd1319d11fa831cd3",
+  "source_differences": [],
+  "priority": {
+    "pid": 22216,
+    "created": 1793694502.0905278,
+    "actual_io_priority": 2,
+    "actual_cpu_priority": 16384,
+    "scope": "Owned build parent only; concurrent shared HDD, no isolated performance attribution"
+  },
+  "zip": "H:\\ECRAStudio-build-20261103-studio-v31\\ECRA-Portable.zip",
+  "zip_bytes": 673314072,
+  "zip_sha256": "ae1e9e380f2ae8eeff4ee38bc6fc2e20c397cd9182797f24e050868fa5781569"
+}

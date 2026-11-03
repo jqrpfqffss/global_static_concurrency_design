@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Actual Windows metadata observer fixture only, not native G2/G4 size/peak proof",
+  "hardlink_files": 2,
+  "unique_physical_file": 1,
+  "allocated_bytes": 262144,
+  "same_content_and_mtime": true,
+  "overlap_rejected": true,
+  "missing_before_creation_explicit": true,
+  "disappearance_after_creation_partial": true,
+  "actual_cli_passed": true,
+  "source_sha256": "994b5afc5afa9929601d2017a07b81c8dec6488c5b0cd9e931f2325367329983",
+  "all_gates_passed": false
+}
