@@ -1,0 +1,234 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Exact v27 candidate local acceptance,17 actual Chrome groups and1369 frozen regression; no full refactor,physicalPC/32GB/DPI/UAT or all G gates claim",
+  "recorded_utc": "2026-11-02T23:32:03.582541+00:00",
+  "source_head": "1493c051165973838b35653e26ce1a0943e419d3",
+  "frozen_files": 2043,
+  "source_manifest_sha256": "d925196bf93f2ddb3f51e887c642b9706abd1cb8c8663e4ebac07703176a64ee",
+  "program_entry": "H:\\ECRAStudio-build-20261103-studio-v27\\ECRA-Portable\\ECRA.cmd",
+  "zip_path": "H:\\ECRAStudio-build-20261103-studio-v27\\ECRA-Portable.zip",
+  "zip_bytes": 640164606,
+  "zip_sha256": "0edc217422f44c06917c19c14256fba7b4ab88902aae8b400c7e3fc8348b282f",
+  "runtime_source_files_matched": 127,
+  "runtime_source_differences": [],
+  "distribution_files_verified": 30338,
+  "distribution_verification": {
+    "passed": true,
+    "files": 30338,
+    "runtime_matches": 127,
+    "files_manifest_sha256": "676299bbc6f16821072c8b2d694478948d72ada9b4574998d95c49f27e3810c2",
+    "recorded_utc": "2026-11-02T23:31:52.466174+00:00"
+  },
+  "regression": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1369,
+    "passed_tests": 1367,
+    "skipped": 2,
+    "seconds": 2016.572,
+    "controller_seconds": 2022.5629999999946,
+    "source_head": "1493c051165973838b35653e26ce1a0943e419d3",
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v27",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v27",
+    "frozen_files": 2043,
+    "differences": [],
+    "manifest_sha256": "d925196bf93f2ddb3f51e887c642b9706abd1cb8c8663e4ebac07703176a64ee",
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "effective_parent_seed": "0",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v27.log",
+    "log_sha256": "958f70a402009ad23de1dfa9c37c3a10c57ced1decab6b118e9311bf1a73b426",
+    "scope": "Frozen owned-file lossless compression/storage policy/allocation UI plus effective seed/cache/provenance and validation cache; expected1369 with two live opt-in skips. Not Portable or large G1."
+  },
+  "browser_groups": [
+    {
+      "name": "preflight",
+      "tests": 16,
+      "passed": true,
+      "seconds": 452.0,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-preflight.json",
+      "sha256": "0ced656882833983ad521a0237a781332d1d885a514c825a4d6ed80a0ab85395"
+    },
+    {
+      "name": "sample",
+      "tests": 11,
+      "passed": true,
+      "seconds": 89.36000000001513,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-sample.json",
+      "sha256": "2be6a2820afbe7ac3413753cf5fd834e6798d66f9032e6590bfa69ac5e00604c"
+    },
+    {
+      "name": "main",
+      "tests": 17,
+      "passed": true,
+      "seconds": 247.73500000001513,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-main.json",
+      "sha256": "d2c0aff913b908a0b7980ba81cfc640925ea94436856a7e4e0e60be2c5c383ec"
+    },
+    {
+      "name": "legacy-degraded",
+      "tests": 6,
+      "passed": true,
+      "seconds": 181.2029999999795,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-legacy-degraded.json",
+      "sha256": "613af03c399c76c311c395a73439bc34ab348173d50d597bf44f78a19864a7ed"
+    },
+    {
+      "name": "profile",
+      "tests": 7,
+      "passed": true,
+      "seconds": 10.562000000005355,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-profile.json",
+      "sha256": "3fbdbc8efd3c65b5f7f5bbd457c1b6518a06914e3615e9c8675323cc9c3c942f"
+    },
+    {
+      "name": "contexts",
+      "tests": 8,
+      "passed": true,
+      "seconds": 11.59299999999348,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-contexts.json",
+      "sha256": "7e433b475cb0ca7616b378933f78d8d2789aa02d156d765877dac44779eec11c"
+    },
+    {
+      "name": "directories",
+      "tests": 7,
+      "passed": true,
+      "seconds": 9.921999999991385,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-directories.json",
+      "sha256": "b6f3851b614bd3eeda1b9080c1f1347032d6b1b593de0f442c6d1b0b0ac44bcd"
+    },
+    {
+      "name": "git",
+      "tests": 6,
+      "passed": true,
+      "seconds": 32.01600000000326,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-git.json",
+      "sha256": "82c765f2e35e1b9e154e31b91be08194da11e274395a36cf7bd29949cde44a02"
+    },
+    {
+      "name": "capacity",
+      "tests": 9,
+      "passed": true,
+      "seconds": 46.671999999991385,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-capacity.json",
+      "sha256": "6843e97b3381b0ddb9eafe5f0a825693e1ce1ca065acb448996b381deac53d7e"
+    },
+    {
+      "name": "coverage",
+      "tests": 8,
+      "passed": true,
+      "seconds": 29.53200000000652,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-coverage.json",
+      "sha256": "d4ca12b83fc4888eaa2da861f9bff041c914e53e833cb9d1f83ce8427c1a174f"
+    },
+    {
+      "name": "legacy",
+      "tests": 6,
+      "passed": true,
+      "seconds": 168.57800000000861,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-legacy.json",
+      "sha256": "8ee50eb1d6fb61f2181efe739446a0c35a9893b679c10aeb85aeace3b1b9e853"
+    },
+    {
+      "name": "collaboration",
+      "tests": 7,
+      "passed": true,
+      "seconds": 85.0789999999979,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-collaboration.json",
+      "sha256": "a0ab4731faf74ac937b8c43cf4c033f60893e70503b99c49ee2912425cd2ab32"
+    },
+    {
+      "name": "launcher",
+      "tests": 4,
+      "passed": true,
+      "seconds": 21.25,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-launcher.json",
+      "sha256": "c3e1a9ed68abd6cce7c1232ad83d71a427e8044543bbdb2f3514a4dba797ddae"
+    }
+  ],
+  "cli": [
+    {
+      "kind": "uncompressed",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v27-cli-uncompressed.json",
+      "sha256": "fde10d3b1005158644a3713ec8cf79684d9d47feaf310f915ade01f9aba4bbb4"
+    },
+    {
+      "kind": "zip-extracted",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v27-cli-zip-extracted.json",
+      "sha256": "58aa7d1ccaaaec7683240e8bbef6dd494fb1bcdd5e252cbb4798408af327d1ea"
+    }
+  ],
+  "gates": {
+    "G1": "FAIL_OBSERVED_PREVIOUS_LARGE_FACTS_DIFFERENCES; new fixed environment full pair pending; normalization unchanged",
+    "G2": "Other real inputs NOT_VERIFIED_USER_DEFERRED",
+    "G3": "V27_COLD16GiB_NATIVE_IN_PROGRESS; physical32GB and fullGUI publication NOT_VERIFIED",
+    "G4": "FAIL_PREVIOUS_V10_FULL_RETENTION40.2058percent; v27 full policy including standard archive pending",
+    "G5": "PASS_ACTUAL_WORKER_AND_SERVICE_CRASH_RETRY_SUBSET_NOT_FULL_FAILURE_MATRIX",
+    "G6": "PASS_MEASURED_SCALAR_BOUNDARY_AND_PACKAGE_SUBSETS_NOT_FULL_LARGE_PROTOCOL",
+    "G7": "NOT_CLOSED_ALL_USER_SCENARIOS",
+    "G8": "PASS_LOCAL_PACKAGE_NOT_PHYSICAL_CLEAN_PC"
+  },
+  "upgrade_human_batch": "NOT_REPEATED_IN_V27; historical v23 original-comparison-only third1000 remains separate; not borrowed for v27",
+  "retained_failure": "v18 actual rapid-undo input-loss failure and working-source-change rejection remain committed",
+  "extra_browser_groups": [
+    {
+      "name": "history",
+      "passed": true,
+      "tests": 8,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-history.json",
+      "sha256": "c7b0d7d0514e50097f15bb1b18e0dcd42f85cffd99437e67c29b2cbcb5b0392c"
+    },
+    {
+      "name": "data-root",
+      "passed": true,
+      "tests": 6,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-data-root.json",
+      "sha256": "b4918460418e6f11a9103a94dbed24a62410982c0f39606ab3d4fb8a36405863"
+    },
+    {
+      "name": "crash-recovery",
+      "passed": true,
+      "tests": 5,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-crash-recovery.json",
+      "sha256": "926602fea0e25e4a8aca3ccb7069f8fa33e5bc1e01959a2e0afd9301462b07fa"
+    },
+    {
+      "name": "storage-policy",
+      "passed": true,
+      "tests": 8,
+      "path": "docs/rearchitecture/evidence/browser-portable-v27-storage-policy.json",
+      "sha256": "8ac5d1afe10e87d2f41ff14c2535afce5a06202b7d50045846093d0d02375154"
+    }
+  ],
+  "actual_crash_recovery": {
+    "passed": true,
+    "tests": 5,
+    "receipt": "docs/rearchitecture/evidence/browser-portable-v27-crash-recovery.json"
+  },
+  "all_actual_browser_groups": 17,
+  "overlapping_browser_assertions": 139,
+  "source_scope": "Exact1493c05: owned-file lossless compaction, fixed task policy, allocation UI, deterministic runtime/cache binding, complete validation read cache; no whole-G-gates claim.",
+  "actual_storage_policy": {
+    "passed": true,
+    "tests": 8,
+    "receipt": "docs/rearchitecture/evidence/browser-portable-v27-storage-policy.json"
+  },
+  "fresh_pair_protocol": "docs/rearchitecture/44-fixed-environment-pair-and-verifier.md"
+}

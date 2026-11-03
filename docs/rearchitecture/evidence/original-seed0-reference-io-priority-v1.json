@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "pid": 18232,
+      "created": 1793660329.0129848,
+      "role": "reference_controller",
+      "before_io_priority": 2,
+      "after_io_priority": 1
+    },
+    {
+      "pid": 16688,
+      "created": 1793660379.9527826,
+      "role": "reference_backup_worker",
+      "before_io_priority": 2,
+      "after_io_priority": 1
+    }
+  ],
+  "observed_at": 1793663853.0814638,
+  "scope": "Reversible LOW I/O priority on verified owned original-reference controller/copy process only. No source bytes, engine, memory limit, comparison, current native PID or other applications changed. Copy remains complete; concurrent nonisolated elapsed time is not optimization attribution."
+}

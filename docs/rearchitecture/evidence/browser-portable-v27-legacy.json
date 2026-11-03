@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "scope": "Real Chrome legacy migration with immutable DB and persisted decision checks.\n\nUses a byte copy of an existing native result. It does not run a new firmware\nscan or substitute this conversion for the full U21/large-project gates.\n",
+  "engine": "H:\\ECRAStudio-build-20261103-studio-v27\\ECRA-Portable",
+  "python": "H:\\ECRAStudio-build-20261103-studio-v27\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [
+    "wrong_owner_is_rejected_without_scan_publication",
+    "native_legacy_copy_converts_through_real_ui_job",
+    "converted_archive_decision_and_position_survive_reopen",
+    "opaque_original_audits_paginate_without_script_execution",
+    "repeat_ui_migration_retains_static_db_and_existing_human_event",
+    "failed_conversion_does_not_damage_valid_result_or_human_history"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_windows_dpi": "NOT_VERIFIED",
+  "scan_id": "legacy-e47ca24c75c15d96d6795306360cbbed371fa645b7fdcb5973d0a075ff810160",
+  "static_sha256": "5a4ad618994655a2ccf28db1518fd483e6602a3b4a02510b3afb686e17558192",
+  "original_preserved": true,
+  "human_events": 1,
+  "related_scenarios": [
+    "U21 partial",
+    "U16 partial",
+    "U24 partial"
+  ]
+}

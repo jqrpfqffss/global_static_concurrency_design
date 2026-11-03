@@ -1,6 +1,6 @@
-> 当前已封存[v25历史检索/GUI启动目录实包](39-frozen-v25-and-large-gate-errata.md)，运行时dca72be，1351项1349PASS/2联网SKIP、16组131个Chrome断言通过；[U场景](ui/28-user-scenario-status-v25.md)11PASS/13待验。大型冷原生已完成但G1发现访问事实等字段差异，当前FAIL；G4同口径实测下降40.2058%，FAIL。正在以[固定执行环境的独立原版](40-fixed-execution-environment-baseline.md)重新建立严格对照；原数据和所有失败保留。后续缓存/seed代码不在v25包内。
+> 最新已完整封存实包为[v27](46-frozen-v27-acceptance.md)，运行时1493c05：1369项1367PASS/2联网SKIP，17组139个重叠Chrome断言，30338分发文件全SHA、127运行时源码匹配；[U场景](ui/29-user-scenario-status-v27.md)11PASS/13待验。新固定环境大型对照仍待完成，旧G1六字段差异与G4下降40.2058%失败保留。后续旧调用边查询修复d2c221b不在本包。
 
-> 2026-11-03后续进度：v27源码1493c05已冻结2043文件，完整1369项1367PASS/2联网SKIP，498.438s实包构建及两份27CLI验收通过；17组真实实包浏览器验收与新大型固定seed对照正在执行，尚未封存/关闭门禁。空间策略及源码真实GUI见[43号验收](43-storage-policy-and-native-compaction-acceptance.md)，新严格对照协议见[44号记录](44-fixed-environment-pair-and-verifier.md)。v25仍为上一已完整封存实包，不把新进度借为v25内容。
+> 2026-11-03后续进度：v27源码1493c05已冻结2043文件，完整1369项1367PASS/2联网SKIP，498.438s实包构建及两份27CLI验收通过；17组实包浏览器已全部通过并完整封存，新大型固定seed对照仍执行中、总门禁未关闭。空间策略及源码真实GUI见[43号验收](43-storage-policy-and-native-compaction-acceptance.md)，新严格对照协议见[44号记录](44-fixed-environment-pair-and-verifier.md)。v25历史封存保留，不将后续代码换标为旧包。
 
 
 

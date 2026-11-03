@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "scope": "Real Chrome/Git wizard selection, SHA preview, persistence and read-only proof.\n\nUses an isolated copy of the approved F030 input; its extra refs/dirty files are\nexplicit UI fixtures. Does not claim a new native G2 project or full U04/UAT.\n",
+  "tests": [
+    {
+      "name": "real_git_head_dirty_coverage_and_read_only_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "paged_real_ref_selection_search_and_commit_resolution",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "invalid_ref_keeps_input_and_removes_stale_commit_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "chosen_refs_generate_real_saved_profile_without_uncommitted_coverage",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "back_reload_reopen_retains_selected_refs_and_saved_bytes",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "new_non_git_project_clears_old_git_state_and_preserves_previous_profile",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v27-git-r2\\01-real-git-selection-1366.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v27-git-r2\\01-real-git-selection-1600.png",
+    "H:\\global_static_concurrency_design\\output\\playwright\\portable-v27-git-r2\\02-selected-refs-saved.png"
+  ],
+  "external_requests": [],
+  "page_errors": [],
+  "native_scan": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "base_sha": "38a756b1974b2483bb397e0cb9d58dd86d322f22",
+  "current_sha": "0dbeb39a860c3911c4b40513e7362844aed478d5",
+  "source_files_unchanged": 42,
+  "fixture_files_and_mtimes_unchanged": 363,
+  "saved_profile": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v27-git-r2\\data\\projects\\2d67b513202bab06b40345e47a8bcd41d1b8aabcba007180caa9922dea365754\\profiles\\b728d0bc16234fe79168c9024e7570a1.yaml",
+  "profile_sha256": "08584eec367448453f38fc96f1f5b8ec51df94ea88297100c740cfddee3fe3ad"
+}
