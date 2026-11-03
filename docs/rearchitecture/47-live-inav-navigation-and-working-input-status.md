@@ -39,3 +39,7 @@
 | include_uncommitted=true正式原生扫描 | **FAIL／生产接入未实现，继续阻断**。本轮未启动该模式原生扫描，不能把配置预览称为已捕获和分析了未提交字节 | `ecra/workspace.py`保留正式门禁 |
 
 新版本完整回归和Portable验收须包含本轮源码；v28完整1371项已结束为1368PASS/1FAIL/2SKIP，不包含cfe1a88及本轮新增4项，另见[失败及计数修复](48-regression-accounting-and-sparse-fixture.md)。未启动的v28构建/新原生GUI队列已核对PID、创建时间、命令及仅conhost后代后取消，原状态全文备份；没有中断v28回归、原生v12或原版备份，没有删除旧产物。
+
+2026-11-03后续：冻结700befd/v29完整**1379项1377PASS/2联网SKIP**、1923.089s，2229个冻结文件及独立测试副本全部SHA不变，[完整收据](evidence/full-regression-studio-v29.json)。它不包含之后的原生下载和下段复选框修复，不能当最新全部代码完整回归。
+
+随后审查补齐“高级YAML关闭Diff但include_uncommitted=true”状态：允许取消已经为true的选项，避免无base_ref时连清除也禁用；显示当前Diff未启用/应取消的具体原因，生产门禁继续不变。实际Chrome**9组PASS**，包含高级值保留、取消、所有其他字段/注释不变及原已保存profile不被覆盖，[收据](evidence/browser-git-disabled-option-host-v1.json)。不因此宣称未提交原生扫描已接入；后续完整套件预计1383项。

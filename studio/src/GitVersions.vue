@@ -33,7 +33,8 @@ async function read(at=0){
     </template>
     <label>Diff 基准 ref（空表示全量）<input :value="baseRef" :disabled="loading" @input="choose($event,'baseRef')"></label>
     <label>当前 ref<input :value="currentRef" :disabled="loading" @input="choose($event,'currentRef')"></label>
-    <label class="dirty-input-option"><input type="checkbox" :checked="includeUncommitted" :disabled="loading||!baseRef" @change="emit('update:includeUncommitted',($event.target as HTMLInputElement).checked)">纳入当前工作区未提交输入</label>
+    <label class="dirty-input-option"><input type="checkbox" :checked="includeUncommitted" :disabled="loading||(!baseRef&&!includeUncommitted)" @change="emit('update:includeUncommitted',($event.target as HTMLInputElement).checked)">纳入当前工作区未提交输入</label>
+    <p v-if="includeUncommitted&&!baseRef" role="alert">高级 YAML 保留了未提交输入选项，当前未启用 Diff；请取消此项后进行全量扫描。未提交输入的正式隔离链路仍待验收。</p>
     <p v-if="includeUncommitted&&currentRef!=='HEAD'&&!error" role="alert">纳入未提交输入仅适用于当前 ref 为 HEAD；请改为 HEAD，或取消此选项进行固定提交比较。</p>
     <p v-else-if="includeUncommitted&&currentRef==='HEAD'&&baseRef" role="alert">已选择当前工作区实际字节；不是只扫描暂存区。未提交输入的生产隔离链路尚未接入验收，正式配置检查会阻断扫描。当前请取消此项使用固定提交比较；高级 YAML 原值保留。</p>
     <p v-else-if="baseRef&&!includeUncommitted">固定提交比较不包含未提交修改。保留原工作区与暂存区，不自动提交或切换分支。</p>

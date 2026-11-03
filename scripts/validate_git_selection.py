@@ -149,6 +149,16 @@ def main():
             expect(toggle).not_to_be_checked();expect(page.get_by_label('当前 ref',exact=True)).to_have_value('refs/heads/feature/119')
             shot('04-fixed-commit-mode-restored-after-reopen');done('unchecked_mode_roundtrips_complete_yaml_and_reopens_without_residual_working_input_claim')
             raw=restored
+            button('下一步').click();original_text=editor.input_value()
+            disabled=original_text.replace('enabled: true','enabled: false',1).replace('include_uncommitted: false','include_uncommitted: true',1)+'\n# 保留此高级未提交选项测试注释\n'
+            expected=yaml.safe_load(disabled);assert not expected['analysis']['git_diff']['enabled'] and expected['analysis']['git_diff']['include_uncommitted']
+            editor.fill(disabled);button('上一步').click()
+            expect(toggle).to_be_checked();expect(toggle).to_be_enabled();expect(picker).to_contain_text('当前未启用 Diff')
+            shot('05-disabled-diff-allows-clearing-preserved-advanced-option');toggle.uncheck();button('下一步').click()
+            expected['analysis']['git_diff']['include_uncommitted']=False
+            assert yaml.safe_load(editor.input_value())==expected and '# 保留此高级未提交选项测试注释' in editor.input_value()
+            assert profile.read_bytes()==raw
+            done('disabled_diff_still_allows_clearing_advanced_working_input_option_without_field_or_comment_loss')
         button('新建工程配置').click();configure(args.firmware.resolve(),args.compile_database.resolve());read()
         expect(page.get_by_role('status').filter(has_text='此目录不是 Git 工程')).to_be_visible()
         expect(page.get_by_label('选择当前分支或标签',exact=True)).to_have_count(0)
