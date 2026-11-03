@@ -1,0 +1,29 @@
+{
+  "status": "PASS_SCOPED",
+  "partition": {
+    "DiskNumber": 3,
+    "PartitionNumber": 1,
+    "DiskId": "\\\\?\\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000003#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}",
+    "DriveLetter": "G",
+    "Size": 267321344,
+    "AccessPaths": [
+      "G:\\",
+      "\\\\?\\Volume{5a08d79c-0000-0000-0000-010000000000}\\"
+    ]
+  },
+  "passed": true,
+  "image": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v32-real-disk-full\\owned-test-volume.vhd",
+  "scope": "New256MiB file-backed virtual NTFS only. Not a physical disk-full/G4/32GB/second-PC claim. Image and all evidence retained.",
+  "detached": true,
+  "initial_disk": {
+    "Number": 3,
+    "Path": "\\\\?\\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000003#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}",
+    "UniqueId": "6002248013FD0DA4E22B14AA0B2B3D01",
+    "Size": 268435456,
+    "BusType": "File Backed Virtual",
+    "PartitionStyle": "RAW",
+    "IsBoot": false,
+    "IsSystem": false
+  },
+  "harness_exit_code": 0
+}

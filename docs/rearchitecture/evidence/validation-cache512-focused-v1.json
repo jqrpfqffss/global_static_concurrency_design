@@ -1,0 +1,15 @@
+{
+  "summary_ok": true,
+  "tests": 48,
+  "passed_tests": 48,
+  "seconds": 16.545,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validation-cache512-focused-v1.log",
+  "log_sha256": "7c60a9b214d38981605be9a866050da7a2089e3d69fe572e704a89c2ab102dda",
+  "scope": "48 related tests; source512MiB validation default, not full1392 or large proof"
+}

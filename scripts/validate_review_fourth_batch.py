@@ -99,6 +99,7 @@ def main():
             if initial_pending is None:initial_pending=sum(pending.values());assert initial_pending>=1000
             assert sum(pending.values())==initial_pending-expected_new
             receipt['initial_eligible_pending']=initial_pending
+            prior_position=get('/scans/'+scan_id+'/position')
             page=context.new_page();page.on('pageerror',lambda e:receipt['page_errors'].append(str(e)))
             page.on('request',lambda r:receipt['external_requests'].append(r.url) if urllib.parse.urlsplit(r.url).scheme in {'http','https'} and urllib.parse.urlsplit(r.url).hostname!='127.0.0.1' else None)
             page.goto(info['url']);expect(page.get_by_role('heading',name='先处理需要核实的变量',exact=True)).to_be_visible(timeout=30000)
@@ -107,6 +108,20 @@ def main():
             if expected_position is not None:
                 expect(page.get_by_label('人工状态',exact=True)).to_have_value('PENDING')
                 expect(page.get_by_label('静态分类',exact=True)).to_have_value(expected_position['classification'])
+                expect(page.get_by_label('查找变量、文件或规范身份',exact=True)).to_have_value(expected_position.get('search',''))
+            else:
+                # The real source history may retain a previous evidence
+                # search. Preserve that state, then deliberately widen the
+                # capacity-test scope through visible controls, never SQL.
+                receipt['initial_saved_position']=prior_position
+                if prior_position:
+                    expect(page.get_by_label('查找变量、文件或规范身份',exact=True)).to_have_value(prior_position.get('search',''))
+                    old_extra=prior_position.get('extra') or {}
+                    assert not any(old_extra.get(key) for key in ['file','function','context','coverage','ai_state','diff','handling_status'])
+                exact=page.get_by_role('button',name='清除精确定位',exact=True)
+                if exact.count():exact.click();expect(page.locator('.activity')).to_have_count(0)
+                page.get_by_label('查找变量、文件或规范身份',exact=True).fill('')
+                receipt['initial_scope_widened_via_visible_UI']=True
             chosen=next(state for state,count in pending.items() if count>0)
             page.get_by_label('静态分类',exact=True).select_option(chosen);page.get_by_label('人工状态',exact=True).select_option('PENDING')
             page.get_by_role('button',name='搜索',exact=True).click();expect(page.locator('.activity')).to_have_count(0)

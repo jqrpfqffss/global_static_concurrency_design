@@ -1,0 +1,47 @@
+{
+  "passed": false,
+  "state": "FAILED",
+  "scope": "Actual packaged Chrome:1000 additional NEED_MORE_EVIDENCE declarations.\n\nOnly the explicitly marked private copy of the approved original INAV graph,\nwith all3000 known prior events, is accepted. Eligible canonical objects are\nSUSPECT/UNKNOWN/SAFE_PROVEN with PENDING human state. No safe declarations, no\nnew native scan/G2/physical second-PC/DPI/UAT claim. Original root is preserved.\n",
+  "existing_events": 3000,
+  "requested": 1000,
+  "completed": 1,
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v32-v1\\data",
+  "engine": "H:\\ECRAStudio-build-20261103-studio-v32\\ECRA-Portable",
+  "server_python": "H:\\ECRAStudio-build-20261103-studio-v32\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [
+    {
+      "name": "v32_private_copy_opens3000_prior_events_without_reset",
+      "status": "PASS",
+      "old_events": 3000
+    }
+  ],
+  "screenshots": [],
+  "source_snapshot_head": "49960e041c5bc9b8a47ce14a5fd387477fa5d210",
+  "private_copy": {
+    "format": "ECRA_U16_PRIVATE_UPGRADE_COPY_V1",
+    "source_data_root": "H:\\ECRA-U16-INAV-v1\\data",
+    "source_events": 3000,
+    "source_events_sha256": "570e8fc027a8c62aa5fe9d79c4de84467eddeeb71f7b32da81604739914f2378",
+    "source_reviews_sha256": "2822eefbbb7a42b9a9c1474cdd09629203137f951122bdff7ae1cd4165d05712",
+    "source_graph_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+    "static_graph_shared_by_hardlink": true,
+    "source_device_settings_copied": false,
+    "scope": "Private copy of the approved original INAV graph with all3000 known old events, then real v32 Chrome1000 additional NEED_MORE_EVIDENCE declarations. Not a native-v13/G1/G2/standard-package/in-place-data-migration/UAT claim."
+  },
+  "eligible_classes": [
+    "SUSPECT",
+    "UNKNOWN",
+    "SAFE_PROVEN"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "native_scan": "NOT_EXERCISED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "static_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "static_bytes": 17831825408,
+  "initial_eligible_pending": 10316,
+  "seconds": 74.0,
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v32-v1-controller.py\", line 122, in main\n    page.locator('.symbol').first.click();expect(page.locator('.activity')).to_have_count(0)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 17672, in click\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_locator.py\", line 163, in click\n    return await self._frame._click(self._selector, strict=True, **params)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_frame.py\", line 591, in _click\n    await self._channel.send(\"click\", self._timeout, locals_to_params(locals()))\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_connection.py\", line 69, in send\n    return await self._connection.wrap_api_call(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_connection.py\", line 563, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".symbol\").first\n\n"
+}

@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "tests": [
+    {
+      "name": "real_gui_human_event_saved_without_changing_static_authority",
+      "status": "PASS"
+    },
+    {
+      "name": "real64MiB_complete_archive_native_download_matches_server_bytes_without_blob_or_object_url",
+      "status": "PASS"
+    },
+    {
+      "name": "complete_download_strictly_imports_same_authority_all_cas_bytes_and_human_events_into_independent_root",
+      "status": "PASS"
+    },
+    {
+      "name": "review_delta_native_download_is_byte_exact_and_reimport_remains_idempotent",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v32-native-download-evidence\\01-real-complete-native-browser-download.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v32-native-download-evidence\\02-real-review-delta-native-download.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "scope": "Real Chrome native downloads, complete archives and human-event round trips.\n\nUses the approved F030 archive plus a clearly declared64MiB unreferenced CAS\ntransport fixture. This is not an additional native firmware scan, INAV/G4,\nphysical second-PC, native Windows DPI or a multi-GiB transport measurement.\n",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "large_INAV_package": "NOT_VERIFIED",
+  "native_download_requests": 0,
+  "native_download_events": 2,
+  "ticket_requests": 2,
+  "scan_id": "golden-f030",
+  "symbol_id": "c:@Exceptions",
+  "binding": {
+    "scan_id": "golden-f030",
+    "project_id": "stm32f030-public",
+    "profile_id": "default",
+    "state": "STATIC_VALIDATED",
+    "facts_hash": "277001ffc4e5043b1fd253650baae9be0c9ed5cfa79da252d7a1fef6f624bf64",
+    "report_hash": "379c11a5ae80a2d645c6d07fa0fc157f8c427da9e2cc4d54d983c69db8628abf"
+  },
+  "source_package_sha256": "4c1d0f7e1f91dbf56173b37a672a4a083ea333de9607608dc906e1772465bd28",
+  "static_sha256_before": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "transport_fixture": {
+    "bytes": 67108864,
+    "sha256": "254bb4173d6b57bf96a48774e1b56ecb4ac22c4b05a05d55148479f5c4ae1316",
+    "kind": "DECLARED_UNREFERENCED_RANDOM_CAS_NOT_FIRMWARE_EVIDENCE"
+  },
+  "command": [
+    "H:\\ECRAStudio-build-20261103-studio-v32\\ECRA-Portable\\runtime\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "ecra.studio",
+    "--data-root",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v32-native-download\\data",
+    "--no-browser",
+    "--session-file",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v32-native-download\\session.json"
+  ],
+  "full_archive_bytes": 70287727,
+  "full_archive_sha256": "5b61f23268f3f978dbb13c84d7af181499bbe95641f9d1e1fd98ef37a512cd19",
+  "browser_blob_calls": 0,
+  "static_sha256_after": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "source_package_sha256_after": "4c1d0f7e1f91dbf56173b37a672a4a083ea333de9607608dc906e1772465bd28",
+  "human_events_after": 1
+}

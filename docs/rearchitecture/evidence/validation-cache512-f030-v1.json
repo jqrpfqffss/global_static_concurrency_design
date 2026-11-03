@@ -1,0 +1,84 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "cache_kib": 65536,
+      "seconds": 10.687999999994645,
+      "result": {
+        "passed": true,
+        "hashes": {
+          "facts": {
+            "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+            "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+          },
+          "report": {
+            "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+            "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+          }
+        },
+        "differences": {
+          "facts": null,
+          "report": null
+        },
+        "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+        "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+        "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v32-v1\\data\\scans\\native-exact\\scan.db",
+        "deep_integrity_checked": true,
+        "complete_fact_graph_restore": false,
+        "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+      },
+      "reopened_cache_before": [
+        -2000,
+        -2000
+      ],
+      "reopened_cache_after": [
+        -2000,
+        -2000
+      ]
+    },
+    {
+      "cache_kib": 524288,
+      "seconds": 10.312000000005355,
+      "result": {
+        "passed": true,
+        "hashes": {
+          "facts": {
+            "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+            "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+          },
+          "report": {
+            "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+            "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+          }
+        },
+        "differences": {
+          "facts": null,
+          "report": null
+        },
+        "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+        "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\parsed-graph-comparison-v1\\original.db",
+        "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-exact-f030-v32-v1\\data\\scans\\native-exact\\scan.db",
+        "deep_integrity_checked": true,
+        "complete_fact_graph_restore": false,
+        "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+      },
+      "reopened_cache_before": [
+        -2000,
+        -2000
+      ],
+      "reopened_cache_after": [
+        -2000,
+        -2000
+      ]
+    }
+  ],
+  "invalid_budgets_rejected": true,
+  "scope": "Complete F030 graph deep checks and unchanged ordered/typed normalizer at64/512MiB; resource wrapper delegates every check and changes no query result. Not a large-native/G3 proof.",
+  "source_files_unchanged": true,
+  "comparator_file_unchanged": true,
+  "comparator_sha256": "427998f4705cdb753464e490ec2c11f243772ab88db2c92fd27d381d4fd9ba98",
+  "scan_store_sha256": "457f8994bfdf13363d03652c5d4a1759327012ccb2682acf831c4c7b21878801",
+  "job_limit_bytes": 2147483648,
+  "job_peak_commit_bytes": 29962240,
+  "all_gates_passed": false
+}

@@ -445,12 +445,14 @@ class EvidenceProvider:
                 raise ValueError('静态库扫描身份缺失/不唯一')
             return dict(rows[0])
 
-    def validate(self, *, deep=False):
+    def validate(self, *, deep=False, cache_kib=524288):
+        if type(cache_kib) is not int or not 1024<=cache_kib<=524288:
+            raise ValueError('完整校验页缓存须为1024–524288KiB；它不是整个进程的内存上限')
         with closing(connect_readonly(self.path)) as conn:
             # Session-only, demand-allocated page cache for complete checks.
             # Not a process memory cap or a limit on evidence/relationships.
             # Metadata and ordinary paged reads keep their original budget.
-            conn.execute('PRAGMA cache_size=-65536')
+            conn.execute(f'PRAGMA cache_size=-{cache_kib}')
             # Keep graph hashes and rebuilt query projections on one read view.
             conn.execute('BEGIN')
             if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):
