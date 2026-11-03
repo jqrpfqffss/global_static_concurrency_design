@@ -1,0 +1,90 @@
+{
+  "passed": false,
+  "all_gates_passed": false,
+  "status": "OBSERVATION_ONLY_NOT_COMPLETED_ACCEPTANCE",
+  "recorded_utc": "2026-11-03T19:35:16.617380+00:00",
+  "source_head": "176ed696e34354593ff2bc5aa800972a641d152e",
+  "frozen_files": 3050,
+  "manifest_sha256": "ca27507d93b9bfa527e65a3ee06cf99e63a158fc1297135207b24e14c743dc8d",
+  "runtime_python_byte_comparison": {
+    "previous_head": "5c21ac3eb72fd0c7c48925e2a575903fa787a527",
+    "modules": 101,
+    "tests": 187,
+    "differences": []
+  },
+  "expected_regression_tests": 1408,
+  "expected_live_skips": 2,
+  "expected_package_groups": 22,
+  "expected_overlapping_package_assertions": 174,
+  "extra_large_native_UI_groups": 6,
+  "extra_human_batch": {
+    "existing": 3000,
+    "additional": 1000,
+    "actual_complete": false
+  },
+  "queues": [
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-and-native-v35-v1-queue.json",
+      "sha256": "6b4f0b72a989bce3e35b9a35a664b669cd55ed3ac963b21ca6a10e33742a622d",
+      "status": "RUNNING_FROZEN_1408",
+      "passed": false
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\v35-build-and-browser-v1-queue.json",
+      "sha256": "e2dc26c095b3eeb2f33ca4774d22d0f7fb871cb557e287b4976dfdcbefffc984",
+      "status": "WAITING_EXACT1408_AND_F030_NATIVE",
+      "passed": false
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-and-native-v36-v1-queue.json",
+      "sha256": "bd7f538403623baadd6d1ac19cb9fc39894c98505fe010908da73dfe5bebbf5d",
+      "status": "WAITING_PREVIOUS_V35_REGRESSION",
+      "passed": false
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\v36-build-and-browser-v1-queue.json",
+      "sha256": "68581eff0f63384efaeb1e25010d419de40dce8372e4a36282144b84b1aed68b",
+      "status": "WAITING_EXACT1408_AND_F030_NATIVE",
+      "passed": false
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-inav-evidence-ui-v36-v1-queue.json",
+      "sha256": "9cf469e7b5c77d2619c3e6d0dfd67bac50fcf9549c3c9db857942715ce02ac49",
+      "status": "WAITING_EXACT_V36_PACKAGE_AND_COMPLETE_COMPACT_IMPORT",
+      "passed": false
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-queue.json",
+      "sha256": "ad0280a61cb2c0c138e8580a273943356057fc8cc24be30a1981d42d31996017",
+      "status": "WAITING_FULL_V36_PACKAGE_SEAL",
+      "passed": false
+    }
+  ],
+  "controllers": [
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-full-and-native-v36-v1.py",
+      "sha256": "7f97954837f2bd6ae22fdb883f387ca55b3d38a0e96c1c1f2bd6c8c77628b88d"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-v36-build-and-browser-v1.py",
+      "sha256": "7f01324c907c7fe126a3965f209f9f0ccc52db72afea4c5c18151562506265a6"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\prepare-v36-packaged-multicore-case-v1.py",
+      "sha256": "56ddda485d6562aaf8cd4c0e739d66cd00dc96136c0c3e94236a03b4d49af744"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seal-studio-v36-v1.py",
+      "sha256": "6241e5061983458e3a921d0d4a805acc05a0f165eed67912a86196a15929acaa"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-native-inav-evidence-ui-v36-v1.py",
+      "sha256": "9bd0d3832c007829a0a36cca85dd61e479ca4e8133742d67b086e7871fa23040"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-u16-fourth-v36-v1.py",
+      "sha256": "a33ca4be2352e64dbef4ec5e560ab051ad90b20567e98e623c06c92935df751f"
+    }
+  ],
+  "scope": "Exact queued source and observation, never a PASS substitute. Old v35 real evidence-selection FAIL is public and fixed only in v36 source. Large v13 and reader512 remain distinct pending experiments. No full refactor or physical machine/DPI/UAT claim."
+}
