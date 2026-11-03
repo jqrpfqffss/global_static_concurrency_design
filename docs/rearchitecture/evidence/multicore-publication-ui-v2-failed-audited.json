@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "scope": "Actual Chrome on a verified publication-only F030 combination.\n\nRequires the independently compared private case receipt. This is not a new\nmulticore native scan, physical second computer, Windows DPI or engineer UAT.\n",
+  "tests": [],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v2-evidence\\failed.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "engine": "H:\\global_static_concurrency_design",
+  "static_sha256": "8f9e3c71d781b76586018ddd8836abd60595743e09795712497df71358061118",
+  "case_receipt_sha256": "cc025587c1c271c4ed0204cc296dfb2d8751721cbbd311da930fcd8034ef0886",
+  "source_package_snapshot_sha256": null,
+  "all_gates_passed": false,
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_multicore_publication_ui.py\", line 64, in main\n    expect(page.get_by_text('链接地址派生合并',exact=False)).to_be_visible(timeout=120000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 23019, in to_be_visible\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 841, in to_be_visible\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to be visible\nActual value: None\nError: strict mode violation: get_by_text(\"链接地址派生合并\") resolved to 2 elements:\n    1) <p role=\"note\" class=\"banner warning\">派生结果证据模式：链接地址派生合并；未重新执行多核原生扫描。配置/ELF原字节留审计；没有可重验源…</p> aka get_by_text(\"派生结果证据模式：链接地址派生合并；未重新执行多核原生扫描。配置/ELF原字节留审计；没有可重验源码合同，不提供重新OpenCode证明。\")\n    2) <p class=\"banner warning\">链接地址派生合并；未重新执行多核原生扫描。配置/ELF原字节留审计；没有可重验源码合同，不提供重新…</p> aka get_by_text(\"链接地址派生合并；未重新执行多核原生扫描。配置/ELF原字节留审计；没有可重验源码合同，不提供重新OpenCode证明。\", exact=True)\n \nCall log:\n  - Expect \"to_be_visible\" with timeout 120000ms\n  - waiting for get_by_text(\"链接地址派生合并\")\n\n",
+  "seconds": 4.51600000000326,
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v2-evidence\\acceptance.json",
+  "original_receipt_sha256": "9475b8541f6edbb15454a5cf6758a4c844acd410987ab3f783339aa1f6f387e2",
+  "audit_note": "Original full receipt and partial human events/trace are retained. This compact copy omits only the redundant embedded full package source manifest, not test results."
+}

@@ -233,12 +233,16 @@ def _create_app(data_root, *, token, authority, startup):
             legacy_warning = provider.node(provider.resolve('provenance', ['legacy_warning'])).get('value')
         except KeyError:
             legacy_warning = None
+        try:
+            evidence_notice = provider.node(provider.resolve('provenance', ['evidence_notice'])).get('value')
+        except KeyError:
+            evidence_notice = None
         degraded = degraded_legacy(provider)
         from ..scan_identity import query as scan_identity
         return dict(binding=binding, static_counts=counts, human_counts=grouped, total=total,
                     identity=scan_identity(provider),
                     counting_basis='完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。',
-                    mode=mode,legacy_warning=legacy_warning,legacy_degraded=degraded,can_confirm=not degraded,
+                    mode=mode,legacy_warning=legacy_warning,evidence_notice=evidence_notice,legacy_degraded=degraded,can_confirm=not degraded,
                     diff=QueryService(scan_path(scan_id)).diff_summary(),
                     can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 

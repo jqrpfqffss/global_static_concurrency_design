@@ -41,7 +41,7 @@ workflow.status/saved_run → checked_scan → 输入/引擎/报告摘要复验
 | `workflow.status/saved_run` | queue、完整 report、HTML 路径 | QueryService；review 与 report 不再派生巨型文件 |
 | `git_diff.prepare_base/current/verify_full` | 基准 facts.json 硬链接、摘要缓存、固定 worktree | 版本化 scan 引用；保留直接 base→current 与全量验证 |
 | `review.build_variable_review_packet/review_all` | facts_path/shared_path/report_path、源码与八步合同 | EvidenceProvider 分段取证；完整收据/修复/失败逻辑回归 |
-| `multicore.combine` | 子变体旧 facts 与 ELF | 同一证据协议；尚未迁移 |
+| `multicore.combine` | 子变体旧逻辑名facts与ELF；通用读取适配已存在 | 后续源码已迁移独立根/权威库/不可变发布，51项、完整旧版对照0差异及真实Chrome4组见[59号记录](59-multicore-publication-adr.md)；大图内存/真实双核/向导仍未验，不关闭完整消费者门禁 |
 | `history_archive/workspace.migrate_legacy` | 旧字节复制/身份/哈希 | 复用身份与边界；源数据永不自动删除 |
 | `scripts/*.py`、旧测试 | 详见逐行清单；部分是刻意旧格式审计器 | 显式开发期 legacy 导出；每个正式消费者逐项迁移 |
 

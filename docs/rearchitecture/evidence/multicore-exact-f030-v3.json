@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "scope": "Publication-only A/B on a declared pair of the same real F030 graph/ELF.\n\nThis is not a dual-core firmware or another G2 native scan. The original\ncombiner runs from e69; all source facts/config/ELF inputs are byte-identical.\n",
+  "seconds": 56.703000000008615,
+  "baseline_head": "e69a10bbcb870dfc19a7d69cf2267774d08b3342",
+  "baseline_multicore_sha256": "7d529891ddf3cd05aa6eec651d047bc55482a5d6177d14542a2aff5215833a0c",
+  "candidate_base_head": "5bcfa0190687308b3b1c7ec4c4cd35efe07db52d",
+  "candidate_multicore_sha256": "e8579a719bed38c0c19bc54d9530fe1bed92cd067bb3df5c24b9b49db9021983",
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "30918d06c746b9e2f9e8cfc155b1fe9f62d82d351c4d11e0641fd6b6c2dd233d",
+        "after": "30918d06c746b9e2f9e8cfc155b1fe9f62d82d351c4d11e0641fd6b6c2dd233d"
+      },
+      "report": {
+        "before": "18ef60a4efe767607068a801ac491783f3c7afa61140b0830bd238425d99c134",
+        "after": "18ef60a4efe767607068a801ac491783f3c7afa61140b0830bd238425d99c134"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\old-graph.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\data\\scans\\combined-f030\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "source_database_sha256": "aab4cbeff1dc28381cf5da44537730db31329361b148f6295f310ffc148249e8",
+  "original_elf_sha256": "cbf81e70c857ce272af0d8f574e517cfff3dfe86319546d7df11ecd38c30b97b",
+  "all_inputs_unchanged": true,
+  "authority_static_unchanged": true,
+  "publication": {
+    "scan_id": "combined-f030",
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\data",
+    "scan_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\data\\scans\\combined-f030"
+  },
+  "standard_package_bytes": 743279,
+  "standard_package_sha256": "8b772d8ccc46c3d8456edcbe459e7a1cf5510ea617644318a3e72f1951144025",
+  "standard_import_binding": {
+    "scan_id": "combined-f030",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "profile_id": "multicore-d38e9c6829ac3f0f8fd3dca0",
+    "state": "UNVERIFIED",
+    "facts_hash": "30918d06c746b9e2f9e8cfc155b1fe9f62d82d351c4d11e0641fd6b6c2dd233d",
+    "report_hash": "74a2fb5023604d9e681b49eff611d6f6e586f311a90fb7cc649ce2877d4afdae"
+  },
+  "new_native_scan": false,
+  "real_multicore_firmware": "NOT_VERIFIED",
+  "G2": "NOT_CLOSED",
+  "all_gates_passed": false
+}

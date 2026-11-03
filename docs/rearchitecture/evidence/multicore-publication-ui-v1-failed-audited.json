@@ -1,0 +1,29 @@
+{
+  "passed": false,
+  "scope": "Actual Chrome on a verified publication-only F030 combination.\n\nRequires the independently compared private case receipt. This is not a new\nmulticore native scan, physical second computer, Windows DPI or engineer UAT.\n",
+  "tests": [
+    {
+      "name": "real_published_derived_scan_and_exact_canonical_object_open",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v1-evidence\\01-derived-canonical-object-real-workbench.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v1-evidence\\failed.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "engine": "H:\\ECRAStudio-build-20261103-studio-v32\\ECRA-Portable",
+  "static_sha256": "277fbb920a858b6b3d1aed3bc94e1576bb91b79ef94da061d7d97cc3fb312cd5",
+  "case_receipt_sha256": "79ffbbc550096ee654d0ed258102d6380c0ac96ad2cb2b1b3e586bcb2a3854c8",
+  "all_gates_passed": false,
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_multicore_publication_ui.py\", line 70, in main\n    expect(page.locator('.detail-summary')).to_contain_text('人工证据不足',timeout=120000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 21705, in to_contain_text\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 301, in to_contain_text\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to contain text '人工证据不足'\nActual value: Exceptions复制全名F030_A::c:@Exceptions静态：本构建已证明安全；人工：暂无法确认。此处展示归档分析证据，不代表目标板实测。 \nCall log:\n  - Expect \"to_contain_text\" with timeout 120000ms\n  - waiting for locator(\".detail-summary\")\n    6 × locator resolved to <div class=\"detail-summary\">…</div>\n      - unexpected value \"Exceptions复制全名F030_A::c:@Exceptions静态：本构建已证明安全；人工：待确认。此处展示归档分析证据，不代表目标板实测。\"\n    235 × locator resolved to <div class=\"detail-summary\">…</div>\n        - unexpected value \"Exceptions复制全名F030_A::c:@Exceptions静态：本构建已证明安全；人工：暂无法确认。此处展示归档分析证据，不代表目标板实测。\"\n\nAria snapshot:\n- heading \"Exceptions\" [level=2]\n- button \"复制全名\"\n- paragraph: F030_A::c:@Exceptions\n- paragraph: 静态：本构建已证明安全；人工：暂无法确认。此处展示归档分析证据，不代表目标板实测。\n",
+  "seconds": 129.76600000000326,
+  "source_package_snapshot_summary": {
+    "head": "49960e041c5bc9b8a47ce14a5fd387477fa5d210",
+    "files": 2465
+  },
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v1-evidence\\acceptance.json",
+  "original_receipt_sha256": "9f7045664be7d4562dd64331ac565df0f1ee413846fd0a11c8df90a34addae01",
+  "audit_note": "Original full receipt and partial human events/trace are retained. This compact copy omits only the redundant embedded full package source manifest, not test results."
+}

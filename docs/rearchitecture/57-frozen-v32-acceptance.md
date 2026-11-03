@@ -9,7 +9,7 @@
 | 构建及CLI | 实际目录/中文解压各27CLI，21正常0、6预期部分覆盖2；不是物理干净机 | [构建](evidence/portable-studio-v32-build-v1.json)、[目录](evidence/portable-v32-cli-uncompressed.json)、[ZIP](evidence/portable-v32-cli-zip-extracted.json) |
 | Chrome/VHD | 19组普通Chrome及1组真实新建NTFS满盘Chrome验收，合计20组162个重叠断言；历史14、下载4、真实满盘4均包含 | [完整封存](evidence/portable-studio-v32-seal.json) |
 | 源码/分发 | 129份运行时文件匹配，30749份分发文件全SHA核对；VHD实际正常卸载 | [文件](evidence/portable-v32-files-verification.json)、[VHD](evidence/portable-v32-real-disk-full-lifecycle.json) |
-| U16额外 | 正在另做私有副本3000+1000真实操作，不能借用历史v23或本轮未结束结果。首轮脚本未清除恢复检索而FAIL，原件保留 | [合同/失败边界](ui/33-fourth-confirmation-batch-contract.md)，完整场景仍NOT_VERIFIED |
+| U16额外 | 私有副本保留3000旧事件，真实GUI新增1000，三次重启恢复、共4000事件、原静态SHA不变，原件仍3000；首轮脚本恢复检索错误失败保留 | [PASS，另4组](60-u16-fourth-batch-v32-acceptance.md)，[完整矩阵12PASS/12待验](ui/34-user-scenario-status-v32.md) |
 | 大型语义/占用 | v27冷v12原始事实根43153000…与原版一致只是诊断；完整校验/规范化报告/标准包尚未完成；v32冷v13已启动及整范围采样，尚无最终G3/G4结果 | NOT_VERIFIED，不改写旧失败 |
 
 | 程序交付 | 实际值 |

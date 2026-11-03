@@ -1,0 +1,66 @@
+{
+  "passed": false,
+  "failures": [
+    {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-focused-v1.log",
+      "sha256": "5a0a9237e66c1bfce20570c7da37c622d774709cfb8d969cbe0b686ecdd0a75d",
+      "summary": {
+        "summary_ok": false,
+        "tests": 48,
+        "passed_tests": 43,
+        "seconds": 109.552,
+        "failures": 0,
+        "errors": 5,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-focused-v2.log",
+      "sha256": "2049db2b06f6ccf06c4204f998e9ca19f180c79a6ef14815bd3d64ff80d0bdf6",
+      "summary": {
+        "summary_ok": false,
+        "tests": 6,
+        "passed_tests": 1,
+        "seconds": 2.327,
+        "failures": 0,
+        "errors": 5,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-focused-v3.log",
+      "sha256": "c6ee6adeb32cffa7f8ad2ac57724c7012c93e98dcb3d068546c0d51bad06d998",
+      "summary": {
+        "summary_ok": false,
+        "tests": 6,
+        "passed_tests": 5,
+        "seconds": 4.801,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-related-final-v2.log",
+      "sha256": "b3caecbf609b8e07bd9067265f91812362e1a36a35dd5b84ca169c8729d244bb",
+      "summary": {
+        "summary_ok": false,
+        "tests": 51,
+        "passed_tests": 50,
+        "seconds": 26.398,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    }
+  ],
+  "note": "Historical test-setup/import/locator errors retained; not counted as passing. Final51 and actual Chrome4 have separate receipts."
+}

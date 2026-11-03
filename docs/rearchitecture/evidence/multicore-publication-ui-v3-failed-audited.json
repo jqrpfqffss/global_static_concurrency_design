@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "scope": "Actual Chrome on a verified publication-only F030 combination.\n\nRequires the independently compared private case receipt. This is not a new\nmulticore native scan, physical second computer, Windows DPI or engineer UAT.\n",
+  "tests": [
+    {
+      "name": "real_published_derived_scan_and_exact_canonical_object_open",
+      "status": "PASS"
+    },
+    {
+      "name": "real_button_commits_one_separate_human_event",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v3-evidence\\01-derived-canonical-object-real-workbench.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v3-evidence\\02-real-human-declaration.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v3-evidence\\failed.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "engine": "H:\\global_static_concurrency_design",
+  "static_sha256": "ea1a18101c802f3f83a91c8ba89459cc280c2ce063e295de5cdbd802ff745336",
+  "case_receipt_sha256": "d83216f8dd3a2c8786b748f0aa9268f76d716ca797cc4a9a5da4ac1166ffe3e4",
+  "source_package_snapshot_sha256": null,
+  "all_gates_passed": false,
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_multicore_publication_ui.py\", line 77, in main\n    page.reload();expect(page.locator('.detail-summary .identity')).to_have_text(symbol,timeout=120000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22526, in to_have_text\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 637, in to_have_text\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to have text 'F030_A::c:@Exceptions'\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect \"to_have_text\" with timeout 120000ms\n  - waiting for locator(\".detail-summary .identity\")\n\nAria snapshot:\n- complementary:\n  - text: ECRA Studio\n  - paragraph: 并发风险分析工作台\n  - navigation \"主导航\":\n    - link \"项目概览\":\n      - /url: \"#/overview\"\n    - link \"工程配置\":\n      - /url: \"#/projects\"\n    - link \"扫描任务\":\n      - /url: \"#/tasks\"\n    - link \"变量与风险\":\n      - /url: \"#/variables\"\n    - link \"覆盖与诊断\":\n      - /url: \"#/coverage\"\n    - link \"OpenCode 复核\":\n      - /url: \"#/opencode\"\n    - link \"人工确认\":\n      - /url: \"#/reviews\"\n    - link \"历史与对比\":\n      - /url: \"#/history\"\n    - link \"数据与共享\":\n      - /url: \"#/sharing\"\n  - link \"设置与验收状态\":\n    - /url: \"#/settings\"\n  - text: 本地数据 · 中文 开发预览 · 发布门禁未通过\n- banner:\n  - button \"查看当前工程与构建身份\":\n    - strong: firmware\n    - text: 目标未记录 · 变体未记录 · 核心声明 Cortex-M0 / Cortex-M0\n  - text: 批次 combined-f030 本机扫描快照 发布者记录：静态已校验\n- main:\n  - note: 派生结果证据模式：链接地址派生合并；未重新执行多核原生扫描。未归档可核对的原源码；可查看合并证据并继续人工确认，不能重新进行源码复核。\n  - heading \"变量与风险\" [level=1]\n  - paragraph: 静态证据与人工处理独立。原源码不可用时查看全部归档证据。\n  - text: 查找变量、文件或规范身份\n  - textbox \"查找变量、文件或规范身份\":\n    - /placeholder: 变量名 / 文件 / symbol_id\n    - text: F030_A::c:@Exceptions\n  - combobox \"静态分类\":\n    - option \"全部静态分类\" [selected]\n    - option \"静态疑似\"\n    - option \"无法判断\"\n    - option \"本构建已证明安全\"\n    - option \"共享但无需复核\"\n    - option \"容器汇总\"\n    - option \"未进入本构建\"\n    - option \"非存储对象\"\n  - button \"搜索\"\n  - text: 人工状态\n  - combobox \"人工状态\":\n    - option \"全部人工状态\" [selected]\n    - option \"待确认\"\n    - option \"人工确认有风险\"\n    - option \"人工确认无风险\"\n    - option \"暂无法确认\"\n    - option \"需重新确认\"\n    - option \"离线确认冲突\"\n  - group: 复合筛选（文件 / 函数 / IRQ / AI / 处理 / 覆盖 / Diff）\n  - text: 列表排序\n  - combobox \"列表排序\":\n    - option \"风险优先\" [selected]\n    - option \"变量名称（字典序）\"\n    - option \"定义位置\"\n    - option \"待办优先级\"\n  - text: 排序方向\n  - combobox \"排序方向\":\n    - option \"升序\" [selected]\n    - option \"降序\"\n  - paragraph: 匹配 1 项；显示 1–1\n  - button \"Exceptions 本构建已证明安全 暂无法确认 startup.c:57\":\n    - strong: Exceptions\n    - text: 本构建已证明安全 暂无法确认 startup.c:57\n  - button \"上一页\" [disabled]\n  - button \"下一页\" [disabled]\n  - separator \"调整列表与证据宽度\"\n  - heading \"选择左侧对象查看完整证据\" [level=2]\n  - paragraph: 支持同名static的独立身份。Ctrl+F查找，Esc返回列表。\n",
+  "seconds": 132.25,
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-ui-v3-evidence\\acceptance.json",
+  "original_receipt_sha256": "420b72d3f4a57f8782acc74af0328c2f4eae79b11bdb8103e2cbdb642d21d3e4",
+  "audit_note": "Original full receipt and partial human events/trace are retained. This compact copy omits only the redundant embedded full package source manifest, not test results."
+}

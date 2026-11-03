@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "summary": {
+    "summary_ok": true,
+    "tests": 51,
+    "passed_tests": 51,
+    "seconds": 26.93,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-publication-related-final-v3.log",
+  "log_sha256": "d36b9e05d39a9c76ce261224ae77dc48b38692811a3a7fb749749703aa54366a",
+  "multicore_sha256": "e8579a719bed38c0c19bc54d9530fe1bed92cd067bb3df5c24b9b49db9021983",
+  "scope": "51 overlapping storage/publication/API/package tests including9 new multicore-publication cases; real Clang unit facts plus explicitly declared ELF/failure fixtures. Not full1401 regression, real dual-core G2 or Portable validation.",
+  "all_gates_passed": false
+}

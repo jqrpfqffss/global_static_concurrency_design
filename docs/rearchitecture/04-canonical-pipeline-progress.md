@@ -1,6 +1,6 @@
-> 最新已完整封存本机候选包为[v31](55-frozen-v31-acceptance.md)，运行时30513de：1392项1390PASS/2联网SKIP，19组普通Chrome及1组真实VHD/Chrome满盘恢复，共20组162个重叠断言；30743份分发文件全SHA、129份运行时文件匹配。[U矩阵](ui/32-user-scenario-status-v31.md)仍11PASS/13待验。历史对象对比与满盘中文恢复均已入本包；完整H1–H6/G1–G8仍未关闭。
+> 最新已完整封存本机候选包为[v32](57-frozen-v32-acceptance.md)，运行时49960e：1392项1390PASS/2联网SKIP、2088.997s；20组162个重叠Chrome/VHD断言，30749份分发文件全SHA、129份运行时匹配。另有[U16第四批](60-u16-fourth-batch-v32-acceptance.md)实际新增1000、三次重启、最终4000事件且原件3000不变；[本包U矩阵](ui/34-user-scenario-status-v32.md)12PASS/12待验。完整重构仍未完成。
 
-> 后续49960e的64MiB写缓存另有[48项/原生F030/完整小图逐字节A/B](54-writer-page-cache-adr.md)，独立冻结1392项1390PASS/2SKIP、2088.997s。v32包另验；新388TU冷v13及[整范围存储观察](56-whole-storage-scope-observer.md)进行中。原版与v27冷v12原始事实根诊断已一致，规范化报告/完整门禁仍在执行；归档前78.31%尚未计入标准完整包，不关闭大型G1/G4。旧失败、其他真实工程用户延期、物理机/DPI/UAT状态保留。以下更早按日期保留的状态由本段覆盖。
+> 后续5bcfa01的[512MiB完整校验读取缓存](58-validation-read-cache-adr.md)已独立冻结v33并运行1392项全套及大图只读对照，尚无最终结果；[多核发布迁移](59-multicore-publication-adr.md)为后续源码，亦不在v32中。388TU冷v13及[整范围存储观察](56-whole-storage-scope-observer.md)继续执行；原版/v27冷v12事实根一致只是诊断，完整规范化报告及含标准包G4未关闭。旧失败、其他工程用户延期、物理机/DPI/UAT待验保留。
 
 # 2026-10-31 续轮：真实扫描链与验收进度
 
