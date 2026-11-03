@@ -1,0 +1,112 @@
+{
+  "passed": true,
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-frontend-v3.log",
+  "log_sha256": "bb57e97b2646ab2701711561a82870bfe98b44c8678a3cf1aa60c0a3a0d37952",
+  "assets": [
+    {
+      "file": "ecra/studio/web/assets/index-B6exn6Xr.css",
+      "sha256": "afbf2f3f6c5039eaf0b582dc28fbdc2c0a136964c653b126d3f864d304511037"
+    },
+    {
+      "file": "ecra/studio/web/assets/index-C0ah1Ypi.js",
+      "sha256": "0ed684961ca6b9643bded19c7583448b00e5c0f414f191b06b8bdb3a0f897b48"
+    },
+    {
+      "file": "ecra/studio/web/favicon.svg",
+      "sha256": "9ee65b090446ade828db8035a3f1882b2988e7728b712f0754a93fbe16570e7d"
+    },
+    {
+      "file": "ecra/studio/web/index.html",
+      "sha256": "44490b4348347aa145d70bb680315ff7263ecaf06de4352df326a6c22f97cb20"
+    },
+    {
+      "file": "ecra/studio/web/licenses/annotated-doc-0.0.4.json",
+      "sha256": "985af4d1695053253f59caa800bf859ec2dad329d86131a8956514092410820b"
+    },
+    {
+      "file": "ecra/studio/web/licenses/annotated-types-0.7.0.json",
+      "sha256": "4461f5ae761881ac2432f5b61b4a3e362197c141773b88384c224ab7c82a5074"
+    },
+    {
+      "file": "ecra/studio/web/licenses/anyio-4.13.0.json",
+      "sha256": "d98b029e209b5cac07b74f3006645f6de122da25982a724e37b01f469d3fb3e6"
+    },
+    {
+      "file": "ecra/studio/web/licenses/click-8.4.1.json",
+      "sha256": "94eb3c2ac6ef40a300ad97b41f3338354d39fc600204eec82520166c7309e496"
+    },
+    {
+      "file": "ecra/studio/web/licenses/colorama-0.4.6.json",
+      "sha256": "3d249637b95c414b1e1a28f5204a35a745bff359908efd19d6fa1937c06ad9e5"
+    },
+    {
+      "file": "ecra/studio/web/licenses/exceptiongroup-1.3.1.json",
+      "sha256": "57b9de59bf4679f45d6a819458da3ffbc4b3428317d6ed74b7b5ff1927b5b8ea"
+    },
+    {
+      "file": "ecra/studio/web/licenses/fastapi-0.136.3.json",
+      "sha256": "877c702ac4895c38daae2a5fb53d7130cf6c286802f941010071b6eb415043f4"
+    },
+    {
+      "file": "ecra/studio/web/licenses/h11-0.16.0.json",
+      "sha256": "57c277633fcf2ef7817cb07542cfc49025cae7bde8b7433233b3d9408518c8b6"
+    },
+    {
+      "file": "ecra/studio/web/licenses/idna-3.18.json",
+      "sha256": "dcbb4c15b418af6d00eaefda37ee81ec8aa1a1b3d61acd0d34980d354718e32c"
+    },
+    {
+      "file": "ecra/studio/web/licenses/inventory.json",
+      "sha256": "9db66d38bdc5bd65fa093fff7bd56561f08670fd3bee43cfdf59b31ae4bed375"
+    },
+    {
+      "file": "ecra/studio/web/licenses/libclang-18.1.1.json",
+      "sha256": "5bc45b95e4043d04f03003a2739fb79b29da34de7db5ccd5ec8e42e3b9ca469a"
+    },
+    {
+      "file": "ecra/studio/web/licenses/pydantic-2.13.4.json",
+      "sha256": "2ad4ac801ef88df8e6708128ee309d03e86e77c96d819f06f1556198e5eb2473"
+    },
+    {
+      "file": "ecra/studio/web/licenses/pydantic-core-2.46.4.json",
+      "sha256": "34c0cfd713624ea0c53127fb85f9af9e664580d01fae2b3bc79a5b411feb5f1b"
+    },
+    {
+      "file": "ecra/studio/web/licenses/PyYAML-6.0.3.json",
+      "sha256": "b33e6f8a243ab54a2a1c0d81a1b1dfcf3a2c68ca2f35f6314c37c17a1b4bdce2"
+    },
+    {
+      "file": "ecra/studio/web/licenses/ruamel.yaml-0.18.16.json",
+      "sha256": "e120c73b6e83276b42b41420cb0e595732a2b20e21ecef14d9a1c36f4437ef52"
+    },
+    {
+      "file": "ecra/studio/web/licenses/ruamel.yaml.clib-0.2.12.json",
+      "sha256": "71a713385d0323899d9ecf3699961c93bba593d18d8e391da9636c8bb86f9b9f"
+    },
+    {
+      "file": "ecra/studio/web/licenses/starlette-1.2.1.json",
+      "sha256": "3e9c35db1bb1c0bddb3e1075ad9ab55777d8c95d026beed93bd7cedd1ee3460a"
+    },
+    {
+      "file": "ecra/studio/web/licenses/typing-extensions-4.15.0.json",
+      "sha256": "826225c4bfaa05a9d91b4488b7aa600746d504b3ad3dfa92f396f339f3ca921d"
+    },
+    {
+      "file": "ecra/studio/web/licenses/typing-inspection-0.4.2.json",
+      "sha256": "65f04795ed2e40aab6b8c813161c11d9f0ce68c0a203d0120e5992f9b82fb85d"
+    },
+    {
+      "file": "ecra/studio/web/licenses/uvicorn-0.49.0.json",
+      "sha256": "fa2e2f9b7f2b6c339580210e98376b746adae4dc3259f79b7b806d2d428343f9"
+    },
+    {
+      "file": "ecra/studio/web/licenses/vue-LICENSE.txt",
+      "sha256": "5818899c48b48d0c1e898741974b91ffaf938962349b32e25d4b37a031771364"
+    }
+  ]
+}

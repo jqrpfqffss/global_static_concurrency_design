@@ -1,0 +1,36 @@
+{
+  "passed": false,
+  "scope": "Actual Windows kernel disk-full on new owned256MiB VHD NTFS; real GUI writes/export and recovery. Not physical host disk-full, power loss, whole G5/G4/32GB/second-PC/DPI/UAT.",
+  "tests": [],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v1\\evidence\\failed.png"
+  ],
+  "page_errors": [],
+  "phase": "FAILED",
+  "volume": {
+    "nonce": "de35adda1cce4482ae4573020923fd2c",
+    "filler": "G:\\ECRA-DISKFULL-V1\\filler.bin",
+    "image": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v1\\owned-test-volume.vhd",
+    "data_root": "G:\\ECRA-DISKFULL-V1\\data",
+    "owned_root": "G:\\ECRA-DISKFULL-V1",
+    "volume_id": "\\\\?\\Volume{5ac9d66c-0000-0000-0000-010000000000}\\",
+    "disk_number": 3,
+    "disk_unique_id": "60022480355DD35EBECA4D4C3F835F4C",
+    "marker": "G:\\ECRA-DISKFULL-V1\\owner.txt",
+    "total_bytes": 267317248,
+    "filesystem": "NTFS",
+    "drive_root": "G:\\"
+  },
+  "symbol_id": "c:@Exceptions",
+  "events_before": 1,
+  "static_sha256_before": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "old_export_sha256": "d054b4d4c66c2e6bb1ca9758b965aa31e95dfdc90d7f81881b9d705cfe62f407",
+  "kernel_full_error": {
+    "errno": 28,
+    "winerror": null,
+    "message": "[Errno 28] No space left on device"
+  },
+  "free_bytes_when_full": 20480,
+  "filler_bytes": 241176576,
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-real-disk-full-ui-v1.py\", line 64, in main\n    assert result['free_bytes_when_full']<4096;passed('actual_new_ntfs_volume_reaches_kernel_disk_full_without_filling_host_or_firmware_volume')\nAssertionError\n"
+}

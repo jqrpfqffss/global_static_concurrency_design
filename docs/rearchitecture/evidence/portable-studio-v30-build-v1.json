@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "seconds": 2203.0160000000033,
+  "command": [
+    "C:/Program Files/PowerShell/7/pwsh.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v30\\build_portable.ps1",
+    "-OutputDir",
+    "H:\\ECRAStudio-build-20261103-studio-v30",
+    "-CacheDir",
+    "H:/global_static_concurrency_design/.tools-cache",
+    "-GitSource",
+    "H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/tools/git"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-studio-v30-build-v1.log",
+  "log_sha256": "c77c87cfb7e1f0c9119281ffa87835c55bdb5b9c0cd97396cb9147074d0d593e",
+  "source_head": "bdfc050981d2b9ba7dd6ec5dfb4f6bf61cbabb85",
+  "manifest_sha256": "ea3c2f827ac4025fad02c878429e4c730fedb1a5cb717bc3216ad514db38844d",
+  "source_differences": [],
+  "priority": {
+    "pid": 6976,
+    "created": 1793672999.5811584,
+    "command": [
+      "C:/Program Files/PowerShell/7/pwsh.exe",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v30\\build_portable.ps1",
+      "-OutputDir",
+      "H:\\ECRAStudio-build-20261103-studio-v30",
+      "-CacheDir",
+      "H:/global_static_concurrency_design/.tools-cache",
+      "-GitSource",
+      "H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/tools/git"
+    ],
+    "actual_io_priority": 1,
+    "actual_cpu_priority": 16384,
+    "scope": "Owned PowerShell parent only; no unsupported claim about every descendant"
+  },
+  "scope": "Actual local candidate build including directory and Chinese ZIP CLI validation. Concurrent native/reference work is declared; not an isolated performance comparison or complete release.",
+  "zip": "H:\\ECRAStudio-build-20261103-studio-v30\\ECRA-Portable.zip",
+  "zip_bytes": 657050351,
+  "zip_sha256": "a7e5f6d1e9b3cee21d65be47136eddbd7c5b4b3cdab58a29120a4792a48bdb1f"
+}

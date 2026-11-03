@@ -107,6 +107,14 @@ def _create_app(data_root, *, token, authority, startup):
         # Persist actionable diagnostics without sending stack paths or local
         # secrets to arbitrary network clients. APIs expose domain errors.
         if isinstance(exc, (ValueError, OSError, KeyError, sqlite3.Error)):
+            import errno
+            sqlite_code=getattr(exc,'sqlite_errorcode',None)
+            exhausted=(isinstance(exc,OSError) and (exc.errno==errno.ENOSPC or getattr(exc,'winerror',None) in {39,112})) or (
+                isinstance(exc,sqlite3.Error) and ((type(sqlite_code) is int and sqlite_code&255==13) or str(exc).strip().lower()=='database or disk is full'))
+            if exhausted:
+                message=('写入磁盘空间不足，操作未能正常完成。请检查独立数据目录及系统临时目录所在盘，释放空间后核对当前结果和人工状态再重试。'
+                         '“数据与共享”可查看占用和安全回收计划。当前数据目录：'+str(data)+'。技术信息：'+str(exc))
+                return JSONResponse(dict(error=message,code='DISK_FULL',detail=str(exc)),status_code=400)
             return JSONResponse(dict(error=str(exc)), status_code=409 if isinstance(exc, ReviewConflict) else 400)
         import traceback
         folder = no_links(data/'work/errors'); folder.mkdir(parents=True, exist_ok=True)
@@ -201,6 +209,11 @@ def _create_app(data_root, *, token, authority, startup):
         from .history import history as query_history
         return query_history(data, project=project, profile=profile, core=core, git=git, scan_mode=scan_mode,
                              state=state, date_from=date_from, date_to=date_to, offset=offset, limit=limit)
+
+    @app.get('/api/history/compare')
+    def compare_history(base: str, current: str, search: str='', change: str='', offset: int=0, limit: int=50):
+        from .comparison import compare_archives
+        return compare_archives(scan_path(base), scan_path(current), search=search, change=change, offset=offset, limit=limit)
 
     @app.get('/api/scans/{scan_id}/summary')
     def summary(scan_id: str):

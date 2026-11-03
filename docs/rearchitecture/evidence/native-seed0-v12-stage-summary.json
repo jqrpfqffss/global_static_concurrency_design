@@ -1,0 +1,68 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "recorded_utc": "2026-11-03T07:39:24.162051+00:00",
+  "source_head": "1493c051165973838b35653e26ce1a0943e419d3",
+  "native_receipt": {
+    "path": "docs/rearchitecture/evidence/inav-canonical-seed0-native-v12-final.json",
+    "sha256": "17d2d454740eeed8670b580f14e8d47e930d5f1422f42f4196a73928044f5007"
+  },
+  "scope": "Actual completed fixed-seed fresh native CLI body, frozen v27. Not v30/current source; not strict large G1 or physical32GB/full GUI/G4. Whole before-archive physical retention is measured separately. Shared physical HDD/concurrent copy/build/tests; elapsed times are observations, not isolated attribution.",
+  "before": {
+    "seconds": 15454.921999999991,
+    "peaks": {
+      "working_set_bytes": 29559390208,
+      "private_bytes": 29741166592,
+      "peak_job_commit_bytes": 29811765248,
+      "sampled_output_logical_bytes": 46427693457,
+      "sampled_output_allocated_bytes": 46538663768
+    },
+    "final_output_disk": {
+      "files": 57773,
+      "logical_bytes": 46427693457,
+      "allocated_bytes": 46538663768,
+      "unique_files": 57773,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 5.89100000000326
+    }
+  },
+  "after": {
+    "seconds": 31846.532000000007,
+    "peaks": {
+      "working_set_bytes": 10618966016,
+      "private_bytes": 10685960192,
+      "peak_job_commit_bytes": 10687008768,
+      "sampled_output_logical_bytes": 26757450325,
+      "sampled_output_allocated_bytes": 18794582808
+    },
+    "final_output_disk": {
+      "files": 6121,
+      "logical_bytes": 23371645093,
+      "allocated_bytes": 9210561128,
+      "unique_files": 6121,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.6710000000020955
+    }
+  },
+  "inputs_unchanged": 4123,
+  "engine_files_unchanged": 2043,
+  "original_complete_backup_files": 57773,
+  "physical_retention_before_standard_archive": {
+    "passed": true,
+    "stable": true,
+    "before_allocated_bytes": 47665101856,
+    "after_allocated_bytes": 10336999216,
+    "reduction_percent": 78.31327572271033,
+    "standard_archive_included": false,
+    "final_size_target_70percent": "PASS",
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v12-retention-before-archive.json",
+    "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+    "full_G4": "NOT_CLOSED_AUTOMATICALLY; native and archive-phase sampled peaks remain separate scopes; physical metadata excluded"
+  },
+  "semantic_differences": "NOT_VERIFIED_PENDING_COMPLETE_ORIGINAL_GRAPH_AND_UNCHANGED_STRICT_COMPARATOR",
+  "standard_full_archive": "NOT_YET_EXPORTED_PENDING_STRICT_ZERO_DIFFERENCES",
+  "physical32GB": "NOT_VERIFIED",
+  "all_U_scenarios": "NOT_CLOSED"
+}

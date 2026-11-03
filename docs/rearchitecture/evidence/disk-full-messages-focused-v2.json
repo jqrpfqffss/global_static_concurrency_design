@@ -1,0 +1,15 @@
+{
+  "summary_ok": true,
+  "tests": 26,
+  "passed_tests": 26,
+  "seconds": 13.569,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\disk-full-messages-focused-v2.log",
+  "log_sha256": "d92da805f666868a28f780870bdbb7ce696f80a749de3c3faef344e5a8c6d640",
+  "scope": "Focused API/download/archive tests; first failure is short-vs-canonical Windows path assertion, preserved. Actual kernel disk-full proof is separate VHD receipt."
+}

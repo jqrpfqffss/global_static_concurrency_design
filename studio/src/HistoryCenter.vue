@@ -2,15 +2,20 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { api, download, label } from './api'
 import './history.css'
+import HistoryComparison from './HistoryComparison.vue'
 const props=defineProps<{dataRoot:string,busy:boolean}>()
-const emit=defineEmits<{open:[id:string],continue:[id:string]}>()
+const emit=defineEmits<{open:[id:string],continue:[id:string],symbol:[scan:string,symbol:string]}>()
 const defaults=()=>({project:'',profile:'',core:'',git:'',scan_mode:'',state:'',date_from:'',date_to:''})
 const filters=ref(defaults()),offset=ref(0),page=ref<any>(null),working=ref(false),error=ref(''),notice=ref('')
 const expanded=ref(false)
+const baseline=ref(''),comparison=ref<{base:string,current:string}|null>(null)
 const disabled=computed(()=>working.value||props.busy)
 const key='ecra-history:'+props.dataRoot
 let needsInitial=true
-function remember(){try{sessionStorage.setItem(key,JSON.stringify({filters:filters.value,offset:offset.value}))}catch{notice.value='浏览器不允许保存检索位置；当前检索仍可使用。'}}
+function remember(){try{sessionStorage.setItem(key,JSON.stringify({filters:filters.value,offset:offset.value,baseline:baseline.value,comparison:comparison.value}))}catch{notice.value='浏览器不允许保存检索位置；当前检索仍可使用。'}}
+function setBaseline(id:string){if(disabled.value)return;baseline.value=id;comparison.value=null;remember()}
+function compare(id:string){if(disabled.value||!baseline.value||baseline.value===id)return;comparison.value={base:baseline.value,current:id};remember()}
+function closeComparison(){comparison.value=null;remember()}
 async function load(){
  if(disabled.value)return
  needsInitial=false
@@ -37,7 +42,7 @@ watch(()=>props.busy,value=>{if(!value&&needsInitial)load()})
 onMounted(async()=>{
  try{
   const saved=JSON.parse(sessionStorage.getItem(key)||'null')
-  if(saved){for(const name of Object.keys(defaults()) as (keyof ReturnType<typeof defaults>)[])if(typeof saved.filters?.[name]==='string')filters.value[name]=saved.filters[name];if(Number.isSafeInteger(saved.offset)&&saved.offset>=0)offset.value=saved.offset;expanded.value=Object.entries(filters.value).some(([name,value])=>!['project','profile'].includes(name)&&!!value)}
+  if(saved){for(const name of Object.keys(defaults()) as (keyof ReturnType<typeof defaults>)[])if(typeof saved.filters?.[name]==='string')filters.value[name]=saved.filters[name];if(Number.isSafeInteger(saved.offset)&&saved.offset>=0)offset.value=saved.offset;expanded.value=Object.entries(filters.value).some(([name,value])=>!['project','profile'].includes(name)&&!!value);if(typeof saved.baseline==='string')baseline.value=saved.baseline;if(typeof saved.comparison?.base==='string'&&typeof saved.comparison?.current==='string')comparison.value=saved.comparison}
  }catch{notice.value='已忽略无法读取的浏览器检索位置；归档数据仍保留。'}
  await load()
 })
@@ -45,6 +50,9 @@ onMounted(async()=>{
 <template>
  <section class="history-center">
   <h1>历史与对比</h1><p>检索保存的静态快照；发布状态不表示当前源码有效。“本轮未观察到”不等于已修复。</p>
+  <HistoryComparison v-if="comparison" :key="comparison.base+':'+comparison.current" :base="comparison.base" :current="comparison.current" :busy="disabled" @close="closeComparison" @symbol="(id,symbol)=>emit('symbol',id,symbol)" />
+  <template v-else>
+  <p v-if="baseline" class="banner" role="status">当前对比基准：<span class="identity">{{baseline}}</span>。请选择另一归档的“与基准对比”。<button :disabled="disabled" @click="setBaseline('')">清除基准</button></p>
   <form class="panel" aria-label="历史检索" @submit.prevent="search">
    <div class="history-basic-filters">
     <label>工程名称 / ID<input v-model="filters.project" :disabled="disabled" maxlength="256" placeholder="字面包含"></label>
@@ -78,6 +86,8 @@ onMounted(async()=>{
      </div>
      <div class="history-actions">
       <button :disabled="disabled||!item.can_open" @click="emit('open',item.scan_id)">打开结果</button>
+      <button :disabled="disabled||!item.can_confirm" @click="setBaseline(item.scan_id)">{{baseline===item.scan_id?'已选为对比基准':'设为对比基准'}}</button>
+      <button :disabled="disabled||!item.can_confirm||!baseline||baseline===item.scan_id" @click="compare(item.scan_id)">与基准对比</button>
       <button :disabled="disabled||!item.can_confirm" @click="emit('continue',item.scan_id)">继续人工确认</button>
       <button :disabled="disabled||!item.can_open" @click="exportRow(item.scan_id,'full')">导出标准完整包</button>
       <button :disabled="disabled||!item.can_confirm" @click="exportRow(item.scan_id,'delta')">导出人工确认增量</button>
@@ -86,6 +96,7 @@ onMounted(async()=>{
     <p v-if="!page.total">没有匹配归档。可清空筛选；尚未扫描时请接入工程，或从数据与共享导入结果包。</p>
    </section>
   </template>
-  <p class="muted">已归档 Diff 保留固定比较方向；跨历史批次的完整语义对比仍待实现与验收。导出包可能包含敏感源码与备注，请按团队规则分享。</p>
+  <p class="muted">历史对象对比按归档canonical身份和完整事实/报告指纹保守关联；不替代重新扫描和源码核对。导出包可能包含敏感源码与备注，请按团队规则分享。</p>
+  </template>
  </section>
 </template>

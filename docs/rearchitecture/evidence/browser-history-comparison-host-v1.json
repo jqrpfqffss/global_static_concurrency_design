@@ -1,0 +1,205 @@
+{
+  "passed": false,
+  "scope": "Real Chrome catalog operations using existing approved native scan archives.\n\nNo invented scan identities, dates, analysis fields or human events. Copies of\npreviously completed native archives are isolated from the originals. One\nexplicit corrupt database is a negative fixture, not a simulated scan result.\nThis is not new native/G1/G2/physical second-PC/DPI/UAT acceptance.\n",
+  "engine": "H:\\global_static_concurrency_design",
+  "python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "tests": [
+    {
+      "name": "actual23_native_archive_identity_set_and_server_pagination",
+      "status": "PASS"
+    },
+    {
+      "name": "page_offset_survives_actual_browser_reload_during_parent_bootstrap",
+      "status": "PASS"
+    },
+    {
+      "name": "real_project_profile_fullmode_publishstate_UTC_day_and_filter_reopen",
+      "status": "PASS"
+    },
+    {
+      "name": "missing_core_is_not_invented_and_empty_filter_has_recovery_action",
+      "status": "PASS"
+    },
+    {
+      "name": "row_specific_complete_and_delta_exports_roundtrip_exact_binding_and_all_events",
+      "status": "PASS"
+    },
+    {
+      "name": "continue_action_opens_selected_history_not_previous_header_scan",
+      "status": "PASS"
+    },
+    {
+      "name": "one_corrupt_archive_visible_and_does_not_hide23_valid_archives",
+      "status": "PASS"
+    },
+    {
+      "name": "1366_real_browser_query_controls_and_no_horizontal_overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "two_real_native_archives_compare_exact_canonical_union_and_conservative_full_fingerprints",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_comparison_pagination_keeps_previous_rows_and_range_atomic_or_explicit_last_page",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\01-real-native-archives-page-one.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\02-reopened-page-two.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\03-composite-query-keeps-archived-identity.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\04-empty-explicit-no-safety-claim.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\05-row-specific-export-preserves-current-other-header.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\06-row-specific-continue-confirmation.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\07-corrupt-archive-kept-with-diagnostic.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\08-history-1366-controls.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-host-v1-evidence\\09-real-archive-comparison-direction-and-counts.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "source_archives": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\9a984191cb3446d0a86fe745cd478916",
+      "scan_id": "9a984191cb3446d0a86fe745cd478916",
+      "scan_sha256": "3ac483c52262f7d3f3174315ed4251bcf7f6c19a35b9a94aaf1c3dd5439bc2dc",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\39933fd8df8a4f31b837fc506888e8f5",
+      "scan_id": "39933fd8df8a4f31b837fc506888e8f5",
+      "scan_sha256": "18c10c5db175f7fae9cbc0d8c8db845e9fd3626720ff056545bcdfc0e69523e4",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\c4fc4747e275423f9c27c71649d67393",
+      "scan_id": "c4fc4747e275423f9c27c71649d67393",
+      "scan_sha256": "aa457ce10373b1ca8209ffaa06c5f18949b6ba8aca3fe02aa45307430efa2cfe",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\755ee1ef192b4f3da9bc4ffc1042e3b1",
+      "scan_id": "755ee1ef192b4f3da9bc4ffc1042e3b1",
+      "scan_sha256": "0d83a951ed464a888680f6e4a648e10ef661f5c19c1803a1e2ba11abe9c8e2f7",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\6afe2bd0046f4dcfa97180f479bc931c",
+      "scan_id": "6afe2bd0046f4dcfa97180f479bc931c",
+      "scan_sha256": "a07d1c7ab4931df3fb5d07eb1ef6e0214375e4ddfc8a6adce8493d5e97cca8d2",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\cf18c713fcf74b5bb6e78b385c551462",
+      "scan_id": "cf18c713fcf74b5bb6e78b385c551462",
+      "scan_sha256": "f84f75a5ec5937624be633d618f9d559c8e050150304b39feafa6f0511ea5264",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\5a43deefd34f4f07ad8fc3a70c028f49",
+      "scan_id": "5a43deefd34f4f07ad8fc3a70c028f49",
+      "scan_sha256": "a4ddf771c2609b4dc89bc3212e705d4d04a314196f9503c7aeef76c158c60d52",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\23485e03d0814817af4a19cce892503c",
+      "scan_id": "23485e03d0814817af4a19cce892503c",
+      "scan_sha256": "790844c421f3ce6043fffcbb4f884b40a074c0d26b395d9f12a071c858465951",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\b249ffe20c8c42d9803240c93c20ea23",
+      "scan_id": "b249ffe20c8c42d9803240c93c20ea23",
+      "scan_sha256": "438d46a0e63e25f7c921a082b1c47c7bd25b7817e85b024e9500d2f9d65ab3fe",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\c92b3b39b503448a9bb7ff5fb41c482c",
+      "scan_id": "c92b3b39b503448a9bb7ff5fb41c482c",
+      "scan_sha256": "952c38ce73a8fac5443c6957f579ff3cd19264f6f0b3739d4252526f27308591",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\06fe1c74893a41058e3e09feebb3081a",
+      "scan_id": "06fe1c74893a41058e3e09feebb3081a",
+      "scan_sha256": "6d954a5cb44f1a76692f069e1c7499c5789c33f116b6c2f3e4fc323d86132fab",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\86f80f223810428a87661de2e9b1b962",
+      "scan_id": "86f80f223810428a87661de2e9b1b962",
+      "scan_sha256": "9bba94a7a53546dc2c226271d7fa9ad1aa53ba9d55e0a40ee60ebdc90e9d2f06",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v3\\data\\scans\\47eb8aa0b658428fa65671993db02c58",
+      "scan_id": "47eb8aa0b658428fa65671993db02c58",
+      "scan_sha256": "35cf53499e437b732cf458b28b82467eecd5ee5984ffd751b2877b0a4081eb54",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\707336aa1c3b4c6497a79276f6c6ae8e",
+      "scan_id": "707336aa1c3b4c6497a79276f6c6ae8e",
+      "scan_sha256": "58c0c2d0825b1d700391a3545e256948908706f35369c9b0dd7093c7a307e80b",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\142b3ac94e5542169c400cc350ab0fa5",
+      "scan_id": "142b3ac94e5542169c400cc350ab0fa5",
+      "scan_sha256": "7a23f9c859918aac2f940da6a202f939bfe32b1ed757e1d165bcdb4b1b766886",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\bf276a8774b940479eb9e0babf2425d1",
+      "scan_id": "bf276a8774b940479eb9e0babf2425d1",
+      "scan_sha256": "8672ddebeaa735b29961a8e1af4473776d7b63fc3f4dee3a4bfba5a48dbdec55",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\1238fb825ea84dd08e3b9eb9d7b28ff9",
+      "scan_id": "1238fb825ea84dd08e3b9eb9d7b28ff9",
+      "scan_sha256": "27bd0595a0178a417bd8123507cb92e314ec97bf56d6c81cfd5a028745d1a47e",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\abdd3c4eda6c4e03b5b7c0ae4edecb60",
+      "scan_id": "abdd3c4eda6c4e03b5b7c0ae4edecb60",
+      "scan_sha256": "6687a83df274fcbb2e3208fb4508d7f0e72086749626ee48c2f35ba18388c685",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\5943bb6089f24944bba6c19d7294e308",
+      "scan_id": "5943bb6089f24944bba6c19d7294e308",
+      "scan_sha256": "c561d2f29d02a57c22f209c198e34b4bb44b6c7d8c14e5202419fddadb857170",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\247eed88170d41b6ba73254822070336",
+      "scan_id": "247eed88170d41b6ba73254822070336",
+      "scan_sha256": "824c1ecce4c036882b079a7604bb9ca87a65e9c7d86ebac5cea4abbb59cc334e",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\cfb049563dc045aeb9071909f7e4e9de",
+      "scan_id": "cfb049563dc045aeb9071909f7e4e9de",
+      "scan_sha256": "5975c2a8dd486ff3b7d267d51e803cc1938c1db9a943f4dc18f71bc2d1abf1f5",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\855a380c66ba47c9893f88829daaa214",
+      "scan_id": "855a380c66ba47c9893f88829daaa214",
+      "scan_sha256": "151f1997cbaa81e55616faebbbc9bbd9a36d7017c95f61d227e4bfefa7cdc0f8",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-main\\data\\scans\\c4c8342314b54add84bc3fe8c858236f",
+      "scan_id": "c4c8342314b54add84bc3fe8c858236f",
+      "scan_sha256": "f313fdf553112485c6f4757e89b54b36c7cfd7e795ceeb36926f8aee1d62d770",
+      "events": 0
+    }
+  ],
+  "native_DPI": "NOT_VERIFIED",
+  "engineer_UAT": "NOT_VERIFIED",
+  "physical_second_PC": "NOT_VERIFIED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_history_ui.py\", line 224, in main\n    expect(page.locator('.header-scan')).to_contain_text(sid,timeout=30000)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 21705, in to_contain_text\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 301, in to_contain_text\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to contain text 'c:@Exceptions'\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect \"to_contain_text\" with timeout 30000ms\n  - waiting for locator(\".detail\")\n\nAria snapshot:\n- complementary:\n  - text: ECRA Studio\n  - paragraph: 并发风险分析工作台\n  - navigation \"主导航\":\n    - link \"项目概览\":\n      - /url: \"#/overview\"\n    - link \"工程配置\":\n      - /url: \"#/projects\"\n    - link \"扫描任务\":\n      - /url: \"#/tasks\"\n    - link \"变量与风险\":\n      - /url: \"#/variables\"\n    - link \"覆盖与诊断\":\n      - /url: \"#/coverage\"\n    - link \"OpenCode 复核\":\n      - /url: \"#/opencode\"\n    - link \"人工确认\":\n      - /url: \"#/reviews\"\n    - link \"历史与对比\":\n      - /url: \"#/history\"\n    - link \"数据与共享\":\n      - /url: \"#/sharing\"\n  - link \"设置与验收状态\":\n    - /url: \"#/settings\"\n  - text: 本地数据 · 中文 开发预览 · 发布门禁未通过\n- banner:\n  - button \"查看当前工程与构建身份\":\n    - strong: firmware\n    - text: 目标未记录 · 变体未记录 · 核心声明 Cortex-M0\n  - text: 批次 9a984191cb3446d0a86fe745cd478916 本机扫描快照 发布者记录：静态已校验\n- main:\n  - heading \"变量与风险\" [level=1]\n  - paragraph: 静态证据与人工处理独立。原源码不可用时查看全部归档证据。\n  - paragraph:\n    - text: 精确定位：c:@Exceptions\n    - button \"清除精确定位\"\n  - text: 查找变量、文件或规范身份\n  - textbox \"查找变量、文件或规范身份\":\n    - /placeholder: 变量名 / 文件 / symbol_id\n  - combobox \"静态分类\":\n    - option \"全部静态分类\" [selected]\n    - option \"静态疑似\"\n    - option \"无法判断\"\n    - option \"本构建已证明安全\"\n    - option \"共享但无需复核\"\n    - option \"容器汇总\"\n    - option \"未进入本构建\"\n    - option \"非存储对象\"\n  - button \"搜索\"\n  - text: 人工状态\n  - combobox \"人工状态\":\n    - option \"全部人工状态\" [selected]\n    - option \"待确认\"\n    - option \"人工确认有风险\"\n    - option \"人工确认无风险\"\n    - option \"暂无法确认\"\n    - option \"需重新确认\"\n    - option \"离线确认冲突\"\n  - group: 复合筛选（文件 / 函数 / IRQ / AI / 处理 / 覆盖 / Diff）\n  - text: 列表排序\n  - combobox \"列表排序\":\n    - option \"风险优先\" [selected]\n    - option \"变量名称（字典序）\"\n    - option \"定义位置\"\n    - option \"待办优先级\"\n  - text: 排序方向\n  - combobox \"排序方向\":\n    - option \"升序\" [selected]\n    - option \"降序\"\n  - paragraph: 匹配 1 项；显示 1–1\n  - button \"Exceptions 本构建已证明安全 待确认 startup.c:57\":\n    - strong: Exceptions\n    - text: 本构建已证明安全 待确认 startup.c:57\n  - button \"上一页\" [disabled]\n  - button \"下一页\" [disabled]\n  - separator \"调整列表与证据宽度\"\n  - heading \"Exceptions\" [level=2]\n  - button \"复制全名\"\n  - paragraph: c:@Exceptions\n  - paragraph: 静态：本构建已证明安全；人工：待确认。此处展示归档分析证据，不代表目标板实测。\n  - tablist \"证据分组\":\n    - tab \"时序与访问\" [selected]\n    - tab \"调用与保护\"\n    - tab \"归档源码\"\n    - tab \"人工历史\"\n  - heading \"潜在并发与判定条件\" [level=3]\n  - paragraph: 展开静态理由查看成立前提；证据不足时保持未知。推断时序不是硬件采集。\n  - paragraph: 本对象没有独立finding；请核对变量覆盖状态。\n  - heading \"访问证据 · 共 0 项\" [level=3]\n  - paragraph: 确认者为未经认证的声明；操作不改变静态/AI分类。\n  - text: 确认者\n  - textbox \"确认者\":\n    - /placeholder: 姓名或团队声明\n  - text: 独立处理状态\n  - combobox \"独立处理状态\":\n    - option \"待修复\" [selected]\n    - option \"修复中\"\n    - option \"待验证\"\n    - option \"已关闭\"\n    - option \"接受风险\"\n  - text: 依据 / 修改或撤销理由\n  - textbox \"依据 / 修改或撤销理由\":\n    - /placeholder: 确认无风险必须填写依据或证据引用\n  - button \"确认有风险\" [disabled]\n  - button \"确认无风险\" [disabled]\n  - button \"暂无法确认\" [disabled]\n  - button \"撤销上次确认\" [disabled]\n"
+}

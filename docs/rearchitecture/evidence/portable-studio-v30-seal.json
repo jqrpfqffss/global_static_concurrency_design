@@ -1,0 +1,260 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "source_head": "bdfc050981d2b9ba7dd6ec5dfb4f6bf61cbabb85",
+  "frozen_files": 2260,
+  "source_manifest_sha256": "ea3c2f827ac4025fad02c878429e4c730fedb1a5cb717bc3216ad514db38844d",
+  "recorded_utc": "2026-11-03T07:33:37.377284+00:00",
+  "scope": "Exact bdfc050 local Portable acceptance,1383 regression,19 actual Chrome groups and native F030 exact comparison. Not full refactor,physical32GB/second-PC/clean offline/DPI/UAT or all G gates. New source disk-full localization is excluded.",
+  "program_entry": "H:\\ECRAStudio-build-20261103-studio-v30\\ECRA-Portable\\ECRA.cmd",
+  "zip_path": "H:\\ECRAStudio-build-20261103-studio-v30\\ECRA-Portable.zip",
+  "zip_bytes": 657050351,
+  "zip_sha256": "a7e5f6d1e9b3cee21d65be47136eddbd7c5b4b3cdab58a29120a4792a48bdb1f",
+  "runtime_source_files_matched": 128,
+  "runtime_source_differences": [],
+  "distribution_files_verified": 30549,
+  "distribution_verification": {
+    "passed": true,
+    "files": 30549,
+    "runtime_matches": 128,
+    "differences": [],
+    "files_manifest_sha256": "6fb495e3ffde489b032ef125d4dae121a0724f1738e5d6e66b902df5c35589de",
+    "recorded_utc": "2026-11-03T07:33:21.101242+00:00"
+  },
+  "regression": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1383,
+    "passed_tests": 1381,
+    "failures": 0,
+    "errors": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "skipped": 2,
+    "seconds": 1896.978,
+    "controller_seconds": 1901.8280000000086,
+    "source_head": "bdfc050981d2b9ba7dd6ec5dfb4f6bf61cbabb85",
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v30",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v30",
+    "frozen_files": 2260,
+    "differences": [],
+    "manifest_sha256": "ea3c2f827ac4025fad02c878429e4c730fedb1a5cb717bc3216ad514db38844d",
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "effective_parent_seed": "0",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v30.log",
+    "log_sha256": "782ce7b527ae064c3a5c2156da820908f95b20a75c9551709017cd5c79e01954",
+    "scope": "Exact frozen sourcebdfc050 plus V1 query precedence, atomic conflict-page display, blocked working-input form/preview, sparse-hole construction and actual failed-run accounting. Expected1383 with2live opt-in skips; no Portable/large G1 claim."
+  },
+  "native_F030": {
+    "receipt": "docs/rearchitecture/evidence/native-exact-f030-v30-v1.json",
+    "facts": {
+      "before": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f",
+      "after": "49e91182b4d91954a3ee18b03068cc70650952ce9366b30179d56815a1987f0f"
+    },
+    "report": {
+      "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+      "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+    }
+  },
+  "browser_groups": [
+    {
+      "name": "preflight",
+      "tests": 16,
+      "passed": true,
+      "seconds": 171.375,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-preflight.json",
+      "sha256": "a312962e7401495c99581406720f6e39ce505c38d48594ec97084466f2c6e308"
+    },
+    {
+      "name": "sample",
+      "tests": 11,
+      "passed": true,
+      "seconds": 35.703000000008615,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-sample.json",
+      "sha256": "6d08f1126b361d477c6cb164331d2d4d18397db4bc6fada5cb71b46a70d3aa3e"
+    },
+    {
+      "name": "main",
+      "tests": 17,
+      "passed": true,
+      "seconds": 118.4539999999979,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-main.json",
+      "sha256": "3b998633da81d2b8049b68b0ef1fa8a68806f59d738f6c165df79d7de9b7894f"
+    },
+    {
+      "name": "legacy-degraded",
+      "tests": 6,
+      "passed": true,
+      "seconds": 87.78099999998813,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-legacy-degraded.json",
+      "sha256": "6167610155d249ba42f6f7711ef6f03ff33d61759e3a28b98a783dd5619f9ae8"
+    },
+    {
+      "name": "profile",
+      "tests": 7,
+      "passed": true,
+      "seconds": 7.4060000000172295,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-profile.json",
+      "sha256": "0fb2d27db69ac343edb450c928e8f758ec1ef129ffaf5b06b4556b93b0e62315"
+    },
+    {
+      "name": "contexts",
+      "tests": 8,
+      "passed": true,
+      "seconds": 9.10899999999674,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-contexts.json",
+      "sha256": "8032d5eb7566bd5bf217ab826cf0f94ef563da28f6d7a7a6dee169afc51623b2"
+    },
+    {
+      "name": "directories",
+      "tests": 7,
+      "passed": true,
+      "seconds": 7.671999999991385,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-directories.json",
+      "sha256": "3f1ca3a9b65158b6157634447115e428d3d087f2e1eb114a87e15fc00b66f014"
+    },
+    {
+      "name": "git",
+      "tests": 9,
+      "passed": true,
+      "seconds": 22.42200000002049,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-git.json",
+      "sha256": "809e63c36f44668f006009a08f803d379380c6b63b26f9bb609176f731c1198e"
+    },
+    {
+      "name": "capacity",
+      "tests": 9,
+      "passed": true,
+      "seconds": 25.98499999998603,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-capacity.json",
+      "sha256": "96890b42edaaff2cee9edb4c5a07fdf38f370266ef4187a2013b7bab2ff2617f"
+    },
+    {
+      "name": "coverage",
+      "tests": 8,
+      "passed": true,
+      "seconds": 17.921000000002095,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-coverage.json",
+      "sha256": "d9c9ff0607610c4ea1f82ac500aff84c36d98ca32b911fc1222869a1de78efc9"
+    },
+    {
+      "name": "legacy",
+      "tests": 6,
+      "passed": true,
+      "seconds": 97.53200000000652,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-legacy.json",
+      "sha256": "0d1a5dff119d08e7d8ccb9a7ed4b0c953754b59cce8409a788f59e5dcaae35be"
+    },
+    {
+      "name": "collaboration",
+      "tests": 7,
+      "passed": true,
+      "seconds": 54.53200000000652,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-collaboration.json",
+      "sha256": "dae952da5ab7b67d825a8cab5b9d139f3f14e5eaa84f784dfc79d14876db09c6"
+    },
+    {
+      "name": "launcher",
+      "tests": 4,
+      "passed": true,
+      "seconds": 8.921000000002095,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-launcher.json",
+      "sha256": "805e691c449f5ceae8ce8e8afe7aa4e8d11612b9a4dc7bbc9ddc3e1d8a1927b8"
+    },
+    {
+      "name": "history",
+      "tests": 8,
+      "passed": true,
+      "seconds": 68.25,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-history.json",
+      "sha256": "d82c3c8fd8e3d78511c820e79e4dcb170935755226b3cae1b51cd5ace9eb46fc"
+    },
+    {
+      "name": "data-root",
+      "tests": 6,
+      "passed": true,
+      "seconds": 50.125,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-data-root.json",
+      "sha256": "88dc718165d6263db6fcccfa399835fde0daf35caa2d9756b493698a89793c96"
+    },
+    {
+      "name": "crash-recovery",
+      "tests": 5,
+      "passed": true,
+      "seconds": 112.06299999999464,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-crash-recovery.json",
+      "sha256": "66a0d8e1d23668e5bd9faca5f6a1144ef2268865e57f2258d8044b5f26fa6d13"
+    },
+    {
+      "name": "storage-policy",
+      "tests": 8,
+      "passed": true,
+      "seconds": 93.1710000000021,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-storage-policy.json",
+      "sha256": "f0ea9dd020d7e0475f3d3acb71b87fccffd2b8251c27048d3449a4690308ac30"
+    },
+    {
+      "name": "native-download",
+      "tests": 4,
+      "passed": true,
+      "seconds": 29.171999999991385,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-native-download.json",
+      "sha256": "2922169eae1971c44087984bbdf0a33a62089d08d333d0690f980c35334e8e16"
+    },
+    {
+      "name": "inav-original-navigation",
+      "tests": 6,
+      "passed": true,
+      "seconds": 295.78100000001723,
+      "path": "docs/rearchitecture/evidence/browser-portable-v30-inav-original-navigation.json",
+      "sha256": "ba3a763e89b399153413770c46bd5d06d79b4d3b005543786fbd13ebbbe8fc60"
+    }
+  ],
+  "all_actual_browser_groups": 19,
+  "overlapping_browser_assertions": 152,
+  "cli": [
+    {
+      "kind": "uncompressed",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v30-cli-uncompressed.json",
+      "sha256": "40ec1d4bc56ad55ad81dce54cf50ff565cbc364a9155cc3fb3c3631ef79f72ca"
+    },
+    {
+      "kind": "zip-extracted",
+      "commands": 27,
+      "exit_0": 21,
+      "expected_incomplete_exit_2": 6,
+      "path": "docs/rearchitecture/evidence/portable-v30-cli-zip-extracted.json",
+      "sha256": "5ad3a51b749be3f1c980700389a254325c43a47bdc068aa1cdd1bd7f01c31e77"
+    }
+  ],
+  "build_priority_note": "Build receipt records launch parent IO_LOW; later exact owned parent was changed to IO_NORMAL. See v30-build-priority-adjustment-v1.json. CPU stayed BelowNormal. Concurrent shared-HDD activity; no isolated timing attribution.",
+  "original_inav_navigation": "Real original-comparison-only graph six groups. No archived source in this old graph. Not a new native v30 scan/package.",
+  "native_INAV": "Separate frozen v27 seed0 native-v12; never relabelled v30. Strict original/current comparison and standard archive pending.",
+  "disk_full": "v30 real ENOSPC integrity/recovery passed but Chinese actionability FAIL. Source fix has separate validation and is not included here.",
+  "gates": {
+    "G1": "F030_FULL_TYPED_ORDERED_FACTS_AND_NORMALIZED_REPORT_ZERO; LARGE_FIXED_PAIR_PENDING; OLD_FAILURES_RETAINED",
+    "G2": "OTHER_REAL_INPUTS_NOT_VERIFIED_USER_DEFERRED",
+    "G3": "FROZEN_V27_SEPARATE_16GiB_JOB_NATIVE_COMPLETED; PHYSICAL32GB_NOT_VERIFIED",
+    "G4": "NEW_PAIR_BEFORE_ARCHIVE_MEASURED_SEPARATELY; WHOLE_ARCHIVE_POLICY_PENDING",
+    "G5": "CRASH_AND_DISK_FULL_INTEGRITY_SUBSETS_ONLY; V30_DISK_FULL_LOCALIZATION_FAIL; FULL_MATRIX_NOT_CLOSED",
+    "G6": "LOCAL_PACKAGE_SUBSETS_PASS; LARGE_PROTOCOL_PENDING",
+    "G7": "NOT_CLOSED_ALL_U_SCENARIOS",
+    "G8": "LOCAL_BUILD_AND_CLI_PASS; PHYSICAL_CLEAN_OFFLINE_PC_NOT_VERIFIED"
+  },
+  "upgrade_human_batch": "NOT_REPEATED_IN_V30; historical v23 third1000 distinct batch remains separate evidence",
+  "seconds": 394.9220000000205
+}

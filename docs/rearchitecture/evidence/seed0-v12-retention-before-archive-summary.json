@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "stable": true,
+  "before_allocated_bytes": 47665101856,
+  "after_allocated_bytes": 10336999216,
+  "reduction_percent": 78.31327572271033,
+  "standard_archive_included": false,
+  "final_size_target_70percent": "PASS",
+  "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v12-retention-before-archive.json",
+  "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+  "full_G4": "NOT_CLOSED_AUTOMATICALLY; native and archive-phase sampled peaks remain separate scopes; physical metadata excluded"
+}

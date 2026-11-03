@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "state": "COMPLETE",
+  "source": "I:\\ECRA-O3-SEED0",
+  "destination": "I:\\ECRA-GOLDEN-O3-SEED0",
+  "execution": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-seed0-native-v3\\execution.json",
+  "execution_sha256": "d1263939f79deabbb9eb4b3916a8b4f2a6c08f16a087014b26ece42219cbfdd6",
+  "files": 57773,
+  "logical_bytes": 46427693457,
+  "scope": "Keep an independent, completely verified, read-only native baseline copy.\n\nOnly accepts a completed native observer receipt. Never removes a source or\npartial destination. Read-only means Windows file attributes, not an ACL mount.\n",
+  "resumed_from": null,
+  "reused_verified_files": 0,
+  "buffer_policy": "One reusable1MiB readinto buffer; no per-file oversized bytes allocation",
+  "copied_files": 57773,
+  "copied_bytes": 46427693457,
+  "seconds": 20878.608999999997,
+  "source_unchanged": true,
+  "independent_copy_verified": true,
+  "readonly_scope": "FILE_ATTRIBUTES_NOT_ACL_MOUNT",
+  "manifest_sha256": "2d97c4c0120f2875fb699a6e1294331945e124d87ec61b32f0bfa300e84cceba"
+}

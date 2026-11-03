@@ -1,0 +1,15 @@
+{
+  "summary_ok": true,
+  "tests": 8,
+  "passed_tests": 8,
+  "seconds": 10.081,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\history-comparison-focused-v1.log",
+  "log_sha256": "ba927c4f13c954d0086972cb9bde8164ecce11433f5e0dc0e1650b2e957c93a4",
+  "scope": "Declared comparison unit fixtures including20007 objects; API/history/download/archive regression. Not new native firmware/G1/G3/G4."
+}

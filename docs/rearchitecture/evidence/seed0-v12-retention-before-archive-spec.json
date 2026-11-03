@@ -1,0 +1,32 @@
+{
+  "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+  "standard_archive_included": false,
+  "policies": {
+    "original": [
+      {
+        "name": "data",
+        "path": "I:/ECRA-O3-SEED0"
+      },
+      {
+        "name": "common",
+        "path": "I:/ECRA-B1"
+      }
+    ],
+    "current": [
+      {
+        "name": "data",
+        "path": "H:/ECRA-NATIVE-A12-SEED0"
+      },
+      {
+        "name": "common",
+        "path": "I:/ECRA-B1"
+      }
+    ]
+  },
+  "excluded_verification_only": [
+    "Independent raw baseline backups",
+    "Original JSON comparison graph",
+    "Frozen source and software distribution",
+    "Independent validation import root"
+  ]
+}

@@ -197,6 +197,23 @@ class StudioAPITests(unittest.TestCase):
         self.assertEqual(sorted_page['sort'],'name');self.assertEqual(sorted_page['order'],'desc')
         self.assertEqual(sorted_page['total'],1)
 
+    def test_disk_full_messages_keep_technical_details_and_do_not_report_or_create_saved_decisions(self):
+        import errno,sqlite3
+        path=self.data/'scans/scan-api';before=(path/'scan.db').read_bytes()
+        request=dict(symbol_id='s',fingerprint=self.provider.fingerprint('s'),decision='CONFIRMED_RISK',reviewer='声明',expected_heads=[])
+        for failure in [sqlite3.OperationalError('database or disk is full'),OSError(errno.ENOSPC,'No space left on device')]:
+            with self.subTest(failure=type(failure).__name__),patch('ecra.human_reviews.ReviewStore.append',side_effect=failure):
+                response=self.client.post('/api/scans/scan-api/human',json=request)
+            self.assertEqual(response.status_code,400,response.text);value=response.json()
+            self.assertEqual(value['code'],'DISK_FULL');self.assertIn('空间不足',value['error']);self.assertIn('释放空间',value['error'])
+            self.assertIn('核对当前结果和人工状态',value['error']);self.assertIn(str(self.data.resolve()),value['error']);self.assertEqual(value['detail'],str(failure))
+            self.assertIsNot(value.get('saved'),True)
+        self.assertEqual(ReviewStore(path/'reviews.db',self.provider.metadata()).history(),[])
+        self.assertEqual((path/'scan.db').read_bytes(),before)
+        with patch('ecra.human_reviews.ReviewStore.append',side_effect=sqlite3.OperationalError('database is locked')):
+            response=self.client.post('/api/scans/scan-api/human',json=request)
+        self.assertNotIn('DISK_FULL',response.text);self.assertIn('database is locked',response.text)
+
     def test_real_package_upload_and_export_use_same_protocol(self):
         package = Path(self.tmp.name)/'result.ecra-report'
         export_report(self.data/'scans/scan-api',package)

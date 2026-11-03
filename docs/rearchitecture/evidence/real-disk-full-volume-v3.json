@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "scope": "Actual Windows kernel disk-full on new owned256MiB VHD NTFS; real GUI writes/export and recovery. Not physical host disk-full, power loss, whole G5/G4/32GB/second-PC/DPI/UAT.",
+  "tests": [
+    {
+      "name": "actual_new_ntfs_volume_reaches_kernel_disk_full_without_filling_host_or_firmware_volume",
+      "status": "PASS"
+    },
+    {
+      "name": "real_gui_sqlite_full_rejects_confirmation_and_preserves_every_old_event_and_displayed_decision",
+      "status": "PASS"
+    },
+    {
+      "name": "real_gui_export_disk_full_never_publishes_partial_final_package_or_replaces_old_authority",
+      "status": "PASS"
+    },
+    {
+      "name": "after_releasing_only_own_filler_same_gui_saves_new_event_and_exports_strictly_importable_full_archive",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v3\\evidence\\01-real-full-confirmation-not-saved.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v3\\evidence\\02-real-full-export-keeps-last-valid-package.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v3\\evidence\\03-space-recovered-real-confirmation-saves.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v3\\evidence\\04-space-recovered-full-package-roundtrip.png"
+  ],
+  "page_errors": [],
+  "phase": "COMPLETE",
+  "volume": {
+    "data_root": "G:\\ECRA-DISKFULL-V1\\data",
+    "volume_id": "\\\\?\\Volume{ed3f1764-0000-0000-0000-010000000000}\\",
+    "nonce": "e84fcc08c7b14996a604f94f249eb192",
+    "marker": "G:\\ECRA-DISKFULL-V1\\owner.txt",
+    "drive_root": "G:\\",
+    "filler": "G:\\ECRA-DISKFULL-V1\\filler.bin",
+    "owned_root": "G:\\ECRA-DISKFULL-V1",
+    "disk_number": 3,
+    "filesystem": "NTFS",
+    "disk_unique_id": "60022480A9D7752363C361C65BF2BFA8",
+    "total_bytes": 267317248,
+    "image": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\real-disk-full-volume-v3\\owned-test-volume.vhd"
+  },
+  "symbol_id": "c:@Exceptions",
+  "events_before": 1,
+  "static_sha256_before": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "old_export_sha256": "57ee73d71fd33e347063163fd5b180cab60133ecf8973ac813a56289dde52ff4",
+  "kernel_full_error": {
+    "errno": 28,
+    "winerror": null,
+    "message": "[Errno 28] No space left on device"
+  },
+  "free_bytes_when_full": 0,
+  "filler_bytes": 241197056,
+  "review_full_message": "写入磁盘空间不足，操作未能正常完成。请检查独立数据目录及系统临时目录所在盘，释放空间后核对当前结果和人工状态再重试。“数据与共享”可查看占用和安全回收计划。当前数据目录：G:\\ECRA-DISKFULL-V1\\data。技术信息：database or disk is full",
+  "export_full_message": "写入磁盘空间不足，操作未能正常完成。请检查独立数据目录及系统临时目录所在盘，释放空间后核对当前结果和人工状态再重试。“数据与共享”可查看占用和安全回收计划。当前数据目录：G:\\ECRA-DISKFULL-V1\\data。技术信息：database or disk is full",
+  "free_bytes_after_recovery": 241197056,
+  "messages_actionable_chinese": true,
+  "static_sha256_after": "867573286a1e6061bd6ec26a4126226eeb43562007f875e7bec3bbb7004f4634",
+  "events_after_recovery": 2,
+  "source_package_unchanged": true
+}

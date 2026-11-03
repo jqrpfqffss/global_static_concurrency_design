@@ -18,6 +18,7 @@ import sys
 import time
 import traceback
 import urllib.request
+import urllib.parse
 import zipfile
 
 
@@ -26,6 +27,7 @@ def main():
     for name in ['archive-list','work','evidence']:parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--engine',type=Path,default=Path(__file__).resolve().parents[1])
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
+    parser.add_argument('--comparison-acceptance',action='store_true',help='Also exercise real archived canonical-object comparison and both evidence entries')
     args=parser.parse_args()
     sys.path.insert(0,str(args.engine))
     from ecra.report_package import sha256, snapshot, import_report, import_delta
@@ -160,6 +162,108 @@ def main():
         expect(button('下一页')).to_be_in_viewport()
         assert page.locator('.history-records').evaluate('(e)=>e.scrollHeight>e.clientHeight')
         shot('08-history-1366-controls');passed('1366_real_browser_query_controls_and_no_horizontal_overflow')
+        if args.comparison_acceptance:
+            from collections import defaultdict
+            grouped=defaultdict(list)
+            for sid,binding in bindings.items():grouped[binding['project_id']].append(sid)
+            pair=next(values[:2] for values in grouped.values() if len(values)>1)
+            base_id,current_id=pair
+            def archived_symbols(sid):
+                with closing(sqlite3.connect((data/'scans'/sid/'scan.db').resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+                    return {sid:(name,digest,classification) for sid,name,digest,classification in conn.execute('SELECT s.symbol_id,s.name,n.hash,s.static_classification FROM symbols s JOIN nodes n ON n.id=s.node')}
+            base_symbols,current_symbols=archived_symbols(base_id),archived_symbols(current_id)
+            common_ids=base_symbols.keys()&current_symbols.keys();assert common_ids
+            same_roots=all(bindings[base_id][key]==bindings[current_id][key] for key in ['facts_hash','report_hash'])
+            expected_counts=defaultdict(int)
+            for sid in base_symbols.keys()|current_symbols.keys():
+                kind='ADDED' if sid not in base_symbols else 'NOT_OBSERVED' if sid not in current_symbols else 'EVIDENCE_IDENTICAL' if same_roots and base_symbols[sid][1]==current_symbols[sid][1] else 'EVIDENCE_CHANGED'
+                expected_counts[kind]+=1
+            def find_history(sid):
+                ready();button('清空筛选').click();count(24,20);ready()
+                for index in range(2):
+                    found=page.get_by_role('article',name='归档 '+sid,exact=True)
+                    if found.count():return found
+                    button('下一页').click();ready()
+                raise AssertionError('Real archive absent from history pages')
+            find_history(base_id).get_by_role('button',name='设为对比基准',exact=True).click()
+            find_history(current_id).get_by_role('button',name='与基准对比',exact=True).click()
+            comparison=page.get_by_role('region',name='历史对象对比',exact=True)
+            expect(comparison.locator('.comparison-rows')).to_be_visible(timeout=30000)
+            actual=api('/history/compare?'+urllib.parse.urlencode(dict(base=base_id,current=current_id,limit=100)))
+            assert actual['counts']==dict(expected_counts) and actual['total']==len(base_symbols.keys()|current_symbols.keys())
+            expect(comparison).to_contain_text(base_id);expect(comparison).to_contain_text(current_id)
+            expect(comparison).to_contain_text('本轮未观察到不等于已修复')
+            shot('09-real-archive-comparison-direction-and-counts');passed('two_real_native_archives_compare_exact_canonical_union_and_conservative_full_fingerprints')
+            first_rows=[row.get_attribute('aria-label') for row in comparison.locator('.comparison-row').all()]
+            if actual['total']>50:
+                pending=[]
+                def hold(route):pending.append(route)
+                page.route('**/api/history/compare?**offset=50**',hold)
+                comparison.get_by_role('button',name='下一页',exact=True).click()
+                deadline=time.monotonic()+10
+                while not pending:
+                    page.wait_for_timeout(50)
+                    assert time.monotonic()<deadline
+                expect(comparison).to_contain_text('显示 1–50')
+                assert [row.get_attribute('aria-label') for row in comparison.locator('.comparison-row').all()]==first_rows
+                pending[0].continue_();page.unroute('**/api/history/compare?**offset=50**',hold)
+                expect(comparison).to_contain_text('显示 51–',timeout=30000)
+                comparison.get_by_role('button',name='上一页',exact=True).click()
+                expect(comparison).to_contain_text('显示 1–50',timeout=30000)
+            else:
+                expect(comparison.get_by_role('button',name='下一页',exact=True)).to_be_disabled()
+            result['comparison_pagination_scope']='ACTUAL_MULTI_PAGE_PENDING_REQUEST_HELD' if actual['total']>50 else 'ACTUAL15_OR_FEWER_ONE_PAGE_END;20007_BOUNDED_PAGINATION_IS_SEPARATE_DECLARED_UNIT_FIXTURE'
+            passed('actual_comparison_pagination_keeps_previous_rows_and_range_atomic_or_explicit_last_page')
+            def accessed_ids(sid):
+                with closing(sqlite3.connect((data/'scans'/sid/'scan.db').resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+                    return {row[0] for row in conn.execute("SELECT DISTINCT symbol_id FROM records WHERE dataset='facts' AND relation='accesses' AND symbol_id IS NOT NULL")}
+            accessed=common_ids&accessed_ids(base_id)&accessed_ids(current_id)
+            selected=sorted(accessed or common_ids)[0]
+            result['comparison_selected_evidence']=dict(symbol_id=selected,has_real_accesses_in_both_archives=bool(accessed))
+            page.get_by_label('对比变量 / canonical 身份',exact=True).fill(selected)
+            page.get_by_role('button',name='查询对比',exact=True).click()
+            object_row=page.get_by_role('article',name='对比对象 '+selected,exact=True)
+            expect(object_row).to_be_visible(timeout=30000)
+            selected_before=events(data/'scans'/base_id);selected_after=events(data/'scans'/current_id)
+            for side,sid in [('基准',base_id),('当前',current_id)]:
+                page.get_by_role('article',name='对比对象 '+selected,exact=True).get_by_role('button',name='查看'+side+'证据',exact=True).click()
+                expect(page.locator('.header-scan')).to_contain_text(sid,timeout=30000)
+                expect(page.locator('.detail-panel')).to_contain_text(selected,timeout=30000)
+                expect(page.get_by_role('heading',name='访问证据',exact=False)).to_be_visible(timeout=30000)
+                page.get_by_role('link',name='历史与对比',exact=True).click()
+                expect(page.get_by_role('region',name='历史对象对比',exact=True).locator('.comparison-rows')).to_be_visible(timeout=30000)
+                page.get_by_label('对比变量 / canonical 身份',exact=True).fill(selected);page.get_by_role('button',name='查询对比',exact=True).click()
+                expect(page.get_by_role('article',name='对比对象 '+selected,exact=True)).to_be_visible(timeout=30000)
+            assert events(data/'scans'/base_id)==selected_before and events(data/'scans'/current_id)==selected_after
+            shot('10-both-evidence-entries-preserve-original-human-history');passed('both_comparison_evidence_buttons_open_correct_scan_and_canonical_object_without_inheriting_decisions')
+            page.reload();expect(page.get_by_role('region',name='历史对象对比',exact=True).locator('.comparison-rows')).to_be_visible(timeout=30000)
+            expect(page.get_by_role('region',name='历史对象对比',exact=True)).to_contain_text(base_id)
+            shot('11-comparison-reopen-1366');assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            expect(page.get_by_role('button',name='返回历史检索',exact=True)).to_be_in_viewport()
+            expect(page.get_by_label('对比变量 / canonical 身份',exact=True)).to_be_in_viewport()
+            passed('comparison_direction_survives_real_reload_and_1366_controls_remain_visible')
+            page.get_by_role('button',name='返回历史检索',exact=True).click();ready()
+            expect(page.get_by_text('当前对比基准：',exact=False)).to_contain_text(base_id)
+            find_history(current_id).get_by_role('button',name='设为对比基准',exact=True).click()
+            find_history(base_id).get_by_role('button',name='与基准对比',exact=True).click()
+            expect(page.get_by_role('region',name='历史对象对比',exact=True).locator('.comparison-rows')).to_be_visible(timeout=30000)
+            reversed_value=api('/history/compare?'+urllib.parse.urlencode(dict(base=current_id,current=base_id,limit=100)))
+            assert reversed_value['counts'].get('ADDED',0)==expected_counts.get('NOT_OBSERVED',0)
+            assert reversed_value['counts'].get('NOT_OBSERVED',0)==expected_counts.get('ADDED',0)
+            passed('return_keeps_history_query_and_changing_baseline_reverses_real_canonical_direction')
+            foreign=next((sid for sid,b in bindings.items() if b['project_id']!=bindings[base_id]['project_id']),None)
+            if foreign:
+                result['comparison_invalid_pair']='DIFFERENT_PROJECT_ACTUAL_GUI'
+                page.get_by_role('button',name='返回历史检索',exact=True).click();ready()
+                find_history(foreign).get_by_role('button',name='与基准对比',exact=True).click()
+                expect(page.get_by_role('alert')).to_contain_text('工程身份不同',timeout=30000)
+                expect(page.get_by_role('button',name='重试对比',exact=True)).to_be_visible()
+            else:
+                result['comparison_invalid_pair']='SAME_SCAN_ACTUAL_AUTHENTICATED_HTTP;OTHER_PROJECT_UNIT_CASE_SEPARATE'
+                invalid=page.request.get(base+'/api/history/compare?base='+base_id+'&current='+base_id,headers={'X-ECRA-Session':info['token']})
+                assert invalid.status==400 and '两个不同扫描批次' in invalid.json()['error']
+            passed('invalid_pair_is_rejected_with_explicit_recovery_and_no_original_data_changes')
+            result['comparison_acceptance']=dict(before=base_id,after=current_id,counts=dict(expected_counts),canonical_objects=actual['total'],physical_DPI='NOT_VERIFIED')
         assert all(sha256(p)==digest for p,digest in immutable.items())
         assert all((sha256(p),p.stat().st_size,p.stat().st_mtime_ns)==record for p,record in originals.items())
         assert all(p.is_file() and sha256(p)==digest for p,digest in engine_hashes.items())

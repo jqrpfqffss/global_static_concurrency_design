@@ -1,0 +1,53 @@
+{
+  "exit_code": 0,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v27\\scripts\\measure_native_golden.py",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v27",
+    "--config",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-seed0-reference-v3-config\\semantics.yaml",
+    "--data-root",
+    "H:\\ECRA-NATIVE-A12-SEED0",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-canonical-seed0-native-v12",
+    "--mode",
+    "canonical",
+    "--limit-gib",
+    "16"
+  ],
+  "preflight": {
+    "passed": true,
+    "inputs": 4123,
+    "engine_files": 2043,
+    "input_differences": [],
+    "engine_differences": [],
+    "config_sha256": "d1bc911bfc315eb94e6d15177f7b33efa170363fa139763a703122d4ea435d04",
+    "engine_manifest_sha256": "d925196bf93f2ddb3f51e887c642b9706abd1cb8c8663e4ebac07703176a64ee",
+    "source_head": "1493c051165973838b35653e26ce1a0943e419d3",
+    "seconds": 8.01600000000326,
+    "observed_utc": "2026-11-02T19:38:53.079783+00:00",
+    "seed": "0",
+    "source_date_epoch": "1793577600",
+    "cold_extraction": true
+  },
+  "postflight": {
+    "passed": true,
+    "inputs": 4123,
+    "engine_files": 2043,
+    "input_differences": [],
+    "engine_differences": [],
+    "config_sha256": "d1bc911bfc315eb94e6d15177f7b33efa170363fa139763a703122d4ea435d04",
+    "seconds": 55.84399999998277,
+    "observed_utc": "2026-11-03T04:30:36.510419+00:00"
+  },
+  "seed": "0",
+  "source_date_epoch": "1793577600",
+  "scope": "Fresh current full native paired with unmodified original seed0 v3, same shared config and original compile environment. Explicit16GiB Job, physical32GB NOT_VERIFIED. Concurrent on same host/HDD; timing is not isolated attribution.",
+  "cold_extraction": true,
+  "semantic_comparison": "NOT_YET_RUN",
+  "all_gates_passed": false
+}

@@ -1,0 +1,24 @@
+{
+  "pid": 6976,
+  "created": 1793672999.5811584,
+  "command": [
+    "C:/Program Files/PowerShell/7/pwsh.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v30\\build_portable.ps1",
+    "-OutputDir",
+    "H:\\ECRAStudio-build-20261103-studio-v30",
+    "-CacheDir",
+    "H:/global_static_concurrency_design/.tools-cache",
+    "-GitSource",
+    "H:/ECRAStudio-build-20261101-studio-v13/ECRA-Portable/tools/git"
+  ],
+  "observed": 1793674482.3585668,
+  "before": 1,
+  "reason": "Owned local candidate build made slow progress at low I/O priority on shared mechanical volume. Restore this parent alone to normal I/O; existing native measurements remain explicitly concurrent, not isolated timing/speedup evidence.",
+  "initial_priority_receipt_scope": "Build controller records launch-time priority; this later adjustment is a separate immutable receipt.",
+  "after": 2,
+  "cpu_priority": 16384
+}
