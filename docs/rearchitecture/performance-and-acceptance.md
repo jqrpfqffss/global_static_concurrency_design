@@ -1,6 +1,8 @@
+> 2026-11-04补充：真实F030发现[证据节点迟到响应串入当前TU](66-evidence-request-identity-and-retry.md)，旧冻结v35实际FAIL；修复后源码4组真实F030、11组传输/容量场景通过。该修复尚未进入已封存Portable；v34/v35不应据普通通过集合宣称没有此已知显示缺陷。
+
 > 最新已完整封存本机候选包为[v34](63-frozen-v34-acceptance.md)，运行时5cf7b61：1401项1399PASS/2联网SKIP，21组166个重叠Chrome/VHD断言，31088份分发文件全SHA、129份运行时匹配。首次示例会话就绪探针失败原件保留，相同运行时11项完整重验通过；没有改写旧失败。完整重构仍未完成。
 
-> 固定环境e69/1493c05冷v12的[大型全字段对照、标准包与严格导入](62-fixed-seed-full-package-and-size-failure.md)已通过；含4.01GB标准包实际降低69.865%，尺寸目标仍FAIL。当前writer64MiB冷v13、新512MiB独立读取及新原生包界面仍在执行。后续源码[完整归档压缩/原子会话/调用加载状态](64-complete-archive-compression-adr.md)不在v34；其他工程用户延期、物理机/DPI/UAT和剩余实现缺口保留。
+> 固定环境e69/1493c05冷v12的[大型全字段对照](62-fixed-seed-full-package-and-size-failure.md)差异0；[新版完整编码、实际包内严格导入和稳定保留策略计量](65-complete-compact-archive-retention.md)均已通过，最终分配量47665101856B→13513190616B，降低71.6497%。旧DEFLATE包69.865%失败原件保留；完整G4峰值仍未闭环。writer64MiB冷v13、新512MiB独立读取仍执行中，其他工程用户延期，物理机/DPI/UAT及剩余实现缺口保留。
 
 > 2026-11-03后续源码：v1调用归属修复35项通过；真实INAV原版图6组导航及Git配置8组Chrome通过，113冲突/5423相关边完整分页、静态SHA/3000事件不变，见[47号记录](47-live-inav-navigation-and-working-input-status.md)。v28完整1371项实际1368PASS/1FAIL/2SKIP，原失败与错误计数原收据保留；显式空洞夹具及计数修复20项通过，见[48号记录](48-regression-accounting-and-sparse-fixture.md)。后续1379项完整回归及新实包仍待验，不把本轮源码记成v27已包含。include_uncommitted=true生产隔离未接入、继续阻断；大型seed0原生对照执行中，完整门禁未关闭。
 

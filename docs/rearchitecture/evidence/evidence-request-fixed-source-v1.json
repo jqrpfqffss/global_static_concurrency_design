@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "scope": "Real F030 TU selection while an older evidence request is held in Chrome.\n\nUses the production archive, server and UI. Network requests may be held or\naborted, never fulfilled with fabricated evidence. Not full U14/U22 or UAT.\n",
+  "tests": [
+    "real_first_TU_request_held_with_actual_loading_state",
+    "new_TU_auto_loads_and_late_old_response_cannot_replace_current_evidence",
+    "actual_network_failure_and_retry_restore_current_TU_node",
+    "static_bytes_controller_and_offline_UI_unchanged"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "engine": "H:\\global_static_concurrency_design",
+  "actual_python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "scan_id": "native-parsed-f030",
+  "package_sha256": "76df60a1fc37e5dfb954ee9eab4994b667abc587e13f1a14bca347e2a3ca0625",
+  "static_sha256": "f0e0f19b4e17cf2ce83bcdda0eabd54f5abb0346e08a4bde92d385ac6c3bdfc2",
+  "controller_sha256": "fca6177b284bf6cd11f4646827556144f31ef7f672896076e6fce5f847e95d1f",
+  "source_files": [
+    "startup.c",
+    "main.c"
+  ],
+  "evidence_nodes": [
+    22571,
+    22610
+  ],
+  "expected_hashes": [
+    "ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228",
+    "02ef178f732dc62c14f350a662047485883535ea294f06b3064cb3d4ea05b967"
+  ],
+  "observed_reference_after_late_response": [
+    "证据引用 #22610 · SHA-256 02ef178f732dc62c14f350a662047485883535ea294f06b3064cb3d4ea05b967"
+  ]
+}

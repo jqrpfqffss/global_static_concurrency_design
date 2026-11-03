@@ -1,0 +1,37 @@
+{
+  "scope": "Same complete published v27/native-v12 evidence, new container only; current bundled v34 strict importer and independent retention including compact standard package. Original deflate encoding retained as an explicit duplicate verification control, never deleted.",
+  "standard_archive_included": true,
+  "policies": {
+    "original": [
+      {
+        "name": "data",
+        "path": "I:/ECRA-O3-SEED0"
+      },
+      {
+        "name": "common",
+        "path": "I:/ECRA-B1"
+      }
+    ],
+    "current": [
+      {
+        "name": "data",
+        "path": "H:/ECRA-NATIVE-A12-SEED0"
+      },
+      {
+        "name": "common",
+        "path": "I:/ECRA-B1"
+      },
+      {
+        "name": "data",
+        "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v12-compact-bzip2-v1\\inav-seed0-v12-full-compact.ecra-report"
+      }
+    ]
+  },
+  "excluded_verification_only": [
+    "Independent raw baseline backup",
+    "Original JSON comparison graph",
+    "Frozen software/program copies",
+    "Independent strict-import roots",
+    "Original complete DEFLATE container retained as duplicate encoding A/B control: same manifest and every payload byte is present in selected compact standard package"
+  ]
+}

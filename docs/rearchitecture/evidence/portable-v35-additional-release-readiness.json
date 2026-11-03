@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "all_gates_passed": false,
+  "source_head": "5c21ac3eb72fd0c7c48925e2a575903fa787a527",
+  "status": "KNOWN_REAL_UI_EVIDENCE_MISATTRIBUTION",
+  "scope": "The separate1408/21group suite is running. This additional real F030 late-response probe failed on frozen v35 with the same controller as the fixed-source PASS. Any later suite seal remains scoped, not complete release readiness.",
+  "failed_receipt": "docs/rearchitecture/evidence/evidence-request-old-v35-v2-failed.json",
+  "fixed_source_receipt": "docs/rearchitecture/evidence/evidence-request-fixed-source-v1.json",
+  "fixed_in_frozen_v35": false,
+  "operator_action": "Use a subsequently frozen and actually accepted build containing the EvidenceNode request-identity fix; do not represent v34/v35 as free of this known display defect."
+}

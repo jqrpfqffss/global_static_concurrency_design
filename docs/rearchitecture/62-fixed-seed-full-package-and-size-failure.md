@@ -24,3 +24,6 @@
 
 
 后续v34实际重验6组全部通过，完整边/见证/未知NVIC及真实归档RMW源码均已核对，见[native-inav-evidence-ui-v34-v1](evidence/native-inav-evidence-ui-v34-v1.json)及[63号补充](63-frozen-v34-acceptance.md)。原v30五秒等待失败保持不变；通过的是新一轮实际验收，不将旧失败倒写。
+
+
+2026-11-04后续实际结果：[完整压缩包严格导入及稳定计量](65-complete-compact-archive-retention.md)已通过，保留策略最终降低71.6497%；旧69.865%FAIL及原包保留。完整G4峰值、新生产者/读取器、第二PC/UAT仍未关闭。

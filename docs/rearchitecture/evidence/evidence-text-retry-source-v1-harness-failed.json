@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "scope": "Real browser pagination capacity, with explicit synthetic storage fixtures.\n\nThis is not a native firmware scan, semantic golden, G2, G3 or G4 result.\nEvery operation uses the production server, database and human-review APIs.\n",
+  "rows": 20007,
+  "engine": "H:\\global_static_concurrency_design",
+  "tests": [],
+  "page_errors": [],
+  "external_requests": [],
+  "overview_seconds": 0.3129999999946449,
+  "last_identity_lookup_seconds": 0.34400000001187436,
+  "error": "name 'scan_id' is not defined",
+  "traceback": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_studio_capacity.py\", line 133, in main\n    pattern=base+'/api/scans/'+scan_id+'/text/'+str(provider.resolve('facts',['transport_fidelity','long_text']))+'?**'\nNameError: name 'scan_id' is not defined\n"
+}

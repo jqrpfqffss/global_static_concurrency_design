@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--engine',type=Path,default=TOOL)
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
     parser.add_argument('--sorting',action='store_true',help='新增排序与位置合同；旧封存包没有此界面，不将其静默计作通过')
+    parser.add_argument('--evidence-retry-acceptance',action='store_true',help='Abort genuine segmented-text requests and retry the same offsets')
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=False)
@@ -129,11 +130,36 @@ def main():
                 many.get_by_role('button',name='上一页证据',exact=True).click()
                 expect(many.get_by_text('显示 1–50 / 407',exact=True)).to_be_visible()
                 text=probe.locator('details.evidence-node').filter(has_text='long_text').first
+                text_node=provider.resolve('facts',['transport_fidelity','long_text'])
+                pattern=base+'/api/scans/'+scan.name+'/text/'+str(text_node)+'?**'
+                def abort_text(route):route.abort('connectionfailed')
+                if args.evidence_retry_acceptance:page.route(pattern,abort_text)
                 text.locator(':scope > summary').click()
+                if args.evidence_retry_acceptance:
+                    expect(text.get_by_role('alert')).to_contain_text('证据读取失败')
+                    expect(text.locator('pre')).to_have_count(0)
+                    text.get_by_role('button',name='重试读取证据',exact=True).scroll_into_view_if_needed()
+                    page.screenshot(path=str(output/'segmented-text-first-request-failure.png'),full_page=True)
+                    page.unroute(pattern,abort_text)
+                    text.get_by_role('button',name='重试读取证据',exact=True).click()
                 expect(text.locator('pre')).not_to_be_empty()
                 first_text=text.locator('pre').text_content()
+                if args.evidence_retry_acceptance:page.route(pattern,abort_text)
                 text.get_by_role('button',name='继续读取文本',exact=True).click()
+                if args.evidence_retry_acceptance:
+                    expect(text.get_by_role('alert')).to_contain_text('证据读取失败')
+                    expect(text.locator('pre')).to_have_text(first_text)
+                    expect(text.get_by_role('button',name='上一段文本',exact=True)).to_have_count(0)
+                    page.unroute(pattern,abort_text)
+                    text.get_by_role('button',name='重试读取证据',exact=True).click()
                 expect(text.get_by_role('button',name='上一段文本',exact=True)).to_be_visible()
+                if args.evidence_retry_acceptance:
+                    first_segment=provider.text(text_node)
+                    next_segment=provider.text(text_node,offset=first_segment['next_offset'])
+                    expect(text.locator('pre')).to_have_text(next_segment.get('display_json',next_segment['value']))
+                    expect(text.get_by_text('UTF-8字节 '+str(next_segment['offset'])+'–'+str(next_segment['next_offset'])+' / '+str(next_segment['total']),exact=True)).to_be_visible()
+                    receipt['text_retry_offsets']=[0,next_segment['offset']]
+                    expect(text.get_by_role('alert')).to_have_count(0)
                 assert len(text.locator('pre').text_content().encode('utf-8'))<=8192
                 text.get_by_role('button',name='上一段文本',exact=True).click()
                 expect(text.locator('pre')).to_have_text(first_text)
@@ -151,6 +177,7 @@ def main():
                     'exact_large_integer_negative_zero_and_surrogate', 'evidence_pages_do_not_accumulate',
                     'long_utf8_text_bidirectional_bounded_segments'],api_payloads=payloads,static_sha256=original)
                 if args.sorting:receipt['tests'].append('server_sorting_stable_pages_and_reopened_position')
+                if args.evidence_retry_acceptance:receipt['tests']+=['first_real_text_failure_retry_without_fake_unknown','next_real_text_failure_retains_previous_segment_and_retries_same_offset']
             except BaseException:
                 page.screenshot(path=str(output/'failure.png'),full_page=True);raise
             finally:

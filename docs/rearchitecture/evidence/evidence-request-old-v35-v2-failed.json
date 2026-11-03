@@ -1,0 +1,32 @@
+{
+  "passed": false,
+  "scope": "Real F030 TU selection while an older evidence request is held in Chrome.\n\nUses the production archive, server and UI. Network requests may be held or\naborted, never fulfilled with fabricated evidence. Not full U14/U22 or UAT.\n",
+  "tests": [
+    "real_first_TU_request_held_with_actual_loading_state"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v35",
+  "actual_python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "scan_id": "native-parsed-f030",
+  "package_sha256": "76df60a1fc37e5dfb954ee9eab4994b667abc587e13f1a14bca347e2a3ca0625",
+  "static_sha256": "f0e0f19b4e17cf2ce83bcdda0eabd54f5abb0346e08a4bde92d385ac6c3bdfc2",
+  "controller_sha256": "fca6177b284bf6cd11f4646827556144f31ef7f672896076e6fce5f847e95d1f",
+  "source_files": [
+    "startup.c",
+    "main.c"
+  ],
+  "evidence_nodes": [
+    22571,
+    22610
+  ],
+  "expected_hashes": [
+    "ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228",
+    "02ef178f732dc62c14f350a662047485883535ea294f06b3064cb3d4ea05b967"
+  ],
+  "observed_reference_after_late_response": [
+    "证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228"
+  ],
+  "error": "Locator expected to have text '证据引用 #22610 · SHA-256 02ef178f732dc62c14f350a662047485883535ea294f06b3064cb3d4ea05b967'\nActual value: 证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228 \nCall log:\n  - Expect \"to_have_text\" with timeout 15000ms\n  - waiting for get_by_role(\"region\", name=\"当前覆盖证据\").locator(\":scope > details.evidence-node\").filter(has=locator(\"summary\").filter(has_text=\"原始真实编译命令\")).locator(\":scope > .node-content > .reference\")\n    33 × locator resolved to <div class=\"reference\">证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e56…</div>\n       - unexpected value \"证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228\"\n\nAria snapshot:\n- text: \"证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228\"",
+  "traceback": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_evidence_request_ui.py\", line 124, in main\n    reference(nodes[1], expected[1]['hash'])\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_evidence_request_ui.py\", line 91, in reference\n    expect(evidence.locator(':scope > .node-content > .reference')).to_have_text(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22526, in to_have_text\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 637, in to_have_text\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to have text '证据引用 #22610 · SHA-256 02ef178f732dc62c14f350a662047485883535ea294f06b3064cb3d4ea05b967'\nActual value: 证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228 \nCall log:\n  - Expect \"to_have_text\" with timeout 15000ms\n  - waiting for get_by_role(\"region\", name=\"当前覆盖证据\").locator(\":scope > details.evidence-node\").filter(has=locator(\"summary\").filter(has_text=\"原始真实编译命令\")).locator(\":scope > .node-content > .reference\")\n    33 × locator resolved to <div class=\"reference\">证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e56…</div>\n       - unexpected value \"证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228\"\n\nAria snapshot:\n- text: \"证据引用 #22571 · SHA-256 ea50a07b95ca1589131acce7e5663ae0a035f714f20a440a5c4d440547728228\"\n"
+}

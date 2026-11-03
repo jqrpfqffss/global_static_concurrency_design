@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "imported": {
+    "scan_id": "native-golden",
+    "imported_events": 0,
+    "repeated": false
+  },
+  "binding": {
+    "scan_id": "native-golden",
+    "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+    "profile_id": "same-golden-input",
+    "state": "UNVERIFIED",
+    "facts_hash": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+    "report_hash": "7b9232c11317d89aa8fa0a27471062d0d92dcb4afdbab99fd721ff178b0a5331"
+  },
+  "archive_sha256": "ce4cc263a5f95cc557cef3c929eced9f5d1fc9935b88fd0d99c21f643faa6de7",
+  "seconds": 2305.7029999999795,
+  "scope": "Actual bundled v34 Python3.10.9, full unmodified standard importer/deep checks/default512MiB reader. No verification skipped, no new native producer or physical secondPC claim."
+}

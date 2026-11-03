@@ -1,29 +1,49 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { api, field } from './api'
 const props = defineProps<{ scan: string, node: number, title: string }>()
 const page = ref<any>(null), error = ref(''), busy = ref(false), textPage = ref<any>(null)
+const details = ref<HTMLDetailsElement|null>(null)
+let generation = 0
+let requested = { text: false, offset: 0 }
 const scalar=(item:any)=>item.value===null?'未提供/未知':item.display_json??item.exact_value??String(item.value)
 async function load(offset = 0) {
+  const request = ++generation, path = `/scans/${props.scan}/nodes/${props.node}`
+  const textPath = `/scans/${props.scan}/text/${props.node}`
+  requested = { text: false, offset }
   busy.value = true; error.value = ''
   try {
-    const path = `/scans/${props.scan}/nodes/${props.node}`
-    page.value = await api(path + `?offset=${offset}`)
-    if (page.value.segmented) await loadText(0)
-  } catch (e: any) { error.value = e.message } finally { busy.value = false }
+    const value = await api(path + `?offset=${offset}`)
+    if (request !== generation) return
+    const text = value.segmented ? await api(textPath + '?offset=0') : null
+    if (request !== generation) return
+    page.value = value; textPage.value = text
+  } catch (e: any) { if (request === generation) error.value = '证据读取失败：'+e.message+'；请重试。' }
+  finally { if (request === generation) busy.value = false }
 }
 async function loadText(offset: number) {
+  const request = ++generation, path = `/scans/${props.scan}/text/${props.node}`
+  requested = { text: true, offset }
   busy.value=true;error.value=''
   try {
-    textPage.value = await api(`/scans/${props.scan}/text/${props.node}?offset=${offset}`)
-  } catch (e: any) { error.value = e.message } finally{busy.value=false}
+    const value = await api(path+`?offset=${offset}`)
+    if (request === generation) textPage.value = value
+  } catch (e: any) { if (request === generation) error.value = '证据读取失败：'+e.message+'；请重试。' }
+  finally { if (request === generation) busy.value=false }
 }
-watch(()=>[props.scan,props.node],()=>{page.value=null;textPage.value=null;error.value=''})
+function retry() { if (requested.text) loadText(requested.offset); else load(requested.offset) }
+watch([()=>props.scan,()=>props.node],()=>{
+  generation++; page.value=null;textPage.value=null;error.value='';busy.value=false
+  requested={text:false,offset:0}
+  if (details.value?.open) load()
+})
+onBeforeUnmount(()=>{generation++})
 </script>
 <template>
-  <details class="evidence-node" @toggle="(event: Event) => { if ((event.target as HTMLDetailsElement).open && !page && !busy) load() }">
+  <details ref="details" class="evidence-node" @toggle="(event: Event) => { if ((event.target as HTMLDetailsElement).open && !page && !busy) load() }">
     <summary>{{ title }} <small v-if="page">{{ page.kind === 'str' ? '文本证据' : `共 ${page.total} 项` }}</small></summary>
     <p v-if="busy" role="status">正在读取证据…</p><p v-if="error" role="alert" class="error">{{ error }}</p>
+    <button v-if="error" :disabled="busy" @click="retry">重试读取证据</button>
     <div v-if="page" class="node-content">
       <div class="reference">证据引用 #{{ page.id }} · SHA-256 {{ page.hash }}</div>
       <template v-if="page.items">
