@@ -31,7 +31,7 @@
 
 {'PASS': 11, 'NOT_VERIFIED': 13}；完整G7仍FAIL。
 
-[v27实包封存](../evidence/portable-studio-v27-seal.json)绑定dca72be/全部分发文件，实际16组通过。U08当前包见browser-portable-v27-crash-recovery.json；U16历史v23证明单独保留。原控制路径错误和旧v18输入丢失失败不改写为PASS。
+[v27实包封存](../evidence/portable-studio-v27-seal.json)绑定1493c05/全部分发文件，实际17组通过。U08当前包见browser-portable-v27-crash-recovery.json；U16历史v23证明单独保留。原控制路径错误和旧v18输入丢失失败不改写为PASS。
 
 缺源码的第二台物理机、32GB真机、Windows真实DPI与工程师UAT继续NOT_VERIFIED。CLI现有只读记录是历史已验子范围，当前完整U03未验。
 

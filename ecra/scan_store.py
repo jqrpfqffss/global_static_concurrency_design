@@ -574,8 +574,11 @@ class EvidenceProvider:
                         continue
                     if column in {'source_id','target_id'}:
                         key='caller_function_id' if column=='source_id' else 'callee_function_id'
-                        where+=' AND ('+column+'=? OR node IN (SELECT e.parent FROM edges e JOIN nodes n ON n.id=e.child '
-                        where+="WHERE e.key='"+key+"' AND n.kind='str' AND n.value=?))"
+                        # A historical alias projection remains authoritative.
+                        # Only absent V1 projections need the engine-field
+                        # fallback; matching both would invent a second caller.
+                        where+=' AND ('+column+'=? OR ('+column+' IS NULL AND node IN (SELECT e.parent FROM edges e JOIN nodes n ON n.id=e.child '
+                        where+="WHERE e.key='"+key+"' AND n.kind='str' AND n.value=?)))"
                         args.extend([value,value.encode('utf-8',errors='surrogatepass')])
                     else:
                         where+=' AND '+column+'=?';args.append(value)

@@ -15,3 +15,17 @@
 | 大型调用树/本修复新实包 | 待当前真实INAV完整协议及后续实际浏览器/新打包验证，不借小夹具关闭U12/U13/G7。v27分析/打包仍指1493c05 |
 
 变更仅ecra/studio/query.py与tests/test_studio_call_navigation.py。复现：`py -3.10 -B -X utf8 -m unittest tests.test_studio_call_navigation tests.test_studio_api tests.test_scan_store -v`。当前大型扫描、原版备份/全图及比较队列继续使用其冻结v27源文件，本次查询层修复不注入运行任务。
+
+## v1投影存在时禁止二次回退（后续独立修复）
+
+对冻结v1 schema完整构造并通过深检的档案进一步核对发现：v1的caller/callee投影与caller_function_id/callee_function_id不同时，原查询使用“投影匹配 OR 原字段匹配”，同一调用边因此可能同时计入两个调用者或被调用者。先运行新增场景，实际得到2条而非1条，原失败日志保留。该问题不表示分析器新增了调用边，而是只读筛选把历史边归属扩大。
+
+ecra/scan_store.py现在仅在source_id/target_id为NULL时启用v1原引擎字段回退；已有历史投影优先级、全部原字段、ordinal、重复次数、schema和数据库字节保持原样。新增测试覆盖相互冲突的caller与callee别名、缺投影回退、上/下游筛选和完整深检。
+
+| 验收 | 实际结果 |
+|---|---|
+| 修复前 | 1项实际FAIL：总数2、next_offset=1，期望总数1、无下一页。[原失败](evidence/call-v1-projection-precedence-before-v1.json) |
+| 修复后联合专项 | 35PASS、0SKIP、14.558s，包含API13项、ScanStore19项及调用导航3项。[收据](evidence/call-v1-projection-precedence-focused-v2.json) |
+| 已有实包/正在完整回归 | v27和已冻结v28均不包含本段修复；1371项v28回归不能记为本修复回归。新冻结版本及其Portable仍待实际验收。 |
+
+本段修复只影响v1归档只读查询，未修改受保护分析算法或运行中的v27大型扫描。原失败与首轮35项通过的日志分别保留，不覆盖后续补齐callee断言的第二轮日志。

@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "tests": 35,
+  "skipped": 0,
+  "seconds": 14.651,
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\call-v1-projection-precedence-focused-v1.log",
+  "log_sha256": "3441677a901a63bc8eb631e048bf169d1a183faa6fe867da475c02ef41f7fbd2",
+  "scope": "Actual frozen-schema V1 projection precedence failure before fix; full related API/store/navigation regression after fix. No native semantic, Portable, physical-PC or U12/G1 gate closure.",
+  "files": {
+    "ecra/scan_store.py": "79409368ca12a3d4625142b58ddbcbc9b155a45d62898257457654e7e50ee219",
+    "ecra/studio/query.py": "a1715423d7c711e6bd326000d8e26800383c9530bc08fb48a62264e1eaf434f5",
+    "tests/test_studio_call_navigation.py": "71a02f320f00bda76a660069478d1b7f682d842e54382eaf7e3e3513701601b2"
+  },
+  "command": "py -3.10 -B -X utf8 -m unittest tests.test_studio_call_navigation tests.test_studio_api tests.test_scan_store -v"
+}

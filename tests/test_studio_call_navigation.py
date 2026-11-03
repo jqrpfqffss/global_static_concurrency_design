@@ -59,5 +59,32 @@ class CallNavigationTests(unittest.TestCase):
         self.assertEqual(up['items'][0]['definitions'][0]['summary']['file'],'a.c')
         self.assertEqual((out/'scan.db').read_bytes(),before)
 
+    def test_v1_missing_projection_fallback_does_not_override_recorded_alias_identity(self):
+        from ecra.scan_store import _project
+        current=self.make('mixed',[
+            dict(caller_function_id='tu::a.c::helper',caller='tu::b.c::helper',callee_function_id='sink',callee='sink',file='b.c',line=11),
+            dict(caller_function_id='tu::a.c::helper',callee_function_id='tu::b.c::helper',callee='sink',file='a.c',line=22)])
+        out=self.root/'v1-mixed';out.mkdir()
+        schema=Path(__file__).with_name('fixtures').joinpath('v23_scan_schema.sql').read_text('utf-8')
+        with closing(sqlite3.connect(out/'scan.db',uri=True)) as conn,conn:
+            conn.executescript(schema);conn.execute('PRAGMA user_version=1')
+            conn.execute('ATTACH DATABASE ? AS original',((current/'scan.db').resolve().as_uri()+'?mode=ro',))
+            for table in ['nodes','edges','roots','projects','profiles','scans']:
+                conn.execute('INSERT INTO '+table+' SELECT * FROM original.'+table)
+            for dataset,node in conn.execute('SELECT name,node FROM roots').fetchall():_project(conn,dataset,node)
+        provider=EvidenceProvider(out/'scan.db');provider.validate(deep=True)
+        before=(out/'scan.db').read_bytes();query=QueryService(out)
+        for function_id,ordinal,location in [('tu::a.c::helper',1,'a.c'),('tu::b.c::helper',0,'b.c')]:
+            page=query.call_neighbors(function_id,direction='downstream',limit=1)
+            self.assertEqual((page['total'],page['next_offset']),(1,None))
+            self.assertEqual(page['items'][0]['ordinal'],ordinal)
+            self.assertEqual(page['items'][0]['neighbor_id'],'sink')
+            self.assertEqual(page['items'][0]['summary']['file'],location)
+        upstream=query.call_neighbors('sink',direction='upstream')
+        self.assertEqual([row['neighbor_id'] for row in upstream['items']],['tu::b.c::helper','tu::a.c::helper'])
+        self.assertEqual([row['ordinal'] for row in upstream['items']],[0,1])
+        self.assertEqual(query.call_neighbors('tu::b.c::helper',direction='upstream')['total'],0)
+        self.assertEqual((out/'scan.db').read_bytes(),before)
+
 
 if __name__=='__main__':unittest.main()
