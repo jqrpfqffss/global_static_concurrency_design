@@ -1,0 +1,53 @@
+{
+  "passed": false,
+  "tests": [],
+  "screenshots": [],
+  "page_errors": [],
+  "external_requests": [],
+  "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+  "scan_id": "original-native-comparison-only",
+  "input_kind": "original-native-graph-diagnostic",
+  "engine": "H:\\ECRAStudio-build-20261103-studio-v27\\ECRA-Portable",
+  "scope": "Real imported INAV evidence in the shipped GUI; no synthetic analysis data.\n\nNormally requires the verified standard-package import of the approved INAV\nscan. An explicitly selected original-graph diagnostic remains separate.\nChecks complete direct-edge pages and a marked main witness, not enumerated\nall-path lists, target-board behavior, physical second-PC or Windows DPI.\n",
+  "main_context": "vector:slot:1",
+  "irq_context": "vector:slot:15",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "physical_second_computer": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "main_witness": [
+    "c:@F@main",
+    "c:@F@scheduler",
+    "c:@F@micros"
+  ],
+  "static_sha256_before": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+  "controller_sha256": "83e92d9b7d7b4a19222d06fd4256a0752cbdc66d4b47b28c06ff68b392b0defc",
+  "binding": {
+    "scan_id": "original-native-comparison-only",
+    "project_id": "frozen-native-original",
+    "profile_id": "default",
+    "state": "LEGACY_READ_ONLY",
+    "facts_hash": "9da30821f449de364352f533134d80e731e031f44bbe69ec86d8f287ac12b6c2",
+    "report_hash": "40f6e6e125d18f039e1dacf82baa87f7fc7a9f8c07815745a7b55ad81a24836e"
+  },
+  "existing_human_events": 3000,
+  "command": [
+    "C:\\Windows\\System32\\cmd.exe",
+    "/d",
+    "/c",
+    "H:\\ECRAStudio-build-20261103-studio-v27\\ECRA-Portable\\ECRA.cmd",
+    "--no-browser",
+    "--data-root",
+    "H:\\ECRA-U16-INAV-v1\\data",
+    "--session-file",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-evidence-ui-v27-v1-work\\session.json"
+  ],
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_inav_evidence_ui.py\", line 107, in main\n    expect(page.locator('.symbol')).to_have_count(1,timeout=120000);page.locator('.symbol').click()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 22052, in to_have_count\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 454, in to_have_count\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to have count '1'\nActual value: 50 \nCall log:\n  - Expect \"to_have_count\" with timeout 120000ms\n  - waiting for locator(\".symbol\")\n    241 × locator resolved to 50 elements\n        - unexpected value \"50\"\n\n",
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-original-evidence-ui-v27-v1\\acceptance.json",
+  "original_receipt_sha256": "b8e0d1080b2fb9a459bd64cde7100117980a03dba7266aa3190364e58984b8d6",
+  "published_screenshots": [
+    {
+      "file": "ui/screenshots/continuation-20261103/inav-original-evidence-ui-v27-v1-failed.png",
+      "sha256": "fac57fc1dfe694c85575bfb069e0c5068a1a4868487d6a9f7bf6e4bdc9d92c8f"
+    }
+  ]
+}

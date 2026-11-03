@@ -1,0 +1,15 @@
+{
+  "summary_ok": true,
+  "tests": 20,
+  "passed_tests": 20,
+  "seconds": 4.61,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "raw_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-allocation-receipt-focused-v1.log",
+  "log_sha256": "7d9a3092770d9bb7d32c52686317b8a9569c0363829d938d72af997acfc33219",
+  "scope": "Real sparse-hole construction, unchanged strict allocation threshold, payload/zero bytes, hardlink/PDH/compression plus failed-run unittest accounting.20PASS; not whole G4 or a rerun of1371/1379."
+}

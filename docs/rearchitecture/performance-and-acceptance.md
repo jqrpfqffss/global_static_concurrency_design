@@ -1,6 +1,6 @@
 > 最新已完整封存实包为[v27](46-frozen-v27-acceptance.md)，运行时1493c05：1369项1367PASS/2联网SKIP，17组139个重叠Chrome断言，30338分发文件全SHA、127运行时源码匹配；[U场景](ui/29-user-scenario-status-v27.md)11PASS/13待验。新固定环境大型对照仍待完成，旧G1六字段差异与G4下降40.2058%失败保留。后续旧调用边查询修复d2c221b不在本包。
 
-> 2026-11-03后续进度：v27源码1493c05已冻结2043文件，完整1369项1367PASS/2联网SKIP，498.438s实包构建及两份27CLI验收通过；17组实包浏览器已全部通过并完整封存，新大型固定seed对照仍执行中、总门禁未关闭。空间策略及源码真实GUI见[43号验收](43-storage-policy-and-native-compaction-acceptance.md)，新严格对照协议见[44号记录](44-fixed-environment-pair-and-verifier.md)。v25历史封存保留，不将后续代码换标为旧包。
+> 2026-11-03后续源码：v1调用归属修复35项通过；真实INAV原版图6组导航及Git配置8组Chrome通过，113冲突/5423相关边完整分页、静态SHA/3000事件不变，见[47号记录](47-live-inav-navigation-and-working-input-status.md)。v28完整1371项实际1368PASS/1FAIL/2SKIP，原失败与错误计数原收据保留；显式空洞夹具及计数修复20项通过，见[48号记录](48-regression-accounting-and-sparse-fixture.md)。后续1379项完整回归及新实包仍待验，不把本轮源码记成v27已包含。include_uncommitted=true生产隔离未接入、继续阻断；大型seed0原生对照执行中，完整门禁未关闭。
 
 
 

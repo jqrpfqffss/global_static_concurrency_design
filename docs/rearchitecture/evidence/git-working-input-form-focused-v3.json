@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "tests": 37,
+  "skipped": 0,
+  "seconds": 23.464,
+  "raw_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-form-focused-v3.log",
+  "log_sha256": "996acff5a24fe026870d8dad3ad280a33988190e48f1b550eedde3223d1dd2c5",
+  "scope": "Actual form/Git/context/API regression. Initial command named a nonexistent test module; retained. Formal include_uncommitted=true remains blocked, no native/Portable/G1/U04 gate claim."
+}

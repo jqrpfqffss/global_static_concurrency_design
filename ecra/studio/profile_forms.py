@@ -16,7 +16,7 @@ import yaml as engine_yaml
 from ..config import UniqueKeyLoader
 
 MAX_BYTES=4*1024**2
-FIELDS={'project_name','project_root','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','contexts','system_headers'}
+FIELDS={'project_name','project_root','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','include_uncommitted','contexts','system_headers'}
 CONTEXT_KINDS={'ISR','TASK','MAIN','CALLBACK','DMA','CORE','FOREGROUND','IRQ','EXTERNAL_ASYNC','UNKNOWN_CONTEXT'}
 
 
@@ -172,6 +172,9 @@ def form_state(raw):
         toolchain=_text(cmake.get('toolchain_file'),'Toolchain'),variant=_text(cmake.get('build_type','Debug'),'构建变体'),
         include_dirs=directories('include_dirs'),exclude_dirs=directories('exclude_dirs'),
         base_ref=_text(git.get('base_ref','HEAD^'),'base_ref') if git.get('enabled') else '',current_ref=_text(git.get('current_ref','HEAD'),'current_ref',default='HEAD'))
+    dirty=git.get('include_uncommitted',False)
+    if type(dirty) is not bool:raise ValueError('analysis.git_diff.include_uncommitted 必须是布尔值，请在高级YAML修复')
+    result['include_uncommitted']=dirty
     headers=analysis.get('auto_system_includes')
     if 'auto_system_includes' in analysis and type(headers) is not bool:raise ValueError('analysis.auto_system_includes 必须是布尔值，请在高级YAML修复')
     result['system_headers']='default' if headers is None else 'on' if headers else 'off'
@@ -189,7 +192,9 @@ def merge_form(raw,changes):
     if not isinstance(changes,dict) or set(changes)-FIELDS:raise ValueError('表单包含未知修改字段')
     for key,value in changes.items():
         if key=='contexts':continue
-        if key in {'include_dirs','exclude_dirs'}:
+        if key=='include_uncommitted':
+            if type(value) is not bool:raise ValueError('纳入未提交输入必须是布尔值')
+        elif key in {'include_dirs','exclude_dirs'}:
             if not isinstance(value,list) or any(not isinstance(item,str) or not item or '\n' in item or '\r' in item for item in value):raise ValueError('目录必须是非空逐行文本数组')
         elif not isinstance(value,str):raise ValueError('表单字段 '+key+' 必须是文本')
     if not changes:return dict(yaml=raw,changed_paths=[])
@@ -220,6 +225,7 @@ def merge_form(raw,changes):
         set_value(('analysis','git_diff','enabled'),bool(changes['base_ref']))
         if changes['base_ref']:set_value(('analysis','git_diff','base_ref'),changes['base_ref'])
     if 'current_ref' in changes:set_value(('analysis','git_diff','current_ref'),changes['current_ref'])
+    if 'include_uncommitted' in changes:set_value(('analysis','git_diff','include_uncommitted'),changes['include_uncommitted'])
     if 'system_headers' in changes:
         if changes['system_headers'] not in {'default','on','off'}:raise ValueError('编译器标准头文件选项无效')
         if changes['system_headers']=='default':remove(('analysis','auto_system_includes'))

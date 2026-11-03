@@ -1,0 +1,49 @@
+{
+  "passed": false,
+  "status": "CANCELLED_BEFORE_START",
+  "reason": "Superseded only unstarted v28 release/GUI queues after the newly reproduced V1 query and actual INAV conflict-page publication fixes. Frozen1371 regression and every active native/backup/comparison/retention process remain running; no existing artifact removed.",
+  "processes": [
+    {
+      "pid": 13924,
+      "created": 1793665213.414662,
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/run-portable-build-v28-v1.py"
+      ],
+      "children": [
+        {
+          "pid": 18156,
+          "name": "conhost.exe"
+        }
+      ],
+      "status": "CANCELLED_BEFORE_BUILD_OR_GUI_START",
+      "native_or_build_child_started": false,
+      "terminated_utc_epoch": 1793666964.5524008
+    },
+    {
+      "pid": 7036,
+      "created": 1793666004.7099652,
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/run-native-inav-evidence-ui-v28-v1.py"
+      ],
+      "children": [
+        {
+          "pid": 22048,
+          "name": "conhost.exe"
+        }
+      ],
+      "status": "CANCELLED_BEFORE_BUILD_OR_GUI_START",
+      "native_or_build_child_started": false,
+      "terminated_utc_epoch": 1793666964.5897472
+    }
+  ],
+  "build_directory_never_created": true,
+  "gui_work_directory_never_created": true
+}

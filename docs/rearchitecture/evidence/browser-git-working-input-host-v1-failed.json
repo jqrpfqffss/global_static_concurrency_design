@@ -1,0 +1,85 @@
+{
+  "passed": false,
+  "scope": "Real Chrome/Git wizard selection, SHA preview, persistence and read-only proof.\n\nUses an isolated copy of the approved F030 input; its extra refs/dirty files are\nexplicit UI fixtures. Does not claim a new native G2 project or full U04/UAT.\n",
+  "tests": [
+    {
+      "name": "real_git_head_dirty_coverage_and_read_only_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "paged_real_ref_selection_search_and_commit_resolution",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "invalid_ref_keeps_input_and_removes_stale_commit_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "chosen_refs_generate_real_saved_profile_without_uncommitted_coverage",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "back_reload_reopen_retains_selected_refs_and_saved_bytes",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v1\\01-real-git-selection-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v1\\01-real-git-selection-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v1\\02-selected-refs-saved.png"
+  ],
+  "external_requests": [],
+  "page_errors": [],
+  "native_scan": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "base_sha": "cbbb212e128f624c2cb7c8708aa6e68865f18217",
+  "current_sha": "90cc7016fd226cb65df3a53679d0ab9cc977c12b",
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_git_selection.py\", line 131, in main\n    read();expect(picker.get_by_role('alert').filter(has_text='当前 ref 为 HEAD')).to_be_visible()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\sync_api\\_generated.py\", line 23019, in to_be_visible\n    self._sync(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_sync_base.py\", line 115, in _sync\n    return task.result()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 841, in to_be_visible\n    await self._expect_impl(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 126, in _expect_impl\n    _record_soft_or_raise(\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\playwright\\_impl\\_assertions.py\", line 60, in _record_soft_or_raise\n    raise error\nAssertionError: Locator expected to be visible\nActual value: None\nError: strict mode violation: get_by_role(\"region\", name=\"Git 版本选择\", exact=True).get_by_role(\"alert\").filter(has_text=\"当前 ref 为 HEAD\") resolved to 2 elements:\n    1) <p role=\"alert\" data-v-0caf56a5=\"\">纳入未提交输入仅适用于当前 ref 为 HEAD；其他分支请使用固定提交比较</p> aka get_by_text(\"纳入未提交输入仅适用于当前 ref 为 HEAD；其他分支请使用固定提交比较\")\n    2) <p role=\"alert\" data-v-0caf56a5=\"\">纳入未提交输入仅适用于当前 ref 为 HEAD；请改为 HEAD，或取消此选项进行固定提交比较。</p> aka get_by_text(\"纳入未提交输入仅适用于当前 ref 为 HEAD；请改为\")\n \nCall log:\n  - Expect \"to_be_visible\" with timeout 5000ms\n  - waiting for get_by_role(\"region\", name=\"Git 版本选择\", exact=True).get_by_role(\"alert\").filter(has_text=\"当前 ref 为 HEAD\")\n\n",
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v1\\acceptance.json",
+  "original_receipt_sha256": "6a171c3f1ad4e0c8aebc064d91ec5a2a9878ae73c68d26ed033b7957918f3466",
+  "formal_working_input_native_scan": "NOT_IMPLEMENTED_PRODUCTION_GATE_RETAINS_BLOCK",
+  "published_screenshots": [
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v1-01-real-git-selection-1366.png",
+      "sha256": "a69a2fad7d754a3805c86e3eeb573c48d7842a4809b135092fb1e4ed115bef3a"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v1-01-real-git-selection-1600.png",
+      "sha256": "68578dcdba22c8eb72336d88f81c822f9293d2da207c3858379ba57e09d44aac"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v1-02-selected-refs-saved.png",
+      "sha256": "7f77004af71114a854e05ac682eb06468aadf15f12c714a1a47663bd09c69c57"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v1-failure.png",
+      "sha256": "545c7d510734c1550d828d51263014f250b49c3fa49f81f904d28b1b30f91a70"
+    }
+  ]
+}

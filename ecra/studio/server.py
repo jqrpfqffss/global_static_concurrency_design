@@ -554,7 +554,7 @@ def _create_app(data_root, *, token, authority, startup):
     def profile_git_versions(payload: dict):
         from .git_versions import inspect_versions
         return inspect_versions(payload.get('project_root'), data/'work/git-versions',
-            **{key: payload[key] for key in ('base_ref','current_ref','search','offset','limit') if key in payload})
+            **{key: payload[key] for key in ('base_ref','current_ref','include_uncommitted','search','offset','limit') if key in payload})
 
     @app.post('/api/profiles/directories')
     def profile_directories(payload: dict):

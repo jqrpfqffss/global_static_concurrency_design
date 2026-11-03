@@ -1,0 +1,121 @@
+{
+  "passed": true,
+  "scope": "Real Chrome/Git wizard selection, SHA preview, persistence and read-only proof.\n\nUses an isolated copy of the approved F030 input; its extra refs/dirty files are\nexplicit UI fixtures. Does not claim a new native G2 project or full U04/UAT.\n",
+  "tests": [
+    {
+      "name": "real_git_head_dirty_coverage_and_read_only_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "paged_real_ref_selection_search_and_commit_resolution",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "invalid_ref_keeps_input_and_removes_stale_commit_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "chosen_refs_generate_real_saved_profile_without_uncommitted_coverage",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "back_reload_reopen_retains_selected_refs_and_saved_bytes",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "working_input_choice_head_limit_and_real_formal_scan_gate_preserve_saved_profile",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "unchecked_mode_roundtrips_complete_yaml_and_reopens_without_residual_working_input_claim",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "new_non_git_project_clears_old_git_state_and_preserves_previous_profile",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2\\01-real-git-selection-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2\\01-real-git-selection-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2\\02-selected-refs-saved.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2\\03-working-input-setting-honest-formal-block.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2\\04-fixed-commit-mode-restored-after-reopen.png"
+  ],
+  "external_requests": [],
+  "page_errors": [],
+  "native_scan": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "base_sha": "70d49689cb66b4dc1af1e42f47cbd28d14b9697a",
+  "current_sha": "3eeb82e4ec86c4ca0a16a70d4c022afd00e0eb9a",
+  "source_files_unchanged": 42,
+  "fixture_files_and_mtimes_unchanged": 363,
+  "saved_profile": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2-work\\data\\projects\\6fcccda5b6b87b525394cf19a50c027b67b34758eb7447f02d7aede83d8f20fc\\profiles\\0b80e984ca654f908072e55dd86015cd.yaml",
+  "profile_sha256": "ebdf5efcd3ca2953d63cb9b8755f8f600c4535f8b011469d14d34d370b755595",
+  "original_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-ui-host-v2\\acceptance.json",
+  "original_receipt_sha256": "d77a9c75097f031eae1fe8bb3f2519e36c5931874bcfbc41e401f571c6210f3a",
+  "formal_working_input_native_scan": "NOT_IMPLEMENTED_PRODUCTION_GATE_RETAINS_BLOCK",
+  "published_screenshots": [
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v2-01-real-git-selection-1366.png",
+      "sha256": "0b941e086028a5c0c1e549155268addf0c79efa8f337c02376a80d1c374407be"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v2-01-real-git-selection-1600.png",
+      "sha256": "d55d1c9c209a75f694e4f5fc6eefb105a5d1a5eeb53a436d084db18bfd1e3f50"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v2-02-selected-refs-saved.png",
+      "sha256": "0d8a7cd50b27ef37c238d8ab4ab64bf53c9e26d4094e10cba91f3bc10a8fb3f3"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v2-03-working-input-setting-honest-formal-block.png",
+      "sha256": "4fc4bf328eb50343f2cbc431566a7b2c89a889b5b1caab6904f292e6ebb5ffb2"
+    },
+    {
+      "file": "ui/screenshots/continuation-20261103/git-working-input-ui-host-v2-04-fixed-commit-mode-restored-after-reopen.png",
+      "sha256": "402ea3d34940ebb036389c0baa583103e2e4ce57cbe9ce24d78bb12c89de511b"
+    }
+  ]
+}

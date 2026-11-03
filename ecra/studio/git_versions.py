@@ -19,7 +19,9 @@ def _records(stream, separator):
         yield buffer
 
 
-def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', search='', offset=0, limit=50):
+def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', include_uncommitted=False, search='', offset=0, limit=50):
+    if type(include_uncommitted) is not bool:raise ValueError('纳入未提交输入必须是布尔值')
+    if include_uncommitted and current_ref!='HEAD':raise ValueError('纳入未提交输入仅适用于当前 ref 为 HEAD；其他分支请使用固定提交比较')
     if not isinstance(project_root, str) or not Path(project_root).is_absolute():
         raise ValueError('固件目录必须是绝对路径')
     root = Path(project_root).resolve()
@@ -90,5 +92,7 @@ def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', sea
         base_ref=base_ref, current_ref=current_ref, base_sha=resolve(base_ref), current_sha=resolve(current_ref),
         items=items, total=total, offset=offset, limit=limit, search=search,
         next_offset=offset+limit if offset+limit < total else None,
-        dirty=dirty, include_uncommitted=False, sampled_at=datetime.now(timezone.utc).isoformat(),
-        notice='固定提交比较不包含这些未提交修改。这里只是当前预览，启动扫描时会重新固定输入。')
+        dirty=dirty, include_uncommitted=include_uncommitted, formal_scan_allowed=not include_uncommitted,
+        blocking_reason='未提交输入的生产隔离链路尚未接入验收，正式配置检查会阻断；请取消此项使用固定提交比较。' if include_uncommitted else None,
+        sampled_at=datetime.now(timezone.utc).isoformat(),
+        notice=('已选择当前工作区实际字节，包括已暂存、未暂存、重命名、删除和参与输入的未跟踪文件；不是只扫描暂存区。正式扫描仍被隔离验收门禁阻断。' if include_uncommitted else '固定提交比较不包含这些未提交修改。')+'这里只是当前预览，启动扫描时会重新固定输入。')

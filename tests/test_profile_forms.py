@@ -66,6 +66,31 @@ class ProfileFormTests(unittest.TestCase):
         after=yaml.safe_load(result['yaml']);self.assertIs(type(after['project']['name']),str)
         self.assertEqual(after['analysis']['git_diff']['base_ref'],'on');self.assertEqual(after['analysis']['git_diff']['current_ref'],'false')
 
+    def test_uncommitted_toggle_preserves_complete_yaml_unknown_fields_and_comments(self):
+        self.assertIs(form_state(RAW)['form']['include_uncommitted'],False)
+        expected=yaml.safe_load(RAW);expected['analysis']['git_diff']['include_uncommitted']=True
+        merged=merge_form(RAW,dict(include_uncommitted=True))
+        self.assertEqual(yaml.safe_load(merged['yaml']),expected)
+        self.assertEqual(merged['changed_paths'],['analysis.git_diff.include_uncommitted'])
+        self.assertIs(form_state(merged['yaml'])['form']['include_uncommitted'],True)
+        for comment in ['# 工程原始注释','# 独立输出','# 高级生成器保留']:self.assertIn(comment,merged['yaml'])
+        restored=merge_form(merged['yaml'],dict(include_uncommitted=False))
+        self.assertEqual(yaml.safe_load(restored['yaml']),yaml.safe_load(RAW))
+
+    def test_missing_uncommitted_option_defaults_false_without_inserting_it_on_unrelated_edits(self):
+        raw=RAW.replace(', include_uncommitted: false','')
+        self.assertIs(form_state(raw)['form']['include_uncommitted'],False)
+        merged=merge_form(raw,dict(project_name='改显示名'))
+        self.assertNotIn('include_uncommitted',yaml.safe_load(merged['yaml'])['analysis']['git_diff'])
+        self.assertEqual(merge_form(raw,{})['yaml'],raw)
+
+    def test_uncommitted_option_rejects_non_boolean_instead_of_guessing(self):
+        for value in [0,1,None,'true',[],{}]:
+            with self.subTest(value=value),self.assertRaises(ValueError):merge_form(RAW,dict(include_uncommitted=value))
+        for raw in ['1','null','"false"']:
+            with self.subTest(raw=raw),self.assertRaisesRegex(ValueError,'include_uncommitted'):
+                form_state(RAW.replace('include_uncommitted: false','include_uncommitted: '+raw))
+
     def test_unrelated_anchors_merge_keys_and_alias_topology_survive(self):
         raw=RAW+'''defaults: &advanced {value: 3, flags: [1, true]}
 future_alias: *advanced

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "command": "npm.cmd run build",
+  "cwd": "H:\\global_static_concurrency_design\\studio",
+  "raw_log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\git-working-input-frontend-build-v3.log",
+  "log_sha256": "c016a5efbc5bcd8d248c0e19f84b42b8826d8a493c66dd654092b781219616b0",
+  "assets": {
+    "index-BFVIXp1M.css": "4e761aaf060a07e91452ea60c31d30663b0f46500329a59619b03d6ad83edd3b",
+    "index-JbvSh0qy.js": "c8a3b1f1a5ee025a06dc3b3891e153456271e45b601306e06905744484ab2abf"
+  },
+  "scope": "Actual vue-tsc and Vite build. No Portable/native/physical DPI inference."
+}

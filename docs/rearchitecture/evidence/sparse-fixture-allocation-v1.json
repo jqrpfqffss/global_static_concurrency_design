@@ -1,0 +1,132 @@
+{
+  "scope": "Actual owned temporary NTFS sparse fixture before/after explicit sparse zero-range creation; no ECRA data or producer modified",
+  "files": [
+    {
+      "index": 0,
+      "path": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe c_2p2x35\\sparse",
+      "samples": [],
+      "before_explicit_hole": {
+        "logical": 268435456,
+        "allocated": 1048576,
+        "ranges": {
+          "args": [
+            "queryrange",
+            "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe c_2p2x35\\sparse"
+          ],
+          "exit_code": 0,
+          "stdout_hex": "416c6c6f63617465642072616e67655b315d3a204f66667365743a203078302020202020202020204c656e6774683a20307831303030303030300d0a",
+          "stderr_hex": ""
+        }
+      },
+      "zero_range": {
+        "args": [
+          "setrange",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe c_2p2x35\\sparse",
+          "0",
+          "268435456"
+        ],
+        "exit_code": 0,
+        "stdout_hex": "",
+        "stderr_hex": ""
+      },
+      "after_explicit_hole": {
+        "logical": 268435456,
+        "allocated": 65536,
+        "ranges": {
+          "args": [
+            "queryrange",
+            "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe c_2p2x35\\sparse"
+          ],
+          "exit_code": 0,
+          "stdout_hex": "416c6c6f63617465642072616e67655b315d3a204f66667365743a203078383030303030302020204c656e6774683a20307831303030300d0a",
+          "stderr_hex": ""
+        }
+      }
+    },
+    {
+      "index": 1,
+      "path": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe jlq6kqrw\\sparse",
+      "samples": [],
+      "before_explicit_hole": {
+        "logical": 268435456,
+        "allocated": 1048576,
+        "ranges": {
+          "args": [
+            "queryrange",
+            "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe jlq6kqrw\\sparse"
+          ],
+          "exit_code": 0,
+          "stdout_hex": "416c6c6f63617465642072616e67655b315d3a204f66667365743a203078302020202020202020204c656e6774683a20307831303030303030300d0a",
+          "stderr_hex": ""
+        }
+      },
+      "zero_range": {
+        "args": [
+          "setrange",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe jlq6kqrw\\sparse",
+          "0",
+          "268435456"
+        ],
+        "exit_code": 0,
+        "stdout_hex": "",
+        "stderr_hex": ""
+      },
+      "after_explicit_hole": {
+        "logical": 268435456,
+        "allocated": 65536,
+        "ranges": {
+          "args": [
+            "queryrange",
+            "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe jlq6kqrw\\sparse"
+          ],
+          "exit_code": 0,
+          "stdout_hex": "416c6c6f63617465642072616e67655b315d3a204f66667365743a203078383030303030302020204c656e6774683a20307831303030300d0a",
+          "stderr_hex": ""
+        }
+      }
+    },
+    {
+      "index": 2,
+      "path": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe rlqylp28\\sparse",
+      "samples": [],
+      "before_explicit_hole": {
+        "logical": 268435456,
+        "allocated": 1048576,
+        "ranges": {
+          "args": [
+            "queryrange",
+            "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe rlqylp28\\sparse"
+          ],
+          "exit_code": 0,
+          "stdout_hex": "416c6c6f63617465642072616e67655b315d3a204f66667365743a203078302020202020202020204c656e6774683a20307831303030303030300d0a",
+          "stderr_hex": ""
+        }
+      },
+      "zero_range": {
+        "args": [
+          "setrange",
+          "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe rlqylp28\\sparse",
+          "0",
+          "268435456"
+        ],
+        "exit_code": 0,
+        "stdout_hex": "",
+        "stderr_hex": ""
+      },
+      "after_explicit_hole": {
+        "logical": 268435456,
+        "allocated": 65536,
+        "ranges": {
+          "args": [
+            "queryrange",
+            "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\ECRA sparse probe rlqylp28\\sparse"
+          ],
+          "exit_code": 0,
+          "stdout_hex": "416c6c6f63617465642072616e67655b315d3a204f66667365743a203078383030303030302020204c656e6774683a20307831303030300d0a",
+          "stderr_hex": ""
+        }
+      }
+    }
+  ],
+  "passed": true
+}

@@ -24,9 +24,19 @@ class NativeMetricsTests(unittest.TestCase):
             file=Path(folder)/'sparse';file.touch()
             command=subprocess.run(['fsutil','sparse','setflag',str(file)],capture_output=True)
             self.assertEqual(command.returncode,0,command.stderr.decode(errors='replace'))
-            with file.open('r+b') as stream:stream.truncate(256*1024**2);stream.seek(128*1024**2);stream.write(b'payload')
+            with file.open('r+b') as stream:stream.truncate(256*1024**2)
+            # Marking a file sparse does not punch out zero-filled allocation.
+            # Create the intended hole explicitly, rather than assuming the
+            # CRT extension/NTFS preallocation policy allocated fewer clusters.
+            command=subprocess.run(['fsutil','sparse','setrange',str(file),'0',str(256*1024**2)],capture_output=True)
+            self.assertEqual(command.returncode,0,command.stderr.decode(errors='replace'))
+            with file.open('r+b') as stream:
+                stream.seek(128*1024**2);stream.write(b'payload');stream.flush();os.fsync(stream.fileno())
             result=directory_size(folder)
             self.assertEqual(result['logical_bytes'],256*1024**2);self.assertLess(result['allocated_bytes'],result['logical_bytes']//16)
+            with file.open('rb') as stream:
+                self.assertEqual(stream.read(16),b'\0'*16);stream.seek(128*1024**2);self.assertEqual(stream.read(7),b'payload')
+                stream.seek(-16,os.SEEK_END);self.assertEqual(stream.read(16),b'\0'*16)
             missing=directory_size(Path(folder)/'missing');self.assertTrue(missing['sampling_partial'])
 
     def test_actual_language_neutral_pdh_paging_counters_warm_up_and_close(self):

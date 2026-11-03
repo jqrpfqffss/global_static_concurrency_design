@@ -65,6 +65,26 @@ class GitVersionTests(unittest.TestCase):
         with patch('ecra.git_diff.subprocess.run',side_effect=FileNotFoundError('missing git')):
             with self.assertRaisesRegex(ValueError,'Git 无法运行'):self.read()
 
+    def test_explicit_working_input_preview_is_head_only_and_preserves_repository(self):
+        (self.repo/'a.c').write_bytes(b'int actual_working_bytes;\n')
+        (self.repo/'new.h').write_bytes(b'#define ACTUAL_INPUT 1\n');before=self.files()
+        value=self.read(base_ref='v1',include_uncommitted=True)
+        self.assertIs(value['include_uncommitted'],True);self.assertEqual(value['current_sha'],self.head)
+        self.assertIs(value['formal_scan_allowed'],False);self.assertIn('阻断',value['blocking_reason'])
+        self.assertEqual(value['dirty']['unstaged'],1);self.assertEqual(value['dirty']['untracked'],1)
+        self.assertIn('不是只扫描暂存区',value['notice'])
+        with self.assertRaisesRegex(ValueError,'HEAD'):self.read(current_ref='v1',include_uncommitted=True)
+        for value in [1,None,'false']:
+            with self.subTest(value=value),self.assertRaisesRegex(ValueError,'布尔值'):self.read(include_uncommitted=value)
+        data=self.home/'api-data-dirty'
+        with TestClient(create_app(data,token='test',authority='127.0.0.1:12345'),base_url='http://127.0.0.1:12345',
+            headers={'x-ecra-session':'test','origin':'http://127.0.0.1:12345'}) as client:
+            response=client.post('/api/profiles/git-versions',json=dict(project_root=str(self.repo),include_uncommitted=True))
+            self.assertEqual(response.status_code,200,response.text);self.assertIs(response.json()['include_uncommitted'],True)
+            response=client.post('/api/profiles/git-versions',json=dict(project_root=str(self.repo),include_uncommitted=True,current_ref='v1'))
+            self.assertEqual(response.status_code,400,response.text);self.assertIn('HEAD',response.json()['error'])
+        self.assertEqual(self.files(),before)
+
     def test_authenticated_api_real_values_and_page_limit_survive_reopen(self):
         data=self.home/'api-data';before=self.files()
         def client():return TestClient(create_app(data,token='test',authority='127.0.0.1:12345'),base_url='http://127.0.0.1:12345',headers={'x-ecra-session':'test','origin':'http://127.0.0.1:12345'})
