@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "tests": 21,
+  "failures": 0,
+  "errors": 1,
+  "seconds": 7.093,
+  "scope": "First follow-up regression. v1 fixture ATTACH used a file URI without uri=True; unable to open attached database. Existing20 cases passed. Fixture corrected, original failure retained; no production change for this setup error."
+}

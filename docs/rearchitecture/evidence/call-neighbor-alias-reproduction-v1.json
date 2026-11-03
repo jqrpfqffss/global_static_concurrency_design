@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "scope": "Actual isolated typed legacy-format reproduction, not native firmware or G1",
+  "observed": {
+    "total": 1,
+    "projected_source": "caller",
+    "neighbor_id": null
+  },
+  "expected_neighbor_id": "caller",
+  "cause": "call_neighbors ignored validated source_id/target_id and only read current engine field names from summary"
+}

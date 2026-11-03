@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "tests": 34,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "seconds": 19.687000000005355,
+  "modules": [
+    "tests.test_studio_call_navigation",
+    "tests.test_studio_api",
+    "tests.test_scan_store"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\call-neighbor-alias-focused-v2.log",
+  "log_sha256": "2679fc520bac89fa3f749a8511c29ca40a6fab3007393d26efd9c3a8168e1773",
+  "query_sha256": "a1715423d7c711e6bd326000d8e26800383c9530bc08fb48a62264e1eaf434f5",
+  "scope": "Readonly call-neighbor navigation uses validated canonical source/target projection, preserves historical alias precedence, duplicate callsites, V1 original fields and static bytes. Includes actual FastAPI requests. Not large-native/G1 or browserU12 proof."
+}

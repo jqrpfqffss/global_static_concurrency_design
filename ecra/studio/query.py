@@ -126,7 +126,11 @@ class QueryService:
             **({'target_id':function_id} if direction=='upstream' else {'source_id':function_id}))
         for item in page['items']:
             row=item['summary']
-            ident=row.get('caller_function_id') if direction=='upstream' else row.get('callee_function_id')
+            # The validated projection already applies the historical alias
+            # precedence. V1 lacked these columns' values, so retain its
+            # authoritative engine-field fallback without changing the data.
+            ident=item.get('source_id' if direction=='upstream' else 'target_id') or row.get(
+                'caller_function_id' if direction=='upstream' else 'callee_function_id')
             item['neighbor_id']=ident
             item['definitions']=self.evidence.records('functions',function_id=ident)['items'] if ident else []
         return dict(page,function_id=function_id,direction=direction)
