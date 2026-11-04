@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "summary": {
+    "summary_ok": true,
+    "tests": 7,
+    "passed_tests": 7,
+    "seconds": 61.67,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "seconds": 62.155999999988126,
+  "command": [
+    "H:\\ECRAStudio-build-20261104-studio-v37\\ECRA-Portable\\runtime\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-c",
+    "import sys,unittest;print(\"ACTUAL_RUNTIME=\"+sys.version.replace(\"\\n\",\" \"),flush=True);sys.path.insert(0,sys.argv.pop(1));unittest.main(module=None)",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v42",
+    "tests.test_native_consumers.NativeConsumerTests.test_existing_clean_report_digest_all_fields_scalar_types_order_and_shared_nodes",
+    "tests.test_native_consumers.NativeConsumerTests.test_large_utf8_strings_cross_chunk_boundaries_and_no_scratch_files_remain",
+    "tests.test_native_consumers.NativeConsumerTests.test_finding_status_key_insertion_order_and_empty_findings_match_old_cleaning",
+    "tests.test_native_consumers.NativeConsumerTests.test_shared_finding_in_other_locations_retains_opaque_review_fields",
+    "tests.test_native_consumers.NativeConsumerTests.test_bad_scalar_length_is_rejected_without_truncating_the_value",
+    "tests.test_native_consumers.NativeConsumerTests.test_status_projection_keeps_every_identity_and_diff_selection_without_payloads",
+    "tests.test_native_consumers.NativeConsumerTests.test_scratch_junction_is_rejected_before_any_target_write",
+    "-v"
+  ],
+  "source_head": "5c4281bf1245c23885329990864cd845e04ee87b",
+  "actual_runtime": "ACTUAL_RUNTIME=3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "runtime_differences": [],
+  "log_sha256": "4d27eeed93e6b185434ae8234185b2eaa0d2c79c27a49b4c6b2d77b63e8e5cf8",
+  "scope": "Actual v37 bundled Python3.10.9 executing seven pure codec/projection/junction checks from exact new frozen42 source. No new code installed in v37, no whole updated Portable/CLI/worker suite claim.",
+  "all_gates_passed": false
+}

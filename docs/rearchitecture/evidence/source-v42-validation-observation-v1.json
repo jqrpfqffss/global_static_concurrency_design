@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "status": "OBSERVATION_NOT_COMPLETE_GATES",
+  "recorded_utc": "2026-11-04T08:20:10.680249+00:00",
+  "source_head": "5c4281bf1245c23885329990864cd845e04ee87b",
+  "frozen_files": 3688,
+  "manifest_sha256": "a946b562162f9fba28e9ac1cebe4b223765ce41723c111ca064f2972f3762033",
+  "full1459": "RUNNING_FROZEN_TEST_COPY",
+  "native_original_path": "PASS_COMPLETE_FACTS_AND_NORMALIZED_REPORT_0_0",
+  "portable_runtime": "PASS7_PURE_CODEC_TESTS_FROM_SOURCE42_IN_EXISTING_V37_PYTHON3_10_9;NOT_NEW_PORTABLE",
+  "large_report_reader": {
+    "passed": false,
+    "status": "RUNNING_READONLY_EXISTING_REPORT_DIGEST",
+    "source_head": "5c4281bf1245c23885329990864cd845e04ee87b",
+    "producer_head": "49960e041c5bc9b8a47ce14a5fd387477fa5d210",
+    "scope": "Existing complete INAV v13 report only, old clean_report/ECRA_MERKLE_V1 exact digest, source fullSHA before/after, no EvidenceProvider.load, no new native scan, no full saved_run/Packet/R3 or physical32GB claim.",
+    "job_limit_bytes": 2147483648,
+    "peaks": {
+      "working_set_bytes": 47693824,
+      "private_bytes": 34549760,
+      "peak_job_commit_bytes": 34557952
+    },
+    "all_gates_passed": false,
+    "pid": 27172,
+    "seconds": 956.7190000000119
+  },
+  "all_gates_passed": false
+}
