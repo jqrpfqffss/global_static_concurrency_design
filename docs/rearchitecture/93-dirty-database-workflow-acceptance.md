@@ -1,5 +1,7 @@
 # 显式编译数据库：未提交版本对比、恢复与复核来源验收
 
+> 后续干净提交daacc1f的完整1497项已完成1495PASS/2联网SKIP，包含本页功能及已有结果刷新消费者，见[95号最终回归](95-runtime-refresh-memory-acceptance.md)。以下较早“执行中”为当时阶段记录。Packet新读取器仍在内部验收，不将其未通过项并入本页PASS。
+
 本阶段实现[91号合同](91-dirty-input-workflow-contract.md)的**显式编译数据库模式**，不是全部构建模式或整体重构完成。按用户顺序先交付必要功能，再进入[94号后续读取内存工作](94-later-consumer-memory-contract.md)。CMake/自动配置/补充扫描、模块/PCH/自带VFS/插件等未证明模式仍明确阻断，不回退到实时输入。
 
 ## 实现与证据

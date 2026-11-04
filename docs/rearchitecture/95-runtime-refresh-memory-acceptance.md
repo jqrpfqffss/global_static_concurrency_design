@@ -2,6 +2,8 @@
 
 接续[94号审计](94-later-consumer-memory-contract.md)，本阶段只完成**已有原生权威库的`report`刷新**。完整复核、Packet、大Diff和故障恢复仍有读取工作，不能称第四项全部完成。功能支持/失败边界仍按[93号](93-dirty-database-workflow-acceptance.md)执行。
 
+> 完整回归已收齐：[v49最终收据](acceptance/full-regression-studio-v49-final.json)，真实干净提交`daacc1fa94ea773ae248344ee12f07494ae697bd`，1497项为1495PASS/2联网SKIP，2615.715秒；3750引擎与独立测试副本文件SHA无变化，清单SHA256 `94951f3bce68e4c8eb2cdb2711edfbfcf66f597097e3821662f38cf2b3c3d50f`。覆盖前述功能及第一个刷新消费者，不含后续未提交的Packet原型，也不等于新Portable或完整G1–G8通过。
+
 ## 实现
 
 `native_consumers.runtime_inputs`只读取原分类/身份/范围等摘要实际需要的字段，不恢复访问、调用、冲突乘积或全局求解关系。复用原`report.prepare`及`decisions/html_report`中的原有总结函数，没有另写分类规则。已有静态诊断/coverage不重算、不改写；完整权威库的report摘要、输入闭包、源码/环境/引擎门禁仍在刷新前后执行。
@@ -25,7 +27,7 @@ INAV此项只读**旧v13生产者49960e**的完整事实库，在全新scratch�
 
 ## 完整回归失败记录与剩余工作
 
-[v46完整回归](acceptance/full-regression-studio-v46-v2-failed.json)实际1494项：1491PASS / 1FAIL / 2联网SKIP，2543.887秒，3722引擎及测试副本SHA无变化。失败是`test_working_compiler_view`仍要求“隔离快照尚未完成验收”的旧全阻断文案；产品已按91号只开放显式数据库，auto/CMake仍拒绝。本次保留低磁盘/外部复制竞态及auto拒绝检查，只将文案断言更新为“显式编译数据库”，单项2.724秒PASS，未删除或跳过测试。较新v48完整回归仍执行，包含同一旧断言，不改运行中的冻结副本，不宣告完整通过。
+[v46完整回归](acceptance/full-regression-studio-v46-v2-failed.json)实际1494项：1491PASS / 1FAIL / 2联网SKIP，2543.887秒，3722引擎及测试副本SHA无变化。失败是`test_working_compiler_view`仍要求“隔离快照尚未完成验收”的旧全阻断文案；产品已按91号只开放显式数据库，auto/CMake仍拒绝。本次保留低磁盘/外部复制竞态及auto拒绝检查，只将文案断言更新为“显式编译数据库”，单项2.724秒PASS，未删除或跳过测试。[v48最终失败收据](acceptance/full-regression-studio-v48-failed.json)为1497项：1494PASS / 同一旧断言1FAIL / 2SKIP，2641.268秒；没有修改其运行中的冻结副本。修正已进入干净v49，结果见页首，不将重叠测试相加。
 
 后续仍须完成：实际复核/Packet的逐对象完整读取和原Packet对照、大Diff/恢复工作集、dirty视图跨根重放、CMake未提交构建及完整故障矩阵。最新封存Portable仍v37，未包含新增功能。其他G2工程按用户要求待验，物理32GB/第二PC/干净离线/原生DPI/真实联网模型/UAT继续NOT_VERIFIED；完整重构及G1–G8未全部完成。
 

@@ -1,5 +1,7 @@
 > 按用户功能优先顺序的最新结果：[88号确认继承](88-verified-human-inheritance.md)、[90号完整数据根搬迁](90-whole-root-transfer-acceptance.md)已实现并完成限定范围真实F030/Chrome验收；v44完整1482项为1480PASS/2联网SKIP。第三项显式数据库工作区输入已接公开GUI/CLI/Diff/恢复，[93号验收](93-dirty-database-workflow-acceptance.md)：67专项PASS、自建原生4TU真实Chrome/独立全量0差/完整包通过，真实F030因基准PARTIAL正确拒绝，未改判为完整Diff成功；详情裁切修复后六组浏览器几何断言通过。CMake未提交构建、第四项后续操作内存及其他统一门禁仍未完成；较早文字保留为历史，最新封存Portable仍v37。
 
+> 第四项的第一个消费者已完成：[95号](95-runtime-refresh-memory-acceptance.md)，真实F030刷新/完整静态对照0差、既有INAV 12.59GB库运行时投影0差，实际2GiB Job提交峰值约116MiB；干净daacc1f完整1497项已1495PASS/2联网SKIP。完整复核/Packet/大Diff恢复仍未完成，内部Packet大库对照发现递归边数组兼容缺陷，修正前测量不算语义验收通过。
+
 > 大型读路径验收见[86号](86-inav-native-report-digest-acceptance.md)：既有INAV完整报告原摘要相同，整库/state/manifest/源SHA不变，实际2GiB Job最终提交峰值34,557,952B；仅报告摘要，不是完整status/复核/扫描。
 
 > 最新源码/状态见[85号](85-v42-validation-status.md)：R3a原生状态/摘要消费者38项通过，当前原路径F030完整0/0，包内3.10.9纯codec7项通过；旧1449已完成1447PASS/2SKIP，新1459及真实INAV报告摘要执行中。v13完整紧凑包严格导入和最终大小71.64935%子门限已通过见84号，完整G4/物理机仍待验。正式dirty/CMake/恢复、R3其余消费者及R4–R7仍有代码缺口，完整重构未完成；最新封存Portable仍v37。
