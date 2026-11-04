@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "scope": "R2a real extractor internal frozen compiler view only. Formal dirty scan remains blocked.",
+  "previous_head": "7066dea6b31bb3d0913cccd3c9f606145012d57d",
+  "source_sha256": {
+    "ecra/working_compiler_view.py": "f59c0f9287f7d86c141439bff8aaeb14b6235cd712ac56e74af46acd1357b0db",
+    "ecra/extract.py": "e4a28c7bd715f54c5acd6f5fab39883deb8a3f82fb4dbba0f90e02316f80ff2b",
+    "tests/test_working_compiler_view.py": "240681c29a85194bb9625a6e93532869b3c4f82bf3473971bf83e42225ce9b0a",
+    "docs/rearchitecture/71-dirty-compiler-view-contract.md": "f8bcfec45ff8ad0fb059310000fd8af67287eccab87d876b54dc5d2cfa1611b6"
+  },
+  "artifacts": [
+    {
+      "file": "docs/rearchitecture/evidence/working-view-approved-f030-initial-v1.json",
+      "sha256": "3e31041ef6eee5b5eb59faa9edd923a39e0d11bfb3dd2f8958071964e7229176"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/working-view-approved-f030-v1.json",
+      "sha256": "f60aeaea684436b04a861cb10179e38af65435ae5ed2b288c49cbae55d4e1073"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/working-view-approved-f030-driver-v1.py",
+      "sha256": "3b9e5a0c04760a8416198aa9bcdfdd1072e3ea6c33cc7d5c279b2e75144f5394"
+    }
+  ],
+  "logs": {
+    "working-compiler-view-focused-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\working-compiler-view-focused-v1.log",
+      "sha256": "72d6cf33d0dfe3885bd9f2646070e3d76ec8c31a08e9dcf299e68dc7cc0da81e",
+      "bytes": 1986
+    },
+    "working-compiler-view-focused-v2.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\working-compiler-view-focused-v2.log",
+      "sha256": "5fb2efe0bb293d825de360cc50f6c80c033d347aee191f7426a263a1f0674072",
+      "bytes": 3914
+    },
+    "working-compiler-view-focused-v3.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\working-compiler-view-focused-v3.log",
+      "sha256": "1d7c25ef8cb38f9ae4680466649302fdd2cf910cb62f2acadabc403550933ce3",
+      "bytes": 7277
+    },
+    "working-compiler-view-related-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\working-compiler-view-related-v1.log",
+      "sha256": "c6d48a92c255cede00b6504f28f5a2eb6ce53b4a09c7c6c9be1c6becef43b9c8",
+      "bytes": 16254
+    }
+  },
+  "focused": {
+    "tests": 56,
+    "passed": 56,
+    "seconds": 187.983
+  },
+  "approved_source_copy": {
+    "translation_units": 4,
+    "actual_workers": 8,
+    "seconds": 255.39000000001397,
+    "copied_external_files": 1667,
+    "verified_files": 1710,
+    "complete_response_bytes_equal": true,
+    "merged_facts_difference": 0,
+    "analysis_report_difference": 0
+  },
+  "retained_failures": [
+    {
+      "log": "working-compiler-view-focused-v2.log",
+      "tests": 23,
+      "passed": 22,
+      "errors": 1,
+      "reason": "Existing test_scan_stability requires tests on sys.path; corrected v3 command passed."
+    },
+    {
+      "log": "working-compiler-view-related-v1.log",
+      "tests": 116,
+      "passed": 115,
+      "failures": 1,
+      "reason": "Controller ran live source while source was edited; engine-change guard correctly refused publication. Frozen retry still required."
+    }
+  ],
+  "complete_current_regression": "NOT_YET_RUN_1430",
+  "broader_final_frozen_retry": "NOT_YET_RUN",
+  "formal_dirty_enabled": false,
+  "full_build_diff_equivalence": "NOT_VERIFIED",
+  "all_gates_passed": false
+}

@@ -160,6 +160,7 @@ class Extractor:
         self.declaration_only = request.get("declaration_only", False)
         self.request_snapshot = request.get('verify_inputs', False)
         self.dependencies_only = request.get('dependencies_only', False)
+        self.compiler_view = request.get('compiler_view')
 
     def loc(self, c):
         loc = c.location
@@ -807,6 +808,11 @@ class Extractor:
         # Clang treats as errors by default. Keep the diagnostic as a warning
         # so its AST and pointer flow remain available for conservative audit.
         clang_args = [*self.unit["arguments"], '-Wno-error=incompatible-function-pointer-types']
+        if self.compiler_view is not None:
+            if unsaved or not self.request_snapshot:
+                raise ValueError('冻结编译视图必须核对实际Clang输入，且不能混合unsaved源码覆盖')
+            from .working_compiler_view import arguments as compiler_view_arguments
+            clang_args.extend(compiler_view_arguments(self.compiler_view,self.root,self.cfg,self.unit))
         tu = index.parse(self.unit["source"], args=clang_args,
                          unsaved_files=unsaved,
                          options=(ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD |
@@ -818,6 +824,9 @@ class Extractor:
             from .input_snapshot import clang_inputs, preprocessor_signature
             input_snapshot = clang_inputs(tu, self.unit['source'])
             signature = preprocessor_signature(tu)
+            if self.compiler_view is not None:
+                from .working_compiler_view import verify_consumed
+                verify_consumed(self.compiler_view,self.root,self.cfg,input_snapshot)
         if self.dependencies_only:
             return dict(parse_status='DEPENDENCIES', input_snapshot=input_snapshot, preprocessor_signature=signature)
         diagnostics = [dict(severity=d.severity, message=str(d),
