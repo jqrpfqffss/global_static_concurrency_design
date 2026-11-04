@@ -1,3 +1,5 @@
+> 最新大型读路径验收见[86号](86-inav-native-report-digest-acceptance.md)：既有INAV完整报告原摘要相同，整库/state/manifest/源SHA不变，实际2GiB Job最终提交峰值34,557,952B；仅报告摘要，不是完整status/复核/扫描。新1459仍在执行，R3其余消费者及正式dirty/CMake/恢复、R4–R7未完成，当前源码仍未新封装Portable。
+
 > 最新源码/状态见[85号](85-v42-validation-status.md)：R3a原生状态/摘要消费者38项通过，当前原路径F030完整0/0，包内3.10.9纯codec7项通过；旧1449已完成1447PASS/2SKIP，新1459及真实INAV报告摘要执行中。v13完整紧凑包严格导入和最终大小71.64935%子门限已通过见84号，完整G4/物理机仍待验。正式dirty/CMake/恢复、R3其余消费者及R4–R7仍有代码缺口，完整重构未完成；最新封存Portable仍v37。
 
 > 最新代码/验收见[82号](82-v41-source-validation-and-remaining-gates.md)：内部冻结完整扫描与dirty Diff已接通，74ebb5f冻结23项全PASS、原路径F030完整0/0；正式dirty/CMake/恢复仍阻断，上一批1444已实际1442PASS/2SKIP，新1449已启动，v13 compact严格导入/70%测量未结束。旧1439已实际通过见79号，下面旧“执行中”为原时间记录。最新已封存Portable仍v37，完整重构未完成。

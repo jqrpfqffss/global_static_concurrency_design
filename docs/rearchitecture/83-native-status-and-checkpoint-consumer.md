@@ -1,5 +1,7 @@
 # R3a：原生命令行状态与后置校验不再恢复整张报告
 
+> 后续真实INAV完整报告摘要也已结束，原值匹配、原库/状态/源文件不变，Job提交峰值34,557,952B；完整范围见[86号](86-inav-native-report-digest-acceptance.md)。这没有关闭全部消费者迁移。
+
 审计基点`08200b4`，仍按原任务H1/H2/H3/H6及G1/G6执行。`workflow.status`先经`read_saved_json → scan_persistence.read → EvidenceProvider.load('report')`恢复完整报告；`checked_scan(with_facts=False)`也仍恢复完整报告并在Python再次构造摘要。`saved_run`后置校验和`verify_saved_publication`回退检查重复走此路径。GUI现有分页读取并不证明这些命令行消费者已迁移。
 
 | 改动 | 实现与可核对合同 | 验收 |

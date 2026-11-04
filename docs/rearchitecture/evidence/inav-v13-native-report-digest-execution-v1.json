@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "source_head": "5c4281bf1245c23885329990864cd845e04ee87b",
+  "producer_head": "49960e041c5bc9b8a47ce14a5fd387477fa5d210",
+  "scope": "Existing complete INAV v13 report only, old clean_report/ECRA_MERKLE_V1 exact digest, source fullSHA before/after, no EvidenceProvider.load, no new native scan, no full saved_run/Packet/R3 or physical32GB claim.",
+  "job_limit_bytes": 2147483648,
+  "peaks": {
+    "working_set_bytes": 47693824,
+    "private_bytes": 34549760,
+    "peak_job_commit_bytes": 34557952
+  },
+  "all_gates_passed": false,
+  "pid": 27172,
+  "seconds": 978.5469999999914,
+  "result": {
+    "passed": true,
+    "seconds": 700.2970000000205,
+    "source_database_sha256": "4549110d23bfb9ed3c78d5ea686fbeeb94e9e140eac4b88974288c25bd4e7913",
+    "source_database_bytes": 12590489600,
+    "source_database_and_state_manifest_unchanged": true,
+    "expected_report_digest": "b8b2d88b0e0f76d592e95f418c96fee98e0dfdf1989577f84f0ee34a80e8821b",
+    "actual_report_digest": "b8b2d88b0e0f76d592e95f418c96fee98e0dfdf1989577f84f0ee34a80e8821b",
+    "full_reconstruction_calls": 0,
+    "scope": "Actual existing v13 report only, complete original checkpoint digest without full graph, not a new scan or full consumer migration",
+    "all_gates_passed": false
+  },
+  "engine_differences": []
+}
