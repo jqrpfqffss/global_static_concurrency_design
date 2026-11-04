@@ -1,5 +1,7 @@
 # R2c第一步：实际完整扫描接入同一冻结输入
 
+> 后续真实F030全链路已结束，冻结`f2dca32`：4 TU保持2 PARSED/2 PARTIAL，普通与冻结完整有序事实/既有规范化报告0/0，完整包严格独立导入0/0，原始/私有Git/SDK/build/引擎全部SHA不变；1714个固定文件，736.750秒。[实际收据](evidence/frozen-full-approved-f030-v1.json)、[8GiB受控进程资源](evidence/frozen-full-approved-f030-execution-v1.json)。这是独立获准源副本，不改标为原路径黄金或真实dirty Diff；普通扫描26.891秒、冻结扫描474.375秒，额外全树/原始输入验证开销明显，**不称提速或正式生产性能完成**。下方“待执行”为当时记录；后续第二步代码仍需独立验证。
+
 按[76号审计](76-dirty-production-integration-audit.md)，本阶段接通完整原生扫描的内部验证入口，并实际执行扫描、缓存、报告发布及标准完整包。**没有解除正式dirty/Diff/CMake/恢复门禁**，不是U04完成。`all_gates_passed=false`。
 
 | 实现 | 实际行为 | 验收 |

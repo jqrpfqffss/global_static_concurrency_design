@@ -1,0 +1,7 @@
+test_capture_is_reverified_after_real_baseline_before_current_is_consumed (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 70.536s
+
+OK

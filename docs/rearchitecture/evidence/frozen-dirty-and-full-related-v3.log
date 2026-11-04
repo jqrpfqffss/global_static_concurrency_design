@@ -1,0 +1,36 @@
+test_capture_is_reverified_after_real_baseline_before_current_is_consumed (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... FAIL
+test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_full_native_scan_cold_warm_corrupt_cache_and_complete_archived_inputs_match (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_real_index_change_at_parent_analysis_barrier_prevents_publication (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_real_live_negative_probe_change_fails_and_preserves_previous_valid_snapshot (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_tampered_capture_never_replaces_previous_and_unsupported_modes_remain_blocked (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_actual_parent_readers_and_glob_keep_full_captured_bytes_after_original_files_change (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_changed_copy_and_capture_manifest_unknown_inputs_and_closed_view_are_rejected (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_empty_directory_identity_is_preserved_and_changes_never_become_unique_map_selection (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_formal_resume_does_not_ignore_new_frozen_parent_identity (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_legacy_file_only_capture_remains_valid_but_cannot_claim_directory_complete_parent_reads (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_parent_walk_enumerates_captured_names_using_original_logical_paths (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_real_constructor_assembly_and_map_proof_uses_captured_parent_bytes (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_source_and_external_empty_directory_additions_are_verified_separately_from_files (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_unused_single_directory_candidate_does_not_invalidate_other_source_inputs (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_windows_path_spelling_keeps_parent_input_and_real_worker_bytes (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_actual_worker_environment_defaults_seed_without_mutating_caller_or_overriding_explicit_seed (tests.test_bounded_extraction.BoundedExtractionTests) ... ok
+test_slow_consumer_bounds_submissions_and_preserves_all_tu_order (tests.test_bounded_extraction.BoundedExtractionTests) ... ok
+test_soft_pressure_reduces_admission_and_then_restores_parallelism_without_dropping_tus (tests.test_bounded_extraction.BoundedExtractionTests) ... ok
+test_worker_crash_is_fatal_and_generator_close_stops_new_submissions (tests.test_bounded_extraction.BoundedExtractionTests) ... ok
+
+======================================================================
+FAIL: test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\global_static_concurrency_design\tests\test_frozen_dirty_diff.py", line 120, in test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification
+    self.assertIsNone(strict_difference(expected,EvidenceProvider(warm/'scan.db').load('facts')))
+AssertionError: '$.variables[0].impact.base_facts_path: value' is not None
+
+----------------------------------------------------------------------
+Ran 23 tests in 337.138s
+
+FAILED (failures=1)

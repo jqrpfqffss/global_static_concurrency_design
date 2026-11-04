@@ -1,0 +1,6 @@
+test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 82.844s
+
+OK

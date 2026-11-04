@@ -8,16 +8,30 @@ from pathlib import Path
 from .working_compiler_view import ParentFiles, validate
 
 
+def execution_workspace(root, analysis, compiler_view):
+    """Reuse every formal path boundary; only the private dirty gate differs.
+
+    A non-null view is subsequently fully verified before pin/base processing.
+    Ordinary GUI/CLI calls never provide this internal argument.
+    """
+    from .workspace import formal_workspace
+    if compiler_view is None:
+        return formal_workspace(root, analysis)
+    effective=dict(analysis,git_diff=dict(analysis.get('git_diff',{}),include_uncommitted=False))
+    return formal_workspace(root, effective)
+
+
 def check_mode(cfg, workspace, doctor_only):
     from .scan_persistence import is_canonical
     analysis = cfg['analysis']
     if workspace is None or not is_canonical(workspace.results_root):
         raise ValueError('冻结扫描验收必须使用显式独立原生工作区')
-    if (doctor_only or analysis['git_diff']['enabled'] or 'cmake' in analysis
+    diff=analysis['git_diff']
+    if (doctor_only or (diff['enabled'] and (not diff.get('include_uncommitted') or diff.get('current_ref')!='HEAD')) or 'cmake' in analysis
             or analysis.get('auto_configure_cmake', False)
             or analysis.get('compile_database', 'auto') == 'auto'
             or not analysis.get('build_closure_only', True)):
-        raise ValueError('冻结扫描内部验收目前仅支持显式编译数据库的完整扫描；Diff/CMake/补充扫描尚未验收')
+        raise ValueError('冻结扫描内部验收仅支持显式编译数据库的完整/HEAD工作区比较；固定提交Diff/CMake/补充扫描尚未验收')
     out = Path(workspace.results_root)
     if (out/'scan.db').exists() or (out/'run.json').exists():
         raise ValueError('冻结扫描验收需要新的原生扫描目录；原有结果保留')

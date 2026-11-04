@@ -1,0 +1,152 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "scope": "Private explicit-DB HEAD working-byte Diff; actual base/current/uncached full, input/index gates, captured-Git byte-exact patch under source change/restore, captured directory enumeration, cold/warm/corrupt cache. Formal GUI/CLI dirty/CMake/resume remain blocked.",
+  "logs": [
+    {
+      "file": "frozen-dirty-diff-v1.log",
+      "sha256": "49a980efe16221d5147d1de37ab9dabfe5b213a1f7f19a01ff180ae630a199f0",
+      "summary": {
+        "summary_ok": true,
+        "tests": 2,
+        "passed_tests": 2,
+        "seconds": 70.536,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-dirty-patch-adversarial-v1.log",
+      "sha256": "a9cc01ca2b6967b1a9e7fd715e00e4b70d7f7793aa3433cd768960868d18e7c0",
+      "summary": {
+        "summary_ok": false,
+        "tests": 1,
+        "passed_tests": 0,
+        "seconds": 34.169,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-dirty-diff-v2.log",
+      "sha256": "16dbbc36c3b94af216362b89f23f44621a118d2bb66b29b7ebd87eff0a233b0a",
+      "summary": {
+        "summary_ok": true,
+        "tests": 4,
+        "passed_tests": 4,
+        "seconds": 108.06,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-dirty-and-full-related-v3.log",
+      "sha256": "8b4790f537bbda3d2466be371fff73e045f53f3801926717e1e5c3987dcf90a5",
+      "summary": {
+        "summary_ok": false,
+        "tests": 23,
+        "passed_tests": 22,
+        "seconds": 337.138,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-dirty-cache-related-v4.log",
+      "sha256": "46d3d88205c87c8e240af4e14694e87f1db79560eae1967c7283d1d62c01c861",
+      "summary": {
+        "summary_ok": false,
+        "tests": 1,
+        "passed_tests": 0,
+        "seconds": 57.641,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-dirty-cache-related-v5.log",
+      "sha256": "8a6e63b2f7f7c03fe7e676f274d70d21f3ac07d991805464a7a063ef195e57bb",
+      "summary": {
+        "summary_ok": false,
+        "tests": 1,
+        "passed_tests": 0,
+        "seconds": 57.948,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-dirty-cache-related-v6.log",
+      "sha256": "353ce0b91b59e756581e7c31f193f3a342670f46222d24e6191afa3871138318",
+      "summary": {
+        "summary_ok": true,
+        "tests": 1,
+        "passed_tests": 1,
+        "seconds": 82.844,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    }
+  ],
+  "files": [
+    {
+      "file": "ecra/cli.py",
+      "sha256": "c3709ad57585ce940b861f410513962684e4f5344b1d58c4b3f93fe23c43bb3b"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "sha256": "d03c601adb5e13b044fd744973d62144d5e1d5838c87acce95b02fbc6e17cae6"
+    },
+    {
+      "file": "ecra/frozen_scan.py",
+      "sha256": "813743b079097ee1a240cd20a8ab8ba4e57358cb474105ffc4dc0231d336b986"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "sha256": "d8eac0f23b6e661dfe0a19d057f99564e18c2fd498d84798be2462b73fd3804b"
+    },
+    {
+      "file": "ecra/scan_persistence.py",
+      "sha256": "ecf7a4924fe76f8eba9e3fc4ef785df9a8a70f121d4fb3fe0a4e21792f1b2777"
+    },
+    {
+      "file": "ecra/working_compiler_view.py",
+      "sha256": "7fbb01f6099cc4ab639c9a4828bad46cf0d884bf0fae98af3a4c0bbc2e057245"
+    },
+    {
+      "file": "tests/test_frozen_dirty_diff.py",
+      "sha256": "99c10c0fbfbe1484abbaf8a23ff3de56262922a062f4f11dffca9e996cfc4959"
+    },
+    {
+      "file": "tests/test_frozen_parent_inputs.py",
+      "sha256": "a6b112de45584dc71783af61fc2d342b54cb4ba37037961fb20037d413f5de1b"
+    }
+  ],
+  "combined_23": "PENDING_NEW_FROZEN_RUN; prior23 had22PASS/1fixture-locationFAIL, corrected one passed82.844s after all3 referenced files prove exactSHA",
+  "full_regression": "PENDING_NEW1449",
+  "golden_original_path": "PENDING_NEW_FROZEN_SOURCE",
+  "normalization_unchanged": true,
+  "formal_dirty_enabled": false,
+  "all_gates_passed": false
+}

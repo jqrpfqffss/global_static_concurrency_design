@@ -1,0 +1,289 @@
+{
+  "passed": true,
+  "baseline_head": "f2dca329dbf25512b1406d31646a81e2cecd232d",
+  "unchanged_functions": [
+    {
+      "file": "ecra/git_diff.py",
+      "function": "settings",
+      "ast_sha256": "590872ba0ab6a034cbbb90973e9cb092f72b7a9c3564d7c94be216a5fa7d5014"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "git",
+      "ast_sha256": "f48c5d2eb2c8edc3d69f143a828cee5d24e32c0ef706a5bc0fb66badb6552064"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "write_comparison_patch",
+      "ast_sha256": "bbc08bab6a206f772b4b69dda3a5dd3d6c21b06aa7c1cd604bed9a428894b9ea"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "text",
+      "ast_sha256": "bbbc9dff850a14042dd48806c3241cfbd7dc21a670e7f2f9d08261df31d309a5"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "changes",
+      "ast_sha256": "1aafd402c0deb636a071d642af4290b1f10700d70d77d253911f6eae65e648a7"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "pin",
+      "ast_sha256": "5becceebf63e710568f0d9ae573dbcf23f5de34388039bfff21ec0b74621853d"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "comment_insensitive",
+      "ast_sha256": "fb8176627235cc5abc105d400047c75dc262df091069ee8fd589545f3bdb8c70"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "assert_pin",
+      "ast_sha256": "6b31130f4fa09229883b663cf502e0b39a73cd77564004c7732799f3413f60d4"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "canonical_id",
+      "ast_sha256": "6e5a8fd0f1f7e529523da795391c451984ee28c6a187dda66811a7b06529bf07"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "normalize",
+      "ast_sha256": "73173f4338887a5da931062a20c9840e55f27762cc6f99241f7e91097f51bbe5"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "row_hashes",
+      "ast_sha256": "cce2a80d3211679bb34368acbe1e3aa877c3862b8b3e33fe06757df0332ef8ea"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "evidence_digest",
+      "ast_sha256": "ea248b1180f97b27888a04e5e3aa1595ca205d18033830ac1056f92c998bb9ba"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "pointer_hashes",
+      "ast_sha256": "7b0086e529458ad7dd7f5dc29dc9ac322338cac54b274e167a0d866186e06501"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "build_arguments",
+      "ast_sha256": "7d3ed2272237e5093288e00656e88d9c19539e5e6a19282c6e0b1573989ea92a"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "variable_change_summary",
+      "ast_sha256": "3f9995ac4f29bc4ae5974bafe9b449f43d24a1521b0037797c38a65c03cbb4e1"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "summarize",
+      "ast_sha256": "7e95b2e28ac204608ffc88fddb8e7def84bc6d05fe37a73833a289572e006ba4"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "variable_graph",
+      "ast_sha256": "e026d48f82da4dd0683d224c2b7c131f4bc047227f3a55140b026abda9fccd6b"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "risk_comparison",
+      "ast_sha256": "50943be06f22fe1744f8c6325927c6844d80754b7f1f7e5af46b6733abcf49e9"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "compare",
+      "ast_sha256": "95d64be6d9d8e00e8dff5e2001c46e511ab1b0e398ed7b246144317b84b87f3d"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "representative_paths",
+      "ast_sha256": "7507123d857dd702524b8ed829a801f169095b563902b442d69616e0c43cb723"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "selected_findings",
+      "ast_sha256": "e970a527364fd76cfae67be5554d5a2fb627188728f994405fabc0afd1e5bd24"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "presentation_view",
+      "ast_sha256": "42b3898d94a273efe6c1c30e2f327c903924bfc94c79ee29a554cb3932937739"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "_relative_worktree_gitdir",
+      "ast_sha256": "cd946c4007e44e09fa94dc469a0027f1e04fb3344072ab3a05d0acf3f13be00b"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "relocate_paths",
+      "ast_sha256": "25bac52ded030f2cc97d9b54d475741af11579a01b3f8b9d3a6e44c2e9f53a81"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "relocate_config",
+      "ast_sha256": "2fb17e5f7f692f4d131e5fc62d931694356da98d7f50b8b20e0d80ef2eff49e7"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "current_context",
+      "ast_sha256": "50123fa3f6b298c250a5c6fa58abce5ea9eda664819fa464fccff2f4b2e0ae9c"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "check_isolated_tree",
+      "ast_sha256": "3c7e87978f43b662edb8d1dac9dce842b52ece599996c2c4a75735061c3243cd"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "check_current_tree",
+      "ast_sha256": "b6c37eb013c634a13ebaf4a6656da69483317d0375e256772aeefca099a5285d"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "function": "prepare_current",
+      "ast_sha256": "68360bd821cca5b9d4497459b0bd502446f5a90b507ddd609f2c25bc35f6895a"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "_is_link",
+      "ast_sha256": "e489e6233e7044a6d0696020ef56213daae037d2796bfd6b0d48a464fcec4d6b"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "_validated_build_directory",
+      "ast_sha256": "e55eba6b4dbe5becf30e7070a060ad2ebb6208cd078666581e08ec768be309d7"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "_owns_build_directory",
+      "ast_sha256": "343a58cc2f07998cd0ddf51eef7ffa8ec99e537288e4bea1c693a9b2bdef0175"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "cmake_build_directory",
+      "ast_sha256": "5b3c354d6f02110b95e96680654c4cd01adbf7614d5a4b7a25aae67731f663ba"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "cmake_input_records",
+      "ast_sha256": "73c4f884dcbb446dbc29ccc77d17a42f999916bf81adfd28f58eca5607ff4315"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "configure_cmake",
+      "ast_sha256": "b29e1b3bf0ec8a5aea0f380468341dd6558b1d3241a52df6336974f6516b97e4"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "system_includes",
+      "ast_sha256": "90af82e4288d71eba3613bafc65c2649bd198c804a696fdfb4cdccd1d18ea6f0"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "system_include_language",
+      "ast_sha256": "8b1094672a4ae94b1a93e8ca9bef8fb0f32944f37a7c2988ecc708cf303a93dc"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "system_include_args",
+      "ast_sha256": "095981c5bdbdddc450e41cb1f464ea1273ebbb305eddc1ff526ec2c7f9561c83"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "split_command",
+      "ast_sha256": "7ad4ae6ca439127dc0ca1e2668a5b225edcea35596936ad97471611cef4731c8"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "expand_response",
+      "ast_sha256": "f6cf8b2b696b35e74e743c887cdc36fa5e93ce7a8a4eff52f09a07f2cc1e1052"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "normalize",
+      "ast_sha256": "bd14a004ecf8c82cb96c0c597dcfbcc7cdecda5b3d1b53eee4d735e011893b56"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "normalize_clang_arguments",
+      "ast_sha256": "be5a47ca7b56e0a05ca0b2815166df78cc067a392dddc1762a85101b58725d59"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "excluded",
+      "ast_sha256": "f3a404c712ceaf2c49921d151d9bc93ceb546b6b401deb273522bc6cbf22ce9a"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "function": "discover_databases",
+      "ast_sha256": "47f7b64e68802a18e5af468bf0d0ae05d2cd9a7be7f13bbd4097fc53060d0cf6"
+    },
+    {
+      "file": "ecra/cli.py",
+      "function": "file_hashes",
+      "ast_sha256": "53a49325585085d988726bf583499664a75c9cccdec810ca79a0561ea6efe9c0"
+    },
+    {
+      "file": "ecra/cli.py",
+      "function": "add_build_unknowns",
+      "ast_sha256": "1fba86ffee549a567be1d41e7da452a85c6de67e312c1ee4145eef401be1940a"
+    },
+    {
+      "file": "ecra/cli.py",
+      "function": "safe_review_samples",
+      "ast_sha256": "14b4ed5a11c91f5b6021a058f5eb05114515d8c317ab0f0ab288e11680cc9001"
+    },
+    {
+      "file": "ecra/cli.py",
+      "function": "main",
+      "ast_sha256": "93d33f5c6e4732c01aab7b0c1320db161b3e1c85a65f030f653ca71c2596a777"
+    }
+  ],
+  "unchanged_modules": [
+    "ecra/analysis.py",
+    "ecra/points_to.py",
+    "ecra/context_points.py",
+    "ecra/solver_reachability.py",
+    "ecra/call_graph.py",
+    "ecra/protection.py",
+    "ecra/nvic.py",
+    "ecra/interrupts.py",
+    "ecra/physical.py",
+    "ecra/decisions.py",
+    "ecra/workspace.py",
+    "ecra/tu_cache.py",
+    "ecra/workflow.py"
+  ],
+  "current_files": [
+    {
+      "file": "ecra/git_diff.py",
+      "sha256": "d8eac0f23b6e661dfe0a19d057f99564e18c2fd498d84798be2462b73fd3804b"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "sha256": "d03c601adb5e13b044fd744973d62144d5e1d5838c87acce95b02fbc6e17cae6"
+    },
+    {
+      "file": "ecra/cli.py",
+      "sha256": "c3709ad57585ce940b861f410513962684e4f5344b1d58c4b3f93fe23c43bb3b"
+    },
+    {
+      "file": "ecra/frozen_scan.py",
+      "sha256": "813743b079097ee1a240cd20a8ab8ba4e57358cb474105ffc4dc0231d336b986"
+    },
+    {
+      "file": "ecra/scan_persistence.py",
+      "sha256": "ecf7a4924fe76f8eba9e3fc4ef785df9a8a70f121d4fb3fe0a4e21792f1b2777"
+    },
+    {
+      "file": "ecra/working_compiler_view.py",
+      "sha256": "7fbb01f6099cc4ab639c9a4828bad46cf0d884bf0fae98af3a4c0bbc2e057245"
+    }
+  ],
+  "scope": "AST/byte audit only, complements real full/diff/negative tests; does not itself prove G1 or complete gates",
+  "all_gates_passed": false
+}

@@ -312,9 +312,8 @@ class ParentFiles:
             raise ValueError('冻结父进程实际读取字节已变化：'+str(path))
         return data
 
-    def select_files(self,directory,pattern):
+    def _directory_path(self,directory):
         if self.connection is None:raise ValueError('冻结父进程文件视图已经关闭')
-        self.assert_valid()
         logical=no_links(directory);repo=no_links(self.record['repository_root'])
         if logical.is_relative_to(repo):physical=self.folder.parent/'source'/logical.relative_to(repo)
         else:
@@ -323,6 +322,20 @@ class ParentFiles:
                 origin=no_links(original)
                 if logical.is_relative_to(origin):physical=self.folder/'external'/str(index)/logical.relative_to(origin);break
             if physical is None:raise ValueError('父进程文件选择目录没有完整捕获边界')
+        return logical,no_links(physical)
+
+    def walk(self,directory):
+        """Enumerate the captured namespace using original logical paths."""
+        self.assert_valid()
+        logical,physical=self._directory_path(directory)
+        for current,dirs,names in os.walk(physical,followlinks=False):
+            for name in dirs+names:no_links(Path(current)/name)
+            # Preserve os.walk's mutable dirs contract for caller pruning.
+            yield str(logical/Path(current).relative_to(physical)),dirs,names
+
+    def select_files(self,directory,pattern):
+        self.assert_valid()
+        logical,physical=self._directory_path(directory)
         selected=[]
         for path in no_links(physical).glob(pattern):
             no_links(path);mapped=logical/path.relative_to(physical)

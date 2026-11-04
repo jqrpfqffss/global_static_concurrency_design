@@ -894,7 +894,7 @@ def prepare_current(root, out, cfg, pinned, progress):
     return source, current_cfg
 
 
-def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
+def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_current=False):
     """Persistent detached worktree: no checkout/reset/clean in user workspace."""
     from .cli import run
     from .workflow import read_saved_json, file_digest, checked_scan, engine_digest, clean_report, saved_report_digest
@@ -912,6 +912,10 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     base_root = directory/pinned['project_subdir']
     baseline = copy.deepcopy(cfg)
     baseline['analysis']['git_diff']['enabled'] = False
+    if _frozen_current:
+        # The baseline is an independent fixed commit. Current working bytes
+        # and their private view must never propagate into its full scan.
+        baseline['analysis']['git_diff']['include_uncommitted'] = False
     baseline['review']['enabled'] = False
     baseline['review']['prepare_packets'] = False
     baseline['analysis']['open_report'] = False
@@ -1034,13 +1038,14 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None):
     pinned['base_facts_path'] = str(immutable)
     pinned['base_facts_sha256'] = sha
     patch = out/'git_diff'/(digest({k: v for k, v in pinned.items() if not k.startswith('base_facts')}) + '.patch')
-    write_comparison_patch(pinned, patch)
+    patch_inputs = pinned if not _frozen_current else dict(pinned,repository_root=_frozen_current['repository_root'])
+    write_comparison_patch(patch_inputs, patch)
     pinned['diff_patch_path'] = str(patch)
     pinned['diff_patch_sha256'] = file_digest(patch)
     return summary_file
 
 
-def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env, tool_root, source_reader):
+def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env, tool_root, source_reader, *, compiler_view=None):
     """Independent uncached extraction and full analysis, compared per dimension."""
     from .cli import extraction_responses, add_build_unknowns
     from .fact_parts import FactParts
@@ -1051,7 +1056,8 @@ def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env,
     verification_units = []
     check_dir = worker_dir/'full-verification'
     check_dir.mkdir(exist_ok=True)
-    for unit, response, metadata in extraction_responses(root, units, cfg, check_dir, env, tool_root, out):
+    fixed = {} if compiler_view is None else dict(compiler_view=compiler_view)
+    for unit, response, metadata in extraction_responses(root, units, cfg, check_dir, env, tool_root, out, **fixed):
         meta = read_json(metadata)
         if meta.get('parse_status') != 'PARSED':
             raise ValueError('全量对照提取不完整，禁止报告验证通过')

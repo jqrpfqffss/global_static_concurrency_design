@@ -74,6 +74,20 @@ class FrozenParentInputTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'未记录的目录'):view.validate(descriptor,self.root,self.cfg)
         self.assertTrue(view.validate(descriptor,self.root,self.cfg,reverify_original=False)['valid'])
 
+    def test_parent_walk_enumerates_captured_names_using_original_logical_paths(self):
+        result,descriptor=self.capture()
+        expected={str(Path(base)):(sorted(dirs),sorted(names)) for base,dirs,names in os.walk(self.root)
+                  if '.git' not in Path(base).relative_to(self.root).parts}
+        expected[str(self.root)][0].remove('.git')
+        (self.root/'late-unbuilt.c').write_bytes(b'int not_part_of_capture;')
+        with view.ParentFiles(descriptor,self.root,self.cfg) as files:
+            observed={}
+            for base,dirs,names in files.walk(self.root):
+                dirs[:]=[name for name in dirs if name!='.git']
+                observed[base]=(sorted(dirs),sorted(names))
+            self.assertEqual(observed,expected)
+            self.assertNotIn('late-unbuilt.c',observed[str(self.root)][1])
+
     def test_changed_copy_and_capture_manifest_unknown_inputs_and_closed_view_are_rejected(self):
         result,descriptor=self.capture();tree=Path(result['source_root'])
         with view.ParentFiles(descriptor,self.root,self.cfg) as files:

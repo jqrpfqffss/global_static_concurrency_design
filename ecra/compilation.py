@@ -483,7 +483,7 @@ def discover_databases(root):
     return sorted(found)
 
 
-def prepare(root, cfg, progress=None, build_firmware=True):
+def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     a = cfg["analysis"]
     progress = progress or (lambda message: None)
     scope = AuditScope(root, a)
@@ -592,7 +592,8 @@ def prepare(root, cfg, progress=None, build_firmware=True):
     # Audit files outside the database instead of silently assuming they are unused.
     sources, excluded_sources = [], []
     output = results_path(root, a)
-    for base, dirs, files in (row for tree in scope.walk_roots() for row in os.walk(tree)):
+    walk = os.walk if file_view is None else file_view.walk
+    for base, dirs, files in (row for tree in scope.walk_roots() for row in walk(tree)):
         dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "node_modules"}
                    and (Path(base) / d).resolve() != output]
         for name in files:

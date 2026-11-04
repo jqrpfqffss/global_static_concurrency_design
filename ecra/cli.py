@@ -247,9 +247,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     if _workspace is not None:
         from .scan_persistence import is_canonical
         if is_canonical(_workspace.results_root):
-            from .workspace import formal_workspace
+            from .frozen_scan import execution_workspace
             effective=dict(cfg['analysis'],output=dict(location='custom',custom_dir=_workspace.workspace_root))
-            formal_workspace(root,effective)
+            execution_workspace(root,effective,_compiler_view)
     workspace = _workspace or WorkspaceResolver.resolve(root, cfg['analysis']).initialize()
     workspace.bind(cfg['analysis'])
     out = Path(workspace.results_root)
@@ -364,13 +364,20 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if cfg['analysis']['git_diff']['enabled']:
             from .git_diff import pin, prepare_base, prepare_current
             diff_pin = pin(root, cfg)
+            if frozen_files is not None:
+                # Bind the already-captured HEAD/index/work bytes to this pin
+                # before the independent baseline can perform lengthy work.
+                frozen_files.assert_valid()
             progress('Git 差异扫描；基准：' + diff_pin['base_sha'] + '；当前：' + diff_pin['head_sha'] +
                      ('；未提交修改：纳入本轮扫描' if diff_pin['include_uncommitted'] else '；未提交业务修改：未纳入本轮扫描，仅分析固定提交'))
             doctor['git_diff'] = diff_pin
             if not doctor_only:
                 diagnostics.stage('Git 基准版本完整分析')
                 base_summary_cache = {}
-                base_summary_file = prepare_base(root, out, cfg, diff_pin, progress, base_summary_cache)
+                frozen_base = {} if _compiler_view is None else dict(_frozen_current=frozen_files.record['capture'])
+                base_summary_file = prepare_base(root, out, cfg, diff_pin, progress, base_summary_cache, **frozen_base)
+                if frozen_files is not None:
+                    frozen_files.assert_valid()
             root, cfg = prepare_current(root, out, cfg, diff_pin, progress)
             run_info['analysis_root'] = str(root)
         diagnostics.stage('编译数据库准备')
@@ -394,7 +401,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if scope.active:
             progress('排查目录：' + (', '.join(scope.include_dirs) or '全部') + '；排除目录：' + (', '.join(scope.exclude_dirs) or '无'))
             progress('范围外编译依赖只用于恢复调用链和目标变量的访问，不生成第三方变量候选。')
-        units, compilation = prepare(root, cfg, progress=progress, build_firmware=not doctor_only)
+        frozen_prepare = {} if frozen_files is None else dict(file_view=frozen_files)
+        units, compilation = prepare(root, cfg, progress=progress, build_firmware=not doctor_only, **frozen_prepare)
         if frozen_files is not None:
             frozen_files.assert_valid()
         doctor.update(compilation, compile_database_found=True, translation_units_total=len(units), ready_for_scan=True)
@@ -620,7 +628,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             if cfg['analysis']['git_diff']['verify_against_full']:
                 from .git_diff import verify_full
                 report['git_diff']['full_verification'] = verify_full(root, out, cfg, units, cov, facts, report,
-                                                                       worker_dir, env, tool_root, read_verified_source)
+                                                                       worker_dir, env, tool_root, read_verified_source,
+                                                                       **dependency_args)
         snapshot_inputs.finalize_parent_inputs()
         diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         samples = safe_review_samples(facts, review_safe_sample, review_shared_sample)

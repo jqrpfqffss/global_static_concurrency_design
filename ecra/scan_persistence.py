@@ -272,12 +272,12 @@ def run_canonical(root, config_path=None, no_review=False, doctor_only=False, re
                   review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_budget_owned=False,_storage_policy=None,
                   _compiler_view=None):
     from .config import load_config
-    from .workspace import formal_workspace
+    from .frozen_scan import execution_workspace
     from .storage_activity import DataActivity
     cfg,_=load_config(root,config_path)
     if scan_mode is not None:
         cfg['analysis']['git_diff']['enabled']=scan_mode=='diff'
-    workspace=formal_workspace(root,cfg['analysis'])
+    workspace=execution_workspace(root,cfg['analysis'],_compiler_view)
     from contextlib import ExitStack
     with ExitStack() as activities:
         activities.enter_context(DataActivity(workspace.workspace_root))
@@ -358,12 +358,13 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
     from datetime import datetime, timezone
     from .cli import run
     from .config import load_config
-    from .workspace import formal_workspace, no_links
+    from .workspace import no_links
+    from .frozen_scan import execution_workspace
     from .report_package import IDENTITY, sha256
     cfg, config_file = load_config(root, config_path)
     if scan_mode is not None:
         cfg['analysis']['git_diff']['enabled'] = scan_mode == 'diff'
-    workspace = formal_workspace(root,cfg['analysis'])
+    workspace = execution_workspace(root,cfg['analysis'],_compiler_view)
     if _expected_root is not None and workspace.workspace_root!=_expected_root:
         raise ValueError('启动期间配置的数据根已变化，请重新开始扫描')
     from .storage_policy import snapshot as storage_snapshot

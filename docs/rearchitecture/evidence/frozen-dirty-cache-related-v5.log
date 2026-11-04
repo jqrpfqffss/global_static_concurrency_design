@@ -1,0 +1,16 @@
+test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... FAIL
+
+======================================================================
+FAIL: test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\global_static_concurrency_design\tests\test_frozen_dirty_diff.py", line 140, in test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification
+    assert_same_facts(warm)
+  File "H:\global_static_concurrency_design\tests\test_frozen_dirty_diff.py", line 137, in assert_same_facts
+    self.assertIsNone(strict_difference(projected,actual))
+AssertionError: '$.variables[0].impact.diff_patch_path: value' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 57.948s
+
+FAILED (failures=1)

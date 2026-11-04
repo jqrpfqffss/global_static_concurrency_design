@@ -1,0 +1,240 @@
+{
+  "passed": true,
+  "scope": "Full canonical original/frozen scans on an independent authorized source copy.\n\nThis is an internal explicit-database acceptance controller. It does not open\nthe formal dirty/Diff/CMake/resume gates or replace original-path golden runs.\n",
+  "all_gates_passed": false,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v40",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "controller_sha256": "6f6eadb1df03be599723d76bd470ad94d806b1313d0391b6ee17f0396b580a65",
+  "descriptor": {
+    "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-full-approved-f030-v1\\data\\projects\\firmware_bd5e6a89cc786e603810\\trees\\working-f809468bc63d44ac960988d18b3d110a\\compiler-view-82b3f2afbbc742f9b2e9c93043203cc7\\view.json",
+    "sha256": "c1f2900e2bf36a5055878b69f7be42704eead29e51f534f0c94d6b9132a04f8c"
+  },
+  "units": 4,
+  "external_files": 1667,
+  "external_directories": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\native-build",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include-fixed",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include"
+  ],
+  "status": "PASS_SCOPED",
+  "original": {
+    "seconds": 26.890999999974156,
+    "exit_code": 2,
+    "cache": {
+      "hits": 0,
+      "extracted": 4,
+      "corrupt": 0,
+      "total": 4
+    },
+    "completion": {
+      "fingerprint": "a8178ae51ac2c014f20f20cb5eb39713eb56c0a47df9b95d353ebfa0cb114433",
+      "translation_units_total": 4,
+      "parsed": 2,
+      "partial": 2,
+      "failed": 0,
+      "fact_counts": {
+        "variables": 15,
+        "functions": 121,
+        "accesses": 56,
+        "calls": 98,
+        "unknowns": 236,
+        "protection_events": 8,
+        "registrations": 0,
+        "snapshots": 6,
+        "pointer_constraints": 47,
+        "semantic_calls": 150,
+        "indirect_accesses": 88,
+        "irq_priority_events": 10,
+        "control_flow": 121,
+        "pointer_storage": 447,
+        "constant_regions": 0,
+        "nvic_programs": 121,
+        "nvic_globals": 7,
+        "nvic_irq_definitions": 30,
+        "constant_pruned_evidence": 0,
+        "translation_units": 4,
+        "failed_tu_preprocessing": 0,
+        "address_escapes": 4,
+        "resolved_pointer_facts": 18,
+        "pointer_targets": 16,
+        "vector_entries": 0,
+        "resolved_assembly_references": 0,
+        "physical_contexts": 5,
+        "context_bindings": 19,
+        "contexts": 5,
+        "recursive_edges": 0,
+        "context_pruned_uncertainties": 0,
+        "nvic_resolved_events": 2,
+        "nvic_lifecycle_barriers": 1,
+        "nvic_priorities": 4,
+        "preemption_relations": 10,
+        "assembly_references": 0,
+        "mask_windows": 15,
+        "multi_field_coherence": 0
+      },
+      "variable_accountability": {
+        "total": 13,
+        "screened": 7,
+        "queued": 6,
+        "missing": 0,
+        "duplicate_ids": 0
+      },
+      "classifications": {
+        "total": 13,
+        "safe_proven": 7,
+        "shared_no_review": 0,
+        "suspect": 1,
+        "unknown": 5
+      },
+      "snapshot_status": "VERIFIED",
+      "static_analysis_status": "INCOMPLETE",
+      "analysis_valid": true,
+      "output_files": {
+        "scan.db": 8990720,
+        "reviews.db": 65536
+      }
+    }
+  },
+  "frozen": {
+    "seconds": 474.375,
+    "exit_code": 2,
+    "cache": {
+      "hits": 2,
+      "extracted": 2,
+      "corrupt": 0,
+      "total": 4
+    },
+    "completion": {
+      "fingerprint": "a8178ae51ac2c014f20f20cb5eb39713eb56c0a47df9b95d353ebfa0cb114433",
+      "translation_units_total": 4,
+      "parsed": 2,
+      "partial": 2,
+      "failed": 0,
+      "fact_counts": {
+        "variables": 15,
+        "functions": 121,
+        "accesses": 56,
+        "calls": 98,
+        "unknowns": 236,
+        "protection_events": 8,
+        "registrations": 0,
+        "snapshots": 6,
+        "pointer_constraints": 47,
+        "semantic_calls": 150,
+        "indirect_accesses": 88,
+        "irq_priority_events": 10,
+        "control_flow": 121,
+        "pointer_storage": 447,
+        "constant_regions": 0,
+        "nvic_programs": 121,
+        "nvic_globals": 7,
+        "nvic_irq_definitions": 30,
+        "constant_pruned_evidence": 0,
+        "translation_units": 4,
+        "failed_tu_preprocessing": 0,
+        "address_escapes": 4,
+        "resolved_pointer_facts": 18,
+        "pointer_targets": 16,
+        "vector_entries": 0,
+        "resolved_assembly_references": 0,
+        "physical_contexts": 5,
+        "context_bindings": 19,
+        "contexts": 5,
+        "recursive_edges": 0,
+        "context_pruned_uncertainties": 0,
+        "nvic_resolved_events": 2,
+        "nvic_lifecycle_barriers": 1,
+        "nvic_priorities": 4,
+        "preemption_relations": 10,
+        "assembly_references": 0,
+        "mask_windows": 15,
+        "multi_field_coherence": 0
+      },
+      "variable_accountability": {
+        "total": 13,
+        "screened": 7,
+        "queued": 6,
+        "missing": 0,
+        "duplicate_ids": 0
+      },
+      "classifications": {
+        "total": 13,
+        "safe_proven": 7,
+        "shared_no_review": 0,
+        "suspect": 1,
+        "unknown": 5
+      },
+      "snapshot_status": "VERIFIED",
+      "static_analysis_status": "INCOMPLETE",
+      "analysis_valid": true,
+      "output_files": {
+        "scan.db": 8986624,
+        "reviews.db": 65536
+      }
+    }
+  },
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "b7b5949582d495094f733f831a3181c2e7c84fea42bf266f91f845cedd1bb9fc",
+        "after": "b7b5949582d495094f733f831a3181c2e7c84fea42bf266f91f845cedd1bb9fc"
+      },
+      "report": {
+        "before": "1a25c54bdf5e2adfe5bb771d7a2ae0a1947aa38e3cc835691fd7bfd002d624ea",
+        "after": "1a25c54bdf5e2adfe5bb771d7a2ae0a1947aa38e3cc835691fd7bfd002d624ea"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-full-approved-f030-v1\\data\\scans\\original\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-full-approved-f030-v1\\data\\scans\\frozen\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "roundtrip": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "b7b5949582d495094f733f831a3181c2e7c84fea42bf266f91f845cedd1bb9fc",
+        "after": "b7b5949582d495094f733f831a3181c2e7c84fea42bf266f91f845cedd1bb9fc"
+      },
+      "report": {
+        "before": "1a25c54bdf5e2adfe5bb771d7a2ae0a1947aa38e3cc835691fd7bfd002d624ea",
+        "after": "1a25c54bdf5e2adfe5bb771d7a2ae0a1947aa38e3cc835691fd7bfd002d624ea"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-full-approved-f030-v1\\data\\scans\\frozen\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-full-approved-f030-v1\\independent-import\\scans\\frozen\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "archive": {
+    "bytes": 3490007,
+    "sha256": "1a37851a7e9e796460ae516e9eaa0d4431dc042f408c82ee13e57d9afdb9722d"
+  },
+  "final_view_validation": {
+    "valid": true,
+    "files": 1714,
+    "original_reverified": true,
+    "formal_dirty_enabled": false,
+    "full_build_diff_equivalence": "NOT_VERIFIED"
+  },
+  "approved_original_differences": [],
+  "private_git_differences": [],
+  "external_build_sdk_differences": [],
+  "engine_differences": [],
+  "seconds": 736.75
+}

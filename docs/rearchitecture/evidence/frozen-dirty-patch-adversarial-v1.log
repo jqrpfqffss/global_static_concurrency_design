@@ -1,0 +1,14 @@
+test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... FAIL
+
+======================================================================
+FAIL: test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\global_static_concurrency_design\tests\test_frozen_dirty_diff.py", line 110, in test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore
+    self.assertEqual(Path(pinned['diff_patch_path']).read_bytes(),expected.read_bytes())
+AssertionError: b'dif[37 chars]696..e4db362 100644\n--- a/main.c\n+++ b/main.[130 chars]s;\n' != b'dif[37 chars]696..da9db31 100644\n--- a/main.c\n+++ b/main.[486 chars]\r\n'
+
+----------------------------------------------------------------------
+Ran 1 test in 34.169s
+
+FAILED (failures=1)
