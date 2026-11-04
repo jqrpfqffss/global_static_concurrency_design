@@ -16,7 +16,7 @@ import yaml as engine_yaml
 from ..config import UniqueKeyLoader
 
 MAX_BYTES=4*1024**2
-FIELDS={'project_name','project_root','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','include_uncommitted','contexts','system_headers'}
+FIELDS={'project_name','project_root','project_core','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','include_uncommitted','contexts','system_headers'}
 CONTEXT_KINDS={'ISR','TASK','MAIN','CALLBACK','DMA','CORE','FOREGROUND','IRQ','EXTERNAL_ASYNC','UNKNOWN_CONTEXT'}
 
 
@@ -175,6 +175,7 @@ def form_state(raw):
     dirty=git.get('include_uncommitted',False)
     if type(dirty) is not bool:raise ValueError('analysis.git_diff.include_uncommitted 必须是布尔值，请在高级YAML修复')
     result['include_uncommitted']=dirty
+    result['project_core']=_text(project.get('core'),'project.core')
     headers=analysis.get('auto_system_includes')
     if 'auto_system_includes' in analysis and type(headers) is not bool:raise ValueError('analysis.auto_system_includes 必须是布尔值，请在高级YAML修复')
     result['system_headers']='default' if headers is None else 'on' if headers else 'off'
@@ -197,6 +198,7 @@ def merge_form(raw,changes):
         elif key in {'include_dirs','exclude_dirs'}:
             if not isinstance(value,list) or any(not isinstance(item,str) or not item or '\n' in item or '\r' in item for item in value):raise ValueError('目录必须是非空逐行文本数组')
         elif not isinstance(value,str):raise ValueError('表单字段 '+key+' 必须是文本')
+        if key=='project_core':_text(value,'project.core')
     if not changes:return dict(yaml=raw,changed_paths=[])
     parser,document=_roundtrip(raw);expected=copy.deepcopy(before);operations=[]
     mode=changes.get('build_mode',form_state(raw)['form']['build_mode'])
@@ -212,6 +214,9 @@ def merge_form(raw,changes):
     paths=dict(project_name=('project','name'),project_root=('project','root'),include_dirs=('analysis','include_dirs'),exclude_dirs=('analysis','exclude_dirs'))
     for key,path in paths.items():
         if key in changes:set_value(path,changes[key])
+    if 'project_core' in changes:
+        if changes['project_core']:set_value(('project','core'),changes['project_core'])
+        else:remove(('project','core'))
     if 'target' in changes:
         path=('analysis','cmake','target') if mode=='cmake' else ('analysis','compile_database')
         if mode=='cmake' and not changes['target']:remove(path)

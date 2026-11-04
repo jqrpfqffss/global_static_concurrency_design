@@ -491,6 +491,43 @@ def _create_app(data_root, *, token, authority, startup):
     def migration_preview(payload: dict):
         return migrations.preview(payload['source'], payload['project_root'], allow_degraded=payload.get('allow_degraded',False))
 
+    @app.post('/api/multicore/elf')
+    async def multicore_elf(request: Request, name: str='firmware.elf'):
+        import os
+        import shutil
+        import struct
+        from ..storage_activity import DataActivity
+        if len(name.encode('utf-8'))>1024:raise ValueError('ELF文件名过长')
+        base=no_links(data/'work/multicore-elfs');base.mkdir(parents=True,exist_ok=True)
+        identity=uuid.uuid4().hex
+        with DataActivity(data),tempfile.TemporaryDirectory(prefix='elf-upload-',dir=base) as temporary:
+            folder=Path(temporary);path=folder/'firmware.elf';size=0;hashed=hashlib.sha256()
+            with path.open('xb') as stream:
+                async for block in request.stream():
+                    size+=len(block)
+                    if size>2*1024**3:raise ValueError('ELF超过2GiB单文件导入预算；本次未提交合并')
+                    if shutil.disk_usage(base).free<len(block)+512*1024**2:raise ValueError('工作盘剩余空间不足，请释放空间后重新上传ELF')
+                    stream.write(block);hashed.update(block)
+                stream.flush();os.fsync(stream.fileno())
+            with path.open('rb') as stream:header=stream.read(20)
+            if len(header)<20 or header[:7]!=b'\x7fELF\x01\x01\x01' or struct.unpack_from('<H',header,18)[0]!=40:
+                raise ValueError('请选择真实ARM小端ELF32链接文件；未上传为可用多核输入')
+            record=dict(format='ECRA_MULTICORE_ELF_V1',id=identity,name=name,bytes=size,sha256=hashed.hexdigest())
+            from ..common import write_json
+            write_json(folder/'input.json',record)
+            folder.rename(base/identity)
+        return record
+
+    @app.post('/api/multicore/preview')
+    def multicore_preview(payload: dict):
+        from .multicore_inputs import prepare
+        return prepare(data,payload.get('inputs'),payload.get('regions'))
+
+    @app.post('/api/multicore/start')
+    def multicore_start(payload: dict):
+        from .multicore_inputs import start
+        return start(data,payload.get('id'),payload.get('revision'),tasks,payload.get('resources'))
+
     @app.post('/api/migrations')
     def migration_start(payload: dict):
         return migrations.start(payload['source'], payload['project_root'], payload['revision'], allow_degraded=payload.get('allow_degraded',False))
@@ -673,7 +710,8 @@ def _create_app(data_root, *, token, authority, startup):
         return tasks.start(folder/'semantics.yaml', profile_id=saved['profile_id'],
                            mode=saved.get('mode','scan'),scan_id=saved['scan_id'],resources=dict(
                                preset='manual',peak_gib=saved['budget_bytes']/1024**3,
-                               workers=saved.get('resource_policy',{}).get('workers',1)))
+                               workers=saved.get('resource_policy',{}).get('workers',1)),
+                           multicore=json.loads((folder/'multicore.json').read_text('utf-8')) if saved.get('mode')=='multicore' else None)
 
     @app.post('/api/profiles/check')
     def check_profile(payload: dict):

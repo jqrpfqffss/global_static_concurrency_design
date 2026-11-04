@@ -112,7 +112,8 @@ def _assemble(root, inputs, regions, elf_paths=None, *, _fixed_inputs=None):
     return combined, report
 
 
-def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, publication=None):
+def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, publication=None,
+            scan_ids=None, profile_ids=None, expected_inputs=None, _budget_owned=False):
     """Publish a derived combination once, outside firmware, using Studio storage.
 
     The assembler and its conservative INCOMPLETE status are unchanged. This
@@ -135,6 +136,23 @@ def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, 
         raise ValueError('多核合并需要非空、各不相同的variant输入')
     if any(not isinstance(variant,str) or not IDENTITY.fullmatch(variant) for variant,_ in inputs):
         raise ValueError('多核variant须为字母数字、下划线或短横线，最长128字符')
+    variants={variant for variant,_ in inputs}
+    if scan_ids is not None and (not isinstance(scan_ids,dict) or set(scan_ids)!=variants
+            or any(not isinstance(value,str) or not IDENTITY.fullmatch(value) for value in scan_ids.values())):
+        raise ValueError('显式多核输入必须为每个variant提供一个有效scan_id，不能回退到最新结果')
+    if profile_ids is not None and (scan_ids is None or not isinstance(profile_ids,dict)
+            or set(profile_ids)!=variants or any(not isinstance(value,str) or not IDENTITY.fullmatch(value)
+                                               for value in profile_ids.values())):
+        raise ValueError('多核profile身份必须与全部显式扫描输入一一对应')
+    if expected_inputs is not None:
+        if not isinstance(expected_inputs,dict) or scan_ids is None or set(expected_inputs)!=variants:
+            raise ValueError('多核预检查指纹必须覆盖全部显式输入')
+        for item in expected_inputs.values():
+            if (not isinstance(item,dict) or set(item)!={'binding','manifest_sha256','scan_sha256','elf_sha256'}
+                    or not isinstance(item['binding'],dict)
+                    or any(not isinstance(item[k],str) or len(item[k])!=64 or set(item[k])-set('0123456789abcdef')
+                           for k in ['manifest_sha256','scan_sha256','elf_sha256'])):
+                raise ValueError('多核预检查指纹字段无效')
     if not regions or any(len(region)!=2 or any(type(v) is not int for v in region)
                           or region[0]<0 or region[1]<=0 for region in regions):
         raise ValueError('共享RAM区域须为非负起始地址和正整数长度')
@@ -159,7 +177,7 @@ def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, 
     if out==root or out.is_relative_to(root) or root.is_relative_to(out):
         raise ValueError('多核输出不得与固件目录重叠')
 
-    sources=[];components=[];fixed=[]
+    sources=[];components=[];fixed=[];implicit_folders=set()
     def record(path):
         path=Path(path).resolve();before=path.stat();hashed=sha256(path);after=path.stat()
         if (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns):
@@ -169,7 +187,8 @@ def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, 
 
     with ExitStack() as activities:
         activities.enter_context(DataActivity(data))
-        activities.enter_context(DataActivity(data,exclusive=True,purpose='scan-budget'))
+        if not _budget_owned:
+            activities.enter_context(DataActivity(data,exclusive=True,purpose='scan-budget'))
         for variant,config_path in inputs:
             from .config import resolve_config_path
             config_record=record(resolve_config_path(root,config_path))
@@ -178,7 +197,16 @@ def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, 
                 raise ValueError('多核配置实际读取字节与冻结摘要不符')
             if variant==inputs[0][0] and first_reads[str(Path(config_file).resolve())]['sha256']!=config_record['sha256']:
                 raise ValueError('多核输出配置在启动期间改变')
-            folder=output_path(root,cfg)
+            if scan_ids is None:
+                folder=output_path(root,cfg)
+                if folder.resolve() in implicit_folders:
+                    raise ValueError('多个核心配置解析到同一latest结果；请用--scan为每个核心显式固定扫描身份')
+                implicit_folders.add(folder.resolve())
+            else:
+                folder=no_links(data/'scans'/scan_ids[variant])
+                manifest_path=folder/'manifest.json'
+                if not manifest_path.is_file():
+                    raise ValueError('所选多核输入不是已发布扫描：'+scan_ids[variant])
             if out==folder or out.is_relative_to(folder) or folder.is_relative_to(out):
                 raise ValueError('多核输出不得与任一输入结果重叠')
             static=folder/'scan.db' if (folder/'scan.db').is_file() else folder/'facts.json'
@@ -190,10 +218,43 @@ def combine(root, inputs, regions, out=None, elf_paths=None, *, data_root=None, 
                            facts=record(static),elf=record(elf))
             if static.name=='scan.db':
                 component['binding']=EvidenceProvider(static).validate(deep=True)
+            if scan_ids is not None:
+                binding=component.get('binding',{})
+                if binding.get('scan_id')!=scan_ids[variant] or binding.get('project_id')!=workspace.project_id:
+                    raise ValueError('所选多核扫描与配置工程身份不符：'+variant)
+                if profile_ids is not None and binding.get('profile_id')!=profile_ids[variant]:
+                    raise ValueError('所选多核扫描与配置profile身份不符：'+variant)
+                manifest_record=record(manifest_path)
+                manifest_bytes=manifest_path.read_bytes()
+                if hashlib.sha256(manifest_bytes).hexdigest()!=manifest_record['sha256']:
+                    raise ValueError('所选多核扫描清单读取期间改变：'+variant)
+                manifest=json.loads(manifest_bytes)
+                expected=manifest.get('scan_sha256') or manifest.get('files',{}).get('scan.db',{}).get('sha256')
+                if (not expected or expected!=component['facts']['sha256'] or any(
+                        manifest.get(key)!=binding.get(key) for key in ['scan_id','project_id','facts_hash','report_hash'])):
+                    raise ValueError('所选多核扫描发布清单与完整静态库不一致：'+variant)
+                provider=EvidenceProvider(static)
+                try:
+                    config_node=provider.resolve('provenance',['display_identity','config_sha256'])
+                    archived_config=provider.node(config_node).get('value')
+                except KeyError:
+                    archived_config=None
+                if archived_config!=config_record['sha256']:
+                    raise ValueError('所选扫描的已归档配置与当前配置字节不符；请选择对应配置或重新扫描：'+variant)
+                if expected_inputs is not None:
+                    expected=expected_inputs[variant]
+                    if (binding!=expected['binding'] or manifest_record['sha256']!=expected['manifest_sha256']
+                            or component['facts']['sha256']!=expected['scan_sha256']
+                            or component['elf']['sha256']!=expected['elf_sha256']):
+                        raise ValueError('多核输入已在预检查后变化，请重新检查：'+variant)
+                component.update(selection_mode='EXPLICIT_SCAN',manifest=manifest_record)
             components.append(component)
             fixed.append((cfg,folder,elf))
         # Original directories and pointers are never initialized or rebound here.
-        facts,report=_assemble(root,inputs,regions,elf_paths,_fixed_inputs=fixed)
+        try:
+            facts,report=_assemble(root,inputs,regions,elf_paths,_fixed_inputs=fixed)
+        except (struct.error,IndexError) as exc:
+            raise ValueError('链接ELF或派生输入结构不完整；请核对真实链接文件与扫描归档。技术信息：'+str(exc)) from exc
         prepare(facts,report,[])
         for item in sources:
             path=Path(item['path']);stat=path.stat()
@@ -241,13 +302,25 @@ def main():
     p.add_argument('--input', action='append', required=True, help='variant=config/path.yaml')
     p.add_argument('--shared-region', action='append', required=True, help='start:size, integers including 0x prefix')
     p.add_argument('--elf', action='append', default=[], help='variant=firmware.elf')
+    p.add_argument('--scan',action='append',default=[],help='variant=scan_id；为全部核心固定本数据根中的已发布扫描')
+    p.add_argument('--profile-id',action='append',default=[],help='variant=profile_id；核对显式扫描的配置身份')
     p.add_argument('--output',type=Path,help='独立数据根下全新的绝对路径 scans/<scan_id>；不允许固件内目录')
     p.add_argument('--data-root',type=Path,help='独立数据根；默认复用项目的WorkspaceResolver设置')
     a = p.parse_args()
+    def pairs(values,field):
+        result={}
+        for value in values:
+            if '=' not in value:p.error(field+' 需要 variant=value')
+            variant,item=value.split('=',1)
+            if not variant or not item or variant in result:p.error(field+' 的variant/value不能为空或重复')
+            result[variant]=item
+        return result
     root = a.project.resolve()
     publication={}
     facts, report = combine(root, [x.split('=', 1) for x in a.input], [tuple(int(v, 0) for v in x.split(':')) for x in a.shared_region], a.output,
-                            dict(x.split('=', 1) for x in a.elf),data_root=a.data_root,publication=publication)
+                            pairs(a.elf,'--elf'),data_root=a.data_root,publication=publication,
+                            scan_ids=pairs(a.scan,'--scan') if a.scan else None,
+                            profile_ids=pairs(a.profile_id,'--profile-id') if a.profile_id else None)
     print(json.dumps(dict(variables=len(facts['variables']), cross_core_findings=sum('GS-CROSS-CORE' in f['rules'] for f in report['findings']),**publication)))
 
 

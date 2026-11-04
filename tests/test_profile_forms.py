@@ -34,6 +34,21 @@ review: {enabled: false}
 
 
 class ProfileFormTests(unittest.TestCase):
+    def test_core_identity_is_an_explicit_lossless_edit_and_empty_removes_only_that_field(self):
+        before=yaml.safe_load(RAW)
+        result=merge_form(RAW,dict(project_core='Cortex-M7'))
+        expected=copy.deepcopy(before);expected['project']['core']='Cortex-M7'
+        self.assertEqual(yaml.safe_load(result['yaml']),expected)
+        self.assertEqual(form_state(result['yaml'])['form']['project_core'],'Cortex-M7')
+        self.assertIn('# 工程原始注释',result['yaml'])
+        reset=merge_form(result['yaml'],dict(project_core=''))
+        self.assertEqual(yaml.safe_load(reset['yaml']),before)
+        self.assertEqual(form_state(RAW)['form']['project_core'],'')
+
+    def test_core_identity_rejects_non_text_and_multiline_values_without_rewriting_yaml(self):
+        for value in [True,1,[],{},'CM7\nCM4','CM7\rCM4']:
+            with self.subTest(value=value),self.assertRaises(ValueError):merge_form(RAW,dict(project_core=value))
+
     def test_only_requested_values_change_and_comments_quotes_unknown_values_and_all_contexts_survive(self):
         expected=yaml.safe_load(RAW);expected['project']['root']='D:/工程 new';expected['analysis']['include_dirs']=[' first directory ','with,comma']
         merged=merge_form(RAW,dict(project_root='D:/工程 new',include_dirs=[' first directory ','with,comma']))

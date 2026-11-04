@@ -63,7 +63,7 @@ class TaskManager:
             raise ValueError('任务不存在')
         return folder
 
-    def start(self, profile_path, *, profile_id, mode='scan', scan_id=None,resources=None):
+    def start(self, profile_path, *, profile_id, mode='scan', scan_id=None,resources=None,multicore=None):
         from ..config import load_config, configured_project_root
         from ..workspace import formal_workspace
         root = configured_project_root(profile_path)
@@ -74,16 +74,35 @@ class TaskManager:
         from ..scan_diagnostics import memory
         pressure=host_pressure(memory())
         if pressure['stop']:raise ValueError(pressure['reason']+'；暂不启动扫描，请待提交额度/内存恢复后重试。')
-        # Validate relative to the service's explicitly selected data root.
-        analysis = dict(cfg['analysis'])
+        if mode not in {'scan','precheck','review','review-failed','multicore'}:
+            raise ValueError('未知任务模式')
+        if mode=='multicore':
+            if (not isinstance(multicore,dict) or multicore.get('format')!='ECRA_MULTICORE_PLAN_V1'
+                    or not isinstance(multicore.get('id'),str) or not IDENTITY.fullmatch(multicore['id'])
+                    or not isinstance(multicore.get('inputs'),list) or len(multicore['inputs'])<2):
+                raise ValueError('多核派生任务须先固定全部归档配置、扫描和ELF输入')
+            plan_folder=no_links(self.data/'work/multicore-plans'/multicore['id'])
+            for index,item in enumerate(multicore['inputs']):
+                if not isinstance(item,dict) or not isinstance(item.get('elf_id'),str) or not IDENTITY.fullmatch(item['elf_id']):
+                    raise ValueError('多核ELF上传身份无效')
+                if no_links(item['config'])!=plan_folder/'inputs'/str(index)/'config.yaml':
+                    raise ValueError('多核归档配置越出受控输入计划')
+                if no_links(item['elf'])!=no_links(self.data/'work/multicore-elfs'/item['elf_id']/'firmware.elf'):
+                    raise ValueError('多核ELF越出已上传输入目录')
+            if no_links(profile_path)!=no_links(multicore['inputs'][0]['config']):
+                # A retry uses the task's byte-identical primary config copy.
+                from ..report_package import sha256
+                if sha256(profile_path)!=multicore['inputs'][0]['config_sha256']:
+                    raise ValueError('多核主配置与固定输入计划不符')
+        # Derived combinations read already selected archives and never build.
+        # Their original config output setting does not select the destination.
+        analysis = dict(output=dict(location='custom',custom_dir=str(self.data))) if mode=='multicore' else dict(cfg['analysis'])
         if analysis.get('output', {}).get('location', 'user') == 'user':
             analysis['output'] = dict(location='custom', custom_dir=str(self.data))
         ws = formal_workspace(root, analysis)
         if Path(ws.workspace_root) != self.data:
             raise ValueError('配置的数据根与当前 Studio 不同；请在配置中使用 output.location: user，或从该数据根启动 Studio。')
-        if mode not in {'scan','precheck','review','review-failed'}:
-            raise ValueError('未知任务模式')
-        if mode not in {'scan','precheck'}:
+        if mode not in {'scan','precheck','multicore'}:
             from ..scan_store import EvidenceProvider
             if not isinstance(scan_id,str) or not IDENTITY.fullmatch(scan_id):
                 raise ValueError('复核扫描身份无效')
@@ -107,6 +126,7 @@ class TaskManager:
                 fixed_storage=storage_snapshot(self.data)
                 write_json(folder/'storage-policy.json',fixed_storage)
                 (folder/'semantics.yaml').write_bytes(Path(profile_path).read_bytes())
+                if mode=='multicore':write_json(folder/'multicore.json',multicore)
                 # Preserve the existing adjacent-library contract when the task's
                 # config is fixed outside the editable profile directory.
                 for name in ('review_context.md','concurrency_cases.md'):
@@ -114,12 +134,15 @@ class TaskManager:
                     if source.is_file():
                         (folder/name).write_bytes(source.read_bytes())
                 from ..report_package import sha256
-                value = dict(id=ident, scan_id=ident if mode in {'scan','precheck'} else scan_id, mode=mode,
+                value = dict(id=ident, scan_id=ident if mode in {'scan','precheck','multicore'} else scan_id, mode=mode,
                              project_id=ws.project_id, project_root=str(root),
                              profile_id=profile_id, profile_revision=sha256(folder/'semantics.yaml'), state='RUNNING', started=now(),budget_bytes=limits['peak_bytes'],resource_policy=limits,
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
                              checkpoint_mode='INPUT_VERIFIED_TU_CACHE',storage_policy=fixed_storage, samples=[], resources={})
                 write_json(folder/'task.json', value)
+                if mode=='multicore':
+                    value['checkpoint_mode']='RETRY_DERIVATION_FROM_FIXED_INPUTS'
+                    write_json(folder/'task.json',value)
                 budget = ProcessBudget(value['budget_bytes'])
                 ownership.callback(budget.close)
                 stream = (folder/'console.log').open('wb')
@@ -238,6 +261,7 @@ class TaskManager:
         value['log'] = dict(text=raw.decode('utf-8',errors='replace'), offset=offset,
                             next_offset=offset+len(raw), total=log.stat().st_size)
         diagnostics = self.data/'scans'/value['scan_id']/'diagnostics'
+        if value['mode']=='multicore':diagnostics=folder/'multicore-diagnostics'
         preflight = folder/'preflight/preflight.json'
         if preflight.is_file():
             value['preflight'] = read_task_json(preflight)

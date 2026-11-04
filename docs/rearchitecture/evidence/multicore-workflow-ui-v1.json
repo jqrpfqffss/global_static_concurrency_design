@@ -1,0 +1,121 @@
+{
+  "passed": true,
+  "scope": "Actual GUI selection/upload/owned merge using two approved F030 aliases.\n\nInputs are separately scanned from the same approved single-core firmware.\nThis verifies the user workflow, not an independent dual-core G2 project.\n",
+  "tests": [
+    {
+      "name": "actual_scan_choices_and_streamed_ELF_uploads_missing_region_rejected_before_task",
+      "status": "PASS"
+    },
+    {
+      "name": "real_precheck_uses_archived_config_and_explicit_scan_bindings_with_truthful_capability",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid_new_file_cannot_reuse_previous_ELF_token_or_stale_plan",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_owned_worker_publishes_exact_selected_archives_despite_mutable_latest_pointer",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_canonical_workbench_and_archive_only_capability_without_false_native_claim",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_human_commit_and_reopened_selection_keep_one_immutable_event",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_browser_complete_export_strict_import_preserve_full_roots_and_human_event",
+      "status": "PASS"
+    },
+    {
+      "name": "source_scans_human_history_firmware_ELF_and_runtime_bytes_unchanged_offline_UI",
+      "status": "PASS"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "screenshots": [
+    "01-real-archived-config-and-explicit-scan-plan.png",
+    "02-invalid-new-ELF-clears-prior-selection-and-plan.png",
+    "03-real_owned_task_and_resource_budget.png",
+    "04-actual_derived_object_and_evidence_workbench.png",
+    "05-real_human_event_and_reopened_position.png",
+    "06-real_native_download_and_complete_independent_import.png"
+  ],
+  "engine": "H:\\global_static_concurrency_design",
+  "actual_python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-native-gui-v4\\data",
+  "native_case_sha256": "cbb01ce2125fd164fdd654602e7fec12d98beb63bf42534199c0511bafa8d373",
+  "source_firmware": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "controller_sha256": "5c6db563696757d4bc65efac381ca5b7fd04c3b8135eee39aa7111fe08823219",
+  "all_gates_passed": false,
+  "primary_action_bounds": [
+    {
+      "width": 1366,
+      "height": 768,
+      "button": {
+        "x": 1199,
+        "y": 623.6875,
+        "width": 118,
+        "height": 39.6875
+      }
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "button": {
+        "x": 1433,
+        "y": 624.546875,
+        "width": 118,
+        "height": 39.6875
+      }
+    }
+  ],
+  "task_id": "54155e51fe1849d292068121bc7cbc98",
+  "task_resources": {
+    "available": true,
+    "working_set_bytes": 59932672,
+    "private_bytes": 55017472,
+    "peak_job_commit_bytes": 67923968,
+    "limit_bytes": 8589934592,
+    "enforced_job_commit_limit_bytes": 8589934592,
+    "job_limit_flags": 8704,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "system_commit_bytes": 20338462720,
+    "system_commit_limit_bytes": 85825454080,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 51850776576,
+    "disk_free_bytes": 726369775616,
+    "host_pressure": {
+      "soft": false,
+      "stop": false,
+      "commit_headroom_bytes": 65486991360,
+      "physical_available_bytes": 51850776576,
+      "metrics_available": true,
+      "reason": ""
+    }
+  },
+  "task_budget_bytes": 8589934592,
+  "scan_id": "54155e51fe1849d292068121bc7cbc98",
+  "binding": {
+    "scan_id": "54155e51fe1849d292068121bc7cbc98",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "profile_id": "multicore-d38e9c6829ac3f0f8fd3dca0",
+    "state": "UNVERIFIED",
+    "facts_hash": "30daab3d0bc47603044e15d433e04b4d2d13e189b252970728985bdbc5085b8f",
+    "report_hash": "e0c77c7ee8456d29f48e348cddaf43ed999dfdafef10ebb2fae1ab46f1b7b6a1"
+  },
+  "static_sha256": "7e9fdf4ef55563f29156f96532b23381772b8bfca1add9d8c23f37fa2491d961",
+  "archive_bytes": 609041,
+  "archive_sha256": "eba685f64038e449c98b0555ea7e28034adefed03686e12b56560ded11889318",
+  "seconds": 83.84399999998277,
+  "source_input_files_unchanged": true,
+  "firmware_unchanged": true,
+  "runtime_files": 129,
+  "runtime_files_unchanged": true
+}

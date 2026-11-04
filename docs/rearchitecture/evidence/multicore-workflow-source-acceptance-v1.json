@@ -1,0 +1,162 @@
+{
+  "passed": true,
+  "scope": "R1 explicit archived multicore selection and real owned derived-result workflow. Approved F030 aliases only; no new large-native/current Portable/full-refactor claim.",
+  "previous_head": "190b8baa1c689c4ac6f258f5837a2d8b740d33cd",
+  "source_state": "Working implementation SHA pinned below; commit follows receipt publication.",
+  "source_sha256": {
+    "ecra/multicore.py": "9cccfad8f88de2688034a2fb3defc5f8c5eff0d35a0f6c7dd7c8391eeeb1fb39",
+    "ecra/studio/multicore_inputs.py": "5203be966c3f4a4e7866235dade095cf39348821b08e3e309618f1dd1fe3b6d6",
+    "ecra/studio/profile_forms.py": "4e014e9887b7e4cdb24a085d62985632911c5421722f1217aa58f997c6561d99",
+    "ecra/studio/server.py": "2f62150a616d895061f8efa696a5fb49f21a1cd4330bdec9308ed3064b72992b",
+    "ecra/studio/task_worker.py": "3df4b2d2a044f820ec8190fca0f9a6f21918323c19b91731a6b4fc6f268a45f7",
+    "ecra/studio/tasks.py": "d2341c2fed0812158555039a93cbbfa149b71f16f152834037911a651d99c9f3",
+    "studio/src/App.vue": "480e325318171090ee5cdcf1ce936b11295db1db01826b88a2b35affa5256d75",
+    "studio/src/TaskCenter.vue": "626d0bcd80b8cdb9f25ae01c2f858394331cc8a5b50584c6d5d112c97352b845",
+    "studio/src/MulticoreCenter.vue": "74799443fffc7416a64abf0136a525f6b4cfd70a6800042e24038780d8c3e24f",
+    "ecra/studio/web/index.html": "1986b0fd9c3821572d65907e3514068808dbd4a76ad9afd701afbb3d5fc170e9",
+    "scripts/validate_multicore_workflow_ui.py": "5c6db563696757d4bc65efac381ca5b7fd04c3b8135eee39aa7111fe08823219",
+    "scripts/validate_profile_roundtrip.py": "21c24c6613f60fed15bdd3e99d47bc97e31c55775ef2b339fea567b5b8d4ff46",
+    "tests/test_multicore_workflow.py": "98e520ffe1c56783f080be121b434509644a43f9ecef1a0d47e17f1529961b39",
+    "tests/test_multicore_pinned_inputs.py": "a7a167e04582ac1fb7b9258109429e7283ffe237fe159478991d8a02bcf672d8",
+    "tests/test_profile_forms.py": "4be9263a1811e0b890d66f80fb5801afcc63a521ad375971d8f31c88f498c0e7",
+    "ecra/studio/web/assets/index-BNHWMC6t.css": "6beae66976c56b9b76ef80d404340d01d2edd91151ab6e794a789e2dd469aeb3",
+    "ecra/studio/web/assets/index-BW9Ro0A8.js": "2fb978569a946d711d571c87b5fa663b853d9bd0d8bad7833a94a9c513eabf10"
+  },
+  "artifacts": [
+    {
+      "file": "docs/rearchitecture/evidence/multicore-approved-f030-native-inputs-v1.json",
+      "sha256": "067604ccdfe6c83ac4e8015ad1c44f32c88e078c30a1c2ad6721750a39239052"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-input-copy-controller-failure-v1.json",
+      "sha256": "00fc39b9bb3d0e8d5b814c2129473513c85e40f6d89d02f64e02f30043fd5440"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-approved-f030-input-copy-v1.json",
+      "sha256": "cbb01ce2125fd164fdd654602e7fec12d98beb63bf42534199c0511bafa8d373"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-approved-f030-copy-comparison-a-v1.json",
+      "sha256": "89e4fa1d4518656747d47d20c42f9f2d05e5cd28382e1742ca2cc8f7a5b01c5d"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-approved-f030-copy-comparison-b-v1.json",
+      "sha256": "e9ce14f56902b6fa56ed018ede744dce263390f92218bf2ecedbca6caca6b364"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-workflow-ui-v1.json",
+      "sha256": "92be289425b5a5f7542997c8da63b2e7e43636d3dd9e2451667cbb030711d513"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-core-profile-ui-v1.json",
+      "sha256": "71dcc17e35e1d39c30bb9e5dcb25a48566dd2134e09f53e0b8f435a4d505015b"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-workflow-original-e69-equivalence-v1.json",
+      "sha256": "e210a36f5f3a31a5f905e282f3cacf37a81e7e48d22f5eff58d77fe757838031"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-workflow-static-ui-v1.json",
+      "sha256": "547f01d691bebe8686893c042aae9f05c25caf2ff2021bd5e178ba90a942ba01"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-workflow-original-e69-driver-v1.py",
+      "sha256": "8d171cd3ba201c858ae6f44c8c3946fcb3b3d0f89d4a3a37ee1c5d88e7951271"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-approved-f030-native-inputs-driver-v1.py",
+      "sha256": "411b6d892e6fb709f5a762842ca67df7ddb4fd41c5859ff3184b651e26c053ea"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-input-copy-controller-failure-driver-v1.py",
+      "sha256": "3294622220bb886adc36dcbc67af3d9bba487a6143e809c1b929fb615e54e337"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/multicore-approved-f030-input-copy-driver-v1.py",
+      "sha256": "459cefe88430125fdd0054659a62ca653e320a1efb574bde54f6c964ac17a12f"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-workflow-v1/01-real-archived-config-and-explicit-scan-plan.png",
+      "sha256": "e13200f5f4889c7e5928b8c8db7f2780821ab593cbc68426bc7e83c5484eea9c"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-workflow-v1/02-invalid-new-ELF-clears-prior-selection-and-plan.png",
+      "sha256": "660d8d7c91e2119aa00845a43ae5e90f878a1cf2ba8935922d1b37a7272c6cae"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-workflow-v1/03-real_owned_task_and_resource_budget.png",
+      "sha256": "084a05de8a6e94cbf445d0d6622b2e8e41f83eb44597899f30c6262bd8d0ae88"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-workflow-v1/04-actual_derived_object_and_evidence_workbench.png",
+      "sha256": "edb8f4beaad652783b86907ff8e8df367afd6efe45719f0ea58a385e4afebc53"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-workflow-v1/05-real_human_event_and_reopened_position.png",
+      "sha256": "aae63a258ec6d763ec8479974619f41a293ed48b398f798b8e89147edfa31ee9"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-workflow-v1/06-real_native_download_and_complete_independent_import.png",
+      "sha256": "2161f3c92f5043f137b85de08e3254b934b09427033889d2b729b6895cf9010a"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-core-profile-v1/00-core-build-form-1366.png",
+      "sha256": "aa9a532340a8ca0fd252a9537d2cfa1f947f209c3174cb334d20787b90ba8047"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-core-profile-v1/00-core-build-form-1600.png",
+      "sha256": "fc0922faec7813ef4dddef02d5e3fd3f8d1fb225bcdcac702ddc14a534fd4e00"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-core-profile-v1/01-roundtrip-saved-1600.png",
+      "sha256": "b63980c4dec38fcab7d376b6adc3215cf73fb95cf29678fc46595b31d304a3b6"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-core-profile-v1/02-profile-saved-1366.png",
+      "sha256": "21b5e6a7ba792979acebc7452886e1e4f94aecbdd3e1fb400ebffed064065c1d"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/multicore-core-profile-v1/02-profile-saved-1600.png",
+      "sha256": "463bfed603cd1d40f1937996478aa418569eb18c5ce60c7f9dc17c91a432067f"
+    }
+  ],
+  "logs": {
+    "multicore-workflow-related-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-workflow-related-v1.log",
+      "sha256": "5028f36427e33ab624d5f021733220d03e4f14b665159aab0190363a61e88c35",
+      "bytes": 8351
+    },
+    "multicore-workflow-related-v4.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-workflow-related-v4.log",
+      "sha256": "f90a61e0f63572d0031abb742e167b31ef6db0c878f7c8f28f07b5513ee4f9f3",
+      "bytes": 8945
+    },
+    "multicore-workflow-frontend-v6.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-workflow-frontend-v6.log",
+      "sha256": "7fd828a1db47b966f34746e271b7691f6cdaa0436bf6fd739e120082601b8584",
+      "bytes": 444
+    }
+  },
+  "related_tests": {
+    "tests": 65,
+    "passed": 65,
+    "seconds": 43.146
+  },
+  "static_ui_checks": 12,
+  "actual_multicore_gui_groups": 8,
+  "actual_profile_gui_groups": 8,
+  "wrong_validation_command": {
+    "log": "multicore-workflow-related-v1.log",
+    "status": "CONTROLLER_COMMAND_ERROR_PRESERVED",
+    "reason": "Nonexistent tests.test_studio_tasks module; corrected module list passed 65."
+  },
+  "original_combiner_complete_differences": {
+    "facts": 0,
+    "report": 0
+  },
+  "expected_full_discovery": 1423,
+  "full_current_regression": "NOT_YET_RUN",
+  "current_portable": "NOT_YET_BUILT",
+  "G2": "NOT_VERIFIED_USER_DEFERRED_REAL_DUALCORE",
+  "all_gates_passed": false
+}

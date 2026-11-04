@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "scope": "Original e69 combiner vs GUI-produced pinned input result; approved F030 aliases only.",
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "2afe91f3835ac989138e656dae3acdc73d026f52b033c111703297014be3f8c4",
+        "after": "2afe91f3835ac989138e656dae3acdc73d026f52b033c111703297014be3f8c4"
+      },
+      "report": {
+        "before": "18ef60a4efe767607068a801ac491783f3c7afa61140b0830bd238425d99c134",
+        "after": "18ef60a4efe767607068a801ac491783f3c7afa61140b0830bd238425d99c134"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-workflow-equivalence-v1\\original.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-native-gui-v1\\data\\scans\\0e254f88250e4d1e837abaf1e4ea1f8c\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "seconds": 8.59299999999348,
+  "baseline_head": "e69a10bbcb870dfc19a7d69cf2267774d08b3342",
+  "baseline_module_sha256": "7d529891ddf3cd05aa6eec651d047bc55482a5d6177d14542a2aff5215833a0c",
+  "candidate_module_sha256": "9cccfad8f88de2688034a2fb3defc5f8c5eff0d35a0f6c7dd7c8391eeeb1fb39",
+  "algorithm_AST_unchanged_from_v36": {
+    "_assemble": "0c2982859dc064b41eb4060025ffb0fe8caccf6e74bb19ffd9b1b86611c1bd36",
+    "elf_objects": "007245f6437bb5b67dfcc2ba756aceedf2fd35d8b3194a8e51fe963dc64c3e35"
+  },
+  "input_config_execution_only_changes": [
+    {
+      "variant": "F030_A",
+      "original_config_sha256": "64b770166f4bd60037f6c1817d803d388b36ec52effbd58d23b6cf82d1da0642",
+      "reference_config_sha256": "aedaa48d68dff1e8815680be03390dcc358742ad66fa372a37027158fe6cc993",
+      "only_change": "analysis.output: reference-only external legacy facts folder",
+      "unchanged_effective_semantic_config_sha256": "d38139f5d95e8603656cb60347e3cc6cfaea2732800cbf82a602c10df5d38632"
+    },
+    {
+      "variant": "F030_B",
+      "original_config_sha256": "84ebf8c20770187a8e80f32f510a2b1fa639cbd6416b0a55fac2b9fb2e7a383d",
+      "reference_config_sha256": "cf181ba52ae92e85e8e1c1a29daff824d31d42b1a16f4f6c675e4ed27f7f2aa2",
+      "only_change": "analysis.output: reference-only external legacy facts folder",
+      "unchanged_effective_semantic_config_sha256": "c52ce8008e95c68bef3091a8a18a94063fea3006ba191f213b23f3342eef002d"
+    }
+  ],
+  "source_files_unchanged": true,
+  "gui_receipt_sha256": "f6ea3b7823b57c8ef958bc3ebcd50f785a4d555480ed3aa788bca1412838ff04",
+  "all_gates_passed": false,
+  "G2": "NOT_AN_INDEPENDENT_DUALCORE_INPUT"
+}

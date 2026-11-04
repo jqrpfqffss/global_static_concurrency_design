@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "error": "Controller incorrectly required physical SQLite file identity after standard snapshot/import; graph semantics not yet compared. Original inputs untouched.",
+  "stage": "SCAN_COPY_PHYSICAL_SHA_ASSERTION",
+  "all_gates_passed": false
+}

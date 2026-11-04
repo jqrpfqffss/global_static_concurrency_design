@@ -14,6 +14,32 @@ def execute(args):
     os.environ['ECRA_DATA_ROOT'] = str(args.data_root)
     os.environ['ECRA_JOB_STOP_FILE'] = str(args.stop)
     from ..config import configured_project_root
+    if args.mode=='multicore':
+        import json
+        import threading
+        import _thread
+        from ..multicore import combine
+        from ..scan_diagnostics import ScanDiagnostics
+        spec=json.loads((args.result.parent/'multicore.json').read_text('utf-8'))
+        finished=threading.Event()
+        def stop_derivation():
+            while not finished.wait(.2):
+                if args.stop.is_file():_thread.interrupt_main();return
+        threading.Thread(target=stop_derivation,daemon=True).start()
+        diagnostics=ScanDiagnostics(args.result.parent/'multicore-diagnostics',lambda value:print(value,flush=True))
+        try:
+            diagnostics.stage('固定多核输入完整校验、事实组合与派生判定（剩余量未知）')
+            combine(Path(spec['project_root']),[(row['variant'],Path(row['config'])) for row in spec['inputs']],
+                    spec['regions'],args.data_root/'scans'/args.scan_id,
+                    elf_paths={row['variant']:row['elf'] for row in spec['inputs']},data_root=args.data_root,
+                    scan_ids={row['variant']:row['scan_id'] for row in spec['inputs']},
+                    profile_ids={row['variant']:row['profile_id'] for row in spec['inputs']},
+                    expected_inputs={row['variant']:row['expected'] for row in spec['inputs']},_budget_owned=True)
+            return 0
+        except BaseException as exc:
+            diagnostics.failure(exc);raise
+        finally:
+            finished.set();diagnostics.close()
     if args.mode in {'scan', 'precheck'}:
         from .preflight import run_preflight
         run_preflight(args.config, args.data_root, args.result.parent/'preflight',
@@ -49,7 +75,7 @@ def main():
     parser.add_argument('--profile-id', required=True)
     parser.add_argument('--gate', type=Path, required=True)
     parser.add_argument('--stop', type=Path, required=True)
-    parser.add_argument('--mode', choices=['scan','precheck','review','review-failed'], default='scan')
+    parser.add_argument('--mode', choices=['scan','precheck','review','review-failed','multicore'], default='scan')
     parser.add_argument('--result', type=Path, required=True)
     args = parser.parse_args()
     error=None

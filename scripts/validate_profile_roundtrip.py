@@ -24,6 +24,7 @@ def main():
     for name in ['firmware','compile-database','work','evidence']:parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--engine',type=Path,default=TOOL)
     parser.add_argument('--python',type=Path,default=Path(sys.executable))
+    parser.add_argument('--core-acceptance',action='store_true',help='Verify explicit project.core in the four-step form without rewriting unrelated YAML')
     args=parser.parse_args()
     work=args.work.resolve();work.mkdir(parents=True,exist_ok=False)
     output=args.evidence.resolve();output.mkdir(parents=True,exist_ok=True)
@@ -69,12 +70,22 @@ def main():
         page.get_by_label('工程名称',exact=True).fill('F030 日常配置')
         page.get_by_label('固件目录（绝对路径）',exact=True).fill(str(args.firmware.resolve()))
         button('下一步').click();page.get_by_label('真实构建方式',exact=True).select_option('database')
+        if args.core_acceptance:
+            expect(page.get_by_label('核心标识',exact=True)).to_have_value('')
+            page.get_by_label('核心标识',exact=True).fill('Cortex-M0')
         expect(page.get_by_label('构建变体',exact=True)).to_have_count(0)
         page.get_by_label('编译数据库路径',exact=True).fill(str(args.compile_database.resolve()))
+        if args.core_acceptance:
+            for width,height in [(1366,768),(1600,900)]:
+                page.set_viewport_size(dict(width=width,height=height));page.evaluate('scrollTo(0,0)')
+                bounds=button('下一步').bounding_box()
+                assert bounds and 0<=bounds['y'] and bounds['y']+bounds['height']<=height,'step2 primary action outside viewport'
+                shot('00-core-build-form-'+str(width))
         button('下一步').click();page.get_by_label('变量定义纳入目录（每行一个，空表示全部）',exact=True).fill('Src,用户目录\n Path with spaces ')
         button('下一步').click();editor=page.get_by_label('高级完整 YAML',exact=True)
         first=editor.input_value();value=yaml.safe_load(first)
         assert value['project']['name']=='F030 日常配置'
+        if args.core_acceptance:assert value['project']['core']=='Cortex-M0'
         assert value['analysis']['include_dirs']==['Src,用户目录',' Path with spaces ']
         passed('four_step_generation_preserves_comma_space_paths_and_names')
         advanced=first.replace('analysis:\n','analysis:\n  allow_external_toolchain: true\n',1)+'\n# 用户高级字段与类型\ncustom: {quoted: "on", integer: 12, enabled: true, values: [a, b]}\n'
@@ -101,6 +112,9 @@ def main():
         # A temporary build-mode switch must retain all unrelated advanced data,
         # expose the changed branch and allow restoring its complete predecessor.
         button('上一步').click();button('上一步').click()
+        if args.core_acceptance:
+            expect(page.get_by_label('核心标识',exact=True)).to_have_value('Cortex-M0')
+            page.get_by_label('核心标识',exact=True).fill('Cortex-M0-operation-test')
         page.get_by_label('真实构建方式',exact=True).select_option('cmake')
         page.get_by_label('目标名称',exact=True).fill('firmware')
         page.get_by_label('构建变体',exact=True).fill('Release')
@@ -109,6 +123,8 @@ def main():
         switched=yaml.safe_load(editor.input_value());old=yaml.safe_load(merged)
         assert 'compile_database' not in switched['analysis'] and switched['analysis']['cmake']['build_type']=='Release'
         assert switched['custom']==old['custom'] and switched['contexts']==old['contexts']
+        if args.core_acceptance:
+            assert switched['project']['core']=='Cortex-M0-operation-test'
         button('恢复同步前原文').click();expect(editor).to_have_value(merged)
         passed('build_mode_switch_declared_backed_up_and_reversible')
         # Shared controlled mappings are deliberately left in the raw editor;
@@ -128,9 +144,15 @@ def main():
         # Reload is independent of the editor's in-memory form and backup state.
         page.reload();button('F030 日常配置 · 打开完整 YAML').click()
         expect(page.get_by_label('高级完整 YAML',exact=True)).to_have_value(merged)
+        if args.core_acceptance:assert yaml.safe_load(merged)['project']['core']=='Cortex-M0'
         button('新建工程配置').click();expect(page.get_by_label('工程名称',exact=True)).to_have_value('')
         assert profile_path.read_bytes().decode()==merged
         passed('browser_reload_and_new_profile_keep_existing_profile')
+        if args.core_acceptance:
+            page.get_by_label('工程名称',exact=True).fill('空白核心表单检查')
+            page.get_by_label('固件目录（绝对路径）',exact=True).fill(str(args.firmware.resolve()))
+            button('下一步').click();expect(page.get_by_label('核心标识',exact=True)).to_have_value('')
+            passed('explicit_core_edit_roundtrip_backup_reload_and_new_profile_default_are_real')
         assert before=={str(p.relative_to(args.firmware)):sha256(p) for p in args.firmware.rglob('*') if p.is_file()}
         assert sha256(args.compile_database)==database_before
         receipt.update(firmware_files_unchanged=len(before),compile_database_unchanged=True,backup_files=len(backups),
