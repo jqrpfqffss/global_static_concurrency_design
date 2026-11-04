@@ -1,0 +1,372 @@
+{
+  "passed": true,
+  "scope": "Real Chrome catalog operations using existing approved native scan archives.\n\nNo invented scan identities, dates, analysis fields or human events. Copies of\npreviously completed native archives are isolated from the originals. One\nexplicit corrupt database is a negative fixture, not a simulated scan result.\nThis is not new native/G1/G2/physical second-PC/DPI/UAT acceptance.\n",
+  "engine": "H:\\ECRAStudio-build-20261104-studio-v35\\ECRA-Portable",
+  "python": "H:\\ECRAStudio-build-20261104-studio-v35\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [
+    {
+      "name": "actual23_native_archive_identity_set_and_server_pagination",
+      "status": "PASS"
+    },
+    {
+      "name": "page_offset_survives_actual_browser_reload_during_parent_bootstrap",
+      "status": "PASS"
+    },
+    {
+      "name": "real_project_profile_fullmode_publishstate_UTC_day_and_filter_reopen",
+      "status": "PASS"
+    },
+    {
+      "name": "missing_core_is_not_invented_and_empty_filter_has_recovery_action",
+      "status": "PASS"
+    },
+    {
+      "name": "row_specific_complete_and_delta_exports_roundtrip_exact_binding_and_all_events",
+      "status": "PASS"
+    },
+    {
+      "name": "continue_action_opens_selected_history_not_previous_header_scan",
+      "status": "PASS"
+    },
+    {
+      "name": "one_corrupt_archive_visible_and_does_not_hide23_valid_archives",
+      "status": "PASS"
+    },
+    {
+      "name": "1366_real_browser_query_controls_and_no_horizontal_overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "two_real_native_archives_compare_exact_canonical_union_and_conservative_full_fingerprints",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_comparison_pagination_keeps_previous_rows_and_range_atomic_or_explicit_last_page",
+      "status": "PASS"
+    },
+    {
+      "name": "both_comparison_evidence_buttons_open_correct_scan_and_canonical_object_without_inheriting_decisions",
+      "status": "PASS"
+    },
+    {
+      "name": "comparison_direction_survives_real_reload_and_1366_controls_remain_visible",
+      "status": "PASS"
+    },
+    {
+      "name": "return_keeps_history_query_and_changing_baseline_reverses_real_canonical_direction",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid_pair_is_rejected_with_explicit_recovery_and_no_original_data_changes",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\01-real-native-archives-page-one.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\02-reopened-page-two.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\03-composite-query-keeps-archived-identity.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\04-empty-explicit-no-safety-claim.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\05-row-specific-export-preserves-current-other-header.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\06-row-specific-continue-confirmation.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\07-corrupt-archive-kept-with-diagnostic.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\08-history-1366-controls.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\09-real-archive-comparison-direction-and-counts.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\10-both-evidence-entries-preserve-original-human-history.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-history-evidence\\11-comparison-reopen-1366.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "source_archives": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\9a984191cb3446d0a86fe745cd478916",
+      "scan_id": "9a984191cb3446d0a86fe745cd478916",
+      "scan_sha256": "3ac483c52262f7d3f3174315ed4251bcf7f6c19a35b9a94aaf1c3dd5439bc2dc",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\39933fd8df8a4f31b837fc506888e8f5",
+      "scan_id": "39933fd8df8a4f31b837fc506888e8f5",
+      "scan_sha256": "18c10c5db175f7fae9cbc0d8c8db845e9fd3626720ff056545bcdfc0e69523e4",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v24-v1\\data\\scans\\c4fc4747e275423f9c27c71649d67393",
+      "scan_id": "c4fc4747e275423f9c27c71649d67393",
+      "scan_sha256": "aa457ce10373b1ca8209ffaa06c5f18949b6ba8aca3fe02aa45307430efa2cfe",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\755ee1ef192b4f3da9bc4ffc1042e3b1",
+      "scan_id": "755ee1ef192b4f3da9bc4ffc1042e3b1",
+      "scan_sha256": "0d83a951ed464a888680f6e4a648e10ef661f5c19c1803a1e2ba11abe9c8e2f7",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v24-main\\data\\scans\\6afe2bd0046f4dcfa97180f479bc931c",
+      "scan_id": "6afe2bd0046f4dcfa97180f479bc931c",
+      "scan_sha256": "a07d1c7ab4931df3fb5d07eb1ef6e0214375e4ddfc8a6adce8493d5e97cca8d2",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\cf18c713fcf74b5bb6e78b385c551462",
+      "scan_id": "cf18c713fcf74b5bb6e78b385c551462",
+      "scan_sha256": "f84f75a5ec5937624be633d618f9d559c8e050150304b39feafa6f0511ea5264",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\5a43deefd34f4f07ad8fc3a70c028f49",
+      "scan_id": "5a43deefd34f4f07ad8fc3a70c028f49",
+      "scan_sha256": "a4ddf771c2609b4dc89bc3212e705d4d04a314196f9503c7aeef76c158c60d52",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v5\\data\\scans\\23485e03d0814817af4a19cce892503c",
+      "scan_id": "23485e03d0814817af4a19cce892503c",
+      "scan_sha256": "790844c421f3ce6043fffcbb4f884b40a074c0d26b395d9f12a071c858465951",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\b249ffe20c8c42d9803240c93c20ea23",
+      "scan_id": "b249ffe20c8c42d9803240c93c20ea23",
+      "scan_sha256": "438d46a0e63e25f7c921a082b1c47c7bd25b7817e85b024e9500d2f9d65ab3fe",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\c92b3b39b503448a9bb7ff5fb41c482c",
+      "scan_id": "c92b3b39b503448a9bb7ff5fb41c482c",
+      "scan_sha256": "952c38ce73a8fac5443c6957f579ff3cd19264f6f0b3739d4252526f27308591",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v4\\data\\scans\\06fe1c74893a41058e3e09feebb3081a",
+      "scan_id": "06fe1c74893a41058e3e09feebb3081a",
+      "scan_sha256": "6d954a5cb44f1a76692f069e1c7499c5789c33f116b6c2f3e4fc323d86132fab",
+      "events": 1
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\86f80f223810428a87661de2e9b1b962",
+      "scan_id": "86f80f223810428a87661de2e9b1b962",
+      "scan_sha256": "9bba94a7a53546dc2c226271d7fa9ad1aa53ba9d55e0a40ee60ebdc90e9d2f06",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-scan-crash-recovery-v3\\data\\scans\\47eb8aa0b658428fa65671993db02c58",
+      "scan_id": "47eb8aa0b658428fa65671993db02c58",
+      "scan_sha256": "35cf53499e437b732cf458b28b82467eecd5ee5984ffd751b2877b0a4081eb54",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v23-main\\data\\scans\\707336aa1c3b4c6497a79276f6c6ae8e",
+      "scan_id": "707336aa1c3b4c6497a79276f6c6ae8e",
+      "scan_sha256": "58c0c2d0825b1d700391a3545e256948908706f35369c9b0dd7093c7a307e80b",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\142b3ac94e5542169c400cc350ab0fa5",
+      "scan_id": "142b3ac94e5542169c400cc350ab0fa5",
+      "scan_sha256": "7a23f9c859918aac2f940da6a202f939bfe32b1ed757e1d165bcdb4b1b766886",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v21-main\\data\\scans\\bf276a8774b940479eb9e0babf2425d1",
+      "scan_id": "bf276a8774b940479eb9e0babf2425d1",
+      "scan_sha256": "8672ddebeaa735b29961a8e1af4473776d7b63fc3f4dee3a4bfba5a48dbdec55",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\1238fb825ea84dd08e3b9eb9d7b28ff9",
+      "scan_id": "1238fb825ea84dd08e3b9eb9d7b28ff9",
+      "scan_sha256": "27bd0595a0178a417bd8123507cb92e314ec97bf56d6c81cfd5a028745d1a47e",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v20-main\\data\\scans\\abdd3c4eda6c4e03b5b7c0ae4edecb60",
+      "scan_id": "abdd3c4eda6c4e03b5b7c0ae4edecb60",
+      "scan_sha256": "6687a83df274fcbb2e3208fb4508d7f0e72086749626ee48c2f35ba18388c685",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\5943bb6089f24944bba6c19d7294e308",
+      "scan_id": "5943bb6089f24944bba6c19d7294e308",
+      "scan_sha256": "c561d2f29d02a57c22f209c198e34b4bb44b6c7d8c14e5202419fddadb857170",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v19-main\\data\\scans\\247eed88170d41b6ba73254822070336",
+      "scan_id": "247eed88170d41b6ba73254822070336",
+      "scan_sha256": "824c1ecce4c036882b079a7604bb9ca87a65e9c7d86ebac5cea4abbb59cc334e",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\cfb049563dc045aeb9071909f7e4e9de",
+      "scan_id": "cfb049563dc045aeb9071909f7e4e9de",
+      "scan_sha256": "5975c2a8dd486ff3b7d267d51e803cc1938c1db9a943f4dc18f71bc2d1abf1f5",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v18-main\\data\\scans\\855a380c66ba47c9893f88829daaa214",
+      "scan_id": "855a380c66ba47c9893f88829daaa214",
+      "scan_sha256": "151f1997cbaa81e55616faebbbc9bbd9a36d7017c95f61d227e4bfefa7cdc0f8",
+      "events": 0
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v17-main\\data\\scans\\c4c8342314b54add84bc3fe8c858236f",
+      "scan_id": "c4c8342314b54add84bc3fe8c858236f",
+      "scan_sha256": "f313fdf553112485c6f4757e89b54b36c7cfd7e795ceeb36926f8aee1d62d770",
+      "events": 0
+    }
+  ],
+  "native_DPI": "NOT_VERIFIED",
+  "engineer_UAT": "NOT_VERIFIED",
+  "physical_second_PC": "NOT_VERIFIED",
+  "comparison_pagination_scope": "ACTUAL15_OR_FEWER_ONE_PAGE_END;20007_BOUNDED_PAGINATION_IS_SEPARATE_DECLARED_UNIT_FIXTURE",
+  "comparison_selected_evidence": {
+    "symbol_id": "c:@HCLK",
+    "has_real_accesses_in_both_archives": true
+  },
+  "comparison_invalid_pair": "SAME_SCAN_ACTUAL_AUTHENTICATED_HTTP;OTHER_PROJECT_UNIT_CASE_SEPARATE",
+  "comparison_acceptance": {
+    "before": "9a984191cb3446d0a86fe745cd478916",
+    "after": "39933fd8df8a4f31b837fc506888e8f5",
+    "counts": {
+      "EVIDENCE_CHANGED": 15
+    },
+    "canonical_objects": 15,
+    "physical_DPI": "NOT_VERIFIED"
+  },
+  "original_files_unchanged": 1534,
+  "private_static_databases_unchanged": 23,
+  "selected_scan_id": "9a984191cb3446d0a86fe745cd478916",
+  "tests_count": 14,
+  "engine_files_unchanged": 128,
+  "engine_sha256": {
+    "ecra/access_enrichment.py": "b880e0fb8fa538dde5327d0722e4ba11ce6dd49c496e233ab400865880f4ac16",
+    "ecra/analysis.py": "b1d7cd8287c4a840888cbdb253fa36ae9ef2aca8882aaf1c722573742a4c10a4",
+    "ecra/async_semantics.py": "2f0e87c0f0a26a61f08a8e8c050df1ef9b8dcc2541facacc96127b976adec649",
+    "ecra/block_bitmap.py": "f17ccc6235e61a0c05c711a4293ebee83a3c558ca205ed62b950ba4cbca8091c",
+    "ecra/call_graph.py": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+    "ecra/case_library.py": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2",
+    "ecra/cfg_sharing.py": "26248ec3042d79134aa566f9015d13ca3db9a75854991f387e34e363c2109b15",
+    "ecra/cli.py": "45296f632255f243f88c78af95a8666b69355629ba9f586bca98fbd444622275",
+    "ecra/common.py": "180a53e5baa5f2608ae492c9b3639e4dd093232f9025dc8674d29a5a41e64788",
+    "ecra/compilation.py": "fc51a774abeeb8365a3ae44682ec30aa95a3ffe503c8033b70c51ea58fc92260",
+    "ecra/config.py": "37b0005725b280a6fd797d868b3b621335290fd8f8f473e49c15155b28c4f311",
+    "ecra/context_points.py": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+    "ecra/controlflow.py": "eadf0ccb43df25136288346d4c9983b065d40cff3ec8346a09208b9857df3874",
+    "ecra/decisions.py": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+    "ecra/diagnostics.py": "75736e8abec4580d79d4dd988e48d08ee8566904f7cc49a9ae272fca66150c5c",
+    "ecra/emergency_memory.py": "34d201f592c8ca7697beaf595102a0132d21c6004cdbd4954c36fb3312dbbb75",
+    "ecra/evidence.py": "9992b516092367cb5a6b688f1c386b65046b92d6d799091a122027e6d1d3171b",
+    "ecra/evidence_mcp.py": "ec552d516fafe0027b5012eae1312fb21b48485ecfa9bf6a28e74c26779816b4",
+    "ecra/evidence_reader.py": "1cd79f2f431b8e6976142f744ead398733b4ac5349ab49476a0fdadc0dc548e0",
+    "ecra/extract.py": "583e73d70a2ee3250f4ac78afdebe0821211e451e89a4f463bc54cbc6bdda6a4",
+    "ecra/fact_parts.py": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+    "ecra/garbage_collection.py": "5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265",
+    "ecra/git_diff.py": "e5e147e2f58fd3004a804c9c7a06114a9f2d947dba59fbbb37ade0af022748e1",
+    "ecra/history_archive.py": "e83b5df26b97e27219ecc689602c9ab2816e987c8a9c8e81883d9c598354a3cc",
+    "ecra/html_evidence.py": "73e9e9c00191ed70d4dad282ce872e99f6d028ecd4798e02bda40cc4f7361fde",
+    "ecra/html_report.py": "aa04908272b393a315c93c05041991fd4501636b4054fd628a074c5e90ca0416",
+    "ecra/human_reviews.py": "62aa85ecb51be4fe19a6e837e34b8b9a2ae672cc21da80fd84726a3729a4cf2a",
+    "ecra/independent_git.py": "3cd14d0f0a2de72436536a3f7a2bca18cf3747c60fa0a0828910ee9de1d48e29",
+    "ecra/initialization.py": "43271805721f38f60ef61ed91b81b40d79f0419a5273b487cee978d1e28cc527",
+    "ecra/input_snapshot.py": "365e6807cfeeedcc89cc2b83055c94a1797ed9336637fa815131207d71607c51",
+    "ecra/interrupts.py": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+    "ecra/json_rows.py": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0",
+    "ecra/legacy_import.py": "c0cd56038edd69670ef521857d907bcc2af9ed6603850f7f49d3382c75619e74",
+    "ecra/linker_symbols.py": "2df476c852a851aa27f5b4e21b75931ffa1b034d8035078e00d81560075d9f9e",
+    "ecra/lock_owner.py": "ef731dc6dc4bda789a06a40692f2d51061c6d88e33a1fddc8752c7410ad9f4e0",
+    "ecra/macro_semantics.py": "d9879e9eae91ca8e33875fb35a8e0e90992bc11a1253a8f0539783580ec236be",
+    "ecra/missing_source.py": "3975809bc7971c1f6fa5e822fbd63b6c24828f043fd5c800bff0f9fea8d5fd86",
+    "ecra/multicore.py": "e8579a719bed38c0c19bc54d9530fe1bed92cd067bb3df5c24b9b49db9021983",
+    "ecra/nonlocal_jumps.py": "21188550e1e36b5f110b9f45bf7088f31080784921d03d01bfcfb3a1523033ed",
+    "ecra/nvic.py": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+    "ecra/nvic_extract.py": "315cb099ecfc7f7eedd99ce4f8cc3022bf87058d7b18b542fb466ad19e49c041",
+    "ecra/physical.py": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+    "ecra/pointer_extract.py": "8533db5792bee3e25870f28d05c193754f76f87496773376263fef85ff0fd2fb",
+    "ecra/points_to.py": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+    "ecra/portable.py": "1e38cc2a9cc17dec23c43e736a764ebe323686b209d7ce6e7b9f9614f82af060",
+    "ecra/protection.py": "8d42f4f4a9f743fd3b71dcceb531f32a962a2102015b77c36ba7b03407460a48",
+    "ecra/read_only_evidence.py": "5dd3db9465f745ddec00e6fe5e19b8e3b4eb5787e829da7f62afc5d02b0809d4",
+    "ecra/report.py": "0d93be9c3cf98c539819e8627c0764a9bb381013a549b126a69d017b4ddfe1d4",
+    "ecra/report_package.py": "5c7028705c6ff8012b41572312fdac77474f214ad63231da5ee2f6327ca2f0fe",
+    "ecra/review.py": "c2863a470906110780c7227caaec78232d2253dbb8657d34006d5de5a3418f82",
+    "ecra/review_context.py": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88",
+    "ecra/review_contract.py": "4a1b83f64c0192e8e3b123b61f5d51aec9120927ae7b65906667e5f115bf55bb",
+    "ecra/review_integrity.py": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804",
+    "ecra/review_language.py": "00a24bac1bf43595e6b74f15b0c79f5bc3a8e949c798fabf49b39bfd52f83d0f",
+    "ecra/review_presentation.py": "8ceb94ea1c45f5ef3ebdd219dab6fa112ca0e86cda3a94813a3ccd50d4e84f13",
+    "ecra/review_summary.py": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06",
+    "ecra/scan_diagnostics.py": "b40184b3a59314e654ca6f26a80724408344949fa0666c84b5644a9eaa0e3f75",
+    "ecra/scan_identity.py": "e0dcee03fed0fc4b796c8bcaa64ba7863fdcf5a7b3315a8dcf19cd4f8ea59506",
+    "ecra/scan_persistence.py": "576ff1043ccbd184f9e85777fd092b9d28eea57b5928e154bbf95982ec3cdc7a",
+    "ecra/scan_store.py": "457f8994bfdf13363d03652c5d4a1759327012ccb2682acf831c4c7b21878801",
+    "ecra/scope.py": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+    "ecra/shared_json.py": "5b134b0b6c837c7ddd06390097f54d2c8ccf4303d61d73f75e938c8d3a46c6f2",
+    "ecra/solver_reachability.py": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+    "ecra/stale_writeback.py": "246a9fbc0616a2674e3553fca1921a55d48f23b8ecfdcafb3df9297e41eac32a",
+    "ecra/storage.py": "36e4e4f0f90049b03e319770c3c54f81e5d954afd292b802ca41d6aeffc8a71a",
+    "ecra/storage_activity.py": "a2d01bb9946d1b255ce7f7095200362309d2ef4becfeb2210634dc8dba155a63",
+    "ecra/storage_compaction.py": "afec63b1f43c987664048c66ce646811dc7e734bb46409b75aaa892702495e53",
+    "ecra/storage_policy.py": "c7e4c0d2ddb747dc69c716045cf85346a62c62b2d3ddd019ad3086142547d759",
+    "ecra/storage_usage.py": "18ad8bc8e9b878440a5c9534ec20ff05b7e023e70fed0568801ffd3d04fceac6",
+    "ecra/streamed_evidence.py": "fe9ba6a0c8edf0dd165c512432244088be6ee4aa729361ad3ee64d06f119328a",
+    "ecra/studio_preferences.py": "5bc4691af58cfb4ad8c44fdfcb4c6535ea21212102768a9aa2419fe6fb1fe593",
+    "ecra/supplemental.py": "2a8787eb89d120bed6329c1904cf4e4d956d9f62a7b66b67d7ba7acff6fcc048",
+    "ecra/target_set.py": "45cf1a746e26cb7eed47fbaad21c876a8f00489bf7eb1b57411f69bf6205c47b",
+    "ecra/tu_cache.py": "87fa95f3182a254343c4227f63f80b0eac11c58b0f34716df894ceb5b8fabddf",
+    "ecra/vectors.py": "f475ac221f91fcea4eefbaee4cf098ff3b9e454c10d924d234f65722be1f7ed2",
+    "ecra/windows_storage.py": "d23e4ba4ae1289f1323cae8c22fef15f45e5249a4406f64ce6618b030388f580",
+    "ecra/workflow.py": "3265a93ce91773e04254ac04ea42ed9c446caef3f3e45d1beb78e676648257a3",
+    "ecra/working_snapshot.py": "3ccacf231ca7194083505fb3e100ec3ab54d2100942f168a946e13a95734950a",
+    "ecra/workspace.py": "cec2318dd624940d6d390ced3718679abe1a843b11de083a6ca3c2cf228ef2c2",
+    "ecra/__init__.py": "1a57828454d39f2670fce85e9c32150abdca021dc6a16e9757e7e5c58bda113f",
+    "ecra/studio/cleanup_jobs.py": "f1080434936df48c9ec2e90b71ea404f63d10690662e52e7c160a8458b621488",
+    "ecra/studio/comparison.py": "73e2d0287493dbc0e3cbb19220af35b91c90494f20f3fd7f1bb56129232358c1",
+    "ecra/studio/coverage.py": "02ca401c5a8dc3e8657cf9ea535285d3a5bce19087519c5c210909726864094f",
+    "ecra/studio/directories.py": "22646fc91364e908f7b8fbf74e29976ffecd2cd596215082baf94e743d9339a2",
+    "ecra/studio/downloads.py": "b22cc0a04f8fa0710b90e72543a44651fab57bb0d5735e8ff9a715018620748e",
+    "ecra/studio/git_versions.py": "e7768d23138d3b95bfd1996f8cbcf758f8446fedb148fbab71a3931b85ab624b",
+    "ecra/studio/history.py": "01688b5aaf14e7fd38b5e0cf16823c711b9c0585139729a095cf05a14b37b932",
+    "ecra/studio/migration_jobs.py": "b6c38b8e63d20b4eb5fbcb992c1105dd66ff285d0b4a5e2c28951ecb24f45bde",
+    "ecra/studio/preflight.py": "3ea65a2b471b0b5036a1a19c88261678adf4bb9309174a443f0508a6f001cc74",
+    "ecra/studio/process_budget.py": "f801678ecaa82a4198e3d6288c5e4f60f3712155e54db45f34be17a6cab1cd92",
+    "ecra/studio/profile_forms.py": "68183dfb1017b451c9b6629a7c679d1396a9ec294357c1d9b1eea9b03abbfe57",
+    "ecra/studio/query.py": "a1715423d7c711e6bd326000d8e26800383c9530bc08fb48a62264e1eaf434f5",
+    "ecra/studio/resource_policy.py": "775ab5031a5e7c2f54ab94abb1275de186333fd68cdf34b02f01303ee3d2b863",
+    "ecra/studio/sample.py": "4bd0888c8797b4e0ae66c5d9ea411b1f5fc99dbdd3c28809a96c2fc37b2a5b80",
+    "ecra/studio/server.py": "15247a6d92f4a06bd6aa37125bb61ba2c6511fcafb56b0cbfeafaac61fc270d4",
+    "ecra/studio/source_view.py": "48b6faabd1052f5de901ae7e795638bd8dfbd3ea58ce1003cb8453f06a58cf2e",
+    "ecra/studio/tasks.py": "d7a22ee6efd90d54b74695b2edcf3862f4658859f1415a8bb8295b268225ff62",
+    "ecra/studio/task_worker.py": "39e904d4bf3e8a564918600828af5924390b1e4b27063ce5834b53adaadc77f9",
+    "ecra/studio/write_guard.py": "03739086d76290e7eb2c8e266c7c7e3f2da0ea26a84241fcdf64db8430a8536a",
+    "ecra/studio/__init__.py": "ac93a35b67b29431d8b45b820b1bb5cdca0789f19a4f5bc580c07ebbd951d80e",
+    "ecra/studio/__main__.py": "9bffac478aae19c85a181f2a163744cb4776df19bdd1c1d105629ec11f0612e5",
+    "ecra/studio/sample_assets/sample.json": "9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba",
+    "ecra/studio/sample_assets/stm32-demo.ecra-report": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b",
+    "ecra/studio/web/favicon.svg": "9ee65b090446ade828db8035a3f1882b2988e7728b712f0754a93fbe16570e7d",
+    "ecra/studio/web/index.html": "1b9a23f1058516f3d04a270255ba177d225619ef54031afba18026b372f7a523",
+    "ecra/studio/web/assets/index-B6exn6Xr.css": "afbf2f3f6c5039eaf0b582dc28fbdc2c0a136964c653b126d3f864d304511037",
+    "ecra/studio/web/assets/index-Df93FJIs.js": "ec92a1edf7c176c4fd5dd6d1369b6c966678bdba53ca41f0ec22b345dc1e90c9",
+    "ecra/studio/web/licenses/annotated-doc-0.0.4.json": "985af4d1695053253f59caa800bf859ec2dad329d86131a8956514092410820b",
+    "ecra/studio/web/licenses/annotated-types-0.7.0.json": "4461f5ae761881ac2432f5b61b4a3e362197c141773b88384c224ab7c82a5074",
+    "ecra/studio/web/licenses/anyio-4.13.0.json": "d98b029e209b5cac07b74f3006645f6de122da25982a724e37b01f469d3fb3e6",
+    "ecra/studio/web/licenses/click-8.4.1.json": "94eb3c2ac6ef40a300ad97b41f3338354d39fc600204eec82520166c7309e496",
+    "ecra/studio/web/licenses/colorama-0.4.6.json": "3d249637b95c414b1e1a28f5204a35a745bff359908efd19d6fa1937c06ad9e5",
+    "ecra/studio/web/licenses/exceptiongroup-1.3.1.json": "57b9de59bf4679f45d6a819458da3ffbc4b3428317d6ed74b7b5ff1927b5b8ea",
+    "ecra/studio/web/licenses/fastapi-0.136.3.json": "877c702ac4895c38daae2a5fb53d7130cf6c286802f941010071b6eb415043f4",
+    "ecra/studio/web/licenses/h11-0.16.0.json": "57c277633fcf2ef7817cb07542cfc49025cae7bde8b7433233b3d9408518c8b6",
+    "ecra/studio/web/licenses/idna-3.18.json": "dcbb4c15b418af6d00eaefda37ee81ec8aa1a1b3d61acd0d34980d354718e32c",
+    "ecra/studio/web/licenses/inventory.json": "9db66d38bdc5bd65fa093fff7bd56561f08670fd3bee43cfdf59b31ae4bed375",
+    "ecra/studio/web/licenses/libclang-18.1.1.json": "5bc45b95e4043d04f03003a2739fb79b29da34de7db5ccd5ec8e42e3b9ca469a",
+    "ecra/studio/web/licenses/pydantic-2.13.4.json": "2ad4ac801ef88df8e6708128ee309d03e86e77c96d819f06f1556198e5eb2473",
+    "ecra/studio/web/licenses/pydantic-core-2.46.4.json": "34c0cfd713624ea0c53127fb85f9af9e664580d01fae2b3bc79a5b411feb5f1b",
+    "ecra/studio/web/licenses/PyYAML-6.0.3.json": "b33e6f8a243ab54a2a1c0d81a1b1dfcf3a2c68ca2f35f6314c37c17a1b4bdce2",
+    "ecra/studio/web/licenses/ruamel.yaml-0.18.16.json": "e120c73b6e83276b42b41420cb0e595732a2b20e21ecef14d9a1c36f4437ef52",
+    "ecra/studio/web/licenses/ruamel.yaml.clib-0.2.12.json": "71a713385d0323899d9ecf3699961c93bba593d18d8e391da9636c8bb86f9b9f",
+    "ecra/studio/web/licenses/starlette-1.2.1.json": "3e9c35db1bb1c0bddb3e1075ad9ab55777d8c95d026beed93bd7cedd1ee3460a",
+    "ecra/studio/web/licenses/typing-extensions-4.15.0.json": "826225c4bfaa05a9d91b4488b7aa600746d504b3ad3dfa92f396f339f3ca921d",
+    "ecra/studio/web/licenses/typing-inspection-0.4.2.json": "65f04795ed2e40aab6b8c813161c11d9f0ce68c0a203d0120e5992f9b82fb85d",
+    "ecra/studio/web/licenses/uvicorn-0.49.0.json": "fa2e2f9b7f2b6c339580210e98376b746adae4dc3259f79b7b806d2d428343f9",
+    "ecra/studio/web/licenses/vue-LICENSE.txt": "5818899c48b48d0c1e898741974b91ffaf938962349b32e25d4b37a031771364"
+  }
+}

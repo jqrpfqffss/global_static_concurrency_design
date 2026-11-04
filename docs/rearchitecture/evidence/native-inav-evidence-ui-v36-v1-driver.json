@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "all_gates_passed": false,
+  "scope": "Actual v36 ECRA.cmd views the complete compact standard archive independently imported by bundled v34. Producer remains v27/native-v12; no new native v36 or physical second-PC/DPI/UAT claim.",
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v36\\scripts\\validate_inav_evidence_ui.py",
+    "--data-root",
+    "H:/ECRA-INAV-COMPACT-ROUNDTRIP-SEED0-V12",
+    "--engine",
+    "H:\\ECRAStudio-build-20261104-studio-v36\\ECRA-Portable",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-inav-evidence-ui-v36-v1-work",
+    "--evidence",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-inav-evidence-ui-v36-v1"
+  ],
+  "source_head": "176ed696e34354593ff2bc5aa800972a641d152e",
+  "package_zip_sha256": "42a3110189c6f71cd7dedc995deb6c6e81ef78c9cdefd80827152c4d13baf805",
+  "controller_sha256": "116a90cf894a89c190df9805d96bf01cf0ad1f822d88161d4d7fd8d816d8736f",
+  "exit_code": 0,
+  "tests": 6
+}

@@ -1,0 +1,139 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "scope": "Private copy of the approved original INAV graph with all3000 known old events, then real v36 Chrome1000 additional NEED_MORE_EVIDENCE declarations. Not a native-v13/G1/G2/standard-package/in-place-data-migration/UAT claim.",
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-controller.py",
+    "--data",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1\\data",
+    "--engine",
+    "H:\\ECRAStudio-build-20261104-studio-v36\\ECRA-Portable",
+    "--python",
+    "H:\\ECRAStudio-build-20261104-studio-v36\\ECRA-Portable\\runtime\\python.exe",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-work",
+    "--evidence",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-evidence",
+    "--expected-existing-events",
+    "3000",
+    "--count",
+    "1000"
+  ],
+  "source_package_head": "176ed696e34354593ff2bc5aa800972a641d152e",
+  "source_package_zip_sha256": "42a3110189c6f71cd7dedc995deb6c6e81ef78c9cdefd80827152c4d13baf805",
+  "source_marker": {
+    "format": "ECRA_U16_PRIVATE_UPGRADE_COPY_V1",
+    "source_data_root": "H:\\ECRA-U16-INAV-v1\\data",
+    "source_events": 3000,
+    "source_events_sha256": "570e8fc027a8c62aa5fe9d79c4de84467eddeeb71f7b32da81604739914f2378",
+    "source_reviews_sha256": "8e12a66ffc5cfa299d5e33dd69ef68f61d5b2ef3079fb5dab99ec6cd3cf83896",
+    "source_graph_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+    "static_graph_shared_by_hardlink": true,
+    "source_device_settings_copied": false,
+    "scope": "Private copy of the approved original INAV graph with all3000 known old events, then real v36 Chrome1000 additional NEED_MORE_EVIDENCE declarations. Not a native-v13/G1/G2/standard-package/in-place-data-migration/UAT claim."
+  },
+  "exit_code": 0,
+  "source_original_unchanged": true,
+  "acceptance": {
+    "passed": true,
+    "state": "COMPLETE",
+    "scope": "Actual packaged Chrome:1000 additional NEED_MORE_EVIDENCE declarations.\n\nOnly the explicitly marked private copy of the approved original INAV graph,\nwith all3000 known prior events, is accepted. Eligible canonical objects are\nSUSPECT/UNKNOWN/SAFE_PROVEN with PENDING human state. No safe declarations, no\nnew native scan/G2/physical second-PC/DPI/UAT claim. Original root is preserved.\n",
+    "existing_events": 3000,
+    "requested": 1000,
+    "completed": 1000,
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1\\data",
+    "engine": "H:\\ECRAStudio-build-20261104-studio-v36\\ECRA-Portable",
+    "server_python": "H:\\ECRAStudio-build-20261104-studio-v36\\ECRA-Portable\\runtime\\python.exe",
+    "tests": [
+      {
+        "name": "v36_private_copy_opens3000_prior_events_without_reset",
+        "status": "PASS",
+        "old_events": 3000
+      },
+      {
+        "name": "restart_after_new_350",
+        "status": "PASS",
+        "total_events": 3350
+      },
+      {
+        "name": "restart_after_new_700",
+        "status": "PASS",
+        "total_events": 3700
+      },
+      {
+        "name": "restart_after_new_1000",
+        "status": "PASS",
+        "total_events": 4000
+      }
+    ],
+    "screenshots": [
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-evidence\\upgrade-batch-350.png",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-evidence\\upgrade-batch-700.png",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-fourth-batch-v36-v1-evidence\\upgrade-batch-1000.png"
+    ],
+    "source_snapshot_head": "176ed696e34354593ff2bc5aa800972a641d152e",
+    "private_copy": {
+      "format": "ECRA_U16_PRIVATE_UPGRADE_COPY_V1",
+      "source_data_root": "H:\\ECRA-U16-INAV-v1\\data",
+      "source_events": 3000,
+      "source_events_sha256": "570e8fc027a8c62aa5fe9d79c4de84467eddeeb71f7b32da81604739914f2378",
+      "source_reviews_sha256": "8e12a66ffc5cfa299d5e33dd69ef68f61d5b2ef3079fb5dab99ec6cd3cf83896",
+      "source_graph_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+      "static_graph_shared_by_hardlink": true,
+      "source_device_settings_copied": false,
+      "scope": "Private copy of the approved original INAV graph with all3000 known old events, then real v36 Chrome1000 additional NEED_MORE_EVIDENCE declarations. Not a native-v13/G1/G2/standard-package/in-place-data-migration/UAT claim."
+    },
+    "eligible_classes": [
+      "SUSPECT",
+      "UNKNOWN",
+      "SAFE_PROVEN"
+    ],
+    "page_errors": [],
+    "external_requests": [],
+    "native_scan": "NOT_EXERCISED",
+    "physical_second_computer": "NOT_VERIFIED",
+    "windows_dpi": "NOT_VERIFIED",
+    "engineer_uat": "NOT_VERIFIED",
+    "static_sha256": "660dffb23a520fdb279f062965267cb5e7710fd59da3a4ede403386792c2c606",
+    "static_bytes": 17831825408,
+    "initial_eligible_pending": 10316,
+    "initial_saved_position": {
+      "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+      "search": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+      "classification": "",
+      "human_filter": "",
+      "offset": 0,
+      "extra": {
+        "handling_status": "",
+        "file": "",
+        "function": "",
+        "context": "",
+        "coverage": "",
+        "ai_state": "",
+        "diff": "",
+        "symbol_id": "",
+        "sort": "priority",
+        "order": "asc"
+      }
+    },
+    "initial_scope_widened_via_visible_UI": true,
+    "seconds": 2284.890999999974,
+    "events": 4000,
+    "old_events_preserved": 3000,
+    "new_distinct_symbols": 1000,
+    "static_unchanged": true,
+    "save_seconds": {
+      "median": 1.047000000020489,
+      "p95": 1.547000000020489,
+      "maximum": 1.5789999999979045
+    }
+  },
+  "controller_unchanged": true,
+  "controller_sha256": "5e66523276fbcce98da985490db04def00e6df0bfaebaf9113d1bf96b79942df",
+  "source_controller_sha256": "310a601e26cdd6a188d85515604b48be93bed7368438bd14129c7883ce8bc424",
+  "controller_adaptation": "Only version label v32 to v36;3000+1000/restarts/order/assertions unchanged"
+}

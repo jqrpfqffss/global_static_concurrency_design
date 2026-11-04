@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "scope": "Real Chrome: explicit unverified legacy archive, raw bytes and offline transfer.\n\nAn owned copy of the approved native legacy result loses facts.json deliberately.\nOriginal firmware/results are never edited; no native/DPI/physical-second-PC claim.\n",
+  "tests": [
+    {
+      "name": "strict_default_rejects_missing_facts_and_preserves_existing_archive",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "explicit_real_ui_migration_publishes_only_unverified_navigation_and_complete_original_bytes",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "untrusted_original_html_is_segmented_text_and_never_executed",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "all_static_review_routes_and_backend_reject_invented_safety_conclusions",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "standard_package_roundtrip_to_independent_real_service_preserves_every_original_and_unverified_status",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    },
+    {
+      "name": "repeated_degraded_migration_is_idempotent_and_all_originals_and_prior_authority_remain_unchanged",
+      "status": "PASS",
+      "related": [
+        "U21",
+        "U19 subset",
+        "U24",
+        "H6"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v36-legacy-degraded-evidence\\01-explicit-degraded-plan.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v36-legacy-degraded-evidence\\02-raw-html-text-only.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v36-legacy-degraded-evidence\\03-independent-viewer-after-standard-package.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "physical_second_computer": "NOT_VERIFIED",
+  "native_dpi": "NOT_VERIFIED",
+  "scan_id": "legacy-0f5f0dc78583e6cbdab445228897ab9158d70c89474de1a0cb0f76c4cb27d279",
+  "original_files": 63,
+  "captured_files": 63,
+  "package_sha256": "fc72a2ef31c4715d831d9eef3f3eb646df2c35ad6286b3ef88060521ef51cc6b",
+  "static_sha256": "c48ff9c708df442d9b48c3c68ade35b5cda4fd5b384df5eb0c99574cde37dcc8"
+}

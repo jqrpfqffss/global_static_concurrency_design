@@ -1,0 +1,106 @@
+{
+  "passed": true,
+  "scope": "Real Chrome/Git wizard selection, SHA preview, persistence and read-only proof.\n\nUses an isolated copy of the approved F030 input; its extra refs/dirty files are\nexplicit UI fixtures. Does not claim a new native G2 project or full U04/UAT.\n",
+  "tests": [
+    {
+      "name": "real_git_head_dirty_coverage_and_read_only_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "paged_real_ref_selection_search_and_commit_resolution",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "invalid_ref_keeps_input_and_removes_stale_commit_preview",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "chosen_refs_generate_real_saved_profile_without_uncommitted_coverage",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "back_reload_reopen_retains_selected_refs_and_saved_bytes",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "working_input_choice_head_limit_and_real_formal_scan_gate_preserve_saved_profile",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "unchecked_mode_roundtrips_complete_yaml_and_reopens_without_residual_working_input_claim",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "disabled_diff_still_allows_clearing_advanced_working_input_option_without_field_or_comment_loss",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "name": "new_non_git_project_clears_old_git_state_and_preserves_previous_profile",
+      "status": "PASS",
+      "related": [
+        "U04",
+        "H2",
+        "H5"
+      ]
+    }
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git-evidence\\01-real-git-selection-1366.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git-evidence\\01-real-git-selection-1600.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git-evidence\\02-selected-refs-saved.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git-evidence\\03-working-input-setting-honest-formal-block.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git-evidence\\04-fixed-commit-mode-restored-after-reopen.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git-evidence\\05-disabled-diff-allows-clearing-preserved-advanced-option.png"
+  ],
+  "external_requests": [],
+  "page_errors": [],
+  "native_scan": "NOT_EXERCISED",
+  "native_windows_dpi": "NOT_VERIFIED",
+  "engineer_uat": "NOT_VERIFIED",
+  "base_sha": "c097e0bcd82dafeefbe5b22f83a4b6f41dc1fc27",
+  "current_sha": "e130ace4c760d8dec1276251325335b2e381bbdc",
+  "source_files_unchanged": 42,
+  "fixture_files_and_mtimes_unchanged": 363,
+  "saved_profile": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\browser-portable-v35-git\\data\\projects\\68e68ebbe02c7e33e0e7d296fd7a33024fcff15c09bf57414a3d668539e0697b\\profiles\\a834104f0dc94a00aae0fea71cff93f6.yaml",
+  "profile_sha256": "cfda6027290dc7175ffb139eb0a94afbc5d9c7089579b7fab6f394e94816e253"
+}

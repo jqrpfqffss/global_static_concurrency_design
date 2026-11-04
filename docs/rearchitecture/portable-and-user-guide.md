@@ -1,8 +1,6 @@
-> 2026-11-04补充：真实F030发现[证据节点迟到响应串入当前TU](66-evidence-request-identity-and-retry.md)，旧冻结v35实际FAIL；修复后源码4组真实F030、11组传输/容量场景通过。该修复尚未进入已封存Portable；v34/v35不应据普通通过集合宣称没有此已知显示缺陷。
+> 最新完整封存的本机候选为[v36](69-frozen-v36-acceptance.md)，源码176ed69：1408项1406PASS/2联网SKIP，22组174重叠Chrome/VHD断言，31328份分发文件完整SHA、129运行时匹配；另有实际完整大图导航6组、保留旧3000+新增1000声明/三次重启通过。旧v35额外证据串入FAIL保留，本包实际重验修复通过。完整重构仍未完成。
 
-> 最新已完整封存本机候选包为[v34](63-frozen-v34-acceptance.md)，运行时5cf7b61：1401项1399PASS/2联网SKIP，21组166个重叠Chrome/VHD断言，31088份分发文件全SHA、129份运行时匹配。首次示例会话就绪探针失败原件保留，相同运行时11项完整重验通过；没有改写旧失败。完整重构仍未完成。
-
-> 固定环境e69/1493c05冷v12的[大型全字段对照](62-fixed-seed-full-package-and-size-failure.md)差异0；[新版完整编码、实际包内严格导入和稳定保留策略计量](65-complete-compact-archive-retention.md)均已通过，最终分配量47665101856B→13513190616B，降低71.6497%。旧DEFLATE包69.865%失败原件保留；完整G4峰值仍未闭环。writer64MiB冷v13、新512MiB独立读取仍执行中，其他工程用户延期，物理机/DPI/UAT及剩余实现缺口保留。
+> 大型e69/1493c05冷v12全字段事实/规范化报告差异0；完整压缩包严格导入及最终保留策略降低71.6497%见[65号](65-complete-compact-archive-retention.md)。完整G4峰值、writer64冷v13、新512MiB完整读取仍待结束；其他G2/物理机/DPI/OpenCode联网/UAT继续待验。剩余代码和分批验收方案见[68号](68-remaining-refactor-execution-plan.md)。
 
 > 后续源码修复了调用归属和冲突分页切换，真实INAV原版图6组及Git配置8组Chrome通过，见[47号记录](47-live-inav-navigation-and-working-input-status.md)。新版源码第3步会明确显示未提交输入选项及生产阻断；当前不能启动include_uncommitted=true，请取消该项使用固定提交比较。此轮尚不在v27包中。v28完整回归仍FAIL，新冻结全套/实包待验，详见[48号记录](48-regression-accounting-and-sparse-fixture.md)。
 

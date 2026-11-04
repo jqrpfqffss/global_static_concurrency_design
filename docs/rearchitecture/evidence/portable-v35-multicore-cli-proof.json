@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "all_inputs_unchanged": true,
+  "all_gates_passed": false,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "30918d06c746b9e2f9e8cfc155b1fe9f62d82d351c4d11e0641fd6b6c2dd233d",
+        "after": "30918d06c746b9e2f9e8cfc155b1fe9f62d82d351c4d11e0641fd6b6c2dd233d"
+      },
+      "report": {
+        "before": "18ef60a4efe767607068a801ac491783f3c7afa61140b0830bd238425d99c134",
+        "after": "18ef60a4efe767607068a801ac491783f3c7afa61140b0830bd238425d99c134"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\old-graph.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v35-multicore-case-v1\\data\\scans\\packaged-multicore-f030\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "publication": {
+    "scan_id": "packaged-multicore-f030",
+    "scan_path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v35-multicore-case-v1\\data\\scans\\packaged-multicore-f030",
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v35-multicore-case-v1\\data"
+  },
+  "source_head": "5c21ac3eb72fd0c7c48925e2a575903fa787a527",
+  "multicore_sha256": "e8579a719bed38c0c19bc54d9530fe1bed92cd067bb3df5c24b9b49db9021983",
+  "actual_python": "H:\\ECRAStudio-build-20261104-studio-v35\\ECRA-Portable\\runtime\\python.exe",
+  "command": [
+    "H:\\ECRAStudio-build-20261104-studio-v35\\ECRA-Portable\\runtime\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "ecra.multicore",
+    "--project",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "--shared-region",
+    "0x20000000:0x10000",
+    "--output",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v35-multicore-case-v1\\data\\scans\\packaged-multicore-f030",
+    "--input",
+    "F030_A=H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\F030_A.yaml",
+    "--input",
+    "F030_B=H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\multicore-exact-f030-v3\\F030_B.yaml"
+  ],
+  "cli_exit_code": 0,
+  "cli_log_sha256": "2c88b329f778e4040c8e5d225f8fc500ee545c3d76598d3f5ed38f16e67a18bf",
+  "original_comparison_receipt_sha256": "d83216f8dd3a2c8786b748f0aa9268f76d716ca797cc4a9a5da4ac1166ffe3e4",
+  "seconds": 14.14100000000326,
+  "scope": "Actual v35 bundled Python multicore CLI on the declared two aliases of one approved real F030 graph/ELF, compared with original e69 output using unchanged complete checks. Publication/Viewer proof only; not a new dual-core/native G2 input."
+}
