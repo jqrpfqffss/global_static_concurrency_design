@@ -4,6 +4,7 @@ No resolver operation removes firmware or historical data. Identity is verified
 before adopting a directory; links in writable data paths are rejected.
 """
 from dataclasses import dataclass, asdict, replace
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 import hashlib
@@ -38,6 +39,33 @@ def read_owner(marker):
     except (OSError, ValueError) as exc:
         raise ValueError(f'项目归属元数据无法读取: {marker}；请保留并备份该工程工作区，'
                          '检查 project.json/初始化 pending；不要手工替换身份摘要。' + str(exc)) from exc
+
+
+@contextmanager
+def _owner_publication():
+    """Defer cooperative SIGINT only until this small ownership claim is durable.
+
+    Hard exits and I/O errors still leave the existing explicit-recovery claim.
+    API worker threads do not install process-wide signal handlers.
+    """
+    import signal
+    import threading
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    previous=signal.getsignal(signal.SIGINT);pending=[];failed=False
+    def defer(signum,frame):pending[:]=[(signum,frame)]
+    signal.signal(signal.SIGINT,defer)
+    try:
+        yield
+    except BaseException:
+        failed=True
+        raise
+    finally:
+        signal.signal(signal.SIGINT,previous)
+        if pending and not failed:
+            if callable(previous):previous(*pending[-1])
+            elif previous==signal.SIG_DFL:signal.raise_signal(signal.SIGINT)
 
 
 def user_data_root():
@@ -206,28 +234,32 @@ class WorkspaceResolver:
             # O_EXCL prevents two first runs from racing the ownership claim.
             if not marker.exists():
                 claimed = published = False
-                try:
-                    with claim.open('x', encoding='utf-8') as stream:
-                        claimed = True
-                        import json
-                        json.dump(dict(expected, output_root=self.results_root,
-                            created_at=datetime.now(timezone.utc).isoformat()), stream, ensure_ascii=False, indent=2)
-                        stream.flush()
-                        os.fsync(stream.fileno())
-                    if marker.exists():
-                        raise FileExistsError(str(marker))
-                    claim.rename(marker)
-                    published = True
-                except FileExistsError:
-                    if not marker.exists():
-                        raise ValueError(f'已有项目初始化锁: {claim}；等待初始化完成后重试')
-                    saved = read_owner(marker)
-                    if not isinstance(saved, dict) or any(saved.get(k) != v for k, v in expected.items()):
-                        raise ValueError(f'ECRA 项目身份冲突: {marker}')
-                    published = True
-                finally:
-                    if claimed and published:
-                        claim.unlink(missing_ok=True)
+                with _owner_publication():
+                    try:
+                        with claim.open('x', encoding='utf-8') as stream:
+                            claimed = True
+                            import json
+                            json.dump(dict(expected, output_root=self.results_root,
+                                created_at=datetime.now(timezone.utc).isoformat()), stream, ensure_ascii=False, indent=2)
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                        if marker.exists():
+                            raise FileExistsError(str(marker))
+                        claim.rename(marker)
+                        published = True
+                    except FileExistsError:
+                        if not marker.exists():
+                            raise ValueError(f'已有项目初始化锁: {claim}；等待初始化完成后重试')
+                        saved = read_owner(marker)
+                        if not isinstance(saved, dict) or any(saved.get(k) != v for k, v in expected.items()):
+                            raise ValueError(f'ECRA 项目身份冲突: {marker}')
+                        published = True
+                    except KeyboardInterrupt:
+                        if claimed and not published and not marker.exists():claim.unlink(missing_ok=True)
+                        raise
+                    finally:
+                        if claimed and published:
+                            claim.unlink(missing_ok=True)
             no_links(self.results_root).mkdir(parents=True, exist_ok=True)
             for base, dirs, files in os.walk(self.results_root):
                 # Git manages the source trees; only data paths are writable

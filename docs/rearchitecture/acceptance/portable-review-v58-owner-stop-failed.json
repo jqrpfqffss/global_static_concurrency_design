@@ -1,0 +1,240 @@
+{
+  "passed": false,
+  "scope": "Actual authorized saved scan, supervised review stop/retry, real Chrome.\n\nUses an explicitly missing model executable: real launch failures, never model\nreasoning or simulated SAFE. Copies the supplied scan; retains every failure.\nNo new native scan, large end-to-end review, second-PC or UAT claim.\n",
+  "engine_root": "H:\\ECRAStudio-build-20261105-studio-v58\\ECRA-Portable",
+  "service_python": "H:\\ECRAStudio-build-20261105-studio-v58\\ECRA-Portable\\runtime\\python.exe",
+  "tests": [],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-review-f030-ui-portable-v58-v1\\01-real-review-stop.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "actual_service_python": "H:\\ECRAStudio-build-20261105-studio-v58\\ECRA-Portable\\runtime\\python.exe",
+  "stopped_task": {
+    "id": "8fc0b951a32d4ae19af05f97894a71df",
+    "scan_id": "native",
+    "mode": "review",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "profile_id": "default",
+    "profile_revision": "9f3b7ebd0a6f16706b4426b2c2c8f41c72a26ed8369442313c889611369470d6",
+    "state": "INTERRUPTED",
+    "started": "2026-11-04T19:19:58.891462+00:00",
+    "budget_bytes": 17179869184,
+    "resource_policy": {
+      "preset": "auto",
+      "peak_bytes": 17179869184,
+      "soft_bytes": 12884901888,
+      "workers": 4
+    },
+    "previous_scan_available": true,
+    "checkpoint_mode": "REVALIDATE_INPUTS_AND_RETRY_REVIEW_MODE",
+    "storage_policy": {
+      "mode": "auto",
+      "revision": "missing",
+      "valid": true,
+      "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-review-f030-ui-portable-v58-v1\\独立 数据"
+    },
+    "samples": [
+      {
+        "timestamp": "2026-11-04T19:19:58.988910+00:00",
+        "available": true,
+        "working_set_bytes": 22925312,
+        "private_bytes": 14000128,
+        "peak_job_commit_bytes": 12947456,
+        "limit_bytes": 17179869184,
+        "enforced_job_commit_limit_bytes": 17179869184,
+        "job_limit_flags": 8704,
+        "processes": 2,
+        "sampled_processes": 2,
+        "write_bytes": 0,
+        "system_commit_bytes": 24886116352,
+        "system_commit_limit_bytes": 85825454080,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 48989474816,
+        "disk_free_bytes": 670499700736,
+        "host_pressure": {
+          "soft": false,
+          "stop": false,
+          "commit_headroom_bytes": 60939337728,
+          "physical_available_bytes": 48989474816,
+          "metrics_available": true,
+          "reason": ""
+        }
+      },
+      {
+        "timestamp": "2026-11-04T19:19:59.506661+00:00",
+        "available": true,
+        "working_set_bytes": 37404672,
+        "private_bytes": 33832960,
+        "peak_job_commit_bytes": 38313984,
+        "limit_bytes": 17179869184,
+        "enforced_job_commit_limit_bytes": 17179869184,
+        "job_limit_flags": 8704,
+        "processes": 2,
+        "sampled_processes": 2,
+        "write_bytes": 0,
+        "system_commit_bytes": 24938999808,
+        "system_commit_limit_bytes": 85825454080,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 48929480704,
+        "disk_free_bytes": 670490849280,
+        "host_pressure": {
+          "soft": false,
+          "stop": false,
+          "commit_headroom_bytes": 60886454272,
+          "physical_available_bytes": 48929480704,
+          "metrics_available": true,
+          "reason": ""
+        }
+      }
+    ],
+    "resources": {
+      "available": true,
+      "working_set_bytes": 37404672,
+      "private_bytes": 33832960,
+      "peak_job_commit_bytes": 38313984,
+      "limit_bytes": 17179869184,
+      "enforced_job_commit_limit_bytes": 17179869184,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 24938999808,
+      "system_commit_limit_bytes": 85825454080,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 48929480704,
+      "disk_free_bytes": 670490849280,
+      "host_pressure": {
+        "soft": false,
+        "stop": false,
+        "commit_headroom_bytes": 60886454272,
+        "physical_available_bytes": 48929480704,
+        "metrics_available": true,
+        "reason": ""
+      }
+    },
+    "exit_code": 130,
+    "finished": "2026-11-04T19:20:00.028796+00:00",
+    "published": true,
+    "log": {
+      "text": "阶段开始：复核输入与完整权威校验（剩余量未知）\r\n",
+      "offset": 0,
+      "next_offset": 71,
+      "total": 71
+    },
+    "progress_kind": "AI_REVIEW",
+    "stages": [
+      {
+        "stage": "复核输入与完整权威校验（剩余量未知）",
+        "operation": "复核输入与完整权威校验（剩余量未知）",
+        "started": "2026-11-04T19:19:59.263481+00:00",
+        "memory_start": {
+          "private_bytes": 25931776,
+          "working_set_bytes": 23900160,
+          "peak_working_set_bytes": 29429760,
+          "peak_process_commit_bytes": 31789056,
+          "system_commit_bytes": 24939122688,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 59076931584,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 48946429952
+        },
+        "status": "INTERRUPTED",
+        "finished": "2026-11-04T19:19:59.765115+00:00",
+        "seconds": 0.5,
+        "memory_end": {
+          "private_bytes": 18538496,
+          "working_set_bytes": 25509888,
+          "peak_working_set_bytes": 29429760,
+          "peak_process_commit_bytes": 31789056,
+          "system_commit_bytes": 24949399552,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 59076931584,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 48928403456
+        }
+      }
+    ],
+    "failure": {
+      "origin": "MAIN",
+      "pid": 27244,
+      "exception_type": "KeyboardInterrupt",
+      "message": "",
+      "stage": {
+        "stage": "复核输入与完整权威校验（剩余量未知）",
+        "operation": "复核输入与完整权威校验（剩余量未知）",
+        "started": "2026-11-04T19:19:59.263481+00:00",
+        "memory_start": {
+          "private_bytes": 25931776,
+          "working_set_bytes": 23900160,
+          "peak_working_set_bytes": 29429760,
+          "peak_process_commit_bytes": 31789056,
+          "system_commit_bytes": 24939122688,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 59076931584,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 48946429952
+        },
+        "status": "RUNNING"
+      },
+      "completed_units": 0,
+      "total_units": 0,
+      "pending_units": 0,
+      "fact_counts": {},
+      "fact_counts_scope": "translation_unit_rows_including_duplicates",
+      "memory": {
+        "private_bytes": 18178048,
+        "working_set_bytes": 25309184,
+        "peak_working_set_bytes": 29429760,
+        "peak_process_commit_bytes": 31789056,
+        "system_commit_bytes": 24939810816,
+        "system_commit_limit_bytes": 85825454080,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 48930689024
+      },
+      "peak_memory": {
+        "private_bytes": 25931776,
+        "working_set_bytes": 25309184,
+        "peak_working_set_bytes": 29429760,
+        "peak_process_commit_bytes": 31789056,
+        "system_commit_bytes": 24939810816,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 48946429952
+      },
+      "snapshot_status": "NOT_CAPTURED",
+      "analysis_valid": false
+    },
+    "memory": {
+      "pid": 27244,
+      "current": {
+        "private_bytes": 18358272,
+        "working_set_bytes": 25464832,
+        "peak_working_set_bytes": 29429760,
+        "peak_process_commit_bytes": 31789056,
+        "system_commit_bytes": 24941690880,
+        "system_commit_limit_bytes": 85825454080,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 48928317440
+      },
+      "peaks": {
+        "private_bytes": 25931776,
+        "working_set_bytes": 25509888,
+        "peak_working_set_bytes": 29429760,
+        "peak_process_commit_bytes": 31789056,
+        "system_commit_bytes": 24949399552,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 48946429952
+      },
+      "fact_counts": {},
+      "fact_counts_scope": "translation_unit_rows_including_duplicates",
+      "completed_units": 0,
+      "total_units": 0
+    }
+  },
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_native_review_ui.py\", line 119, in main\n    retry=finished(retry['id']);assert retry['state']=='COMPLETE',retry\nAssertionError: {'id': '1b109d9789f54f9c9182d0648d521155', 'scan_id': 'native', 'mode': 'review', 'project_id': '1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd', 'project_root': 'H:\\\\ECRAStudio-data\\\\rearchitecture-20261031\\\\baseline\\\\firmware', 'profile_id': 'default', 'profile_revision': '9f3b7ebd0a6f16706b4426b2c2c8f41c72a26ed8369442313c889611369470d6', 'state': 'FAILED', 'started': '2026-11-04T19:20:00.578997+00:00', 'budget_bytes': 17179869184, 'resource_policy': {'preset': 'manual', 'peak_bytes': 17179869184, 'soft_bytes': 12884901888, 'workers': 4}, 'previous_scan_available': True, 'checkpoint_mode': 'REVALIDATE_INPUTS_AND_RETRY_REVIEW_MODE', 'storage_policy': {'mode': 'auto', 'revision': 'missing', 'valid': True, 'data_root': 'H:\\\\ECRAStudio-data\\\\rearchitecture-20261031\\\\continuation-h3\\\\native-review-f030-ui-portable-v58-v1\\\\独立 数据'}, 'samples': [{'timestamp': '2026-11-04T19:20:00.618891+00:00', 'available': True, 'working_set_bytes': 9232384, 'private_bytes': 2416640, 'peak_job_commit_bytes': 1736704, 'limit_bytes': 17179869184, 'enforced_job_commit_limit_bytes': 17179869184, 'job_limit_flags': 8704, 'processes': 2, 'sampled_processes': 2, 'write_bytes': 0, 'system_commit_bytes': 24927150080, 'system_commit_limit_bytes': 85825454080, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48947253248, 'disk_free_bytes': 670472777728, 'host_pressure': {'soft': False, 'stop': False, 'commit_headroom_bytes': 60898304000, 'physical_available_bytes': 48947253248, 'metrics_available': True, 'reason': ''}}], 'resources': {'available': True, 'working_set_bytes': 9232384, 'private_bytes': 2416640, 'peak_job_commit_bytes': 1736704, 'limit_bytes': 17179869184, 'enforced_job_commit_limit_bytes': 17179869184, 'job_limit_flags': 8704, 'processes': 2, 'sampled_processes': 2, 'write_bytes': 0, 'system_commit_bytes': 24927150080, 'system_commit_limit_bytes': 85825454080, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48947253248, 'disk_free_bytes': 670472777728, 'host_pressure': {'soft': False, 'stop': False, 'commit_headroom_bytes': 60898304000, 'physical_available_bytes': 48947253248, 'metrics_available': True, 'reason': ''}}, 'exit_code': 3, 'finished': '2026-11-04T19:20:01.150039+00:00', 'error': 'ValueError: 项目工作区初始化锁存在: H:\\\\ECRAStudio-data\\\\rearchitecture-20261031\\\\continuation-h3\\\\native-review-f030-ui-portable-v58-v1\\\\独立 数据\\\\projects\\\\firmware_1b46a7e5456fa22bd9bf\\\\project.json.pending；等待当前进程完成；若进程已退出，先备份目录，再按迁移说明恢复完整 pending 或选择新的 custom_dir。', 'published': True, 'log': {'text': '阶段开始：复核输入与完整权威校验（剩余量未知）\\r\\nTraceback (most recent call last):\\r\\n  File \"H:\\\\ECRAStudio-build-20261105-studio-v58\\\\ECRA-Portable\\\\ecra\\\\studio\\\\task_worker.py\", line 91, in main\\r\\n    code=execute(args)\\r\\n  File \"H:\\\\ECRAStudio-build-20261105-studio-v58\\\\ECRA-Portable\\\\ecra\\\\studio\\\\task_worker.py\", line 63, in execute\\r\\n    code=saved_run(configured_project_root(args.config),args.config,\\r\\n  File \"H:\\\\ECRAStudio-build-20261105-studio-v58\\\\ECRA-Portable\\\\ecra\\\\workflow.py\", line 641, in saved_run\\r\\n    return _saved_run(root,config_path,render_only,failed_only,_out=_out)\\r\\n  File \"H:\\\\ECRAStudio-build-20261105-studio-v58\\\\ECRA-Portable\\\\ecra\\\\workflow.py\", line 658, in _saved_run\\r\\n    context(root, cfg[\\'analysis\\']).initialize()\\r\\n  File \"H:\\\\ECRAStudio-build-20261105-studio-v58\\\\ECRA-Portable\\\\ecra\\\\workspace.py\", line 181, in initialize\\r\\n    raise ValueError(f\\'项目工作区初始化锁存在: {claim}；等待当前进程完成；若进程已退出，\\'\\r\\nValueError: 项目工作区初始化锁存在: H:\\\\ECRAStudio-data\\\\rearchitecture-20261031\\\\continuation-h3\\\\native-review-f030-ui-portable-v58-v1\\\\独立 数据\\\\projects\\\\firmware_1b46a7e5456fa22bd9bf\\\\project.json.pending；等待当前进程完成；若进程已退出，先备份目录，再按迁移说明恢复完整 pending 或选择新的 custom_dir。\\r\\n', 'offset': 0, 'next_offset': 1339, 'total': 1339}, 'progress_kind': 'AI_REVIEW', 'stages': [{'stage': '复核输入与完整权威校验（剩余量未知）', 'operation': '复核输入与完整权威校验（剩余量未知）', 'started': '2026-11-04T19:20:00.892334+00:00', 'memory_start': {'private_bytes': 25505792, 'working_set_bytes': 23248896, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24964509696, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48916819968}, 'status': 'FAILED', 'finished': '2026-11-04T19:20:01.008726+00:00', 'seconds': 0.10999999998603016, 'memory_end': {'private_bytes': 19034112, 'working_set_bytes': 25653248, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24964153344, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48912162816}}], 'failure': {'origin': 'MAIN', 'pid': 22848, 'exception_type': 'ValueError', 'message': '项目工作区初始化锁存在: H:\\\\ECRAStudio-data\\\\rearchitecture-20261031\\\\continuation-h3\\\\native-review-f030-ui-portable-v58-v1\\\\独立 数据\\\\projects\\\\firmware_1b46a7e5456fa22bd9bf\\\\project.json.pending；等待当前进程完成；若进程已退出，先备份目录，再按迁移说明恢复完整 pending 或选择新的 custom_dir。', 'stage': {'stage': '复核输入与完整权威校验（剩余量未知）', 'operation': '复核输入与完整权威校验（剩余量未知）', 'started': '2026-11-04T19:20:00.892334+00:00', 'memory_start': {'private_bytes': 25505792, 'working_set_bytes': 23248896, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24964509696, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48916819968}, 'status': 'RUNNING'}, 'completed_units': 0, 'total_units': 0, 'pending_units': 0, 'fact_counts': {}, 'fact_counts_scope': 'translation_unit_rows_including_duplicates', 'memory': {'private_bytes': 19570688, 'working_set_bytes': 25935872, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24961077248, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48910282752}, 'peak_memory': {'private_bytes': 25505792, 'working_set_bytes': 25935872, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24964509696, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48916819968}, 'snapshot_status': 'NOT_CAPTURED', 'analysis_valid': False}, 'memory': {'pid': 22848, 'current': {'private_bytes': 18366464, 'working_set_bytes': 25550848, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24964689920, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48914825216}, 'peaks': {'private_bytes': 25505792, 'working_set_bytes': 25935872, 'peak_working_set_bytes': 29810688, 'peak_process_commit_bytes': 31924224, 'system_commit_bytes': 24964689920, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 48916819968}, 'fact_counts': {}, 'fact_counts_scope': 'translation_unit_rows_including_duplicates', 'completed_units': 0, 'total_units': 0}}\n"
+}

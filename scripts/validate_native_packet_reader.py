@@ -16,8 +16,8 @@ import time
 import traceback
 
 
-def worker(source,work,mode,write_packet=False,verify_packet=False):
-    from contextlib import closing
+def worker(source,work,mode,write_packet=False,verify_packet=False,*,barrier=None):
+    from contextlib import closing,nullcontext
     from unittest.mock import patch
     from ecra.scan_store import EvidenceProvider,connect_readonly
     from ecra.native_review_packet import packet_inputs
@@ -42,9 +42,12 @@ def worker(source,work,mode,write_packet=False,verify_packet=False):
         else:finding=provider.load('report',['findings',row[2]])
         packet=build_variable_review_packet(root,facts,finding,**options)
     else:
-        with patch.object(EvidenceProvider,'load',side_effect=AssertionError('Root reconstruction forbidden')):
+        with (nullcontext() if barrier is not None else patch.object(EvidenceProvider,'load',side_effect=AssertionError('Root reconstruction forbidden'))):
             with packet_inputs(provider.path,finding_id) as (facts,finding):
                 packet=build_variable_review_packet(root,facts,finding,**options)
+    if barrier is not None:
+        (work/'simultaneous-ready.json').write_text(json.dumps(dict(finding_id=finding_id,packet_built=True))+'\n','utf-8')
+        barrier.wait(timeout=1200)
     hashed=hashlib.sha256();size=0
     for text in json.JSONEncoder(ensure_ascii=True).iterencode(packet):
         raw=text.encode('utf-8');hashed.update(raw);size+=len(raw)
@@ -58,7 +61,7 @@ def worker(source,work,mode,write_packet=False,verify_packet=False):
         from ecra.review_language import technical_identifiers
         from ecra.review_contract import stale_writeback_hints
         from ecra.review import _sha
-        with patch.object(Path,'read_bytes',side_effect=AssertionError('Whole Packet byte read forbidden')):
+        with (nullcontext() if barrier is not None else patch.object(Path,'read_bytes',side_effect=AssertionError('Whole Packet byte read forbidden'))):
             projected=validation_packet(work/'packet.input.json',identifiers=True)
             physical_sha256=_sha(work/'packet.input.json')
         if technical_identifiers(projected)!=technical_identifiers(packet):raise ValueError('技术标识符投影不一致')
@@ -72,6 +75,34 @@ def worker(source,work,mode,write_packet=False,verify_packet=False):
     if verify_packet:result.update(receipt_projection_verified=True,physical_packet_sha256=physical_sha256)
     if result['before_sha256']!=result['after_sha256']:raise ValueError('原authority字节变化')
     (work/'acceptance.json').write_text(json.dumps(result,indent=2)+'\n','utf-8')
+    return result
+
+
+def concurrent_worker(source,work,copies,write_packet,verify_packet):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from unittest.mock import patch
+    from ecra.scan_store import EvidenceProvider
+    from ecra.report_package import sha256
+    before=sha256(source/'scan.db');(work/'before.json').write_text(json.dumps(dict(sha256=before))+'\n','utf-8')
+    barrier=Barrier(copies)
+    def one(index):
+        folder=work/('copy-'+str(index));folder.mkdir()
+        try:return worker(source,folder,'selected',write_packet,verify_packet,barrier=barrier)
+        except BaseException:barrier.abort();raise
+    with (patch.object(EvidenceProvider,'load',side_effect=AssertionError('Root reconstruction forbidden')),
+          patch.object(Path,'read_bytes',side_effect=AssertionError('Whole Packet byte read forbidden'))):
+        with ThreadPoolExecutor(max_workers=copies) as pool:
+            results=list(pool.map(one,range(copies)))
+    for result in results:
+        if not result['passed'] or any(result[key]!=results[0][key] for key in ('finding_id','packet_bytes','packet_sha256','cache_key')):
+            raise ValueError('并发完整Packet与缓存键不相同')
+    after=sha256(source/'scan.db')
+    if after!=before:raise ValueError('并发测试原authority变化')
+    value=dict(passed=True,copies=copies,same_worst_finding_stress=True,independent_packets_held_at_barrier=True,
+        results=results,before_sha256=before,after_sha256=after,all_gates_passed=False,
+        scope='Repeated independent complete worst-case Packet in concurrent threads with a barrier, not different findings, full queue, saved_run or live model.')
+    (work/'acceptance.json').write_text(json.dumps(value,indent=2)+'\n','utf-8')
 
 
 def main():
@@ -81,13 +112,17 @@ def main():
     parser.add_argument('--mode',choices=['full','control','selected'],default='selected');parser.add_argument('--job-gib',type=float,default=2)
     parser.add_argument('--write-packet',action='store_true')
     parser.add_argument('--verify-packet',action='store_true')
+    parser.add_argument('--copies',type=int,default=1,help='1–8 independent simultaneous copies of the actual maximum candidate; selected mode only')
     parser.add_argument('--worker',action='store_true',help=argparse.SUPPRESS);args=parser.parse_args()
     engine=args.engine.resolve();sys.path.insert(0,str(engine))
     from ecra.workspace import no_links,studio_data_root
     source=no_links(args.source);work=studio_data_root(args.work)
     if source==work or source.is_relative_to(work) or work.is_relative_to(source):raise ValueError('验收输出必须独立于原件')
     if args.verify_packet and not args.write_packet:raise ValueError('验证实际Packet须同时--write-packet')
-    if args.worker:return worker(source,work,args.mode,args.write_packet,args.verify_packet)
+    if not 1<=args.copies<=8 or args.copies>1 and args.mode!='selected':raise ValueError('并发压力只支持selected模式1–8份')
+    if args.worker:
+        if args.copies>1:return concurrent_worker(source,work,args.copies,args.write_packet,args.verify_packet)
+        return worker(source,work,args.mode,args.write_packet,args.verify_packet)
     if os.name!='nt' or not .25<=args.job_gib<=32:raise ValueError('需要实际Windows Job及0.25–32GiB预算')
     work.mkdir(exist_ok=False,parents=True)
     from ecra.studio.process_budget import ProcessBudget
@@ -96,7 +131,7 @@ def main():
     from ecra.scan_diagnostics import memory
     from ecra.report_package import sha256
     state=dict(passed=False,status='RUNNING',scope=__doc__,source=str(source),engine=str(engine),mode=args.mode,
-        job_limit_bytes=int(args.job_gib*1024**3),peaks={},all_gates_passed=False)
+        copies=args.copies,job_limit_bytes=int(args.job_gib*1024**3),peaks={},all_gates_passed=False)
     def save():(work/'execution.json').write_text(json.dumps(state,indent=2)+'\n','utf-8')
     save();budget=ProcessBudget(state['job_limit_bytes']);process=None;started=time.monotonic()
     try:
@@ -104,6 +139,7 @@ def main():
             command=[sys.executable,'-B','-X','utf8',str(Path(__file__).resolve()),'--worker','--engine',str(engine),'--source',str(source),'--work',str(work),'--mode',args.mode]
             if args.write_packet:command.append('--write-packet')
             if args.verify_packet:command.append('--verify-packet')
+            command+=['--copies',str(args.copies)]
             process=OwnedProcess(command,cwd=engine,env=temporary_environment(work,dict(os.environ,PYTHONPATH=str(engine),PYTHONHASHSEED='0',PYTHONDONTWRITEBYTECODE='1')),log=log);budget.assign(process);process.resume();state.update(pid=process.pid,command=command);save()
             while process.poll() is None:
                 if (work/'stop').is_file():raise KeyboardInterrupt('观察器收到停止请求；仅关闭本次自有Job，保留原件')
@@ -115,6 +151,11 @@ def main():
                 if shutil.disk_usage(work).free<1024**3:raise OSError('工作盘空闲不足1GiB')
                 time.sleep(1)
             process.wait(timeout=30);state['exit_code']=process.returncode
+            sample=budget.sample()
+            for key in ('working_set_bytes','private_bytes','peak_job_commit_bytes'):
+                state['peaks'][key]=max(state['peaks'].get(key,0),sample.get(key,0))
+            samples.write(json.dumps(dict(sample,final_job_sample=True))+'\n');samples.flush()
+            state.update(final_job_sampled=True,rss_measurement='Maximum sampled aggregate working set; sub-second RSS spikes may be missed')
             if process.returncode:raise RuntimeError('Worker失败；保留日志，不声明Packet通过')
         result=json.loads((work/'acceptance.json').read_text('utf-8'))
         manifest=engine.with_name(engine.name+'.sha256.json')

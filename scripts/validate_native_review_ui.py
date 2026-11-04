@@ -20,11 +20,15 @@ sys.path.insert(0,str(TOOL))
 
 
 def main():
+    global TOOL
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,required=True)
     parser.add_argument('--config',type=Path,required=True)
     parser.add_argument('--work',type=Path,required=True)
+    parser.add_argument('--engine',type=Path,default=TOOL,help='Production program root, e.g. extracted Portable; test controller remains external')
+    parser.add_argument('--python',type=Path,default=Path(sys.executable),help='Actual service/worker interpreter')
     args=parser.parse_args()
+    TOOL=args.engine.resolve();sys.path.insert(0,str(TOOL))
     import yaml
     from ecra.common import read_json,write_json
     from ecra.config import configured_project_root
@@ -50,12 +54,13 @@ def main():
     os.environ.update(ECRA_DATA_ROOT=str(data),LOCALAPPDATA=str(work/'private-user'),XDG_CONFIG_HOME=str(work/'private-user'))
     cfg=yaml.safe_load(args.config.read_text('utf-8'));cfg['analysis']['output']=dict(location='user')
     cfg['review'].update(enabled=False,command=['ECRA_MISSING_EXECUTABLE_DO_NOT_CONNECT'],workers=2,retries=0)
-    result=dict(passed=False,scope=__doc__,tests=[],screenshots=[],page_errors=[],external_requests=[])
+    result=dict(passed=False,scope=__doc__,engine_root=str(TOOL),service_python=str(args.python.resolve()),
+        tests=[],screenshots=[],page_errors=[],external_requests=[])
     def save():write_json(work/'acceptance.json',result)
     save();server=log=playwright=browser=None
     try:
         log=(work/'server.log').open('wb');session=work/'session.json'
-        server=subprocess.Popen([sys.executable,'-B','-X','utf8','-m','ecra.studio','--data-root',str(data),
+        server=subprocess.Popen([str(args.python),'-B','-X','utf8','-m','ecra.studio','--data-root',str(data),
             '--no-browser','--session-file',str(session)],cwd=TOOL,stdout=log,stderr=subprocess.STDOUT,
             creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         end=time.monotonic()+60
@@ -63,6 +68,10 @@ def main():
             if server.poll() is not None or time.monotonic()>end:raise RuntimeError('Studio did not start')
             time.sleep(.1)
         info=read_json(session);base='http://'+info['authority']
+        import psutil
+        actual_python=Path(psutil.Process(server.pid).exe()).resolve()
+        assert os.path.samefile(actual_python,args.python)
+        result['actual_service_python']=str(actual_python)
         def api(path,body=None):
             request=urllib.request.Request(base+'/api'+path,data=None if body is None else json.dumps(body).encode(),
                 headers={'X-ECRA-Session':info['token'],'Content-Type':'application/json','Origin':base})

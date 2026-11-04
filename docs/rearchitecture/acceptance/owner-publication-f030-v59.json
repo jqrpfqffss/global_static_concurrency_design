@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v59",
+  "manifest_sha256": "474a45e2648ead76f22b7510c42d1e77aec8880f92be5f39b8e55ed607b19fb3",
+  "scope": "Actual approved original F030 native after ownership SIGINT change, complete ordered facts/report equality vs v48, original files unchanged. Not large/G2/physical32GB.",
+  "code": 2,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+        "after": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\owner-publication-f030-v59-v1\\data\\scans\\native\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "original_differences": [],
+  "source_files": 43,
+  "scan_db_sha256": "3d5fa4b74a225c28fd88cdb033c14faad9eac44f34bbdb89b9c9ce17a01d6df7",
+  "seconds": 24.54699999996228
+}

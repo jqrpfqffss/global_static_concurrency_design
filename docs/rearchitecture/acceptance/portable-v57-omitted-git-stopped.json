@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "status": "STOPPED_UNPROMOTED",
+  "reason": "First invocation omitted optional MinGit; preserve all outputs, replace with complete Git build in separate v58 output",
+  "processes": [
+    {
+      "ProcessId": 16288,
+      "ParentProcessId": 2348,
+      "CommandLine": "\"C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n& H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/frozen-engine-studio-v57/build_portable.ps1 -OutputDir H:/ECRAStudio-build-20261105-studio-v57 -CacheDir H:/global_static_concurrency_design/.tools-cache *> H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/portable-v57-build.log; if($LASTEXITCODE -ne 0){throw 'Portable build reported failure'}; Get-Content H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/portable-v57-build.log -Tail 8\""
+    },
+    {
+      "ProcessId": 13880,
+      "ParentProcessId": 16288,
+      "CommandLine": "\\??\\C:\\Windows\\system32\\conhost.exe 0x4"
+    }
+  ]
+}

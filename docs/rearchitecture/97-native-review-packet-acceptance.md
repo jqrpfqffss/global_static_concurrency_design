@@ -1,5 +1,7 @@
 # 原生复核逐对象读取与真实停止/重试验收
 
+> 后续收齐：[v54完整回归](acceptance/full-regression-studio-v54-final.json)1508项为1506PASS/2联网SKIP，2714.123秒，3760引擎和独立测试副本SHA不变。两份完整INAV最大Packet同时驻留/写文件/收据检查已按[98号](98-concurrent-packet-stress-contract.md)4GiB Job通过，峰值提交2,813,624,320B。包内首次初始化停止暴露的所有权pending缺陷及修复另见[100号](100-owner-publication-stop-acceptance.md)，不以本页早期通过代替后续停止修复或全部重构完成。
+
 2026-11-05，接续[96号先行合同](96-native-packet-reader-contract.md)。起点`optimize_ccc@8f679e9b0889fea3b68193d8af28e9501139b599`，保留既有修改。本阶段接通原生`review/review-failed`消费者；**不代表大Diff、全部恢复、联网模型、物理32GB或全部重构完成**。
 
 ## 实现与合同

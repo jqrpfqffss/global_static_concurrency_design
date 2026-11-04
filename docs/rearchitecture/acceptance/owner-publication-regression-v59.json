@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v59",
+  "source_manifest_sha256": "474a45e2648ead76f22b7510c42d1e77aec8880f92be5f39b8e55ed607b19fb3",
+  "producer_commit": "677e760e8df995331045339aa9be5e446362f078",
+  "working_tree_overlay": true,
+  "scope": "Workspace ownership interruption + existing legacy identity/foreign pending/permission/collision protections and canonical scan/root transfer/review regression. Distinct module runs; not complete post-fix whole-tree regression.",
+  "results": [
+    {
+      "summary_ok": true,
+      "tests": 23,
+      "passed_tests": 23,
+      "seconds": 218.179,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\owner-publication-workspace-tests-v59.log",
+      "log_sha256": "6372b38d2a006b98faff4da30e3dc260c2e071f063af3d116bb017a80812d034"
+    },
+    {
+      "summary_ok": true,
+      "tests": 32,
+      "passed_tests": 32,
+      "seconds": 138.78,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\owner-publication-canonical-tests-v59.log",
+      "log_sha256": "ba04c5ba7e105ed6d9774cf60b2038ef2e4a07424634a7dff62dcc44b723aa5d"
+    }
+  ],
+  "frozen_files": 3779,
+  "differences": [],
+  "repo_engine_tests_differences": [],
+  "all_gates_passed": false
+}

@@ -251,6 +251,63 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(marker.read_bytes(), expected)
         self.assertFalse(pending.exists())
 
+    def test_real_stop_at_claim_open_fsync_or_rename_publishes_owner_before_interrupt(self):
+        import _thread
+        import signal
+        from dataclasses import replace
+        previous=signal.getsignal(signal.SIGINT)
+        original_open,original_fsync,original_rename=Path.open,os.fsync,Path.rename
+        for point in ('open','fsync','rename'):
+            with self.subTest(point=point):
+                ws=self.ws();work=Path(ws.project_workspace).with_name('signal-'+point)
+                ws=replace(ws,project_workspace=str(work),results_root=str(work/'results'))
+                marker=work/'project.json';pending=work/'project.json.pending';stops=[]
+                def stop():
+                    if not stops:stops.append(True);_thread.interrupt_main()
+                def opened(path,*args,**kwargs):
+                    stream=original_open(path,*args,**kwargs)
+                    if path==pending and point=='open':stop()
+                    return stream
+                def synced(fd):
+                    original_fsync(fd)
+                    if point=='fsync':stop()
+                def renamed(path,*args,**kwargs):
+                    value=original_rename(path,*args,**kwargs)
+                    if path==pending and point=='rename':stop()
+                    return value
+                with patch.object(Path,'open',opened),patch('ecra.workspace.os.fsync',synced),patch.object(Path,'rename',renamed):
+                    with self.assertRaises(KeyboardInterrupt):ws.initialize()
+                self.assertEqual(stops,[True]);self.assertIs(signal.getsignal(signal.SIGINT),previous)
+                self.assertEqual(read_json(marker)['project_id'],ws.project_id)
+                self.assertFalse(pending.exists());ws.initialize()
+
+    def test_explicit_interrupt_removes_only_owned_unpublished_claim_but_io_failure_keeps_it(self):
+        from dataclasses import replace
+        for error in (KeyboardInterrupt('cooperative abort'),OSError('actual fsync failure')):
+            ws=self.ws();work=Path(ws.project_workspace).with_name(type(error).__name__)
+            ws=replace(ws,project_workspace=str(work),results_root=str(work/'results'))
+            marker=work/'project.json';pending=work/'project.json.pending'
+            with patch('ecra.workspace.os.fsync',side_effect=error):
+                with self.assertRaises(KeyboardInterrupt if isinstance(error,KeyboardInterrupt) else ValueError):ws.initialize()
+            self.assertFalse(marker.exists())
+            if isinstance(error,KeyboardInterrupt):
+                self.assertFalse(pending.exists());ws.initialize()
+            else:
+                raw=pending.read_bytes()
+                with self.assertRaisesRegex(ValueError,'初始化锁'):ws.initialize()
+                self.assertEqual(pending.read_bytes(),raw)
+
+    def test_api_thread_can_publish_owner_without_changing_main_signal_handler(self):
+        import signal,threading
+        previous=signal.getsignal(signal.SIGINT);errors=[];ws=self.ws()
+        def publish():
+            try:ws.initialize()
+            except BaseException as exc:errors.append(exc)
+        thread=threading.Thread(target=publish);thread.start();thread.join(timeout=10)
+        self.assertFalse(thread.is_alive());self.assertEqual(errors,[])
+        self.assertIs(signal.getsignal(signal.SIGINT),previous)
+        self.assertEqual(read_json(Path(ws.project_workspace)/'project.json')['project_id'],ws.project_id)
+
     def test_corrupt_project_metadata_reports_its_path_without_overwriting(self):
         ws = self.ws().initialize()
         marker = Path(ws.project_workspace)/'project.json'

@@ -1,3 +1,5 @@
+> 2026-11-05最新收齐：[98号](98-concurrent-packet-stress-contract.md)INAV两份独立完整最大Packet同时驻留、写文件和收据检查已在4GiB Job通过，提交峰值2,813,624,320B，原库不变；冻结v54全套1508项为1506PASS/2联网SKIP。包内首次初始化停止暴露的pending缺陷按[100号](100-owner-publication-stop-acceptance.md)修复：23工作区、32原生/搬迁/复核测试通过，新F030原生完整facts/report0差及真实Chrome重试通过；不替换旧state指纹。新候选包重新验收中，尚不更新v37封存状态。Diff/完整恢复、CMake未提交、物理机及完整G1–G8仍未完。
+
 > 2026-11-05最新进展：[97号原生复核验收](97-native-review-packet-acceptance.md)。原生review/review-failed已改完整逐对象Packet和流式收据，真实INAV 615.59MB Packet/缓存键完全相同，2GiB Job峰值提交1,443,061,760B；F030真实Chrome停止/重试/6项技术失败/完整包及172专项（171PASS/1联网SKIP）通过，原件不变。v51漏递归边测量明确失效；v54完整回归执行中。Diff/完整恢复、CMake未提交、多Worker联合峰值及其他门禁仍未完成。
 
 > 按用户功能优先顺序的最新结果：[88号确认继承](88-verified-human-inheritance.md)、[90号完整数据根搬迁](90-whole-root-transfer-acceptance.md)已实现并完成限定范围真实F030/Chrome验收；v44完整1482项为1480PASS/2联网SKIP。第三项显式数据库工作区输入已接公开GUI/CLI/Diff/恢复，[93号验收](93-dirty-database-workflow-acceptance.md)：67专项PASS、自建原生4TU真实Chrome/独立全量0差/完整包通过，真实F030因基准PARTIAL正确拒绝，未改判为完整Diff成功；详情裁切修复后六组浏览器几何断言通过。CMake未提交构建、第四项后续操作内存及其他统一门禁仍未完成；较早文字保留为历史，最新封存Portable仍v37。
