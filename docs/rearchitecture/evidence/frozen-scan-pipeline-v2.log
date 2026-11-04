@@ -1,0 +1,24 @@
+test_full_native_scan_cold_warm_corrupt_cache_and_complete_archived_inputs_match (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ERROR
+test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_real_index_change_at_parent_analysis_barrier_prevents_publication (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_real_live_negative_probe_change_fails_and_preserves_previous_valid_snapshot (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_tampered_capture_never_replaces_previous_and_unsupported_modes_remain_blocked (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+
+======================================================================
+ERROR: test_full_native_scan_cold_warm_corrupt_cache_and_complete_archived_inputs_match (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\global_static_concurrency_design\tests\test_frozen_scan_pipeline.py", line 89, in test_full_native_scan_cold_warm_corrupt_cache_and_complete_archived_inputs_match
+    frozen=self.scan('frozen-cold',descriptor)
+  File "H:\global_static_concurrency_design\tests\test_frozen_scan_pipeline.py", line 81, in scan
+    code=run_canonical(self.root,self.config,no_review=True,scan_id=ident,profile_id=ident,_compiler_view=descriptor)
+  File "H:\global_static_concurrency_design\ecra\scan_persistence.py", line 285, in run_canonical
+    return _run_canonical(root,config_path,no_review,doctor_only,review_safe_sample,review_shared_sample,
+  File "H:\global_static_concurrency_design\ecra\scan_persistence.py", line 412, in _run_canonical
+    if engine_digest() != read_json(out/'scan_state.json')['engine_digest']:
+NameError: name 'read_json' is not defined
+
+----------------------------------------------------------------------
+Ran 5 tests in 83.290s
+
+FAILED (errors=1)

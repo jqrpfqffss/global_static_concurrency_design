@@ -49,13 +49,22 @@ def file_hashes(root, out, extra=(), audit_roots=(), *, exact=False):
     return result
 
 
-def dependency_inputs(root, unit, cfg, worker_dir, env, tool_root):
+def dependency_inputs(root, unit, cfg, worker_dir, env, tool_root, compiler_view=None):
     """Discover with Clang itself; GCC depfiles can miss Clang-specific inputs."""
     request = worker_dir / (unit['tu_id'] + '.dependencies.request.json')
     response = worker_dir / (unit['tu_id'] + '.dependencies.response.json')
-    write_json(request, dict(root=str(root), unit=unit, config=cfg,
-                            verify_inputs=True, dependencies_only=True,
-                            diagnostics_dir=str(worker_dir.parent / 'diagnostics/dependencies')))
+    record = dict(root=str(root), unit=unit, config=cfg,
+                  verify_inputs=True, dependencies_only=True,
+                  diagnostics_dir=str(worker_dir.parent / 'diagnostics/dependencies'))
+    if compiler_view is not None:
+        # Explicitly cross the thread/process boundary. ContextVar state does
+        # not propagate to ThreadPoolExecutor workers.
+        reference, signature = dependency_inputs(root, unit, cfg, worker_dir, env, tool_root)
+        from .common import replace_file
+        replace_file(request, request.with_name(unit['tu_id'] + '.dependencies.original.request.json'))
+        replace_file(response, response.with_name(unit['tu_id'] + '.dependencies.original.response.json'))
+        record['compiler_view'] = compiler_view
+    write_json(request, record)
     response.unlink(missing_ok=True)
     proc = execute([sys.executable, '-B', '-m', 'ecra.extract', str(request), str(response)],
                    cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)))
@@ -64,10 +73,13 @@ def dependency_inputs(root, unit, cfg, worker_dir, env, tool_root):
     result = read_json(response)
     if not isinstance(result.get('input_snapshot'), dict):
         raise ValueError(f"Clang 无法验证输入 {unit['source_file']}: {result.get('diagnostics')}")
+    if compiler_view is not None and (result['input_snapshot'] != reference
+                                      or result.get('preprocessor_signature') != signature):
+        raise ValueError('原始与冻结编译输入/预处理状态不同；不能发布混用输入：' + unit['source_file'])
     return result['input_snapshot'], result.get('preprocessor_signature')
 
 
-def dependency_results(root, units, cfg, worker_dir, env, tool_root):
+def dependency_results(root, units, cfg, worker_dir, env, tool_root, compiler_view=None):
     from collections import deque
     from concurrent.futures import ThreadPoolExecutor
     count = cfg['analysis'].get('extraction_workers', 1)
@@ -77,7 +89,10 @@ def dependency_results(root, units, cfg, worker_dir, env, tool_root):
     def submit():
         unit = next(todo, None)
         if unit is not None:
-            pending.append((unit, pool.submit(dependency_inputs, root, unit, cfg, worker_dir, env, tool_root)))
+            args = (root, unit, cfg, worker_dir, env, tool_root)
+            if compiler_view is not None:
+                args += (compiler_view,)
+            pending.append((unit, pool.submit(dependency_inputs, *args)))
     try:
         for _ in range(count):
             submit()
@@ -90,7 +105,7 @@ def dependency_results(root, units, cfg, worker_dir, env, tool_root):
         pool.shutdown(wait=True, cancel_futures=True)
 
 
-def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cache=None):
+def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cache=None, compiler_view=None):
     """Run bounded workers; only paths/exit metadata cross thread boundaries.
 
     Consume in DB order so weak/strong selection, function declaration choice
@@ -107,8 +122,11 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
         request = worker_dir / (unit['tu_id'] + '.request.json')
         response = worker_dir / (unit['tu_id'] + '.response.json')
         metadata = Path(str(response) + '.metadata.json')
-        write_json(request, dict(root=str(root), unit=unit, config=cfg, verify_inputs=True,
-                   write_metadata=True, diagnostics_dir=str(out / 'diagnostics/workers')))
+        record = dict(root=str(root), unit=unit, config=cfg, verify_inputs=True,
+                      write_metadata=True, diagnostics_dir=str(out / 'diagnostics/workers'))
+        if compiler_view is not None:
+            record['compiler_view'] = compiler_view
+        write_json(request, record)
         response.unlink(missing_ok=True)
         metadata.unlink(missing_ok=True)
         if cache is not None and cache.restore(unit, response, metadata):
@@ -210,7 +228,8 @@ def safe_review_samples(facts, count, shared_count=0):
 
 
 def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-        review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None,_lock_owned=False):
+        review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None,_lock_owned=False,
+        _compiler_view=None):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     consumed_config = {}
@@ -221,6 +240,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         cfg['analysis']['git_diff']['enabled'] = scan_mode == 'diff'
     if no_review:
         cfg["review"]["enabled"] = False
+    if _compiler_view is not None:
+        from .frozen_scan import check_mode
+        check_mode(cfg, _workspace, doctor_only)
     from .workspace import WorkspaceResolver, lock_path, migrate_legacy
     if _workspace is not None:
         from .scan_persistence import is_canonical
@@ -268,10 +290,14 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     diagnostics = ScanDiagnostics(out / ('diagnostics/doctor' if doctor_only else 'diagnostics'), progress)
     report_can_replace = True
     source_token = None
+    frozen_files = None
     diff_pin = base_summary_file = None
     tu_cache = None
     storage = None
     try:
+        if _compiler_view is not None:
+            from .frozen_scan import ScanFiles
+            frozen_files = ScanFiles(_compiler_view, root, cfg)
         # Keep previous logs/diagnostics intact until they have been archived.
         diagnostics.stage('扫描准备与历史归档', announce=False)
         if doctor_only:
@@ -369,6 +395,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress('排查目录：' + (', '.join(scope.include_dirs) or '全部') + '；排除目录：' + (', '.join(scope.exclude_dirs) or '无'))
             progress('范围外编译依赖只用于恢复调用链和目标变量的访问，不生成第三方变量候选。')
         units, compilation = prepare(root, cfg, progress=progress, build_firmware=not doctor_only)
+        if frozen_files is not None:
+            frozen_files.assert_valid()
         doctor.update(compilation, compile_database_found=True, translation_units_total=len(units), ready_for_scan=True)
         if doctor_only:
             cache = compilation.get('cmake_cache', {})
@@ -445,7 +473,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             if toolchain:
                 explicit.append(toolchain)
         snapshot_inputs = InputSnapshot(root, out / 'diagnostics', explicit,
-                                       dict(consumed_config, **compilation.get('consumed_inputs', {})))
+                                       dict(consumed_config, **compilation.get('consumed_inputs', {})),
+                                       file_view=frozen_files)
         from .initialization import constructor_map_directory
         constructor_root = Path(cfg.get('project',{}).get('root') or root)
         snapshot_inputs.register_selection(constructor_map_directory(constructor_root,cfg),'*.map')
@@ -460,7 +489,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         snapshot_inputs.save()
         diagnostics.snapshot_status = snapshot_inputs.status
         snapshot_inputs.assert_valid()
-        for i, (unit, inputs, signature) in enumerate(dependency_results(root, units, cfg, worker_dir, env, tool_root)):
+        dependency_args = {} if _compiler_view is None else dict(compiler_view=_compiler_view)
+        for i, (unit, inputs, signature) in enumerate(dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args)):
             progress(f"依赖快照 {i+1}/{len(units)}: {unit['source_file']}")
             snapshot_inputs.discover(unit, inputs, signature)
         snapshot_inputs.seal()
@@ -476,7 +506,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         diagnostics.snapshot_status = snapshot_inputs.status
         diagnostics.stage('Clang 翻译单元提取')
         for i, (unit, response, metadata_file) in enumerate(extraction_responses(
-                root, units, cfg, worker_dir, env, tool_root, out, cache=tu_cache)):
+                root, units, cfg, worker_dir, env, tool_root, out, cache=tu_cache, **dependency_args)):
             role = ' [依赖]' if scope.active and unit.get('audit_role') == 'dependency' else ''
             progress(f"Clang {i + 1}/{len(units)}{role}: {unit['source_file']}")
             try:
@@ -507,6 +537,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 variable["parse_status"] = part["parse_status"]
             all_includes.update(part.get("includes", []))
             if isinstance(part.get('input_snapshot'), dict):
+                if _compiler_view is not None:
+                    from .working_compiler_view import verify_consumed
+                    verify_consumed(_compiler_view, root, cfg, part['input_snapshot'])
                 snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
                 if tu_cache is not None:
                     tu_cache.store(unit, response, part)
@@ -526,7 +559,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             diagnostics.fact_counts = parts.counts
             del part
         diagnostics.stage('输入一致性验证')
-        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args):
             snapshot_inputs.observe(unit, inputs, phase='FINAL_DISCOVERY', signature=signature)
         after = snapshot_inputs.verify_disk()
         snapshot_inputs.save()
@@ -609,7 +642,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         # Static analysis and report construction can be long on large builds.
         # Recheck the input bytes before publishing the first checkpoint too.
         diagnostics.stage('发布前输入一致性验证')
-        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args):
             snapshot_inputs.observe(unit, inputs, phase='PRE_PUBLICATION', signature=signature)
         snapshot_inputs.verify_disk()
         validate_analysis_inputs(root, cfg['analysis'], snapshot_inputs.before,
@@ -670,7 +703,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 mark_review_stale(out/'review', r, '复核期间源码或输入发生变化；本轮证据需重新生成。')
             write_json(out/'review/queue.json', reviews)
         if cfg['review'].get('enabled', True):
-            for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+            for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args):
                 snapshot_inputs.observe(unit, inputs, phase='POST_REVIEW', signature=signature)
         snapshot_inputs.verify_disk()
         snapshot_inputs.save()
@@ -698,7 +731,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         diagnostics.stage('报告发布后输入一致性验证')
         if engine_digest() != engine_at_start:
             raise ValueError('扫描期间静态分析实现已变化；不能发布混用版本的安全证明，请重新运行 run')
-        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root):
+        for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args):
             snapshot_inputs.observe(unit, inputs, phase='POST_PUBLICATION', signature=signature)
         snapshot_inputs.verify_disk()
         snapshot_inputs.save()
@@ -778,6 +811,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     finally:
         if source_token is not None:
             source_token.var.reset(source_token)
+        if frozen_files is not None:
+            frozen_files.close()
         diagnostics.close()
         if tu_cache is not None:
             write_json(out/'diagnostics/tu_cache.json', tu_cache.stats())

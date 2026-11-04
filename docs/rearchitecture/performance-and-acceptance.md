@@ -1,3 +1,5 @@
+> 最新完成收据见[79号](79-r2b-regression-and-v13-package-final.md)：R2b冻结1439项实际1437PASS/2SKIP及原路径F030完整0/0；INAV v13完整标准包、严格导入和全字段0/0通过，计入标准包的磁盘降幅69.8648%仍FAIL。独立512MiB读取结束但不宣称提速。下方“执行中/待结束”为原时间观察，完整重构仍未完成。
+
 > 最新完整封存的本机候选为[v37](77-frozen-v37-acceptance.md)，源码7066dea：1423项1421PASS/2联网SKIP，23组183重叠Chrome/VHD断言，31700分发文件SHA、130运行时匹配。新增真实多核三步8组、核心表单8组；预检查控制器异步名称定位首轮FAIL与完整16项重跑均保留。旧v36完整大图/千项续批不改标为v37。完整重构仍未完成。
 
 > 较新源码已补[R2a真实Worker](72-frozen-compiler-worker-acceptance.md)与[R2b同源父读取](74-frozen-parent-input-acceptance.md)：冻结118复跑及65专项、获准F030联合完整0/0通过，正式dirty/恢复仍阻断；冻结1430已完成1428PASS/2SKIP及原路径F030完整0/0，新冻结1439执行中，见[78号](78-r2a-full-regression-and-r2b-validation-queue.md)。接入缺口与顺序见[76号审计](76-dirty-production-integration-audit.md)，其他剩余代码见[68号](68-remaining-refactor-execution-plan.md)。

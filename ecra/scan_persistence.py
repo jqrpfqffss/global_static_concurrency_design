@@ -12,7 +12,7 @@ import shutil
 import sqlite3
 import uuid
 
-from .common import write_json
+from .common import read_json, write_json
 from .scan_store import EvidenceProvider, publish_scan
 
 MARKER = 'storage.json'
@@ -172,7 +172,8 @@ def persist(out, facts, report, reviews):
                 continue
             # Hash before capture: archived source must be the bytes consumed
             # by this scan, including external headers. Failure aborts publish.
-            raw = path.read_bytes()
+            from .input_snapshot import read_analysis_bytes
+            raw = read_analysis_bytes(path)
             if hashlib.sha256(raw).hexdigest() != expected:
                 raise ValueError('归档输入已改变: '+file)
             if settings.get('config_file') and path.resolve() == Path(settings['config_file']).resolve():
@@ -268,7 +269,8 @@ def archive_audit(out):
 
 
 def run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_budget_owned=False,_storage_policy=None):
+                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_budget_owned=False,_storage_policy=None,
+                  _compiler_view=None):
     from .config import load_config
     from .workspace import formal_workspace
     from .storage_activity import DataActivity
@@ -281,7 +283,8 @@ def run_canonical(root, config_path=None, no_review=False, doctor_only=False, re
         activities.enter_context(DataActivity(workspace.workspace_root))
         if not _budget_owned:activities.enter_context(DataActivity(workspace.workspace_root,exclusive=True,purpose='scan-budget'))
         return _run_canonical(root,config_path,no_review,doctor_only,review_safe_sample,review_shared_sample,
-                              scan_mode,scan_id=scan_id,profile_id=profile_id,_expected_root=workspace.workspace_root,_storage_policy=_storage_policy)
+                              scan_mode,scan_id=scan_id,profile_id=profile_id,_expected_root=workspace.workspace_root,_storage_policy=_storage_policy,
+                              _compiler_view=_compiler_view)
 
 
 @contextmanager
@@ -344,7 +347,8 @@ def previous_finding_ids(out,workspace):
 
 
 def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
-                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None,_storage_policy=None):
+                  review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None,_storage_policy=None,
+                  _compiler_view=None):
     """Run the unchanged pipeline in a unique external, persistent scan area.
 
     No latest pointer is changed until all original post-publication input
@@ -376,8 +380,9 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
                             snapshots_root=str(out/'snapshots'))
         write_json(out/MARKER, dict(version=1, scan_id=ident, project_id=workspace.project_id,
                                    profile_id=profile_id, config_file=str(config_file),storage_policy=fixed_policy))
+        internal = {} if _compiler_view is None else dict(_compiler_view=_compiler_view)
         code = run(root, config_path, no_review, doctor_only, review_safe_sample, review_shared_sample,
-                   scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True)
+                   scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True, **internal)
         validity = json.loads((out/'result_validity.json').read_text(encoding='utf-8'))
         if code not in {0, 1, 2} or not validity.get('analysis_valid'):
             return code
@@ -397,6 +402,19 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
                 ReviewStore(out/'reviews.db',binding).inherit_from(
                     ReviewStore(previous_out/'reviews.db',old),old_provider,provider)
         audit = archive_audit(out)
+        if _compiler_view is not None:
+            # Auditing a complete authority can take hours. The final pointer
+            # must not rely on a check performed before that read completed.
+            try:
+                from .working_compiler_view import validate
+                from .workflow import engine_digest
+                validate(_compiler_view, root, cfg, reverify_original=True)
+                if engine_digest() != read_json(out/'scan_state.json')['engine_digest']:
+                    raise ValueError('归档审计期间分析实现已变化；冻结扫描不能发布')
+            except Exception as exc:
+                write_json(out/'result_validity.json',dict(analysis_valid=False,state='FAILED',
+                           error=f'{type(exc).__name__}: {exc}'))
+                raise
         manifest = dict(binding, format='ECRA_LOCAL_SCAN', version=1, **audit,
                         state='STATIC_VALIDATED', run_state=json.loads((out/'run.json').read_text(encoding='utf-8'))['state'],
                         scan_sha256=sha256(out/'scan.db'), source_reverification=True,

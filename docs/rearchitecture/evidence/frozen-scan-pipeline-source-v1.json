@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "scope": "Actual complete canonical explicit-DB scan via internal compiler_view only; both threaded dependency discovery and extraction, parent reads, complete archive, cache cold/warm/corrupt, input/index/negative namespace/copy and post-audit barrier. Formal dirty/Diff/CMake/resume/U04 remain gated.",
+  "tests": 5,
+  "seconds": 123.707,
+  "logs": [
+    {
+      "file": "frozen-scan-pipeline-v1.log",
+      "sha256": "c217cb9f38716c4607a04aa684695f9db97080ac40355ddb87e07cdfd5a264b8",
+      "summary": {
+        "summary_ok": true,
+        "tests": 4,
+        "passed_tests": 4,
+        "seconds": 95.758,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-scan-pipeline-v2.log",
+      "sha256": "5de0ef9efcb336ab7674caf5135cc411f2852bb6f6a7538a047c84eaa77778b6",
+      "summary": {
+        "summary_ok": false,
+        "tests": 5,
+        "passed_tests": 4,
+        "seconds": 83.29,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "frozen-scan-pipeline-v3.log",
+      "sha256": "53bbe5d67857ccce3f264d630b4290c856a2665372e6f558f05bc72f40d30475",
+      "summary": {
+        "summary_ok": true,
+        "tests": 5,
+        "passed_tests": 5,
+        "seconds": 123.707,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    }
+  ],
+  "files": [
+    {
+      "file": "ecra/cli.py",
+      "sha256": "67510147a6e207dcc39c3e9a23d744d67eaef72156c8b23ab51fd09bfb2797a7"
+    },
+    {
+      "file": "ecra/scan_persistence.py",
+      "sha256": "6fb624c4106e40d9d2a2cd0be33ae834aeddb1026382f780a33c0fe07da5bcad"
+    },
+    {
+      "file": "ecra/frozen_scan.py",
+      "sha256": "9b58a65a8fee811eb44b7431d2f15a914f13c9d542ea3b17107d961a08897f20"
+    },
+    {
+      "file": "tests/test_frozen_scan_pipeline.py",
+      "sha256": "64b0a83e79a5ca587546ad0236c2f5391b7cba1bb074175a235625752357dc3c"
+    },
+    {
+      "file": "scripts/validate_frozen_scan_pipeline.py",
+      "sha256": "6f6eadb1df03be599723d76bd470ad94d806b1313d0391b6ee17f0396b580a65"
+    }
+  ],
+  "formal_dirty_enabled": false,
+  "all_gates_passed": false,
+  "complete_regression": "PENDING_NEW_FROZEN_SOURCE",
+  "approved_f030_full_pipeline": "PENDING_NEW_ACTUAL_RUN"
+}

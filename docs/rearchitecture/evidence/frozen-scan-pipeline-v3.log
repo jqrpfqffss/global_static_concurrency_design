@@ -1,0 +1,10 @@
+test_full_native_scan_cold_warm_corrupt_cache_and_complete_archived_inputs_match (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_real_index_change_at_parent_analysis_barrier_prevents_publication (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_real_live_negative_probe_change_fails_and_preserves_previous_valid_snapshot (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+test_tampered_capture_never_replaces_previous_and_unsupported_modes_remain_blocked (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 123.707s
+
+OK

@@ -1,0 +1,41 @@
+{
+  "status": "FINISHED",
+  "passed": true,
+  "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v32\\scripts\\measure_storage_policy.py",
+    "--spec",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v13-retention-with-archive-spec.json",
+    "--output",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v13-retention-with-archive.json"
+  ],
+  "before_standard_archive": {
+    "passed": true,
+    "stable": true,
+    "before_allocated_bytes": 47665101856,
+    "after_allocated_bytes": 10337012720,
+    "reduction_percent": 78.31324739171035,
+    "standard_archive_included": false,
+    "final_size_target_70percent": "PASS",
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v13-retention-before-archive.json",
+    "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+    "full_G4": "NOT_CLOSED_AUTOMATICALLY; native and archive-phase sampled peaks remain separate scopes; physical metadata excluded"
+  },
+  "with_standard_archive": {
+    "passed": true,
+    "stable": true,
+    "before_allocated_bytes": 47665101856,
+    "after_allocated_bytes": 14363963800,
+    "reduction_percent": 69.86482092623099,
+    "standard_archive_included": true,
+    "final_size_target_70percent": "FAIL",
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\seed0-v13-retention-with-archive.json",
+    "scope": "Actual whole retained data roots and common build; second measurement explicitly includes the complete standard package if strict G1/export/import passed. No cleanup or missing retention objects removed, no whole-policy historical peak invented.",
+    "full_G4": "NOT_CLOSED_AUTOMATICALLY; native and archive-phase sampled peaks remain separate scopes; physical metadata excluded"
+  },
+  "all_gates_passed": false
+}
