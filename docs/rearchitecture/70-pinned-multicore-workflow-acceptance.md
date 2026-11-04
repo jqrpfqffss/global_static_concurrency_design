@@ -23,6 +23,8 @@
 | 前端构建与冻结合同 | `npm --prefix studio run build`；`scripts/validate_ui_contract.py` | vue-tsc + Vite PASS；静态合同 12/12；[合同收据](evidence/multicore-workflow-static-ui-v1.json) | PASS |
 | 统一新源码完整回归 / Portable | 独立冻结副本；预期发现 1423 项 | 本阶段专项通过尚不能替代全套重跑与新包内真实操作 | NOT_VERIFIED，待下一候选 |
 
+后续同一R1提交的1423统一回归及实际v37包已经结束：1421PASS/2联网SKIP、23组183重叠断言、31700文件SHA、130运行时匹配，含本多核实际8组及核心表单8组。原时间点待验状态保留为历史；最终软件入口/ZIP/SHA和预检查控制器失败/重跑见[阶段77](77-frozen-v37-acceptance.md)。这不替代后续R2代码的验证。
+
 先前完整长表单实际操作 v1/v2 均 8/8，但目视发现提交过深；故先修订合同再实现三步。最终以三步 v3 操作的源码 SHA、真实任务/归档及截图为准。完整脚本和日志路径/摘要见源码收据，不把旧布局成功记录移作新布局验收。
 
 准备 v3 数据副本时，控制器曾误将 SQLite 导入前后的物理 SHA 一致当作必要条件，因此中断，未执行 GUI。保留[该失败](evidence/multicore-input-copy-controller-failure-v1.json)及原驱动；新私有 v4 输入通过原比较器完整事实/报告、绑定身份和全部人工事件核验，原输入的物理 SHA 仍核对不变（[A](evidence/multicore-approved-f030-copy-comparison-a-v1.json)、[B](evidence/multicore-approved-f030-copy-comparison-b-v1.json)）。另一次专项命令误写不存在的测试模块，命令错误记录保留，修正后完整 65 项通过。

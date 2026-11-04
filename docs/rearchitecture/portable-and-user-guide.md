@@ -1,6 +1,8 @@
-> 最新完整封存的本机候选为[v36](69-frozen-v36-acceptance.md)，源码176ed69：1408项1406PASS/2联网SKIP，22组174重叠Chrome/VHD断言，31328份分发文件完整SHA、129运行时匹配；另有实际完整大图导航6组、保留旧3000+新增1000声明/三次重启通过。旧v35额外证据串入FAIL保留，本包实际重验修复通过。完整重构仍未完成。
+> 最新完整封存的本机候选为[v37](77-frozen-v37-acceptance.md)，源码7066dea：1423项1421PASS/2联网SKIP，23组183重叠Chrome/VHD断言，31700分发文件SHA、130运行时匹配。新增真实多核三步8组、核心表单8组；预检查控制器异步名称定位首轮FAIL与完整16项重跑均保留。旧v36完整大图/千项续批不改标为v37。完整重构仍未完成。
 
-> 大型e69/1493c05冷v12全字段事实/规范化报告差异0；完整压缩包严格导入及最终保留策略降低71.6497%见[65号](65-complete-compact-archive-retention.md)。完整G4峰值、writer64冷v13、新512MiB完整读取仍待结束；其他G2/物理机/DPI/OpenCode联网/UAT继续待验。剩余代码和分批验收方案见[68号](68-remaining-refactor-execution-plan.md)。
+> 较新源码已补[R2a真实Worker](72-frozen-compiler-worker-acceptance.md)与[R2b同源父读取](74-frozen-parent-input-acceptance.md)：冻结118复跑及65专项、获准F030联合完整0/0通过，正式dirty/恢复仍阻断；冻结1430统一回归执行中，更新1439尚待验。接入缺口与顺序见[76号审计](76-dirty-production-integration-audit.md)，其他剩余代码见[68号](68-remaining-refactor-execution-plan.md)。
+
+> 大型原始e69与冷v12、冷v13完整事实/规范化报告均0/0；v13真实15.404h和约9.958GiB Job峰值见[75号](75-seed0-v13-native-and-comparison-progress.md)，不称提速。冷v12完整compact包及71.6497%最终保留策略见[65号](65-complete-compact-archive-retention.md)。v13归档/全峰值和独立512MiB读取仍待结束；其他G2工程用户延期，物理机/DPI/真实模型/UAT继续待验。下方旧状态按原时间保留。
 
 > 后续源码修复了调用归属和冲突分页切换，真实INAV原版图6组及Git配置8组Chrome通过，见[47号记录](47-live-inav-navigation-and-working-input-status.md)。新版源码第3步会明确显示未提交输入选项及生产阻断；当前不能启动include_uncommitted=true，请取消该项使用固定提交比较。此轮尚不在v27包中。v28完整回归仍FAIL，新冻结全套/实包待验，详见[48号记录](48-regression-accounting-and-sparse-fixture.md)。
 
