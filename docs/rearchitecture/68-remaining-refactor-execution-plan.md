@@ -1,3 +1,5 @@
+> 最新代码/验收见[82号](82-v41-source-validation-and-remaining-gates.md)：内部冻结完整扫描与dirty Diff已接通，74ebb5f冻结23项全PASS、原路径F030完整0/0；正式dirty/CMake/恢复仍阻断，上一批1444已实际1442PASS/2SKIP，新1449已启动，v13 compact严格导入/70%测量未结束。旧1439已实际通过见79号，下面旧“执行中”为原时间记录。最新已封存Portable仍v37，完整重构未完成。
+
 # 剩余重构：代码审计、依赖顺序与验收方案
 
 2026-11-04，执行前 HEAD `ce5aa3ebbfa7659568d22ad9c536f235aa8d1262`，分支 `optimize_ccc`。用户本轮明确授权推送，已正常推送并核对远端 SHA 相同；没有 reset、强推或覆盖未提交代码。随后出现的未跟踪文件均为已启动验收控制器完成后产生的收据/截图，须核验后单独提交。完整任务仍以 `docs/ECRA_optimize_ccc_Codex.md` 为准。

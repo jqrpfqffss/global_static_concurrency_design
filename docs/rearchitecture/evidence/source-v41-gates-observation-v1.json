@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "status": "OBSERVATION_ONLY_NOT_FINAL_GATES",
+  "recorded_utc": "2026-11-04T07:04:35.602290+00:00",
+  "source_head": "74ebb5f5e369296370bc8bc9a12dddcd8b904768",
+  "source_files": 3665,
+  "manifest_sha256": "77335c0b15366bba6329c799aefde2f33e897ce12745d0a48a005c170d95b1d5",
+  "related": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 23,
+    "passed_tests": 23,
+    "failures": 0,
+    "errors": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "skipped": 0,
+    "seconds": 354.165,
+    "controller_seconds": 358.35999999998603,
+    "source_head": "74ebb5f5e369296370bc8bc9a12dddcd8b904768",
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v41",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-related-tests-studio-v41",
+    "frozen_files": 3665,
+    "differences": [],
+    "manifest_sha256": "77335c0b15366bba6329c799aefde2f33e897ce12745d0a48a005c170d95b1d5",
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "-c",
+      "import sys,unittest;sys.path.insert(0,'tests');unittest.main(module=None)",
+      "tests.test_frozen_dirty_diff",
+      "tests.test_frozen_scan_pipeline",
+      "tests.test_frozen_parent_inputs",
+      "tests.test_bounded_extraction",
+      "-v"
+    ],
+    "effective_parent_seed": "0",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-related-studio-v41.log",
+    "log_sha256": "0fd693875b3f6048cafaaa22fafc8d462967dce6d6491ff18f5c0e9782af44a2",
+    "scope": "Exact74ebb5f frozen source, full plus private frozen dirty Diff, captured patch and namespace, cold/warm/corrupt cache and uncached independent full verification. Expected23 with0skips; formal dirty/CMake/resume blocked. No Portable or large producer claim"
+  },
+  "native_original_path": "PASS_COMPLETE_FACTS_AND_EXISTING_NORMALIZED_REPORT_0_0",
+  "v40_full": {
+    "passed": false,
+    "status": "RUNNING_EXACT_FROZEN_1444",
+    "all_gates_passed": false
+  },
+  "v41_full_queue": {
+    "passed": false,
+    "status": "WAITING_V40_FULL_BEFORE_NEW1449",
+    "source_head": "74ebb5f5e369296370bc8bc9a12dddcd8b904768",
+    "all_gates_passed": false
+  },
+  "v13_compact_import": {
+    "passed": false,
+    "status": "RUNNING_ACTUAL_BUNDLED_STRICT_IMPORT",
+    "all_gates_passed": false,
+    "scope": "Same complete published v32/native-v13 evidence, new container only; current bundled v37 strict importer and independent retention including compact standard package. Original deflate encoding retained as an explicit duplicate verification control, never deleted.",
+    "pid": 24400,
+    "archive": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v13-compact-bzip2-v1\\inav-seed0-v13-full-compact.ecra-report",
+    "job_limit_bytes": 2147483648,
+    "seconds": 807.5470000000205,
+    "job_peak_commit_bytes": 87564288
+  },
+  "all_gates_passed": false,
+  "scope": "Actual source41 related+original-path golden passed; whole regressions/import/retention remain at their observed states; no all-complete, new Portable, formal dirty/CMake/resume, physical32GB or UAT claim"
+}

@@ -1,3 +1,5 @@
+> 最新代码/验收见[82号](82-v41-source-validation-and-remaining-gates.md)：内部冻结完整扫描与dirty Diff已接通，74ebb5f冻结23项全PASS、原路径F030完整0/0；正式dirty/CMake/恢复仍阻断，上一批1444已实际1442PASS/2SKIP，新1449已启动，v13 compact严格导入/70%测量未结束。旧1439已实际通过见79号，下面旧“执行中”为原时间记录。最新已封存Portable仍v37，完整重构未完成。
+
 > 最新完整封存的本机候选为[v37](77-frozen-v37-acceptance.md)，源码7066dea：1423项1421PASS/2联网SKIP，23组183重叠Chrome/VHD断言，31700分发文件SHA、130运行时匹配。新增真实多核三步8组、核心表单8组；预检查控制器异步名称定位首轮FAIL与完整16项重跑均保留。旧v36完整大图/千项续批不改标为v37。完整重构仍未完成。
 
 > 较新源码已补[R2a真实Worker](72-frozen-compiler-worker-acceptance.md)与[R2b同源父读取](74-frozen-parent-input-acceptance.md)：冻结118复跑及65专项、获准F030联合完整0/0通过，正式dirty/恢复仍阻断；冻结1430已完成1428PASS/2SKIP及原路径F030完整0/0，新冻结1439执行中，见[78号](78-r2a-full-regression-and-r2b-validation-queue.md)。接入缺口与顺序见[76号审计](76-dirty-production-integration-audit.md)，其他剩余代码见[68号](68-remaining-refactor-execution-plan.md)。
