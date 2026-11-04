@@ -1,0 +1,33 @@
+test_actual_native_status_and_reverification_never_restore_facts_or_report (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_existing_clean_report_digest_all_fields_scalar_types_order_and_shared_nodes (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_finding_status_key_insertion_order_and_empty_findings_match_old_cleaning (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_large_utf8_strings_cross_chunk_boundaries_and_no_scratch_files_remain (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_status_projection_keeps_every_identity_and_diff_selection_without_payloads (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_actual_cmake_external_arm_object_build_does_not_create_firmware_outputs (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_actual_deep_host_cmake_keeps_real_files_and_arm_build_under_short_alias (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_changed_evidence_requires_new_confirmation_and_preserves_prior_history_in_package (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_disabled_model_packet_navigation_and_ledger_are_real_and_lossless (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_failed_new_scan_preserves_previous_pointer_and_bytes (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_native_sqlite_only_scan_resume_and_full_package_retain_evidence (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_real_pinned_git_diff_uses_sqlite_baseline_and_saved_recovery (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_repeated_scan_preserves_finding_baseline_and_lock_covers_publication (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_review_state (unittest.loader._FailedTest) ... ERROR
+test_full_scope_does_not_infer_selection_from_html (tests.test_large_report_scope.ReportScopeTests) ... ok
+test_inconsistent_or_duplicate_scope_cannot_pass_as_empty (tests.test_large_report_scope.ReportScopeTests) ... ok
+test_plain_and_shared_reports_preserve_empty_and_selected_scope (tests.test_large_report_scope.ReportScopeTests) ... ok
+
+======================================================================
+ERROR: test_review_state (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_review_state
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\unittest\loader.py", line 154, in loadTestsFromName
+    module = __import__(module_name)
+ModuleNotFoundError: No module named 'tests.test_review_state'
+
+
+----------------------------------------------------------------------
+Ran 18 tests in 94.321s
+
+FAILED (errors=1)

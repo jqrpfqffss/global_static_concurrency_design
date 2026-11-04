@@ -1,0 +1,100 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "scope": "Native CLI status and discard-result checkpoint checks use existing metadata and exact clean_report ECRA_MERKLE_V1 over file-backed memo; every field/order/type retained. Real192MiB child with large shared DAG; legacy firmware runtime migrates before SQLite opens. Not full saved_run/Packet/Diff or large memory proof.",
+  "tests": 38,
+  "seconds": 101.804,
+  "logs": [
+    {
+      "file": "native-consumers-v1.log",
+      "sha256": "ca2a7e6058327b19b4784a406279369cbfbe952d90c7c1b23442d3ba7cb4cf29",
+      "summary": {
+        "summary_ok": true,
+        "tests": 5,
+        "passed_tests": 5,
+        "seconds": 7.966,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "native-consumers-related-v2.log",
+      "sha256": "7c3f3044ef4d7f705f4a9d2184500c8832fc3b0500ccf73407e342dc161a80f5",
+      "summary": {
+        "summary_ok": false,
+        "tests": 18,
+        "passed_tests": 17,
+        "seconds": 94.321,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "native-consumers-related-v3.log",
+      "sha256": "f7a91cb7b6ba568972001700ab5eb895720e18775fb99feb82778c71e6027cf9",
+      "summary": {
+        "summary_ok": true,
+        "tests": 36,
+        "passed_tests": 36,
+        "seconds": 103.044,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "native-consumers-related-v4.log",
+      "sha256": "17fcc067167648ce0928930118b3213bdca90aff924e3051c38d55cc2c6163b3",
+      "summary": {
+        "summary_ok": true,
+        "tests": 36,
+        "passed_tests": 36,
+        "seconds": 102.118,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "file": "native-consumers-related-final-v5.log",
+      "sha256": "d92c47c388e6c9a8dfb493a668aa7fdd39574d250046762d996d40142a3a0e0a",
+      "summary": {
+        "summary_ok": true,
+        "tests": 38,
+        "passed_tests": 38,
+        "seconds": 101.804,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    }
+  ],
+  "files": [
+    {
+      "file": "ecra/workflow.py",
+      "sha256": "be7ac65704de1db79e091589bdf5909dbfbc2d75f9736ed5bb11f532775e8880"
+    },
+    {
+      "file": "ecra/native_consumers.py",
+      "sha256": "b7c27a08b2f46f38b1e6643e95b8f39d1001e19d7d1ef5b208776463fa42edf4"
+    },
+    {
+      "file": "tests/test_native_consumers.py",
+      "sha256": "705223212111179a7a66ac6a91b6c9967d34cc884850963284b974935f35c54c"
+    }
+  ],
+  "current_complete_regression": "PENDING1459",
+  "all_gates_passed": false
+}

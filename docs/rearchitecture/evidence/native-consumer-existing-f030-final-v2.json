@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "scope": "Actual existing original-path approved F030 checkpoint from74ebb5f; new read-only status/checkpoint consumer, unchanged static engine, no full reconstruction. Not a new scan, large G1 or complete R3.",
+  "all_gates_passed": false,
+  "seconds": 1.922000000020489,
+  "scan_sha256": "e77034e097918f4c10efee6a87b495668a39dc602e35e8f49a24cf7b47a57aae",
+  "static_engine_digest": "d8ade9133510614044e53de78f9330a5597317d5901d5cd063f0a419d18b3082",
+  "finding_identities": 6,
+  "original_and_engine_differences": [],
+  "full_reconstruction_calls": 0
+}

@@ -36,6 +36,7 @@ REVIEW_REPORT_MODULES = frozenset({
     'case_library.py', 'decisions.py', 'html_report.py', 'report.py',
     'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
+    'native_consumers.py',
 })
 
 
@@ -359,7 +360,7 @@ def verify_saved_publication(root, out, cfg, state, config_file):
         else:
             # Legacy broad manifests retain their existing validation policy.
             live_cfg, _ = load_config(root, config_file)
-            checked_scan(root, out, live_cfg, config_file, with_facts=False)
+            checked_scan(root, out, live_cfg, config_file, with_facts=False, _report_projection=True)
     except BaseException as exc:
         reserve = None
         trace = traceback.format_exc()
@@ -393,7 +394,7 @@ def verify_saved_publication(root, out, cfg, state, config_file):
         raise
 
 
-def checked_scan(root, out, cfg, config_file, *, with_facts=True):
+def checked_scan(root, out, cfg, config_file, *, with_facts=True, _report_projection=False):
     from .cli import file_hashes
     if not (out/'scan_state.json').is_file():
         raise ValueError('没有可恢复的扫描检查点；请先运行 run（旧版报告需要重新扫描一次）')
@@ -422,12 +423,21 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True):
     if (state['facts_sha256'] != file_digest(out/'facts.json') or
             state['manifest_sha256'] != file_digest(out/'input_manifest.json')):
         raise ValueError('扫描事实或输入清单已变化/损坏；请重新运行 run')
-    report = read_saved_json(out/'reports/global_static_concurrency.json')
+    from .scan_persistence import is_canonical
+    bounded=_report_projection and is_canonical(out)
+    if bounded and with_facts:raise ValueError('状态投影不能用于恢复完整分析事实')
+    if bounded:
+        from .native_consumers import status_report,clean_report_digest
+        report=status_report(out)
+    else:
+        report = read_saved_json(out/'reports/global_static_concurrency.json')
     if not isinstance(report,dict) or not isinstance(report.get('findings'),list):
         raise ValueError('静态报告格式损坏；请重新运行 run')
     if state.get('report_digest_encoding') != 'ECRA_MERKLE_V1':
         raise ValueError('旧扫描缺少完整共享证据摘要版本，请重新运行 run')
-    if saved_report_digest(clean_report(report), encoding=state['report_digest_encoding']) != state['report_digest']:
+    actual_digest=(clean_report_digest(out/'scan.db',work=out/'diagnostics') if bounded else
+                   saved_report_digest(clean_report(report), encoding=state['report_digest_encoding']))
+    if actual_digest != state['report_digest']:
         raise ValueError('静态报告已变化/损坏；请重新运行 run')
     manifest = read_json(out/'input_manifest.json')
     from .scope import AuditScope
@@ -520,7 +530,22 @@ def status(root, config_path=None):
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 info['legacy_directory'] = dict(path=str(legacy), owner_verified=False, diagnostic=str(exc))
     else:
-        report = read_saved_json(out/'reports/global_static_concurrency.json')
+        if is_canonical(out):
+            from .workspace import formal_workspace
+            try:
+                formal_workspace(root,cfg['analysis'])
+            except ValueError as exc:
+                # SQLite readers may need WAL shared-memory sidecars. Never
+                # even open runtime/queue files in a retired firmware/tool
+                # output root; the existing migration workflow copies them.
+                info.update(state='LEGACY_READ_ONLY',resumable=False,review_complete=False,
+                            scan_database=str(out/'scan.db'),next_action=str(exc))
+                return info
+        if is_canonical(out):
+            from .native_consumers import status_report
+            report=status_report(out)
+        else:
+            report = read_saved_json(out/'reports/global_static_concurrency.json')
         queue = read_queue(out)
         records = review_records(dict(findings=selected_findings(report)), queue)
         from .review_integrity import review_integrity
@@ -537,7 +562,7 @@ def status(root, config_path=None):
             info.update(resumable=False, next_action='存在运行锁：等待扫描/复核结束；若进程已退出，确认后移除过期 scan.lock。当前数量来自已保存的结果。')
             return info
         try:
-            checked_scan(root, out, cfg, config_file, with_facts=False)
+            checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
             from .git_diff import current_context
             root, cfg = current_context(root, cfg, read_json(out/'scan_state.json').get('git_diff_pin'))
             # A DONE label in queue.json is not enough to claim completion.
@@ -572,7 +597,9 @@ def status(root, config_path=None):
                 else:
                     action = '逐项复核已完成；查看报告并核对固件构建配置。'
             elif disabled:
-                action = '当前未启用模型：可按 HTML 人工排查；运行原命令重新扫描；运行 report 仅刷新结果。'
+                action = ('当前未启用模型：可在 ECRA Studio 按归档证据人工排查；运行原命令重新扫描。'
+                          if is_canonical(out) else
+                          '当前未启用模型：可按 HTML 人工排查；运行原命令重新扫描；运行 report 仅刷新结果。')
             else:
                 action = '运行 review 重新复核全部疑似/未知；review-failed 只重跑技术失败；report 仅刷新结果'
             info.update(resumable=True, review_enabled=not disabled,
@@ -676,7 +703,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 return 130
         inputs_current = True
         try:
-            checked_scan(root, out, cfg, config_file, with_facts=False)
+            checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
         except (OSError, ValueError, KeyError):
             inputs_current = False
             from .review_integrity import mark_review_stale

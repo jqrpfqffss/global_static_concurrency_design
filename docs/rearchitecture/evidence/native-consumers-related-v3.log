@@ -1,0 +1,41 @@
+test_actual_native_status_and_reverification_never_restore_facts_or_report (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_canonical_legacy_in_firmware_is_viewed_but_never_reverified_or_written (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_complete_large_shared_report_digest_in_actual_192mib_child (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_existing_clean_report_digest_all_fields_scalar_types_order_and_shared_nodes (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_finding_status_key_insertion_order_and_empty_findings_match_old_cleaning (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_large_utf8_strings_cross_chunk_boundaries_and_no_scratch_files_remain (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_scratch_junction_is_rejected_before_any_target_write (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_status_projection_keeps_every_identity_and_diff_selection_without_payloads (tests.test_native_consumers.NativeConsumerTests) ... ok
+test_actual_cmake_external_arm_object_build_does_not_create_firmware_outputs (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_actual_deep_host_cmake_keeps_real_files_and_arm_build_under_short_alias (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_changed_evidence_requires_new_confirmation_and_preserves_prior_history_in_package (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_disabled_model_packet_navigation_and_ledger_are_real_and_lossless (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_failed_new_scan_preserves_previous_pointer_and_bytes (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_native_sqlite_only_scan_resume_and_full_package_retain_evidence (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_real_pinned_git_diff_uses_sqlite_baseline_and_saved_recovery (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_repeated_scan_preserves_finding_baseline_and_lock_covers_publication (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_archive_covers_format_analysis_and_final_answer_and_source (tests.test_review_integrity.IntegrityTests) ... ok
+test_checkpoint_failure_or_interrupt_cancels_reviews_that_have_not_started (tests.test_review_integrity.IntegrityTests) ... ok
+test_each_semantic_status_is_done_and_never_selected_by_review_failed (tests.test_review_integrity.IntegrityTests) ... ok
+test_format_fix_one_or_two_success_and_two_failures (tests.test_review_integrity.IntegrityTests) ... ok
+test_idle_worker_starts_next_item_while_first_item_and_checkpoint_are_blocked (tests.test_review_integrity.IntegrityTests) ... ok
+test_long_raw_answer_format_fix_uses_stdin_without_packet_or_truncation (tests.test_review_integrity.IntegrityTests) ... ok
+test_nonzero_exit_preserves_stdout_api_error_without_headers_or_format_fix (tests.test_review_integrity.IntegrityTests) ... ok
+test_preparation_error_does_not_abandon_later_variables (tests.test_review_integrity.IntegrityTests) ... ok
+test_re_review_navigation_never_exposes_previous_model_answers (tests.test_review_integrity.IntegrityTests) ... ok
+test_retries_apply_to_transport_only_and_format_fixes_remain_bounded (tests.test_review_integrity.IntegrityTests) ... ok
+test_review_failed_repeats_only_remaining_failures_and_preserves_done_receipts (tests.test_review_integrity.IntegrityTests) ... ok
+test_review_reruns_all_static_candidates_independent_of_previous_semantics (tests.test_review_integrity.IntegrityTests) ... ok
+test_three_states_and_integrity_errors_do_not_count_unknown_verdict_as_failure (tests.test_review_integrity.IntegrityTests) ... ok
+test_timeout_provider_error_exit_and_missing_command_are_technical (tests.test_review_integrity.IntegrityTests) ... ok
+test_worker_boundaries_and_empty_queue (tests.test_review_integrity.IntegrityTests) ... ok
+test_workers_run_to_completion_with_bounded_concurrency_and_complete_ordered_ledger (tests.test_review_integrity.IntegrityTests) ... ok
+test_full_scope_does_not_infer_selection_from_html (tests.test_large_report_scope.ReportScopeTests) ... ok
+test_inconsistent_or_duplicate_scope_cannot_pass_as_empty (tests.test_large_report_scope.ReportScopeTests) ... ok
+test_plain_and_shared_reports_preserve_empty_and_selected_scope (tests.test_large_report_scope.ReportScopeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 103.044s
+
+OK

@@ -1,0 +1,192 @@
+{
+  "passed": true,
+  "recorded_utc": "2026-11-04T07:30:49.237822+00:00",
+  "seconds": 78.375,
+  "scope": "Read-only Windows file allocation for explicit, complete retention scopes.\n\nFile-backed identity ledger deduplicates hardlinks within each policy. No file\ncontents, attributes, compression or user data are changed. Reports exclude\ndirectory/MFT/ADS allocation and cannot reconstruct a historical peak. Scope\nand stability must be reviewed before a result is used for the G4 gate.\n",
+  "spec": {
+    "scope": "Same complete published v32/native-v13 evidence, new container only; current bundled v37 strict importer and independent retention including compact standard package. Original deflate encoding retained as an explicit duplicate verification control, never deleted.",
+    "standard_archive_included": true,
+    "policies": {
+      "original": [
+        {
+          "name": "data",
+          "path": "I:/ECRA-O3-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:/ECRA-B1"
+        }
+      ],
+      "current": [
+        {
+          "name": "data",
+          "path": "H:/ECRA-NATIVE-A13-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:/ECRA-B1"
+        },
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v13-compact-bzip2-v1\\inav-seed0-v13-full-compact.ecra-report"
+        }
+      ]
+    },
+    "excluded_verification_only": [
+      "Independent raw baseline backup",
+      "Original JSON comparison graph",
+      "Frozen software/program copies",
+      "Independent strict-import roots",
+      "Original complete DEFLATE container retained as duplicate encoding A/B control: same manifest and every payload byte is present in selected compact standard package"
+    ]
+  },
+  "policies": {
+    "original": {
+      "roots": [
+        {
+          "name": "data",
+          "path": "I:\\ECRA-O3-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:\\ECRA-B1"
+        }
+      ],
+      "files": 58354,
+      "logical_bytes": 47552902122,
+      "allocated_bytes": 47665101856,
+      "unique_files": 58354,
+      "categories": {
+        "settings_and_other_retained_files": {
+          "files": 12632,
+          "logical_bytes": 6191917483,
+          "allocated_bytes": 6218052272,
+          "unique_files": 12632
+        },
+        "legacy_derived_reports": {
+          "files": 41642,
+          "logical_bytes": 21627112833,
+          "allocated_bytes": 21703692336,
+          "unique_files": 41642
+        },
+        "legacy_facts_db": {
+          "files": 1,
+          "logical_bytes": 7502356480,
+          "allocated_bytes": 7502356480,
+          "unique_files": 1
+        },
+        "legacy_facts_json": {
+          "files": 1,
+          "logical_bytes": 5709798006,
+          "allocated_bytes": 5709799424,
+          "unique_files": 1
+        },
+        "raw_worker_responses": {
+          "files": 2716,
+          "logical_bytes": 5391114817,
+          "allocated_bytes": 5397177464,
+          "unique_files": 2716
+        },
+        "diagnostics_and_audit": {
+          "files": 781,
+          "logical_bytes": 5393838,
+          "allocated_bytes": 7585792,
+          "unique_files": 781
+        },
+        "shared_build_or_worktree": {
+          "files": 581,
+          "logical_bytes": 1125208665,
+          "allocated_bytes": 1126438088,
+          "unique_files": 581
+        }
+      },
+      "stable": true,
+      "verification_files": 58354,
+      "differences": []
+    },
+    "current": {
+      "roots": [
+        {
+          "name": "data",
+          "path": "H:\\ECRA-NATIVE-A13-SEED0"
+        },
+        {
+          "name": "common",
+          "path": "I:\\ECRA-B1"
+        },
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v13-compact-bzip2-v1\\inav-seed0-v13-full-compact.ecra-report"
+        }
+      ],
+      "files": 8287,
+      "logical_bytes": 27669062048,
+      "allocated_bytes": 13513363864,
+      "unique_files": 8287,
+      "categories": {
+        "settings_and_other_retained_files": {
+          "files": 11,
+          "logical_bytes": 5433449,
+          "allocated_bytes": 5448696,
+          "unique_files": 11
+        },
+        "ai_human_db": {
+          "files": 1,
+          "logical_bytes": 1671168,
+          "allocated_bytes": 1671168,
+          "unique_files": 1
+        },
+        "canonical_static_db": {
+          "files": 1,
+          "logical_bytes": 12590489600,
+          "allocated_bytes": 6392303616,
+          "unique_files": 1
+        },
+        "raw_worker_responses": {
+          "files": 3101,
+          "logical_bytes": 5391671884,
+          "allocated_bytes": 1410152688,
+          "unique_files": 3101
+        },
+        "diagnostics_and_audit": {
+          "files": 1151,
+          "logical_bytes": 6339529,
+          "allocated_bytes": 8294016,
+          "unique_files": 1151
+        },
+        "archived_evidence_objects": {
+          "files": 2664,
+          "logical_bytes": 18876101,
+          "allocated_bytes": 25178472,
+          "unique_files": 2664
+        },
+        "cache": {
+          "files": 776,
+          "logical_bytes": 5371819011,
+          "allocated_bytes": 1386323968,
+          "unique_files": 776
+        },
+        "shared_build_or_worktree": {
+          "files": 581,
+          "logical_bytes": 1125208665,
+          "allocated_bytes": 1126438088,
+          "unique_files": 581
+        },
+        "exports": {
+          "files": 1,
+          "logical_bytes": 3157552641,
+          "allocated_bytes": 3157553152,
+          "unique_files": 1
+        }
+      },
+      "stable": true,
+      "verification_files": 8287,
+      "differences": []
+    }
+  },
+  "historical_disk_peak": "NOT_RECONSTRUCTABLE",
+  "standard_package": "NOT_INCLUDED_UNLESS_EXPLICIT_SCOPE",
+  "full_G4": "NOT_CLOSED_BY_THIS_OBSERVER",
+  "retained_file_contents_read_or_written": false,
+  "allocation_scope": "NTFS FILE_STANDARD_INFO allocation, hardlink-deduplicated per policy; excludes directory/MFT/ADS"
+}

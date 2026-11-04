@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "all_gates_passed": false,
+  "scope": "Same complete published v32/native-v13 evidence, new container only; current bundled v37 strict importer and independent retention including compact standard package. Original deflate encoding retained as an explicit duplicate verification control, never deleted.",
+  "pid": 24400,
+  "archive": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v13-compact-bzip2-v1\\inav-seed0-v13-full-compact.ecra-report",
+  "job_limit_bytes": 2147483648,
+  "seconds": 2302.375,
+  "job_peak_commit_bytes": 616267776,
+  "strict_import": {
+    "passed": true,
+    "imported": {
+      "scan_id": "native-golden",
+      "imported_events": 0,
+      "repeated": false
+    },
+    "binding": {
+      "scan_id": "native-golden",
+      "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+      "profile_id": "same-golden-input",
+      "state": "UNVERIFIED",
+      "facts_hash": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+      "report_hash": "e7964f86b1883f827e30ec2ca30f4406dbcd945738404647b7422035a0f60c53"
+    },
+    "archive_sha256": "f3ad33322b79a28e4ca74634137be08f8d2bd65c10f8c50f58e6200585985042",
+    "seconds": 2294.6870000000054,
+    "scope": "Actual bundled v37 Python3.10.9, full unmodified standard importer/deep checks/default512MiB reader. No verification skipped, no new native producer or physical secondPC claim."
+  },
+  "standard_archive_included": true,
+  "before_allocated_bytes": 47665101856,
+  "after_allocated_bytes": 13513363864,
+  "reduction_percent": 71.64935489947146,
+  "final_size_target_70percent": "PASS",
+  "full_G4": "NOT_CLOSED_AUTOMATICALLY: sampled producer/output and archive-phase peaks remain separate; physical filesystem metadata excluded",
+  "original_deflate_archive_not_deleted": true
+}
