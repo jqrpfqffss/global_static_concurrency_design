@@ -36,7 +36,7 @@ REVIEW_REPORT_MODULES = frozenset({
     'case_library.py', 'decisions.py', 'html_report.py', 'report.py',
     'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
-    'native_consumers.py',
+    'native_consumers.py', 'review_inheritance.py',
 })
 
 

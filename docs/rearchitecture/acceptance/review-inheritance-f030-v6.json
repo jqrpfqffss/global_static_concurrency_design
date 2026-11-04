@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "Real approved firmware, repeat native scan, Chrome inheritance/undo/restart.\n\nRequires an explicitly supplied authorized config. Uses private data only;\ndoes not claim physical second-PC, Windows DPI, UAT or full G1-G8 acceptance.\n",
+  "tests": [
+    "REAL_F030_REPEAT_NATIVE_FULL_FACTS_EQUAL_AND_INHERITED",
+    "REAL_CHROME_SOURCE_AND_ZERO_CURRENT_EVENTS_UNDO_RELOAD",
+    "INDEPENDENT_FULL_IMPORT_AND_UNDO_DELTA_IDEMPOTENT"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-inheritance-f030-ui-v6\\01-inherited-source.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-inheritance-f030-ui-v6\\02-undo-reloaded.png"
+  ],
+  "fixture_origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\review-inheritance-f030-v3",
+  "original_files_unchanged": true,
+  "engine_unchanged": true,
+  "native_facts_hash": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+  "source_events_unchanged": true,
+  "current_events": 1,
+  "firmware_files": 43
+}

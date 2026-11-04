@@ -135,8 +135,7 @@ def copy_ai_receipts(source, destination, *, _connection=None):
 
 
 def copy_prior_decisions(source, destination, provider, *, _connection=None):
-    """Historical confirmations stay bound to their old evidence, never SAFE here."""
-    from .human_reviews import SCHEMA as REVIEW_SCHEMA
+    """Copy original history and independently verify optional inheritance proof."""
     with ExitStack() as stack:
         src=stack.enter_context(closing(sqlite3.connect(Path(source).resolve().as_uri()+'?mode=ro',uri=True)))
         src.execute('PRAGMA trusted_schema=OFF')
@@ -145,33 +144,24 @@ def copy_prior_decisions(source, destination, provider, *, _connection=None):
         dst=_connection
         if dst is None:
             dst=stack.enter_context(closing(sqlite3.connect(destination)));stack.enter_context(dst)
-        binding=provider.metadata()
-        for row in src.execute('SELECT symbol_id,fingerprint,source_scan,source_fingerprint,hash,payload FROM prior_decisions ORDER BY symbol_id,source_scan'):
-            sid,current,source_scan,source_fingerprint,hashed,raw=row
-            if hashlib.sha256(raw.encode()).hexdigest()!=hashed or provider.fingerprint(sid)!=current:
-                raise ValueError('历史确认与当前证据引用不一致')
-            value=json.loads(raw)
-            if not isinstance(value,dict) or set(value)!={'binding','symbol_id','fingerprint','events'}:
-                raise ValueError('历史确认载荷无效')
-            old=value['binding']
-            if (not isinstance(old,dict) or set(old)!={'scan_id','project_id','facts_hash','report_hash'}
-                    or old['scan_id']!=source_scan or old['project_id']!=binding['project_id']
-                    or source_scan==binding['scan_id'] or value['symbol_id']!=sid or value['fingerprint']!=source_fingerprint
-                    or not isinstance(value['events'],list)):
-                raise ValueError('历史确认扫描/对象身份不一致')
-            check=ReviewStore.__new__(ReviewStore);check.binding=old
-            with closing(sqlite3.connect(':memory:')) as proof:
-                proof.executescript(REVIEW_SCHEMA)
-                for event in sorted(value['events'],key=lambda e:(e['revision'],e['event_id'])):
-                    check._validate(event)
-                    if event['symbol_id']!=sid or event['fingerprint']!=source_fingerprint:
-                        raise ValueError('历史确认引用其他对象/证据')
-                    check._insert(proof,event)
-            existing=dst.execute('SELECT symbol_id,fingerprint,source_scan,source_fingerprint,hash,payload FROM prior_decisions WHERE symbol_id=? AND source_scan=?',(sid,source_scan)).fetchone()
-            if existing is not None and existing!=row:
-                raise ValueError('同一历史确认来源包含不同内容')
-            if existing is None:
-                dst.execute('INSERT INTO prior_decisions VALUES (?,?,?,?,?,?)',row)
+        copy_prior_rows(list(src.execute('SELECT * FROM prior_decisions ORDER BY symbol_id,source_scan')), dst, provider)
+
+
+def copy_prior_rows(rows, destination, provider):
+    from .review_inheritance import validate_prior, validate_lineage
+    if not isinstance(rows, list) or any(not isinstance(r, (list,tuple)) or len(r)!=6 for r in rows):
+        raise ValueError('历史确认行格式无效')
+    for raw in rows:
+        row=tuple(raw)
+        validate_prior(row,provider)
+        existing=destination.execute('SELECT * FROM prior_decisions WHERE symbol_id=? AND source_scan=?',
+            (row[0],row[2])).fetchone()
+        if existing is not None and tuple(existing)!=row:
+            raise ValueError('同一历史确认来源包含不同内容')
+        if existing is None:
+            destination.execute('INSERT INTO prior_decisions VALUES (?,?,?,?,?,?)',row)
+    values=[json.loads(r[0]) for r in destination.execute('SELECT payload FROM prior_decisions')]
+    validate_lineage(values, [])
 
 
 def validate_objects(directory, manifest, *, max_raw_bytes=128*1024**3):
@@ -265,9 +255,9 @@ def export_report(scan_directory, destination, *, compression='compact'):
         events = _review_events(stage/'reviews.db', binding)
         # Validate all original immutable events in a fresh trusted schema.
         check = ReviewStore(stage/'check.db', binding)
+        copy_prior_decisions(stage/'reviews.db',stage/'check.db',provider)
         check.merge(events, fingerprint_for=provider.fingerprint)
         copy_ai_receipts(stage/'reviews.db', stage/'check.db')
-        copy_prior_decisions(stage/'reviews.db',stage/'check.db',provider)
         files = {'scan.db': stage/'scan.db', 'reviews.db': stage/'reviews.db'}
         evidence = source/'evidence'
         if evidence.exists():
@@ -386,9 +376,9 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
         # Rebuild untrusted reviews into our schema before any write/query with
         # a writable connection. Imported SQL/triggers are never executed.
         clean = ReviewStore(stage/'clean-reviews.db', binding)
+        copy_prior_decisions(stage/'reviews.db',stage/'clean-reviews.db',provider)
         clean.merge(events, fingerprint_for=provider.fingerprint)
         copy_ai_receipts(stage/'reviews.db', stage/'clean-reviews.db')
-        copy_prior_decisions(stage/'reviews.db',stage/'clean-reviews.db',provider)
         (stage/'reviews.db').unlink()
         (stage/'clean-reviews.db').replace(stage/'reviews.db')
         destination = no_links(data/'scans'/binding['scan_id'])
@@ -442,6 +432,16 @@ def export_delta(scan_directory, destination):
     events = _review_events(source/'reviews.db', binding)
     payload = dict(format='ECRA_REVIEW_DELTA', version=1,
                    binding={key: binding[key] for key in ('scan_id', 'project_id', 'facts_hash', 'report_hash')}, events=events)
+    with closing(sqlite3.connect((source/'reviews.db').resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+        prior=[list(r) for r in conn.execute('SELECT * FROM prior_decisions ORDER BY symbol_id,source_scan')]
+        if prior:
+            payload['prior_decisions']=prior
+    # Validate the same lineage that the receiving computer will require.
+    with tempfile.TemporaryDirectory(prefix='ecra delta check ',dir=destination.parent if destination.parent.exists() else None) as folder:
+        check=ReviewStore(Path(folder)/'reviews.db',binding)
+        with check.connection() as conn:
+            copy_prior_rows(payload.get('prior_decisions',[]),conn,provider)
+            check.merge(events,fingerprint_for=provider.fingerprint,_connection=conn)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ecra delta ', dir=destination.parent) as folder:
         temp = Path(folder)/'delta.pending'
@@ -462,5 +462,8 @@ def import_delta(package, scan_directory, *, max_bytes=256*1024**2):
         raise ValueError('增量包不属于此扫描/证据版本，需重新确认')
     if not isinstance(payload.get('events'), list):
         raise ValueError('增量包缺少完整人工事件')
-    imported = ReviewStore(Path(scan_directory)/'reviews.db', binding).merge(payload['events'], fingerprint_for=provider.fingerprint)
+    store=ReviewStore(Path(scan_directory)/'reviews.db', binding)
+    with store.connection() as conn:
+        copy_prior_rows(payload.get('prior_decisions',[]),conn,provider)
+        imported=store.merge(payload['events'],fingerprint_for=provider.fingerprint,_connection=conn)
     return dict(imported_events=imported, scan_id=binding['scan_id'])

@@ -187,6 +187,29 @@ class CanonicalScanTests(unittest.TestCase):
         store.append(symbol,fp,reviewer='重新确认',decision='CONFIRMED_RISK',comment='当前依据')
         self.assertEqual(store.current(symbol,fp)['decision'],'CONFIRMED_RISK')
 
+    def test_unchanged_real_native_rescan_inherits_only_original_confirmation(self):
+        from ecra.human_reviews import ReviewStore
+        from ecra.studio.query import QueryService
+        before={p.name:sha256(p) for p in self.root.iterdir()}
+        out,_=self.run_scan()
+        provider=EvidenceProvider(out/'scan.db')
+        sid=provider.symbols()['items'][0]['symbol_id']
+        store=ReviewStore(out/'reviews.db',provider.metadata())
+        original=store.append(sid,provider.fingerprint(sid),reviewer='真实解析验收声明',
+            decision='CONFIRMED_SAFE',comment='自动化继承验收声明，不代表固件安全')
+        previous_static=sha256(out/'scan.db')
+        newer,_=self.run_scan()
+        current=EvidenceProvider(newer/'scan.db')
+        reopened=ReviewStore(newer/'reviews.db',current.metadata())
+        self.assertNotEqual(out,newer)
+        self.assertEqual(provider.metadata()['facts_hash'],current.metadata()['facts_hash'])
+        self.assertTrue(reopened.current(sid,current.fingerprint(sid))['inherited'])
+        self.assertEqual(QueryService(newer).human_counts(),{'CONFIRMED_SAFE':1})
+        self.assertEqual(reopened.history(),[])
+        self.assertEqual(reopened.prior(sid,current.fingerprint(sid))[0]['events'],[original])
+        self.assertEqual(sha256(out/'scan.db'),previous_static)
+        self.assertEqual({p.name:sha256(p) for p in self.root.iterdir()},before)
+
     def test_actual_cmake_external_arm_object_build_does_not_create_firmware_outputs(self):
         import shutil
         import subprocess

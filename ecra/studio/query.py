@@ -13,7 +13,7 @@ HUMAN_HEADS = """WITH current_heads AS (
  SELECT c.symbol_id,CASE WHEN c.decision='PENDING' AND EXISTS(
  SELECT 1 FROM human.prior_decisions p WHERE p.symbol_id=c.symbol_id)
  THEN 'RECHECK_REQUIRED' ELSE c.decision END AS decision,c.handling_status FROM current_heads c
- UNION ALL SELECT DISTINCT p.symbol_id,'RECHECK_REQUIRED','TODO' FROM human.prior_decisions p
+ UNION ALL SELECT DISTINCT p.symbol_id,ecra_inherited_decision(p.symbol_id),ecra_inherited_handling(p.symbol_id) FROM human.prior_decisions p
  WHERE NOT EXISTS(SELECT 1 FROM current_heads c WHERE c.symbol_id=p.symbol_id))
 """
 
@@ -22,6 +22,19 @@ class QueryService:
     def __init__(self, scan_path):
         self.path = Path(scan_path)
         self.evidence = EvidenceProvider(self.path/'scan.db')
+
+    def _attach_human(self, conn):
+        from ..review_inheritance import inherited_state
+        conn.execute('ATTACH DATABASE ? AS human',((self.path/'reviews.db').resolve().as_uri()+'?mode=ro',))
+        conn.execute('BEGIN')
+        states={}
+        def state(sid):
+            if sid not in states:
+                rows=conn.execute('SELECT * FROM human.prior_decisions WHERE symbol_id=?',(sid,)).fetchall()
+                states[sid]=inherited_state(rows,self.evidence)
+            return states[sid]
+        conn.create_function('ecra_inherited_decision',1,lambda sid:state(sid)['decision'])
+        conn.create_function('ecra_inherited_handling',1,lambda sid:state(sid)['handling_status'])
 
     def symbols(self, *, search='', classification='', human_decision='', handling_status='',
                 file='',function='',context='',coverage='',ai_state='',diff='',symbol_id='',sort='priority',order='asc',offset=0, limit=50):
@@ -80,7 +93,7 @@ class QueryService:
         # Only a service-owned, schema-validated reviews path can be attached.
         # No arbitrary file path is accepted from an API request.
         with closing(connect_readonly(self.path/'scan.db')) as conn:
-            conn.execute('ATTACH DATABASE ? AS human', ((self.path/'reviews.db').resolve().as_uri()+'?mode=ro',))
+            self._attach_human(conn)
             cte = HUMAN_HEADS
             source = ' FROM symbols s LEFT JOIN heads h ON h.symbol_id=s.symbol_id'+where
             total = conn.execute(cte+'SELECT count(*)'+source, args).fetchone()[0]
@@ -105,7 +118,7 @@ class QueryService:
 
     def human_counts(self):
         with closing(connect_readonly(self.path/'scan.db')) as conn:
-            conn.execute('ATTACH DATABASE ? AS human',((self.path/'reviews.db').resolve().as_uri()+'?mode=ro',))
+            self._attach_human(conn)
             return dict(conn.execute(HUMAN_HEADS+"SELECT coalesce(h.decision,'PENDING'),count(*) "
                 "FROM symbols s LEFT JOIN heads h ON h.symbol_id=s.symbol_id GROUP BY coalesce(h.decision,'PENDING')"))
 

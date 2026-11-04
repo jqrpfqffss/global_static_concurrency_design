@@ -115,13 +115,24 @@ class ReviewStore:
 
     def current(self, symbol_id, fingerprint):
         with self.connection() as conn:
-            heads = self._heads(conn, symbol_id, fingerprint)
-            prior=bool(conn.execute('SELECT 1 FROM prior_decisions WHERE symbol_id=? AND fingerprint=?',(symbol_id,fingerprint)).fetchone())
+            return self._current(conn, symbol_id, fingerprint)
+
+    def _current(self, conn, symbol_id, fingerprint):
+        heads = self._heads(conn, symbol_id, fingerprint)
+        rows = conn.execute('SELECT * FROM prior_decisions WHERE symbol_id=? AND fingerprint=?',
+            (symbol_id,fingerprint)).fetchall()
+        prior = bool(rows)
+        if prior and not heads and (self.path.parent/'scan.db').is_file():
+            from .review_inheritance import inherited_state
+            from .scan_store import EvidenceProvider
+            state = inherited_state(rows, EvidenceProvider(self.path.parent/'scan.db'))
+            return dict(heads=[], has_prior=True, **state)
         decision=heads[0]['decision'] if len(heads)==1 else 'CONFLICT' if heads else 'PENDING'
         if prior and decision=='PENDING':
             decision='RECHECK_REQUIRED'
         return dict(heads=heads, conflict=len(heads)>1, decision=decision,
-                    handling_status=heads[0]['handling_status'] if len(heads)==1 else 'TODO',has_prior=prior)
+                    handling_status=heads[0]['handling_status'] if len(heads)==1 else 'TODO',has_prior=prior,
+                    inherited=False, inherited_sources=[])
 
     def prior(self, symbol_id, fingerprint):
         with self.connection() as conn:
@@ -129,12 +140,9 @@ class ReviewStore:
                 'SELECT payload FROM prior_decisions WHERE symbol_id=? AND fingerprint=? ORDER BY source_scan', (symbol_id,fingerprint))]
 
     def inherit_from(self, previous, old_provider, new_provider):
-        """Associate canonical IDs only; never copy an old SAFE into this scan.
-
-        Original events keep their original scan/fingerprint. New confirmation
-        is a separate current-scan event, with historical evidence visible.
-        """
+        """Keep original events; derive inheritance only from complete evidence."""
         import hashlib
+        from .review_inheritance import input_witness, verify_witness, validate_prior, validate_lineage
         if previous.binding['project_id']!=self.binding['project_id']:
             raise ValueError('不能关联其他工程的人工历史')
         old={}
@@ -142,12 +150,18 @@ class ReviewStore:
             for (symbol,) in conn.execute('SELECT DISTINCT symbol_id FROM events ORDER BY symbol_id'):
                 fingerprint=old_provider.fingerprint(symbol)
                 heads=previous._heads(conn,symbol,fingerprint)
-                if heads and any(head['decision']!='PENDING' for head in heads):
+                has_prior=conn.execute('SELECT 1 FROM prior_decisions WHERE symbol_id=?',(symbol,)).fetchone()
+                if heads and (has_prior or any(head['decision']!='PENDING' for head in heads)):
                     history=[json.loads(row[0]) for row in conn.execute('SELECT payload FROM events WHERE symbol_id=? ORDER BY revision,event_id',(symbol,))]
                     old[(symbol,previous.binding['scan_id'])]=dict(binding=previous.binding,symbol_id=symbol,
                         fingerprint=fingerprint,events=history)
-            for symbol,source,payload in conn.execute('SELECT symbol_id,source_scan,payload FROM prior_decisions'):
-                old.setdefault((symbol,source),json.loads(payload))
+                    witness=input_witness(old_provider)
+                    if witness is not None:
+                        old[(symbol,previous.binding['scan_id'])]['inheritance']=witness
+            for row in conn.execute('SELECT * FROM prior_decisions'):
+                value,_=validate_prior(row,old_provider)
+                old.setdefault((row[0],row[2]),value)
+        validate_lineage(list(old.values()), [])
         inserted=0
         with self.connection() as conn:
             for (symbol,source),value in old.items():
@@ -155,6 +169,8 @@ class ReviewStore:
                     current=new_provider.fingerprint(symbol)
                 except KeyError:
                     continue  # renamed/deleted storage is not matched by name
+                if not verify_witness(value,new_provider):
+                    value={k:v for k,v in value.items() if k!='inheritance'}
                 payload=json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'))
                 hashed=hashlib.sha256(payload.encode()).hexdigest()
                 row=(symbol,current,source,value['fingerprint'],hashed,payload)
@@ -169,24 +185,30 @@ class ReviewStore:
                comment='', expected_heads=(), resolve=False):
         with self.connection() as conn:
             heads = self._heads(conn, symbol_id, fingerprint)
+            state = self._current(conn, symbol_id, fingerprint)
             actual = sorted(e['event_id'] for e in heads)
             if sorted(expected_heads) != actual:
                 raise ReviewConflict('此变量已有其他确认，请重新读取双方事件再保存')
-            if len(heads)>1 and not resolve:
+            if state['conflict'] and not resolve:
                 raise ReviewConflict('离线确认发生冲突；必须显式查看并解决全部分支')
-            if len(heads)>1 and not comment.strip():
+            if state['conflict'] and not comment.strip():
                 raise ValueError('解决冲突必须填写依据')
             event = dict(event_id=str(uuid.uuid4()), **{k: self.binding[k] for k in ('scan_id', 'project_id')},
                 symbol_id=symbol_id, fingerprint=fingerprint, reviewer=reviewer.strip(),
                 timestamp=datetime.now(timezone.utc).isoformat(), decision=decision,
                 handling_status=handling_status, comment=comment, revision=max((e['revision'] for e in heads), default=0)+1,
                 device=self.device, parents=actual)
+            prior=[json.loads(row[0]) for row in conn.execute(
+                'SELECT payload FROM prior_decisions WHERE symbol_id=? AND fingerprint=?',(symbol_id,fingerprint))]
+            if prior:
+                from .review_inheritance import references
+                event['evidence_parents']=references(prior)
             self._validate(event)
             self._insert(conn, event)
         return event
 
     def _validate(self, event):
-        if not isinstance(event, dict) or set(event) != set(FIELDS):
+        if not isinstance(event, dict) or set(event) not in (set(FIELDS), set(FIELDS)|{'evidence_parents'}):
             raise ValueError('人工事件字段不完整或版本未知')
         if any(not isinstance(event[k], str) for k in FIELDS if k not in {'revision', 'parents'}):
             raise ValueError('人工事件字段类型错误')
@@ -203,6 +225,15 @@ class ReviewStore:
         if (not isinstance(event['parents'], list) or any(not isinstance(p, str) for p in event['parents'])
                 or len(event['parents']) != len(set(event['parents'])) or event['event_id'] in event['parents']):
             raise ValueError('事件前驱无效')
+        if 'evidence_parents' in event:
+            refs=event['evidence_parents']
+            if (not isinstance(refs,list) or not refs or any(not isinstance(r,dict)
+                    or set(r)!={'scan_id','event_id','fingerprint'}
+                    or any(not isinstance(v,str) or not v.strip() for v in r.values())
+                    or r['scan_id']==event['scan_id'] for r in refs)):
+                raise ValueError('跨扫描人工事件前驱无效')
+            if len({(r['scan_id'],r['event_id']) for r in refs})!=len(refs):
+                raise ValueError('跨扫描人工事件前驱重复')
         try:
             stamp = datetime.fromisoformat(event['timestamp'])
             if stamp.tzinfo is None or stamp.utcoffset().total_seconds() != 0:
@@ -242,6 +273,9 @@ class ReviewStore:
             raise ValueError('人工事件必须是完整对象列表')
         imported = 0
         with (self.connection() if _connection is None else nullcontext(_connection)) as conn:
+            from .review_inheritance import validate_lineage
+            prior=[json.loads(row[0]) for row in conn.execute('SELECT payload FROM prior_decisions')]
+            validate_lineage(prior,events)
             for event in sorted(events, key=lambda e: (e.get('revision', -1), e.get('event_id', ''))):
                 self._validate(event)
                 if fingerprint_for(event['symbol_id']) != event['fingerprint']:
@@ -262,8 +296,11 @@ class ReviewStore:
         if not comment.strip():
             raise ValueError('撤销需填写理由，原确认会保留在历史中')
         state = self.current(symbol_id, fingerprint)
-        if state['conflict'] or len(state['heads']) != 1:
+        if state['conflict'] or (len(state['heads']) != 1 and not state['inherited']):
             raise ReviewConflict('没有可直接撤销的唯一确认；请先解决冲突')
+        if state['inherited']:
+            return self.append(symbol_id,fingerprint,decision='PENDING',reviewer=reviewer,
+                comment=f"撤销沿用确认：{comment}",expected_heads=expected_heads)
         head = state['heads'][0]
         history = {event['event_id']: event for event in self.history(symbol_id)}
         previous = history[head['parents'][0]] if len(head['parents']) == 1 else None
