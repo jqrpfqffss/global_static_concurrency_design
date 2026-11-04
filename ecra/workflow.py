@@ -257,6 +257,8 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
     if not capsule_file.is_file() or file_digest(capsule_file) != expected_hash:
         raise ValueError('扫描输入闭包已变化/损坏；请重新运行 run')
     capsule = read_json(capsule_file)
+    if capsule.get('frozen_view') is not None:
+        raise ValueError('冻结父进程输入的正式恢复链路尚未完成验收；请保留原数据，当前不能忽略视图身份读取实时源码')
     from .input_snapshot import runtime_environment
     if capsule.get('environment') != runtime_environment():
         raise ValueError('构建/Clang 运行环境已变化或旧检查点缺少环境绑定；请重新扫描，不能复用旧事实')

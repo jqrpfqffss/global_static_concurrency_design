@@ -12,8 +12,9 @@
 | 外部build/SDK完整边界 | 实际原编译数据库工作目录及3个真实ARM GCC头目录 | 1667外部文件、共1710项冻结文件完整复核；获准原工程/配置/DB、私有Git副本、外部build/SDK、当前引擎均无变化 | 同当前收据，PASS_SCOPED |
 | 更早内部实现对照 | PENDING发布检查前的4TU版本 | 231.969s、8进程完整0/0；保留当时引擎SHA，不能移作最终发布状态验收 | [历史收据](evidence/working-view-approved-f030-initial-v1.json)，历史PASS_SCOPED |
 | 较早扩展回归 | 116项，运行时源码仍在编辑 | 115PASS/1FAIL，733.188s；既有引擎变化保护正确拒绝混用版本。此运行不能写为最终源码通过，须改用固定副本复跑 | FAIL_CONTROLLER_SOURCE_MUTATION，日志/哈希保留在源码收据 |
+| 冻结副本扩展复跑 | 提交`4967b7dfdcd6a80e22f267af5f8fd20f809a8e4c`的3434文件；manifest `de12c769fbfd245aa61a6293073a138fa23309b086c8affb7c14cf79a4731286` | 118/118、754.451s（含前后完整SHA控制757.891s），全部源文件0变化；新增外部cwd与PENDING反例也执行 | [冻结复跑](evidence/working-view-frozen-related-v2.json)，PASS_SCOPED；旧失败保留 |
 | 较早专项命令 | `test_scan_stability`的既有顶层`test_ecra`依赖 | 22PASS/1ImportError；修正`sys.path`后的最终56项通过 | CONTROLLER_COMMAND_ERROR，旧日志不覆盖 |
-| 正式dirty、完整Diff/构建、统一回归/分发 | `prepare_current(true)`及正式门禁仍维持原行为 | 当前新增7项后完整发现预期1430；尚未执行全部新源码回归。前一R1冻结v37/1423是另一固定候选 | NOT_VERIFIED；`all_gates_passed=false` |
+| 正式dirty、完整Diff/构建、统一回归/分发 | `prepare_current(true)`及正式门禁仍维持原行为 | 新增7项后完整1430正在上述冻结源码的独立测试副本执行，未结束不能宣称通过。前一R1冻结v37/1423已完成1421PASS/2联网SKIP，是另一固定候选 | NOT_VERIFIED完整当前门禁；`all_gates_passed=false` |
 
 F030对照完整事实SHA为`3b761eb37b389f270de2e1174b38c06388707e18509e296cba6095655a1b558b`，完整分析报告SHA为`f5a089cc3a5bcc5f0682431e1afb198cb92c592b7e48ed491c74785c22d317b1`，两侧分别相同；先完成全字段比较再记录摘要。独立副本只为验证文件视图，原生提取未以旧facts JSON回放替代。但它不是原路径黄金全扫描、不是新G2工程，也不是正式dirty Diff通过。私有Git中的暂存/工作区审计标记不同，真实编译源未因此被改成另一个固件；编译源暂存/工作区不同等反例由7项原生Worker测试覆盖。
 

@@ -187,10 +187,11 @@ def preprocessor_signature(tu):
 
 
 class InputSnapshot:
-    def __init__(self, root, diagnostics, explicit, consumed=None):
+    def __init__(self, root, diagnostics, explicit, consumed=None, *, file_view=None):
         self.root, self.diagnostics = Path(root), Path(diagnostics)
+        self.file_view=file_view
         self.environment = runtime_environment()
-        self.before = {relative(p, root): file_record(p) for p in explicit}
+        self.before = {relative(p, root): self.file_record(p) for p in explicit}
         self.dependencies = {}
         self.preprocessor = {}
         self.units = {}
@@ -202,11 +203,17 @@ class InputSnapshot:
         self.status = 'DISCOVERING'
         for path, record in (consumed or {}).items():
             key = relative(path, root)
-            disk = self.before.get(key) or file_record(path)
+            disk = self.before.get(key) or self.file_record(path)
             self.before[key] = record
             self.compare(key, record, disk, 'CONFIGURATION_CHANGED_AFTER_READ')
         if self.changes:
             self.status = 'INVALID'
+
+    def file_record(self,path):
+        return self.file_view.file_record(path) if self.file_view is not None else file_record(path)
+
+    def selected_files(self,directory,pattern):
+        return self.file_view.select_files(directory,pattern) if self.file_view is not None else Path(directory).glob(pattern)
 
     def record_change(self, path, reason, before, after, **evidence):
         self.changes.append(dict(file=path, reason=reason, before=before, after=after, **evidence))
@@ -218,7 +225,7 @@ class InputSnapshot:
         self.preprocessor[unit['tu_id']] = signature
         for path, consumed in inputs.items():
             key = relative(path, self.root)
-            disk = file_record(path)
+            disk = self.file_record(path)
             if key not in self.before:
                 self.before[key] = disk
             self.compare(key, self.before[key], consumed, 'DEPENDENCY_CONTENT_CHANGED', unit=unit['tu_id'])
@@ -242,7 +249,7 @@ class InputSnapshot:
             self.before[key] = self.optional_before[key]
         expected = self.before.get(key)
         try:
-            data = path.read_bytes()
+            data = self.file_view.read_bytes(path) if self.file_view is not None else path.read_bytes()
         except OSError as exc:
             consumed = dict(status='MISSING' if isinstance(exc, FileNotFoundError) else 'UNREADABLE',
                             sha256=None, error=f'{type(exc).__name__}: {exc}')
@@ -273,17 +280,17 @@ class InputSnapshot:
 
     def register_selection(self,directory,pattern):
         directory = Path(directory).resolve()
-        files = sorted(relative(path,self.root) for path in directory.glob(pattern))
+        files = sorted(relative(path,self.root) for path in self.selected_files(directory,pattern))
         key = str(directory),pattern
         self.parent_selections[key] = dict(directory=str(directory),pattern=pattern,files=files)
         # The constructor proof reads a map only when it is unique. Unused
         # candidates do not become strict inputs or cause unrelated failures.
         if len(files)==1 and files[0] not in self.before:
-            self.optional_before[files[0]] = file_record(self.root/files[0])
+            self.optional_before[files[0]] = self.file_record(self.root/files[0])
 
     def _verify_selection(self,key,phase):
         record = self.parent_selections[key]
-        current = sorted(relative(path,self.root) for path in Path(record['directory']).glob(record['pattern']))
+        current = sorted(relative(path,self.root) for path in self.selected_files(record['directory'],record['pattern']))
         if current != record['files']:
             self.record_change(relative(record['directory'],self.root)+'/'+record['pattern'],
                 'PARENT_INPUT_SET_CHANGED',dict(files=record['files']),dict(files=current),phase=phase)
@@ -321,9 +328,11 @@ class InputSnapshot:
         # Immutable replay data is separate from the evolving diagnostic file.
         # Resume must rediscover resolution/negative include probes, rather than
         # merely hash the files which happened to exist at scan time.
-        write_json(self.diagnostics.parent / 'input_closure.json', dict(schema=1,
+        capsule=dict(schema=1,
                    units=list(self.units.values()), dependency_sets=self.dependencies,
-                   preprocessor_signatures=self.preprocessor, environment=self.environment), indent=None)
+                   preprocessor_signatures=self.preprocessor, environment=self.environment)
+        if self.file_view is not None:capsule['frozen_view']=self.file_view.identity
+        write_json(self.diagnostics.parent / 'input_closure.json',capsule,indent=None)
 
     def observe(self, unit, inputs, phase='EXTRACTION', signature=None):
         expected_signature = self.preprocessor.get(unit['tu_id'])
@@ -341,10 +350,11 @@ class InputSnapshot:
                              unit=unit['tu_id'], phase=phase)
 
     def verify_disk(self):
+        if self.file_view is not None:self.file_view.assert_valid()
         current_environment = runtime_environment()
         if current_environment != self.environment:
             self.record_change('<environment>', 'BUILD_ENVIRONMENT_CHANGED', self.environment, current_environment)
-        after = {p: file_record(self.root / p) for p in self.before}
+        after = {p: self.file_record(self.root / p) for p in self.before}
         for path, before in self.before.items():
             self.compare(path, before, after[path], 'INPUT_CONTENT_CHANGED')
         for key in sorted(self.used_selections):
@@ -354,10 +364,12 @@ class InputSnapshot:
         return {p: r['sha256'] for p, r in after.items() if r['status'] == 'OK'}
 
     def save(self):
-        write_json(self.diagnostics / 'source_changes.json', dict(schema=1, status=self.status,
+        record=dict(schema=1, status=self.status,
                    changes=self.changes, inputs_before=self.before, inputs_after=getattr(self, 'after', {}),
                    dependency_sets=self.dependencies, preprocessor_signatures=self.preprocessor,
-                   parent_reads=self.parent_reads,parent_selections=self.consumed_selections()))
+                   parent_reads=self.parent_reads,parent_selections=self.consumed_selections())
+        if self.file_view is not None:record['frozen_view']=self.file_view.identity
+        write_json(self.diagnostics / 'source_changes.json',record)
 
     def assert_valid(self):
         if self.changes:

@@ -1,0 +1,109 @@
+{
+  "passed": true,
+  "scope": "R2b internal frozen parent reads, full captured directories and pinned metadata files; formal dirty full CLI/build/Diff/resume remain blocked.",
+  "previous_head": "4967b7dfdcd6a80e22f267af5f8fd20f809a8e4c",
+  "source_sha256": {
+    "ecra/input_snapshot.py": "db21fa3ce6e2fc5ecb9d7ad2b6e688ed9b416b075874325cc5c805b064629a02",
+    "ecra/workflow.py": "464b8b3dad3e60590ff8f809243495d69d1a391ce91f66cf2b54bfdd05e169a5",
+    "ecra/working_snapshot.py": "abb3b627093a80fef8d8a5385bd1a7ccb94d0ab662fe581d1b1208bf13300a50",
+    "ecra/working_compiler_view.py": "6fa2044f46b425b97ca86cda91583903a86d5d96ca8b108f90ef2c40df7d2201",
+    "tests/test_frozen_parent_inputs.py": "c1d3108f3e0566b13898ba377a7440e4aaf0492527521a1eb4bf43c00df4c4aa",
+    "docs/rearchitecture/73-frozen-parent-input-contract.md": "2946a3369d2c21d810b0ecfd4ba2ed281b6ecf33a0a6037a14db5bb2f0ef5655"
+  },
+  "tests": {
+    "summary_ok": true,
+    "tests": 65,
+    "passed_tests": 65,
+    "seconds": 232.087,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "artifacts": [
+    {
+      "file": "docs/rearchitecture/evidence/frozen-parent-approved-f030-v2.json",
+      "sha256": "400eb52b3b2b8d4561be5bd50264e84b1ab0daa34f386fce07410b8c7c06c56e"
+    },
+    {
+      "file": "docs/rearchitecture/evidence/frozen-parent-approved-f030-driver-v2.py",
+      "sha256": "34de3cf7bc8a6426a35557de9633b746888e4b5d52767560742c8d6819aa6f75"
+    }
+  ],
+  "logs": {
+    "frozen-parent-input-initial-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-input-initial-v1.log",
+      "sha256": "d4ca3e53917a3a8baa085df672b322652ce91dc64b2ef99a4fce61b6499e425e",
+      "bytes": 3197
+    },
+    "frozen-parent-input-focused-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-input-focused-v1.log",
+      "sha256": "c52676d489f5b9d6e7b09ad17f1ca3b12c7f5157644fe4308b1de58639ed5015",
+      "bytes": 7326
+    },
+    "frozen-parent-input-focused-v2.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-input-focused-v2.log",
+      "sha256": "6636cbf99057b6f1ea973380dc816675cd9b8bca4bbca4c6e9f46157b0a2487c",
+      "bytes": 1664
+    },
+    "frozen-parent-input-related-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-input-related-v1.log",
+      "sha256": "6d468682fb99daa82c31cf08c973be89fa7fcd655452961ec30574c2e0b52e73",
+      "bytes": 8169
+    },
+    "frozen-parent-real-proof-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-real-proof-v1.log",
+      "sha256": "e978dbe0871a6fbcc7b74648d167d9259f31aa3a3b1442015a0ef9da7fbac27a",
+      "bytes": 374
+    },
+    "frozen-parent-input-related-final-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-input-related-final-v1.log",
+      "sha256": "5540e71707cf9dd09544aba4e923a45e16d3d8b1651796a80ae1691bb29cd749",
+      "bytes": 8439
+    },
+    "frozen-parent-input-related-final-v2.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-input-related-final-v2.log",
+      "sha256": "1f50acb4ba5f9cc238e1ec8b539d06a5332f89680274f3d146bfb8c1134436d4",
+      "bytes": 8583
+    },
+    "frozen-parent-unused-directory-regression-v1.log": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-parent-unused-directory-regression-v1.log",
+      "sha256": "194a440d5861c800bfbdb494067c92781d9a1d7f61be0fb52b714a61fd038145",
+      "bytes": 1727
+    }
+  },
+  "retained_failures": [
+    {
+      "log": "frozen-parent-input-focused-v1.log",
+      "tests": 6,
+      "errors": 5,
+      "reason": "Fixture incorrectly put compile_commands.json in the data-root ancestor; production source/build boundary correctly rejected it. Corrected fixture places metadata in separate directory."
+    },
+    {
+      "log": "frozen-parent-input-focused-v2.log",
+      "tests": 6,
+      "failures": 1,
+      "reason": "Deleted captured empty directory changed map ambiguity; fixed by validating full frozen directory/file set before selection."
+    },
+    {
+      "log": "frozen-parent-unused-directory-regression-v1.log",
+      "tests": 1,
+      "errors": 1,
+      "reason": "An unused single directory candidate must retain the original optional-input semantics; directory records and read errors now preserve that behavior. Final65 passed."
+    }
+  ],
+  "native_actual_workers": 8,
+  "native_actual_TUs": 4,
+  "native_source_copy_seconds": 384.7030000000086,
+  "full_facts_difference": 0,
+  "full_analysis_report_difference": 0,
+  "original_inputs_unchanged": true,
+  "expected_full_discovery": 1439,
+  "full_current_regression": "NOT_YET_RUN",
+  "current_portable": "V37_R1_DIFFERENT_SOURCE",
+  "formal_dirty_enabled": false,
+  "full_build_diff_equivalence": "NOT_VERIFIED",
+  "all_gates_passed": false,
+  "previous_acceptance": "docs/rearchitecture/evidence/frozen-parent-source-acceptance-v1.json"
+}

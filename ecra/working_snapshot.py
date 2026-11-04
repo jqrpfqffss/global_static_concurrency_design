@@ -18,11 +18,12 @@ import uuid
 from .workspace import context,no_links,canonical,studio_data_root
 from .portable import bundle_root
 
-SCHEMA="""
+LEGACY_SCHEMA="""
 CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE files(relative TEXT PRIMARY KEY,sha256 TEXT NOT NULL,size INTEGER NOT NULL,mtime_ns INTEGER NOT NULL);
 CREATE TABLE index_objects(oid TEXT PRIMARY KEY);
 """
+SCHEMA=LEGACY_SCHEMA+'\nCREATE TABLE directories(relative TEXT PRIMARY KEY);\n'
 
 
 def _git_argv(root,*args):
@@ -118,7 +119,7 @@ def capture(root,cfg,progress=None):
     with closing(sqlite3.connect(database)) as conn:
         conn.execute('PRAGMA synchronous=FULL');conn.executescript(SCHEMA)
         def meta(key,value):conn.execute('INSERT OR REPLACE INTO meta VALUES (?,?)',(key,json.dumps(value,ensure_ascii=False)))
-        meta('state','PENDING');meta('project_id',workspace.project_id);meta('repository_root',str(repo));conn.commit()
+        meta('state','PENDING');meta('capture_schema',2);meta('project_id',workspace.project_id);meta('repository_root',str(repo));conn.commit()
         try:
             head=_git(repo,'rev-parse','HEAD').decode('ascii').strip();meta('head',head)
             working_before=_working_digest(repo,folder,'working-before.z')
@@ -157,6 +158,10 @@ def capture(root,cfg,progress=None):
                     item=current/name
                     if item.is_symlink() or getattr(item.lstat(),'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT:
                         raise ValueError('输入含重解析点，未能证明隔离等价: '+str(item))
+                for name in dirs:
+                    relative=(current/name).relative_to(repo).as_posix()
+                    (tree/relative).mkdir(parents=True,exist_ok=True)
+                    conn.execute('INSERT INTO directories VALUES (?)',(relative,))
                 for name in names:
                     source=current/name;relative=source.relative_to(repo).as_posix();target=no_links(tree/relative)
                     if not source.is_file():raise ValueError('输入不是普通文件: '+relative)
@@ -183,7 +188,7 @@ def capture(root,cfg,progress=None):
             meta('status_sha256',_hash(folder/'status.z'))
             meta('captured_at',datetime.now(timezone.utc).isoformat());conn.commit()
             progress(f'工作输入捕获完成 {files} 个文件；尚未证明构建与宏等价')
-            return dict(folder=str(folder),source_root=str(tree/Path(root).resolve().relative_to(repo)),
+            return dict(capture_schema=2,folder=str(folder),source_root=str(tree/Path(root).resolve().relative_to(repo)),
                 repository_root=str(tree),manifest=str(database),project_id=workspace.project_id,files=files,bytes=total,
                 proof='BYTES_AND_INDEX_ONLY_NOT_BUILD_EQUIVALENCE')
         except BaseException as exc:
@@ -202,10 +207,15 @@ def validate(result,root,cfg,*,reverify_original=True):
             or not folder.is_relative_to(studio_data_root(workspace.workspace_root))):
         raise ValueError('捕获目录不属于已有Resolver工作树范围')
     database=no_links(folder/'capture.db');tree=no_links(folder/'source')
-    validate_schema(database,SCHEMA)
+    with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True)) as catalog:
+        catalog.execute('PRAGMA query_only=ON');catalog.execute('PRAGMA trusted_schema=OFF')
+        has_directories=bool(catalog.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='directories'").fetchone())
+    validate_schema(database,SCHEMA if has_directories else LEGACY_SCHEMA)
     with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True)) as conn:
         conn.execute('PRAGMA query_only=ON');conn.execute('PRAGMA trusted_schema=OFF')
         meta={key:json.loads(value) for key,value in conn.execute('SELECT key,value FROM meta')}
+        if (has_directories and meta.get('capture_schema')!=2) or (not has_directories and meta.get('capture_schema') not in {None,1}):
+            raise ValueError('捕获目录证据版本与结构不符')
         if (meta.get('state')!='COMPLETE' or meta.get('project_id')!=workspace.project_id
                 or canonical(meta.get('repository_root',''))!=canonical(workspace.repository_root)):
             raise ValueError('捕获未完成或工程归属不符')
@@ -214,21 +224,29 @@ def validate(result,root,cfg,*,reverify_original=True):
         if _hash(folder/'status.z')!=meta['status_sha256']:raise ValueError('捕获状态审计损坏')
         if _git(tree,'rev-parse','HEAD').decode('ascii').strip()!=meta['head']:raise ValueError('隔离HEAD已变化')
         if _git(tree,'ls-files','--stage','-z')!=(folder/'index-entries.z').read_bytes():raise ValueError('隔离索引阶段已变化')
-        observed=0
+        observed=observed_dirs=0
         for base,dirs,names in os.walk(tree,followlinks=False):
             if Path(base)==tree:dirs[:]=[name for name in dirs if name!='.git'];names=[name for name in names if name!='.git']
             for name in dirs+names:
                 item=Path(base)/name
                 if item.is_symlink() or getattr(item.lstat(),'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT:
                     raise ValueError('隔离树出现重解析点')
+            if has_directories:
+                for name in dirs:
+                    relative=(Path(base)/name).relative_to(tree).as_posix()
+                    if not conn.execute('SELECT 1 FROM directories WHERE relative=?',(relative,)).fetchone():
+                        raise ValueError('隔离树出现未记录的目录')
+                    observed_dirs+=1
             for name in names:
                 relative=(Path(base)/name).relative_to(tree).as_posix()
                 if not conn.execute('SELECT 1 FROM files WHERE relative=?',(relative,)).fetchone():raise ValueError('隔离树出现未记录的输入')
                 observed+=1
         if observed!=meta['files']:raise ValueError('隔离输入数量改变')
+        if has_directories and observed_dirs!=conn.execute('SELECT count(*) FROM directories').fetchone()[0]:
+            raise ValueError('隔离目录数量改变')
         repo=no_links(workspace.repository_root)
         if reverify_original:
-            original_count=0
+            original_count=original_dirs=0
             for base,dirs,names in os.walk(repo,followlinks=False):
                 if Path(base)==repo:
                     dirs[:]=[name for name in dirs if name!='.git'];names=[name for name in names if name!='.git']
@@ -236,12 +254,19 @@ def validate(result,root,cfg,*,reverify_original=True):
                     item=Path(base)/name
                     if item.is_symlink() or getattr(item.lstat(),'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT:
                         raise ValueError('原工作目录出现重解析点')
+                if has_directories:
+                    for name in dirs:
+                        relative=(Path(base)/name).relative_to(repo).as_posix()
+                        if not conn.execute('SELECT 1 FROM directories WHERE relative=?',(relative,)).fetchone():
+                            raise ValueError('原工作目录出现未记录的目录')
+                        original_dirs+=1
                 for name in names:
                     relative=(Path(base)/name).relative_to(repo).as_posix()
                     if not conn.execute('SELECT 1 FROM files WHERE relative=?',(relative,)).fetchone():
                         raise ValueError('原工作目录出现未记录的输入: '+relative)
                     original_count+=1
             if original_count!=meta['files']:raise ValueError('原工作目录输入数量变化')
+            if has_directories and original_dirs!=observed_dirs:raise ValueError('原工作目录数量变化')
         for relative,hashed,size,mtime in conn.execute('SELECT relative,sha256,size,mtime_ns FROM files ORDER BY relative'):
             rel=Path(relative)
             if rel.is_absolute() or '..' in rel.parts:raise ValueError('捕获清单路径越界')
@@ -266,5 +291,5 @@ def validate(result,root,cfg,*,reverify_original=True):
                 path=no_links(repo/raw.decode('utf-8'));digest.update(raw+b'\0')
                 digest.update(_hash(path).encode() if path.is_file() else b'DELETED');digest.update(b'\0')
             if digest.hexdigest()!=meta['working_digest']:raise ValueError('原工作目录清单已变化')
-        return dict(valid=True,project_id=workspace.project_id,files=observed,original_reverified=reverify_original,
+        return dict(valid=True,project_id=workspace.project_id,files=observed,directory_proof=has_directories,original_reverified=reverify_original,
             build_equivalence='NOT_VERIFIED')

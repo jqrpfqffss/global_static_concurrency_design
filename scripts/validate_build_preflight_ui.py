@@ -7,6 +7,7 @@ import argparse
 from contextlib import closing
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -87,8 +88,10 @@ def main():
             button('保存独立配置').click();expect(page.locator('.activity')).to_have_count(0)
         def check():
             panel=page.get_by_role('region',name='真实构建预检查')
-            control=panel.get_by_role('button',name='重新检查真实构建',exact=True)
-            if not control.count():control=panel.get_by_role('button',name='检查真实构建',exact=True)
+            # Reopening a saved revision asynchronously restores historical
+            # tasks and changes this same button's label. Keep one live locator.
+            control=panel.get_by_role('button',name=re.compile(r'^(?:重新)?检查真实构建$'))
+            expect(control).to_be_enabled()
             control.click()
             return panel
         page.goto(info['url']);button('打开示例').click()

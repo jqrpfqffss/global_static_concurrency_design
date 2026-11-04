@@ -1,0 +1,269 @@
+{
+  "passed": true,
+  "scope": "Real four-TU extraction on an independent copy of approved F030 sources.\n\nSame logical paths/commands for original vs frozen workers in this new copy.\nNo claim of original-path golden full scan, formal dirty Diff or new G2 input.\n",
+  "all_gates_passed": false,
+  "units": [
+    {
+      "tu_id": "TU-00000",
+      "source": "startup.c",
+      "original": {
+        "parse_status": "PARTIAL",
+        "seconds": 0.5,
+        "request_sha256": "f87ceca38b55aa684cd90d44e6058cefa9bb90c1ba1a823086308916699ee8e4",
+        "response_sha256": "82feb79159539c891e5c77bfd1591d8773e00f2953705b5f3b10efc43244fcf1"
+      },
+      "frozen": {
+        "parse_status": "PARTIAL",
+        "seconds": 0.6559999999881256,
+        "request_sha256": "9904e70e6afc098b0c9ca3cbf4aa98759d8f46009eb55431401aac9780e47a23",
+        "response_sha256": "82feb79159539c891e5c77bfd1591d8773e00f2953705b5f3b10efc43244fcf1"
+      },
+      "full_typed_ordered_difference": null
+    },
+    {
+      "tu_id": "TU-00001",
+      "source": "main.c",
+      "original": {
+        "parse_status": "PARTIAL",
+        "seconds": 4.655999999988126,
+        "request_sha256": "0c9b7589f72367c53d968632aed504eebc2dd1b9468ac4af543c752681e10d8a",
+        "response_sha256": "c84e7ed8be538f10e6d1a864781d7714fc7c7d1981c5cd2a8731c0ba515da750"
+      },
+      "frozen": {
+        "parse_status": "PARTIAL",
+        "seconds": 4.984000000025844,
+        "request_sha256": "9d7313ef231d11eaeb5ea64d58f9b6a76493321a2a10fb2ede66d890e59ae73a",
+        "response_sha256": "c84e7ed8be538f10e6d1a864781d7714fc7c7d1981c5cd2a8731c0ba515da750"
+      },
+      "full_typed_ordered_difference": null
+    },
+    {
+      "tu_id": "TU-00002",
+      "source": "peripheral.c",
+      "original": {
+        "parse_status": "PARSED",
+        "seconds": 3.5,
+        "request_sha256": "6af3caa86faa4029cfa97b3e80dc26ea0de426dd68edb93092bdf0fe854fd3c2",
+        "response_sha256": "ee0dce86af283d8b60d88498cc1f6e8a019ffbdd3d1e3250077654433a2b0374"
+      },
+      "frozen": {
+        "parse_status": "PARSED",
+        "seconds": 3.610000000015134,
+        "request_sha256": "69252841b93e55a5a05611295bea2c3ea92398def93d239bae08b1e30a4c3277",
+        "response_sha256": "ee0dce86af283d8b60d88498cc1f6e8a019ffbdd3d1e3250077654433a2b0374"
+      },
+      "full_typed_ordered_difference": null
+    },
+    {
+      "tu_id": "TU-00003",
+      "source": "utils.c",
+      "original": {
+        "parse_status": "PARSED",
+        "seconds": 0.5310000000172295,
+        "request_sha256": "b6dd54145cf3343a4e5734b4982807f75ab6c931b3b0de1c80b56f929e0df5fd",
+        "response_sha256": "294cf850496784a17dce48c33869c9ac091d400efb805a70fbfe549e244ad5b1"
+      },
+      "frozen": {
+        "parse_status": "PARSED",
+        "seconds": 0.7030000000086147,
+        "request_sha256": "e75f7d6781f325fd7ab12cc40934a1b3185a3c83294ecfcb87b58d6580e3b24d",
+        "response_sha256": "294cf850496784a17dce48c33869c9ac091d400efb805a70fbfe549e244ad5b1"
+      },
+      "full_typed_ordered_difference": null
+    }
+  ],
+  "source_engine_hashes": {
+    "ecra/access_enrichment.py": "b880e0fb8fa538dde5327d0722e4ba11ce6dd49c496e233ab400865880f4ac16",
+    "ecra/analysis.py": "b1d7cd8287c4a840888cbdb253fa36ae9ef2aca8882aaf1c722573742a4c10a4",
+    "ecra/async_semantics.py": "2f0e87c0f0a26a61f08a8e8c050df1ef9b8dcc2541facacc96127b976adec649",
+    "ecra/block_bitmap.py": "f17ccc6235e61a0c05c711a4293ebee83a3c558ca205ed62b950ba4cbca8091c",
+    "ecra/call_graph.py": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd",
+    "ecra/case_library.py": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2",
+    "ecra/cfg_sharing.py": "26248ec3042d79134aa566f9015d13ca3db9a75854991f387e34e363c2109b15",
+    "ecra/cli.py": "45296f632255f243f88c78af95a8666b69355629ba9f586bca98fbd444622275",
+    "ecra/common.py": "180a53e5baa5f2608ae492c9b3639e4dd093232f9025dc8674d29a5a41e64788",
+    "ecra/compilation.py": "fc51a774abeeb8365a3ae44682ec30aa95a3ffe503c8033b70c51ea58fc92260",
+    "ecra/config.py": "37b0005725b280a6fd797d868b3b621335290fd8f8f473e49c15155b28c4f311",
+    "ecra/context_points.py": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c",
+    "ecra/controlflow.py": "eadf0ccb43df25136288346d4c9983b065d40cff3ec8346a09208b9857df3874",
+    "ecra/decisions.py": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b",
+    "ecra/diagnostics.py": "75736e8abec4580d79d4dd988e48d08ee8566904f7cc49a9ae272fca66150c5c",
+    "ecra/emergency_memory.py": "34d201f592c8ca7697beaf595102a0132d21c6004cdbd4954c36fb3312dbbb75",
+    "ecra/evidence.py": "9992b516092367cb5a6b688f1c386b65046b92d6d799091a122027e6d1d3171b",
+    "ecra/evidence_mcp.py": "ec552d516fafe0027b5012eae1312fb21b48485ecfa9bf6a28e74c26779816b4",
+    "ecra/evidence_reader.py": "1cd79f2f431b8e6976142f744ead398733b4ac5349ab49476a0fdadc0dc548e0",
+    "ecra/extract.py": "e4a28c7bd715f54c5acd6f5fab39883deb8a3f82fb4dbba0f90e02316f80ff2b",
+    "ecra/fact_parts.py": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a",
+    "ecra/garbage_collection.py": "5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265",
+    "ecra/git_diff.py": "e5e147e2f58fd3004a804c9c7a06114a9f2d947dba59fbbb37ade0af022748e1",
+    "ecra/history_archive.py": "e83b5df26b97e27219ecc689602c9ab2816e987c8a9c8e81883d9c598354a3cc",
+    "ecra/html_evidence.py": "73e9e9c00191ed70d4dad282ce872e99f6d028ecd4798e02bda40cc4f7361fde",
+    "ecra/html_report.py": "aa04908272b393a315c93c05041991fd4501636b4054fd628a074c5e90ca0416",
+    "ecra/human_reviews.py": "62aa85ecb51be4fe19a6e837e34b8b9a2ae672cc21da80fd84726a3729a4cf2a",
+    "ecra/independent_git.py": "3cd14d0f0a2de72436536a3f7a2bca18cf3747c60fa0a0828910ee9de1d48e29",
+    "ecra/initialization.py": "43271805721f38f60ef61ed91b81b40d79f0419a5273b487cee978d1e28cc527",
+    "ecra/input_snapshot.py": "db21fa3ce6e2fc5ecb9d7ad2b6e688ed9b416b075874325cc5c805b064629a02",
+    "ecra/interrupts.py": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247",
+    "ecra/json_rows.py": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0",
+    "ecra/legacy_import.py": "c0cd56038edd69670ef521857d907bcc2af9ed6603850f7f49d3382c75619e74",
+    "ecra/linker_symbols.py": "2df476c852a851aa27f5b4e21b75931ffa1b034d8035078e00d81560075d9f9e",
+    "ecra/lock_owner.py": "ef731dc6dc4bda789a06a40692f2d51061c6d88e33a1fddc8752c7410ad9f4e0",
+    "ecra/macro_semantics.py": "d9879e9eae91ca8e33875fb35a8e0e90992bc11a1253a8f0539783580ec236be",
+    "ecra/missing_source.py": "3975809bc7971c1f6fa5e822fbd63b6c24828f043fd5c800bff0f9fea8d5fd86",
+    "ecra/multicore.py": "9cccfad8f88de2688034a2fb3defc5f8c5eff0d35a0f6c7dd7c8391eeeb1fb39",
+    "ecra/nonlocal_jumps.py": "21188550e1e36b5f110b9f45bf7088f31080784921d03d01bfcfb3a1523033ed",
+    "ecra/nvic.py": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c",
+    "ecra/nvic_extract.py": "315cb099ecfc7f7eedd99ce4f8cc3022bf87058d7b18b542fb466ad19e49c041",
+    "ecra/physical.py": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36",
+    "ecra/pointer_extract.py": "8533db5792bee3e25870f28d05c193754f76f87496773376263fef85ff0fd2fb",
+    "ecra/points_to.py": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531",
+    "ecra/portable.py": "1e38cc2a9cc17dec23c43e736a764ebe323686b209d7ce6e7b9f9614f82af060",
+    "ecra/protection.py": "8d42f4f4a9f743fd3b71dcceb531f32a962a2102015b77c36ba7b03407460a48",
+    "ecra/read_only_evidence.py": "5dd3db9465f745ddec00e6fe5e19b8e3b4eb5787e829da7f62afc5d02b0809d4",
+    "ecra/report.py": "0d93be9c3cf98c539819e8627c0764a9bb381013a549b126a69d017b4ddfe1d4",
+    "ecra/report_package.py": "5c7028705c6ff8012b41572312fdac77474f214ad63231da5ee2f6327ca2f0fe",
+    "ecra/review.py": "c2863a470906110780c7227caaec78232d2253dbb8657d34006d5de5a3418f82",
+    "ecra/review_context.py": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88",
+    "ecra/review_contract.py": "4a1b83f64c0192e8e3b123b61f5d51aec9120927ae7b65906667e5f115bf55bb",
+    "ecra/review_integrity.py": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804",
+    "ecra/review_language.py": "00a24bac1bf43595e6b74f15b0c79f5bc3a8e949c798fabf49b39bfd52f83d0f",
+    "ecra/review_presentation.py": "8ceb94ea1c45f5ef3ebdd219dab6fa112ca0e86cda3a94813a3ccd50d4e84f13",
+    "ecra/review_summary.py": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06",
+    "ecra/scan_diagnostics.py": "b40184b3a59314e654ca6f26a80724408344949fa0666c84b5644a9eaa0e3f75",
+    "ecra/scan_identity.py": "e0dcee03fed0fc4b796c8bcaa64ba7863fdcf5a7b3315a8dcf19cd4f8ea59506",
+    "ecra/scan_persistence.py": "576ff1043ccbd184f9e85777fd092b9d28eea57b5928e154bbf95982ec3cdc7a",
+    "ecra/scan_store.py": "457f8994bfdf13363d03652c5d4a1759327012ccb2682acf831c4c7b21878801",
+    "ecra/scope.py": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1",
+    "ecra/shared_json.py": "5b134b0b6c837c7ddd06390097f54d2c8ccf4303d61d73f75e938c8d3a46c6f2",
+    "ecra/solver_reachability.py": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b",
+    "ecra/stale_writeback.py": "246a9fbc0616a2674e3553fca1921a55d48f23b8ecfdcafb3df9297e41eac32a",
+    "ecra/storage.py": "36e4e4f0f90049b03e319770c3c54f81e5d954afd292b802ca41d6aeffc8a71a",
+    "ecra/storage_activity.py": "a2d01bb9946d1b255ce7f7095200362309d2ef4becfeb2210634dc8dba155a63",
+    "ecra/storage_compaction.py": "afec63b1f43c987664048c66ce646811dc7e734bb46409b75aaa892702495e53",
+    "ecra/storage_policy.py": "c7e4c0d2ddb747dc69c716045cf85346a62c62b2d3ddd019ad3086142547d759",
+    "ecra/storage_usage.py": "18ad8bc8e9b878440a5c9534ec20ff05b7e023e70fed0568801ffd3d04fceac6",
+    "ecra/streamed_evidence.py": "fe9ba6a0c8edf0dd165c512432244088be6ee4aa729361ad3ee64d06f119328a",
+    "ecra/studio_preferences.py": "5bc4691af58cfb4ad8c44fdfcb4c6535ea21212102768a9aa2419fe6fb1fe593",
+    "ecra/supplemental.py": "2a8787eb89d120bed6329c1904cf4e4d956d9f62a7b66b67d7ba7acff6fcc048",
+    "ecra/target_set.py": "45cf1a746e26cb7eed47fbaad21c876a8f00489bf7eb1b57411f69bf6205c47b",
+    "ecra/tu_cache.py": "87fa95f3182a254343c4227f63f80b0eac11c58b0f34716df894ceb5b8fabddf",
+    "ecra/vectors.py": "f475ac221f91fcea4eefbaee4cf098ff3b9e454c10d924d234f65722be1f7ed2",
+    "ecra/windows_storage.py": "d23e4ba4ae1289f1323cae8c22fef15f45e5249a4406f64ce6618b030388f580",
+    "ecra/workflow.py": "464b8b3dad3e60590ff8f809243495d69d1a391ce91f66cf2b54bfdd05e169a5",
+    "ecra/working_compiler_view.py": "6fa2044f46b425b97ca86cda91583903a86d5d96ca8b108f90ef2c40df7d2201",
+    "ecra/working_snapshot.py": "abb3b627093a80fef8d8a5385bd1a7ccb94d0ab662fe581d1b1208bf13300a50",
+    "ecra/workspace.py": "cec2318dd624940d6d390ced3718679abe1a843b11de083a6ca3c2cf228ef2c2",
+    "ecra/__init__.py": "1a57828454d39f2670fce85e9c32150abdca021dc6a16e9757e7e5c58bda113f",
+    "ecra/studio/cleanup_jobs.py": "f1080434936df48c9ec2e90b71ea404f63d10690662e52e7c160a8458b621488",
+    "ecra/studio/comparison.py": "73e2d0287493dbc0e3cbb19220af35b91c90494f20f3fd7f1bb56129232358c1",
+    "ecra/studio/coverage.py": "02ca401c5a8dc3e8657cf9ea535285d3a5bce19087519c5c210909726864094f",
+    "ecra/studio/directories.py": "22646fc91364e908f7b8fbf74e29976ffecd2cd596215082baf94e743d9339a2",
+    "ecra/studio/downloads.py": "b22cc0a04f8fa0710b90e72543a44651fab57bb0d5735e8ff9a715018620748e",
+    "ecra/studio/git_versions.py": "e7768d23138d3b95bfd1996f8cbcf758f8446fedb148fbab71a3931b85ab624b",
+    "ecra/studio/history.py": "01688b5aaf14e7fd38b5e0cf16823c711b9c0585139729a095cf05a14b37b932",
+    "ecra/studio/migration_jobs.py": "b6c38b8e63d20b4eb5fbcb992c1105dd66ff285d0b4a5e2c28951ecb24f45bde",
+    "ecra/studio/multicore_inputs.py": "5203be966c3f4a4e7866235dade095cf39348821b08e3e309618f1dd1fe3b6d6",
+    "ecra/studio/preflight.py": "3ea65a2b471b0b5036a1a19c88261678adf4bb9309174a443f0508a6f001cc74",
+    "ecra/studio/process_budget.py": "f801678ecaa82a4198e3d6288c5e4f60f3712155e54db45f34be17a6cab1cd92",
+    "ecra/studio/profile_forms.py": "4e014e9887b7e4cdb24a085d62985632911c5421722f1217aa58f997c6561d99",
+    "ecra/studio/query.py": "a1715423d7c711e6bd326000d8e26800383c9530bc08fb48a62264e1eaf434f5",
+    "ecra/studio/resource_policy.py": "775ab5031a5e7c2f54ab94abb1275de186333fd68cdf34b02f01303ee3d2b863",
+    "ecra/studio/sample.py": "4bd0888c8797b4e0ae66c5d9ea411b1f5fc99dbdd3c28809a96c2fc37b2a5b80",
+    "ecra/studio/server.py": "2f62150a616d895061f8efa696a5fb49f21a1cd4330bdec9308ed3064b72992b",
+    "ecra/studio/source_view.py": "48b6faabd1052f5de901ae7e795638bd8dfbd3ea58ce1003cb8453f06a58cf2e",
+    "ecra/studio/tasks.py": "d2341c2fed0812158555039a93cbbfa149b71f16f152834037911a651d99c9f3",
+    "ecra/studio/task_worker.py": "3df4b2d2a044f820ec8190fca0f9a6f21918323c19b91731a6b4fc6f268a45f7",
+    "ecra/studio/write_guard.py": "03739086d76290e7eb2c8e266c7c7e3f2da0ea26a84241fcdf64db8430a8536a",
+    "ecra/studio/__init__.py": "ac93a35b67b29431d8b45b820b1bb5cdca0789f19a4f5bc580c07ebbd951d80e",
+    "ecra/studio/__main__.py": "9bffac478aae19c85a181f2a163744cb4776df19bdd1c1d105629ec11f0612e5"
+  },
+  "original_files": 44,
+  "controller_sha256": "34de3cf7bc8a6426a35557de9633b746888e4b5d52767560742c8d6819aa6f75",
+  "formal_dirty_enabled": false,
+  "external_directories": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\native-build",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include-fixed",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include"
+  ],
+  "external_files": 1667,
+  "descriptor": {
+    "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\working-view-approved-f030-v4\\data\\projects\\firmware_a22f5f591136d4722b2d\\trees\\working-c1fbdf6ae4dc4ad38ba4ef944a445fd0\\compiler-view-76e47bcf74ae4cc19f33deadc78439cf\\view.json",
+    "sha256": "1603fcf5a0575e9f3dd372a99b6aa6c5c8dc5fce74babb210704c608f294fa0c"
+  },
+  "frozen_parent": {
+    "input_closure_sha256": "fabb64011a7fbd99ddfcdd497c8217f0cce3270aacb422744056f115aeccc7ec",
+    "parent_reads": {
+      "H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/working-view-approved-f030-v4/semantics.json": {
+        "status": "OK",
+        "sha256": "04e36edc5e8680426ce9d7b8f0088700d5ea9386e0a5f6e5f61eafc5ba64a4e6",
+        "size": 814,
+        "reads": 1,
+        "read_completed_ns": 1793760719709715200
+      },
+      "H:/ECRAStudio-data/rearchitecture-20261031/baseline/compile_commands.json": {
+        "status": "OK",
+        "sha256": "6b22407da89773124ede95773d732798bc6ecf3d05ddf6fce0a16c54f88e962b",
+        "size": 2641,
+        "reads": 1,
+        "read_completed_ns": 1793760719722653900
+      },
+      "startup.c": {
+        "status": "OK",
+        "sha256": "a2ce18ed0b37cafc14f945e8a4eac1c667ac74e13db78107ce5b29edb6505f32",
+        "size": 3254,
+        "reads": 1,
+        "read_completed_ns": 1793760719736643300
+      },
+      "main.c": {
+        "status": "OK",
+        "sha256": "4c96dc054cb3148cf295018da31ba0c1918861546b8bcc66af7eee17b4bf243b",
+        "size": 29034,
+        "reads": 1,
+        "read_completed_ns": 1793760719749581300
+      },
+      "peripheral.c": {
+        "status": "OK",
+        "sha256": "83e55a5baa36993260fb8e1d5ef2f1559c0e50f44dfba48e0c5611a55354e561",
+        "size": 8848,
+        "reads": 1,
+        "read_completed_ns": 1793760719764540300
+      },
+      "utils.c": {
+        "status": "OK",
+        "sha256": "49c314e8b1e45ce016ed85ee5f19087a73d02e80deee2c2a050bf89cbac15cc6",
+        "size": 917,
+        "reads": 1,
+        "read_completed_ns": 1793760719778504800
+      }
+    },
+    "source_changes_sha256": "7ffbdc77aa497839479c12b74bd1c3cf252434a597dfaa9f4e3f01fd14a6912f",
+    "status": "VERIFIED",
+    "formal_dirty_enabled": false,
+    "original_final_reverification_required": true
+  },
+  "complete_merged_facts": {
+    "before": "3691cd1ce744a9ffd3a7cdec687029bfe7a2f47dbc8b80aec644831db6f2a3d4",
+    "after": "3691cd1ce744a9ffd3a7cdec687029bfe7a2f47dbc8b80aec644831db6f2a3d4",
+    "difference": null
+  },
+  "complete_analysis_report": {
+    "before": "d0b2e0cf52543168349c96e6acd3b2c46a026874251204d91e7fe8ddc272123c",
+    "after": "d0b2e0cf52543168349c96e6acd3b2c46a026874251204d91e7fe8ddc272123c",
+    "difference": null
+  },
+  "view_validation": {
+    "valid": true,
+    "files": 1712,
+    "original_reverified": true,
+    "formal_dirty_enabled": false,
+    "full_build_diff_equivalence": "NOT_VERIFIED"
+  },
+  "approved_original_differences": [],
+  "private_dirty_git_copy_differences": [],
+  "external_build_and_SDK_differences": [],
+  "seconds": 384.7030000000086,
+  "actual_worker_processes": 8,
+  "engine_differences": [],
+  "G2": "SAME_APPROVED_SOURCE_COPY_NOT_NEW_INPUT"
+}
