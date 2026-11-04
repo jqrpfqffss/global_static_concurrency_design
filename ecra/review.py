@@ -9,7 +9,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .common import digest, execute, read_json, write_json
+from .common import execute, read_json, write_json
+from .review_hash import digest
 from .case_library import case_library_section
 from .review_contract import (CONTRACT_PROMPT, STATUSES, validate_minimal_answer,
     StaleWritebackSafetyError, stale_writeback_hints, validate_stale_writeback_safety,
@@ -62,7 +63,10 @@ def _now():
 
 
 def _sha(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    hashed=hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda:stream.read(1024**2),b''):hashed.update(block)
+    return hashed.hexdigest()
 
 
 def resolve_command(command):
@@ -235,7 +239,8 @@ def _verify_receipt(root, folder, receipt, *, summary_config=None):
             path = folder / name
             if path.parent.resolve() != folder.resolve() or not path.is_file() or _sha(path) != expected:
                 raise ValueError(f'OpenCode {stream} 日志/证据包校验失败')
-    packet = read_json(folder / execution['packet_file']) if execution.get('packet_file') else None
+    from .review_packet import validation_packet
+    packet = validation_packet(folder/execution['packet_file'],identifiers=bool(receipt.get('language_correction'))) if execution.get('packet_file') else None
     summary_check = receipt.get('summary_validation') or {}
     config = summary_config if summary_config is not None else summary_check.get('settings')
     variable_name = summary_check.get('variable_name', '')
@@ -270,6 +275,21 @@ def _verify_receipt(root, folder, receipt, *, summary_config=None):
     if collect_evidence(root, answer) != receipt.get('source_evidence'):
         raise ValueError('引用源码或保存的证据片段已变化')
     return answer
+
+
+def recursive_edge_endpoints(edge):
+    """Native analysis emits two-item arrays; historical views may use objects."""
+    if isinstance(edge,dict):return edge.get('caller_function_id'),edge.get('callee_function_id')
+    if isinstance(edge,(list,tuple)) and len(edge)==2:return edge[0],edge[1]
+    raise ValueError('递归调用边格式未知，不能省略证据继续复核')
+
+
+def packet_recursive_edges(edges,related):
+    result=[]
+    for edge in edges:
+        caller,callee=recursive_edge_endpoints(edge)
+        if caller in related or callee in related:result.append(edge)
+    return result
 
 
 def build_variable_review_packet(root, facts, finding, *, facts_path, shared_path, report_path):
@@ -374,8 +394,7 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
         nvic_lifecycle_barriers=facts.get('nvic_lifecycle_barriers', []),
         nvic_recovery=facts.get('nvic_recovery', {}),
         preemption_relations=facts.get('preemption_relations', []),
-        recursive_edges=[e for e in facts.get('recursive_edges', []) if
-            e.get('caller_function_id') in related or e.get('callee_function_id') in related],
+        recursive_edges=packet_recursive_edges(facts.get('recursive_edges',[]),related),
         control_flow=[{k: v for k, v in g.items() if k != 'nodes'} | {'node_count': len(g.get('nodes', []))}
                       for g in facts.get('control_flow', []) if g['function_id'] in related],
         files_to_check=sorted(files), project_root=str(root), facts_path=str(facts_path),
@@ -512,6 +531,13 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 static_classification=finding.get('static_classification'),
                 error='OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中'), 'PENDING')
         return save_queue()
+    from .scan_diagnostics import ACTIVE
+    review_diagnostics=ACTIVE.get()
+    if getattr(review_diagnostics,'consumer',None)!='REVIEW':review_diagnostics=None
+    if review_diagnostics:
+        review_diagnostics.total_units=len(selected)
+        review_diagnostics.completed_units=0
+        review_diagnostics.stage('复核项目处理（含技术失败，剩余时间未知）')
     command, command_error = None, None
     if enabled and selected:
         try:
@@ -527,10 +553,12 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     from .scan_persistence import is_canonical
     navigation = ''
     archived_sources=None
+    native_database=None
     if is_canonical(out):
         from .review_sources import ArchivedSources
         from .scan_store import EvidenceProvider
         archived_sources=ArchivedSources(root,EvidenceProvider(out/'scan.db'))
+        native_database=out/'scan.db'
         facts_path = folder/'facts-navigation.json'
         report_path = folder/'report-navigation.json'
         for name, path in [('facts', facts_path), ('report', report_path)]:
@@ -544,15 +572,22 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             '不读取实时工程，不把缺少源码当作安全。引用仍使用原工程相对file和原行号。\n')
     else:
         write_json(report_path, clean_report(report))
-    write_json(shared_path, dict(contexts=facts.get('contexts', []), coverage=report.get('coverage', {}),
-        limitations=report.get('limitations', []), config=cfg,
-        compile_commands=[{k: u[k] for k in ('source_file', 'arguments', 'parse_status', 'diagnostics') if k in u}
-                          for u in facts.get('translation_units', [])],
-        source_files=sorted({f['file'] for f in facts.get('functions', []) if f.get('file')})))
+    if native_database is not None:
+        from .native_review_packet import shared_context
+        shared=shared_context(native_database)
+    else:
+        shared=dict(contexts=facts.get('contexts',[]),coverage=report.get('coverage',{}),limitations=report.get('limitations',[]),
+            compile_commands=[{k:u[k] for k in ('source_file','arguments','parse_status','diagnostics') if k in u}
+                for u in facts.get('translation_units',[])],source_files=sorted({f['file'] for f in facts.get('functions',[]) if f.get('file')}))
+    write_json(shared_path,dict(contexts=shared['contexts'],coverage=shared['coverage'],limitations=shared['limitations'],
+        config=cfg,compile_commands=shared['compile_commands'],source_files=shared['source_files']))
     implementation = digest([Path(__file__).read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_language.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_sources.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('native_review_packet.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('review_hash.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('review_packet.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('evidence_mcp.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_summary.py').read_text(encoding='utf-8')])
     if case_library_path is None:
@@ -594,8 +629,13 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                           failure_stage=stage, last_error=dict(type=type(exc).__name__, message=str(exc)))
 
         try:
-            packet = build_variable_review_packet(root, facts, finding, facts_path=facts_path,
-                                                   shared_path=shared_path, report_path=report_path)
+            if native_database is not None:
+                from .native_review_packet import build_packet
+                packet=build_packet(native_database,root,fid,facts_path=facts_path,shared_path=shared_path,report_path=report_path)
+                finding=packet['finding']
+            else:
+                packet = build_variable_review_packet(root, facts, finding, facts_path=facts_path,
+                                                       shared_path=shared_path, report_path=report_path)
             variable = packet.get('variable') or {}
             variable_name = (finding.get('variable_name') or variable.get('canonical_path')
                              or variable.get('qualified_name') or variable.get('name') or '')
@@ -945,6 +985,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         ledger[row['finding_id']] = row
         completed_rows.append(row)
         save_queue()
+        if review_diagnostics:review_diagnostics.completed_units+=1
         if on_result:
             on_result(completed_rows)
 

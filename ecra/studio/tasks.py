@@ -147,6 +147,9 @@ class TaskManager:
                 if mode=='multicore':
                     value['checkpoint_mode']='RETRY_DERIVATION_FROM_FIXED_INPUTS'
                     write_json(folder/'task.json',value)
+                elif mode in {'review','review-failed'}:
+                    value['checkpoint_mode']='REVALIDATE_INPUTS_AND_RETRY_REVIEW_MODE'
+                    write_json(folder/'task.json',value)
                 budget = ProcessBudget(value['budget_bytes'])
                 ownership.callback(budget.close)
                 stream = (folder/'console.log').open('wb')
@@ -266,12 +269,15 @@ class TaskManager:
                             next_offset=offset+len(raw), total=log.stat().st_size)
         diagnostics = self.data/'scans'/value['scan_id']/'diagnostics'
         value['progress_kind']='TU_EXTRACTION'
-        if not diagnostics.exists() and (folder/'fixed-inputs/diagnostics').is_dir():
+        if value['mode'] in {'review','review-failed'}:
+            diagnostics=folder/'review-diagnostics'
+            value['progress_kind']='AI_REVIEW'
+        if value['mode'] in {'scan','precheck'} and not diagnostics.exists() and (folder/'fixed-inputs/diagnostics').is_dir():
             diagnostics=folder/'fixed-inputs/diagnostics'
             value['progress_kind']='WORKING_INPUT_INVENTORY'
         if value['mode']=='multicore':diagnostics=folder/'multicore-diagnostics'
         preflight = folder/'preflight/preflight.json'
-        if preflight.is_file():
+        if value['mode'] in {'scan','precheck'} and preflight.is_file():
             value['preflight'] = read_task_json(preflight)
             if value['mode']=='precheck' or value['progress_kind']=='WORKING_INPUT_INVENTORY' or not diagnostics.exists():
                 diagnostics=folder/'preflight/diagnostics'

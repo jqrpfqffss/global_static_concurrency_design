@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "scope": "Actual approved original F030 authority, all six original complete Packets and shared context vs frozen v55 readers, exact serialized bytes; no new scan/model or large G2 claim",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v55",
+  "manifest_sha256": "1c91b3db53cba044682bc5d51178df99f795cdc430f677cb6c76ad5ec4104058",
+  "packets": [
+    {
+      "finding_id": "GS-0facb0f7948b184c",
+      "bytes": 69684,
+      "sha256": "9b024eaddf7a8b047277d0b67926aeb4db845ab96a4170fa022eb1ee0b7e129e",
+      "serialized_bytes_equal": true
+    },
+    {
+      "finding_id": "GS-06ac808d74e6aad9",
+      "bytes": 33653,
+      "sha256": "130583050e0e376af369441e73fccb6ba707950d2085e2b7aa7794f922958124",
+      "serialized_bytes_equal": true
+    },
+    {
+      "finding_id": "GS-0ed08d01e2fe2e8f",
+      "bytes": 31562,
+      "sha256": "c1fa007d4889ad5430113df431d3da8bd3de7c437498fa82e03249eca262e23c",
+      "serialized_bytes_equal": true
+    },
+    {
+      "finding_id": "GS-9577e7e94f75b3ca",
+      "bytes": 32412,
+      "sha256": "51e374b3d8a25a21da17183f8cfa22e299a1f599ca7ea3baee5874cd0fed3152",
+      "serialized_bytes_equal": true
+    },
+    {
+      "finding_id": "GS-a1197826cc74dc9e",
+      "bytes": 33685,
+      "sha256": "205f973a26b166d4d88ccbdc32499b8350be97f7e3efbb691f2db3014f70fdbf",
+      "serialized_bytes_equal": true
+    },
+    {
+      "finding_id": "GS-d2e4367f9e48417a",
+      "bytes": 31590,
+      "sha256": "b5dc8527e7624aa7bcad99aeaf997b490a48ec29258773d60eee1554a334f4fc",
+      "serialized_bytes_equal": true
+    }
+  ],
+  "shared_context_serialized_bytes_equal": true,
+  "source_before_sha256": "e9442d1704b146f9b5d649a70534cf6abd98d5f21e26d3a2b13a33a45a7a6d23",
+  "source_after_sha256": "e9442d1704b146f9b5d649a70534cf6abd98d5f21e26d3a2b13a33a45a7a6d23",
+  "seconds": 0.15600000001722947,
+  "all_gates_passed": false
+}

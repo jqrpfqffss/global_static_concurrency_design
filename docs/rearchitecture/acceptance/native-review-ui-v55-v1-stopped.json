@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "status": "STOPPED_BEFORE_BROWSER",
+  "reason": "Validator hashed unrelated ignored build artifacts; narrow engine inventory before retry",
+  "pid": 15620,
+  "command": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe -B -X utf8 scripts/validate_native_review_ui.py --source H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/native-refresh-f030-v48-v1/data/scans/native --config H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/native-refresh-f030-v48-v1/semantics.yaml --work H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/native-review-f030-ui-v55-v1"
+}

@@ -54,20 +54,20 @@ def execute(args):
                       progress=lambda text: print(text, flush=True),**fixed)
         if args.mode == 'precheck': return 0
     else:
-        import threading
-        import _thread
-        finished=threading.Event()
-        def watch_stop():
-            while not finished.wait(.2):
-                if args.stop.is_file():
-                    _thread.interrupt_main(); return
-        threading.Thread(target=watch_stop,daemon=True).start()
+        from ..scan_diagnostics import ScanDiagnostics
+        diagnostics=ScanDiagnostics(args.result.parent/'review-diagnostics',lambda value:print(value,flush=True))
+        diagnostics.consumer='REVIEW'
         try:
             from ..workflow import saved_run
-            return saved_run(configured_project_root(args.config),args.config,
+            diagnostics.stage('复核输入与完整权威校验（剩余量未知）')
+            code=saved_run(configured_project_root(args.config),args.config,
                 failed_only=args.mode=='review-failed',_out=args.data_root/'scans'/args.scan_id,_budget_owned=True)
+            if code==130:diagnostics.failure(KeyboardInterrupt('复核停止，已保留队列与原静态结果'))
+            return code
+        except BaseException as exc:
+            diagnostics.failure(exc);raise
         finally:
-            finished.set()
+            diagnostics.close()
     from ..scan_persistence import run_canonical
     import json
     fixed_storage=json.loads((args.result.parent/'storage-policy.json').read_text('utf-8'))

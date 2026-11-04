@@ -8,6 +8,25 @@ from ecra.studio.tasks import read_task_json
 
 
 class TaskMetadataReadTests(unittest.TestCase):
+    def test_review_uses_its_own_real_counters_instead_of_old_scan_or_preflight_progress(self):
+        from ecra.common import write_json
+        from ecra.studio.tasks import TaskManager
+        with tempfile.TemporaryDirectory() as folder:
+            data=Path(folder);manager=TaskManager(data);task=manager.work/'review1';task.mkdir()
+            (task/'console.log').write_text('actual review log','utf-8')
+            old=data/'scans/static1/diagnostics';old.mkdir(parents=True)
+            write_json(old/'scan_progress.json',dict(completed_units=388,total_units=388))
+            write_json(old/'tu_cache.json',dict(hits=388))
+            (task/'preflight').mkdir();write_json(task/'preflight/preflight.json',dict(passed=True))
+            for mode in ('review','review-failed'):
+                write_json(task/'task.json',dict(id='review1',scan_id='static1',mode=mode,state='COMPLETE',started='now'))
+                detail=manager.detail('review1');self.assertEqual(detail['progress_kind'],'AI_REVIEW')
+                self.assertNotIn('progress',detail);self.assertNotIn('tu_cache',detail);self.assertNotIn('preflight',detail)
+                own=task/'review-diagnostics';own.mkdir(exist_ok=True)
+                write_json(own/'scan_progress.json',dict(completed_units=2,total_units=6))
+                self.assertEqual(manager.detail('review1')['progress'],dict(completed_units=2,total_units=6))
+                (own/'scan_progress.json').unlink()
+
     def test_transient_permission_error_recovers_real_bytes_and_permanent_error_is_bounded(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'task.json';raw=b'{"state":"COMPLETE","published":true}';path.write_bytes(raw)

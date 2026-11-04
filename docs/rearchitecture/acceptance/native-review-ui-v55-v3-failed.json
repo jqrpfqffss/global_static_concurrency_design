@@ -1,0 +1,237 @@
+{
+  "passed": false,
+  "scope": "Actual authorized saved scan, supervised review stop/retry, real Chrome.\n\nUses an explicitly missing model executable: real launch failures, never model\nreasoning or simulated SAFE. Copies the supplied scan; retains every failure.\nNo new native scan, large end-to-end review, second-PC or UAT claim.\n",
+  "tests": [],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-review-f030-ui-v55-v3\\01-real-review-stop.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "stopped_task": {
+    "id": "79eb9efbbad04431b3533083c4c27179",
+    "scan_id": "native",
+    "mode": "review",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "profile_id": "default",
+    "profile_revision": "9f3b7ebd0a6f16706b4426b2c2c8f41c72a26ed8369442313c889611369470d6",
+    "state": "INTERRUPTED",
+    "started": "2026-11-04T18:56:35.045615+00:00",
+    "budget_bytes": 17179869184,
+    "resource_policy": {
+      "preset": "auto",
+      "peak_bytes": 17179869184,
+      "soft_bytes": 12884901888,
+      "workers": 4
+    },
+    "previous_scan_available": true,
+    "checkpoint_mode": "REVALIDATE_INPUTS_AND_RETRY_REVIEW_MODE",
+    "storage_policy": {
+      "mode": "auto",
+      "revision": "missing",
+      "valid": true,
+      "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-review-f030-ui-v55-v3\\独立 数据"
+    },
+    "samples": [
+      {
+        "timestamp": "2026-11-04T18:56:35.068554+00:00",
+        "available": true,
+        "working_set_bytes": 1761280,
+        "private_bytes": 397312,
+        "peak_job_commit_bytes": 413696,
+        "limit_bytes": 17179869184,
+        "enforced_job_commit_limit_bytes": 17179869184,
+        "job_limit_flags": 8704,
+        "processes": 1,
+        "sampled_processes": 1,
+        "write_bytes": 0,
+        "system_commit_bytes": 20273758208,
+        "system_commit_limit_bytes": 85825454080,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 53517271040,
+        "disk_free_bytes": 677939585024,
+        "host_pressure": {
+          "soft": false,
+          "stop": false,
+          "commit_headroom_bytes": 65551695872,
+          "physical_available_bytes": 53517271040,
+          "metrics_available": true,
+          "reason": ""
+        }
+      },
+      {
+        "timestamp": "2026-11-04T18:56:35.591383+00:00",
+        "available": true,
+        "working_set_bytes": 37158912,
+        "private_bytes": 33558528,
+        "peak_job_commit_bytes": 34684928,
+        "limit_bytes": 17179869184,
+        "enforced_job_commit_limit_bytes": 17179869184,
+        "job_limit_flags": 8704,
+        "processes": 2,
+        "sampled_processes": 2,
+        "write_bytes": 0,
+        "system_commit_bytes": 20300800000,
+        "system_commit_limit_bytes": 85825454080,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 53477261312,
+        "disk_free_bytes": 677939585024,
+        "host_pressure": {
+          "soft": false,
+          "stop": false,
+          "commit_headroom_bytes": 65524654080,
+          "physical_available_bytes": 53477261312,
+          "metrics_available": true,
+          "reason": ""
+        }
+      }
+    ],
+    "resources": {
+      "available": true,
+      "working_set_bytes": 37158912,
+      "private_bytes": 33558528,
+      "peak_job_commit_bytes": 34684928,
+      "limit_bytes": 17179869184,
+      "enforced_job_commit_limit_bytes": 17179869184,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 20300800000,
+      "system_commit_limit_bytes": 85825454080,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 53477261312,
+      "disk_free_bytes": 677939585024,
+      "host_pressure": {
+        "soft": false,
+        "stop": false,
+        "commit_headroom_bytes": 65524654080,
+        "physical_available_bytes": 53477261312,
+        "metrics_available": true,
+        "reason": ""
+      }
+    },
+    "exit_code": 130,
+    "finished": "2026-11-04T18:56:36.112361+00:00",
+    "published": true,
+    "log": {
+      "text": "阶段开始：复核输入与完整权威校验（剩余量未知）\r\n",
+      "offset": 0,
+      "next_offset": 71,
+      "total": 71
+    },
+    "progress_kind": "AI_REVIEW",
+    "stages": [
+      {
+        "stage": "复核输入与完整权威校验（剩余量未知）",
+        "operation": "复核输入与完整权威校验（剩余量未知）",
+        "started": "2026-11-04T18:56:35.328347+00:00",
+        "memory_start": {
+          "private_bytes": 25108480,
+          "working_set_bytes": 23138304,
+          "peak_working_set_bytes": 26042368,
+          "peak_process_commit_bytes": 28102656,
+          "system_commit_bytes": 20313800704,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 59076931584,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 53486198784
+        },
+        "status": "INTERRUPTED",
+        "finished": "2026-11-04T18:56:35.774866+00:00",
+        "seconds": 0.4529999999795109,
+        "memory_end": {
+          "private_bytes": 17915904,
+          "working_set_bytes": 25473024,
+          "peak_working_set_bytes": 26066944,
+          "peak_process_commit_bytes": 28102656,
+          "system_commit_bytes": 20295331840,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 59076931584,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 53478973440
+        }
+      }
+    ],
+    "failure": {
+      "origin": "MAIN",
+      "pid": 11080,
+      "exception_type": "KeyboardInterrupt",
+      "message": "",
+      "stage": {
+        "stage": "复核输入与完整权威校验（剩余量未知）",
+        "operation": "复核输入与完整权威校验（剩余量未知）",
+        "started": "2026-11-04T18:56:35.328347+00:00",
+        "memory_start": {
+          "private_bytes": 25108480,
+          "working_set_bytes": 23138304,
+          "peak_working_set_bytes": 26042368,
+          "peak_process_commit_bytes": 28102656,
+          "system_commit_bytes": 20313800704,
+          "system_commit_limit_bytes": 85825454080,
+          "system_commit_peak_bytes": 59076931584,
+          "system_physical_total_bytes": 68645584896,
+          "system_physical_available_bytes": 53486198784
+        },
+        "status": "RUNNING"
+      },
+      "completed_units": 0,
+      "total_units": 0,
+      "pending_units": 0,
+      "fact_counts": {},
+      "fact_counts_scope": "translation_unit_rows_including_duplicates",
+      "memory": {
+        "private_bytes": 18538496,
+        "working_set_bytes": 25354240,
+        "peak_working_set_bytes": 26042368,
+        "peak_process_commit_bytes": 28102656,
+        "system_commit_bytes": 20295434240,
+        "system_commit_limit_bytes": 85825454080,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 53479960576
+      },
+      "peak_memory": {
+        "private_bytes": 25108480,
+        "working_set_bytes": 25354240,
+        "peak_working_set_bytes": 26042368,
+        "peak_process_commit_bytes": 28102656,
+        "system_commit_bytes": 20313800704,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 53486198784
+      },
+      "snapshot_status": "NOT_CAPTURED",
+      "analysis_valid": false
+    },
+    "memory": {
+      "pid": 11080,
+      "current": {
+        "private_bytes": 18452480,
+        "working_set_bytes": 26009600,
+        "peak_working_set_bytes": 26066944,
+        "peak_process_commit_bytes": 28102656,
+        "system_commit_bytes": 20295360512,
+        "system_commit_limit_bytes": 85825454080,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 53477351424
+      },
+      "peaks": {
+        "private_bytes": 25108480,
+        "working_set_bytes": 26009600,
+        "peak_working_set_bytes": 26066944,
+        "peak_process_commit_bytes": 28102656,
+        "system_commit_bytes": 20313800704,
+        "system_commit_peak_bytes": 59076931584,
+        "system_physical_total_bytes": 68645584896,
+        "system_physical_available_bytes": 53486198784
+      },
+      "fact_counts": {},
+      "fact_counts_scope": "translation_unit_rows_including_duplicates",
+      "completed_units": 0,
+      "total_units": 0
+    }
+  },
+  "error": "Traceback (most recent call last):\n  File \"H:\\global_static_concurrency_design\\scripts\\validate_native_review_ui.py\", line 108, in main\n    rows=api('/tasks')['items'];retry=next(row for row in rows if row['id']!=stopped['id'])\nStopIteration\n"
+}

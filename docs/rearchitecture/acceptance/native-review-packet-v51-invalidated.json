@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "status": "INVALID_FOR_SEMANTIC_ACCEPTANCE",
+  "reason": "Original full-facts comparison revealed recursive_edges are two-item arrays. Original builder raised AttributeError; selected reader silently omitted list rows. Original construction PASS/metrics retained, but it is not complete Packet equivalence and must not release production integration.",
+  "source_unchanged": true,
+  "production_wiring_enabled": false
+}

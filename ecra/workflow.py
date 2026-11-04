@@ -36,7 +36,7 @@ REVIEW_REPORT_MODULES = frozenset({
     'case_library.py', 'decisions.py', 'html_report.py', 'report.py',
     'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
-    'native_consumers.py', 'review_inheritance.py', 'review_sources.py',
+    'native_consumers.py', 'review_inheritance.py', 'review_sources.py', 'native_review_packet.py', 'review_hash.py', 'review_packet.py',
 })
 
 
@@ -659,7 +659,12 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     lock = lock_path(root, cfg['analysis'])
     source_reader=None;source_scope=None;source_token=None;source_entered=False
     from .scan_persistence import is_canonical
-    runtime_only=render_only and is_canonical(out)
+    runtime_only=is_canonical(out)
+    from .scan_diagnostics import ACTIVE
+    review_diagnostics=ACTIVE.get()
+    if getattr(review_diagnostics,'consumer',None)!='REVIEW':review_diagnostics=None
+    def review_stage(name):
+        if review_diagnostics:review_diagnostics.stage(name)
     def refresh(facts,report,reviews):
         if runtime_only:return generate(out,facts,report,reviews,_runtime_only=True)
         return generate(out,facts,report,reviews)
@@ -714,6 +719,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 review_integrity=report['review_integrity'], finished=datetime.now(timezone.utc).isoformat()))
             return 2
         queue_file = out/'review/queue.json'
+        review_stage('核对历史复核收据与队列（剩余量未知）')
         reviews = read_queue(out)
         reviews = checked_reviews(root, out, reviews, state['fingerprint'])
         write_json(queue_file, reviews)
@@ -725,7 +731,8 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 nonlocal last
                 if time.monotonic()-last >= 30:
                     report['run_status']='REVIEW_RUNNING'
-                    write_html(out, facts, report, current)
+                    if runtime_only:refresh(facts,report,current)
+                    else:write_html(out,facts,report,current)
                     last=time.monotonic()
 
             try:
@@ -740,6 +747,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 print('复核已中断，队列已保留；review 重跑全部疑似/未知，review-failed 只重跑技术失败。', flush=True)
                 return 130
         inputs_current = True
+        review_stage('复核后完整输入重验与结果保存（剩余量未知）')
         try:
             checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
         except (OSError, ValueError, KeyError):

@@ -1,0 +1,37 @@
+{
+  "passed": false,
+  "status": "FAIL",
+  "scope": "Measure complete Packet construction on a sealed native authority.\n\nfull uses the unchanged builder after ordinary complete reconstruction;\ncontrol reconstructs complete original facts and only the chosen finding;\nselected uses its complete per-object inputs. No model or source execution.\nBoth modes preserve original authority bytes. This is not a new native scan.\n",
+  "source": "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v52",
+  "mode": "control",
+  "job_limit_bytes": 34359738368,
+  "peaks": {
+    "working_set_bytes": 16742850560,
+    "private_bytes": 16826273792,
+    "peak_job_commit_bytes": 16834711552
+  },
+  "all_gates_passed": false,
+  "pid": 11128,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v52\\scripts\\validate_native_packet_reader.py",
+    "--worker",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v52",
+    "--source",
+    "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v13-native-packet-control-v52-v1",
+    "--mode",
+    "control"
+  ],
+  "seconds": 433.48399999999674,
+  "exit_code": 1,
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v52\\scripts\\validate_native_packet_reader.py\", line 103, in main\n    if process.returncode:raise RuntimeError('Worker\u5931\u8d25\uff1b\u4fdd\u7559\u65e5\u5fd7\uff0c\u4e0d\u58f0\u660ePacket\u901a\u8fc7')\nRuntimeError: Worker\u5931\u8d25\uff1b\u4fdd\u7559\u65e5\u5fd7\uff0c\u4e0d\u58f0\u660ePacket\u901a\u8fc7\n",
+  "original_source_postflight_sha256": "4549110d23bfb9ed3c78d5ea686fbeeb94e9e140eac4b88974288c25bd4e7913",
+  "original_source_unchanged": true
+}

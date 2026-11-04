@@ -1,3 +1,5 @@
+> 2026-11-05最新进展：[97号原生复核验收](97-native-review-packet-acceptance.md)。原生review/review-failed已改完整逐对象Packet和流式收据，真实INAV 615.59MB Packet/缓存键完全相同，2GiB Job峰值提交1,443,061,760B；F030真实Chrome停止/重试/6项技术失败/完整包及172专项（171PASS/1联网SKIP）通过，原件不变。v51漏递归边测量明确失效；v54完整回归执行中。Diff/完整恢复、CMake未提交、多Worker联合峰值及其他门禁仍未完成。
+
 > 按用户功能优先顺序的最新结果：[88号确认继承](88-verified-human-inheritance.md)、[90号完整数据根搬迁](90-whole-root-transfer-acceptance.md)已实现并完成限定范围真实F030/Chrome验收；v44完整1482项为1480PASS/2联网SKIP。第三项显式数据库工作区输入已接公开GUI/CLI/Diff/恢复，[93号验收](93-dirty-database-workflow-acceptance.md)：67专项PASS、自建原生4TU真实Chrome/独立全量0差/完整包通过，真实F030因基准PARTIAL正确拒绝，未改判为完整Diff成功；详情裁切修复后六组浏览器几何断言通过。CMake未提交构建、第四项后续操作内存及其他统一门禁仍未完成；较早文字保留为历史，最新封存Portable仍v37。
 
 > 第四项的第一个消费者已完成：[95号](95-runtime-refresh-memory-acceptance.md)，真实F030刷新/完整静态对照0差、既有INAV 12.59GB库运行时投影0差，实际2GiB Job提交峰值约116MiB；干净daacc1f完整1497项已1495PASS/2联网SKIP。完整复核/Packet/大Diff恢复仍未完成，内部Packet大库对照发现递归边数组兼容缺陷，修正前测量不算语义验收通过。
