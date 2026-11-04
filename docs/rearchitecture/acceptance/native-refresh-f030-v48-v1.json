@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "scope": "Actual original-path authorized F030 native and saved report; original full reconstruction/generate control vs new metadata-only complete runtime. No large/native32GB/whole review completion.",
+  "saved_code": 2,
+  "full_reconstruction_calls": 0,
+  "old_native_complete_comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+        "after": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\root-transfer-f030-v44-v1\\\u539f\u59cb \u5b8c\u6574\u6570\u636e\\scans\\before-transfer\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "static_sha256": "e9442d1704b146f9b5d649a70534cf6abd98d5f21e26d3a2b13a33a45a7a6d23",
+  "source_differences": [],
+  "complete_runtime_difference": null,
+  "completion": {
+    "fingerprint": "ef7d47f732bb70be484ab2bcc19c539a9dab3dbb4b183903797191101fefd4e7",
+    "translation_units_total": 4,
+    "parsed": 2,
+    "partial": 2,
+    "failed": 0,
+    "fact_counts": {
+      "variables": 15,
+      "functions": 121,
+      "accesses": 56,
+      "calls": 98,
+      "unknowns": 236,
+      "protection_events": 8,
+      "registrations": 0,
+      "snapshots": 6,
+      "pointer_constraints": 47,
+      "semantic_calls": 150,
+      "indirect_accesses": 88,
+      "irq_priority_events": 10,
+      "control_flow": 121,
+      "pointer_storage": 447,
+      "constant_regions": 0,
+      "nvic_programs": 121,
+      "nvic_globals": 7,
+      "nvic_irq_definitions": 30,
+      "constant_pruned_evidence": 0,
+      "translation_units": 4,
+      "failed_tu_preprocessing": 0,
+      "address_escapes": 4,
+      "resolved_pointer_facts": 18,
+      "pointer_targets": 16,
+      "vector_entries": 0,
+      "resolved_assembly_references": 0,
+      "physical_contexts": 5,
+      "context_bindings": 19,
+      "contexts": 5,
+      "recursive_edges": 0,
+      "context_pruned_uncertainties": 0,
+      "nvic_resolved_events": 2,
+      "nvic_lifecycle_barriers": 1,
+      "nvic_priorities": 4,
+      "preemption_relations": 10,
+      "assembly_references": 0,
+      "mask_windows": 15,
+      "multi_field_coherence": 0
+    },
+    "variable_accountability": {
+      "total": 13,
+      "screened": 7,
+      "queued": 6,
+      "missing": 0,
+      "duplicate_ids": 0
+    },
+    "classifications": {
+      "total": 13,
+      "safe_proven": 7,
+      "shared_no_review": 0,
+      "suspect": 1,
+      "unknown": 5
+    },
+    "snapshot_status": "VERIFIED",
+    "static_analysis_status": "INCOMPLETE",
+    "analysis_valid": true,
+    "output_files": {
+      "scan.db": 8962048,
+      "reviews.db": 65536
+    }
+  },
+  "seconds": 32.76499999995576
+}

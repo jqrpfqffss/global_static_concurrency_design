@@ -151,7 +151,7 @@ int main(void){shared++;return shared;}
         descriptor=view.create(captured,self.repo,self.cfg,external_directories=[self.sdk,build])
         frozen=self.worker(descriptor);self.assertIsNone(strict_difference(original,frozen))
 
-    def test_low_disk_or_external_copy_race_never_returns_an_accepted_view_and_formal_dirty_stays_blocked(self):
+    def test_low_disk_or_external_copy_race_never_returns_an_accepted_view_and_auto_dirty_stays_blocked(self):
         captured=working_snapshot.capture(self.repo,self.cfg);before=self.fixture.hashes()
         with patch('ecra.working_compiler_view.shutil.disk_usage',return_value=shutil_usage(0)):
             with self.assertRaisesRegex(ValueError,'空闲不足'):view.create(captured,self.repo,self.cfg,external_directories=[self.sdk])
@@ -164,7 +164,7 @@ int main(void){shared++;return shared;}
             with self.assertRaisesRegex(ValueError,'复制期间外部编译输入已变化'):view.create(captured,self.repo,self.cfg,external_directories=[self.sdk])
         from ecra.workspace import formal_workspace
         analysis=dict(self.fixture.analysis,git_diff=dict(include_uncommitted=True))
-        with self.assertRaisesRegex(ValueError,'隔离快照尚未完成验收'):formal_workspace(self.repo,analysis)
+        with self.assertRaisesRegex(ValueError,'显式编译数据库'):formal_workspace(self.repo,analysis)
         self.assertEqual(before,self.fixture.hashes())
 
     def test_failed_final_closure_validation_keeps_pending_view_unusable_by_actual_worker(self):

@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "status": "PASS_SCOPED",
+  "scope": "Measure existing-authority runtime summaries in a real Windows Job.\n\nReads the original authority without changing it; writes only an independent\nruntime scratch DB. This is not saved_run input replay, a new native scan,\nwhole review/Packet/Diff recovery, physical 32GB acceptance or UAT.\n",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v48",
+  "source": "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden",
+  "job_limit_bytes": 2147483648,
+  "peaks": {
+    "working_set_bytes": 133251072,
+    "private_bytes": 121053184,
+    "peak_job_commit_bytes": 121921536
+  },
+  "controller_sha256": "c1c0582fe5e799c4cea8b7894bc7e1806a8a2f6bd5f18bd63fcb640398e2f878",
+  "all_gates_passed": false,
+  "pid": 20064,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v48\\scripts\\validate_native_runtime_projection.py",
+    "--worker",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v48",
+    "--source",
+    "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-v13-runtime-projection-v48-v1"
+  ],
+  "seconds": 75.59400000004098,
+  "exit_code": 0,
+  "manifest_sha256": "461bc2342ea670a42f63809310958c6848bf85f95f167a23e69a942e4d200aa5",
+  "engine_differences": [],
+  "result": {
+    "passed": true,
+    "scope": "Measure existing-authority runtime summaries in a real Windows Job.\n\nReads the original authority without changing it; writes only an independent\nruntime scratch DB. This is not saved_run input replay, a new native scan,\nwhole review/Packet/Diff recovery, physical 32GB acceptance or UAT.\n",
+    "seconds": 6.0,
+    "source_database_bytes": 12590489600,
+    "source_sha256": {
+      "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden\\scan.db": "4549110d23bfb9ed3c78d5ea686fbeeb94e9e140eac4b88974288c25bd4e7913",
+      "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden\\reviews.db": "f3ae46bbc9e0108a66cd98ed1e7c44a97b9581ae9f3537f4d5f5ae067cb75bed",
+      "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden\\scan_state.json": "5a7332eac0889fa7c95bbea5233b24a45149bc30d45584d872b2e24d1e24665c",
+      "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden\\manifest.json": "7d53e4bac85e35d7bc1defe4d454c54ad3ceb598bf2eda7227b5607ea58c1799"
+    },
+    "source_differences": [],
+    "variables": 16566,
+    "findings": 3540,
+    "complete_runtime_difference": null,
+    "ai_events": 3540,
+    "full_reconstruction_calls": 0,
+    "all_gates_passed": false
+  }
+}

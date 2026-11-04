@@ -101,6 +101,58 @@ def status_report(out):
     return result
 
 
+def runtime_inputs(out):
+    """Metadata for the original runtime summaries, never static publication.
+
+    Accesses, conflict products, calls and global solver relations stay in the
+    authority. The caller must verify the full report/input closure first.
+    """
+    variable_fields={'symbol_id','name','qualified_name','static_classification','resource_kind',
+        'definition_file','definition_line','kind','coverage_source','parse_status','audit_status',
+        'definitions','declarations'}
+    finding_fields={'finding_id','symbol_id','static_classification','rules','definition'}
+    with closing(connect_readonly(no_links(out)/'scan.db')) as conn:
+        conn.execute('BEGIN')
+        def records(root,key,fields,*,optional=False):
+            try:array=_child(conn,root,key)
+            except KeyError:
+                if optional:return []
+                raise
+            if conn.execute('SELECT kind FROM nodes WHERE id=?',(array,)).fetchone()[0]!='list':
+                raise ValueError('运行时摘要的权威关系不是有序列表：'+key)
+            result=[]
+            for (node,) in conn.execute('SELECT child FROM edges WHERE parent=? ORDER BY ordinal',(array,)):
+                if conn.execute('SELECT kind FROM nodes WHERE id=?',(node,)).fetchone()[0]!='object':
+                    raise ValueError('运行时摘要的身份记录不是对象：'+key)
+                result.append({key:_small_value(conn,child) for key,child in conn.execute(
+                    'SELECT key,child FROM edges WHERE parent=? ORDER BY ordinal',(node,)) if key in fields})
+            return result
+        facts_root=_root(conn,'facts');report_root=_root(conn,'report')
+        facts=dict(variables=records(facts_root,'variables',variable_fields))
+        coverage=_child(conn,report_root,'coverage')
+        report=dict(analysis_status=_field(conn,report_root,'analysis_status'),limitations=[],
+            coverage={key:_field(conn,coverage,key) for key in ('audit_scope','project_root')
+                      if conn.execute('SELECT 1 FROM edges WHERE parent=? AND key=?',(coverage,key)).fetchone()},
+            findings=records(report_root,'findings',finding_fields))
+        try:classification=_child(conn,coverage,'static_classification')
+        except KeyError:pass
+        else:
+            total=_field(conn,classification,'total',MISSING)
+            report['coverage']['static_classification']={} if total is MISSING else dict(total=total)
+        if conn.execute("SELECT 1 FROM edges WHERE parent=? AND key='review_safe_samples'",(report_root,)).fetchone():
+            report['review_safe_samples']=records(report_root,'review_safe_samples',finding_fields)
+        try:diff=_child(conn,report_root,'git_diff')
+        except KeyError:pass
+        else:
+            kind,length=conn.execute('SELECT kind,length FROM nodes WHERE id=?',(diff,)).fetchone()
+            if kind=='null' or (kind=='object' and length==0):report['git_diff']=None if kind=='null' else {}
+            else:
+                report['git_diff']=dict(selected_symbol_ids=_small_value(conn,_child(conn,diff,'selected_symbol_ids')))
+                reasons=_field(conn,diff,'fallback_reasons',MISSING)
+                if reasons is not MISSING:report['git_diff']['fallback_reasons']=reasons
+    return facts,report
+
+
 def clean_report_digest(database, *, work):
     """Existing logical_digest(clean_report(report)), using a disk-backed memo.
 

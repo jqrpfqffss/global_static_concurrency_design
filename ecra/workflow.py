@@ -658,6 +658,11 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     context(root, cfg['analysis']).initialize()
     lock = lock_path(root, cfg['analysis'])
     source_reader=None;source_scope=None;source_token=None;source_entered=False
+    from .scan_persistence import is_canonical
+    runtime_only=render_only and is_canonical(out)
+    def refresh(facts,report,reviews):
+        if runtime_only:return generate(out,facts,report,reviews,_runtime_only=True)
+        return generate(out,facts,report,reviews)
     try:
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
@@ -666,7 +671,11 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     os.close(fd)
     try:
         try:
-            facts, report, state = checked_scan(root, out, cfg, config_file)
+            facts, report, state = checked_scan(root,out,cfg,config_file,with_facts=not runtime_only,
+                _report_projection=runtime_only)
+            if runtime_only:
+                from .native_consumers import runtime_inputs
+                facts,report=runtime_inputs(out)
             from .git_diff import current_context
             root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
             if state.get('scan_mode'):
@@ -682,8 +691,12 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 raise
             # The old scan cannot be reviewed against changed source. Keep every
             # ID visible as STALE until a fresh run creates a new fingerprint.
-            facts = read_saved_json(out/'facts.json', canonical_accesses=True)
-            report = clean_report(read_saved_json(out/'reports/global_static_concurrency.json'))
+            if runtime_only:
+                from .native_consumers import runtime_inputs
+                facts,report=runtime_inputs(out)
+            else:
+                facts = read_saved_json(out/'facts.json', canonical_accesses=True)
+                report = clean_report(read_saved_json(out/'reports/global_static_concurrency.json'))
             from .review_integrity import review_targets, mark_review_stale
             saved = {r['finding_id']:r for r in read_queue(out)}
             reviews = [saved.get(f['finding_id'], dict(finding_id=f['finding_id'], state='PENDING'))
@@ -695,7 +708,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 write_json(out/'review'/(row['finding_id']+'.result.json'), row)
             report['run_status'] = 'INCOMPLETE'
             report['stale_reason'] = str(exc)
-            generate(out, facts, report, reviews)
+            refresh(facts,report,reviews)
             write_json(out/'review/queue.json', reviews)
             write_json(out/'resume.json', dict(command='run', state='INCOMPLETE', exit_code=2,
                 review_integrity=report['review_integrity'], finished=datetime.now(timezone.utc).isoformat()))
@@ -723,7 +736,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             except KeyboardInterrupt:
                 reviews = read_queue(out)
                 report['run_status']='INTERRUPTED'
-                generate(out, facts, report, reviews)
+                refresh(facts,report,reviews)
                 print('复核已中断，队列已保留；review 重跑全部疑似/未知，review-failed 只重跑技术失败。', flush=True)
                 return 130
         inputs_current = True
@@ -749,7 +762,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             f['review_result']=r
             if r['state']=='DONE':
                 f['status']=r['status']; f['review']=r['answer']
-        generate(out, facts, report, reviews)
+        refresh(facts,report,reviews)
         write_json(queue_file, reviews)
         if inputs_current:
             verify_saved_publication(root, out, cfg, state, config_file)

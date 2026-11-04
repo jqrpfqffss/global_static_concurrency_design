@@ -299,6 +299,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     try:
         if _compiler_view is not None:
             from .frozen_scan import ScanFiles
+            diagnostics.stage('重新校验已固定工作区与SDK输入；剩余量未知')
             frozen_files = ScanFiles(_compiler_view, root, cfg)
         # Keep previous logs/diagnostics intact until they have been archived.
         diagnostics.stage('扫描准备与历史归档', announce=False)

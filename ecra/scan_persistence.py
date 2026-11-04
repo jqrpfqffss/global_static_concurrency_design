@@ -144,12 +144,13 @@ def ai_page(out, offset=0, limit=50):
         return dict(items=rows,total=total,states=states,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
 
-def persist(out, facts, report, reviews):
+def persist(out, facts, report, reviews, *, _existing_only=False):
     from .workflow import clean_report
     from .human_reviews import ReviewStore
     out = Path(out)
     database = out/'scan.db'
     if not database.exists():
+        if _existing_only:raise ValueError('已有权威库不可用，不能用运行时元数据重建静态事实')
         settings = json.loads((out/MARKER).read_text(encoding='utf-8'))
         provenance = dict(storage_version=1, project_root=report.get('workspace', {}).get('project_root'),
                           input_files={})

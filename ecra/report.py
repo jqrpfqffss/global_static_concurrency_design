@@ -118,24 +118,28 @@ class AtomicLines:
             self.temp.unlink(missing_ok=True)
 
 
-def generate(out, facts, report, reviews):
+def generate(out, facts, report, reviews, *, _runtime_only=False):
     from .scan_persistence import is_canonical, persist
     if is_canonical(out):
-        prepare(facts, report, reviews)
-        return persist(out, facts, report, reviews)
+        if _runtime_only and not (out/'scan.db').is_file():
+            raise ValueError('运行时摘要不能代替完整静态事实创建权威库')
+        prepare(facts, report, reviews,_runtime_only=_runtime_only)
+        return persist(out, facts, report, reviews,_existing_only=_runtime_only)
+    if _runtime_only:raise ValueError('运行时摘要只用于已有原生权威库')
     with ExitStack() as files:
         return _generate(out, facts, report, reviews, files)
 
 
-def prepare(facts, report, reviews):
+def prepare(facts, report, reviews, *, _runtime_only=False):
     from .html_report import category, review_records, write_html, risk_summary, final_conclusion, localized_records
     from .decisions import decision_label, effective_decision
     from .scope import validate_selection
     from .analysis import compact_conflict_pair_storage
     from .review_integrity import review_integrity
     from .review_integrity import review_targets
-    compact_conflict_pair_storage(facts.get('variables', []))
-    compact_conflict_pair_storage(report.get('findings', []))
+    if not _runtime_only:
+        compact_conflict_pair_storage(facts.get('variables', []))
+        compact_conflict_pair_storage(report.get('findings', []))
     validate_selection(facts, report)
     # The published result must account for every target with a terminal
     # review record. A queue containing all IDs is structurally valid but is
@@ -204,6 +208,9 @@ def prepare(facts, report, reviews):
     if (counts['unresolved'] or counts['likely'] or not report['review_integrity']['complete']
             or report.get('git_diff', {}).get('fallback_reasons')) and report.get('run_status') == 'REVIEW_COMPLETE':
         report['run_status'] = 'INCOMPLETE'
+    # Canonical refresh persists only runtime keys. Static diagnostic/coverage
+    # projections were published and verified with the original full facts.
+    if _runtime_only:return records_by_id,None
     from .diagnostics import root_causes, root_causes_markdown
     diagnostic = root_causes(facts['variables'], report['coverage']['review_rates'])
     quality = report['coverage']['classification_quality']
