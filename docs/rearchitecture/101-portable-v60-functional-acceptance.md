@@ -1,5 +1,7 @@
 # 当前功能阶段包 v60：源码、真实流程及未完成门禁
 
+> 完整回归现已收齐：干净c374ebc/v61的1512项为1510PASS/2联网SKIP，2722.338秒，3792文件及独立测试副本SHA不变，见[最终收据](acceptance/full-regression-studio-v61-final.json)。下文“执行中”保留原封存时点；当前最新状态和新INAV原生启动见[103号](103-clean-regression-and-current-inav-start.md)。新原生尚无完成声明，完整门禁仍未全部通过。
+
 2026-11-05，当前可审核的**功能阶段候选包**为v60，替代v37作为最近实际验证的功能交付；不是完整发布/G1–G8全通过声明。程序对应干净`c374ebc94cb1bc6818b6002c311531c9e0b2be5d`，包含确认继承、整根搬迁、显式数据库未提交Diff、原生复核逐对象读取、正确任务计数及100号初始化停止修复。
 
 - 启动：`H:/ECRAStudio-build-20261105-studio-v60/ECRA-Portable/ECRA.cmd`

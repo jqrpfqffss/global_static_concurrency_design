@@ -1,0 +1,17 @@
+{
+  "summary_ok": true,
+  "tests": 2,
+  "passed_tests": 2,
+  "seconds": 8.072,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "scope": "Actual Windows Job public run_canonical, real native manifest/full authority and no fake scans on wrong declared root; isolated 1TU controlled fixture, not G2",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v62",
+  "manifest_sha256": "65a6a6b751d5ae613b8227e5d05776e3387e2414b818a28af64aea7575ae8754",
+  "log_sha256": "0092b6d2d342e96982c2b234d990b2e108101b5f7b9ce0cb4a9bd451a3e28cca",
+  "all_gates_passed": false
+}

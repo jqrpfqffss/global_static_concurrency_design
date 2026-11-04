@@ -1,3 +1,5 @@
+> 103号更新：当前应用干净c374ebc全套1512已1510PASS/2联网SKIP；后续仅新正式发布测量入口的2项/原路径F030完整0差另验。新本版INAV当前真实原生已启动，待最终资源与完整语义对照，不将旧库Packet成绩拼成新生产者结果。原配置与4123冻结输入预检一致，原件保留，16GiB Job，物理32GB/完整G4仍未验。
+
 > 功能交付更新：[101号v60](101-portable-v60-functional-acceptance.md)已封存，包内原生/复核/继承/搬迁/显式数据库工作字节Diff真实验证通过，完整数据仍保留；旧包仅为历史。G1–G8及当前1512全套未全部通过。包内额外的编译器审计元数据差异有原严格FAIL及完整解释，未修改比较规则。
 
 > 2026-11-05消费路径最新结果：[97号复核](97-native-review-packet-acceptance.md)、[98号双Packet实测](98-concurrent-packet-stress-contract.md)、[100号初始化停止修复](100-owner-publication-stop-acceptance.md)。v54完整1508项已1506PASS/2联网SKIP；后续停止修复为23/32两组专项及新F030全字段0差，未冒称同一全套。单Packet2GiB Job与双独立Packet4GiB Job均通过，后者提交峰值2,813,624,320B；完整Diff/恢复/物理32GB/三类工程与G1–G8整体未通过。

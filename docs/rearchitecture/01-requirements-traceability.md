@@ -1,3 +1,5 @@
+> 最新完成/在途状态见[103号](103-clean-regression-and-current-inav-start.md)：干净c374ebc完整1512项已1510PASS/2联网SKIP；正式发布观察器2项及真实F030公开流水线/完整facts-report0差通过。新本版INAV已用4123项原黄金输入预检后在独立H:/ECRA-NATIVE-C62-SEED0启动，16GiB Job、完整发布包装；仍运行中，待原件后验/完整G1/后续消费者结果，不提前标PASS。当前功能候选包为101号v60，完整重构及G1–G8未全部完成。
+
 > 2026-11-05当前功能阶段包已封存：[101号v60](101-portable-v60-functional-acceptance.md)。143个应用文件与干净c374ebc一致，32,031分发文件在真实操作后全SHA不变；目录/中文ZIP各27检查、真实ECRA.cmd、包内F030新原生/复核、确认继承、整根离线恢复及自建4TU真实未提交Diff均通过。包内跨环境完整事实0差，原报告严格差异保留并逐字段解释编译器审计；不冒称所有报告字段同一。v61当前1512全套仍在运行，物理机/大Diff/CMake/完整门禁未完。v37及下文旧进度是历史。
 
 > 2026-11-05最新收齐：[98号](98-concurrent-packet-stress-contract.md)INAV两份独立完整最大Packet同时驻留、写文件和收据检查已在4GiB Job通过，提交峰值2,813,624,320B，原库不变；冻结v54全套1508项为1506PASS/2联网SKIP。包内首次初始化停止暴露的pending缺陷按[100号](100-owner-publication-stop-acceptance.md)修复：23工作区、32原生/搬迁/复核测试通过，新F030原生完整facts/report0差及真实Chrome重试通过；不替换旧state指纹。新候选包重新验收中，尚不更新v37封存状态。Diff/完整恢复、CMake未提交、物理机及完整G1–G8仍未完。

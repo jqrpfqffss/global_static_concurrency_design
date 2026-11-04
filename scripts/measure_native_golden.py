@@ -7,6 +7,7 @@ the complete G4 disk gate. File allocation is a sampled lower bound excluding
 directory/MFT metadata and alternate data streams. Paging rates are host-wide.
 """
 import argparse
+from contextlib import ExitStack
 from datetime import datetime,timezone
 import json
 import os
@@ -21,6 +22,7 @@ sys.path.insert(0,str(TOOL))
 from ecra.studio.process_budget import ProcessBudget
 from ecra.scan_diagnostics import memory
 from ecra.report_package import sha256
+from ecra.common import write_json
 from scripts.native_metrics import directory_size,PagingRates
 
 
@@ -35,7 +37,7 @@ def main():
     parser.add_argument('--config',type=Path,required=True)
     parser.add_argument('--data-root',type=Path,required=True)
     parser.add_argument('--work',type=Path,required=True)
-    parser.add_argument('--mode',choices=['legacy','canonical'],required=True)
+    parser.add_argument('--mode',choices=['legacy','canonical','canonical-published'],required=True)
     parser.add_argument('--limit-gib',type=int,required=True)
     parser.add_argument('--scan-id',default='native-golden',help='Explicit canonical output identity; original default unchanged')
     parser.add_argument('--profile-id',default='same-golden-input')
@@ -48,6 +50,7 @@ def main():
     if os.name!='nt':parser.error('This measurement requires real Windows Job accounting')
     if not 2<=args.limit_gib<=32:parser.error('Choose an explicit safety cap between 2 and 32GiB')
     if args.inject_stop_before_merge and args.mode!='canonical':parser.error('Fault injection is canonical diagnostic only')
+    if args.classification_diagnostics and args.mode=='canonical-published':parser.error('Published pipeline measurement must not instrument classification')
     work=args.work.resolve()
     data=args.data_root.resolve();engine=args.engine.resolve();config=args.config.resolve()
     if data.exists():raise FileExistsError('Use a fresh data root; never mix another scan into the measurement')
@@ -108,6 +111,10 @@ if mode=='legacy':
  ws=WorkspaceResolver.resolve(root,cfg['analysis'])
  if Path(ws.workspace_root)!=data:raise ValueError('Legacy configuration data root does not match measurement')
  out=Path(ws.results_root)
+elif mode=='canonical-published':
+ if Path(WorkspaceResolver.resolve(root,cfg['analysis']).workspace_root)!=data:
+  raise ValueError('Published canonical config must explicitly select the measured data root')
+ out=data/'scans'/sys.argv[7]
 else:
  from dataclasses import replace
  from ecra.common import write_json
@@ -119,6 +126,10 @@ gate.with_name('output.json').write_text(json.dumps(dict(output=str(out))),encod
 if mode=='legacy':
  sys.argv=[str(engine/'run_ecra.py'),'--config',str(config),'--scan-mode','full','--no-review']
  runpy.run_path(str(engine/'run_ecra.py'),run_name='__main__')
+elif mode=='canonical-published':
+ from ecra.scan_persistence import run_canonical
+ raise SystemExit(run_canonical(root,config,no_review=True,scan_mode='full',
+  scan_id=sys.argv[7],profile_id=sys.argv[8],_budget_owned=True))
 else:
  import ecra.cli as cli
  if sys.argv[9]=='True':
@@ -155,7 +166,8 @@ else:
         controlled_limit_experiment=True,physical_32GB='NOT_VERIFIED',
         physical_disk_peak='SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS',
         system_paging_rate='PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA',paging_samples_valid=0,
-        canonical_scope='Production CLI body, not TaskManager publication wrapper',
+        canonical_scope=('Public run_canonical including final publication' if args.mode=='canonical-published' else
+                         'Production CLI body, not TaskManager publication wrapper'),
         logical_disk_peak_is_sampled_lower_bound=True,
         started=datetime.now(timezone.utc).isoformat(),peaks={},samples=0,cache_reuse=cache_reuse,
         diagnostic_fault='STOP_BEFORE_MERGE' if args.inject_stop_before_merge else None,
@@ -163,17 +175,23 @@ else:
     result['observer_script_sha256']=sha256(work/'observer.py')
     receipt=work/'execution.json'
     def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
-    save();process=None;paging=None;budget=ProcessBudget(result['safety_job_commit_limit_bytes']);started=time.monotonic()
+    save();process=None;paging=None;budget=ProcessBudget(result['safety_job_commit_limit_bytes']);activities=ExitStack();started=time.monotonic()
     try:
+        if args.mode=='canonical-published':
+            from ecra.storage_activity import DataActivity
+            activities.enter_context(DataActivity(data))
+            activities.enter_context(DataActivity(data,exclusive=True,purpose='scan-budget'))
         import psutil
         try:paging=PagingRates()
         except OSError as exc:result.update(system_paging_rate='NOT_MEASURED',paging_error=str(exc))
         env=dict(os.environ,PYTHONIOENCODING='utf-8',GIT_OPTIONAL_LOCKS='0',ECRA_JOB_STOP_FILE=str(work/'stop'))
-        if args.mode=='canonical':
+        if args.mode in {'canonical','canonical-published'}:
             from ecra.studio.resource_policy import temporary_environment
             owned=data/'work/native-observer';owned.mkdir(parents=True)
             env=temporary_environment(owned,env)
             result['worker_temporary_root']=env['TEMP']
+        if args.mode=='canonical-published':
+            env['ECRA_RESOURCE_PRESSURE_FILE']=str(work/'resource-pressure.json')
         result['output_volume_free_at_start']=shutil.disk_usage(data).free
         save()
         with (work/'console.log').open('wb') as log,(work/'resources.jsonl').open('w',encoding='utf-8') as samples:
@@ -186,6 +204,14 @@ else:
                 system=memory();sample.update({k:v for k,v in system.items() if k.startswith('system_')})
                 commit_headroom=system.get('system_commit_limit_bytes',2**63)-system.get('system_commit_bytes',0)
                 sample['system_commit_headroom_bytes']=commit_headroom
+                if args.mode=='canonical-published':
+                    limit=result['safety_job_commit_limit_bytes']
+                    write_json(work/'resource-pressure.json',dict(parallel_limit=1 if sample.get('private_bytes',0)>=limit*.75 else 8))
+                    available=system.get('system_physical_available_bytes',2**63)
+                    if sample.get('private_bytes',0)>=limit*.90 or available<4*1024**3:
+                        (work/'stop').write_text('OWNED_RESOURCE_PRESSURE',encoding='ascii');result['resource_stop_requested']=True
+                    if available<2*1024**3:
+                        result['safety_stop']='Host physical RAM below2GiB; owned Job stopped';budget.close();break
                 if commit_headroom<4*1024**3:
                     (work/'stop').write_text('HOST_COMMIT_PRESSURE',encoding='ascii')
                     result['host_commit_stop_requested']=True
@@ -225,16 +251,24 @@ else:
             out=Path(json.loads((work/'output.json').read_text())['output']);result['output']=str(out)
             if (out/'result_validity.json').is_file():result['validity']=json.loads((out/'result_validity.json').read_text(encoding='utf-8'))
         result['complete']=process.returncode in {0,1,2} and result.get('validity',{}).get('analysis_valid') is True and 'safety_stop' not in result
+        if args.mode=='canonical-published':
+            published=out/'manifest.json' if (work/'output.json').is_file() else work/'missing-manifest.json'
+            value=json.loads(published.read_text('utf-8')) if published.is_file() else {}
+            result['publication']=dict(manifest_sha256=sha256(published) if published.is_file() else None,
+                format=value.get('format'),state=value.get('state'),scan_id=value.get('scan_id'))
+            result['complete']=result['complete'] and value.get('format')=='ECRA_LOCAL_SCAN' and value.get('state')=='STATIC_VALIDATED' and value.get('scan_id')==args.scan_id
         if sha256(config)!=result['config_sha256']:raise ValueError('Frozen configuration changed during measurement')
         save();print(json.dumps(dict(complete=result['complete'],exit_code=process.returncode,seconds=result['seconds'],peaks=result['peaks'])),flush=True)
         return 0 if result['complete'] else 1
     except BaseException as exc:
         result.update(complete=False,error=str(exc),error_type=type(exc).__name__,seconds=time.monotonic()-started);save();raise
     finally:
-        if paging is not None:paging.close()
-        budget.close()
-        if process is not None and process.poll() is None:process.wait(timeout=30)
-        if process is not None:process.close()
+        try:
+            if paging is not None:paging.close()
+            budget.close()
+            if process is not None and process.poll() is None:process.wait(timeout=30)
+            if process is not None:process.close()
+        finally:activities.close()
 
 
 if __name__=='__main__':raise SystemExit(main())

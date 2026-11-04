@@ -1,0 +1,117 @@
+"""Approved unchanged INAV: current public native, strict G1, report and Packet.
+
+Independent data only. No inherited cache/old-state hash replacement, no models.
+Actual completion receipts, not the queue state, determine acceptance.
+"""
+import hashlib,json,os,sqlite3,subprocess,sys,time,traceback
+from contextlib import closing
+from datetime import datetime,timezone
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v62';source_engine=w/'frozen-engine-studio-v61'
+data=Path('H:/ECRA-NATIVE-C62-SEED0');work=w/'inav-current-published-native-v62';queue=w/'inav-current-published-native-v62-queue.json'
+assert not data.exists() and not work.exists() and not queue.exists()
+state=dict(passed=False,status='WAITING_CLEAN1512_REGRESSION',engine=str(engine),data_root=str(data),work=str(work),
+ scope=__doc__,all_gates_passed=False,physical32GB='NOT_VERIFIED',other_G2='USER_DEFERRED')
+def save():queue.write_text(json.dumps(state,indent=2)+'\n','utf-8')
+def sha(p):
+ h=hashlib.sha256()
+ with Path(p).open('rb') as f:
+  for part in iter(lambda:f.read(1024**2),b''):h.update(part)
+ return h.hexdigest()
+save()
+try:
+ deadline=time.monotonic()+10800
+ while not (w/'full-regression-studio-v61.json').is_file():
+  if queue.with_suffix('.stop').is_file():state['status']='STOPPED_BEFORE_NATIVE';save();raise SystemExit(130)
+  if time.monotonic()>deadline:raise TimeoutError('Clean regression has no final receipt; native not started')
+  time.sleep(5)
+ reg=json.loads((w/'full-regression-studio-v61.json').read_text('utf-8'))
+ assert reg['passed'] and reg['tests']==1512 and reg['skipped']==2 and not reg['working_tree_overlay'],reg
+ reference_manifest=source_engine.with_name(source_engine.name+'.sha256.json');assert sha(reference_manifest)==reg['manifest_sha256']
+ source=json.loads(reference_manifest.read_text('utf-8'));manifest=engine.with_name(engine.name+'.sha256.json');m=json.loads(manifest.read_text('utf-8'))
+ lookup={row['file']:row for row in m['files']}
+ assert all(lookup[row['file']]['sha256']==row['sha256'] for row in source['files'] if row['file'].startswith(('ecra/','tests/')))
+ original=w/'inav-seed0-reference-v3-config/semantics.yaml';assert sha(original)=='d1bc911bfc315eb94e6d15177f7b33efa170363fa139763a703122d4ea435d04'
+ db=Path('I:/ECRAStudio-data/rearchitecture-20261101/inav-golden-f254-v1/frozen-inputs.db');assert sha(db)=='a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91'
+ with closing(sqlite3.connect(db.resolve().as_uri()+'?mode=ro',uri=True)) as conn:rows=list(conn.execute('SELECT * FROM files ORDER BY scope,path'))
+ assert len(rows)==4123
+ def inputs():
+  changes=[]
+  for scope,name,h,size,mtime in rows:
+   p=Path(name)
+   if not p.is_file() or (p.stat().st_size,p.stat().st_mtime_ns)!=(size,mtime) or sha(p)!=h:changes.append(name)
+  return changes
+ def engine_changes():return [r['file'] for r in m['files'] if not (engine/r['file']).is_file() or sha(engine/r['file'])!=r['sha256']]
+ state.update(status='PREFLIGHT_4123_FROZEN_INPUTS',producer_commit=source['head'],engine_manifest_sha256=sha(manifest));save()
+ changed=inputs();engine_bad=engine_changes();assert not changed and not engine_bad,(changed,engine_bad)
+ config_dir=w/'inav-current-published-v62-config';config_dir.mkdir();config=config_dir/'semantics.yaml'
+ raw=json.loads(original.read_text('utf-8'));raw['analysis']['output']=dict(location='custom',custom_dir=str(data));config.write_text(json.dumps(raw,ensure_ascii=False,indent=2)+'\n','utf-8')
+ sys.path.insert(0,str(engine))
+ from ecra.config import load_config,configured_project_root
+ from ecra.workflow import analysis_config
+ from ecra.common import digest
+ root=configured_project_root(original);old_cfg,_=load_config(root,original);cfg,_=load_config(root,config)
+ assert analysis_config(old_cfg)==analysis_config(cfg)
+ config_sha=sha(config);state.update(config=str(config),config_sha256=config_sha,analysis_config_sha256=digest(analysis_config(cfg)),inputs=4123,cold_extraction=True);save()
+ env=dict(os.environ)
+ original_env=json.loads((Path(json.loads((w/'inav-canonical-ancestors-native-v8/execution.json').read_text('utf-8'))['output'])/'input_closure.json').read_text('utf-8'))['environment']['variables']
+ for key,value in original_env.items():
+  if key in {'TEMP','TMP','TMPDIR','SQLITE_TMPDIR','ECRA_DATA_ROOT','ECRA_JOB_STOP_FILE','ECRA_RESOURCE_PRESSURE_FILE'}:continue
+  if value is None:env.pop(key,None)
+  else:env[key]=value
+ env.update(PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',SOURCE_DATE_EPOCH='1793577600',ECRA_DATA_ROOT=str(data))
+ env.pop('ECRA_PROFILE_MEMORY',None)
+ command=[sys.executable,'-B','-X','utf8',str(engine/'scripts/measure_native_golden.py'),'--engine',str(engine),'--config',str(config),
+  '--data-root',str(data),'--work',str(work),'--mode','canonical-published','--limit-gib','16']
+ state.update(status='RUNNING_COLD_PUBLIC_CANONICAL',command=command,started_utc=datetime.now(timezone.utc).isoformat());save()
+ with (w/'inav-current-published-v62-observer.log').open('xb') as log:
+  code=subprocess.call(command,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+ changed=inputs();engine_bad=engine_changes()
+ post=dict(passed=not changed and not engine_bad and sha(config)==config_sha and sha(original)=='d1bc911bfc315eb94e6d15177f7b33efa170363fa139763a703122d4ea435d04',input_differences=changed,engine_differences=engine_bad,config_sha256=sha(config))
+ (w/'inav-current-published-v62-postflight.json').write_text(json.dumps(post,indent=2)+'\n','utf-8')
+ state.update(status='NATIVE_EXITED_POSTFLIGHT_COMPLETE',native_exit_code=code,postflight=post);save()
+ native=json.loads((work/'execution.json').read_text('utf-8'));assert code==0 and native['complete'] and post['passed'],native
+ from ecra.studio.process_budget import ProcessBudget
+ from ecra.studio.write_guard import OwnedProcess
+ from ecra.studio.resource_policy import temporary_environment
+ from ecra.scan_diagnostics import memory
+ def bounded(name,argv,gib=2):
+  folder=w/name;folder.mkdir();budget=ProcessBudget(gib*1024**3);process=None;peaks={};started=time.monotonic()
+  result=dict(passed=False,scope=name,limit_bytes=gib*1024**3,command=argv)
+  try:
+   with (folder/'console.log').open('xb') as log:
+    process=OwnedProcess(argv,cwd=engine,env=temporary_environment(folder,env),log=log);budget.assign(process);process.resume()
+    while process.poll() is None:
+     if (work/'stop').is_file():raise KeyboardInterrupt('Owned downstream stop requested')
+     sample=budget.sample()
+     for key in ['peak_job_commit_bytes','working_set_bytes','private_bytes']:peaks[key]=max(peaks.get(key,0),sample.get(key,0))
+     metrics=memory()
+     if metrics.get('system_physical_available_bytes',2**63)<8*1024**3:raise MemoryError('Host physical headroom below8GiB; owned job stopped')
+     time.sleep(1)
+    process.wait(timeout=30);sample=budget.sample();peaks['peak_job_commit_bytes']=max(peaks.get('peak_job_commit_bytes',0),sample.get('peak_job_commit_bytes',0))
+    result.update(passed=process.returncode==0,exit_code=process.returncode,seconds=time.monotonic()-started,peaks=peaks)
+  except BaseException:result['error']=traceback.format_exc();raise
+  finally:
+   budget.close()
+   if process is not None:process.close()
+   (folder/'execution.json').write_text(json.dumps(result,indent=2)+'\n','utf-8')
+  assert result['passed'],result
+  return result
+ reference=Path('H:/ECRA-NATIVE-A13-SEED0/scans/native-golden/scan.db');reference_sha='4549110d23bfb9ed3c78d5ea686fbeeb94e9e140eac4b88974288c25bd4e7913';assert sha(reference)==reference_sha
+ state['status']='RUNNING_FULL_ORDERED_NATIVE_G1';save();comparison=w/'inav-current-published-v62-full-comparison.json'
+ bounded('inav-current-published-v62-compare-job',[sys.executable,'-B','-X','utf8',str(engine/'scripts/compare_native_graphs.py'),'--before',str(reference),'--after',str(data/'scans/native-golden/scan.db'),'--receipt',str(comparison),'--envelope',str(w/'inav-current-published-v62-envelope.jsonl')])
+ compared=json.loads(comparison.read_text('utf-8'));assert compared['passed'] and sha(reference)==reference_sha
+ state.update(status='RUNNING_CURRENT_NATIVE_REPORT_REFRESH',comparison_passed=True);save()
+ refresh_code='import sys;from pathlib import Path;from ecra.config import configured_project_root;from ecra.workflow import saved_run;p=Path(sys.argv[1]);raise SystemExit(0 if saved_run(configured_project_root(p),p,render_only=True,_out=Path(sys.argv[2])) in {0,1,2} else 1)'
+ out=data/'scans/native-golden';before=sha(out/'scan.db')
+ bounded('inav-current-published-v62-report-job',[sys.executable,'-B','-X','utf8','-c',refresh_code,str(config),str(out)])
+ assert sha(out/'scan.db')==before
+ state['status']='RUNNING_CURRENT_NATIVE_MAX_PACKET';save()
+ packet_work=w/'inav-current-published-v62-packet'
+ with (w/'inav-current-published-v62-packet-driver.log').open('xb') as log:
+  code=subprocess.call([sys.executable,'-B','-X','utf8',str(engine/'scripts/validate_native_packet_reader.py'),'--source',str(out),'--work',str(packet_work),'--mode','selected','--job-gib','2','--write-packet','--verify-packet'],env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+ assert code==0 and json.loads((packet_work/'execution.json').read_text('utf-8'))['passed']
+ final_inputs=inputs();assert not final_inputs and not engine_changes() and sha(out/'scan.db')==before
+ state.update(passed=True,status='PASS_NATIVE_G1_REPORT_PACKET_SCOPED',finished_utc=datetime.now(timezone.utc).isoformat(),comparison=str(comparison),all_gates_passed=False,full_diff_recovery='NOT_VERIFIED',physical32GB='NOT_VERIFIED');save()
+except BaseException:
+ state.update(error=traceback.format_exc(),status='FAIL_OR_NOT_STARTED');save();raise
