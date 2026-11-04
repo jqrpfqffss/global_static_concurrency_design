@@ -66,8 +66,11 @@ class TaskManager:
     def start(self, profile_path, *, profile_id, mode='scan', scan_id=None,resources=None,multicore=None):
         from ..config import load_config, configured_project_root
         from ..workspace import formal_workspace
+        from ..data_transfer import relocated_task_config
+        execution_config,relocation=relocated_task_config(self.data,profile_path,Path(profile_path).read_bytes())
         root = configured_project_root(profile_path)
         cfg, _ = load_config(root, profile_path)
+        if relocation:cfg['analysis']['output']=dict(location='user')
         from .resource_policy import policy
         limits=policy(resources)
         from .resource_policy import host_pressure
@@ -125,7 +128,7 @@ class TaskManager:
                 from ..storage_policy import snapshot as storage_snapshot
                 fixed_storage=storage_snapshot(self.data)
                 write_json(folder/'storage-policy.json',fixed_storage)
-                (folder/'semantics.yaml').write_bytes(Path(profile_path).read_bytes())
+                (folder/'semantics.yaml').write_bytes(execution_config)
                 if mode=='multicore':write_json(folder/'multicore.json',multicore)
                 # Preserve the existing adjacent-library contract when the task's
                 # config is fixed outside the editable profile directory.
@@ -139,6 +142,7 @@ class TaskManager:
                              profile_id=profile_id, profile_revision=sha256(folder/'semantics.yaml'), state='RUNNING', started=now(),budget_bytes=limits['peak_bytes'],resource_policy=limits,
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
                              checkpoint_mode='INPUT_VERIFIED_TU_CACHE',storage_policy=fixed_storage, samples=[], resources={})
+                if relocation:value['data_relocation']=relocation
                 write_json(folder/'task.json', value)
                 if mode=='multicore':
                     value['checkpoint_mode']='RETRY_DERIVATION_FROM_FIXED_INPUTS'

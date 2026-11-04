@@ -3,6 +3,7 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import { api } from './api'
 import DirectoryBrowser from './DirectoryBrowser.vue'
 import StoragePolicySettings from './StoragePolicySettings.vue'
+import DataRootTransfer from './DataRootTransfer.vue'
 const props=defineProps<{busy:boolean}>()
 const state=ref<any>(null),path=ref(''),plan=ref<any>(null),working=ref(false),error=ref(''),notice=ref(''),repair=ref(false),browsing=ref(false)
 const browseButton=ref<HTMLButtonElement|null>(null)
@@ -49,6 +50,7 @@ onMounted(async()=>{working.value=true;try{await read();path.value=state.value.s
   <p v-if="notice" role="status" class="banner">{{notice}}</p>
   <DirectoryBrowser v-if="browsing" title="选择下次启动数据目录" purpose="data" :start="path" @selected="selected" @close="closeBrowser"/>
   <StoragePolicySettings :busy="busy||working"/>
+  <DataRootTransfer v-if="state" :current-root="state.current_root" :busy="busy||working"/>
  </section>
 </template>
 <style scoped>

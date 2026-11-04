@@ -486,6 +486,10 @@ def discover_databases(root):
 def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     a = cfg["analysis"]
     progress = progress or (lambda message: None)
+    from .workspace import context
+    from .data_transfer import reject_retired_inputs
+    active_data=context(root,a).workspace_root
+    reject_retired_inputs(active_data,a)
     scope = AuditScope(root, a)
     configured = a.get("compile_database", "auto")
     candidates = []
@@ -540,6 +544,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
         unit = normalize(entry, root, a, consumed_inputs)
+        reject_retired_inputs(active_data,dict(directory=unit['directory'],source=unit['source'],arguments=unit['original_arguments']))
         if cmake_steps:
             # The real database is produced by this version's managed build.
             # Canonical comparison may normalize this proven build root only;

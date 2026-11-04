@@ -17,6 +17,16 @@ from ..human_reviews import ReviewConflict, ReviewStore
 from ..report_package import import_report, export_report, import_delta, export_delta, IDENTITY
 from ..scan_store import EvidenceProvider, connect_readonly
 from ..workspace import no_links, studio_data_root, formal_workspace
+from ..storage_activity import DataActivity,DataBusy
+
+
+def _startup_barrier(function):
+    from functools import wraps
+    @wraps(function)
+    def guarded(data_root,**kwargs):
+        with DataActivity(studio_data_root(data_root),purpose='api'):
+            return function(data_root,**kwargs)
+    return guarded
 
 
 class JSONResponse(BaseJSONResponse):
@@ -32,6 +42,7 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     try:
         return _create_app(selection['root'], token=token, authority=authority, startup=selection)
     except (ValueError, OSError) as exc:
+        if isinstance(exc,DataBusy):raise
         if selection['source'] != 'GUI_DEFAULT':
             raise
         from ..workspace import default_user_data_root
@@ -43,6 +54,7 @@ def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
         return _create_app(fallback, token=token, authority=authority, startup=recovery)
 
 
+@_startup_barrier
 def _create_app(data_root, *, token, authority, startup):
     data = studio_data_root(data_root)
     data.mkdir(parents=True, exist_ok=True)
@@ -53,6 +65,8 @@ def _create_app(data_root, *, token, authority, startup):
     cleanup=CleanupJobs(data)
     from .migration_jobs import MigrationJobs
     migrations = MigrationJobs(data)
+    from .root_transfers import RootTransfers
+    transfers=RootTransfers(data)
     @asynccontextmanager
     async def lifespan(app):
         try:
@@ -95,7 +109,13 @@ def _create_app(data_root, *, token, authority, startup):
                 return JSONResponse(dict(error='本地会话已失效，请从启动器重新打开'), status_code=401)
             if request.method not in {'GET', 'HEAD'} and origin != 'http://' + authority:
                 return JSONResponse(dict(error='写入操作缺少同源校验'), status_code=403)
-        response = await call_next(request)
+        lease=None
+        if request.url.path.startswith('/api/') and not request.url.path.startswith('/api/data-transfers'):
+            try:lease=DataActivity(data,purpose='api').__enter__()
+            except DataBusy as exc:return JSONResponse(dict(error=str(exc)),status_code=409)
+        try:response = await call_next(request)
+        finally:
+            if lease:lease.__exit__(None,None,None)
         response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'no-referrer'
@@ -160,6 +180,27 @@ def _create_app(data_root, *, token, authority, startup):
     def data_root_settings():
         from ..studio_preferences import status
         return status(data, startup['source'], startup['warning'])
+
+    @app.post('/api/data-transfers/preview')
+    def transfer_preview(payload: dict):
+        from ..data_transfer import preview
+        return preview(payload.get('source') or data,payload.get('target'))
+
+    @app.get('/api/data-transfers')
+    def transfer_history():
+        return dict(items=transfers.history())
+
+    @app.post('/api/data-transfers')
+    def start_transfer(payload: dict):
+        return transfers.start(payload.get('source') or data,payload.get('target'),expected=payload.get('revision'))
+
+    @app.get('/api/data-transfers/{ident}')
+    def transfer_status(ident: str):
+        return transfers.get(ident)
+
+    @app.post('/api/data-transfers/{ident}/resume')
+    def resume_transfer(ident: str):
+        return transfers.resume(ident)
 
     @app.post('/api/settings/data-root/preview')
     def preview_data_root(payload: dict):

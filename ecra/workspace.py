@@ -303,6 +303,8 @@ def validate_analysis_inputs(root, analysis, paths, *, config_file, compilation)
     """
     ws = context(root, analysis)
     root = Path(root).resolve()
+    from .data_transfer import reject_retired_inputs
+    reject_retired_inputs(ws.workspace_root,list(paths))
     if root == Path(ws.project_root):
         return
     if not root.is_relative_to(Path(ws.worktree_root)):

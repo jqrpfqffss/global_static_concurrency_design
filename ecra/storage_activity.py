@@ -5,9 +5,13 @@ from pathlib import Path
 from .workspace import no_links
 
 
+class DataBusy(ValueError):
+    """A live owner, rather than a damaged or unavailable data directory."""
+
+
 class DataActivity:
     def __init__(self, data_root, *, exclusive=False,purpose='storage'):
-        if purpose not in {'storage','scan-budget','cleanup-job','legacy-import','storage-policy'}:raise ValueError('未知数据活动锁')
+        if purpose not in {'storage','scan-budget','cleanup-job','legacy-import','storage-policy','api','root-transfer'}:raise ValueError('未知数据活动锁')
         self.root=no_links(data_root)
         self.exclusive=exclusive
         self.purpose=purpose
@@ -37,7 +41,7 @@ class DataActivity:
                 fcntl.flock(stream.fileno(),(fcntl.LOCK_EX if self.exclusive else fcntl.LOCK_SH)|fcntl.LOCK_NB)
         except OSError as exc:
             stream.close();self.stream=None
-            raise ValueError('数据根正在扫描、复核、导入或整理；等待当前操作结束后重试。') from exc
+            raise DataBusy('数据根正在扫描、复核、导入、整理或整套复制；等待当前操作结束后重试。') from exc
         return self
 
     def __exit__(self,*_):

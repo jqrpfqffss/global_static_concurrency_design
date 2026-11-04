@@ -116,3 +116,7 @@ U02目录选择续轮：第1步可选择实际固件目录，第3步可从真实
 U01/U16/U19/U22续轮：首次新建/历史导入/真实教学示例三入口已接通。仓库demo真实ARM对象编译与原/新独立扫描全字段差异0，归档保持原始UNKNOWN/缺口；示例明确区别用户工程。39专项/10真实浏览器及主流程16项重验通过，含服务重启、幂等打开、事件转移、资产不变和工作台首屏。见builtin-sample-and-viewport-v8.json、ui/15与16合同。极端状态/系统DPI/物理离线机/UAT未全验；U01已覆盖路径PASS，完整U01–U24/G7仍PARTIAL。新Portable尚未构建，不能借v13证明本轮。
 
 2026-11-02当前逐项状态集中见[U01–U24完整场景表](ui/17-user-scenario-status.md)及user-scenarios-v15.json，严格使用PASS/FAIL/NOT_VERIFIED；7/3/14，不以各子流程PASS替代完整验收。v15另有包内覆盖8/真实两服务协作7/完整旧迁移6与实际ECRA.cmd启动4通过；首轮控制器选择了不匹配的静态分类或提前断言，失败保留且修正后重验。完整G7未过。
+# 2026-11-04 增量功能验收索引
+
+用户最新优先级见[87号](87-functional-priority-execution.md)。不变完整输入/事实后的人工确认继承、撤销和独立包传播已按[88号](88-verified-human-inheritance.md)实际验证；整套数据根静默复制、WAL/历史校验、路径重绑、跨H/I盘、旧根不可用后的确认/检查点/真实任务重试按[90号](90-whole-root-transfer-acceptance.md)实际验证。对应H2/H4/H6、U17/U18/U20及G5/G6的具体增量范围，不把这些子场景代替完整U/G验收。v44完整1482回归尚在执行，dirty生产链路及消费者省内存仍未完成；物理第二PC、干净离线Portable、原生DPI和工程师UAT继续NOT_VERIFIED。
+

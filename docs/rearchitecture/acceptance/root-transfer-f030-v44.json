@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "scope": "Approved native F030 -> Chrome whole-root copy -> old root offline -> resume/rescan.\n\nAll working data and user preferences are private. Optional --target permits\nan actual second volume. No physical second-PC, clean Portable or UAT claim.\n",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\root-transfer-f030-v44-v1\\原始 完整数据",
+  "target": "I:\\ECRA-ROOT-TRANSFER-F030-V44-V1",
+  "tests": [
+    "REAL_CHROME_COMPLETE_COPY_ORIGINAL_STATIC_PROFILE_EVENTS_UNCHANGED",
+    "OLD_ROOT_OFFLINE_REAL_CHECKPOINT_AND_CLI_STATUS_INPUTS_REVERIFIED",
+    "REAL_CHROME_NEW_ROOT_CONFIRM_AND_FULL_PACKAGE_ROUNDTRIP",
+    "OLD_ROOT_OFFLINE_REAL_SUPERVISED_RETRY_NATIVE_FACTS_EQUAL"
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\root-transfer-f030-v44-v1\\01-complete-copy.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\root-transfer-f030-v44-v1\\02-new-root-review.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "stopped_task": {
+    "id": "05f8fe01bdc2465481a731e9bda0d7f9",
+    "state": "INTERRUPTED",
+    "exit_code": 130
+  },
+  "original_firmware_unchanged": true,
+  "original_events_unchanged": true,
+  "original_scan_sha256": "2c009b0fb6dc5a72d03106fed3e2552bb7882254801c3b9285bc696938bd3f99",
+  "facts_hash": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+  "cross_volume": true,
+  "engine_unchanged": true
+}

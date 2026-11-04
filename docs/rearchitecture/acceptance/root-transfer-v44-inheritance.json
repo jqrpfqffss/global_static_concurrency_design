@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v44",
+  "manifest_sha256": "73800574928950b0222a9d93723c5a6330d1cd1dc51f768ba563d38b1706c2e0",
+  "scope": "Read after completed v44 real relocation/retry. Latest target human decision is inherited by the fresh native scan without adding current events; original receipt is not rewritten.",
+  "scan_id": "dcfec9b68f2f4d3284f6d0066e661f57",
+  "symbol_id": "c:@HCLK",
+  "current_events": [],
+  "state": {
+    "heads": [],
+    "has_prior": true,
+    "decision": "NEED_MORE_EVIDENCE",
+    "handling_status": "TODO",
+    "conflict": false,
+    "inherited": true,
+    "inherited_sources": [
+      {
+        "comment": "\u590d\u5236\u540e\u7ee7\u7eed\u786e\u8ba4\uff0c\u539f\u4e8b\u4ef6\u4fdd\u7559",
+        "decision": "NEED_MORE_EVIDENCE",
+        "device": "device-d1350870bd744e128b57befee172a1d3",
+        "event_id": "5d1ccf9a-15ae-4708-a502-25f73ad0a1be",
+        "fingerprint": "0476298c9431fe76b53098683187d6e64044b484d2074afc81ef2be677b5036f",
+        "handling_status": "TODO",
+        "parents": [
+          "285f5291-2c7a-4173-a4ee-44cfc357da50"
+        ],
+        "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+        "reviewer": "\u642c\u8fc1\u540e\u58f0\u660e",
+        "revision": 2,
+        "scan_id": "before-transfer",
+        "symbol_id": "c:@HCLK",
+        "timestamp": "2026-11-04T12:05:40.204137+00:00"
+      }
+    ]
+  }
+}
