@@ -40,10 +40,18 @@ def execute(args):
             diagnostics.failure(exc);raise
         finally:
             finished.set();diagnostics.close()
+    compiler_view=None
     if args.mode in {'scan', 'precheck'}:
+        from ..config import load_config
+        root=configured_project_root(args.config);cfg,_=load_config(root,args.config)
+        if cfg['analysis']['git_diff'].get('include_uncommitted'):
+            from ..dirty_inputs import capture_inputs
+            compiler_view=capture_inputs(root,args.config,args.result.parent/'fixed-inputs',
+                progress=lambda text:print(text,flush=True))
         from .preflight import run_preflight
+        fixed={} if compiler_view is None else dict(_compiler_view=compiler_view)
         run_preflight(args.config, args.data_root, args.result.parent/'preflight',
-                      progress=lambda text: print(text, flush=True))
+                      progress=lambda text: print(text, flush=True),**fixed)
         if args.mode == 'precheck': return 0
     else:
         import threading
@@ -64,7 +72,7 @@ def execute(args):
     import json
     fixed_storage=json.loads((args.result.parent/'storage-policy.json').read_text('utf-8'))
     return run_canonical(configured_project_root(args.config), args.config, scan_id=args.scan_id, profile_id=args.profile_id,
-                         _budget_owned=True,_storage_policy=fixed_storage)
+                         _budget_owned=True,_storage_policy=fixed_storage,_compiler_view=compiler_view)
 
 
 def main():

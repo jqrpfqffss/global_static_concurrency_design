@@ -46,10 +46,12 @@ class FrozenDirtyDiffTests(unittest.TestCase):
         from ecra.report_package import sha256
         from ecra.git_diff import compare
         before={str(p):sha256(p) for p in self.root.rglob('*') if p.is_file()}
-        with self.assertRaisesRegex(ValueError,'未提交字节'):
-            run_canonical(self.root,self.config,no_review=True)
-        descriptor=self.case.capture()
-        diff=self.scan('dirty-diff',descriptor)
+        # Ordinary public entry must now perform automatic capture, not read
+        # live working bytes or require a private caller-supplied descriptor.
+        diff=self.scan('dirty-diff',None)
+        identity=read_json(diff/'input_closure.json')['frozen_view']
+        descriptor={key:identity[key] for key in ('file','sha256')}
+        self.assertEqual(identity['proof_scope'],'COMPLETE_LOGICAL_CLANG_INPUTS_V1')
         provider=EvidenceProvider(diff/'scan.db');facts=provider.load('facts');report=provider.load('report')
         result=report['git_diff'];self.assertEqual(result['full_verification']['state'],'PASSED')
         self.assertIn('c:@shared',result['selected_symbol_ids'])
@@ -76,8 +78,11 @@ class FrozenDirtyDiffTests(unittest.TestCase):
         baseline_root=Path(result['pin']['base_source_root'])
         self.assertNotEqual(baseline_root,self.root)
         self.assertEqual({str(p):sha256(p) for p in self.root.rglob('*') if p.is_file()},before)
-        with self.assertRaisesRegex(ValueError,'未提交字节'):
-            run_canonical(self.root,self.config,no_review=True)
+        unsupported=read_json(self.config)
+        unsupported['analysis']['cmake']=dict(target='firmware',generator='Ninja',location='workspace')
+        invalid=self.base/'unsupported-cmake.json';write_json(invalid,unsupported)
+        with self.assertRaisesRegex(ValueError,'CMake'):
+            run_canonical(self.root,invalid,no_review=True)
 
     def test_capture_is_reverified_after_real_baseline_before_current_is_consumed(self):
         from ecra import git_diff

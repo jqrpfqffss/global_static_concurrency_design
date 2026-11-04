@@ -1,0 +1,125 @@
+{
+  "passed": true,
+  "scope": "Authorized input copy: working bytes -> real Chrome -> native Diff/retry.\n\nExplicit database only. No CMake equivalence, hardware, live model, second PC,\nphysical DPI or UAT claim. All edits are in a newly created private Git copy.\n",
+  "input_kind": "CONTROLLED_NATIVE_FIXTURE_NOT_G2",
+  "tests": [
+    "REAL_CHROME_FOUR_STEP_DATABASE_DIRTY_REF_PREVIEW_SAVE",
+    "REAL_CHROME_STOP_DURING_CAPTURE_PRIOR_RESULT_UNCHANGED",
+    "REAL_NATIVE_DIRTY_DIFF_INDEPENDENT_FULL_ZERO_FIELD_DIFF_AND_UNCACHED_FULL_VERIFICATION",
+    "REAL_CHECKPOINT_SAVED_REPORT_AND_FULL_PACKAGE_ARCHIVED_WORKING_HEADERS"
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-controlled-v47-v2\\01-real-git-working-preview.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-controlled-v47-v2\\02-real-capture-progress.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-controlled-v47-v2\\03-real-diff-workbench.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "base_sha": "4ff432c7fbfc2dd4f116b806d9653a3c333cfe7f",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v47",
+  "staged_header_sha256": "720823b641f036e47460c548c480246cf7156766bc20a85d277c2f7075f94263",
+  "working_header_sha256": "3f1cbe207c359077631496c67e16e1dfbae73840cf919933f0b2d8528537111b",
+  "profile": {
+    "id": "612027f13f514197975c0c0c21b38a0f",
+    "project_id": "8f5d1569d11614ef810ad3f0202f5fa45646bbe0f6be90ab504ba4e8a7823987",
+    "yaml": "analysis:\n  auto_system_includes: false\n  compile_database: compile_commands.json\n  git_diff:\n    base_ref: comparison-base\n    cache_enabled: true\n    current_ref: HEAD\n    enabled: true\n    include_uncommitted: true\n    verify_against_full: true\n  output:\n    location: user\ncontexts:\n- functions:\n  - main\n  id: main\n  kind: MAIN\n- functions:\n  - ISR\n  id: irq\n  kind: ISR\nproject:\n  chip: Controlled native fixture, not a customer firmware\n  core: Cortex-M0\n  native_word_bits: 32\n  root: H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-controlled-v47-v2\\独立固件\n    副本\nreview:\n  enabled: false\n  prepare_packets: false\nversion: 1\n",
+    "revision": "b5d913e5c478d48f06b4f5693b69d356f18e5372e9863e10e20d2fd72e94f5f9",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-controlled-v47-v2\\独立固件 副本",
+    "name": "612027f13f514197975c0c0c21b38a0f"
+  },
+  "stopped_task": "93e1a8bed5764662bb1655743aa0a7ea",
+  "running": {
+    "id": "dc5049f2b07c49d08537d54f487818a6",
+    "stage": "报告发布后输入一致性验证",
+    "state": "RUNNING"
+  },
+  "scan_id": "dc5049f2b07c49d08537d54f487818a6",
+  "units": 4,
+  "completion": {
+    "fingerprint": "a3189d7968382d85eaa3f900fd4130cb234e25e7c9d04442807cc461a6b1df94",
+    "translation_units_total": 4,
+    "parsed": 4,
+    "partial": 0,
+    "failed": 0,
+    "fact_counts": {
+      "variables": 2,
+      "functions": 5,
+      "accesses": 5,
+      "calls": 0,
+      "unknowns": 0,
+      "protection_events": 0,
+      "registrations": 0,
+      "snapshots": 0,
+      "pointer_constraints": 1,
+      "semantic_calls": 0,
+      "indirect_accesses": 0,
+      "irq_priority_events": 0,
+      "control_flow": 5,
+      "pointer_storage": 8,
+      "constant_regions": 0,
+      "nvic_programs": 5,
+      "nvic_globals": 2,
+      "nvic_irq_definitions": 0,
+      "constant_pruned_evidence": 0,
+      "translation_units": 4,
+      "failed_tu_preprocessing": 0,
+      "address_escapes": 0,
+      "resolved_pointer_facts": 0,
+      "pointer_targets": 0,
+      "vector_entries": 0,
+      "resolved_assembly_references": 0,
+      "physical_contexts": 2,
+      "context_bindings": 2,
+      "contexts": 2,
+      "recursive_edges": 0,
+      "context_pruned_uncertainties": 0,
+      "nvic_resolved_events": 0,
+      "nvic_lifecycle_barriers": 0,
+      "nvic_priorities": 0,
+      "preemption_relations": 1,
+      "assembly_references": 0,
+      "mask_windows": 2,
+      "multi_field_coherence": 0
+    },
+    "variable_accountability": {
+      "total": 2,
+      "screened": 1,
+      "queued": 1,
+      "missing": 0,
+      "duplicate_ids": 0
+    },
+    "classifications": {
+      "total": 2,
+      "safe_proven": 1,
+      "shared_no_review": 0,
+      "suspect": 1,
+      "unknown": 0
+    },
+    "snapshot_status": "VERIFIED",
+    "static_analysis_status": "MODELED_SCOPE_COMPLETE",
+    "analysis_valid": true,
+    "output_files": {
+      "scan.db": 307200,
+      "reviews.db": 65536
+    }
+  },
+  "full_verification": {
+    "state": "PASSED",
+    "variables": 2,
+    "reextracted_units": 4,
+    "classification_mismatches": 0,
+    "semantic_mismatches": 0
+  },
+  "frozen_view": {
+    "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-controlled-v47-v2\\独立 数据\\projects\\project_8f5d1569d11614ef810a\\trees\\working-11ce07d578e247b8bb87543fa39ef2d3\\compiler-view-bb1a9109d7704cb980196b7fb69151f2\\view.json",
+    "sha256": "e66aa09b3a6daeb6971b70518d9e49430f03c204960aaba70ac8bd6e13a450dc",
+    "original_final_reverification_required": true,
+    "proof_scope": "COMPLETE_LOGICAL_CLANG_INPUTS_V1"
+  },
+  "independent_facts_difference": null,
+  "approved_original_differences": [],
+  "private_git_differences": [],
+  "engine_differences": [],
+  "seconds": 138.954000000027,
+  "all_gates_passed": false
+}

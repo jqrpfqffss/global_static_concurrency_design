@@ -192,8 +192,9 @@ def collect_evidence(root, answer):
     for item in citations:
         file, line = item['file'], item['line']
         if file not in sources:
-            data = (root / file).read_bytes()
-            sources[file] = (data.decode('utf-8', 'replace').splitlines(), hashlib.sha256(data).hexdigest())
+            from .review_sources import read_source
+            text,sha=read_source(root/file)
+            sources[file] = text.splitlines(),sha
         lines, sha = sources[file]
         evidence.append(dict(file=file, line=line, sha256=sha,
             lines=[dict(line=i, text=lines[i - 1]) for i in range(max(1, line - 3), min(len(lines), line + 3) + 1)]))
@@ -201,6 +202,16 @@ def collect_evidence(root, answer):
 
 
 def verify_receipt(root, folder, receipt, *, summary_config=None):
+    from .review_sources import ArchivedSources,source_scope
+    from .scan_store import EvidenceProvider
+    database=Path(folder).parent/'scan.db'
+    if database.is_file():
+        with source_scope(ArchivedSources(root,EvidenceProvider(database))):
+            return _verify_receipt(root,folder,receipt,summary_config=summary_config)
+    return _verify_receipt(root,folder,receipt,summary_config=summary_config)
+
+
+def _verify_receipt(root, folder, receipt, *, summary_config=None):
     """Verify archive integrity independently of the model's output protocol."""
     execution = receipt.get('execution') or {}
     # All calls, including the original analysis before FORMAT_FIX, remain bound.
@@ -405,16 +416,18 @@ ECRA发现 shared→读取旧值→实参保存→经调用路径写回同一sha
         + '\n聚焦事实：\n' + json.dumps(focused, ensure_ascii=False) + CONTRACT_PROMPT)
 
 
-def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None):
+def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None,archived_sources_only=False):
     # Formatting sessions have no source or tool access and no previous session.
     permissions = {'*': 'deny'}
     if not format_only:
         readable = {'*': 'deny'}
-        for suffix in ('c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 's', 'S', 'inc', 'ld', 'cmake', 'ioc'):
-            readable['*.' + suffix] = 'allow'
-        readable['*CMakeLists.txt'] = 'allow'
+        if not archived_sources_only:
+            for suffix in ('c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 's', 'S', 'inc', 'ld', 'cmake', 'ioc'):
+                readable['*.' + suffix] = 'allow'
+            readable['*CMakeLists.txt'] = 'allow'
         for path in [*paths, *reference_paths]:
-            readable[str(path)] = readable[path.as_posix()] = readable['*' + path.name] = 'allow'
+            readable[str(path)] = readable[path.as_posix()] = 'allow'
+            if not archived_sources_only:readable['*' + path.name] = 'allow'
         permissions['read'] = readable
         if reference_paths:
             permissions['external_directory'] = {'*': 'deny'}
@@ -513,7 +526,11 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     report_path = folder / 'static-report.json'
     from .scan_persistence import is_canonical
     navigation = ''
+    archived_sources=None
     if is_canonical(out):
+        from .review_sources import ArchivedSources
+        from .scan_store import EvidenceProvider
+        archived_sources=ArchivedSources(root,EvidenceProvider(out/'scan.db'))
         facts_path = folder/'facts-navigation.json'
         report_path = folder/'report-navigation.json'
         for name, path in [('facts', facts_path), ('report', report_path)]:
@@ -522,6 +539,9 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     '--database', str(out/'scan.db'), '--root', name],
                 instructions='按 JSON path 或 node 读取；返回 total/hash/next_offset。必须继续分页直到 next_offset=null；字符串使用 --text。所有证据完整保留。'))
         navigation = '\n完整静态 facts/report 位于导航文件指向的 SQLite。使用已配置的 ecra_evidence MCP evidence 工具，按 root/path 或 node 逐层读取。它与 GUI 使用同一 EvidenceProvider；继续 offset 直到 next_offset=null，不可把第一页当作全部证据。无需 shell 或网络权限。\n'
+        navigation += ('源码只使用ecra_evidence MCP source工具读取归档文本，file使用Packet中的工程相对路径；'
+            '按UTF8字节offset继续，直到next_offset=null。校验sha256/hash一致；缺归档应报告missing_context，'
+            '不读取实时工程，不把缺少源码当作安全。引用仍使用原工程相对file和原行号。\n')
     else:
         write_json(report_path, clean_report(report))
     write_json(shared_path, dict(contexts=facts.get('contexts', []), coverage=report.get('coverage', {}),
@@ -532,6 +552,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     implementation = digest([Path(__file__).read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_language.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('review_sources.py').read_text(encoding='utf-8'),
+                             Path(__file__).with_name('evidence_mcp.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_summary.py').read_text(encoding='utf-8')])
     if case_library_path is None:
         from .config import SEMANTICS_FILE
@@ -539,6 +561,11 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     library_prompt, library_paths = case_library_section(case_library_path, folder, progress) if selected else ('', [])
 
     def process(index, finding):
+        from .review_sources import source_scope
+        with source_scope(archived_sources):
+            return process_candidate(index,finding)
+
+    def process_candidate(index, finding):
         fid = finding['finding_id']
         cache = folder / (fid + '.result.json')
         old = previous.get(fid, {})
@@ -677,7 +704,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                             *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
                               if (packet.get('git_diff_impact') or {}).get(key)]],
                                         format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths,
-                                        evidence_database=out/'scan.db' if is_canonical(out) else None))
+                                        evidence_database=out/'scan.db' if is_canonical(out) else None,
+                                        archived_sources_only=archived_sources is not None))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')
                     record['exit_code'] = proc.returncode

@@ -1,0 +1,567 @@
+{
+  "passed": true,
+  "scope": "Full canonical original/frozen scans on an independent authorized source copy.\n\nThis is an internal explicit-database acceptance controller. It does not open\nthe formal dirty/Diff/CMake/resume gates or replace original-path golden runs.\n",
+  "all_gates_passed": false,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v45",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\golden-parsed-f030\\semantics.yaml",
+  "controller_sha256": "6f5748743a331471ecc73ac06b713ba47c6da70d1b7ae70fcd310cc49ee82d6b",
+  "automatic_inputs": {
+    "format": "ECRA_DIRTY_INPUT_PLAN_V1",
+    "compiler_view": {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data\\projects\\firmware_bad0c128caeefb6e0823\\trees\\working-8682e021edd940939671011af8b45108\\compiler-view-09a2ba1923e641019614dbd3a2fe0cfb\\view.json",
+      "sha256": "da480cc8596f31a63281f72fe556a3084ff014881a9e3d76bb8bcd80bf7d02fb"
+    },
+    "project_id": "bad0c128caeefb6e0823338ea3c28afc8a360750d826307a9c893fcc8c56a3b7",
+    "engine_digest": "62baa53776f1dbe86a5acc41e9cb9eeba48717b5edc886ce89e75cf6db3ebb3b",
+    "effective_analysis_digest": "1333c7e0030120128f9df26280287e6eca4dfbc8fa038a28a3ffc36b5d723ed2",
+    "external_directories": [
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\native-build",
+      "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include",
+      "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include",
+      "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include-fixed"
+    ],
+    "external_files": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native\\libclang.dll",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\metadata\\compile_commands.json",
+      "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\semantics.yaml",
+      "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe"
+    ],
+    "observed": {
+      "TU-00000": {
+        "inputs": {
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\startup.c": {
+            "status": "OK",
+            "sha256": "a2ce18ed0b37cafc14f945e8a4eac1c667ac74e13db78107ce5b29edb6505f32",
+            "size": 3254
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\_newlib_version.h": {
+            "status": "OK",
+            "sha256": "a6f650177bc0235ec5af51bd711083fe3170b5c00bf4f1af370dd7b75e65988f",
+            "size": 337
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\machine\\_default_types.h": {
+            "status": "OK",
+            "sha256": "5d8f9f7ead7927e4b8b7ed00172e84f2ae82ea7f5f6ba3240ff813a9236771b3",
+            "size": 6650
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\stdint.h": {
+            "status": "OK",
+            "sha256": "99fe201684856075ccd92704f63b702f6fa882b9dab61bd7a9bcce2588275861",
+            "size": 12432
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_intsup.h": {
+            "status": "OK",
+            "sha256": "1af8abe244b43a3a5b5a85f6c834aa206930b6938e8109fbec430bc140b68df5",
+            "size": 5741
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_stdint.h": {
+            "status": "OK",
+            "sha256": "49f8328943afa2a83ed4a35fcb808ed08b8c9fcb55373c786fb1b1d3a21952d7",
+            "size": 1824
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\features.h": {
+            "status": "OK",
+            "sha256": "92eead7ab3bf7ecb315fd81d0f1eaec250f6d8d7d8574e3cd5d7f80dc779e771",
+            "size": 15828
+          }
+        },
+        "preprocessor_signature": "d24a2d275ee777518abda732c2c932e5e8afb8c84220d4a6b4b48f0fab7cf48a"
+      },
+      "TU-00001": {
+        "inputs": {
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\cmsis_compiler.h": {
+            "status": "OK",
+            "sha256": "cd3cbd1c771a5252827a14c75a12e7ed975f76b9fc1577d53a74ba0e7c1af6c3",
+            "size": 9014
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\cmsis_gcc.h": {
+            "status": "OK",
+            "sha256": "8c16d51f7884a9fc07c5cbe6f2bcd24e5e092ddc519f71d36740c2d2e2ff6a27",
+            "size": 62344
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\cmsis_version.h": {
+            "status": "OK",
+            "sha256": "280b9fc8739aefa878d47e68d7adbd4908a15f98ec193cdba1a4b514133f5c34",
+            "size": 1716
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\core_cm0.h": {
+            "status": "OK",
+            "sha256": "1beaa04c859225f75142d055e9c5dacfc9ac1d88c82934177f745b9c5f3f4094",
+            "size": 42208
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\stm32f030x8.h": {
+            "status": "OK",
+            "sha256": "4bc46d91fb25f9b6ffd666a45a7515bc5c605403d6e84c055e4ca3b696a49610",
+            "size": 437010
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\system_stm32f0xx.h": {
+            "status": "OK",
+            "sha256": "ebe41801037df7a354b168593f4545e58fd4a15dc7c2252cf5c0e7f5a799c048",
+            "size": 8
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\common.h": {
+            "status": "OK",
+            "sha256": "aaf5df2c1e2853919232c4d54c5e26da0eb780bdd312403fe0b1fe6ca8e99529",
+            "size": 525
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\main.c": {
+            "status": "OK",
+            "sha256": "4c96dc054cb3148cf295018da31ba0c1918861546b8bcc66af7eee17b4bf243b",
+            "size": 29034
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\peripheral.h": {
+            "status": "OK",
+            "sha256": "9d76e51d108b29294c0b43b5b09d059dc5db42563e74c81267aadbcdd8e8b2db",
+            "size": 929
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\pin.h": {
+            "status": "OK",
+            "sha256": "22aa5395d3e1acae1c76c538a47e96f0905eb789ec14d518fa02037418ceccc3",
+            "size": 398
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\_newlib_version.h": {
+            "status": "OK",
+            "sha256": "a6f650177bc0235ec5af51bd711083fe3170b5c00bf4f1af370dd7b75e65988f",
+            "size": 337
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\machine\\_default_types.h": {
+            "status": "OK",
+            "sha256": "5d8f9f7ead7927e4b8b7ed00172e84f2ae82ea7f5f6ba3240ff813a9236771b3",
+            "size": 6650
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\stdint.h": {
+            "status": "OK",
+            "sha256": "99fe201684856075ccd92704f63b702f6fa882b9dab61bd7a9bcce2588275861",
+            "size": 12432
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_intsup.h": {
+            "status": "OK",
+            "sha256": "1af8abe244b43a3a5b5a85f6c834aa206930b6938e8109fbec430bc140b68df5",
+            "size": 5741
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_stdint.h": {
+            "status": "OK",
+            "sha256": "49f8328943afa2a83ed4a35fcb808ed08b8c9fcb55373c786fb1b1d3a21952d7",
+            "size": 1824
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\features.h": {
+            "status": "OK",
+            "sha256": "92eead7ab3bf7ecb315fd81d0f1eaec250f6d8d7d8574e3cd5d7f80dc779e771",
+            "size": 15828
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include\\stdbool.h": {
+            "status": "OK",
+            "sha256": "74764991a8ffd655a5ac9f5c4ef36274aa85a721ad3deac6a3f9a7708047c92f",
+            "size": 1524
+          }
+        },
+        "preprocessor_signature": "5f7aa52e462c96abcd47ef231fc42b7b2eca898f52129965d5d0ada2942d1172"
+      },
+      "TU-00002": {
+        "inputs": {
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\cmsis_compiler.h": {
+            "status": "OK",
+            "sha256": "cd3cbd1c771a5252827a14c75a12e7ed975f76b9fc1577d53a74ba0e7c1af6c3",
+            "size": 9014
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\cmsis_gcc.h": {
+            "status": "OK",
+            "sha256": "8c16d51f7884a9fc07c5cbe6f2bcd24e5e092ddc519f71d36740c2d2e2ff6a27",
+            "size": 62344
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\cmsis_version.h": {
+            "status": "OK",
+            "sha256": "280b9fc8739aefa878d47e68d7adbd4908a15f98ec193cdba1a4b514133f5c34",
+            "size": 1716
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\core_cm0.h": {
+            "status": "OK",
+            "sha256": "1beaa04c859225f75142d055e9c5dacfc9ac1d88c82934177f745b9c5f3f4094",
+            "size": 42208
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\stm32f030x8.h": {
+            "status": "OK",
+            "sha256": "4bc46d91fb25f9b6ffd666a45a7515bc5c605403d6e84c055e4ca3b696a49610",
+            "size": 437010
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\cmsis\\system_stm32f0xx.h": {
+            "status": "OK",
+            "sha256": "ebe41801037df7a354b168593f4545e58fd4a15dc7c2252cf5c0e7f5a799c048",
+            "size": 8
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\common.h": {
+            "status": "OK",
+            "sha256": "aaf5df2c1e2853919232c4d54c5e26da0eb780bdd312403fe0b1fe6ca8e99529",
+            "size": 525
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\peripheral.c": {
+            "status": "OK",
+            "sha256": "83e55a5baa36993260fb8e1d5ef2f1559c0e50f44dfba48e0c5611a55354e561",
+            "size": 8848
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\pin.h": {
+            "status": "OK",
+            "sha256": "22aa5395d3e1acae1c76c538a47e96f0905eb789ec14d518fa02037418ceccc3",
+            "size": 398
+          },
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\utils.h": {
+            "status": "OK",
+            "sha256": "de8cbc77d4a68425658ebb155b5a5cd5055c03902c86e75b06817a20083f52fd",
+            "size": 237
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\_newlib_version.h": {
+            "status": "OK",
+            "sha256": "a6f650177bc0235ec5af51bd711083fe3170b5c00bf4f1af370dd7b75e65988f",
+            "size": 337
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\machine\\_default_types.h": {
+            "status": "OK",
+            "sha256": "5d8f9f7ead7927e4b8b7ed00172e84f2ae82ea7f5f6ba3240ff813a9236771b3",
+            "size": 6650
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\stdint.h": {
+            "status": "OK",
+            "sha256": "99fe201684856075ccd92704f63b702f6fa882b9dab61bd7a9bcce2588275861",
+            "size": 12432
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_intsup.h": {
+            "status": "OK",
+            "sha256": "1af8abe244b43a3a5b5a85f6c834aa206930b6938e8109fbec430bc140b68df5",
+            "size": 5741
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_stdint.h": {
+            "status": "OK",
+            "sha256": "49f8328943afa2a83ed4a35fcb808ed08b8c9fcb55373c786fb1b1d3a21952d7",
+            "size": 1824
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\features.h": {
+            "status": "OK",
+            "sha256": "92eead7ab3bf7ecb315fd81d0f1eaec250f6d8d7d8574e3cd5d7f80dc779e771",
+            "size": 15828
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include\\stdbool.h": {
+            "status": "OK",
+            "sha256": "74764991a8ffd655a5ac9f5c4ef36274aa85a721ad3deac6a3f9a7708047c92f",
+            "size": 1524
+          }
+        },
+        "preprocessor_signature": "5f7aa52e462c96abcd47ef231fc42b7b2eca898f52129965d5d0ada2942d1172"
+      },
+      "TU-00003": {
+        "inputs": {
+          "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware\\utils.c": {
+            "status": "OK",
+            "sha256": "49c314e8b1e45ce016ed85ee5f19087a73d02e80deee2c2a050bf89cbac15cc6",
+            "size": 917
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\_newlib_version.h": {
+            "status": "OK",
+            "sha256": "a6f650177bc0235ec5af51bd711083fe3170b5c00bf4f1af370dd7b75e65988f",
+            "size": 337
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\machine\\_default_types.h": {
+            "status": "OK",
+            "sha256": "5d8f9f7ead7927e4b8b7ed00172e84f2ae82ea7f5f6ba3240ff813a9236771b3",
+            "size": 6650
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\stdint.h": {
+            "status": "OK",
+            "sha256": "99fe201684856075ccd92704f63b702f6fa882b9dab61bd7a9bcce2588275861",
+            "size": 12432
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_intsup.h": {
+            "status": "OK",
+            "sha256": "1af8abe244b43a3a5b5a85f6c834aa206930b6938e8109fbec430bc140b68df5",
+            "size": 5741
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\_stdint.h": {
+            "status": "OK",
+            "sha256": "49f8328943afa2a83ed4a35fcb808ed08b8c9fcb55373c786fb1b1d3a21952d7",
+            "size": 1824
+          },
+          "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include\\sys\\features.h": {
+            "status": "OK",
+            "sha256": "92eead7ab3bf7ecb315fd81d0f1eaec250f6d8d7d8574e3cd5d7f80dc779e771",
+            "size": 15828
+          }
+        },
+        "preprocessor_signature": "d24a2d275ee777518abda732c2c932e5e8afb8c84220d4a6b4b48f0fab7cf48a"
+      }
+    },
+    "formal_enabled": false
+  },
+  "preflight": {
+    "passed": true,
+    "state": "PRECHECK_READY",
+    "config_sha256": "770a8d4286acb9b3ba4cf2ec1f37f6046460ef36008f710cb398783ee4c09a9c",
+    "started": "2026-11-04T12:38:51.222511+00:00",
+    "tools": [
+      {
+        "field": "Clang AST",
+        "path": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native\\libclang.dll",
+        "sha256": "b13ec96d9a036d6c6c36dd09e00415ead7acc7fcfd40e721bf33ea86b3490f9d",
+        "available": true
+      },
+      {
+        "field": "编译数据库 / startup.c",
+        "path": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+        "version": "arm-none-eabi-gcc.exe (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1 20210824 (release)\nCopyright (C) 2020 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "sha256": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac",
+        "available": true
+      }
+    ],
+    "project_id": "bad0c128caeefb6e0823338ea3c28afc8a360750d826307a9c893fcc8c56a3b7",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware",
+    "analysis_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\firmware",
+    "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data",
+    "build_root": null,
+    "compile_database": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\metadata\\compile_commands.json",
+    "target": null,
+    "variant": null,
+    "cmake_steps": [],
+    "git": null,
+    "engine_digest": "62baa53776f1dbe86a5acc41e9cb9eeba48717b5edc886ce89e75cf6db3ebb3b",
+    "translation_units": 4,
+    "input_files": 25,
+    "snapshot_status": "VERIFIED",
+    "plan_sha256": "4fe8393a1b5990904579837196a4284e1111de7815221cfc90b900b4da40c92b",
+    "note": "真实构建与全部TU编译输入检查通过；尚未进行并发风险分类。正式扫描会重新检查输入与覆盖。",
+    "frozen_working_inputs": {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data\\projects\\firmware_bad0c128caeefb6e0823\\trees\\working-8682e021edd940939671011af8b45108\\compiler-view-09a2ba1923e641019614dbd3a2fe0cfb\\view.json",
+      "sha256": "da480cc8596f31a63281f72fe556a3084ff014881a9e3d76bb8bcd80bf7d02fb"
+    },
+    "finished": "2026-11-04T12:41:40.695609+00:00"
+  },
+  "descriptor": {
+    "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data\\projects\\firmware_bad0c128caeefb6e0823\\trees\\working-8682e021edd940939671011af8b45108\\compiler-view-09a2ba1923e641019614dbd3a2fe0cfb\\view.json",
+    "sha256": "da480cc8596f31a63281f72fe556a3084ff014881a9e3d76bb8bcd80bf7d02fb"
+  },
+  "units": 4,
+  "external_files": 1667,
+  "external_directories": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\native-build",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\lib\\gcc\\arm-none-eabi\\10.3.1\\include-fixed",
+    "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\arm-none-eabi\\include"
+  ],
+  "status": "PASS_SCOPED",
+  "original": {
+    "seconds": 21.625,
+    "exit_code": 2,
+    "cache": {
+      "hits": 0,
+      "extracted": 4,
+      "corrupt": 0,
+      "total": 4
+    },
+    "completion": {
+      "fingerprint": "147b0a846911b27663e65bd380ecc5d779ccf1b0603d4c02e64f7e7abb9df215",
+      "translation_units_total": 4,
+      "parsed": 2,
+      "partial": 2,
+      "failed": 0,
+      "fact_counts": {
+        "variables": 15,
+        "functions": 121,
+        "accesses": 56,
+        "calls": 98,
+        "unknowns": 236,
+        "protection_events": 8,
+        "registrations": 0,
+        "snapshots": 6,
+        "pointer_constraints": 47,
+        "semantic_calls": 150,
+        "indirect_accesses": 88,
+        "irq_priority_events": 10,
+        "control_flow": 121,
+        "pointer_storage": 447,
+        "constant_regions": 0,
+        "nvic_programs": 121,
+        "nvic_globals": 7,
+        "nvic_irq_definitions": 30,
+        "constant_pruned_evidence": 0,
+        "translation_units": 4,
+        "failed_tu_preprocessing": 0,
+        "address_escapes": 4,
+        "resolved_pointer_facts": 18,
+        "pointer_targets": 16,
+        "vector_entries": 0,
+        "resolved_assembly_references": 0,
+        "physical_contexts": 5,
+        "context_bindings": 19,
+        "contexts": 5,
+        "recursive_edges": 0,
+        "context_pruned_uncertainties": 0,
+        "nvic_resolved_events": 2,
+        "nvic_lifecycle_barriers": 1,
+        "nvic_priorities": 4,
+        "preemption_relations": 10,
+        "assembly_references": 0,
+        "mask_windows": 15,
+        "multi_field_coherence": 0
+      },
+      "variable_accountability": {
+        "total": 13,
+        "screened": 7,
+        "queued": 6,
+        "missing": 0,
+        "duplicate_ids": 0
+      },
+      "classifications": {
+        "total": 13,
+        "safe_proven": 7,
+        "shared_no_review": 0,
+        "suspect": 1,
+        "unknown": 5
+      },
+      "snapshot_status": "VERIFIED",
+      "static_analysis_status": "INCOMPLETE",
+      "analysis_valid": true,
+      "output_files": {
+        "scan.db": 8986624,
+        "reviews.db": 65536
+      }
+    }
+  },
+  "frozen": {
+    "seconds": 484.56300000002375,
+    "exit_code": 2,
+    "cache": {
+      "hits": 2,
+      "extracted": 2,
+      "corrupt": 0,
+      "total": 4
+    },
+    "completion": {
+      "fingerprint": "147b0a846911b27663e65bd380ecc5d779ccf1b0603d4c02e64f7e7abb9df215",
+      "translation_units_total": 4,
+      "parsed": 2,
+      "partial": 2,
+      "failed": 0,
+      "fact_counts": {
+        "variables": 15,
+        "functions": 121,
+        "accesses": 56,
+        "calls": 98,
+        "unknowns": 236,
+        "protection_events": 8,
+        "registrations": 0,
+        "snapshots": 6,
+        "pointer_constraints": 47,
+        "semantic_calls": 150,
+        "indirect_accesses": 88,
+        "irq_priority_events": 10,
+        "control_flow": 121,
+        "pointer_storage": 447,
+        "constant_regions": 0,
+        "nvic_programs": 121,
+        "nvic_globals": 7,
+        "nvic_irq_definitions": 30,
+        "constant_pruned_evidence": 0,
+        "translation_units": 4,
+        "failed_tu_preprocessing": 0,
+        "address_escapes": 4,
+        "resolved_pointer_facts": 18,
+        "pointer_targets": 16,
+        "vector_entries": 0,
+        "resolved_assembly_references": 0,
+        "physical_contexts": 5,
+        "context_bindings": 19,
+        "contexts": 5,
+        "recursive_edges": 0,
+        "context_pruned_uncertainties": 0,
+        "nvic_resolved_events": 2,
+        "nvic_lifecycle_barriers": 1,
+        "nvic_priorities": 4,
+        "preemption_relations": 10,
+        "assembly_references": 0,
+        "mask_windows": 15,
+        "multi_field_coherence": 0
+      },
+      "variable_accountability": {
+        "total": 13,
+        "screened": 7,
+        "queued": 6,
+        "missing": 0,
+        "duplicate_ids": 0
+      },
+      "classifications": {
+        "total": 13,
+        "safe_proven": 7,
+        "shared_no_review": 0,
+        "suspect": 1,
+        "unknown": 5
+      },
+      "snapshot_status": "VERIFIED",
+      "static_analysis_status": "INCOMPLETE",
+      "analysis_valid": true,
+      "output_files": {
+        "scan.db": 8986624,
+        "reviews.db": 65536
+      }
+    }
+  },
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "81471c7c997378b78a531f3997f87431005cf5526ca963ac27ed67d69b0ebd06",
+        "after": "81471c7c997378b78a531f3997f87431005cf5526ca963ac27ed67d69b0ebd06"
+      },
+      "report": {
+        "before": "df3a0e834ca5ab8b438ab3f17bcfdb413a079336d601d9753270cb6ac95a838d",
+        "after": "df3a0e834ca5ab8b438ab3f17bcfdb413a079336d601d9753270cb6ac95a838d"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data\\scans\\original\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data\\scans\\frozen\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "roundtrip": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "81471c7c997378b78a531f3997f87431005cf5526ca963ac27ed67d69b0ebd06",
+        "after": "81471c7c997378b78a531f3997f87431005cf5526ca963ac27ed67d69b0ebd06"
+      },
+      "report": {
+        "before": "df3a0e834ca5ab8b438ab3f17bcfdb413a079336d601d9753270cb6ac95a838d",
+        "after": "df3a0e834ca5ab8b438ab3f17bcfdb413a079336d601d9753270cb6ac95a838d"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\data\\scans\\frozen\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\automatic-f030-v45-v1\\independent-import\\scans\\frozen\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "archive": {
+    "bytes": 3490301,
+    "sha256": "1d482f1df8b2082994481dc2e41834d7020dd3fb27bca9dddfb1d10b90844af8"
+  },
+  "final_view_validation": {
+    "valid": true,
+    "files": 1714,
+    "original_reverified": true,
+    "formal_dirty_enabled": false,
+    "full_build_diff_equivalence": "NOT_VERIFIED"
+  },
+  "approved_original_differences": [],
+  "private_git_differences": [],
+  "external_build_sdk_differences": [],
+  "engine_differences": [],
+  "seconds": 924.8439999999828
+}

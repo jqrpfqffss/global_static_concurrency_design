@@ -17,7 +17,7 @@ from ..common import execute, read_json, write_json
 from ..workspace import formal_workspace, no_links, validate_analysis_inputs
 
 
-def run_preflight(config, data, folder, progress=print):
+def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
     from ..config import configured_project_root, load_config
     from ..compilation import prepare
     from ..input_snapshot import InputSnapshot
@@ -31,18 +31,28 @@ def run_preflight(config, data, folder, progress=print):
     receipt = folder/'preflight.json'
     write_json(receipt, result)
     diagnostics = ScanDiagnostics(folder/'diagnostics', progress)
+    frozen=None
     try:
         diagnostics.stage('预检查：配置与独立数据边界')
         consumed = {}; root = configured_project_root(config)
         cfg, config = load_config(root, config, consumed_inputs=consumed)
+        if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
+            raise ValueError('未提交输入预检查缺少固定输入描述；请从Studio任务入口重新固定并检查，不能改用实时工作区')
         analysis = dict(cfg['analysis'])
         if analysis.get('output', {}).get('location', 'user') == 'user':
             analysis['output'] = dict(location='custom', custom_dir=str(data))
-        ws = formal_workspace(root, analysis)
+        if _compiler_view is not None:
+            from ..dirty_inputs import supported
+            from ..frozen_scan import execution_workspace,ScanFiles
+            supported(analysis)
+            ws=execution_workspace(root,analysis,_compiler_view)
+        else:ws = formal_workspace(root, analysis)
         if Path(ws.workspace_root) != Path(data):
             raise ValueError('配置输出与本地Studio不同，请使用 output.location: user')
         ws = replace(ws.initialize(), results_root=str(folder), snapshots_root=str(folder/'snapshots'))
         ws.bind(cfg['analysis'])
+        if _compiler_view is not None:
+            frozen=ScanFiles(_compiler_view,root,cfg)
         write_json(folder/'storage.json', dict(version=1, scan_id=folder.parent.name,
                    project_id=ws.project_id, profile_id='preflight-only'))
         original_root = root; fixed = None; tools = result['tools']; executables = []
@@ -97,7 +107,8 @@ def run_preflight(config, data, folder, progress=print):
         tools.append(dict(field='Clang AST', path=str(library), sha256=sha256(library), available=True))
         diagnostics.stage('预检查：真实构建与编译命令')
         engine = engine_digest()
-        units, compilation = prepare(root, cfg, progress=progress, build_firmware=True)
+        prepared={} if frozen is None else dict(file_view=frozen)
+        units, compilation = prepare(root, cfg, progress=progress, build_firmware=True,**prepared)
         diagnostics.total_units = len(units)
         for unit in units:
             if unit['missing_defines']:
@@ -120,13 +131,14 @@ def run_preflight(config, data, folder, progress=print):
             path = compilation.get('cmake_cache', {}).get(key)
             if path and Path(path).is_file(): explicit.append(Path(path))
         snapshot = InputSnapshot(root, folder/'diagnostics', explicit,
-                                 dict(consumed, **compilation.get('consumed_inputs', {})))
+                                 dict(consumed, **compilation.get('consumed_inputs', {})),file_view=frozen)
         workers = folder/'workers'; workers.mkdir()
         diagnostics.stage('预检查：全部TU真实编译输入')
         from ..cli import dependency_results
         tool = Path(__file__).resolve().parents[2]
         env = dict(os.environ, PYTHONPATH=str(tool)+os.pathsep+os.environ.get('PYTHONPATH', ''))
-        for i, (unit, inputs, signature) in enumerate(dependency_results(root, units, cfg, workers, env, tool)):
+        frozen_args={} if frozen is None else dict(compiler_view=_compiler_view)
+        for i, (unit, inputs, signature) in enumerate(dependency_results(root, units, cfg, workers, env, tool,**frozen_args)):
             snapshot.discover(unit, inputs, signature)
             diagnostics.completed_units = i+1
             progress('编译输入检查 '+str(i+1)+'/'+str(len(units))+': '+unit['source_file'])
@@ -148,6 +160,8 @@ def run_preflight(config, data, folder, progress=print):
             input_files=len(snapshot.before), snapshot_status=snapshot.status,
             plan_sha256=sha256(folder/'plan.db'),
             note='真实构建与全部TU编译输入检查通过；尚未进行并发风险分类。正式扫描会重新检查输入与覆盖。')
+        if frozen is not None:
+            frozen.assert_valid();result['frozen_working_inputs']=dict(_compiler_view)
         return result
     except BaseException as exc:
         result.update(state='INTERRUPTED' if isinstance(exc, KeyboardInterrupt) else 'PRECHECK_FAILED',
@@ -156,6 +170,7 @@ def run_preflight(config, data, folder, progress=print):
         diagnostics.failure(exc)
         raise
     finally:
+        if frozen is not None:frozen.close()
         diagnostics.close()
         result['finished'] = datetime.now(timezone.utc).isoformat()
         write_json(receipt, result)

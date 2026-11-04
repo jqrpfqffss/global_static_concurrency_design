@@ -16,6 +16,19 @@ TOOLS = [dict(name='evidence', description='完整静态证据分页。root/path
         node=dict(type='integer',minimum=1),text=dict(type='boolean'),
         offset=dict(type='integer',minimum=0),limit=dict(type='integer',minimum=1,maximum=200)),additionalProperties=False),
     annotations=dict(readOnlyHint=True,destructiveHint=False,idempotentHint=True,openWorldHint=False))]
+TOOLS.append(dict(name='source',description='只读取当前扫描归档源码，不访问实时工程。file为归档中的逻辑文件名；offset为UTF8字节。每页含原文件sha256、文本hash、total、next_offset；继续至游标为空，缺归档须报告missing_context。',
+    inputSchema=dict(type='object',properties=dict(file=dict(type='string',minLength=1),offset=dict(type='integer',minimum=0),
+        limit=dict(type='integer',minimum=1,maximum=16384)),required=['file'],additionalProperties=False),
+    annotations=dict(readOnlyHint=True,destructiveHint=False,idempotentHint=True,openWorldHint=False)))
+
+
+def source(provider,arguments):
+    if not isinstance(arguments,dict) or set(arguments)-{'file','offset','limit'} or not isinstance(arguments.get('file'),str) or not arguments['file']:
+        raise ValueError('归档源码参数无效')
+    ref=provider.archived_source(arguments['file'])
+    if not ref['available']:return dict(ref,missing_context=True)
+    return dict(ref,**provider.text(ref['text_node'],offset=arguments.get('offset',0),limit=arguments.get('limit',16384)),
+        source='ARCHIVED_SCAN_TEXT',missing_context=False)
 
 
 def evidence(provider, arguments):
@@ -47,10 +60,11 @@ def dispatch(provider, request):
     if method=='tools/list':
         return dict(tools=TOOLS)
     if method=='tools/call':
-        if params.get('name') != 'evidence':
+        if params.get('name') not in {'evidence','source'}:
             raise ValueError('未知只读工具')
         try:
-            result = evidence(provider,params.get('arguments',{}))
+            handler=evidence if params['name']=='evidence' else source
+            result = handler(provider,params.get('arguments',{}))
             return dict(content=[dict(type='text',text=json.dumps(result,ensure_ascii=True))],isError=False)
         except (KeyError,ValueError,TypeError) as exc:
             return dict(content=[dict(type='text',text=str(exc))],isError=True)

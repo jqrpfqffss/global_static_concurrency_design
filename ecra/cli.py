@@ -247,6 +247,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     if _workspace is not None:
         from .scan_persistence import is_canonical
         if is_canonical(_workspace.results_root):
+            if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
+                raise ValueError('未提交输入的原生扫描缺少冻结描述，不能回退到实时工作区')
             from .frozen_scan import execution_workspace
             effective=dict(cfg['analysis'],output=dict(location='custom',custom_dir=_workspace.workspace_root))
             execution_workspace(root,effective,_compiler_view)

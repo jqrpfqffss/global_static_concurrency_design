@@ -265,11 +265,17 @@ class TaskManager:
         value['log'] = dict(text=raw.decode('utf-8',errors='replace'), offset=offset,
                             next_offset=offset+len(raw), total=log.stat().st_size)
         diagnostics = self.data/'scans'/value['scan_id']/'diagnostics'
+        value['progress_kind']='TU_EXTRACTION'
+        if not diagnostics.exists() and (folder/'fixed-inputs/diagnostics').is_dir():
+            diagnostics=folder/'fixed-inputs/diagnostics'
+            value['progress_kind']='WORKING_INPUT_INVENTORY'
         if value['mode']=='multicore':diagnostics=folder/'multicore-diagnostics'
         preflight = folder/'preflight/preflight.json'
         if preflight.is_file():
             value['preflight'] = read_task_json(preflight)
-            if value['mode']=='precheck' or not diagnostics.exists(): diagnostics=folder/'preflight/diagnostics'
+            if value['mode']=='precheck' or value['progress_kind']=='WORKING_INPUT_INVENTORY' or not diagnostics.exists():
+                diagnostics=folder/'preflight/diagnostics'
+                value['progress_kind']='COMPILE_INPUT_PRECHECK'
         for key, name in [('stages','scan_stages.json'),('failure','exception.json'),('memory','memory_profile.json'),('tu_cache','tu_cache.json'),('progress','scan_progress.json')]:
             path = diagnostics/name
             if path.is_file():

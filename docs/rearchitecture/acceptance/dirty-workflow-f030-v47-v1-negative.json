@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "scope": "EXPECTED_NEGATIVE_GATE_CONFIRMED; original positive controller FAIL preserved. Actual authorized F030 baseline has PARTIAL and original Diff policy refuses missing facts. No successful real F030 Diff claim.",
+  "blocked_task": "9652621d31b04fbb96a2f60c028fd93c",
+  "failed_scan": "9652621d31b04fbb96a2f60c028fd93c",
+  "failure": "\u57fa\u51c6\u7248\u672c\u5b58\u5728\u89e3\u6790\u5931\u8d25/\u90e8\u5206\u89e3\u6790\uff0c\u4e0d\u80fd\u5c06\u7f3a\u5931\u4e8b\u5b9e\u5f53\u4f5c\u65e0\u53d8\u5316",
+  "original_working_inputs_reverified": {
+    "valid": true,
+    "files": 1717,
+    "original_reverified": true,
+    "full_build_diff_equivalence": "NOT_VERIFIED",
+    "proof_scope": "COMPLETE_LOGICAL_CLANG_INPUTS_V1"
+  },
+  "prior_authority": {
+    "scan_id": "ordinary",
+    "project_id": "36617b1a6d0d4dddfac4e2edaab0aaeda268aeb453a46d3522ec046212985f01",
+    "profile_id": "default",
+    "state": "UNVERIFIED",
+    "facts_hash": "bc9d74cce1d9fe2343bbe7d3af3c59a91a0119355cbd092f27e784a85273d2bf",
+    "report_hash": "5b12db20e50669545f651d10cb27fbfb6510d4c2ae98b443c32ef78400fa66cc"
+  },
+  "positive_controller_receipt_sha256": "1583c8b27ab1ec4bccef7d289e4af3da9e76b26d9569cc86e6a198c1b3f09ae8",
+  "manifest_absent": true,
+  "observer_corrections": [
+    "Set explicit private ECRA_DATA_ROOT for Resolver ownership",
+    "Read actual retry scan_id from preserved task.json rather than assuming stopped task identity; original product creates fresh scan and reuses valid TU cache."
+  ],
+  "engine_differences": []
+}

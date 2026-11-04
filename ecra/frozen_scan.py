@@ -1,9 +1,10 @@
-"""Internal full-scan integration; formal dirty/Diff/resume remain gated.
+"""Fixed logical Clang inputs and replay for explicit compilation databases.
 
 The caller owns a complete pre-existing capture. Runtime view identities never
 enter analysis configuration, cache keys or static report normalization.
 """
 from pathlib import Path
+from contextlib import contextmanager
 
 from .working_compiler_view import ParentFiles, validate
 
@@ -12,7 +13,8 @@ def execution_workspace(root, analysis, compiler_view):
     """Reuse every formal path boundary; only the private dirty gate differs.
 
     A non-null view is subsequently fully verified before pin/base processing.
-    Ordinary GUI/CLI calls never provide this internal argument.
+    Broker-owned GUI/CLI capture supplies this internal argument. CMake and
+    unproved build modes remain blocked by the separate configuration policy.
     """
     from .workspace import formal_workspace
     if compiler_view is None:
@@ -39,12 +41,47 @@ def check_mode(cfg, workspace, doctor_only):
 
 class ScanFiles(ParentFiles):
     """Verify original Git/index/files/namespace at every pipeline barrier."""
-    def __init__(self, descriptor, root, cfg):
-        validate(descriptor, root, cfg, reverify_original=True)
+    def __init__(self, descriptor, root, cfg, *, review_config_path=None):
+        self.review_config_path=review_config_path
+        validate(descriptor, root, cfg, reverify_original=True,review_config_path=review_config_path)
         super().__init__(descriptor, root, cfg)
 
     def assert_valid(self):
         if self.connection is None:
             raise ValueError('冻结父进程文件视图已经关闭')
         validate(dict(file=self.identity['file'], sha256=self.identity['sha256']),
-                 self.record['root'], self.config, reverify_original=True)
+                 self.record['root'], self.config, reverify_original=True,review_config_path=self.review_config_path)
+
+
+@contextmanager
+def replay_files(capsule,root,cfg,*,config_path=None):
+    identity=capsule.get('frozen_view')
+    if identity is None:
+        yield None
+        return
+    base={'file','sha256','original_final_reverification_required'}
+    legacy=isinstance(identity,dict) and set(identity)==base|{'formal_dirty_enabled'} and identity['formal_dirty_enabled'] is False
+    modern=(isinstance(identity,dict) and set(identity)==base|{'proof_scope'}
+        and identity['proof_scope']=='COMPLETE_LOGICAL_CLANG_INPUTS_V1')
+    if not (legacy or modern) or identity['original_final_reverification_required'] is not True:
+        raise ValueError('冻结父进程输入证明字段不完整或版本未知；不能忽略视图身份读取实时源码')
+    from .dirty_inputs import supported
+    supported(cfg['analysis'])
+    descriptor={key:identity[key] for key in ('file','sha256')}
+    with ScanFiles(descriptor,root,cfg,review_config_path=config_path) as view:
+        if view.identity!=identity:raise ValueError('冻结输入闭包与原视图证明不一致')
+        yield view
+        view.assert_valid()
+
+
+def saved_reader(root,out,cfg,state):
+    """Bind later Packet/source reads to the exact verified closure bytes."""
+    from contextlib import nullcontext
+    import hashlib
+    import json
+    expected=state.get('input_closure_sha256')
+    if not expected:return nullcontext(None)
+    raw=(Path(out)/'input_closure.json').read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=expected:
+        raise ValueError('扫描输入闭包在复验后变化，不能构造复核证据')
+    return replay_files(json.loads(raw),root,cfg,config_path=Path(root)/state['config_file'])

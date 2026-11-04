@@ -52,9 +52,10 @@ def _copy(source, target):
     return hashed.hexdigest(),size,before.st_mtime_ns
 
 
-def create(capture, root, cfg, *, external_directories=(), external_files=()):
+def create(capture, root, cfg, *, external_directories=(), external_files=(), proof_scope=None):
     """Freeze explicitly audited search directories, including negative probes."""
     captured_proof=working.validate(capture,root,cfg)
+    if proof_scope not in {None,'COMPLETE_LOGICAL_CLANG_INPUTS_V1'}:raise ValueError('未知冻结编译输入证明范围')
     ws=context(root,cfg['analysis']);original=no_links(ws.repository_root)
     captured=no_links(capture['folder']);tree=no_links(captured/'source')
     if not isinstance(external_directories,(list,tuple)):
@@ -130,6 +131,9 @@ def create(capture, root, cfg, *, external_directories=(), external_files=()):
                 external_directories=[str(path) for path in directories],external_files=fixed_files,
                 overlay_sha256=working._hash(overlay),files_sha256=working._hash(database),
                 formal_dirty_enabled=False,proof='FROZEN_COMPILER_BYTES_ONLY_NOT_FULL_BUILD_DIFF_EQUIVALENCE')
+    if proof_scope is not None:
+        record.update(format='ECRA_FROZEN_COMPILER_VIEW_V2',proof_scope=proof_scope)
+        del record['formal_dirty_enabled']
     write_json(folder/'view.json',record)
     descriptor=dict(file=str(folder/'view.json'),sha256=working._hash(folder/'view.json'))
     validate(descriptor,root,cfg,_pending=True)
@@ -150,12 +154,14 @@ def _load(descriptor, root, cfg, *, _pending=False):
     if path.stat().st_size>65536 or working._hash(path)!=descriptor['sha256']:
         raise ValueError('冻结编译视图描述已变化或超过读取预算')
     record=json.loads(path.read_bytes())
-    if (record.get('format')!='ECRA_FROZEN_COMPILER_VIEW_V1' or record.get('state')!=('PENDING' if _pending else 'COMPLETE')
+    legacy=record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V1' and record.get('formal_dirty_enabled') is False and 'proof_scope' not in record
+    modern=(record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2'
+        and record.get('proof_scope')=='COMPLETE_LOGICAL_CLANG_INPUTS_V1' and 'formal_dirty_enabled' not in record)
+    if (not (legacy or modern) or record.get('state')!=('PENDING' if _pending else 'COMPLETE')
             or record.get('project_id')!=ws.project_id
             or canonical(record.get('root',''))!=canonical(root)
             or canonical(record.get('repository_root',''))!=canonical(ws.repository_root)
-            or no_links(record['capture']['folder'])!=folder.parent
-            or record.get('formal_dirty_enabled') is not False):
+            or no_links(record['capture']['folder'])!=folder.parent):
         raise ValueError('冻结编译视图的工程或能力声明无效')
     if working._hash(no_links(folder/'overlay.json'))!=record.get('overlay_sha256'):
         raise ValueError('冻结编译视图overlay已变化')
@@ -189,13 +195,29 @@ def verify_consumed(descriptor, root, cfg, inputs):
                 raise ValueError('Clang实际输入不属于已固定编译字节：'+logical)
 
 
-def validate(descriptor, root, cfg, *, reverify_original=True, _pending=False):
+def validate(descriptor, root, cfg, *, reverify_original=True, _pending=False, review_config_path=None):
     folder,record=_load(descriptor,root,cfg,_pending=_pending)
     working.validate(record['capture'],root,cfg,reverify_original=reverify_original)
     database=no_links(folder/'files.db')
     if working._hash(database)!=record['files_sha256']:raise ValueError('冻结编译文件清单已变化')
     with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True)) as conn:
         conn.execute('PRAGMA query_only=ON');conn.execute('PRAGMA trusted_schema=OFF')
+        compatible_config=None
+        if review_config_path is not None:
+            from .config import load_config
+            from .workflow import analysis_config
+            from .common import digest
+            candidate=no_links(review_config_path)
+            if str(candidate) not in record.get('external_files',[]):
+                raise ValueError('复核配置未作为原扫描元数据固定，不能豁免源码输入')
+            row=_file_row(conn,candidate)
+            if row is None:raise ValueError('原复核配置缺少固定字节')
+            pinned,_=load_config(root,no_links(row[1]))
+            # CLI mode is an explicit invocation override, not YAML content.
+            pinned['analysis']['git_diff']['enabled']=cfg['analysis']['git_diff']['enabled']
+            if digest(analysis_config(pinned))!=digest(analysis_config(cfg)):
+                raise ValueError('冻结扫描的有效分析配置已变化，不能复用原事实')
+            compatible_config=candidate
         total=0
         for logical,physical,sha,size,mtime in conn.execute('SELECT logical,physical,sha256,size,mtime_ns FROM files ORDER BY logical'):
             path=no_links(physical)
@@ -203,7 +225,8 @@ def validate(descriptor, root, cfg, *, reverify_original=True, _pending=False):
                 raise ValueError('冻结编译文件副本已变化：'+logical)
             if reverify_original:
                 source=no_links(logical)
-                if not source.is_file() or source.stat().st_size!=size or source.stat().st_mtime_ns!=mtime or working._hash(source)!=sha:
+                if source!=compatible_config and (not source.is_file() or source.stat().st_size!=size
+                        or source.stat().st_mtime_ns!=mtime or working._hash(source)!=sha):
                     raise ValueError('原编译输入已变化：'+logical)
             total+=1
         for index,directory in enumerate(record['external_directories']):
@@ -234,8 +257,10 @@ def validate(descriptor, root, cfg, *, reverify_original=True, _pending=False):
                     prefix=str(copied)+os.sep
                     expected=1+conn.execute('SELECT count(*) FROM directories WHERE substr(physical,1,?)=?',(len(prefix),prefix)).fetchone()[0]
                     if count!=expected:raise ValueError('编译搜索目录集合已变化')
-    return dict(valid=True,files=total,original_reverified=reverify_original,formal_dirty_enabled=False,
-                full_build_diff_equivalence='NOT_VERIFIED')
+    result=dict(valid=True,files=total,original_reverified=reverify_original,full_build_diff_equivalence='NOT_VERIFIED')
+    result.update(dict(proof_scope=record['proof_scope']) if record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2'
+                  else dict(formal_dirty_enabled=False))
+    return result
 
 
 def _file_row(conn, logical):
@@ -275,6 +300,8 @@ class ParentFiles:
         self.connection.execute('PRAGMA query_only=ON');self.connection.execute('PRAGMA trusted_schema=OFF')
         self.connection.execute('BEGIN')
         self.identity=dict(descriptor,original_final_reverification_required=True,formal_dirty_enabled=False)
+        if self.record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2':
+            del self.identity['formal_dirty_enabled'];self.identity['proof_scope']=self.record['proof_scope']
 
     def __enter__(self):return self
     def __exit__(self,*_):self.close()

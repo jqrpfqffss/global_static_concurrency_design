@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--engine',type=Path,required=True)
     parser.add_argument('--source',type=Path,required=True)
     parser.add_argument('--config',type=Path,required=True)
+    parser.add_argument('--automatic-inputs',action='store_true',help='用生产接入前的自动编译输入盘点器固定SDK/元数据，并以同一视图执行真实预检查')
     args=parser.parse_args()
     engine=args.engine.resolve(); sys.path.insert(0,str(engine))
     from ecra.report_package import sha256,export_report,import_report
@@ -99,8 +100,18 @@ def main():
         external_before=stamps(p for directory_root in directories for p in directory_root.rglob('*') if p.is_file())
         explicit=[private_config,private_db,*[p for p in executables if p.is_file()],
                   *[Path(p) for p in compilation.get('consumed_inputs',{})]]
-        captured=working_snapshot.capture(root,cfg)
-        descriptor=working_compiler_view.create(captured,root,cfg,external_directories=directories,external_files=explicit)
+        if args.automatic_inputs:
+            from ecra.dirty_inputs import capture_inputs
+            from ecra.studio.preflight import run_preflight
+            descriptor=capture_inputs(root,private_config,work/'data/work/automatic-inputs',progress=lambda text:None)
+            preflight=run_preflight(private_config,work/'data',work/'data/work/frozen-preflight',
+                progress=lambda text:None,_compiler_view=descriptor)
+            assert preflight['passed'] and preflight['frozen_working_inputs']==descriptor
+            state['automatic_inputs']=read_json(work/'data/work/automatic-inputs/capture-plan.json')
+            state['preflight']=preflight
+        else:
+            captured=working_snapshot.capture(root,cfg)
+            descriptor=working_compiler_view.create(captured,root,cfg,external_directories=directories,external_files=explicit)
         state.update(descriptor=descriptor,units=len(units),external_files=len(external_before),
                      external_directories=list(map(str,directories)),status='RUNNING_FULL_SCANS');save()
         roots=[]

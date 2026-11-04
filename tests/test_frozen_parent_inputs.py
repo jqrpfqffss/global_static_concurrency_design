@@ -118,7 +118,7 @@ class FrozenParentInputTests(unittest.TestCase):
         out=self.base/'saved';out.mkdir();capsule=out/'input_closure.json'
         capsule.write_text(json.dumps(dict(frozen_view=dict(file='fixed-view',sha256='0'*64))),'utf-8')
         state=dict(input_closure_sha256=file_digest(capsule))
-        with self.assertRaisesRegex(ValueError,'正式恢复链路尚未完成验收'):
+        with self.assertRaisesRegex(ValueError,'冻结父进程输入证明字段不完整'):
             verify_saved_input_closure(self.root,out,self.cfg,state,{},self.config)
 
     def test_unused_single_directory_candidate_does_not_invalidate_other_source_inputs(self):

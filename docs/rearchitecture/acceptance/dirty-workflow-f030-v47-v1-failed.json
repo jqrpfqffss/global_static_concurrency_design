@@ -1,0 +1,34 @@
+{
+  "passed": false,
+  "scope": "Real authorized F030 copy: working bytes -> Chrome -> supervised Diff/retry.\n\nExplicit database only. No CMake equivalence, hardware, live model, second PC,\nphysical DPI or UAT claim. All edits are in a newly created private Git copy.\n",
+  "tests": [
+    "REAL_CHROME_FOUR_STEP_DATABASE_DIRTY_REF_PREVIEW_SAVE",
+    "REAL_CHROME_STOP_DURING_CAPTURE_PRIOR_RESULT_UNCHANGED"
+  ],
+  "screenshots": [
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-f030-v47-v1\\01-real-git-working-preview.png",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-f030-v47-v1\\02-real-capture-progress.png"
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "base_sha": "7abf3933c270aec22d5c2d02e6b7f4cf2e880e60",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v47",
+  "staged_header_sha256": "720823b641f036e47460c548c480246cf7156766bc20a85d277c2f7075f94263",
+  "working_header_sha256": "3f1cbe207c359077631496c67e16e1dfbae73840cf919933f0b2d8528537111b",
+  "profile": {
+    "id": "a5307167b3484f11b6bba8e9187f7154",
+    "project_id": "36617b1a6d0d4dddfac4e2edaab0aaeda268aeb453a46d3522ec046212985f01",
+    "yaml": "analysis:\n  auto_system_includes: true\n  compile_database: compile_commands.json\n  extraction_workers: 2\n  git_diff:\n    base_ref: comparison-base\n    cache_enabled: true\n    current_ref: HEAD\n    enabled: true\n    include_uncommitted: true\n    verify_against_full: false\n  output:\n    location: user\ncontexts:\n- functions:\n  - main\n  id: main\n  kind: MAIN\nproject:\n  chip: STM32F030\n  core: Cortex-M0\n  native_word_bits: 32\n  root: H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-f030-v47-v1\\独立固件\n    副本\nreview:\n  enabled: false\n  prepare_packets: false\nversion: 1\n",
+    "revision": "3a33aa3bc37cf7eb8ba04ff7dfe655c0234fce51e322ac6e30754a378a1d0cfb",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-workflow-f030-v47-v1\\独立固件 副本",
+    "name": "a5307167b3484f11b6bba8e9187f7154"
+  },
+  "stopped_task": "545ed5e174344d8c867b8227a78cf59d",
+  "running": {
+    "id": "9652621d31b04fbb96a2f60c028fd93c",
+    "stage": "Git 基准版本完整分析",
+    "state": "RUNNING"
+  },
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v47\\scripts\\validate_dirty_workflow_ui.py\", line 150, in main\n    assert detail['state']=='COMPLETE',dict(id=detail['id'],error=detail.get('error'),failure=detail.get('failure'))\nAssertionError: {'id': '9652621d31b04fbb96a2f60c028fd93c', 'error': None, 'failure': {'origin': 'MAIN', 'pid': 7020, 'exception_type': 'ValueError', 'message': '基准版本存在解析失败/部分解析，不能将缺失事实当作无变化', 'stage': {'stage': 'Git 基准版本完整分析', 'operation': 'Git 基准版本完整分析', 'started': '2026-11-04T14:13:15.167381+00:00', 'memory_start': {'private_bytes': 32669696, 'working_set_bytes': 35966976, 'peak_working_set_bytes': 45588480, 'peak_process_commit_bytes': 43122688, 'system_commit_bytes': 20151078912, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 53538381824}, 'status': 'RUNNING'}, 'completed_units': 0, 'total_units': 0, 'pending_units': 0, 'fact_counts': {}, 'fact_counts_scope': 'translation_unit_rows_including_duplicates', 'memory': {'private_bytes': 42827776, 'working_set_bytes': 53342208, 'peak_working_set_bytes': 66752512, 'peak_process_commit_bytes': 72761344, 'system_commit_bytes': 20198924288, 'system_commit_limit_bytes': 85825454080, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 53494775808}, 'peak_memory': {'private_bytes': 71151616, 'working_set_bytes': 64819200, 'peak_working_set_bytes': 66752512, 'peak_process_commit_bytes': 72761344, 'system_commit_bytes': 20358119424, 'system_commit_peak_bytes': 59076931584, 'system_physical_total_bytes': 68645584896, 'system_physical_available_bytes': 53546061824}, 'snapshot_status': 'NOT_CAPTURED', 'analysis_valid': False}}\n",
+  "seconds": 497.84399999998277
+}

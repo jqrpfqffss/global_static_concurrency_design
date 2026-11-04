@@ -36,7 +36,7 @@ REVIEW_REPORT_MODULES = frozenset({
     'case_library.py', 'decisions.py', 'html_report.py', 'report.py',
     'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
-    'native_consumers.py', 'review_inheritance.py',
+    'native_consumers.py', 'review_inheritance.py', 'review_sources.py',
 })
 
 
@@ -258,8 +258,16 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
     if not capsule_file.is_file() or file_digest(capsule_file) != expected_hash:
         raise ValueError('扫描输入闭包已变化/损坏；请重新运行 run')
     capsule = read_json(capsule_file)
-    if capsule.get('frozen_view') is not None:
-        raise ValueError('冻结父进程输入的正式恢复链路尚未完成验收；请保留原数据，当前不能忽略视图身份读取实时源码')
+    from .frozen_scan import replay_files
+    with replay_files(capsule,root,cfg,config_path=Path(root)/state.get('config_file','')) as view:
+        return _verify_saved_closure(root,out,cfg,state,manifest,config_file,capsule,file_view=view)
+
+
+def _verify_saved_closure(root,out,cfg,state,manifest,config_file,capsule,*,file_view=None):
+    import shutil
+    import tempfile
+    from .cli import dependency_results
+    from .input_snapshot import file_record
     from .input_snapshot import runtime_environment
     if capsule.get('environment') != runtime_environment():
         raise ValueError('构建/Clang 运行环境已变化或旧检查点缺少环境绑定；请重新扫描，不能复用旧事实')
@@ -286,6 +294,11 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
         if current_files != selection['files']:
             changes.append(dict(file=relative(selection['directory'],root)+'/'+selection['pattern'],
                 reason='PARENT_INPUT_SET_CHANGED',before=selection['files'],after=current_files))
+        if file_view is not None:
+            fixed=sorted(relative(path,root) for path in file_view.select_files(selection['directory'],selection['pattern']))
+            if fixed!=selection['files']:
+                changes.append(dict(file=selection['directory'],reason='FROZEN_PARENT_INPUT_SET_CHANGED',
+                    before=selection['files'],after=fixed))
     tool_root = Path(__file__).resolve().parent.parent
     env = os.environ.copy()
     env['PYTHONPATH'] = str(tool_root) + os.pathsep + env.get('PYTHONPATH', '')
@@ -293,7 +306,8 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
         work = Path(temp)/'workers'
         work.mkdir()
         try:
-            for unit, inputs, signature in dependency_results(root, units, cfg, work, env, tool_root):
+            frozen={} if file_view is None else dict(compiler_view={key:file_view.identity[key] for key in ('file','sha256')})
+            for unit, inputs, signature in dependency_results(root, units, cfg, work, env, tool_root,**frozen):
                 tu_id = unit['tu_id']
                 current = {relative(path, root): row for path, row in inputs.items()}
                 expected = set(dependencies[tu_id])
@@ -321,6 +335,10 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
         row = file_record(root/path)
         if row.get('status') != 'OK' or row.get('sha256') != expected:
             changes.append(dict(file=path, reason='INPUT_CHANGED_DURING_RESUME', before=expected, after=row))
+        if file_view is not None:
+            fixed=file_view.file_record(root/path)
+            if fixed.get('status')!='OK' or fixed.get('sha256')!=expected:
+                changes.append(dict(file=path,reason='FROZEN_INPUT_CHANGED_DURING_RESUME',before=expected,after=fixed))
     live_cfg, _ = load_config(root, config_file)
     from .git_diff import current_context
     _, live_cfg = current_context(root, live_cfg, state.get('git_diff_pin'))
@@ -639,6 +657,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     from .workspace import context, lock_path
     context(root, cfg['analysis']).initialize()
     lock = lock_path(root, cfg['analysis'])
+    source_reader=None;source_scope=None;source_token=None;source_entered=False
     try:
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
@@ -652,6 +671,12 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
             if state.get('scan_mode'):
                 cfg['analysis']['git_diff']['enabled'] = state['scan_mode'] == 'diff'
+            from .frozen_scan import saved_reader
+            from .input_snapshot import SOURCE_READS
+            source_scope=saved_reader(root,out,cfg,state)
+            source_reader=source_scope.__enter__()
+            source_entered=True
+            if source_reader is not None:source_token=SOURCE_READS.set(source_reader)
         except ValueError as exc:
             if '源码/头文件/编译数据库已变化' not in str(exc):
                 raise
@@ -744,4 +769,11 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)
         return code
     finally:
-        lock.unlink(missing_ok=True)
+        try:
+            if source_token is not None:
+                from .input_snapshot import SOURCE_READS
+                SOURCE_READS.reset(source_token)
+            if source_entered:
+                import sys
+                source_scope.__exit__(*sys.exc_info())
+        finally:lock.unlink(missing_ok=True)

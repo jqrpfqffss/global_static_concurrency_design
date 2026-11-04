@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { api } from './api'
-const props=defineProps<{projectRoot:string,baseRef:string,currentRef:string,includeUncommitted:boolean}>()
+const props=defineProps<{projectRoot:string,baseRef:string,currentRef:string,includeUncommitted:boolean,buildMode?:string}>()
 const emit=defineEmits<{(e:'update:baseRef',value:string):void,(e:'update:currentRef',value:string):void,(e:'update:includeUncommitted',value:boolean):void}>()
 const state=ref<any>(null), error=ref(''), loading=ref(false), search=ref(''), offset=ref(0)
 let generation=0
-watch(()=>props.projectRoot,()=>{generation++;state.value=null;error.value='';offset.value=0})
-const current=computed(()=>state.value?.available&&state.value.base_ref===props.baseRef&&state.value.current_ref===props.currentRef&&state.value.include_uncommitted===props.includeUncommitted)
+watch(()=>[props.projectRoot,props.buildMode],()=>{generation++;state.value=null;error.value='';offset.value=0})
+const current=computed(()=>state.value?.available&&state.value.base_ref===props.baseRef&&state.value.current_ref===props.currentRef&&state.value.include_uncommitted===props.includeUncommitted&&state.value.build_mode===(props.buildMode||''))
 function choose(event:Event,side:'baseRef'|'currentRef'){const value=(event.target as HTMLInputElement).value;if(side==='baseRef')emit('update:baseRef',value);else emit('update:currentRef',value)}
 async function read(at=0){
   if(loading.value)return
   const request=++generation;loading.value=true;error.value=''
-  try{const result=await api('/profiles/git-versions','POST',{project_root:props.projectRoot,base_ref:props.baseRef,current_ref:props.currentRef,include_uncommitted:props.includeUncommitted,search:search.value,offset:at,limit:50});if(request===generation){state.value=result;offset.value=at}}
+  try{const result=await api('/profiles/git-versions','POST',{project_root:props.projectRoot,base_ref:props.baseRef,current_ref:props.currentRef,include_uncommitted:props.includeUncommitted,build_mode:props.buildMode||'',search:search.value,offset:at,limit:50});if(request===generation){state.value=result;offset.value=at}}
   catch(e:any){if(request===generation){state.value=null;error.value=e.message}}
   finally{loading.value=false}
 }
@@ -34,9 +34,9 @@ async function read(at=0){
     <label>Diff 基准 ref（空表示全量）<input :value="baseRef" :disabled="loading" @input="choose($event,'baseRef')"></label>
     <label>当前 ref<input :value="currentRef" :disabled="loading" @input="choose($event,'currentRef')"></label>
     <label class="dirty-input-option"><input type="checkbox" :checked="includeUncommitted" :disabled="loading||(!baseRef&&!includeUncommitted)" @change="emit('update:includeUncommitted',($event.target as HTMLInputElement).checked)">纳入当前工作区未提交输入</label>
-    <p v-if="includeUncommitted&&!baseRef" role="alert">高级 YAML 保留了未提交输入选项，当前未启用 Diff；请取消此项后进行全量扫描。未提交输入的正式隔离链路仍待验收。</p>
+    <p v-if="includeUncommitted&&!baseRef" role="alert">{{ buildMode==='database' ? '当前未启用Diff，将固定当前工作区进行全量扫描；实际编译输入以数据库为准。' : '当前构建方式尚不支持包含未提交输入；请取消此项，或改用实际编译数据库。' }}</p>
     <p v-if="includeUncommitted&&currentRef!=='HEAD'&&!error" role="alert">纳入未提交输入仅适用于当前 ref 为 HEAD；请改为 HEAD，或取消此选项进行固定提交比较。</p>
-    <p v-else-if="includeUncommitted&&currentRef==='HEAD'&&baseRef" role="alert">已选择当前工作区实际字节；不是只扫描暂存区。未提交输入的生产隔离链路尚未接入验收，正式配置检查会阻断扫描。当前请取消此项使用固定提交比较；高级 YAML 原值保留。</p>
+    <p v-else-if="includeUncommitted&&currentRef==='HEAD'&&baseRef" role="alert">已选择当前工作区实际字节，不是只扫描暂存区。{{ buildMode==='database' ? '启动时固定源码、实际编译数据库与SDK输入，并逐项验证；工程和暂存区保持原样。' : '当前构建方式仍被阻断；请使用重新导出的实际编译数据库，或取消此选项进行固定提交比较。' }}</p>
     <p v-else-if="baseRef&&!includeUncommitted">固定提交比较不包含未提交修改。保留原工作区与暂存区，不自动提交或切换分支。</p>
     <p v-if="current" class="identity">基准提交：{{state.base_sha||'全量扫描'}}<br>当前提交：{{state.current_sha}}</p>
     <p v-else-if="state?.available" role="status">所选引用已变更，请重新核对本地 Git 版本。</p>

@@ -138,10 +138,11 @@ def validate_source_evidence(evidence, root, *, required=False, require_quotes=F
         source = (root / item['file']).resolve()
         if not source.is_relative_to(root):
             raise ValueError('证据路径不属于当前工程')
-        if not source.is_file():
+        from .review_sources import CURRENT,read_source
+        if CURRENT.get() is None and not source.is_file():
             raise ValueError(f'证据文件不存在: {item["file"]}')
         if source not in sources:
-            sources[source] = source.read_text(encoding='utf-8', errors='replace').splitlines()
+            sources[source] = read_source(source)[0].splitlines()
         lines = sources[source]
         if item['line'] > len(lines):
             raise ValueError(f'证据行号越界: {item["file"]}:{item["line"]}')

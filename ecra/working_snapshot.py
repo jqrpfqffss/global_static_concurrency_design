@@ -1,4 +1,4 @@
-"""Capture dirty Git inputs outside firmware; not enabled in the formal UI yet.
+"""Capture dirty Git inputs outside firmware, preserving original Git staging.
 
 The caller must still prove relocated compiler/build semantics before using a
 capture for analysis. This module preserves bytes and Git staging, not that proof.

@@ -22,7 +22,7 @@
   main:has(>.workbench) .list-filters{max-height:calc(100% - 160px);overflow:auto;min-height:0;padding-right:4px;flex-shrink:1}
   main:has(>.workbench) .symbol-list{min-height:76px;flex:1}
   main:has(>.workbench) .list-panel>.page-controls{flex-shrink:0}
-  main:has(>.workbench) .detail-summary{max-height:30%;min-height:48px;overflow:auto;flex-shrink:1}
+  main:has(>.workbench) .detail-summary{max-height:40%;min-height:48px;overflow:auto;flex-shrink:0}
   main:has(>.workbench) .detail-heading>button{min-height:32px;padding:5px 9px}
   main:has(>.workbench) .detail-summary>.identity,main:has(>.workbench) .detail-summary>.conclusion{margin-bottom:4px}
   main:has(>.workbench) .detail-evidence{min-height:64px}

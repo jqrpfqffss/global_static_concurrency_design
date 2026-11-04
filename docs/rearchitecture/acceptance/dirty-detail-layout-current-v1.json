@@ -1,0 +1,93 @@
+{
+  "passed": true,
+  "scope": "Real existing native Diff result; current frontend summary clipping repair only. Browser device_scale_factor is not physical Windows DPI or UAT.",
+  "cases": [
+    {
+      "width": 1366,
+      "height": 768,
+      "browser_scale": 1,
+      "geometry": {
+        "height": 94,
+        "scroll": 94,
+        "top": 347.34375,
+        "bottom": 441.171875,
+        "conclusionTop": 401.03125,
+        "conclusionBottom": 437.171875
+      },
+      "screenshot": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-detail-layout-current-v1\\diff-detail-1366-768-1.png"
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "browser_scale": 1,
+      "geometry": {
+        "height": 94,
+        "scroll": 94,
+        "top": 347.34375,
+        "bottom": 441.171875,
+        "conclusionTop": 401.03125,
+        "conclusionBottom": 437.171875
+      },
+      "screenshot": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-detail-layout-current-v1\\diff-detail-1600-900-1.png"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "browser_scale": 1,
+      "geometry": {
+        "height": 94,
+        "scroll": 94,
+        "top": 347.34375,
+        "bottom": 441.171875,
+        "conclusionTop": 401.03125,
+        "conclusionBottom": 437.171875
+      },
+      "screenshot": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-detail-layout-current-v1\\diff-detail-1920-1080-1.png"
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "browser_scale": 1.25,
+      "geometry": {
+        "height": 94,
+        "scroll": 94,
+        "top": 347.34375,
+        "bottom": 441.171875,
+        "conclusionTop": 401.03125,
+        "conclusionBottom": 437.171875
+      },
+      "screenshot": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-detail-layout-current-v1\\diff-detail-1366-768-1.25.png"
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "browser_scale": 1.5,
+      "geometry": {
+        "height": 94,
+        "scroll": 94,
+        "top": 347.34375,
+        "bottom": 441.171875,
+        "conclusionTop": 401.03125,
+        "conclusionBottom": 437.171875
+      },
+      "screenshot": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-detail-layout-current-v1\\diff-detail-1366-768-1.5.png"
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "browser_scale": 2,
+      "geometry": {
+        "height": 94,
+        "scroll": 94,
+        "top": 347.34375,
+        "bottom": 441.171875,
+        "conclusionTop": 401.03125,
+        "conclusionBottom": 437.171875
+      },
+      "screenshot": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\dirty-detail-layout-current-v1\\diff-detail-1366-768-2.png"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "authority_differences": []
+}

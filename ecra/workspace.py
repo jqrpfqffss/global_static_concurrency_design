@@ -87,7 +87,8 @@ def formal_workspace(root, analysis):
     if analysis.get('cmake', {}).get('location') == 'project':
         raise ValueError('正式扫描禁止在固件中构建；请使用 analysis.cmake.location: workspace')
     if analysis.get('git_diff', {}).get('include_uncommitted'):
-        raise ValueError('未提交字节的隔离快照尚未完成验收；正式工作流暂不允许 include_uncommitted: true')
+        from .dirty_inputs import supported
+        supported(analysis)
     ws = WorkspaceResolver.resolve(root, analysis)
     data, tool = Path(ws.workspace_root), Path(TOOL_ROOT).resolve()
     if data == tool or data.is_relative_to(tool):

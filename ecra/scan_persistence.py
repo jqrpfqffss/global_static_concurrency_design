@@ -282,6 +282,12 @@ def run_canonical(root, config_path=None, no_review=False, doctor_only=False, re
     with ExitStack() as activities:
         activities.enter_context(DataActivity(workspace.workspace_root))
         if not _budget_owned:activities.enter_context(DataActivity(workspace.workspace_root,exclusive=True,purpose='scan-budget'))
+        if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
+            if doctor_only:raise ValueError('包含未提交输入时请使用Studio的真实环境检查；独立doctor尚不支持此固定输入工作流')
+            from .dirty_inputs import capture_inputs
+            _compiler_view=capture_inputs(root,config_path,
+                Path(workspace.workspace_root)/'work/captured-inputs'/uuid.uuid4().hex,
+                progress=lambda text:print(text,flush=True),scan_mode=scan_mode)
         return _run_canonical(root,config_path,no_review,doctor_only,review_safe_sample,review_shared_sample,
                               scan_mode,scan_id=scan_id,profile_id=profile_id,_expected_root=workspace.workspace_root,_storage_policy=_storage_policy,
                               _compiler_view=_compiler_view)
