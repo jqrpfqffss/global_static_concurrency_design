@@ -1,0 +1,18 @@
+{
+  "passed": false,
+  "status": "RUNNING_UNVERIFIED",
+  "recorded_utc": "2026-11-04T03:14:10.931347+00:00",
+  "source_head": "0aa9363629a1b67b6eed4d04eafd1c51b2eca990",
+  "frozen_files": 3631,
+  "manifest_sha256": "28d310087dda7463f09d7a6167f378920f65b3a80fc8994935169ca7297f89f9",
+  "expected_tests": 1439,
+  "controller": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-full-and-native-v39-v2.py",
+  "controller_sha256": "93add655f637dcdeeb4b9dd2ff2be5275d20dd9ab4925e6750b7975c17e98ad4",
+  "observed_queue": {
+    "passed": false,
+    "status": "RUNNING_EXACT_FROZEN_1439",
+    "all_gates_passed": false
+  },
+  "all_gates_passed": false,
+  "scope": "Observation of new frozen R2b source1439 validation; no PASS until complete exact-source regression and original-path F030 comparison finish. Native-v13 and R1 Portable remain distinct producers."
+}

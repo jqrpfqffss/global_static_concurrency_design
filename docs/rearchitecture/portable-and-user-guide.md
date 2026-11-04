@@ -1,6 +1,6 @@
 > 最新完整封存的本机候选为[v37](77-frozen-v37-acceptance.md)，源码7066dea：1423项1421PASS/2联网SKIP，23组183重叠Chrome/VHD断言，31700分发文件SHA、130运行时匹配。新增真实多核三步8组、核心表单8组；预检查控制器异步名称定位首轮FAIL与完整16项重跑均保留。旧v36完整大图/千项续批不改标为v37。完整重构仍未完成。
 
-> 较新源码已补[R2a真实Worker](72-frozen-compiler-worker-acceptance.md)与[R2b同源父读取](74-frozen-parent-input-acceptance.md)：冻结118复跑及65专项、获准F030联合完整0/0通过，正式dirty/恢复仍阻断；冻结1430统一回归执行中，更新1439尚待验。接入缺口与顺序见[76号审计](76-dirty-production-integration-audit.md)，其他剩余代码见[68号](68-remaining-refactor-execution-plan.md)。
+> 较新源码已补[R2a真实Worker](72-frozen-compiler-worker-acceptance.md)与[R2b同源父读取](74-frozen-parent-input-acceptance.md)：冻结118复跑及65专项、获准F030联合完整0/0通过，正式dirty/恢复仍阻断；冻结1430已完成1428PASS/2SKIP及原路径F030完整0/0，新冻结1439执行中，见[78号](78-r2a-full-regression-and-r2b-validation-queue.md)。接入缺口与顺序见[76号审计](76-dirty-production-integration-audit.md)，其他剩余代码见[68号](68-remaining-refactor-execution-plan.md)。
 
 > 大型原始e69与冷v12、冷v13完整事实/规范化报告均0/0；v13真实15.404h和约9.958GiB Job峰值见[75号](75-seed0-v13-native-and-comparison-progress.md)，不称提速。冷v12完整compact包及71.6497%最终保留策略见[65号](65-complete-compact-archive-retention.md)。v13归档/全峰值和独立512MiB读取仍待结束；其他G2工程用户延期，物理机/DPI/真实模型/UAT继续待验。下方旧状态按原时间保留。
 
