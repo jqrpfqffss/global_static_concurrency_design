@@ -119,4 +119,3 @@ U01/U16/U19/U22续轮：首次新建/历史导入/真实教学示例三入口已
 # 2026-11-04 增量功能验收索引
 
 用户最新优先级见[87号](87-functional-priority-execution.md)。不变完整输入/事实后的人工确认继承、撤销和独立包传播已按[88号](88-verified-human-inheritance.md)实际验证；整套数据根静默复制、WAL/历史校验、路径重绑、跨H/I盘、旧根不可用后的确认/检查点/真实任务重试按[90号](90-whole-root-transfer-acceptance.md)实际验证。对应H2/H4/H6、U17/U18/U20及G5/G6的具体增量范围，不把这些子场景代替完整U/G验收。v44完整1482回归尚在执行，dirty生产链路及消费者省内存仍未完成；物理第二PC、干净离线Portable、原生DPI和工程师UAT继续NOT_VERIFIED。
-
