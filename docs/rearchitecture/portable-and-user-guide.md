@@ -1,3 +1,5 @@
+> 当前实际验证的功能阶段候选为[v60](101-portable-v60-functional-acceptance.md)：双击 `H:/ECRAStudio-build-20261105-studio-v60/ECRA-Portable/ECRA.cmd`，完整ZIP同级。包含确认继承、整根搬迁、显式数据库未提交Diff及复核停止重试。143应用文件匹配源码，32,031分发文件操作后SHA不变。完整发布/物理离线机门禁仍未通过；详细范围和运行环境/工具链限制见101号，下文旧包信息保留作历史。
+
 > 最新大型读路径验收见[86号](86-inav-native-report-digest-acceptance.md)：既有INAV完整报告原摘要相同，整库/state/manifest/源SHA不变，实际2GiB Job最终提交峰值34,557,952B；仅报告摘要，不是完整status/复核/扫描。新1459仍在执行，R3其余消费者及正式dirty/CMake/恢复、R4–R7未完成，当前源码仍未新封装Portable。
 
 > 最新源码/状态见[85号](85-v42-validation-status.md)：R3a原生状态/摘要消费者38项通过，当前原路径F030完整0/0，包内3.10.9纯codec7项通过；旧1449已完成1447PASS/2SKIP，新1459及真实INAV报告摘要执行中。v13完整紧凑包严格导入和最终大小71.64935%子门限已通过见84号，完整G4/物理机仍待验。正式dirty/CMake/恢复、R3其余消费者及R4–R7仍有代码缺口，完整重构未完成；最新封存Portable仍v37。

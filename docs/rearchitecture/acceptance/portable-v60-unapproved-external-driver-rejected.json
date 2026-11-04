@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "scope": "Actual embedded Python original approved F030 native after ownership fix; original explicit approved compiler database. Not physically offline or whole G2.",
+  "bundle": "H:\\ECRAStudio-build-20261105-studio-v60\\ECRA-Portable",
+  "python": "H:\\ECRAStudio-build-20261105-studio-v60\\ECRA-Portable\\runtime\\python.exe",
+  "python_version": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\scan-embedded-f030-v60.py\", line 16, in <module>\n    code=run_canonical(root,config,no_review=True,scan_id='native');assert code in {0,1,2},code\nAssertionError: 3\n"
+}

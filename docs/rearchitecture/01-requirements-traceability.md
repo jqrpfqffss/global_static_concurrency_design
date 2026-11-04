@@ -1,3 +1,5 @@
+> 2026-11-05当前功能阶段包已封存：[101号v60](101-portable-v60-functional-acceptance.md)。143个应用文件与干净c374ebc一致，32,031分发文件在真实操作后全SHA不变；目录/中文ZIP各27检查、真实ECRA.cmd、包内F030新原生/复核、确认继承、整根离线恢复及自建4TU真实未提交Diff均通过。包内跨环境完整事实0差，原报告严格差异保留并逐字段解释编译器审计；不冒称所有报告字段同一。v61当前1512全套仍在运行，物理机/大Diff/CMake/完整门禁未完。v37及下文旧进度是历史。
+
 > 2026-11-05最新收齐：[98号](98-concurrent-packet-stress-contract.md)INAV两份独立完整最大Packet同时驻留、写文件和收据检查已在4GiB Job通过，提交峰值2,813,624,320B，原库不变；冻结v54全套1508项为1506PASS/2联网SKIP。包内首次初始化停止暴露的pending缺陷按[100号](100-owner-publication-stop-acceptance.md)修复：23工作区、32原生/搬迁/复核测试通过，新F030原生完整facts/report0差及真实Chrome重试通过；不替换旧state指纹。新候选包重新验收中，尚不更新v37封存状态。Diff/完整恢复、CMake未提交、物理机及完整G1–G8仍未完。
 
 > 2026-11-05最新进展：[97号原生复核验收](97-native-review-packet-acceptance.md)。原生review/review-failed已改完整逐对象Packet和流式收据，真实INAV 615.59MB Packet/缓存键完全相同，2GiB Job峰值提交1,443,061,760B；F030真实Chrome停止/重试/6项技术失败/完整包及172专项（171PASS/1联网SKIP）通过，原件不变。v51漏递归边测量明确失效；v54完整回归执行中。Diff/完整恢复、CMake未提交、多Worker联合峰值及其他门禁仍未完成。

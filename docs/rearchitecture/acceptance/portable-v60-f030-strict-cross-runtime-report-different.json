@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "hashes": {
+    "facts": {
+      "before": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+      "after": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48"
+    },
+    "report": {
+      "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+      "after": "a5e87a6a93477a4730c2bfa0576a6121073b8b107b8816edd6cab90ebfaee0ab"
+    }
+  },
+  "differences": {
+    "facts": null,
+    "report": {
+      "path": [
+        "report",
+        "coverage",
+        "compilers"
+      ],
+      "before_edge": null,
+      "after_edge": 0
+    }
+  },
+  "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+  "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native\\scan.db",
+  "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\embedded-native-f030-v60-v2\\data\\scans\\native\\scan.db",
+  "deep_integrity_checked": true,
+  "complete_fact_graph_restore": false,
+  "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+}

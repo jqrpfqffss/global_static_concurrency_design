@@ -1,0 +1,60 @@
+"""Rebuild a fresh candidate from fully validated locked v58 tools and v59 code.
+
+Never modify the original bundle. Refresh only the source-proven ownership fix,
+regenerate the entire manifest, run full original directory/ZIP checks. The
+separate real review UI test must pass before this becomes the latest package.
+"""
+import hashlib,json,shutil,subprocess,sys,time,traceback,zipfile
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v59';parent=Path('H:/ECRAStudio-build-20261105-studio-v58');out=Path('H:/ECRAStudio-build-20261105-studio-v60')
+assert not out.exists();out.mkdir();bundle=out/'ECRA-Portable';evidence=out/'portable-evidence';evidence.mkdir()
+result=dict(passed=False,status='VALIDATING_PARENT',scope=__doc__,parent_bundle=str(parent/'ECRA-Portable'),source=str(engine),tests=[])
+def save():(evidence/'assembly.json').write_text(json.dumps(result,indent=2)+'\n','utf-8')
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as stream:
+  for block in iter(lambda:stream.read(1024**2),b''):h.update(block)
+ return h.hexdigest()
+def command(name,argv):
+ with (evidence/(name+'.log')).open('xb') as log:
+  code=subprocess.call(list(map(str,argv)),stdout=log,stderr=subprocess.STDOUT,cwd=bundle)
+ result['tests'].append(dict(name=name,command=list(map(str,argv)),exit_code=code));save()
+ if code:raise RuntimeError(name+' failed: '+str(code))
+start=time.monotonic();save()
+try:
+ for kind in ['uncompressed','zip-extracted']:
+  receipt=parent/'portable-evidence'/kind/'acceptance.json';value=json.loads(receipt.read_text('utf-8'));assert value['result']=='PASS'
+  result['parent_'+kind]=dict(sha256=sha(receipt),commands=len(value['commands']))
+ expected=json.loads((parent/'ECRA-Portable/FILES.sha256.json').read_text('utf-8'));bad=[name for name,h in expected.items() if sha(parent/'ECRA-Portable'/name)!=h]
+ assert not bad,bad;result['parent_files_verified']=len(expected);result['status']='COPYING_VERIFIED_PROGRAM';save()
+ shutil.copytree(parent/'ECRA-Portable',bundle)
+ for name,h in expected.items():assert sha(bundle/name)==h,name
+ name='ecra/workspace.py';result['changed_program_files']=[dict(file=name,before_sha256=sha(bundle/name),after_sha256=sha(engine/name))]
+ shutil.copy2(engine/name,bundle/name)
+ frozen=json.loads(engine.with_name(engine.name+'.sha256.json').read_text('utf-8'));matched=[]
+ for row in frozen['files']:
+  name=row['file']
+  if not (name.startswith('ecra/') or name in {'run_ecra.py','requirements.txt','requirements-studio.txt','requirements-portable.lock.txt'}):continue
+  assert (bundle/name).stat().st_size==row['size'] and sha(bundle/name)==row['sha256'],name
+  matched.append(row)
+ result.update(status='VALIDATING_NEW_PROGRAM',application_files=len(matched),application_source_files=matched,source_manifest_sha256=sha(engine.with_name(engine.name+'.sha256.json')));save()
+ py=bundle/'runtime/python.exe';validate=bundle/'validate_portable.py'
+ command('refresh-complete-manifest',[py,'-B',validate,'--bundle',bundle,'--write-hashes'])
+ command('uncompressed-acceptance',[py,'-B',validate,'--bundle',bundle,'--work',evidence/'uncompressed'])
+ candidate=out/'ECRA-Portable.candidate.zip';result['status']='COMPRESSING_FULL_PROGRAM';save()
+ with zipfile.ZipFile(candidate,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as archive:
+  for p in sorted(bundle.rglob('*')):
+   if p.is_file():archive.write(p,p.relative_to(out).as_posix())
+ extracted=out/'zip-extracted 中文/ECRA-Portable'
+ with zipfile.ZipFile(candidate) as archive:archive.extractall(extracted.parent)
+ command('zip-extracted-acceptance',[extracted/'runtime/python.exe','-B',extracted/'validate_portable.py','--bundle',extracted,'--work',evidence/'zip-extracted'])
+ for kind in ['uncompressed','zip-extracted']:
+  receipt=evidence/kind/'acceptance.json';value=json.loads(receipt.read_text('utf-8'));assert value['result']=='PASS'
+  result[kind]=dict(sha256=sha(receipt),commands=len(value['commands']))
+ target=out/'ECRA-Portable.zip';candidate.rename(target)
+ result.update(passed=True,status='PASS_TOOLCHAIN_AND_SOURCE_SCOPED',zip=str(target),zip_bytes=target.stat().st_size,zip_sha256=sha(target),seconds=time.monotonic()-start,
+  application_review_UI='PENDING_SEPARATE_REAL_TEST',physical_clean_offline_machine='NOT_VERIFIED',all_gates_passed=False)
+except BaseException:
+ result.update(status='FAIL',error=traceback.format_exc(),seconds=time.monotonic()-start);raise
+finally:save()
+print(json.dumps(dict(passed=result['passed'],zip_bytes=result.get('zip_bytes'),zip_sha256=result.get('zip_sha256'))),flush=True)

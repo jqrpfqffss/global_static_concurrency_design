@@ -1,3 +1,5 @@
+> 功能交付更新：[101号v60](101-portable-v60-functional-acceptance.md)已封存，包内原生/复核/继承/搬迁/显式数据库工作字节Diff真实验证通过，完整数据仍保留；旧包仅为历史。G1–G8及当前1512全套未全部通过。包内额外的编译器审计元数据差异有原严格FAIL及完整解释，未修改比较规则。
+
 > 2026-11-05消费路径最新结果：[97号复核](97-native-review-packet-acceptance.md)、[98号双Packet实测](98-concurrent-packet-stress-contract.md)、[100号初始化停止修复](100-owner-publication-stop-acceptance.md)。v54完整1508项已1506PASS/2联网SKIP；后续停止修复为23/32两组专项及新F030全字段0差，未冒称同一全套。单Packet2GiB Job与双独立Packet4GiB Job均通过，后者提交峰值2,813,624,320B；完整Diff/恢复/物理32GB/三类工程与G1–G8整体未通过。
 
 > 最新大型读路径验收见[86号](86-inav-native-report-digest-acceptance.md)：既有INAV完整报告原摘要相同，整库/state/manifest/源SHA不变，实际2GiB Job最终提交峰值34,557,952B；仅报告摘要，不是完整status/复核/扫描。新1459仍在执行，R3其余消费者及正式dirty/CMake/恢复、R4–R7未完成，当前源码仍未新封装Portable。
