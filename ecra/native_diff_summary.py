@@ -15,6 +15,11 @@ class _Fields(Mapping):
         self.reader, self.node = reader, node
 
     def __getitem__(self, key):
+        # Native object keys are strings. SQLite's TEXT affinity would match
+        # integer 1 to key "1", unlike the original Python dictionary.
+        if not isinstance(key, str):
+            hash(key)  # Preserve TypeError for unhashable dictionary keys.
+            raise KeyError(key)
         node = self.reader.child(self.node, key)
         if node is None:
             raise KeyError(key)

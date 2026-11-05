@@ -133,6 +133,16 @@ class NativeDiffReaderTests(unittest.TestCase):
         for callback in (lambda: summarize(self.facts, self.report), lambda: summarize_native(path)):
             with self.assertRaisesRegex(ValueError, 'missing atom'): callback()
 
+    def test_pool_keys_preserve_python_types_instead_of_sqlite_text_affinity(self):
+        self.facts.update(pointer_target_atoms=['obj:a'], pointer_target_sets={'1': '1'})
+        for reference in (1, True, 1.0, None, [], {}):
+            with self.subTest(reference=reference):
+                self.facts['pointer_targets'] = [dict(source_id='slot', target_set_id=reference)]
+                path = self.publish()
+                expected_error = TypeError if isinstance(reference, (list, dict)) else KeyError
+                for callback in (lambda: summarize(self.facts, self.report), lambda: summarize_native(path)):
+                    with self.assertRaises(expected_error): callback()
+
     def test_unread_bodies_and_report_slices_are_never_decoded(self):
         path = self.publish(); provider = EvidenceProvider(path)
         forbidden = {provider.resolve('facts', ['functions', 0, 'unused_large_body']),
