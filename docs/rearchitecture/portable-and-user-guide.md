@@ -1,3 +1,5 @@
+> 最新修复候选见[109号v67](109-portable-v67-baseline-fix-acceptance.md)：包内8专项、实际ECRA.cmd启动、显式数据库及CMake宏变化真实Chrome流程通过，32,032分发文件测试后SHA不变；当前核心源码完整1525项为1523PASS/2联网SKIP。大型原生/冷Diff/物理机等仍待验，完整重构未完成。
+
 > 当前实际验证的功能阶段候选为[v60](101-portable-v60-functional-acceptance.md)：双击 `H:/ECRAStudio-build-20261105-studio-v60/ECRA-Portable/ECRA.cmd`，完整ZIP同级。包含确认继承、整根搬迁、显式数据库未提交Diff及复核停止重试。143应用文件匹配源码，32,031分发文件操作后SHA不变。完整发布/物理离线机门禁仍未通过；详细范围和运行环境/工具链限制见101号，下文旧包信息保留作历史。
 
 > 最新大型读路径验收见[86号](86-inav-native-report-digest-acceptance.md)：既有INAV完整报告原摘要相同，整库/state/manifest/源SHA不变，实际2GiB Job最终提交峰值34,557,952B；仅报告摘要，不是完整status/复核/扫描。新1459仍在执行，R3其余消费者及正式dirty/CMake/恢复、R4–R7未完成，当前源码仍未新封装Portable。

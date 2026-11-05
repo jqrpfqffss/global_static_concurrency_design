@@ -1,0 +1,153 @@
+{
+  "passed": true,
+  "status": "PASS_NATIVE_BASELINE_FIX_CANDIDATE_SCOPED",
+  "scope": "Source-matched v67: directory and Chinese ZIP original27 toolchain checks each, embedded8 actual native/CMake/recovery tests, Windows-only PATH actual cmd4, approved F030 native, real Chrome database Diff5 and changed CMake macro4-to8/full-verification/UI/package5. Parent v60 unrelated inheritance/whole-root workflows not rerun here; core source full suite is separately verified on global Python, not the embedded full suite; large native/physical machine gates remain pending.",
+  "source_code_commit": "b9858efb483b52f737de64831b543e640a8a3aec",
+  "frozen_manifest_sha256": "7140548fac9bb0a45fc8b541327bd89a8a0ff88421b235fa934f481d007c2abc",
+  "entry": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable\\ECRA.cmd",
+  "zip": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable.zip",
+  "zip_bytes": 771054354,
+  "zip_sha256": "747d7d2b70301e997b36330ce106a80bfa02a07bba41fdf807890cea89085998",
+  "application_source_files": 143,
+  "application_differences": [],
+  "deliverable_files": 32032,
+  "full_file_manifest_sha256": "bfb3b62f7faeef7127dd4b08db9078e8d745dfec6adba9a3648c9a07f4614b22",
+  "all_deliverable_files_unchanged_after_actual_tests": true,
+  "receipts": {
+    "embedded8": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-native-baseline-v67.json",
+      "sha256": "05bd89d7d47ad5e97d051d3357daa1eb469e1b202b746ef8af1a157b62924bff",
+      "tests": 8,
+      "scope": "Actual embedded Python3.10.9 and bundle ECRA modules; real native/CMake macro4-to8, immutable histories, interrupted verified TU recovery and strict gates. Controlled fixtures, not G2/physical offline/all gates."
+    },
+    "nativeF030": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\embedded-native-f030-v67-v1\\acceptance.json",
+      "sha256": "3f0b30b79ac95dea7fd836e8d5d8751157a8b68c18caa0186ae1ce263b83a78a",
+      "tests": null,
+      "scope": "Actual embedded Python original approved F030 native after immutable native Diff baseline fix; original explicit approved compiler database and explicit allow_external_toolchain in this private validation profile only. Built-in toolchain validated separately; not physically offline or whole G2."
+    },
+    "databaseUI": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-native-ui-v67\\acceptance.json",
+      "sha256": "a044851584f59bd7a752d09d0914e22dc37240f3cb5a6958540bc7722354ca10",
+      "tests": [
+        "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+        "SECOND_RUN_VALIDATED_SUMMARY_HIT_DISTINCT_ARCHIVES",
+        "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+        "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+        "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+      ],
+      "scope": "Real Chrome/Playwright CLI, two native Diff runs and independent archives.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n"
+    },
+    "cmakeUI": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-cmake-ui-v67-v3\\acceptance.json",
+      "sha256": "f65cef96d7eb8b76122446f9154a1a13cbd80dc06ac4bd673a416848bce3b34d",
+      "tests": [
+        "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+        "REAL_CMAKE_CHANGED_MACRO4_TO8_DISTINCT_BASELINES_AND_UNCACHED_FULL_VERIFICATION",
+        "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+        "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+        "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+      ],
+      "scope": "Actual embedded Chrome CMake Diff: macro changes4-to8, immutable old baseline and independent complete package. Controlled two-TU fixture, not G2.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n"
+    },
+    "launcher": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v67-startup-evidence\\acceptance.json",
+      "sha256": "06158f46b4bd6f7646a2c9a778f7cbe8b5508a245739733db6445da35c5f659e",
+      "tests": [
+        {
+          "name": "actual_cmd_uses_embedded_python_with_windows_only_path_and_private_default_data_root",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        },
+        {
+          "name": "actual_launcher_page_has_all_three_real_first_use_actions_without_external_requests",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        },
+        {
+          "name": "actual_launcher_imports_complete_builtin_native_archive_into_independent_user_data",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        },
+        {
+          "name": "launch_and_sample_leave_all_checked_program_assets_unchanged",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        }
+      ],
+      "scope": "Actual ECRA.cmd Studio entry with Windows-only PATH and private LOCALAPPDATA.\n\n--no-browser suppresses desktop disruption but uses the actual Studio launcher\nbranch. Real Chrome is the external test controller; the service runs embedded\nPython. Not a clean physical offline machine or literal desktop double-click.\n"
+    }
+  },
+  "assembly_receipt_sha256": "d2c31243449decc2ed8381c628ecd4eaac33b0340e71e7d70dd67e33c7c552b8",
+  "uncompressed": {
+    "sha256": "fc31a8cddb0ba662b9e4959ef2d61a035d8807d1c025ddc03d83395f8cf61e40",
+    "commands": 27
+  },
+  "zip_extracted": {
+    "sha256": "262b2724751bdf1ed7cd3f39ab4c4d59c45fe182c8f62eeeaa010fa580a7ca76",
+    "commands": 27
+  },
+  "cross_runtime_facts_equal": true,
+  "cross_runtime_strict_report": "FAIL_RETAINED_EXISTING_COMPILER_AUDIT_ARRAYS",
+  "cross_runtime_audit_sha256": "1799aac668a25ebc8b6ad307df3c1e65b1c3fa238e4689bed8240aca69300124",
+  "unexplained_report_differences": [],
+  "F030_original_compiler": "Original approved absolute compiler; private allow_external_toolchain=true, same binary SHA as bundled. Built-in GCC/CMake validated independently.",
+  "current_full_regression": {
+    "summary_ok": true,
+    "tests": 1525,
+    "passed_tests": 1523,
+    "seconds": 3079.258,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "passed": true,
+    "exit_code": 0,
+    "parent_commit": "26e164e963f315175c92a7008ff7ce687539bc52",
+    "working_tree_overlay": true,
+    "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v66",
+    "test_copy": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-tests-studio-v66",
+    "frozen_files": 3855,
+    "differences": [],
+    "manifest_sha256": "7140548fac9bb0a45fc8b541327bd89a8a0ff88421b235fa934f481d007c2abc",
+    "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v66.log",
+    "log_sha256": "1150ee25d055d6ad248ac2f2f64e666266ed07150e7de732924dd9edffce9b32",
+    "command": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "controller_seconds": 3090.0469999999623,
+    "effective_parent_seed": "0",
+    "scope": "Frozen26e164e overlay v66: immutable regenerated native baseline authorities, fully gated shared TU recovery cache and strict relative locator, complete current tests. Source/frozen-copy hashes verified; no full G1-G8 claim."
+  },
+  "current_large_native": "Latest v66 cold queued; prior v62 recovery publication/G1 pending",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_PC": "NOT_VERIFIED",
+  "native_windows_DPI": "NOT_VERIFIED",
+  "real_model": "NOT_VERIFIED",
+  "engineer_UAT": "NOT_VERIFIED",
+  "other_G2": "USER_DEFERRED",
+  "all_gates_passed": false,
+  "complete_refactor": false
+}

@@ -57,7 +57,7 @@ def main():
         deadline=time.monotonic()+30
         while True:
             tree=cli('snapshot')
-            matches=re.findall(r'^\s*- '+re.escape(role)+' "'+re.escape(name)+r'" \[ref=(e\d+)\]',tree,re.M)
+            matches=re.findall(r'^\s*- '+re.escape(role)+' "'+re.escape(name)+r'" \[ref=([A-Za-z0-9_-]+)\]',tree,re.M)
             if len(matches)==1:return cli('click',matches[0])
             if time.monotonic()>deadline:raise ValueError('Missing/ambiguous enabled UI action: '+name)
             time.sleep(.5)

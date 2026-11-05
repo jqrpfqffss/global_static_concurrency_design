@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Actual embedded Python original approved F030 native after immutable native Diff baseline fix; original explicit approved compiler database and explicit allow_external_toolchain in this private validation profile only. Built-in toolchain validated separately; not physically offline or whole G2.",
+  "bundle": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable",
+  "python": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable\\runtime\\python.exe",
+  "python_version": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+  "native_code": 2,
+  "source_files": 43,
+  "original_differences": [],
+  "scan_db_sha256": "60abf3a0ecff90661747f5a0dfba5d5b8801381bcf267ac624723eb48da93761",
+  "seconds": 41.81199999997625,
+  "all_gates_passed": false
+}

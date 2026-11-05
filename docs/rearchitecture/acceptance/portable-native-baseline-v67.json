@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "tests": 8,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "python": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable\\runtime\\python.exe",
+  "python_version": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "bundle": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable",
+  "test_source_sha256": "6520c819cbb940adf52f65d877a8d0681998f039ef3b789acd6188a214da16a7",
+  "scope": "Actual embedded Python3.10.9 and bundle ECRA modules; real native/CMake macro4-to8, immutable histories, interrupted verified TU recovery and strict gates. Controlled fixtures, not G2/physical offline/all gates."
+}

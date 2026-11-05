@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "scope": "Actual embedded Chrome CMake Diff: macro changes4-to8, immutable old baseline and independent complete package. Controlled two-TU fixture, not G2.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n",
+  "engine": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable",
+  "tests": [],
+  "all_gates_passed": false,
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-native-cmake-ui-v67.py\", line 106, in main\n    click('button','检查并扫描');deadline=time.monotonic()+600\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-native-cmake-ui-v67.py\", line 62, in click\n    if time.monotonic()>deadline:raise ValueError('Missing/ambiguous enabled UI action: '+name)\nValueError: Missing/ambiguous enabled UI action: 检查并扫描\n",
+  "seconds": 136.28200000000652
+}

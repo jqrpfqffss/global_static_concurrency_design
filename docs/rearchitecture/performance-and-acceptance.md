@@ -1,3 +1,5 @@
+> 最新修复候选见[109号v67](109-portable-v67-baseline-fix-acceptance.md)：包内8专项、实际ECRA.cmd启动、显式数据库及CMake宏变化真实Chrome流程通过，32,032分发文件测试后SHA不变；当前核心源码完整1525项为1523PASS/2联网SKIP。大型原生/冷Diff/物理机等仍待验，完整重构未完成。
+
 > 当前实现与验收见[108号](108-immutable-native-baseline-acceptance.md)：真实CMake失效基准改为新权威库，旧库/历史保留；最终8项、当前F030完整0差及Chrome复跑通过。较早v64全套1521项已1519PASS/2联网SKIP；本版完整1525及最新大型原生仍待最终收据，完整重构未完成。
 
 > 最新限定范围见[105号](105-recovery-and-native-diff-cache-acceptance.md)：真实中断恢复5项、原生跨扫描Diff摘要缓存4项通过；旧v62 INAV已中断且无最终收据，新恢复任务需等最终实证，不能沿用旧RUNNING宣称完成。首次冷Diff及大型完整链路仍未优化完，完整门禁未通过。

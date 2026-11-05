@@ -1,0 +1,44 @@
+{
+  "passed": false,
+  "observed_utc": "2026-11-05T03:46:42.718126+00:00",
+  "current_core_suite": {
+    "passed": true,
+    "tests": 1525,
+    "passed_tests": 1523,
+    "skipped": 2,
+    "seconds": 3079.258,
+    "manifest_sha256": "7140548fac9bb0a45fc8b541327bd89a8a0ff88421b235fa934f481d007c2abc",
+    "scope": "Global Python3.10.11 core full suite, not embedded full suite; updated UI control-reference parser separately exercised."
+  },
+  "package": {
+    "passed": true,
+    "source_code_commit": "b9858efb483b52f737de64831b543e640a8a3aec",
+    "files": 32032,
+    "application_files": 143,
+    "zip_sha256": "747d7d2b70301e997b36330ce106a80bfa02a07bba41fdf807890cea89085998",
+    "scope": "Source-matched v67: directory and Chinese ZIP original27 toolchain checks each, embedded8 actual native/CMake/recovery tests, Windows-only PATH actual cmd4, approved F030 native, real Chrome database Diff5 and changed CMake macro4-to8/full-verification/UI/package5. Parent v60 unrelated inheritance/whole-root workflows not rerun here; core source full suite is separately verified on global Python, not the embedded full suite; large native/physical machine gates remain pending."
+  },
+  "prior_v62_recovery": {
+    "complete": false,
+    "worker_pid": 19616,
+    "worker_alive": true,
+    "last_clang": "388/388",
+    "last_stage": "报告生成与存储（单次发布）",
+    "seconds_so_far": 8256.734999999986,
+    "peaks_so_far": {
+      "working_set_bytes": 10066042880,
+      "private_bytes": 10011832320,
+      "peak_job_commit_bytes": 10016612352,
+      "sampled_output_logical_bytes": 25953311256,
+      "sampled_output_allocated_bytes": 15483493536
+    },
+    "scope": "Earlier frozen producer. All-global analysis done; publication and final strict G1/report/Packet not complete. Recovery time is not cold timing."
+  },
+  "latest_v66_cold": {
+    "status": "WAITING_PRIOR_V63_COMPLETE_G1_REPORT_PACKET",
+    "passed": false,
+    "scope": "Fresh same-input latest source queued behind complete prior proof; no copied cache or replaced checkpoint hash."
+  },
+  "all_gates_passed": false,
+  "complete_refactor": false
+}

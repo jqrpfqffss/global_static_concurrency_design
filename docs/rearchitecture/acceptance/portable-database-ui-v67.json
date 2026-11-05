@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "scope": "Real Chrome/Playwright CLI, two native Diff runs and independent archives.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n",
+  "engine": "H:\\ECRAStudio-build-20261105-studio-v67\\ECRA-Portable",
+  "tests": [
+    "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+    "SECOND_RUN_VALIDATED_SUMMARY_HIT_DISTINCT_ARCHIVES",
+    "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+    "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+    "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+  ],
+  "all_gates_passed": false,
+  "tasks": [
+    {
+      "id": "d7745d34015d49c8afd234dd51204aee",
+      "state": "COMPLETE",
+      "started": "2026-11-05T03:06:51.341329+00:00",
+      "finished": "2026-11-05T03:08:01.938740+00:00"
+    },
+    {
+      "id": "667c3d65a0c147909fde9b5b554cd36e",
+      "state": "COMPLETE",
+      "started": "2026-11-05T03:08:07.216763+00:00",
+      "finished": "2026-11-05T03:08:49.722076+00:00"
+    }
+  ],
+  "source_files": 33,
+  "source_differences": [],
+  "engine_files": 113,
+  "engine_differences": [],
+  "cache": [
+    {
+      "hit": false,
+      "corrupt": false
+    },
+    {
+      "hit": true,
+      "corrupt": false
+    }
+  ],
+  "analysis_status": [
+    "MODELED_SCOPE_COMPLETE",
+    "MODELED_SCOPE_COMPLETE"
+  ],
+  "summary_sha256": "59a8af7fd2c59e6c42e94f4916c0ecc276b32330a1179b66c80480bcaba052f3",
+  "package_sha256": "657148117c5afb65310dae7ebc6ef6f0358930c521ef98391baf4a22a32e895c",
+  "package_bytes": 178421,
+  "recorded_network_requests": 289,
+  "recorded_external_requests": [],
+  "browser_console_errors": 0,
+  "browser_console_warnings": 0,
+  "screenshots": {
+    "01-published.png": "4787073e620b6a537aed7738fbe1c3a0f32261f58e5fcd171a49c221ba06b8ed",
+    "02-published.png": "ec521a5fc266b6b49ae59af6e4b3af3ba212987c8526499a1c63f93d3fb6e66f",
+    "03-shared-evidence.png": "63483c76eab2568b5aef7a6d6446d83f4fadb9afc1a79c68a145cb898bc8ff51"
+  },
+  "validator_sha256": "053db4f41915b50bf9fbfda2eec4c472b47705d0f86bf9f5e707b47c41bb2418",
+  "seconds": 177.89100000000326
+}
