@@ -1,0 +1,31 @@
+test_baseline_summary_reuse_and_corruption_rebuild (tests.test_git_diff.GitIntegrationTests) ... ok
+test_summary_mutation_after_validation_blocks_publication (tests.test_git_diff.GitIntegrationTests) ... ok
+test_summary_cache_does_not_bypass_baseline_input_validation (tests.test_git_diff.GitIntegrationTests) ... ok
+test_invalid_output_identity_cannot_create_an_escaped_directory (tests.test_native_observer_identity.NativeObserverIdentityTests) ... ok
+test_actual_file_allocation_and_hard_links_are_not_counted_twice (tests.test_native_metrics.NativeMetricsTests) ... ok
+test_actual_language_neutral_pdh_paging_counters_warm_up_and_close (tests.test_native_metrics.NativeMetricsTests) ... ok
+test_actual_sparse_file_allocation_is_smaller_than_logical_length_and_disappearing_root_is_partial (tests.test_native_metrics.NativeMetricsTests) ... ok
+test_actual_cmake_external_arm_object_build_does_not_create_firmware_outputs (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_actual_deep_host_cmake_keeps_real_files_and_arm_build_under_short_alias (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_changed_evidence_requires_new_confirmation_and_preserves_prior_history_in_package (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_disabled_model_packet_navigation_and_ledger_are_real_and_lossless (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_failed_new_scan_preserves_previous_pointer_and_bytes (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_native_sqlite_only_scan_resume_and_full_package_retain_evidence (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_real_pinned_git_diff_uses_sqlite_baseline_and_saved_recovery (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_repeated_scan_preserves_finding_baseline_and_lock_covers_publication (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_unchanged_real_native_rescan_inherits_only_original_confirmation (tests.test_canonical_scan.CanonicalScanTests) ... ok
+test_interrupt_and_rereview_keep_history_and_original_authority (tests.test_native_review_workflow.NativeReviewWorkflowTests) ... ok
+test_parallel_review_failed_only_resume_receipts_package_and_static_bytes (tests.test_native_review_workflow.NativeReviewWorkflowTests) ... ok
+test_actual_worker_full_facts_macros_paths_and_positive_negative_probes_match_after_live_inputs_change (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_actual_worker_rejects_changed_overlay_descriptor_and_consumed_copy_without_publishing_facts (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_bad_request_cannot_mix_unsaved_source_disable_verification_or_use_unowned_logical_paths (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_external_additions_missing_files_and_uncaptured_copy_files_invalidate_full_closure (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_external_build_working_directory_must_be_captured_and_preserves_actual_worker_output (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_failed_final_closure_validation_keeps_pending_view_unusable_by_actual_worker (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_low_disk_or_external_copy_race_never_returns_an_accepted_view_and_auto_dirty_stays_blocked (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 308.819s
+
+OK

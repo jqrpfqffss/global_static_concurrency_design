@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "scope": "AST comparison of all top-level git_diff functions vs actual starting HEAD; complements actual native/golden evidence, not a substitute for G1.",
+  "base": "fc32c743554d40c3dc2f36eac0e6271ded57de24",
+  "functions": 31,
+  "unchanged_functions": [
+    "_relative_worktree_gitdir",
+    "assert_pin",
+    "build_arguments",
+    "canonical_id",
+    "changes",
+    "check_current_tree",
+    "check_isolated_tree",
+    "comment_insensitive",
+    "compare",
+    "current_context",
+    "evidence_digest",
+    "git",
+    "normalize",
+    "pin",
+    "pointer_hashes",
+    "prepare_current",
+    "presentation_view",
+    "relocate_config",
+    "relocate_paths",
+    "representative_paths",
+    "risk_comparison",
+    "row_hashes",
+    "selected_findings",
+    "settings",
+    "summarize",
+    "text",
+    "variable_change_summary",
+    "variable_graph",
+    "verify_full",
+    "write_comparison_patch"
+  ],
+  "changed_functions": [
+    "prepare_base"
+  ]
+}

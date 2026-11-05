@@ -952,6 +952,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     progress('建立基准版本完整事实：' + pinned['base_sha'])
     base_out = Path(base_workspace.results_root)
     base_report = None
+    base_state = None
     if cfg['analysis']['git_diff']['cache_enabled']:
         from .config import load_config
         if 'cmake' in baseline['analysis'] and (base_out/'scan_state.json').is_file():
@@ -964,7 +965,8 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
         try:
             validated, _ = load_config(base_root, config)
             base_workspace.bind(validated['analysis'])
-            _, base_report, _ = checked_scan(base_root, base_out, validated, config, with_facts=False)
+            _, base_report, base_state = checked_scan(base_root, base_out, validated, config,
+                                                      with_facts=False, _report_projection=True)
             progress('基准完整事实缓存通过源码、预处理闭包和引擎校验。')
         except (ValueError, OSError, KeyError, TypeError):
             pass
@@ -980,16 +982,27 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
                    _workspace=base_workspace)
         if code == 3 or not read_json(base_out/'result_validity.json').get('analysis_valid'):
             raise ValueError('基准版本分析失败，差异扫描未完成；详见 ' + str(base_out))
-        base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
+        if is_canonical(base_out):
+            from .config import load_config
+            validated, _ = load_config(base_root, config)
+            base_workspace.bind(validated['analysis'])
+            _, base_report, base_state = checked_scan(base_root, base_out, validated, config,
+                                                      with_facts=False, _report_projection=True)
+        else:
+            base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
     check_isolated_tree(base_root, pinned['base_sha'], pinned.get('base_build_path'))
     prefix = pinned['project_subdir'].rstrip('/')
     def local(path):
         return Path(os.path.relpath(path, prefix)).as_posix() if prefix and prefix != '.' and path else path
     renames = {local(f['old_path']): local(f['new_path']) for f in pinned['files'] if f['status'].startswith('R')}
     sha = file_digest(base_out/'facts.json')
+    # A projection is not a substitute report. checked_scan verified the full
+    # ordered Merkle root before returning this original report digest.
+    report_digest = (base_state['report_digest'] if is_canonical(base_out) else
+                     saved_report_digest(clean_report(base_report), encoding='ECRA_MERKLE_V1'))
     key = digest(dict(schema=SUMMARY_SCHEMA, engine=engine_digest(), facts=sha,
-                      report=saved_report_digest(clean_report(base_report), encoding='ECRA_MERKLE_V1'), renames=renames))
-    summary_file = out/'git_diff/summary-cache'/(key + '.summary.json')
+                      report=report_digest, renames=renames))
+    summary_file = no_links(Path(workspace.git_diff_root)/'summary-cache'/(key + '.summary.json'))
     manifest_file = summary_file.with_suffix('.manifest.json')
     reused, corrupt = False, False
     if cfg['analysis']['git_diff']['cache_enabled']:
@@ -1006,16 +1019,39 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
         except (ValueError, KeyError, TypeError, OSError):
             corrupt = True
     if not reused:
+        if is_canonical(base_out):
+            # Cold reconstruction retains the original complete algorithm.
+            # Only validated cache hits avoid these large object graphs yet.
+            base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
         base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
         units = base_facts.get('translation_units', [])
         if not units or any(u.get('parse_status') != 'PARSED' for u in units):
             raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
         summary = summarize(base_facts, base_report, renames)
         write_json(summary_file, summary, indent=None)
-        write_json(manifest_file, dict(schema=SUMMARY_SCHEMA, key=key, complete_tus=True, sha256=file_digest(summary_file)))
+        manifest = dict(schema=SUMMARY_SCHEMA, key=key, complete_tus=True, sha256=file_digest(summary_file))
+        write_json(manifest_file, manifest)
         del base_facts, summary
+    summary_sha256 = manifest['sha256']
+    archived = no_links(out/'git_diff/summary-cache'/summary_file.name)
+    if archived != summary_file:
+        # Pins belong to immutable scan archives, never to a mutable cache.
+        # Independent streaming copies keep later cache corruption/rebuilds
+        # from changing already published evidence.
+        import shutil
+        from .common import replace_file
+        archived.parent.mkdir(parents=True, exist_ok=True)
+        temporary = archived.with_suffix(archived.suffix+'.pending')
+        shutil.copyfile(summary_file, temporary)
+        if file_digest(temporary) != summary_sha256:
+            raise ValueError('基准摘要归档复制校验失败；禁止发布')
+        replace_file(temporary, archived)
+        write_json(archived.with_suffix('.manifest.json'), manifest)
+        summary_file = archived
+    if file_digest(summary_file) != summary_sha256:
+        raise ValueError('基准摘要验证后已变化；禁止发布')
     pinned['base_summary_path'] = str(summary_file)
-    pinned['base_summary_sha256'] = file_digest(summary_file)
+    pinned['base_summary_sha256'] = summary_sha256
     if cache_stats is not None:
         cache_stats.update(hit=reused, corrupt=corrupt)
     pinned['base_source_root'] = str(base_root)

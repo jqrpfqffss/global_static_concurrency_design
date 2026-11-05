@@ -1,0 +1,14 @@
+{
+  "summary_ok": true,
+  "tests": 26,
+  "passed_tests": 26,
+  "seconds": 308.819,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "scope": "26 additional targeted tests: legacy summary repair/pin/source gates, observer identity/PDH, actual canonical publication/export/recovery, native review failed-only, working compiler view. Not a full suite or large native acceptance.",
+  "log_sha256": "8ad8ce385f8d2a7e95a7973b4a899a775d9f6916bc61f30283fc602fc9031510"
+}

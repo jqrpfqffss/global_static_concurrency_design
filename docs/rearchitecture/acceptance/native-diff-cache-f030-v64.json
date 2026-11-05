@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v64",
+  "manifest_sha256": "e85d94587b4bf6fbcd7826d1f05b2cf4eaea600fae460b3c63594c05ae9b15a9",
+  "scope": "Actual approved original F030 native after native Diff baseline cache change, complete ordered facts/report equality vs v48, original files unchanged. Not large/G2/physical32GB.",
+  "code": 2,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+        "after": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-diff-cache-f030-v64-v1\\data\\scans\\native\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "original_differences": [],
+  "source_files": 43,
+  "scan_db_sha256": "14f6b8a7b15f4e292f0ce3c7f8e18c76fd6759e8c94059adc4a7ed2b528ab054",
+  "seconds": 38.01600000000326
+}

@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "status": "RUNNING_NO_FINAL_RECEIPT",
+  "expected_tests_from_actual_discovery": 1521,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v64",
+  "manifest_sha256": "e85d94587b4bf6fbcd7826d1f05b2cf4eaea600fae460b3c63594c05ae9b15a9",
+  "frozen_files": 3835,
+  "working_tree_overlay": true,
+  "parent_commit": "fc32c743554d40c3dc2f36eac0e6271ded57de24",
+  "scope": "Original application and complete test snapshot. New standalone UI validator is separately exercised, not part of this source snapshot. Final results are required; discovery is not tests passed."
+}

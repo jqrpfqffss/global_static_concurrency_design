@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "scope": "Real Chrome via installed cached Playwright CLI0.1.23; two independent native GUI scan starts, open result and shared evidence at1366x768. Profile pre-created through real API; no four-step wizard/UAT/physicalDPI/newPortable/G2 claim.",
+  "engine_manifest_sha256": "e85d94587b4bf6fbcd7826d1f05b2cf4eaea600fae460b3c63594c05ae9b15a9",
+  "tests": [
+    "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+    "SECOND_RUN_VALIDATED_SUMMARY_HIT_DISTINCT_ARCHIVES",
+    "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+    "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+    "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+  ],
+  "tasks": [
+    {
+      "id": "ff4833b6e44d41f69d406e2372ae126d",
+      "state": "COMPLETE",
+      "started": "2026-11-05T01:40:04.594357+00:00",
+      "finished": "2026-11-05T01:40:58.666084+00:00"
+    },
+    {
+      "id": "61616551447245aa9d6dce0284ee078e",
+      "state": "COMPLETE",
+      "started": "2026-11-05T01:41:28.929670+00:00",
+      "finished": "2026-11-05T01:42:03.571068+00:00"
+    }
+  ],
+  "cache": [
+    {
+      "hit": false,
+      "corrupt": false
+    },
+    {
+      "hit": true,
+      "corrupt": false
+    }
+  ],
+  "analysis_status": [
+    "MODELED_SCOPE_COMPLETE",
+    "MODELED_SCOPE_COMPLETE"
+  ],
+  "selected": [
+    [
+      "c:@shared"
+    ],
+    [
+      "c:@shared"
+    ]
+  ],
+  "source_files": 33,
+  "source_differences": [],
+  "engine_files": 3835,
+  "engine_differences": [],
+  "package_sha256": "7877b6fcb9f5ebcf6d86da3015daf03f950b74c03cb43c8458b014f4ee162557",
+  "package_bytes": 177670,
+  "imported_scan_id": "61616551447245aa9d6dce0284ee078e",
+  "summary_sha256": "59a8af7fd2c59e6c42e94f4916c0ecc276b32330a1179b66c80480bcaba052f3",
+  "screenshots": {
+    "01-first-native-diff-running.png": "c481dfe6783e7aa7986e7a1205c6b80bbbea5c200736947c2a3886b46bd2efc7",
+    "02-first-diff-published.png": "58fadb0d4b77ee4e35a7c81efceb8c00a6fd524b48b52a85cfcd87a1725bd29e",
+    "03-second-diff-published.png": "24c26d52c88d16e826173d3cdb099dc2c351db9417085064c8a135f3f8bdf40d",
+    "04-second-diff-evidence.png": "15e0160505d5b9c9fdb31591456fc6d6f11ed0967b17058723a440095d780712"
+  },
+  "all_gates_passed": false,
+  "recorded_network_requests": 339,
+  "recorded_external_requests": [],
+  "browser_console_errors": 0,
+  "browser_console_warnings": 0
+}

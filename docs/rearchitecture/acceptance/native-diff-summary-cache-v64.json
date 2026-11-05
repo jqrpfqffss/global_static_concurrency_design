@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "tests": 4,
+  "seconds": 104.652,
+  "scope": "Real independent canonical scan IDs, old complete summary/key equality, cache-hit forbids full baseline loads, cache corruption repair without modifying archived pins, dirty baseline/PARTIAL/tamper rejection. Small fixtures only, not G2 or large memory.",
+  "log": "native-diff-summary-cache-v64.log",
+  "log_sha256": "210b4cbf86325b42c45f4a3eac41049b3d8f2821db478f88b51065b4c049be22",
+  "source_sha256": {
+    "ecra\\git_diff.py": "28a5fdb9e18a46aecdee5d0b922b1bf51199601e7d6cc1ace7499ebaa2d6dc5a",
+    "tests\\test_native_diff_summary_cache.py": "5eb46e15249f91a61bc4c42f11772659c571a612866a2c7bdcc4dbc0c61b50c1"
+  }
+}
