@@ -1,0 +1,127 @@
+{
+  "complete": true,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+  "mode": "canonical-published",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v62",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v62-config\\semantics.yaml",
+  "config_sha256": "1c8fb596abe2729805c202ffca1d74e221866ed3b1d8c060b1680e46e1464072",
+  "data_root": "H:\\ECRA-NATIVE-C62-SEED0",
+  "safety_job_commit_limit_bytes": 17179869184,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+  "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+  "paging_samples_valid": 24001,
+  "canonical_scope": "Public run_canonical including final publication",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "recovery": {
+    "previous_attempt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v62",
+    "previous_execution_sha256": "c6488c105a7ddd76da2208073868dcaa00c84765cf9a9004c86f3eee615b81d9",
+    "previous_descriptor_sha256": "52e5c6f5aa2292b90359041fbdad33067ba600d3bbd3285a62686564ad0d16a3",
+    "previous_output": "H:\\ECRA-NATIVE-C62-SEED0\\scans\\native-golden",
+    "worker_proven_exited": 19380,
+    "scope": "Same-root formal cache revalidated by original preprocessing/content/engine/environment gates; restart global analysis, not arbitrary solver continuation; not cold extraction timing"
+  },
+  "cold_extraction": false,
+  "started": "2026-11-05T01:28:47.966679+00:00",
+  "peaks": {
+    "working_set_bytes": 10624204800,
+    "private_bytes": 10686406656,
+    "peak_job_commit_bytes": 10687455232,
+    "sampled_output_logical_bytes": 30183908376,
+    "sampled_output_allocated_bytes": 19700047008
+  },
+  "samples": 24001,
+  "cache_reuse": null,
+  "diagnostic_fault": null,
+  "classification_diagnostics": false,
+  "observer_script_sha256": "1b162949bcc74340ad009fd370f259f351cbb7297a053025afb8a74107979a66",
+  "worker_temporary_root": "H:\\ECRA-NATIVE-C62-SEED0\\work\\native-observer\\native-recovered-v63\\temporary",
+  "output_volume_free_at_start": 660354981888,
+  "pid": 19616,
+  "seconds": 13750.54700000002,
+  "last": {
+    "seconds": 13750.032000000007,
+    "available": true,
+    "working_set_bytes": 3985129472,
+    "private_bytes": 3993911296,
+    "peak_job_commit_bytes": 10687455232,
+    "limit_bytes": 17179869184,
+    "enforced_job_commit_limit_bytes": 17179869184,
+    "job_limit_flags": 8704,
+    "processes": 2,
+    "sampled_processes": 2,
+    "write_bytes": 0,
+    "system_commit_bytes": 24309469184,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 59076931584,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 49404403712,
+    "system_commit_headroom_bytes": 61515984896,
+    "host_paging": {
+      "available": true,
+      "values": {
+        "pages_input_per_second": 17.81241038131027,
+        "pages_output_per_second": 0.0
+      },
+      "errors": {},
+      "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+    },
+    "disk_free_bytes": 645823459328,
+    "whole_volume_used_change_bytes": 14531522560,
+    "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+    "main_process_memory": {
+      "rss": 3974930432,
+      "vms": 3987464192,
+      "num_page_faults": 41344303,
+      "peak_wset": 10614968320,
+      "wset": 3974930432,
+      "peak_paged_pool": 350080,
+      "paged_pool": 327608,
+      "peak_nonpaged_pool": 927104,
+      "nonpaged_pool": 550912,
+      "pagefile": 3987464192,
+      "peak_pagefile": 10681008128,
+      "private": 3987464192
+    },
+    "output_disk": {
+      "files": 9918,
+      "logical_bytes": 26811163738,
+      "allocated_bytes": 10131337360,
+      "unique_files": 9918,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 1.0160000000032596
+    },
+    "output_disk_observed_seconds": 13740.359999999986
+  },
+  "exit_code": 2,
+  "final_output_disk": {
+    "files": 9920,
+    "logical_bytes": 26811164619,
+    "allocated_bytes": 10131341608,
+    "unique_files": 9920,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 1.0160000000032596
+  },
+  "output": "H:\\ECRA-NATIVE-C62-SEED0\\scans\\native-recovered-v63",
+  "validity": {
+    "analysis_valid": true,
+    "state": "STATIC_SCAN_SAVED",
+    "snapshot_status": "VERIFIED",
+    "fingerprint": "93a7d6fe2483c4df62f952e4d98f43f49d6fea2c629befd5e235643098e46533"
+  },
+  "publication": {
+    "manifest_sha256": "257164583dc91c8d62af4bc098e5317df7a58c9f8a1631a84e46b5c3754fbcbe",
+    "format": "ECRA_LOCAL_SCAN",
+    "state": "STATIC_VALIDATED",
+    "scan_id": "native-recovered-v63"
+  },
+  "tu_cache": {
+    "hits": 273,
+    "extracted": 115,
+    "corrupt": 0,
+    "total": 388
+  }
+}

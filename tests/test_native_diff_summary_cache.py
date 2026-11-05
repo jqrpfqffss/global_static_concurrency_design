@@ -57,7 +57,13 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         return out
 
     def test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load(self):
-        first=self.scan('first');report=read_json(first/'reports/global_static_concurrency.json')
+        load=EvidenceProvider.load
+        def cold_guard(provider,name,*args,**kwargs):
+            if provider.path.parent.name.startswith('base-'+self.base):
+                raise AssertionError('A native cold summary must not restore the complete baseline '+name)
+            return load(provider,name,*args,**kwargs)
+        with patch.object(EvidenceProvider,'load',new=cold_guard):first=self.scan('first')
+        report=read_json(first/'reports/global_static_concurrency.json')
         pin=report['git_diff']['pin'];archived=Path(pin['base_summary_path']);original=archived.read_bytes()
         base_out=Path(pin['base_facts_path'])  # Immutable archive of exactly the baseline database.
         facts=EvidenceProvider(base_out).load('facts');full_report=EvidenceProvider(base_out).load('report')
@@ -84,7 +90,8 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         self.assertFalse(os.path.samefile(cache,second_archive))
         # Rebuilding a corrupt shared cache cannot alter either archived pin.
         cache.write_bytes(b'corrupt cache')
-        with patch('ecra.git_diff.summarize',wraps=summarize) as build:third=self.scan('repaired')
+        with patch.object(EvidenceProvider,'load',new=cold_guard),patch('ecra.git_diff.summarize',wraps=summarize) as build:
+            third=self.scan('repaired')
         self.assertEqual(build.call_count,2)
         repaired=read_json(third/'reports/global_static_concurrency.json')
         self.assertEqual(repaired['git_diff']['baseline_summary_cache'],dict(hit=False,corrupt=True))

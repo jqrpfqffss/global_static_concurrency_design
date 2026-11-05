@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v66",
+  "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v69",
+  "top_level_functions": 31,
+  "changed": [
+    "prepare_base"
+  ],
+  "unchanged": [
+    "_relative_worktree_gitdir",
+    "assert_pin",
+    "build_arguments",
+    "canonical_id",
+    "changes",
+    "check_current_tree",
+    "check_isolated_tree",
+    "comment_insensitive",
+    "compare",
+    "current_context",
+    "evidence_digest",
+    "git",
+    "normalize",
+    "pin",
+    "pointer_hashes",
+    "prepare_current",
+    "presentation_view",
+    "relocate_config",
+    "relocate_paths",
+    "representative_paths",
+    "risk_comparison",
+    "row_hashes",
+    "selected_findings",
+    "settings",
+    "summarize",
+    "text",
+    "variable_change_summary",
+    "variable_graph",
+    "verify_full",
+    "write_comparison_patch"
+  ],
+  "scope": "Original summarize, canonical_id, normalize, row_hashes, evidence_digest, pointer_hashes, compare and risk/impact methods have identical AST. New reader has separate full-field tests. AST equality alone is not G1 or memory acceptance."
+}

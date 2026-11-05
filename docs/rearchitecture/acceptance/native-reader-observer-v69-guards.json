@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "normal_real_worker": true,
+  "injected_postflight_mismatch_raises": true,
+  "mismatch_receipt_failed": true,
+  "actual_source_unchanged": true,
+  "source_sha256": "9a550f23f34930f0a26636795b2bf8d611c42e0c04138827047da1fbbbfc0482",
+  "observer_sha256": "298c37899f09078d4f180d308edbd5f42a6a3455e377c3ea3606d3116c73fa1d",
+  "scope": "Real selected worker on actual two-TU UI result. Only parent postflight hash return is deliberately fault-injected; original authority bytes never change. This guard proof is separate from INAV performance and full regression."
+}

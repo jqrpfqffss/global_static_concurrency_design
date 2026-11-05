@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "scope": "Real Chrome/Playwright CLI, two native Diff runs and independent archives.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v69",
+  "tests": [
+    "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+    "SECOND_RUN_VALIDATED_SUMMARY_HIT_DISTINCT_ARCHIVES",
+    "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+    "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+    "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+  ],
+  "all_gates_passed": false,
+  "tasks": [
+    {
+      "id": "7975a39dfade43f3b0d668508ff3d49c",
+      "state": "COMPLETE",
+      "started": "2026-11-05T16:16:44.555737+00:00",
+      "finished": "2026-11-05T16:17:42.692679+00:00"
+    },
+    {
+      "id": "2930bd155b754dbd9a0abed9a790b37a",
+      "state": "COMPLETE",
+      "started": "2026-11-05T16:17:48.835868+00:00",
+      "finished": "2026-11-05T16:18:25.010086+00:00"
+    }
+  ],
+  "source_files": 33,
+  "source_differences": [],
+  "engine_files": 114,
+  "engine_differences": [],
+  "cache": [
+    {
+      "hit": false,
+      "corrupt": false
+    },
+    {
+      "hit": true,
+      "corrupt": false
+    }
+  ],
+  "analysis_status": [
+    "MODELED_SCOPE_COMPLETE",
+    "MODELED_SCOPE_COMPLETE"
+  ],
+  "summary_sha256": "59a8af7fd2c59e6c42e94f4916c0ecc276b32330a1179b66c80480bcaba052f3",
+  "package_sha256": "8017c45f7900af601b7a3b07b6913bcd27a25c198c031eead0be685b37e6c3e0",
+  "package_bytes": 176070,
+  "recorded_network_requests": 258,
+  "recorded_external_requests": [],
+  "browser_console_errors": 0,
+  "browser_console_warnings": 0,
+  "screenshots": {
+    "01-published.png": "7c4ba9e25dc138910fc283302f2bc7dcddb9b6f85e4708e321d0ab96f19a065f",
+    "02-published.png": "b4471de7b146323d0c751419753f91a0605e5ef96c8fcd725f54e1c66c2f76dc",
+    "03-shared-evidence.png": "2a448777d857978654bd192dfcd9d9fe2426146c5be381ba2bab8e9bcc044ee2"
+  },
+  "validator_sha256": "07cba516b9f6b86a54dc3aa50e9025b408f5aa8ef5f29cf56edf4141c3c5e63e",
+  "seconds": 163.54699999996228
+}

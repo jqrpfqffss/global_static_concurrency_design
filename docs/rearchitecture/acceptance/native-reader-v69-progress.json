@@ -1,0 +1,38 @@
+{
+  "recorded_utc": "2026-11-05T16:28:58.354151+00:00",
+  "complete_refactor": false,
+  "all_gates_passed": false,
+  "scope": "Observation snapshot only. Final immutable receipts determine PASS; no RUNNING result is acceptance.",
+  "frozen_engine_manifest_sha256": "c78f0337f61f7220abe4b2de3339b59898a27890031e28057cc45504569fc6f7",
+  "focused_16": "PASS",
+  "f030_full_facts_report": "PASS_ZERO_DIFFERENCE",
+  "chrome_5_groups": "PASS",
+  "cold_inav_v68": {
+    "complete": false,
+    "seconds": 2244.2969999999623,
+    "peaks": {
+      "working_set_bytes": 2068963328,
+      "private_bytes": 1945022464,
+      "peak_job_commit_bytes": 1945022464,
+      "sampled_output_logical_bytes": 7074505628,
+      "sampled_output_allocated_bytes": 1848839208
+    },
+    "pid": 26420,
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v68\\execution.json"
+  },
+  "cold_diff_selected_v69": {
+    "passed": false,
+    "status": "RUNNING",
+    "seconds": 1114.2339999999967,
+    "peaks": {
+      "working_set_bytes": 842366976,
+      "private_bytes": 832708608,
+      "peak_job_commit_bytes": 836190208,
+      "sampled_output_logical_bytes": 1031768,
+      "sampled_output_allocated_bytes": 1052720
+    },
+    "pid": 7464,
+    "receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-cold-diff-inav-v69-selected\\execution.json"
+  },
+  "complete_regression_v69": "RUNNING"
+}

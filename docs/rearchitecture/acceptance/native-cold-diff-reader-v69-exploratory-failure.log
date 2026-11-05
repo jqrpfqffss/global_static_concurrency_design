@@ -1,0 +1,71 @@
+test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_failed_regeneration_never_replaces_locator_or_old_baseline (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_mutation_between_validation_and_archive_copy_blocks_new_publication (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_partial_baseline_never_publishes_complete_summary (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... FAIL
+test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_valid_summary_cannot_bypass_isolated_source_pollution (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+
+======================================================================
+FAIL: test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\global_static_concurrency_design\tests\test_native_diff_summary_cache.py", line 158, in test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version
+    second=self.scan('cmake-changed-build')
+  File "H:\global_static_concurrency_design\tests\test_native_diff_summary_cache.py", line 52, in scan
+    if success:self.assertIn(code,(0,1,2),stream.getvalue())
+AssertionError: 3 not found in (0, 1, 2) : ECRA 并发风险扫描：firmware
+固件路径：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\firmware
+扫描结果目录：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\scans\cmake-changed-build
+Git 差异扫描；基准：6365a420ec47f65541d89555e27cf942b993d489；当前：cbf9d8a4198868c2e6cfe0571b976b55adcd619e；未提交业务修改：未纳入本轮扫描，仅分析固定提交
+阶段开始：Git 基准版本完整分析
+建立基准版本完整事实：6365a420ec47f65541d89555e27cf942b993d489
+刷新基准 CMake 构建输入后验证完整事实缓存。
+保留非 ECRA 专用构建目录: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\trees\base-6365a420ec47f655\build\ecra；自动使用独立构建目录: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\builds\15d7849359a48643a7ddceba
+GNU Make 路径兼容别名（同一目录）: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\trees\base-6365a420ec47f655 -> C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\trees\base-6365a420ec47f655; C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\builds\15d7849359a48643a7ddceba -> C:\Users\ADMINI~1\AppData\Local\Temp\ECRA-P~1\9cf2f9fdb23651b982df4dff2e1eee29\builds\15d7849359a48643a7ddceba
+CMake 配置并刷新编译数据库…
+CMake 增量构建固件…
+基准完整事实需重新生成，旧权威库保留：分析配置已变化，不能复用旧调用链；请先执行 py -3.10 run_ecra.py --no-review 刷新静态扫描，再执行复核命令
+ECRA 并发风险扫描：firmware
+固件路径：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\firmware
+扫描结果目录：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\results\git_diff\artifacts\base-6365a420ec47f65541d89555e27cf942b993d489-3ee0e246a4454b7887d6a84a187a4f86
+阶段开始：编译数据库准备
+检查配置、libclang 和真实编译数据库…
+本次命令使用 --no-review，已跳过 OpenCode；候选项只会保存为 PENDING。
+保留非 ECRA 专用构建目录: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\trees\base-6365a420ec47f655\build\ecra；自动使用独立构建目录: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\builds\15d7849359a48643a7ddceba
+GNU Make 路径兼容别名（同一目录）: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\trees\base-6365a420ec47f655 -> C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\trees\base-6365a420ec47f655; C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\builds\15d7849359a48643a7ddceba -> C:\Users\ADMINI~1\AppData\Local\Temp\ECRA-P~1\9cf2f9fdb23651b982df4dff2e1eee29\builds\15d7849359a48643a7ddceba
+CMake 配置并刷新编译数据库…
+CMake 增量构建固件…
+阶段开始：扫描输入快照建立
+依赖快照 1/2: main.c
+依赖快照 2/2: other.c
+阶段开始：Clang 翻译单元提取
+Clang 1/2: main.c
+Clang 2/2: other.c
+阶段开始：输入一致性验证
+阶段开始：跨翻译单元事实归并
+阶段开始：输入一致性验证
+阶段开始：指针、函数指针及调用图分析
+阶段开始：跨翻译单元指针与函数指针求解
+阶段开始：执行上下文指针与调用图分析
+阶段开始：结构体字段、数组与重叠存储分析
+阶段开始：调用图上下文恢复
+阶段开始：NVIC 优先级与抢占关系分析
+阶段开始：可达性与不完整证据关联
+阶段开始：并发风险分类与保护证据
+阶段开始：发布前输入一致性验证
+未启用自动复核及证据包；完成最终输入校验后单次发布完整报告。
+已盘点 3 个变量，生成 1 个候选/盲区复核项。
+阶段开始：可选 OpenCode 复核
+阶段开始：报告生成与存储（单次发布）
+阶段开始：报告发布后输入一致性验证
+阶段开始：最终完整性验收
+完成：INCOMPLETE；完整证据 C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 z_vcrzm4\data\projects\firmware_4d96413871cb31a82f9e\results\git_diff\artifacts\base-6365a420ec47f65541d89555e27cf942b993d489-3ee0e246a4454b7887d6a84a187a4f86\scan.db；请使用 ECRA Studio 查看。
+失败：ValueError: 静态分析实现已变化，不能复用旧调用链；请先执行 py -3.10 run_ecra.py --no-review 刷新静态扫描，再执行复核命令
+
+
+----------------------------------------------------------------------
+Ran 8 tests in 294.196s
+
+FAILED (failures=1)

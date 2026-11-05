@@ -1,0 +1,12 @@
+{
+  "passed": false,
+  "status": "FAIL_OR_NOT_STARTED",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v66",
+  "data_root": "H:\\ECRA-NATIVE-C66-SEED0",
+  "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v66",
+  "scope": "Approved unchanged INAV: current public native, strict G1, report and Packet.\n\nIndependent data only. No inherited cache/old-state hash replacement, no models.\nActual completion receipts, not the queue state, determine acceptance.\n",
+  "all_gates_passed": false,
+  "physical32GB": "NOT_VERIFIED",
+  "other_G2": "USER_DEFERRED",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-current-inav-published-v66.py\", line 37, in <module>\n    if time.monotonic()>deadline:raise TimeoutError('Prior native proof has no final receipt')\nTimeoutError: Prior native proof has no final receipt\n"
+}

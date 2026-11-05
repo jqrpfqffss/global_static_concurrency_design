@@ -1,3 +1,5 @@
+> 2026-11-06最新源码阶段见[111号](111-native-cold-diff-reader-stage.md)：冷基准按原生关系/完整字段调用原摘要；冻结16专项、F030完整0差、Chrome5组通过。v63 INAV恢复的388TU/完整G1/报告刷新/最大Packet最终通过，恢复与冷计时分开；最新冷扫描、大库冷摘要对照及本版完整回归仍在运行。候选包仍为109号v67，完整重构及G1–G8未完成。
+
 > 最新修复候选见[109号v67](109-portable-v67-baseline-fix-acceptance.md)：包内8专项、实际ECRA.cmd启动、显式数据库及CMake宏变化真实Chrome流程通过，32,032分发文件测试后SHA不变；当前核心源码完整1525项为1523PASS/2联网SKIP。大型原生/冷Diff/物理机等仍待验，完整重构未完成。
 
 > 当前实际验证的功能阶段候选为[v60](101-portable-v60-functional-acceptance.md)：双击 `H:/ECRAStudio-build-20261105-studio-v60/ECRA-Portable/ECRA.cmd`，完整ZIP同级。包含确认继承、整根搬迁、显式数据库未提交Diff及复核停止重试。143应用文件匹配源码，32,031分发文件操作后SHA不变。完整发布/物理离线机门禁仍未通过；详细范围和运行环境/工具链限制见101号，下文旧包信息保留作历史。

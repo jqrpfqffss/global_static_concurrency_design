@@ -1054,18 +1054,19 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             corrupt = True
     if not reused:
         if is_canonical(base_out):
-            # Cold reconstruction retains the original complete algorithm.
-            # Only validated cache hits avoid these large object graphs yet.
-            base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
-        base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
-        units = base_facts.get('translation_units', [])
-        if not units or any(u.get('parse_status') != 'PARSED' for u in units):
-            raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
-        summary = summarize(base_facts, base_report, renames)
+            from .native_diff_summary import summarize_native
+            summary = summarize_native(base_out/'scan.db', renames)
+        else:
+            base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
+            units = base_facts.get('translation_units', [])
+            if not units or any(u.get('parse_status') != 'PARSED' for u in units):
+                raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
+            summary = summarize(base_facts, base_report, renames)
+            del base_facts
         write_json(summary_file, summary, indent=None)
         manifest = dict(schema=SUMMARY_SCHEMA, key=key, complete_tus=True, sha256=file_digest(summary_file))
         write_json(manifest_file, manifest)
-        del base_facts, summary
+        del summary
     summary_sha256 = manifest['sha256']
     archived = no_links(out/'git_diff/summary-cache'/summary_file.name)
     if archived != summary_file:
