@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "scope": "Actual embedded Chrome CMake Diff: macro changes4-to8, immutable old baseline and independent complete package. Controlled two-TU fixture, not G2.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n",
+  "engine": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable",
+  "tests": [
+    "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+    "REAL_CMAKE_CHANGED_MACRO4_TO8_DISTINCT_BASELINES_AND_UNCACHED_FULL_VERIFICATION",
+    "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+    "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+    "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+  ],
+  "all_gates_passed": false,
+  "tasks": [
+    {
+      "id": "28a1177fe4304cc39bfea02b08dd75ea",
+      "state": "COMPLETE",
+      "started": "2026-11-05T17:11:12.505182+00:00",
+      "finished": "2026-11-05T17:12:03.324608+00:00"
+    },
+    {
+      "id": "30483cc427b7467eb22bacf03389c936",
+      "state": "COMPLETE",
+      "started": "2026-11-05T17:12:13.629524+00:00",
+      "finished": "2026-11-05T17:13:01.741841+00:00"
+    }
+  ],
+  "source_files": 35,
+  "source_differences": [],
+  "engine_files": 114,
+  "engine_differences": [],
+  "cache": [
+    {
+      "hit": false,
+      "corrupt": false
+    },
+    {
+      "hit": false,
+      "corrupt": false
+    }
+  ],
+  "analysis_status": [
+    "MODELED_SCOPE_COMPLETE",
+    "MODELED_SCOPE_COMPLETE"
+  ],
+  "summary_sha256": "798f1b7b581c6df8f312c1b85fc9281d9cabf0b9777b932392ede39a8a595065",
+  "package_sha256": "c1c67130b4418a0e7f68d3bd0bd563e482591686602f71de39140dc638218f16",
+  "package_bytes": 233094,
+  "recorded_network_requests": 280,
+  "recorded_external_requests": [],
+  "browser_console_errors": 0,
+  "browser_console_warnings": 0,
+  "screenshots": {
+    "01-published.png": "13ddffd526ca984bfb7bed8b29643547f44b70babfab32dab5abc9f05bce7e23",
+    "02-published.png": "ca4967c8a3406d08c31979ea23cf283bd1708409123e80b6a63f7ef7172c8c3d",
+    "03-shared-evidence.png": "e2e13cb283c5de52ee348c1b3f3bd0cd9ea9b6078944a987bf36232f17ac8a5e"
+  },
+  "validator_sha256": "12eef35c1fe6739d97ae5ea7c412cda3bcb2b2fd6a97a1394667d21ab4cdf3a1",
+  "seconds": 152.4220000000205
+}

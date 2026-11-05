@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "tests": 17,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "python": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\runtime\\python.exe",
+  "python_version": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "bundle": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable",
+  "test_sources": [
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v71\\tests\\test_native_diff_reader.py",
+      "sha256": "09ac831467c3d559984afc779dce83394563f802a7bd92cbd09194c7c7d5d3f7"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v71\\tests\\test_native_diff_summary_cache.py",
+      "sha256": "f019015b99406e9912b456f347ef1b98d55ca6de019885ab80e4b0f0de72fdb9"
+    }
+  ],
+  "scope": "Actual embedded Python3.10.9 and bundle ECRA modules; strict native dictionary keys and complete original-summary oracle plus real cold native/cache/CMake macro4-to8/full-verification, immutable histories and recovery gates. Controlled fixtures, not G2/physical offline/full embedded suite/all gates."
+}

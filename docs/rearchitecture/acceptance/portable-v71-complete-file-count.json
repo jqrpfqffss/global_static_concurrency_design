@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "manifest_payload_members": 32033,
+  "manifest_files": 1,
+  "actual_total_files": 32034,
+  "outside_manifest": [],
+  "scope": "Every actual file belongs to the separately SHA-bound FILES manifest or is FILES itself. Full payload hashes and FILES SHA checked after actual tests in final seal.",
+  "manifest_sha256": "2f67f2ca9d9806bd5433cae32c036ec9ee3e5b35f87e5df4e33aee11d86ecfb0"
+}

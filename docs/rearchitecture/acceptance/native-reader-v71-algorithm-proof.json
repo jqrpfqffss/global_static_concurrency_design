@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v69\\ecra\\git_diff.py",
+  "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v71\\ecra\\git_diff.py",
+  "unchanged_top_level_functions": 31,
+  "changed": [],
+  "scope": "All31 Git Diff functions identical between measured first reader and strict-key correction. New _Fields guard restores original dict access rejection. Does not relabel v69 large measurements as v71 or establish whole Diff G1/G3."
+}

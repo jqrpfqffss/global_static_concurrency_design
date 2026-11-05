@@ -1,0 +1,119 @@
+{
+  "passed": true,
+  "status": "PASS_TYPED_COLD_READER_CANDIDATE_SCOPED",
+  "scope": "Clean feceb27 application: directory and Chinese ZIP original27 checks each, embedded17 original-summary/native/CMake/recovery/typed-key tests, actual cmd4 with Windows-only PATH, approved F030 native, real Chrome database5 and CMake macro4-to8/full-verification/package5. Human inheritance/whole-root transfer flows inherited unchanged from prior v60/v67 evidence, not rerun here. Current full suite queued; not full embedded suite, whole Diff, physical machine or all gates.",
+  "source_code_commit": "feceb2736dcd410feeef19e58f0fb74f86e76dd6",
+  "frozen_manifest_sha256": "a662801c4592a6fca1f997f7411b9cae6a2b7ff2456ac4022a89543ef28b4d04",
+  "entry": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\ECRA.cmd",
+  "zip": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable.zip",
+  "zip_bytes": 771065448,
+  "zip_sha256": "5093b8dbfbf76d494384fd15d44af8ad10468933a3cceda2180072e18b0fd768",
+  "application_source_files": 144,
+  "application_differences": [],
+  "deliverable_files": 32033,
+  "full_file_manifest_sha256": "2f67f2ca9d9806bd5433cae32c036ec9ee3e5b35f87e5df4e33aee11d86ecfb0",
+  "all_deliverable_files_unchanged_after_actual_tests": true,
+  "receipts": {
+    "embedded17": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-native-reader-v71.json",
+      "sha256": "279172d69cf7a8ce7f25452cff197aaa2ae415feadb2f59f8a44edb281179a5c",
+      "tests": 17,
+      "scope": "Actual embedded Python3.10.9 and bundle ECRA modules; strict native dictionary keys and complete original-summary oracle plus real cold native/cache/CMake macro4-to8/full-verification, immutable histories and recovery gates. Controlled fixtures, not G2/physical offline/full embedded suite/all gates."
+    },
+    "nativeF030": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\embedded-native-f030-v71-v1\\acceptance.json",
+      "sha256": "93bb95e87f8f437e269103d4711b00b2ca85f06e8fe6d005f5e00f492f27a455",
+      "tests": null,
+      "scope": "Actual embedded Python original approved F030 native after cold native Diff baseline reader change; original explicit approved compiler database and explicit allow_external_toolchain in this private validation profile only. Built-in toolchain validated separately; not physically offline or whole G2."
+    },
+    "databaseUI": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-native-ui-v71\\output\\playwright\\acceptance.json",
+      "sha256": "8badcd4eced59e66f8ce0d147c729a36e350c68286583235289c049cf8ce6a2a",
+      "tests": [
+        "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+        "SECOND_RUN_VALIDATED_SUMMARY_HIT_DISTINCT_ARCHIVES",
+        "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+        "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+        "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+      ],
+      "scope": "Real Chrome/Playwright CLI, two native Diff runs and independent archives.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n"
+    },
+    "cmakeUI": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-cmake-ui-v71\\output\\playwright\\acceptance.json",
+      "sha256": "92be2102841da6b7c3f19f05439cbfa0ecbedc9baab18799f769cf2478277ed7",
+      "tests": [
+        "REAL_CHROME_TWO_NATIVE_DIFF_STARTS",
+        "REAL_CMAKE_CHANGED_MACRO4_TO8_DISTINCT_BASELINES_AND_UNCACHED_FULL_VERIFICATION",
+        "FIRST_AUTHORITY_AND_ALL_SOURCE_BYTES_SIZE_MTIME_UNCHANGED",
+        "REAL_CHROME_OPEN_RESULT_SHARED_ACCESS_EVIDENCE",
+        "COMPLETE_EXPORT_IMPORT_FACTS_REPORT_ROOTS_AND_BASE_SUMMARY_CAS_MATCH"
+      ],
+      "scope": "Actual embedded Chrome CMake Diff: macro changes4-to8, immutable old baseline and independent complete package. Controlled two-TU fixture, not G2.\n\nDeveloper acceptance only: creates its own two-TU ARM Git fixture, not G2.\nRequires installed Chrome, npx and a cached @playwright/cli; never downloads.\nThe profile is prepared through the actual API. Scan/result/evidence actions\nuse fresh accessibility snapshots and real UI clicks. No model or firmware\nrepository is accessed. Does not establish UAT, physical DPI or Portable gates.\n"
+    },
+    "launcher": {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v71-startup-evidence\\acceptance.json",
+      "sha256": "95d36a61ee22264f49516985a8bb2283bca55e344bd412a0909e53c40fdf8f20",
+      "tests": [
+        {
+          "name": "actual_cmd_uses_embedded_python_with_windows_only_path_and_private_default_data_root",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        },
+        {
+          "name": "actual_launcher_page_has_all_three_real_first_use_actions_without_external_requests",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        },
+        {
+          "name": "actual_launcher_imports_complete_builtin_native_archive_into_independent_user_data",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        },
+        {
+          "name": "launch_and_sample_leave_all_checked_program_assets_unchanged",
+          "status": "PASS",
+          "related": [
+            "U01",
+            "G8"
+          ]
+        }
+      ],
+      "scope": "Actual ECRA.cmd Studio entry with Windows-only PATH and private LOCALAPPDATA.\n\n--no-browser suppresses desktop disruption but uses the actual Studio launcher\nbranch. Real Chrome is the external test controller; the service runs embedded\nPython. Not a clean physical offline machine or literal desktop double-click.\n"
+    }
+  },
+  "assembly_receipt_sha256": "9bbd96b63d2a1e115501d287ac2c8eba377c80756b3ee9f0ec05e19561fc63d6",
+  "uncompressed": {
+    "sha256": "037338662d11c39577399cb0b1f2073b6fa76b8d7461ffa4abe8f4cfeb70cb87",
+    "commands": 27
+  },
+  "zip_extracted": {
+    "sha256": "b4d46fe0f7e7fa25cb3dd6f77a565120d4b524f905cda2644635f414704de88b",
+    "commands": 27
+  },
+  "cross_runtime_facts_equal": true,
+  "cross_runtime_strict_report": "FAIL_RETAINED_EXISTING_COMPILER_AUDIT_ARRAYS",
+  "cross_runtime_audit_sha256": "17f18f8975312941550a02b4b82c205807d495d62b76b27820f1239fcb758fdf",
+  "unexplained_report_differences": [],
+  "F030_original_compiler": "Original approved absolute compiler; private allow_external_toolchain=true, same binary SHA as bundled. Built-in GCC/CMake validated independently.",
+  "current_full_regression": {
+    "status": "NOT_VERIFIED_QUEUED"
+  },
+  "current_large_native": "Frozen66 true cold v68 running; frozen62 recovered v63 complete G1/report/Packet PASS; current reader71 queued against complete original oracle. Versions distinct.",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_PC": "NOT_VERIFIED",
+  "native_windows_DPI": "NOT_VERIFIED",
+  "real_model": "NOT_VERIFIED",
+  "engineer_UAT": "NOT_VERIFIED",
+  "other_G2": "USER_DEFERRED",
+  "all_gates_passed": false,
+  "complete_refactor": false
+}

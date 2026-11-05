@@ -1,5 +1,7 @@
 # 原生字典键类型：审查发现与修补
 
+后续冻结17项及各版本实际验收状态见[113号](113-typed-native-cold-reader-acceptance.md)。下文保留修补时的开发对照和未验范围。
+
 在944ba27完成的冷读取器中，实际小库复现了边界差异：`pointer_target_sets={"1":"1"}`、`target_set_id=1`时，原完整算法抛`KeyError(1)`，新读取器却成功。SQLite的TEXT亲和性使数字1匹配了字符串键；完整JSON类型和有序图的校验不能代替Python字典访问语义。此发现不是大型成绩，也不是模拟页面。
 
 修补仅在惰性对象`_Fields.__getitem__`处要求字符串键。对非字符串先执行`hash(key)`，保留原dict对list/dict等不可哈希键的`TypeError`，其余非字符串抛`KeyError`。正常字符串引用仍执行原有完整解码；不转换证据类型、不新增散列忽略项、不修改原摘要或影响方法。

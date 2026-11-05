@@ -1,0 +1,22 @@
+test_build_root_cfg_and_rename_use_original_canonicalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_complete_fields_duplicates_and_nested_order (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_empty_optional_relations_and_missing_required_function_identity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_inherited_access_blocks_private_isolation_despite_positional_normalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_invalid_pool_references_fail_in_both_readers (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_partial_empty_and_malformed_authorities_do_not_complete (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_encodings_match_inline_with_repeated_references (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_keys_preserve_python_types_instead_of_sqlite_text_affinity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_unread_bodies_and_report_slices_are_never_decoded (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_failed_regeneration_never_replaces_locator_or_old_baseline (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_mutation_between_validation_and_archive_copy_blocks_new_publication (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_partial_baseline_never_publishes_complete_summary (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_valid_summary_cannot_bypass_isolated_source_pollution (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 268.636s
+
+OK

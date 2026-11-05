@@ -1,0 +1,17 @@
+{
+  "status": "SUPERSEDED_BEFORE_RUNTIME",
+  "promoted": false,
+  "runtime_started": false,
+  "stopped_owned_waiter_pid": 27576,
+  "prior_queue_sha256": "9cc1764bd0534008e658d6ccc41d03af67c37407b34c3652c7138a120d4ab5cf",
+  "reason": "Review found integer pool reference incorrectly accepted through SQLite TEXT affinity. feceb27 restores original dict rejection; corrected candidate must use frozen71. Parent/candidate files and old queue retained.",
+  "original_runtime_queue": {
+    "passed": false,
+    "status": "WAITING_COMPLETE_ASSEMBLY",
+    "commands": [],
+    "all_gates_passed": false,
+    "scope": "Serial actual embedded16, F030, real Chrome database/CMake and actual Windows-only PATH cmd startup; strict cross-runtime facts/report audit separate. No full embedded suite/physical offline/UAT."
+  },
+  "assembly": "H:/ECRAStudio-build-20261106-studio-v70/portable-evidence/assembly.json",
+  "all_gates_passed": false
+}

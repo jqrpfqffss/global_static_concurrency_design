@@ -1,0 +1,802 @@
+{
+  "passed": true,
+  "status": "PASS_TOOLCHAIN_AND_SOURCE_SCOPED",
+  "scope": "Rebuild a fresh v71 candidate from validated v70 tool assets and clean frozen v71 code.\n\nNever modify the original bundle. Refresh the source-proven native Diff baseline fix,\nregenerate the entire manifest, run full original directory/ZIP checks. The\nseparate real review UI test must pass before this becomes the latest package.\n",
+  "parent_bundle": "H:\\ECRAStudio-build-20261106-studio-v70\\ECRA-Portable",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v71",
+  "tests": [
+    {
+      "name": "refresh-complete-manifest",
+      "command": [
+        "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\runtime\\python.exe",
+        "-B",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\validate_portable.py",
+        "--bundle",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable",
+        "--write-hashes"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "uncompressed-acceptance",
+      "command": [
+        "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\runtime\\python.exe",
+        "-B",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\validate_portable.py",
+        "--bundle",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable",
+        "--work",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\portable-evidence\\uncompressed"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "zip-extracted-acceptance",
+      "command": [
+        "H:\\ECRAStudio-build-20261106-studio-v71\\zip-extracted \u4e2d\u6587\\ECRA-Portable\\runtime\\python.exe",
+        "-B",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\zip-extracted \u4e2d\u6587\\ECRA-Portable\\validate_portable.py",
+        "--bundle",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\zip-extracted \u4e2d\u6587\\ECRA-Portable",
+        "--work",
+        "H:\\ECRAStudio-build-20261106-studio-v71\\portable-evidence\\zip-extracted"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "parent_uncompressed": {
+    "sha256": "e9001ee3a9a8f5699c915ed13ce12ad4b609ef84e99d1a211f4c3e11b43eab37",
+    "commands": 27
+  },
+  "parent_zip-extracted": {
+    "sha256": "63e9a5066251e66b2bd354fc5bd25bb969eb232399ea377b31427f54979645f0",
+    "commands": 27
+  },
+  "parent_files_verified": 32033,
+  "changed_program_files": [
+    {
+      "file": "ecra/native_diff_summary.py",
+      "before_sha256": "0a73a48bc0194c477c564ecd27b709a58489c85b778095463d9d2ff7d5f7f537",
+      "after_sha256": "434c986f2de082a953ce24d2ebe7a40cd8a39aa86540f445a822edd24d23036c"
+    }
+  ],
+  "application_files": 144,
+  "application_source_files": [
+    {
+      "file": "ecra/__init__.py",
+      "size": 83,
+      "sha256": "1a57828454d39f2670fce85e9c32150abdca021dc6a16e9757e7e5c58bda113f"
+    },
+    {
+      "file": "ecra/access_enrichment.py",
+      "size": 3056,
+      "sha256": "b880e0fb8fa538dde5327d0722e4ba11ce6dd49c496e233ab400865880f4ac16"
+    },
+    {
+      "file": "ecra/analysis.py",
+      "size": 98378,
+      "sha256": "b1d7cd8287c4a840888cbdb253fa36ae9ef2aca8882aaf1c722573742a4c10a4"
+    },
+    {
+      "file": "ecra/async_semantics.py",
+      "size": 1133,
+      "sha256": "2f0e87c0f0a26a61f08a8e8c050df1ef9b8dcc2541facacc96127b976adec649"
+    },
+    {
+      "file": "ecra/block_bitmap.py",
+      "size": 10061,
+      "sha256": "f17ccc6235e61a0c05c711a4293ebee83a3c558ca205ed62b950ba4cbca8091c"
+    },
+    {
+      "file": "ecra/call_graph.py",
+      "size": 7220,
+      "sha256": "bd3a48400fca195cbee2a4793020b0e8ba2914f7e46af2b3c0b99b04687c8ebd"
+    },
+    {
+      "file": "ecra/case_library.py",
+      "size": 6956,
+      "sha256": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2"
+    },
+    {
+      "file": "ecra/cfg_sharing.py",
+      "size": 1723,
+      "sha256": "26248ec3042d79134aa566f9015d13ca3db9a75854991f387e34e363c2109b15"
+    },
+    {
+      "file": "ecra/cli.py",
+      "size": 61782,
+      "sha256": "1b0be3aeac8c76cd82e742e44f2f93921e9f7ac2dfdc92decbac152408d064a5"
+    },
+    {
+      "file": "ecra/common.py",
+      "size": 4756,
+      "sha256": "180a53e5baa5f2608ae492c9b3639e4dd093232f9025dc8674d29a5a41e64788"
+    },
+    {
+      "file": "ecra/compilation.py",
+      "size": 34413,
+      "sha256": "dfaf85e2a24fb057982576caae5172798d373aba8faaf768d283f683106d6776"
+    },
+    {
+      "file": "ecra/config.py",
+      "size": 21707,
+      "sha256": "37b0005725b280a6fd797d868b3b621335290fd8f8f473e49c15155b28c4f311"
+    },
+    {
+      "file": "ecra/context_points.py",
+      "size": 19038,
+      "sha256": "34e16c786acd7a39460a243c88c5e5673f33c65ba6ce79fd38fc73b9a6c7d56c"
+    },
+    {
+      "file": "ecra/controlflow.py",
+      "size": 14526,
+      "sha256": "eadf0ccb43df25136288346d4c9983b065d40cff3ec8346a09208b9857df3874"
+    },
+    {
+      "file": "ecra/data_transfer.py",
+      "size": 23428,
+      "sha256": "56ad45d9716cb6aefd4fda3720da321a2444aaf7960bb2f7f0ab6055d48d2333"
+    },
+    {
+      "file": "ecra/decisions.py",
+      "size": 4404,
+      "sha256": "68ae48d05a378ff6e75e354b08c0b8525fac6b0f0b1ec1325d947b92795e2f6b"
+    },
+    {
+      "file": "ecra/diagnostics.py",
+      "size": 7490,
+      "sha256": "75736e8abec4580d79d4dd988e48d08ee8566904f7cc49a9ae272fca66150c5c"
+    },
+    {
+      "file": "ecra/dirty_inputs.py",
+      "size": 9072,
+      "sha256": "466d5768ee05856a0bc06f171f2580eb13ba717852f0c0cf1311f8d2cd28474f"
+    },
+    {
+      "file": "ecra/emergency_memory.py",
+      "size": 1943,
+      "sha256": "34d201f592c8ca7697beaf595102a0132d21c6004cdbd4954c36fb3312dbbb75"
+    },
+    {
+      "file": "ecra/evidence.py",
+      "size": 33785,
+      "sha256": "9992b516092367cb5a6b688f1c386b65046b92d6d799091a122027e6d1d3171b"
+    },
+    {
+      "file": "ecra/evidence_mcp.py",
+      "size": 5830,
+      "sha256": "e3508066f50e309832ff9cc10ec2ab67468803387b5948219fa303c5902c615b"
+    },
+    {
+      "file": "ecra/evidence_reader.py",
+      "size": 1501,
+      "sha256": "1cd79f2f431b8e6976142f744ead398733b4ac5349ab49476a0fdadc0dc548e0"
+    },
+    {
+      "file": "ecra/extract.py",
+      "size": 64802,
+      "sha256": "e4a28c7bd715f54c5acd6f5fab39883deb8a3f82fb4dbba0f90e02316f80ff2b"
+    },
+    {
+      "file": "ecra/fact_parts.py",
+      "size": 5173,
+      "sha256": "aba75b447dac06f6713fd587f67305adcc719187f1d275cf6f96cc08b177aa5a"
+    },
+    {
+      "file": "ecra/frozen_scan.py",
+      "size": 4411,
+      "sha256": "f86456a622a6e18cf6d194f2140c36e88f6071f8cb80530631d118e86f7d8ce8"
+    },
+    {
+      "file": "ecra/garbage_collection.py",
+      "size": 17419,
+      "sha256": "5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265"
+    },
+    {
+      "file": "ecra/git_diff.py",
+      "size": 68315,
+      "sha256": "23bc32e895fd371315845d44c6bb063265a21abe61c4076290ccc2ec6474315e"
+    },
+    {
+      "file": "ecra/history_archive.py",
+      "size": 1506,
+      "sha256": "e83b5df26b97e27219ecc689602c9ab2816e987c8a9c8e81883d9c598354a3cc"
+    },
+    {
+      "file": "ecra/html_evidence.py",
+      "size": 11595,
+      "sha256": "73e9e9c00191ed70d4dad282ce872e99f6d028ecd4798e02bda40cc4f7361fde"
+    },
+    {
+      "file": "ecra/html_report.py",
+      "size": 145865,
+      "sha256": "aa04908272b393a315c93c05041991fd4501636b4054fd628a074c5e90ca0416"
+    },
+    {
+      "file": "ecra/human_reviews.py",
+      "size": 18930,
+      "sha256": "f42832de6f0e0c6d0faf7bc9873265860e056a6e9835241427a1c3cd05d4a16f"
+    },
+    {
+      "file": "ecra/independent_git.py",
+      "size": 10257,
+      "sha256": "3cd14d0f0a2de72436536a3f7a2bca18cf3747c60fa0a0828910ee9de1d48e29"
+    },
+    {
+      "file": "ecra/initialization.py",
+      "size": 34247,
+      "sha256": "43271805721f38f60ef61ed91b81b40d79f0419a5273b487cee978d1e28cc527"
+    },
+    {
+      "file": "ecra/input_snapshot.py",
+      "size": 18119,
+      "sha256": "db21fa3ce6e2fc5ecb9d7ad2b6e688ed9b416b075874325cc5c805b064629a02"
+    },
+    {
+      "file": "ecra/interrupts.py",
+      "size": 8853,
+      "sha256": "75195e506d02ea866f7509eeb4e86c0e0291849c52495debb0b4198342c9f247"
+    },
+    {
+      "file": "ecra/json_rows.py",
+      "size": 5512,
+      "sha256": "d42c85e35457224c83cbc4642d9a3df83bcb13d178af46704957912b9adf6bb0"
+    },
+    {
+      "file": "ecra/legacy_import.py",
+      "size": 21280,
+      "sha256": "c0cd56038edd69670ef521857d907bcc2af9ed6603850f7f49d3382c75619e74"
+    },
+    {
+      "file": "ecra/linker_symbols.py",
+      "size": 6452,
+      "sha256": "2df476c852a851aa27f5b4e21b75931ffa1b034d8035078e00d81560075d9f9e"
+    },
+    {
+      "file": "ecra/lock_owner.py",
+      "size": 2245,
+      "sha256": "ef731dc6dc4bda789a06a40692f2d51061c6d88e33a1fddc8752c7410ad9f4e0"
+    },
+    {
+      "file": "ecra/macro_semantics.py",
+      "size": 9494,
+      "sha256": "d9879e9eae91ca8e33875fb35a8e0e90992bc11a1253a8f0539783580ec236be"
+    },
+    {
+      "file": "ecra/missing_source.py",
+      "size": 4037,
+      "sha256": "3975809bc7971c1f6fa5e822fbd63b6c24828f043fd5c800bff0f9fea8d5fd86"
+    },
+    {
+      "file": "ecra/multicore.py",
+      "size": 22178,
+      "sha256": "9cccfad8f88de2688034a2fb3defc5f8c5eff0d35a0f6c7dd7c8391eeeb1fb39"
+    },
+    {
+      "file": "ecra/native_consumers.py",
+      "size": 12836,
+      "sha256": "1bbc1fcb9ce00a326143ac3c6104738e32c7291a5af47e73a1f2351dceb243e7"
+    },
+    {
+      "file": "ecra/native_diff_summary.py",
+      "size": 8870,
+      "sha256": "434c986f2de082a953ce24d2ebe7a40cd8a39aa86540f445a822edd24d23036c"
+    },
+    {
+      "file": "ecra/native_review_packet.py",
+      "size": 13518,
+      "sha256": "30d48a5b7fde6424e4108ae3ac20a148a0544311cafd7078d429a996d2c24987"
+    },
+    {
+      "file": "ecra/nonlocal_jumps.py",
+      "size": 5901,
+      "sha256": "21188550e1e36b5f110b9f45bf7088f31080784921d03d01bfcfb3a1523033ed"
+    },
+    {
+      "file": "ecra/nvic.py",
+      "size": 33915,
+      "sha256": "c3eedda4c2e8973d44dfb76a9f4a520c3f7b58093036c7b47cbef6f36a855e0c"
+    },
+    {
+      "file": "ecra/nvic_extract.py",
+      "size": 9017,
+      "sha256": "315cb099ecfc7f7eedd99ce4f8cc3022bf87058d7b18b542fb466ad19e49c041"
+    },
+    {
+      "file": "ecra/physical.py",
+      "size": 5416,
+      "sha256": "1886f978ab304db21b5af24cc89ecc068838b8ad8f3f223707e36ef10f1d2e36"
+    },
+    {
+      "file": "ecra/pointer_extract.py",
+      "size": 41364,
+      "sha256": "8533db5792bee3e25870f28d05c193754f76f87496773376263fef85ff0fd2fb"
+    },
+    {
+      "file": "ecra/points_to.py",
+      "size": 64407,
+      "sha256": "e9f88b28744b82bc97b32171780f7f80d2b9d38cf307e248da7212f14c825531"
+    },
+    {
+      "file": "ecra/portable.py",
+      "size": 14590,
+      "sha256": "1e38cc2a9cc17dec23c43e736a764ebe323686b209d7ce6e7b9f9614f82af060"
+    },
+    {
+      "file": "ecra/protection.py",
+      "size": 23358,
+      "sha256": "8d42f4f4a9f743fd3b71dcceb531f32a962a2102015b77c36ba7b03407460a48"
+    },
+    {
+      "file": "ecra/read_only_evidence.py",
+      "size": 1931,
+      "sha256": "5dd3db9465f745ddec00e6fe5e19b8e3b4eb5787e829da7f62afc5d02b0809d4"
+    },
+    {
+      "file": "ecra/report.py",
+      "size": 31091,
+      "sha256": "a22b85b719a0b226e4b5b266b312f089be4908545403bba7a774dc37c47a9b55"
+    },
+    {
+      "file": "ecra/report_package.py",
+      "size": 29247,
+      "sha256": "235728f7c191101023711274a1322a299619bfae6ed3dd46d26b3f5412b73348"
+    },
+    {
+      "file": "ecra/review.py",
+      "size": 73444,
+      "sha256": "7f549c50bb577ebe964150a754a81a568b4f1ce0912ecd286c9270dbd3138a3f"
+    },
+    {
+      "file": "ecra/review_context.py",
+      "size": 755,
+      "sha256": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88"
+    },
+    {
+      "file": "ecra/review_contract.py",
+      "size": 10003,
+      "sha256": "d864e1e1ac2d6b729bbf900cc952857d79fbe2adb98ae93770eae120f16b8a5f"
+    },
+    {
+      "file": "ecra/review_hash.py",
+      "size": 328,
+      "sha256": "77acbe17b3422ce7398d71a430855347faa4a3e40baee2d111515bb9353d543a"
+    },
+    {
+      "file": "ecra/review_inheritance.py",
+      "size": 8366,
+      "sha256": "a53c79384afff09ee91660c4429f911074d16ca598475b95c3cdf045a1e842af"
+    },
+    {
+      "file": "ecra/review_integrity.py",
+      "size": 9747,
+      "sha256": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804"
+    },
+    {
+      "file": "ecra/review_language.py",
+      "size": 6680,
+      "sha256": "00a24bac1bf43595e6b74f15b0c79f5bc3a8e949c798fabf49b39bfd52f83d0f"
+    },
+    {
+      "file": "ecra/review_packet.py",
+      "size": 6317,
+      "sha256": "abf8032299afc9cb3cf40388cc04a7d9da98a7e15af14a1cbf0fc9eee6b9f6da"
+    },
+    {
+      "file": "ecra/review_presentation.py",
+      "size": 14810,
+      "sha256": "8ceb94ea1c45f5ef3ebdd219dab6fa112ca0e86cda3a94813a3ccd50d4e84f13"
+    },
+    {
+      "file": "ecra/review_sources.py",
+      "size": 1752,
+      "sha256": "282e6f0b986a7d672aad7f26e725e6a477e1f2de0dd1af7beb6591e9ad08aaf5"
+    },
+    {
+      "file": "ecra/review_summary.py",
+      "size": 10622,
+      "sha256": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06"
+    },
+    {
+      "file": "ecra/scan_diagnostics.py",
+      "size": 8572,
+      "sha256": "b40184b3a59314e654ca6f26a80724408344949fa0666c84b5644a9eaa0e3f75"
+    },
+    {
+      "file": "ecra/scan_identity.py",
+      "size": 3685,
+      "sha256": "e0dcee03fed0fc4b796c8bcaa64ba7863fdcf5a7b3315a8dcf19cd4f8ea59506"
+    },
+    {
+      "file": "ecra/scan_persistence.py",
+      "size": 24376,
+      "sha256": "4bed59c3cc0ddf52fd7e64ff9c301ba87adbee49fe3da495d49744a4034e4ae6"
+    },
+    {
+      "file": "ecra/scan_store.py",
+      "size": 39744,
+      "sha256": "457f8994bfdf13363d03652c5d4a1759327012ccb2682acf831c4c7b21878801"
+    },
+    {
+      "file": "ecra/scope.py",
+      "size": 10117,
+      "sha256": "05f1e5f0caf1a3de1a64ad0fcc9c4355a92d745584a4c78c5ee36d3586e8d4f1"
+    },
+    {
+      "file": "ecra/shared_json.py",
+      "size": 16513,
+      "sha256": "5b134b0b6c837c7ddd06390097f54d2c8ccf4303d61d73f75e938c8d3a46c6f2"
+    },
+    {
+      "file": "ecra/solver_reachability.py",
+      "size": 6581,
+      "sha256": "d3febe4d562ea4e85e18dc475076aa728e6f3397f70f70285cd77b297637e81b"
+    },
+    {
+      "file": "ecra/stale_writeback.py",
+      "size": 6170,
+      "sha256": "246a9fbc0616a2674e3553fca1921a55d48f23b8ecfdcafb3df9297e41eac32a"
+    },
+    {
+      "file": "ecra/storage.py",
+      "size": 19734,
+      "sha256": "36e4e4f0f90049b03e319770c3c54f81e5d954afd292b802ca41d6aeffc8a71a"
+    },
+    {
+      "file": "ecra/storage_activity.py",
+      "size": 3449,
+      "sha256": "4a4bf7f929305d182f267f1e1e9c0ec8844ecca5f3d74d319d65b8b3c7e02915"
+    },
+    {
+      "file": "ecra/storage_compaction.py",
+      "size": 2068,
+      "sha256": "afec63b1f43c987664048c66ce646811dc7e734bb46409b75aaa892702495e53"
+    },
+    {
+      "file": "ecra/storage_policy.py",
+      "size": 4082,
+      "sha256": "c7e4c0d2ddb747dc69c716045cf85346a62c62b2d3ddd019ad3086142547d759"
+    },
+    {
+      "file": "ecra/storage_usage.py",
+      "size": 4623,
+      "sha256": "18ad8bc8e9b878440a5c9534ec20ff05b7e023e70fed0568801ffd3d04fceac6"
+    },
+    {
+      "file": "ecra/streamed_evidence.py",
+      "size": 6512,
+      "sha256": "fe9ba6a0c8edf0dd165c512432244088be6ee4aa729361ad3ee64d06f119328a"
+    },
+    {
+      "file": "ecra/studio/__init__.py",
+      "size": 69,
+      "sha256": "ac93a35b67b29431d8b45b820b1bb5cdca0789f19a4f5bc580c07ebbd951d80e"
+    },
+    {
+      "file": "ecra/studio/__main__.py",
+      "size": 3037,
+      "sha256": "9bffac478aae19c85a181f2a163744cb4776df19bdd1c1d105629ec11f0612e5"
+    },
+    {
+      "file": "ecra/studio/cleanup_jobs.py",
+      "size": 4424,
+      "sha256": "f1080434936df48c9ec2e90b71ea404f63d10690662e52e7c160a8458b621488"
+    },
+    {
+      "file": "ecra/studio/comparison.py",
+      "size": 6472,
+      "sha256": "73e2d0287493dbc0e3cbb19220af35b91c90494f20f3fd7f1bb56129232358c1"
+    },
+    {
+      "file": "ecra/studio/coverage.py",
+      "size": 14660,
+      "sha256": "02ca401c5a8dc3e8657cf9ea535285d3a5bce19087519c5c210909726864094f"
+    },
+    {
+      "file": "ecra/studio/directories.py",
+      "size": 4619,
+      "sha256": "22646fc91364e908f7b8fbf74e29976ffecd2cd596215082baf94e743d9339a2"
+    },
+    {
+      "file": "ecra/studio/downloads.py",
+      "size": 3178,
+      "sha256": "b22cc0a04f8fa0710b90e72543a44651fab57bb0d5735e8ff9a715018620748e"
+    },
+    {
+      "file": "ecra/studio/git_versions.py",
+      "size": 6342,
+      "sha256": "89753c527df4305ad2cc22d075608cfe74c27a0088ead47d3bca56d0126305f1"
+    },
+    {
+      "file": "ecra/studio/history.py",
+      "size": 9118,
+      "sha256": "01688b5aaf14e7fd38b5e0cf16823c711b9c0585139729a095cf05a14b37b932"
+    },
+    {
+      "file": "ecra/studio/migration_jobs.py",
+      "size": 4789,
+      "sha256": "b6c38b8e63d20b4eb5fbcb992c1105dd66ff285d0b4a5e2c28951ecb24f45bde"
+    },
+    {
+      "file": "ecra/studio/multicore_inputs.py",
+      "size": 11307,
+      "sha256": "5203be966c3f4a4e7866235dade095cf39348821b08e3e309618f1dd1fe3b6d6"
+    },
+    {
+      "file": "ecra/studio/preflight.py",
+      "size": 11968,
+      "sha256": "4b0e5386de3fdc27f8ae15666ff7524e442b264a6be1008e6690894ae742efa7"
+    },
+    {
+      "file": "ecra/studio/process_budget.py",
+      "size": 5845,
+      "sha256": "f801678ecaa82a4198e3d6288c5e4f60f3712155e54db45f34be17a6cab1cd92"
+    },
+    {
+      "file": "ecra/studio/profile_forms.py",
+      "size": 17692,
+      "sha256": "4e014e9887b7e4cdb24a085d62985632911c5421722f1217aa58f997c6561d99"
+    },
+    {
+      "file": "ecra/studio/query.py",
+      "size": 10065,
+      "sha256": "dd3b272813e63f2ed465c819bd6f3a4082202e6c301c927566d0f33904ac9f1b"
+    },
+    {
+      "file": "ecra/studio/resource_policy.py",
+      "size": 2661,
+      "sha256": "775ab5031a5e7c2f54ab94abb1275de186333fd68cdf34b02f01303ee3d2b863"
+    },
+    {
+      "file": "ecra/studio/root_transfers.py",
+      "size": 3917,
+      "sha256": "a50055d57b7e13a961c410b5473f87db2cd0876e1d5b25b21530116a1fceae63"
+    },
+    {
+      "file": "ecra/studio/sample.py",
+      "size": 3395,
+      "sha256": "4bd0888c8797b4e0ae66c5d9ea411b1f5fc99dbdd3c28809a96c2fc37b2a5b80"
+    },
+    {
+      "file": "ecra/studio/sample_assets/sample.json",
+      "size": 1732,
+      "sha256": "9126ffbc077bfbbd5396f4e1e444e4ab949f6ad8b13f4de03af917175a5ba9ba"
+    },
+    {
+      "file": "ecra/studio/sample_assets/stm32-demo.ecra-report",
+      "size": 540266,
+      "sha256": "ae1d42c347b8895d98daa486eec8f534aae5e82655299b89bd4d1650807ae55b"
+    },
+    {
+      "file": "ecra/studio/server.py",
+      "size": 43959,
+      "sha256": "53f76b2284fa0629c66d0a5a00885a1e3a2e4b4dad90eaec99b6c1e0e4cd72bd"
+    },
+    {
+      "file": "ecra/studio/source_view.py",
+      "size": 2906,
+      "sha256": "48b6faabd1052f5de901ae7e795638bd8dfbd3ea58ce1003cb8453f06a58cf2e"
+    },
+    {
+      "file": "ecra/studio/task_worker.py",
+      "size": 5144,
+      "sha256": "d3bf3e417613f1e67f936b0a459a8a0619c9fa2928349f1dfd7e4eacc04cdebb"
+    },
+    {
+      "file": "ecra/studio/tasks.py",
+      "size": 18716,
+      "sha256": "a2fbbfaafb0292100d97f01ed6bcbfa7705e2d89a1d2946eb00f0a4bfa504e6b"
+    },
+    {
+      "file": "ecra/studio/web/assets/index-DOTmv6eH.css",
+      "size": 27069,
+      "sha256": "8b81b80a5da705f42a2e9bd2c8ab2f412199df01c099277892a57ae404101cfd"
+    },
+    {
+      "file": "ecra/studio/web/assets/index-DWMAlMa4.js",
+      "size": 265581,
+      "sha256": "e7f76194fd7e3acef607368b760265f7b52fe57661054aa1313b6399a5ea06d7"
+    },
+    {
+      "file": "ecra/studio/web/favicon.svg",
+      "size": 178,
+      "sha256": "9ee65b090446ade828db8035a3f1882b2988e7728b712f0754a93fbe16570e7d"
+    },
+    {
+      "file": "ecra/studio/web/index.html",
+      "size": 439,
+      "sha256": "26da096147002a250d24fec65750d72bfeff27a1ddb7bc63444947f5401ae95e"
+    },
+    {
+      "file": "ecra/studio/web/licenses/PyYAML-6.0.3.json",
+      "size": 1709,
+      "sha256": "b33e6f8a243ab54a2a1c0d81a1b1dfcf3a2c68ca2f35f6314c37c17a1b4bdce2"
+    },
+    {
+      "file": "ecra/studio/web/licenses/annotated-doc-0.0.4.json",
+      "size": 1705,
+      "sha256": "985af4d1695053253f59caa800bf859ec2dad329d86131a8956514092410820b"
+    },
+    {
+      "file": "ecra/studio/web/licenses/annotated-types-0.7.0.json",
+      "size": 1709,
+      "sha256": "4461f5ae761881ac2432f5b61b4a3e362197c141773b88384c224ab7c82a5074"
+    },
+    {
+      "file": "ecra/studio/web/licenses/anyio-4.13.0.json",
+      "size": 1672,
+      "sha256": "d98b029e209b5cac07b74f3006645f6de122da25982a724e37b01f469d3fb3e6"
+    },
+    {
+      "file": "ecra/studio/web/licenses/click-8.4.1.json",
+      "size": 2081,
+      "sha256": "94eb3c2ac6ef40a300ad97b41f3338354d39fc600204eec82520166c7309e496"
+    },
+    {
+      "file": "ecra/studio/web/licenses/colorama-0.4.6.json",
+      "size": 2159,
+      "sha256": "3d249637b95c414b1e1a28f5204a35a745bff359908efd19d6fa1937c06ad9e5"
+    },
+    {
+      "file": "ecra/studio/web/licenses/exceptiongroup-1.3.1.json",
+      "size": 4388,
+      "sha256": "57b9de59bf4679f45d6a819458da3ffbc4b3428317d6ed74b7b5ff1927b5b8ea"
+    },
+    {
+      "file": "ecra/studio/web/licenses/fastapi-0.136.3.json",
+      "size": 1690,
+      "sha256": "877c702ac4895c38daae2a5fb53d7130cf6c286802f941010071b6eb415043f4"
+    },
+    {
+      "file": "ecra/studio/web/licenses/h11-0.16.0.json",
+      "size": 1712,
+      "sha256": "57c277633fcf2ef7817cb07542cfc49025cae7bde8b7433233b3d9408518c8b6"
+    },
+    {
+      "file": "ecra/studio/web/licenses/idna-3.18.json",
+      "size": 2140,
+      "sha256": "dcbb4c15b418af6d00eaefda37ee81ec8aa1a1b3d61acd0d34980d354718e32c"
+    },
+    {
+      "file": "ecra/studio/web/licenses/inventory.json",
+      "size": 2905,
+      "sha256": "9db66d38bdc5bd65fa093fff7bd56561f08670fd3bee43cfdf59b31ae4bed375"
+    },
+    {
+      "file": "ecra/studio/web/licenses/libclang-18.1.1.json",
+      "size": 16623,
+      "sha256": "5bc45b95e4043d04f03003a2739fb79b29da34de7db5ccd5ec8e42e3b9ca469a"
+    },
+    {
+      "file": "ecra/studio/web/licenses/pydantic-2.13.4.json",
+      "size": 1732,
+      "sha256": "2ad4ac801ef88df8e6708128ee309d03e86e77c96d819f06f1556198e5eb2473"
+    },
+    {
+      "file": "ecra/studio/web/licenses/pydantic-core-2.46.4.json",
+      "size": 1763,
+      "sha256": "34c0cfd713624ea0c53127fb85f9af9e664580d01fae2b3bc79a5b411feb5f1b"
+    },
+    {
+      "file": "ecra/studio/web/licenses/ruamel.yaml-0.18.16.json",
+      "size": 1739,
+      "sha256": "e120c73b6e83276b42b41420cb0e595732a2b20e21ecef14d9a1c36f4437ef52"
+    },
+    {
+      "file": "ecra/studio/web/licenses/ruamel.yaml.clib-0.2.12.json",
+      "size": 1765,
+      "sha256": "71a713385d0323899d9ecf3699961c93bba593d18d8e391da9636c8bb86f9b9f"
+    },
+    {
+      "file": "ecra/studio/web/licenses/starlette-1.2.1.json",
+      "size": 2138,
+      "sha256": "3e9c35db1bb1c0bddb3e1075ad9ab55777d8c95d026beed93bd7cedd1ee3460a"
+    },
+    {
+      "file": "ecra/studio/web/licenses/typing-extensions-4.15.0.json",
+      "size": 14869,
+      "sha256": "826225c4bfaa05a9d91b4488b7aa600746d504b3ad3dfa92f396f339f3ca921d"
+    },
+    {
+      "file": "ecra/studio/web/licenses/typing-inspection-0.4.2.json",
+      "size": 1725,
+      "sha256": "65f04795ed2e40aab6b8c813161c11d9f0ce68c0a203d0120e5992f9b82fb85d"
+    },
+    {
+      "file": "ecra/studio/web/licenses/uvicorn-0.49.0.json",
+      "size": 2142,
+      "sha256": "fa2e2f9b7f2b6c339580210e98376b746adae4dc3259f79b7b806d2d428343f9"
+    },
+    {
+      "file": "ecra/studio/web/licenses/vue-LICENSE.txt",
+      "size": 1112,
+      "sha256": "5818899c48b48d0c1e898741974b91ffaf938962349b32e25d4b37a031771364"
+    },
+    {
+      "file": "ecra/studio/write_guard.py",
+      "size": 11988,
+      "sha256": "03739086d76290e7eb2c8e266c7c7e3f2da0ea26a84241fcdf64db8430a8536a"
+    },
+    {
+      "file": "ecra/studio_preferences.py",
+      "size": 10537,
+      "sha256": "5bc4691af58cfb4ad8c44fdfcb4c6535ea21212102768a9aa2419fe6fb1fe593"
+    },
+    {
+      "file": "ecra/supplemental.py",
+      "size": 17041,
+      "sha256": "2a8787eb89d120bed6329c1904cf4e4d956d9f62a7b66b67d7ba7acff6fcc048"
+    },
+    {
+      "file": "ecra/target_set.py",
+      "size": 4950,
+      "sha256": "45cf1a746e26cb7eed47fbaad21c876a8f00489bf7eb1b57411f69bf6205c47b"
+    },
+    {
+      "file": "ecra/tu_cache.py",
+      "size": 4220,
+      "sha256": "87fa95f3182a254343c4227f63f80b0eac11c58b0f34716df894ceb5b8fabddf"
+    },
+    {
+      "file": "ecra/vectors.py",
+      "size": 15179,
+      "sha256": "f475ac221f91fcea4eefbaee4cf098ff3b9e454c10d924d234f65722be1f7ed2"
+    },
+    {
+      "file": "ecra/windows_storage.py",
+      "size": 7664,
+      "sha256": "d23e4ba4ae1289f1323cae8c22fef15f45e5249a4406f64ce6618b030388f580"
+    },
+    {
+      "file": "ecra/workflow.py",
+      "size": 44384,
+      "sha256": "6695b8b5e7a39be37af072f28f169de92e01ec7b9fa5ed3cbad5ff8cc1d012d7"
+    },
+    {
+      "file": "ecra/working_compiler_view.py",
+      "size": 23820,
+      "sha256": "7dcfbd60c39ed82530ddac05d4f2091e5ae87b8c3e2ae86b89f15c18ed5d1e0a"
+    },
+    {
+      "file": "ecra/working_snapshot.py",
+      "size": 19583,
+      "sha256": "39324d5225e743eff8c1f585b677df3d88f6c05f5af89beb279ca3a3e9df43a9"
+    },
+    {
+      "file": "ecra/workspace.py",
+      "size": 25756,
+      "sha256": "8c460afeb463d5643fd8ab2c6fd79678a296e818c1229bbd43429ebfb96c07b8"
+    },
+    {
+      "file": "requirements-studio.txt",
+      "size": 349,
+      "sha256": "31b6e732da3f0a0678c90689d7f014e36b24236a6a647ec20048bb6c346826d4"
+    },
+    {
+      "file": "requirements.txt",
+      "size": 34,
+      "sha256": "6dc32b8286cd980da63bb0db2c5920d43fc9559b814ce88db2b03f6be9afeee3"
+    },
+    {
+      "file": "run_ecra.py",
+      "size": 83,
+      "sha256": "336fd94c4d03ecdb9535515cf9bd41a4796c88ffe96933fcfbbd045ffbb38a18"
+    }
+  ],
+  "source_manifest_sha256": "a662801c4592a6fca1f997f7411b9cae6a2b7ff2456ac4022a89543ef28b4d04",
+  "uncompressed": {
+    "sha256": "037338662d11c39577399cb0b1f2073b6fa76b8d7461ffa4abe8f4cfeb70cb87",
+    "commands": 27
+  },
+  "zip-extracted": {
+    "sha256": "b4d46fe0f7e7fa25cb3dd6f77a565120d4b524f905cda2644635f414704de88b",
+    "commands": 27
+  },
+  "zip": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable.zip",
+  "zip_bytes": 771065448,
+  "zip_sha256": "5093b8dbfbf76d494384fd15d44af8ad10468933a3cceda2180072e18b0fd768",
+  "seconds": 568.780999999959,
+  "application_review_UI": "PENDING_SEPARATE_REAL_TEST",
+  "physical_clean_offline_machine": "NOT_VERIFIED",
+  "all_gates_passed": false
+}

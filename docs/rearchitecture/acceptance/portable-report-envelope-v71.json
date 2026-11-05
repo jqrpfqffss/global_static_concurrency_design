@@ -1,0 +1,164 @@
+{
+  "passed": true,
+  "scope": "Complete F030 clean report traversal across global vs Portable environments: retain strict raw comparison failure, enumerate ALL differences. Only two existing bundle_root compiler audit arrays differ; no generic ignore/normalization or authority rewrite.",
+  "original_report_digest": "333d2f97e554e9b505a42a7dacb863e28ede8860b2ec31d6796a84a57bd4d6d1",
+  "portable_report_digest": "9157102db49bb3551891dd4d6212dc35b4e5e2f2cfeb664a4d680cb8c8a1e1b6",
+  "strict_full_report_equal": false,
+  "differences": [
+    {
+      "path": [
+        "report",
+        "coverage",
+        "compilers"
+      ],
+      "before": [],
+      "after": [
+        {
+          "path": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+          "external": true
+        }
+      ],
+      "kind": "LENGTH"
+    },
+    {
+      "path": [
+        "report",
+        "coverage",
+        "consumed_inputs",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+        "read_completed_ns"
+      ],
+      "before": 1793803287081341700,
+      "after": 1793898508371131300,
+      "kind": "SCALAR"
+    },
+    {
+      "path": [
+        "report",
+        "coverage",
+        "external_tools"
+      ],
+      "before": [],
+      "after": [
+        {
+          "path": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+          "external": true
+        }
+      ],
+      "kind": "LENGTH"
+    },
+    {
+      "path": [
+        "report",
+        "fingerprint"
+      ],
+      "before": "ef7d47f732bb70be484ab2bcc19c539a9dab3dbb4b183903797191101fefd4e7",
+      "after": "25c935195624b2e76ac763502e5a43daa8b2d22b02efca74e463c3ca07854f8f",
+      "kind": "SCALAR"
+    },
+    {
+      "path": [
+        "report",
+        "generated_at"
+      ],
+      "before": "2026-11-04T14:41:26.915986+00:00",
+      "after": "2026-11-05T17:08:28.158865+00:00",
+      "kind": "SCALAR"
+    },
+    {
+      "path": [
+        "report",
+        "workspace",
+        "results_root"
+      ],
+      "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native",
+      "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\embedded-native-f030-v71-v1\\data\\scans\\native",
+      "kind": "SCALAR"
+    }
+  ],
+  "compiler_audit_differences": [
+    {
+      "path": [
+        "report",
+        "coverage",
+        "compilers"
+      ],
+      "before": [],
+      "after": [
+        {
+          "path": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+          "external": true
+        }
+      ],
+      "kind": "LENGTH"
+    },
+    {
+      "path": [
+        "report",
+        "coverage",
+        "external_tools"
+      ],
+      "before": [],
+      "after": [
+        {
+          "path": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+          "external": true
+        }
+      ],
+      "kind": "LENGTH"
+    }
+  ],
+  "existing_documented_execution_envelope_differences": [
+    {
+      "path": [
+        "report",
+        "coverage",
+        "consumed_inputs",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json",
+        "read_completed_ns"
+      ],
+      "before": 1793803287081341700,
+      "after": 1793898508371131300,
+      "kind": "SCALAR"
+    },
+    {
+      "path": [
+        "report",
+        "fingerprint"
+      ],
+      "before": "ef7d47f732bb70be484ab2bcc19c539a9dab3dbb4b183903797191101fefd4e7",
+      "after": "25c935195624b2e76ac763502e5a43daa8b2d22b02efca74e463c3ca07854f8f",
+      "kind": "SCALAR"
+    },
+    {
+      "path": [
+        "report",
+        "generated_at"
+      ],
+      "before": "2026-11-04T14:41:26.915986+00:00",
+      "after": "2026-11-05T17:08:28.158865+00:00",
+      "kind": "SCALAR"
+    },
+    {
+      "path": [
+        "report",
+        "workspace",
+        "results_root"
+      ],
+      "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native",
+      "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\embedded-native-f030-v71-v1\\data\\scans\\native",
+      "kind": "SCALAR"
+    }
+  ],
+  "unexplained_differences": [],
+  "source_code": "ecra/compilation.py:553-561,621-622 (unchanged bundle_root audit); scripts/compare_native_graphs.py:21,51-52 for existing envelope",
+  "original_compiler": "H:\\global_static_concurrency_design\\.tools-cache\\arm-gcc-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+  "bundled_compiler": "H:\\ECRAStudio-build-20261106-studio-v71\\ECRA-Portable\\tools\\arm-gcc\\bin\\arm-none-eabi-gcc.exe",
+  "matching_compiler_sha256": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac",
+  "authority_before_after": {
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native\\scan.db": "e9442d1704b146f9b5d649a70534cf6abd98d5f21e26d3a2b13a33a45a7a6d23",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\embedded-native-f030-v71-v1\\data\\scans\\native\\scan.db": "e7cb4bcac6701e626f9e926efe6f3860dc84271e4828cd4e8a519097fa1df8c9"
+  },
+  "same_execution_environment_G1": "Global v69 vs v48 complete facts/report equal, separate receipt. This cross-runtime permission configuration is different.",
+  "all_gates_passed": false
+}

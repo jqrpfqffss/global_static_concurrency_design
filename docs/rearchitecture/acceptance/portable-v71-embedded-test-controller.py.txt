@@ -1,0 +1,18 @@
+import hashlib,importlib.util,json,sys,unittest
+from pathlib import Path
+w=Path(__file__).parent;bundle=Path('H:/ECRAStudio-build-20261106-studio-v71/ECRA-Portable')
+assert Path(sys.executable).resolve()==(bundle/'runtime/python.exe').resolve()
+sys.path.insert(0,str(bundle));suite=unittest.TestSuite();sources=[]
+for name in ['test_native_diff_reader','test_native_diff_summary_cache']:
+ source=w/'frozen-engine-studio-v71/tests'/(name+'.py')
+ spec=importlib.util.spec_from_file_location('embedded_'+name,source);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(module));sources.append(dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
+assert suite.countTestCases()==17
+result=unittest.TextTestRunner(verbosity=2).run(suite)
+for key,loaded in list(sys.modules.items()):
+ if key=='ecra' or key.startswith('ecra.'):
+  filename=getattr(loaded,'__file__',None)
+  if filename:assert Path(filename).resolve().is_relative_to(bundle),(key,filename)
+receipt=dict(passed=result.wasSuccessful() and result.testsRun==17 and not result.skipped,tests=result.testsRun,failures=len(result.failures),errors=len(result.errors),skipped=len(result.skipped),python=sys.executable,python_version=sys.version,bundle=str(bundle),test_sources=sources,scope='Actual embedded Python3.10.9 and bundle ECRA modules; strict native dictionary keys and complete original-summary oracle plus real cold native/cache/CMake macro4-to8/full-verification, immutable histories and recovery gates. Controlled fixtures, not G2/physical offline/full embedded suite/all gates.')
+(w/'portable-native-reader-v71.json').write_text(json.dumps(receipt,indent=2)+'\n','utf-8')
+raise SystemExit(0 if receipt['passed'] else 1)
