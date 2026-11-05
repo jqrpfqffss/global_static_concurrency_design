@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v66",
+  "manifest_sha256": "7140548fac9bb0a45fc8b541327bd89a8a0ff88421b235fa934f481d007c2abc",
+  "scope": "Actual approved original F030 native after immutable baseline regeneration and verified shared TU-cache change, complete ordered facts/report equality vs v48, original files unchanged. Not large/G2/physical32GB.",
+  "code": 2,
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+        "after": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-refresh-f030-v48-v1\\data\\scans\\native\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-baseline-f030-v66-v1\\data\\scans\\native\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "original_differences": [],
+  "source_files": 43,
+  "scan_db_sha256": "8e02552bfd540b9c83138777f072fea32eb2e4974924c08afbda491c001c750c",
+  "seconds": 39.53100000001723
+}

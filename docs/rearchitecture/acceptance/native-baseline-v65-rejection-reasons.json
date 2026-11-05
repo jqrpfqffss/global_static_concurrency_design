@@ -1,0 +1,14 @@
+[
+  {
+    "out": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-diff-cmake-retained-v65\\case\\data\\projects\\firmware_26314bf8f935cc8d329d\\results\\git_diff\\artifacts\\base-48f240a7a0c99a695ac78c4286afe86c212eedff",
+    "error": "没有可恢复的扫描检查点；请先运行 run（旧版报告需要重新扫描一次）"
+  },
+  {
+    "out": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-diff-cmake-retained-v65\\case\\data\\projects\\firmware_26314bf8f935cc8d329d\\results\\git_diff\\artifacts\\base-48f240a7a0c99a695ac78c4286afe86c212eedff",
+    "error": "源码/头文件/编译数据库已变化，需重新扫描：H:/ECRAStudio-data/rearchitecture-20261031/continuation-h3/native-diff-cmake-retained-v65/case/data/projects/firmware_26314bf8f935cc8d329d/builds/24bea474c98589017ca04067/CMakeCache.txt"
+  },
+  {
+    "out": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-diff-cmake-retained-v65\\case\\data\\projects\\firmware_26314bf8f935cc8d329d\\results\\git_diff\\artifacts\\base-48f240a7a0c99a695ac78c4286afe86c212eedff",
+    "error": "静态报告已变化/损坏；请重新运行 run"
+  }
+]

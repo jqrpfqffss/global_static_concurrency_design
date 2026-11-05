@@ -1,3 +1,5 @@
+> 当前实现与验收见[108号](108-immutable-native-baseline-acceptance.md)：真实CMake失效基准改为新权威库，旧库/历史保留；最终8项、当前F030完整0差及Chrome复跑通过。较早v64全套1521项已1519PASS/2联网SKIP；本版完整1525及最新大型原生仍待最终收据，完整重构未完成。
+
 > 最新限定范围见[105号](105-recovery-and-native-diff-cache-acceptance.md)：真实中断恢复5项、原生跨扫描Diff摘要缓存4项通过；旧v62 INAV已中断且无最终收据，新恢复任务需等最终实证，不能沿用旧RUNNING宣称完成。首次冷Diff及大型完整链路仍未优化完，完整门禁未通过。
 
 > 最新完成/在途状态见[103号](103-clean-regression-and-current-inav-start.md)：干净c374ebc完整1512项已1510PASS/2联网SKIP；正式发布观察器2项及真实F030公开流水线/完整facts-report0差通过。新本版INAV已用4123项原黄金输入预检后在独立H:/ECRA-NATIVE-C62-SEED0启动，16GiB Job、完整发布包装；仍运行中，待原件后验/完整G1/后续消费者结果，不提前标PASS。当前功能候选包为101号v60，完整重构及G1–G8未全部完成。

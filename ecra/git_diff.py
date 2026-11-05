@@ -922,7 +922,30 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     # Absolute in-project config paths are remapped. External toolchains remain
     # explicit inputs and are checked by the ordinary snapshot mechanism.
     baseline = relocate_config(baseline, root, base_root)
-    base_workspace = workspace.for_results(Path(workspace.git_diff_root)/'artifacts'/('base-' + pinned['base_sha']))
+    artifacts = no_links(Path(workspace.git_diff_root)/'artifacts')
+    base_name = 'base-' + pinned['base_sha']
+    baseline_index = no_links(artifacts/(base_name+'.latest.json'))
+    native_baseline = is_canonical(out)
+    candidate = no_links(artifacts/base_name)
+    if native_baseline and baseline_index.exists():
+        reference = read_json(baseline_index)
+        if (not isinstance(reference, dict) or set(reference) != {'version','base_sha','directory'}
+                or type(reference.get('version')) is not int or reference['version'] != 1
+                or reference.get('base_sha') != pinned['base_sha']
+                or not isinstance(reference.get('directory'), str)
+                or not re.fullmatch(re.escape(base_name)+r'(?:-[a-f0-9]{32})?', reference['directory'])):
+            raise ValueError('基准权威库索引损坏/越界；保留历史并拒绝接管未知目录')
+        candidate = no_links(artifacts/reference['directory'])
+    def baseline_workspace(result):
+        selected = workspace.for_results(result)
+        if native_baseline:
+            from dataclasses import replace
+            # Attempts have independent immutable authorities, but committed
+            # TU objects remain reusable through their original full keys.
+            selected = replace(selected, cache_root=str(no_links(
+                Path(workspace.cache_root)/'git-baselines'/pinned['base_sha'])))
+        return selected
+    base_workspace = baseline_workspace(candidate)
     base_workspace.bind(baseline['analysis'])
     if 'cmake' in baseline['analysis']:
         from .compilation import cmake_build_directory
@@ -967,12 +990,23 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             base_workspace.bind(validated['analysis'])
             _, base_report, base_state = checked_scan(base_root, base_out, validated, config,
                                                       with_facts=False, _report_projection=True)
-            progress('基准完整事实缓存通过源码、预处理闭包和引擎校验。')
-        except (ValueError, OSError, KeyError, TypeError):
-            pass
+            if native_baseline and not is_canonical(base_out):
+                base_report = None
+            else:
+                progress('基准完整事实缓存通过源码、预处理闭包和引擎校验。')
+        except (ValueError, OSError, KeyError, TypeError) as exc:
+            progress('基准完整事实需重新生成，旧权威库保留：' + str(exc))
     if base_report is None:
         from .scan_persistence import is_canonical, MARKER
-        if is_canonical(out):
+        if native_baseline:
+            # Canonical persistence is immutable: rerunning into an existing
+            # database would update only runtime receipts, leaving old static
+            # facts paired with a new checkpoint. Never mutate/move that DB.
+            if base_out.exists() and any(base_out.iterdir()):
+                import uuid
+                base_out = no_links(artifacts/(base_name+'-'+uuid.uuid4().hex))
+                base_workspace = baseline_workspace(base_out)
+                base_workspace.bind(baseline['analysis'])
             base_out.mkdir(parents=True, exist_ok=True)
             # Baselines use the same authority and solver as the current side.
             # Their identity is distinct; no current-version facts are copied.
@@ -1078,6 +1112,11 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     write_comparison_patch(patch_inputs, patch)
     pinned['diff_patch_path'] = str(patch)
     pinned['diff_patch_sha256'] = file_digest(patch)
+    if native_baseline:
+        # A mutable locator, not a proof. Every reuse rechecks the original
+        # input/config/engine/report gates; failed attempts never replace it.
+        no_links(baseline_index.with_suffix(baseline_index.suffix+'.tmp'))
+        write_json(baseline_index, dict(version=1,base_sha=pinned['base_sha'],directory=base_out.name))
     return summary_file
 
 

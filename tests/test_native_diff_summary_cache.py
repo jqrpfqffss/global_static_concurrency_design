@@ -121,5 +121,83 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         self.assertEqual(len(mutated),1);self.assertFalse((failed/'manifest.json').exists())
         self.assertEqual(old_archive.read_bytes(),before)
 
+    def test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version(self):
+        import shutil
+        if not all(shutil.which(tool) for tool in ['cmake','ninja','arm-none-eabi-gcc']):
+            self.skipTest('requires actual CMake/Ninja/ARM GCC')
+        (self.root/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.20)\n'
+            'project(native_diff_cache C)\nset(BUILD_WIDTH 1 CACHE STRING "real input")\n'
+            'add_library(firmware STATIC main.c other.c)\n'
+            'target_compile_options(firmware PRIVATE -mcpu=cortex-m7 -mthumb)\n'
+            'target_compile_definitions(firmware PRIVATE BUILD_WIDTH=${BUILD_WIDTH})\n','utf-8')
+        (self.root/'main.c').write_text('int build_marker[BUILD_WIDTH];int shared;void Task(void){shared=2;}void ISR(void){shared++;}\n','utf-8')
+        self.git('add','.');self.git('commit','-m','real CMake baseline');self.base=self.git('rev-parse','HEAD')
+        (self.root/'main.c').write_text('int build_marker[BUILD_WIDTH];int shared;void Task(void){shared=3;}void ISR(void){shared++;}\n','utf-8')
+        self.git('commit','-am','CMake current')
+        cfg=read_json(self.config)
+        cfg['analysis'].update(compile_database='auto',cmake=dict(build_dir='build/ecra',generator='Ninja',
+            build_type='Debug',build=True,clean_before_configure=False,args=['-DCMAKE_SYSTEM_NAME=Generic','-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
+                                             '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
+        cfg['analysis']['git_diff'].update(base_ref=self.base,verify_against_full=True)
+        write_json(self.config,cfg);self.before=self.source_files()
+        first=self.scan('cmake-first');first_report=read_json(first/'reports/global_static_concurrency.json')
+        original_baselines={p:sha256(p) for p in self.data.glob('projects/*/results/git_diff/artifacts/base-*/scan.db')}
+        self.assertEqual(len(original_baselines),1)
+        def marker_size(report):
+            facts=EvidenceProvider(report['git_diff']['pin']['base_facts_path']).load('facts')
+            return next(v['size_bytes'] for v in facts['variables'] if v['name']=='build_marker')
+        self.assertEqual(marker_size(first_report),4)
+        cfg['analysis']['cmake']['args'].append('-DBUILD_WIDTH=2');write_json(self.config,cfg)
+        second=self.scan('cmake-changed-build')
+        report=read_json(second/'reports/global_static_concurrency.json')
+        self.assertFalse(report['git_diff']['baseline_summary_cache']['hit'])
+        self.assertEqual(marker_size(report),8,'A regenerated baseline must contain the changed real compiler input')
+        self.assertEqual(report['git_diff']['full_verification']['state'],'PASSED')
+        self.assertFalse((self.root/'build').exists())
+        libraries=list((self.data/'projects').glob('*/builds/**/libfirmware.a'))
+        self.assertGreaterEqual(len(libraries),2,'Both pinned versions must actually build outside firmware')
+        for library in libraries:
+            with library.open('rb') as stream:self.assertEqual(stream.read(8),b'!<arch>\n')
+        for path,original in original_baselines.items():self.assertEqual(sha256(path),original)
+        self.assertEqual(len(list(self.data.glob('projects/*/results/git_diff/artifacts/base-*/scan.db'))),2)
+        self.assertNotEqual(first_report['git_diff']['pin']['base_facts_sha256'],report['git_diff']['pin']['base_facts_sha256'])
+        self.assertIn('c:@shared',report['git_diff']['selected_symbol_ids'])
+
+    def test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority(self):
+        first=self.scan('first');original=sha256(first/'scan.db')
+        index=next(self.data.glob('projects/*/results/git_diff/artifacts/base-*.latest.json'));saved=read_json(index)
+        invalid=[dict(saved,version=True),dict(saved,version=2),dict(saved,base_sha='other'),
+                 dict(saved,directory='../../outside'),dict(saved,directory='base-'+self.base+'-unknown'),dict(saved,extra='unknown')]
+        for ordinal,value in enumerate(invalid):
+            with self.subTest(value=value):
+                write_json(index,value);failed=self.scan('invalid-index-'+str(ordinal),success=False)
+                self.assertFalse((failed/'manifest.json').exists());self.assertEqual(sha256(first/'scan.db'),original)
+        write_json(index,saved)
+
+    def test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority(self):
+        with patch('ecra.cli.merge',side_effect=RuntimeError('EXPLICIT_BASELINE_STOP_BEFORE_MERGE')):
+            self.scan('interrupted-baseline',success=False)
+        old=next(self.data.glob('projects/*/results/git_diff/artifacts/base-'+self.base))
+        original={p.relative_to(old).as_posix():sha256(p) for p in old.rglob('*') if p.is_file()}
+        self.assertFalse((old/'scan.db').exists())
+        cache=next(self.data.glob('projects/*/results/cache/**/git-baselines/*/tu-v1'))
+        self.assertEqual(len(list(cache.glob('*.facts'))),2)
+        recovered=self.scan('recovered-baseline');report=read_json(recovered/'reports/global_static_concurrency.json')
+        index=read_json(old.with_name(old.name+'.latest.json'));new=old.with_name(index['directory'])
+        self.assertNotEqual(old,new);EvidenceProvider(new/'scan.db').validate(deep=True)
+        self.assertEqual(read_json(new/'diagnostics/tu_cache.json'),dict(hits=2,extracted=0,corrupt=0,total=2))
+        self.assertEqual(original,{p.relative_to(old).as_posix():sha256(p) for p in old.rglob('*') if p.is_file()})
+        self.assertEqual(report['git_diff']['pin']['base_facts_sha256'],sha256(new/'scan.db'))
+
+    def test_failed_regeneration_never_replaces_locator_or_old_baseline(self):
+        first=self.scan('first');index=next(self.data.glob('projects/*/results/git_diff/artifacts/base-*.latest.json'))
+        original_index=index.read_bytes();baseline=index.parent/read_json(index)['directory'];original=sha256(baseline/'scan.db')
+        cfg=read_json(self.config);cfg['analysis']['git_diff']['cache_enabled']=False;write_json(self.config,cfg)
+        with patch('ecra.git_diff.write_comparison_patch',side_effect=OSError('EXPLICIT_FAILURE_BEFORE_BASELINE_INDEX_PUBLICATION')):
+            failed=self.scan('failed-regeneration',success=False)
+        self.assertFalse((failed/'manifest.json').exists());self.assertEqual(index.read_bytes(),original_index)
+        self.assertEqual(sha256(baseline/'scan.db'),original)
+        self.assertEqual(read_json(first/'manifest.json')['state'],'STATIC_VALIDATED')
+
 
 if __name__=='__main__':unittest.main()

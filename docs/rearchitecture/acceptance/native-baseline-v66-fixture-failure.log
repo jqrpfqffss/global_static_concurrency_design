@@ -1,0 +1,21 @@
+test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_failed_regeneration_never_replaces_locator_or_old_baseline (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ERROR
+test_mutation_between_validation_and_archive_copy_blocks_new_publication (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_partial_baseline_never_publishes_complete_summary (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_valid_summary_cannot_bypass_isolated_source_pollution (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+
+======================================================================
+ERROR: test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\global_static_concurrency_design\tests\test_native_diff_summary_cache.py", line 183, in test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority
+    cache=next(self.data.glob('projects/*/results/cache/git-baselines/*/tu-v1'))
+StopIteration
+
+----------------------------------------------------------------------
+Ran 8 tests in 228.231s
+
+FAILED (errors=1)

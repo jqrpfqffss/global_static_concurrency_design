@@ -1,0 +1,42 @@
+{
+  "passed": false,
+  "observed_utc": "2026-11-05T02:40:43.587578+00:00",
+  "frozen_files": 3855,
+  "frozen_manifest_sha256": "7140548fac9bb0a45fc8b541327bd89a8a0ff88421b235fa934f481d007c2abc",
+  "current_suite": {
+    "status": "RUNNING_NO_FINAL_RECEIPT",
+    "expected_from_discovery": 1525,
+    "controller_alive": true,
+    "pid": 1260
+  },
+  "older_v64_suite": {
+    "passed": true,
+    "tests": 1521,
+    "passed_tests": 1519,
+    "skipped": 2,
+    "scope": "Earlier source only; no native baseline regeneration fix"
+  },
+  "prior_v62_recovery": {
+    "complete": false,
+    "worker_alive": true,
+    "last_stage": "报告生成与存储（单次发布）",
+    "last_clang": "388/388",
+    "peaks_so_far": {
+      "working_set_bytes": 10066042880,
+      "private_bytes": 10011832320,
+      "peak_job_commit_bytes": 10016612352,
+      "sampled_output_logical_bytes": 17422211608,
+      "sampled_output_allocated_bytes": 6985964704
+    },
+    "seconds_so_far": 4297.188000000024,
+    "scope": "Prior frozen producer; final G1/report/Packet pending. Recovery is not cold timing."
+  },
+  "latest_v66_cold": {
+    "status": "WAITING_CURRENT1525_AND_PRIOR_RECOVERY_PROOF",
+    "passed": false,
+    "started": false,
+    "scope": "Waits current full1525 and prior complete native/G1/report/Packet; fresh16GiB root, no copied cache or rebased fingerprint."
+  },
+  "complete_refactor": false,
+  "all_gates_passed": false
+}
