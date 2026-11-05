@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "status": "INTERRUPTED_NO_FINAL_RECEIPT",
+  "cause": "NOT_DETERMINED",
+  "observed_utc": "2026-11-05T01:20:10.292038+00:00",
+  "worker_pid": 19380,
+  "worker_alive": false,
+  "last_seconds": 2153.1410000000033,
+  "last_logged_clang": "273/388",
+  "original_execution_sha256": "c6488c105a7ddd76da2208073868dcaa00c84765cf9a9004c86f3eee615b81d9",
+  "original_queue_sha256": "aa67599a144df362845bfe71bd934b8b9d27f9884e7b2290e49eef74b2e7ba08",
+  "cache_counts": {
+    ".facts": 273,
+    ".json": 273,
+    ".pending": 0
+  },
+  "cache_hash_validity": "NOT_YET_REVERIFIED",
+  "original_files_preserved": true,
+  "complete_native": false
+}

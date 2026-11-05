@@ -42,6 +42,7 @@ def main():
     parser.add_argument('--scan-id',default='native-golden',help='Explicit canonical output identity; original default unchanged')
     parser.add_argument('--profile-id',default='same-golden-input')
     parser.add_argument('--reuse-tu-cache-from',type=Path,help='Explicit failed same-engine native attempt; replay preprocessing and verify every TU cache, not fresh extraction timing')
+    parser.add_argument('--resume-published-from',type=Path,help='Exited incomplete public attempt on the same engine/config/data root; publish a NEW scan ID, revalidate the shared formal TU cache')
     parser.add_argument('--inject-stop-before-merge',action='store_true',help='Explicit diagnostic fault after real extraction; never a successful native benchmark')
     parser.add_argument('--classification-diagnostics',action='store_true',help='Observe classification cache sizes without changing engine inputs or results; diagnostic run, not an uninstrumented benchmark')
     args=parser.parse_args()
@@ -49,11 +50,33 @@ def main():
     if not IDENTITY.fullmatch(args.scan_id) or not IDENTITY.fullmatch(args.profile_id):parser.error('Scan/profile identity is invalid')
     if os.name!='nt':parser.error('This measurement requires real Windows Job accounting')
     if not 2<=args.limit_gib<=32:parser.error('Choose an explicit safety cap between 2 and 32GiB')
-    if args.inject_stop_before_merge and args.mode!='canonical':parser.error('Fault injection is canonical diagnostic only')
+    if args.inject_stop_before_merge and args.mode not in {'canonical','canonical-published'}:parser.error('Fault injection is canonical diagnostic only')
+    if args.resume_published_from and (args.mode!='canonical-published' or args.reuse_tu_cache_from):parser.error('Published recovery requires canonical-published and cannot mix legacy cache copying')
     if args.classification_diagnostics and args.mode=='canonical-published':parser.error('Published pipeline measurement must not instrument classification')
     work=args.work.resolve()
     data=args.data_root.resolve();engine=args.engine.resolve();config=args.config.resolve()
-    if data.exists():raise FileExistsError('Use a fresh data root; never mix another scan into the measurement')
+    recovery=None
+    if args.resume_published_from:
+        from ecra.workspace import no_links
+        import psutil
+        no_links(args.data_root);no_links(args.engine);no_links(args.config)
+        previous_path=no_links(args.resume_published_from);previous_file=previous_path/'execution.json'
+        previous=json.loads(previous_file.read_text('utf-8'))
+        if (previous.get('mode')!='canonical-published' or previous.get('complete') is not False
+                or Path(previous.get('engine','')).resolve()!=engine or Path(previous.get('data_root','')).resolve()!=data
+                or previous.get('config_sha256')!=sha256(config) or not data.is_dir()):
+            raise ValueError('Published recovery requires identical engine/config/data root and an incomplete previous attempt')
+        pid=previous.get('pid')
+        if type(pid) is not int or pid<=0 or psutil.pid_exists(pid):raise ValueError('Previous worker is alive or cannot be proven exited; do not take over')
+        descriptor=no_links(previous_path/'output.json');old_out=no_links(json.loads(descriptor.read_text('utf-8'))['output'])
+        if old_out.parent!=data/'scans' or not (old_out/'storage.json').is_file():raise ValueError('Previous canonical output identity is missing or outside the data root')
+        if (old_out/'manifest.json').exists():raise ValueError('Previous scan is already published; do not classify it as interrupted')
+        if old_out.name==args.scan_id:raise ValueError('Recovery must publish a new scan ID; preserve the interrupted output')
+        if (data/'scans'/args.scan_id).exists():raise FileExistsError('Recovery output already exists; preserve it and choose another scan ID')
+        recovery=dict(previous_attempt=str(previous_path),previous_execution_sha256=sha256(previous_file),
+            previous_descriptor_sha256=sha256(descriptor),previous_output=str(old_out),worker_proven_exited=pid,
+            scope='Same-root formal cache revalidated by original preprocessing/content/engine/environment gates; restart global analysis, not arbitrary solver continuation; not cold extraction timing')
+    elif data.exists():raise FileExistsError('Use a fresh data root; never mix another scan into the measurement')
     if data==engine or data.is_relative_to(engine):raise ValueError('Measurement data cannot enter the engine installation')
     from ecra.config import configured_project_root
     source=configured_project_root(config)
@@ -63,7 +86,7 @@ def main():
         raise ValueError('Observer evidence cannot enter firmware or the engine installation')
     work.mkdir(parents=True,exist_ok=False)
     observer_source=Path(__file__).read_bytes();(work/'observer.py').write_bytes(observer_source)
-    data.mkdir(parents=True)
+    data.mkdir(parents=True,exist_ok=bool(recovery))
     cache_reuse=None
     if args.reuse_tu_cache_from:
         if args.mode!='canonical':raise ValueError('Cache recovery diagnostic is canonical only')
@@ -127,6 +150,10 @@ if mode=='legacy':
  sys.argv=[str(engine/'run_ecra.py'),'--config',str(config),'--scan-mode','full','--no-review']
  runpy.run_path(str(engine/'run_ecra.py'),run_name='__main__')
 elif mode=='canonical-published':
+ if sys.argv[6]=='True':
+  import ecra.cli as cli
+  def interrupted_merge(*args,**kwargs):raise RuntimeError('EXPLICIT_DIAGNOSTIC_STOP_BEFORE_MERGE')
+  cli.merge=interrupted_merge
  from ecra.scan_persistence import run_canonical
  raise SystemExit(run_canonical(root,config,no_review=True,scan_mode='full',
   scan_id=sys.argv[7],profile_id=sys.argv[8],_budget_owned=True))
@@ -168,7 +195,7 @@ else:
         system_paging_rate='PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA',paging_samples_valid=0,
         canonical_scope=('Public run_canonical including final publication' if args.mode=='canonical-published' else
                          'Production CLI body, not TaskManager publication wrapper'),
-        logical_disk_peak_is_sampled_lower_bound=True,
+        logical_disk_peak_is_sampled_lower_bound=True,recovery=recovery,cold_extraction=not bool(recovery or cache_reuse),
         started=datetime.now(timezone.utc).isoformat(),peaks={},samples=0,cache_reuse=cache_reuse,
         diagnostic_fault='STOP_BEFORE_MERGE' if args.inject_stop_before_merge else None,
         classification_diagnostics=args.classification_diagnostics)
@@ -181,13 +208,18 @@ else:
             from ecra.storage_activity import DataActivity
             activities.enter_context(DataActivity(data))
             activities.enter_context(DataActivity(data,exclusive=True,purpose='scan-budget'))
+            if recovery:
+                previous=Path(recovery['previous_attempt'])
+                if (sha256(previous/'execution.json')!=recovery['previous_execution_sha256'] or
+                        sha256(previous/'output.json')!=recovery['previous_descriptor_sha256']):
+                    raise ValueError('Previous recovery evidence changed while acquiring scan ownership')
         import psutil
         try:paging=PagingRates()
         except OSError as exc:result.update(system_paging_rate='NOT_MEASURED',paging_error=str(exc))
         env=dict(os.environ,PYTHONIOENCODING='utf-8',GIT_OPTIONAL_LOCKS='0',ECRA_JOB_STOP_FILE=str(work/'stop'))
         if args.mode in {'canonical','canonical-published'}:
             from ecra.studio.resource_policy import temporary_environment
-            owned=data/'work/native-observer';owned.mkdir(parents=True)
+            owned=data/'work/native-observer'/args.scan_id;owned.mkdir(parents=True)
             env=temporary_environment(owned,env)
             result['worker_temporary_root']=env['TEMP']
         if args.mode=='canonical-published':
@@ -257,6 +289,7 @@ else:
             result['publication']=dict(manifest_sha256=sha256(published) if published.is_file() else None,
                 format=value.get('format'),state=value.get('state'),scan_id=value.get('scan_id'))
             result['complete']=result['complete'] and value.get('format')=='ECRA_LOCAL_SCAN' and value.get('state')=='STATIC_VALIDATED' and value.get('scan_id')==args.scan_id
+            if (work/'output.json').is_file() and (out/'diagnostics/tu_cache.json').is_file():result['tu_cache']=json.loads((out/'diagnostics/tu_cache.json').read_text('utf-8'))
         if sha256(config)!=result['config_sha256']:raise ValueError('Frozen configuration changed during measurement')
         save();print(json.dumps(dict(complete=result['complete'],exit_code=process.returncode,seconds=result['seconds'],peaks=result['peaks'])),flush=True)
         return 0 if result['complete'] else 1

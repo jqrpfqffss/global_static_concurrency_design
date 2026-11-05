@@ -1,0 +1,10 @@
+test_actual_full_publication_manifest_native_authority_and_budget_release (tests.test_native_published_observer.NativePublishedObserverTests) ... ok
+test_mismatched_declared_output_never_creates_fake_scan_or_touches_other_root (tests.test_native_published_observer.NativePublishedObserverTests) ... ok
+test_real_interrupted_extraction_resumes_verified_cache_into_new_public_scan (tests.test_native_published_observer.NativePublishedObserverTests) ... ok
+test_recovery_reextracts_changed_source_instead_of_reusing_its_old_facts (tests.test_native_published_observer.NativePublishedObserverTests) ... ok
+test_wrong_engine_config_live_owner_and_same_scan_id_are_refused_without_taking_over (tests.test_native_published_observer.NativePublishedObserverTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 38.258s
+
+OK

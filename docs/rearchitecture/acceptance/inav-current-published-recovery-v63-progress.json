@@ -1,0 +1,39 @@
+{
+  "passed": false,
+  "status": "RUNNING_NO_FINAL_RECEIPT",
+  "observed_utc": "2026-11-05T01:55:33.108614+00:00",
+  "worker_pid": 19616,
+  "worker_created": 1793842128.4097805,
+  "worker_alive": true,
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v62",
+  "mode": "canonical-published",
+  "frozen_producer_manifest_sha256": "65a6a6b751d5ae613b8227e5d05776e3387e2414b818a28af64aea7575ae8754",
+  "observer_release_manifest_sha256": "996802a6901fd7ae9eec3109ed519b6cc5771d079be6762c914b9d3660e376ea",
+  "scan_id": "native-recovered-v63",
+  "last_clang": "388/388",
+  "last_logged_stage": "输入一致性验证",
+  "tu_cache": null,
+  "cold_extraction": false,
+  "recovery": {
+    "previous_attempt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v62",
+    "previous_execution_sha256": "c6488c105a7ddd76da2208073868dcaa00c84765cf9a9004c86f3eee615b81d9",
+    "previous_descriptor_sha256": "52e5c6f5aa2292b90359041fbdad33067ba600d3bbd3285a62686564ad0d16a3",
+    "previous_output": "H:\\ECRA-NATIVE-C62-SEED0\\scans\\native-golden",
+    "worker_proven_exited": 19380,
+    "scope": "Same-root formal cache revalidated by original preprocessing/content/engine/environment gates; restart global analysis, not arbitrary solver continuation; not cold extraction timing"
+  },
+  "elapsed_observed": 1575.7970000000205,
+  "peaks_observed": {
+    "working_set_bytes": 2022133760,
+    "private_bytes": 1896456192,
+    "peak_job_commit_bytes": 1906139136,
+    "sampled_output_logical_bytes": 14196975488,
+    "sampled_output_allocated_bytes": 3756229448
+  },
+  "config_sha256": "1c8fb596abe2729805c202ffca1d74e221866ed3b1d8c060b1680e46e1464072",
+  "inputs_preflight": 4123,
+  "all_gates_passed": false,
+  "physical_32GB": "NOT_VERIFIED",
+  "disk_peak_scope": "Sampled lower bound; retained prior cache/output included; concurrent host I/O and paging not attributable",
+  "scope": "Live snapshot only, not a final native publication/G1/resource acceptance. Original v62 interruption evidence preserved; recovered TU keys and complete content are verified by original engine. Cold timings cannot be compared to this recovery."
+}

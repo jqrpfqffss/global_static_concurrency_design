@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "tests": 5,
+  "seconds": 38.258,
+  "log": "native-published-recovery-tests-v63-final.log",
+  "scope": "Actual Windows two-TU extraction/publication; injected stop, same-root cache recovery, changed-source re-extraction, ownership and publication rejection. Not G2.",
+  "log_sha256": "06f40942e4b6f72c772837cd15604531567bc728a993a4cb8a115d901a5003cb",
+  "source_sha256": {
+    "scripts\\measure_native_golden.py": "1b162949bcc74340ad009fd370f259f351cbb7297a053025afb8a74107979a66",
+    "tests\\test_native_published_observer.py": "0aae427185a34219771f3e569bcf6fe6f432b6541651c7d73c6424979c6ba337"
+  }
+}
