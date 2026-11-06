@@ -1121,8 +1121,8 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     return summary_file
 
 
-def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env, tool_root, source_reader, *, compiler_view=None):
-    """Independent uncached extraction and full analysis, compared per dimension."""
+def full_reference_summary(root, out, cfg, units, coverage, worker_dir, env, tool_root, source_reader, *, compiler_view=None):
+    """Original independent extraction/analysis; no current fact graph required."""
     from .cli import extraction_responses, add_build_unknowns
     from .fact_parts import FactParts
     from .analysis import merge, analyze
@@ -1143,6 +1143,7 @@ def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env,
                                        includes=meta.get('includes', []), parse_status=meta['parse_status']))
     snapshot.assert_valid()
     full_facts = merge(parts)
+    parts.clear()
     full_facts['translation_units'] = verification_units
     full_cfg = copy.deepcopy(cfg)
     full_cfg['analysis']['git_diff']['enabled'] = False
@@ -1150,7 +1151,14 @@ def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env,
         raise ValueError('当前独立全量对照要求 build_closure_only: true；补充分支盘点尚不支持独立对照')
     add_build_unknowns(full_facts, full_cfg, units, coverage)
     full_report = analyze(full_facts, full_cfg, copy.deepcopy(coverage), root=root, source_reader=source_reader)
-    expected, actual = summarize(facts, report), summarize(full_facts, full_report)
+    return summarize(full_facts, full_report)
+
+
+def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env, tool_root, source_reader, *, compiler_view=None):
+    """Legacy post-analysis entry; native runs execute the reference earlier."""
+    actual = full_reference_summary(root, out, cfg, units, coverage, worker_dir, env, tool_root,
+                                    source_reader, compiler_view=compiler_view)
+    expected = summarize(facts, report)
     if expected != actual:
         write_json(out/'diagnostics/git-diff-verification-failed.json', dict(expected=expected, actual=actual), indent=None)
         raise ValueError('增量与独立全量的语义事实不一致，已阻止发布')

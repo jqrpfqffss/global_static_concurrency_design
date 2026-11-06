@@ -1,0 +1,32 @@
+C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_corrupt_current_facts_block_publication_and_preserve_previous_scan (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_original_independent_extraction_runs_before_current_graph (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_complete_but_different_engine_is_rejected_instead_of_recaptured (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_existing_database_retry_has_no_new_cmake_checkpoint_requirement (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_incomplete_capture_can_be_started_again (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_task_state_identity_mode_and_config_bytes_are_bound (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_traversal_and_foreign_task_paths_are_rejected (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_authenticated_api_real_values_and_page_limit_survive_reopen (tests.test_git_versions.GitVersionTests) ... ok
+test_bad_ref_arguments_no_git_and_source_overlap_fail_without_source_write (tests.test_git_versions.GitVersionTests) ... ok
+test_explicit_working_input_preview_is_head_only_and_preserves_repository (tests.test_git_versions.GitVersionTests) ... ok
+test_real_ref_pages_search_and_annotated_commit_resolution_preserve_all_source_bytes (tests.test_git_versions.GitVersionTests) ... ok
+test_staged_unstaged_rename_and_untracked_are_truthful_and_never_included (tests.test_git_versions.GitVersionTests) ... ok
+test_archived_configs_survive_live_profile_change_and_real_owned_job_publishes (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_invalid_header_and_broken_elf_structure_never_publish_valid_results (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_missing_archive_config_bad_regions_and_stale_plan_fail_before_start (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_oversized_config_object_is_rejected_before_a_full_object_read (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_prechecked_manifest_change_is_failed_by_worker_and_retry_keeps_same_fixed_inputs (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_shared_scan_budget_rejects_start_then_same_fixed_plan_can_be_submitted (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_child_temporary_files_ignore_inherited_firmware_temp_and_broker_environment_stays_unchanged (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_host_commit_exhaustion_is_independent_of_free_physical_ram_and_unknown_metrics_are_not_zero (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_other_studio_cannot_mark_owned_running_task_interrupted (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_resource_presets_and_manual_bounds (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_corrupt_or_missing_metadata_is_never_retried_or_replaced_with_stale_data (tests.test_task_metadata_reads.TaskMetadataReadTests) ... ok
+test_review_uses_its_own_real_counters_instead_of_old_scan_or_preflight_progress (tests.test_task_metadata_reads.TaskMetadataReadTests) ... ok
+test_transient_permission_error_recovers_real_bytes_and_permanent_error_is_bounded (tests.test_task_metadata_reads.TaskMetadataReadTests) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 76.402s
+
+OK

@@ -576,6 +576,36 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         snapshot_inputs.save()
         diagnostics.snapshot_status = snapshot_inputs.status
         snapshot_inputs.assert_valid()
+        full_reference_file = None
+        if is_canonical(out) and diff_pin and cfg['analysis']['git_diff']['verify_against_full']:
+            # The current TU parts are on disk. Do not merge them until the
+            # independent global graph and its report have been released.
+            from .git_diff import full_reference_summary
+            from .supplemental import selected_files
+            import copy
+            reference_compilation = copy.deepcopy(compilation)
+            included = {relative(p, root) for u in units for p in u.get('includes', [])}
+            unlisted = [p for p in selected_files(root, scope, out)
+                        if Path(p).suffix.lower() in {'.h', '.hh', '.hpp', '.hxx', '.inc'} and p not in included]
+            reference_compilation.update(unlisted_headers=[], excluded_headers_from_build=unlisted)
+            reference_coverage = dict(translation_units_total=len(units),
+                translation_units_parsed=sum(u['parse_status']=='PARSED' for u in units),
+                translation_units_partial=sum(u['parse_status']=='PARTIAL' for u in units),
+                translation_units_failed=sum(u['parse_status']=='FAILED' for u in units),
+                parse_coverage_percent=round(100*sum(u['parse_status'] in {'PARSED','PARTIAL'} for u in units)/len(units),2),
+                **reference_compilation)
+            diagnostics.stage('独立无缓存全量核对：先计算完整参考摘要，再合并当前事实')
+            reference = full_reference_summary(root, out, cfg, units, reference_coverage, worker_dir,
+                env, tool_root, read_verified_source, **dependency_args)
+            from .workspace import no_links
+            import uuid
+            reference_work=no_links(Path(workspace.workspace_root)/'work/diff-comparison'/('full-reference-'+uuid.uuid4().hex))
+            reference_work.mkdir(parents=True,exist_ok=False)
+            full_reference_file = reference_work/'summary.json'
+            write_json(full_reference_file, reference, indent=None)
+            del reference
+            import gc
+            gc.collect()
         diagnostics.stage('跨翻译单元事实归并')
         facts = merge(parts)
         diagnostics.fact_source = facts
@@ -622,17 +652,33 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         if diff_pin:
             from .git_diff import summarize, compare
             diagnostics.stage('双版本完整证据比较与语义影响传播')
-            report['git_diff'] = compare(read_json(base_summary_file), summarize(facts, report), diff_pin)
+            if is_canonical(out):
+                from .diff_summary_store import compare_spooled
+                report['git_diff'] = compare_spooled(base_summary_file, lambda: summarize(facts, report), diff_pin,
+                    Path(workspace.workspace_root)/'work/diff-comparison')
+            else:
+                report['git_diff'] = compare(read_json(base_summary_file), summarize(facts, report), diff_pin)
             report['git_diff']['baseline_summary_cache'] = base_summary_cache
             report['git_diff']['tu_cache'] = tu_cache.stats() if tu_cache else dict(total=len(units), hits=0, extracted=len(units), corrupt=0)
             for variable in facts['variables']:
                 if variable['symbol_id'] in report['git_diff']['impacts']:
                     variable['impact'] = report['git_diff']['impacts'][variable['symbol_id']]
             if cfg['analysis']['git_diff']['verify_against_full']:
-                from .git_diff import verify_full
-                report['git_diff']['full_verification'] = verify_full(root, out, cfg, units, cov, facts, report,
-                                                                       worker_dir, env, tool_root, read_verified_source,
-                                                                       **dependency_args)
+                if full_reference_file is not None:
+                    from .diff_summary_store import verify_spooled
+                    report['git_diff']['full_verification'] = verify_spooled(full_reference_file,
+                        lambda: summarize(facts, report), Path(workspace.workspace_root)/'work/diff-comparison',
+                        out/'diagnostics/git-diff-verification-failed.json', len(units))
+                    from .workflow import file_digest
+                    write_json(out/'diagnostics/full-verification-summary-proof.json',dict(
+                        format='ECRA_FULL_REFERENCE_SUMMARY_PROOF_V1',state='PASSED',
+                        sha256=file_digest(full_reference_file),bytes=full_reference_file.stat().st_size,
+                        scope='Complete independent summary compared before removing this unreferenced private intermediate'))
+                    no_links(full_reference_file).unlink();full_reference_file.parent.rmdir()
+                else:
+                    from .git_diff import verify_full
+                    report['git_diff']['full_verification'] = verify_full(root, out, cfg, units, cov, facts, report,
+                        worker_dir, env, tool_root, read_verified_source, **dependency_args)
         snapshot_inputs.finalize_parent_inputs()
         diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         samples = safe_review_samples(facts, review_safe_sample, review_shared_sample)

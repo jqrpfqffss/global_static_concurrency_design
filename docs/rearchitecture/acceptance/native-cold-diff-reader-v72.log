@@ -1,0 +1,39 @@
+test_build_root_cfg_and_rename_use_original_canonicalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_complete_fields_duplicates_and_nested_order (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_empty_optional_relations_and_missing_required_function_identity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_inherited_access_blocks_private_isolation_despite_positional_normalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_invalid_pool_references_fail_in_both_readers (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_partial_empty_and_malformed_authorities_do_not_complete (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_encodings_match_inline_with_repeated_references (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_keys_preserve_python_types_instead_of_sqlite_text_affinity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_unread_bodies_and_report_slices_are_never_decoded (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_failed_regeneration_never_replaces_locator_or_old_baseline (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_mutation_between_validation_and_archive_copy_blocks_new_publication (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_partial_baseline_never_publishes_complete_summary (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_valid_summary_cannot_bypass_isolated_source_pollution (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_added_deleted_shape_and_private_fallback (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_all_dimensions_and_findings_preserve_complete_impacts (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_build_and_legacy_return_edges_and_order_sensitive_evidence (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_current_non_string_keys_are_not_coerced (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_head_top_level_is_released_before_baseline_import (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_identical_complete_summaries (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_malformed_and_repeated_json_do_not_publish_and_keep_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_modified_functions_and_consumed_returns (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_nested_scalar_types_lists_and_map_key_types (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_pinned_digest_change_blocks_comparison (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_verification_preserves_full_mismatch_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_corrupt_current_facts_block_publication_and_preserve_previous_scan (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_original_independent_extraction_runs_before_current_graph (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_capture_is_reverified_after_real_baseline_before_current_is_consumed (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+
+----------------------------------------------------------------------
+Ran 34 tests in 484.768s
+
+OK

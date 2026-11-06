@@ -19,13 +19,36 @@ import traceback
 
 def worker(args):
     from ecra.common import write_json
-    from ecra.git_diff import summarize
+    from ecra.git_diff import summarize, compare
     from ecra.native_diff_summary import summarize_native
     from ecra.report_package import sha256
     from ecra.scan_store import EvidenceProvider
     from unittest.mock import patch
     work = args.work
     start = time.monotonic()
+    if args.operation == 'diff':
+        from ecra.common import read_json
+        from ecra.diff_summary_store import compare_spooled
+        pinned = dict(files=[],project_subdir='.',head_sha='immutable-authority',base_sha='immutable-authority',
+                      base_summary_sha256=sha256(args.baseline_summary))
+        if args.mode == 'full':
+            write_json(work/'phase.json', dict(phase='BASE_SUMMARY_AND_FULL_CURRENT_RESTORE'))
+            base = read_json(args.baseline_summary)
+            provider = EvidenceProvider(args.source)
+            facts, report = provider.load('facts'), provider.load('report')
+            result = compare(base, summarize(facts, report), pinned)
+        else:
+            write_json(work/'phase.json', dict(phase='SPOOLED_CURRENT_AND_BASE_COMPARE'))
+            with patch.object(EvidenceProvider, 'load', side_effect=AssertionError('Whole root restoration forbidden')):
+                result = compare_spooled(args.baseline_summary, lambda: summarize_native(args.source), pinned, work/'indexes')
+        if sha256(args.baseline_summary) != pinned['base_summary_sha256']:
+            raise ValueError('Original baseline summary changed')
+        with (work/'comparison.json').open('x', encoding='utf-8') as stream:
+            json.dump(result,stream,ensure_ascii=True,sort_keys=True,separators=(',',':'))
+        write_json(work/'result.json', dict(passed=True, mode=args.mode, operation='diff',seconds=time.monotonic()-start,
+            comparison_sha256=sha256(work/'comparison.json'), comparison_bytes=(work/'comparison.json').stat().st_size,
+            baseline_summary_sha256=pinned['base_summary_sha256'], scope='Complete same-snapshot saved INAV Diff consumer. Not a new native scan or real source edit; complete impact outputs compared independently.'))
+        return
     if args.mode == 'full':
         write_json(work/'phase.json', dict(phase='FULL_FACTS_AND_REPORT'))
         provider = EvidenceProvider(args.source)
@@ -51,8 +74,11 @@ def main():
     parser.add_argument('--engine', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--mode', choices=['full', 'selected'], required=True)
     parser.add_argument('--job-gib', type=float, required=True)
+    parser.add_argument('--operation', choices=['summary','diff'], default='summary')
+    parser.add_argument('--baseline-summary', type=Path)
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.operation == 'diff' and args.baseline_summary is None: parser.error('diff needs --baseline-summary')
     args.engine = args.engine.resolve(); sys.path.insert(0, str(args.engine))
     if args.worker:
         return worker(args)
@@ -88,7 +114,8 @@ def main():
         with (args.work/'console.log').open('xb') as log, (args.work/'resources.jsonl').open('x', encoding='utf-8') as samples:
             command = [sys.executable, '-B', '-X', 'utf8', str(Path(__file__).resolve()), '--worker',
                 '--source', str(args.source), '--work', str(args.work), '--engine', str(args.engine),
-                '--mode', args.mode, '--job-gib', str(args.job_gib)]
+                '--mode', args.mode, '--job-gib', str(args.job_gib), '--operation', args.operation]
+            if args.baseline_summary is not None: command += ['--baseline-summary', str(args.baseline_summary)]
             process = OwnedProcess(command, cwd=args.engine, log=log,
                 env=temporary_environment(args.work, dict(os.environ, PYTHONPATH=str(args.engine),
                     PYTHONHASHSEED='0', PYTHONDONTWRITEBYTECODE='1')))
