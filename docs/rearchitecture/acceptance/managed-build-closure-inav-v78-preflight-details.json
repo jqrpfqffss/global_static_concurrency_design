@@ -1,0 +1,1885 @@
+{
+  "passed": true,
+  "state": "PRECHECK_READY",
+  "config_sha256": "98eb111cd2ee2e3115f89feea1d84d00c461aad890a84308806f6883a824c6bd",
+  "started": "2026-11-06T14:26:17.407047+00:00",
+  "tools": [
+    {
+      "field": "analysis.git_diff / Git",
+      "path": "D:\\git\\Git\\cmd\\git.exe",
+      "version": "git version 2.37.2.windows.2",
+      "sha256": "0908ce576b90e22d3a9764f3dcf6c8159c609f38bfecf1969b9cc74d3134ae48",
+      "available": true
+    },
+    {
+      "field": "analysis.cmake / CMake",
+      "path": "D:\\cmake\\bin\\cmake.exe",
+      "version": "cmake version 3.31.10\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+      "sha256": "3c05de86fbc0ec0610bbee201588e4fc1017347ec61b0f8080981fc6bfe93681",
+      "available": true
+    },
+    {
+      "field": "analysis.cmake.generator / ninja",
+      "path": "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe\\ninja.exe",
+      "version": "1.13.2",
+      "sha256": "e52a7ad9538d9618c67a0bd777964e2eec8a30f68b810a2f6adce1f2daf847b8",
+      "available": true
+    },
+    {
+      "field": "Clang AST",
+      "path": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native\\libclang.dll",
+      "sha256": "b13ec96d9a036d6c6c36dd09e00415ead7acc7fcfd40e721bf33ea86b3490f9d",
+      "available": true
+    },
+    {
+      "field": "编译数据库 / lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c",
+      "path": "D:\\gcc-arm-none-eabi-10.3-2021.10\\bin\\arm-none-eabi-gcc.exe",
+      "version": "arm-none-eabi-gcc.exe (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1 20210824 (release)\nCopyright (C) 2020 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+      "sha256": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac",
+      "available": true
+    }
+  ],
+  "project_id": "cd12e44f95be35d9f6008e9a46d0216dd323036717d2a6bbb7aa4319def78fa4",
+  "project_root": "H:\\ECRA-WHOLE-S78\\firmware",
+  "analysis_root": "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929",
+  "data_root": "H:\\ECRA-WHOLE-P79-SEED0",
+  "build_root": "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed",
+  "compile_database": "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\ecra-target-compile_commands.json",
+  "target": "MATEKH743.elf",
+  "variant": "Release",
+  "cmake_steps": [
+    {
+      "stage": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929",
+        "-B",
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed",
+        "-G",
+        "Ninja",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DRUBY_EXECUTABLE=H:/ecra_stm32_validation/tools/rubyinstaller-2.7.8-1-x64/bin/ruby.exe",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-inputs\\preflight-mapped\\cmake-configure.log",
+      "consumed_inputs": {
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "c09ef56d99559cbe958ba7f6dcf6bf140be0d0005448f53646d6cae2306eb487",
+          "size": 2870,
+          "read_completed_ns": 1793975454068575100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\GetGitRevisionDescription.cmake": {
+          "status": "OK",
+          "sha256": "94f7505410297f02ba23249a88a672a2c7ac8f78834679b95b51a26ad50b7f9f",
+          "size": 5314,
+          "read_completed_ns": 1793975454069571500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\git-snapshots\\current-a040c6bef605f929\\repository.git\\worktrees\\current-a040c6bef605f929\\HEAD": {
+          "status": "OK",
+          "sha256": "8035bc5ea3fbade075342656da5f74717b3b8be7cf826e92924e06bd0853ba25",
+          "size": 41,
+          "read_completed_ns": 1793975454070568700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\GetGitRevisionDescription.cmake.in": {
+          "status": "OK",
+          "sha256": "2e215cdae747d327ffe0276c625afa578aa5fb3d5bfcd56d99c4a4081d71bafe",
+          "size": 1324,
+          "read_completed_ns": 1793975454071566100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\CMakeFiles\\git-data\\grabRef.cmake": {
+          "status": "OK",
+          "sha256": "52bc3d4e7783d22d90bbe444e78612e72eb43d3c829232050f751a9b6295270a",
+          "size": 2520,
+          "read_completed_ns": 1793975454072564800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\main.cmake": {
+          "status": "OK",
+          "sha256": "47de3938ffc666a0347002b42b58da4ddb2813f9dcf17dcf2ee858044a64da36",
+          "size": 4735,
+          "read_completed_ns": 1793975454074559700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\settings.cmake": {
+          "status": "OK",
+          "sha256": "dba1a797f7372eccf237effacedf498517951e0f56581f325f49bb644b058228",
+          "size": 1893,
+          "read_completed_ns": 1793975454075557100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeParseArguments.cmake": {
+          "status": "OK",
+          "sha256": "41a398f1ecbc3f140494e3dd3568b9739cf91d04ceef1d2122b5408565beeb51",
+          "size": 593,
+          "read_completed_ns": 1793975454075557100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\arm-none-eabi-checks.cmake": {
+          "status": "OK",
+          "sha256": "e52c7c6cc85c130aa322634bd0df4bf2eeed1885313abd69f18e8ac9e8fbb61f",
+          "size": 4688,
+          "read_completed_ns": 1793975454076554900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\gcc.cmake": {
+          "status": "OK",
+          "sha256": "c5177b8591e0fa2de3a2143d05d5d0c0ed2562a4cc14fca276dea09db67e436e",
+          "size": 835,
+          "read_completed_ns": 1793975454077551900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineSystem.cmake": {
+          "status": "OK",
+          "sha256": "75fd69926dda46803b0cdc465b7eccb121dec262abf97c7ac8fa9ac77f285f5e",
+          "size": 9589,
+          "read_completed_ns": 1793975454078549400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\arm-none-eabi.cmake": {
+          "status": "OK",
+          "sha256": "08da7eee20bdd1a93545d29e380032644655dcd52aa02179b05db6d6117aef29",
+          "size": 2652,
+          "read_completed_ns": 1793975454080543100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeSystem.cmake.in": {
+          "status": "OK",
+          "sha256": "892560781b19d01b3adaf08b5da235cd99bcee414e5b4ce80d99c585d6b66e35",
+          "size": 578,
+          "read_completed_ns": 1793975454081540900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\CMakeFiles\\3.31.10\\CMakeSystem.cmake": {
+          "status": "OK",
+          "sha256": "a56ffef866395ae06c7c220b9e9184c96bd861536b7fff6a85ae449e38343275",
+          "size": 501,
+          "read_completed_ns": 1793975454082538300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeNinjaFindMake.cmake": {
+          "status": "OK",
+          "sha256": "e47b9d7f3e44791be017e116eabbe102936f5fd63522e7dc2c38f72517985add",
+          "size": 324,
+          "read_completed_ns": 1793975454084531900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeSystemSpecificInitialize.cmake": {
+          "status": "OK",
+          "sha256": "65ef4e8430a3f70903e4bb3656e8c6e9f39ab980f823784c8a7004673cceeb71",
+          "size": 1492,
+          "read_completed_ns": 1793975454085529000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineCCompiler.cmake": {
+          "status": "OK",
+          "sha256": "ed26e19580f2e1b6db06df59c50bc58564c144070584b76ccff911923acf2a7e",
+          "size": 9057,
+          "read_completed_ns": 1793975454086527000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "b08ab96abdd4a814a5150968fa88552687974cf17008083ec56c70da5c90d572",
+          "size": 7671,
+          "read_completed_ns": 1793975454088520700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineCompilerId.cmake": {
+          "status": "OK",
+          "sha256": "8ebdc56d2fb72835d351aed0d7c50973c9fef69ca4c377618b2e1bf3096727f8",
+          "size": 58117,
+          "read_completed_ns": 1793975454089519300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCompilerIdDetection.cmake": {
+          "status": "OK",
+          "sha256": "a246d8e42fb2f1b8c95a815f7f898e0d5cea2ebd31b08280595e8789cc6dfcde",
+          "size": 5060,
+          "read_completed_ns": 1793975454090515900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\ADSP-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "817ea53868a6e888ecf2cf9be9ab8f62552c4d5b54181e0c2f787dc7dafeeb1c",
+          "size": 493,
+          "read_completed_ns": 1793975454091514200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\ARMCC-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "6ab3dff235e725af0f7a0c537d11b7368183b49777c02d19508f35aa331eae5b",
+          "size": 747,
+          "read_completed_ns": 1793975454092510400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\ARMClang-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "122b22c309d7f17864c00458d63f8ca4415fbef020f6cd3d4169051c9ee4fc79",
+          "size": 539,
+          "read_completed_ns": 1793975454093507600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\AppleClang-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "a127501ee54a94a4fb147af4485b1c5534250141685ccd168fb983dbfd0e15eb",
+          "size": 292,
+          "read_completed_ns": 1793975454094504700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Clang-DetermineCompilerInternal.cmake": {
+          "status": "OK",
+          "sha256": "bfbe3afacdd57c9c60d49f1bbfea298d5bbdcaeed29ac46a46fd7c6aefc914c0",
+          "size": 560,
+          "read_completed_ns": 1793975454096499600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Borland-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "911ca508802309e28bc90afc063014430b68ed32066e36827d6476df8d17cede",
+          "size": 267,
+          "read_completed_ns": 1793975454098494200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Bruce-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "996d0305c505c6330a4ea8cb54f47908d052c54468884daf95fca2f18a5b150a",
+          "size": 46,
+          "read_completed_ns": 1793975454099491700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Clang-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "1c2bdaea4494ec6ee5b8ceaea1b091fa143c5d6e4274aa8c2d542dee17c67d0c",
+          "size": 128,
+          "read_completed_ns": 1793975454100489700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Compaq-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "c0b034627f0f80bd2184a0af914e42254a6d53105474014b5b341c5ffb9d596c",
+          "size": 353,
+          "read_completed_ns": 1793975454102483300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Cray-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "bcd86455ac77197a187fb02a217a6645d87ba8171913644027e9e3b9ef9c37d0",
+          "size": 225,
+          "read_completed_ns": 1793975454103481800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\CrayClang-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "45702bf66ae39eca4c69e87703043e36da5c929d0a2b301fa0883da4a79646e4",
+          "size": 389,
+          "read_completed_ns": 1793975454105475600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Embarcadero-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "3dfc229c255b4a4b113da38c3792d48582872c7422472f86ba7d02bcb8b0c59c",
+          "size": 394,
+          "read_completed_ns": 1793975454106472800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Fujitsu-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "9f1352bee0d9e9e71bf854a89f9fe6c0d0025b67c5f81b72ff7df763c30477f8",
+          "size": 646,
+          "read_completed_ns": 1793975454107470100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\FujitsuClang-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "df1c613989a9ced1b2b38e681ee90ed7727158e06d741695af391c0a7ea81575",
+          "size": 373,
+          "read_completed_ns": 1793975454108468100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GHS-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "f5f4425e44240e2a913b827f3d23d40f8ddaf9384ee3de8fe2e6502ea8ced51c",
+          "size": 413,
+          "read_completed_ns": 1793975454109465400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "93a5a93573bd653826e844cf1586f5493e0bb5b9d87ff5ec05d8416c7d549781",
+          "size": 380,
+          "read_completed_ns": 1793975454110462500
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\HP-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "8297272e36721ace2d66a5639150bc7f1fcb49456ce70636f84f7360483575c1",
+          "size": 326,
+          "read_completed_ns": 1793975454112457100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\IAR-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "0f294d3fa2df36efbeb46de60dbe5aa75565372bc64d55cb5d37d40709b73f2f",
+          "size": 2158,
+          "read_completed_ns": 1793975454113454100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\IBMClang-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "37ee3320a1ef0378c9b405a64a45ca7fa272e5c4be9772c8a0142ce0c4159cf1",
+          "size": 421,
+          "read_completed_ns": 1793975454113454100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Intel-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "112392e6cbbf7bf650af3865eff73007b829d6c84ae044e11e9ae4540c2f5862",
+          "size": 2047,
+          "read_completed_ns": 1793975454115448700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\IntelLLVM-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "26e15a01b302679e6f3679359cfd2daeaabed1dfdc1d7ed09e1d3aab3f5b3578",
+          "size": 1720,
+          "read_completed_ns": 1793975454115448700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\LCC-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "aea7e2976d027619dce0bbd1d2125acb65430564937453b99ccb9465992a93e6",
+          "size": 751,
+          "read_completed_ns": 1793975454116446600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\MSVC-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "301b1ea7c2fc7ad6afee63a5e10ad5c8d2c54d1ff3f0ed0fdadb29bdd38be3f9",
+          "size": 664,
+          "read_completed_ns": 1793975454117444000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\NVHPC-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "32add69c344dcaa43c9d58d13a4dd0485abf1acfab1c98b13abe87b3ca049c92",
+          "size": 374,
+          "read_completed_ns": 1793975454118440800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\NVIDIA-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "250411bdae770c159319b160a4a7a35c23caf47c3953b4e6f2c8e2118acfa893",
+          "size": 1129,
+          "read_completed_ns": 1793975454119438300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\OpenWatcom-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "33ffd48e11a0718fea7251cd8fa5dbc10624df5c80401db2e0cb448bb428a76e",
+          "size": 397,
+          "read_completed_ns": 1793975454120435500
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\OrangeC-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "c201394423340daa6d97e69269719ff89ee8558d8569bd4d98715106118e0fe1",
+          "size": 313,
+          "read_completed_ns": 1793975454121433000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\PGI-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "67586eafe2b572852c3e02809dae3a486f2e7a0c6bb8454460d5070109660908",
+          "size": 337,
+          "read_completed_ns": 1793975454122430800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\PathScale-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "9bed6570207de8fbc9f6f4c242ad5d0b9e6d57388a531871bbbd9028182be6c4",
+          "size": 350,
+          "read_completed_ns": 1793975454123427600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\SCO-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "64a67818e2ecfae75a062c62b213a648d6b081c1b974ed9b3a1511c60025b0ea",
+          "size": 56,
+          "read_completed_ns": 1793975454124425000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\SDCC-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "677d886aed1b540ee451147dc41730f87fc200ede9b7b53bd6ad157bc8299de8",
+          "size": 668,
+          "read_completed_ns": 1793975454125422200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\SunPro-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "d748aa2d8ce9d50dea0f960d0ebb66024812c5e60e290297573c80473a608066",
+          "size": 635,
+          "read_completed_ns": 1793975454126419900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\TI-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "aef911a56b7f6e78957c83274a358db2506c1b07eaa8dfa06d75b30517cd0473",
+          "size": 419,
+          "read_completed_ns": 1793975454127417300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\TIClang-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "e1eb498dd60dab9ce139ad4f66175e397bf07f4fc6f7b441d5f0e05f959fbdc2",
+          "size": 470,
+          "read_completed_ns": 1793975454128414700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Tasking-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "ad8ec234765ef93d5b3a4b8ad6bcdd2f414b9166f330b2bf37185533ddfe3056",
+          "size": 500,
+          "read_completed_ns": 1793975454129412000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\TinyCC-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "b6de9407b3feb7b372d50d52110f6ded7e497e46bfdf3cc0fd1c05accd289e60",
+          "size": 50,
+          "read_completed_ns": 1793975454130408900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\VisualAge-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "b5183f324af0e268d73bccbe96b9045d4c3f4d386c2120b3d143f910f2055ea4",
+          "size": 177,
+          "read_completed_ns": 1793975454132403700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\IBMCPP-C-DetermineVersionInternal.cmake": {
+          "status": "OK",
+          "sha256": "471fd3e4f74f8079767b7789ae256eba5a234bf881be8f64cd6fafb89c6ccee4",
+          "size": 273,
+          "read_completed_ns": 1793975454133401400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Watcom-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "0cd6dcd25de9f7aedf9d92da46754963edf1edf3972d91f2c07e024cb969b4fb",
+          "size": 403,
+          "read_completed_ns": 1793975454134398500
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\XL-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "bdbb33cc6c4cf5e268fd03e9648a3b7e674714729f48ac1b86090dd828a4524c",
+          "size": 178,
+          "read_completed_ns": 1793975454136394100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\XLClang-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "2d38cf08c1a8fddc59c4e33ce3b61378f6c47b6fb21d9a7dead194fb8ceb7c7a",
+          "size": 411,
+          "read_completed_ns": 1793975454138387900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\zOS-C-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "b9b39f4093bde5c9b00657aeca6526c5e258de701dcfd952225533821625164b",
+          "size": 158,
+          "read_completed_ns": 1793975454139385100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeFindBinUtils.cmake": {
+          "status": "OK",
+          "sha256": "0429b2f4eba63846e53d3b21211ae24ea947681edab4d4ae5d3bca0d227dec88",
+          "size": 11062,
+          "read_completed_ns": 1793975454188255000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU-FindBinUtils.cmake": {
+          "status": "OK",
+          "sha256": "d435b29eb88c274ee36a1902535ef317b19bc92b1755b137abd07ad735313630",
+          "size": 1867,
+          "read_completed_ns": 1793975454189252200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCCompiler.cmake.in": {
+          "status": "OK",
+          "sha256": "e2f66f1f3d09be0c62b31cd9916d4f29c15bb2f920bfd243c8abcaca64e017c5",
+          "size": 3804,
+          "read_completed_ns": 1793975454190251100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\CMakeFiles\\3.31.10\\CMakeCCompiler.cmake": {
+          "status": "OK",
+          "sha256": "e772ed19f78092acce92a9e5c5a3a7a1ebc7e88827f884eacf93a57f2e0b0c8f",
+          "size": 3163,
+          "read_completed_ns": 1793975454192244200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineCXXCompiler.cmake": {
+          "status": "OK",
+          "sha256": "470e7c6e9da7e3f029a7277350fc5732d485c434fdef2c2c44e075d4a8e21ab2",
+          "size": 9445,
+          "read_completed_ns": 1793975454194240200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\Compaq-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "472f26db64dadfb84d3d3d925ae46083f1791475b82da596860e836005cc250a",
+          "size": 363,
+          "read_completed_ns": 1793975454208202000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "062d821b266f29cf1aa0d0b2e0b7e21484c292e30c414ea29de5c8727fc1f2a0",
+          "size": 507,
+          "read_completed_ns": 1793975454215182700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\HP-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "1f895d6b6de32cbc085d45786e83e7f9e3d4cb43fd9c970a623d957f6686ded6",
+          "size": 331,
+          "read_completed_ns": 1793975454216180200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\IBMClang-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "37ee3320a1ef0378c9b405a64a45ca7fa272e5c4be9772c8a0142ce0c4159cf1",
+          "size": 421,
+          "read_completed_ns": 1793975454218174800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\LCC-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "aea7e2976d027619dce0bbd1d2125acb65430564937453b99ccb9465992a93e6",
+          "size": 751,
+          "read_completed_ns": 1793975454221168100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\SunPro-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "351b4edb1822c00521f6966b1219a9145585a126752849f2da6300da2a5dc496",
+          "size": 644,
+          "read_completed_ns": 1793975454230144000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\VisualAge-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "6522d060db4fc99e2ab690400191e9177c0e2e7cf88c05b94889add18c295491",
+          "size": 183,
+          "read_completed_ns": 1793975454234132800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\IBMCPP-CXX-DetermineVersionInternal.cmake": {
+          "status": "OK",
+          "sha256": "9c29fb54a25b7b1cb5915c11eb8b40103ba8a8a0efa9fa368ea441ab8ee58e3d",
+          "size": 281,
+          "read_completed_ns": 1793975454235130000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\XL-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "d1794fe9f919361d7de8a716933ed7f1bee3a3395f7cd3ab3a0acf155565c5f5",
+          "size": 184,
+          "read_completed_ns": 1793975454238123400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\XLClang-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "2d38cf08c1a8fddc59c4e33ce3b61378f6c47b6fb21d9a7dead194fb8ceb7c7a",
+          "size": 411,
+          "read_completed_ns": 1793975454240116000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\zOS-CXX-DetermineCompiler.cmake": {
+          "status": "OK",
+          "sha256": "19883154068cf065896fb2c3ec21852963900194b4f6021d514cc839571ed2f9",
+          "size": 162,
+          "read_completed_ns": 1793975454241115400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCXXCompiler.cmake.in": {
+          "status": "OK",
+          "sha256": "59b64c396d2721e22f97331987c140ed6e6fd232f008096caf23bda8c0ebf8d2",
+          "size": 4661,
+          "read_completed_ns": 1793975454292975300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\CMakeFiles\\3.31.10\\CMakeCXXCompiler.cmake": {
+          "status": "OK",
+          "sha256": "10c8867a21b38aead3f5e3cf9866a3194a5d724c86e74d5fff5141a256618949",
+          "size": 6444,
+          "read_completed_ns": 1793975454293972300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeSystemSpecificInformation.cmake": {
+          "status": "OK",
+          "sha256": "0283561f399763afb6bf1030c54eed4f2ff2cdf7f2d2291b4f9d873327baced2",
+          "size": 2752,
+          "read_completed_ns": 1793975454294969700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeGenericSystem.cmake": {
+          "status": "OK",
+          "sha256": "7cf632e8695588a86b826f402bb2f7ae88eb5e88968bcea1faf4e041f512f863",
+          "size": 8319,
+          "read_completed_ns": 1793975454295967300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeInitializeConfigs.cmake": {
+          "status": "OK",
+          "sha256": "3ddd2e1e1a643fe34000d9263245e38cd8a4fc1b018891f6523661a4601e296d",
+          "size": 1613,
+          "read_completed_ns": 1793975454296964300
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Platform\\Generic.cmake": {
+          "status": "OK",
+          "sha256": "741194c89231f0f69752b642f5bb8f62f88906202b579c133d6387261964bf6a",
+          "size": 844,
+          "read_completed_ns": 1793975454297961700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCInformation.cmake": {
+          "status": "OK",
+          "sha256": "28917d1fe23f3ac9a17ffe786230f3b476a9da6387cbf4cf9949532ebe0db6fe",
+          "size": 6139,
+          "read_completed_ns": 1793975454299957600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeLanguageInformation.cmake": {
+          "status": "OK",
+          "sha256": "d675a6a4f9b3040b2b77fb9593014d226caad9eba387f610bbef18f83c4fcde5",
+          "size": 1290,
+          "read_completed_ns": 1793975454300953900
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU-C.cmake": {
+          "status": "OK",
+          "sha256": "7ded4c6323af8dd2d0972e65630d850e900b019c90b4d3c3a7ac4a4115cd23d4",
+          "size": 500,
+          "read_completed_ns": 1793975454301951200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU.cmake": {
+          "status": "OK",
+          "sha256": "70fdb6a176794ea13f33fc4fc204f7e36a17c432651a4dfb5178e67fe3a35159",
+          "size": 11921,
+          "read_completed_ns": 1793975454302948600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\CMakeCommonCompilerMacros.cmake": {
+          "status": "OK",
+          "sha256": "1777ea3079edfe62ceeda77defdeb247f9f137cef1288eeac59c370c794df525",
+          "size": 10562,
+          "read_completed_ns": 1793975454303945800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCommonLanguageInclude.cmake": {
+          "status": "OK",
+          "sha256": "71a14e6498c5b4bb918bf8a168814272e7387ad8d5cc44865b1be31e82f2ba4a",
+          "size": 5296,
+          "read_completed_ns": 1793975454305940200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeTestCCompiler.cmake": {
+          "status": "OK",
+          "sha256": "70e4ee1d024af539c58350fbb4ddd8035c79d38778074b11d708c3cc154db151",
+          "size": 3693,
+          "read_completed_ns": 1793975454306937600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeTestCompilerCommon.cmake": {
+          "status": "OK",
+          "sha256": "62ddbef6d7bad57e76bb24282bc32b5d453392f25a50a4a2f545eedcab53e547",
+          "size": 1362,
+          "read_completed_ns": 1793975454307935400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineCompilerABI.cmake": {
+          "status": "OK",
+          "sha256": "c41bd491ad3d8dcdad56d4eb44ccc832be0122cccc375a666d535e8885b2c3aa",
+          "size": 12942,
+          "read_completed_ns": 1793975454309929800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeDetermineLinkerId.cmake": {
+          "status": "OK",
+          "sha256": "9a0a18058fe44ea22c1700061e96a7e7909d67df8153c7556de6c35aad356946",
+          "size": 3974,
+          "read_completed_ns": 1793975454310928800
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeParseImplicitIncludeInfo.cmake": {
+          "status": "OK",
+          "sha256": "afd2a8f5e59fa9f316b0279eb5897d5b8be4978d877dd793ad514a8a157e3fda",
+          "size": 10070,
+          "read_completed_ns": 1793975454311924600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeParseImplicitLinkInfo.cmake": {
+          "status": "OK",
+          "sha256": "f359f8033e801a47bb64c9fa2c640b8acdf7a12c079342b2b952bfa50d01283e",
+          "size": 17712,
+          "read_completed_ns": 1793975454313919000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeParseLibraryArchitecture.cmake": {
+          "status": "OK",
+          "sha256": "6421d62a71eb0f79f82485d6a216b1f3398ee422ce6c6dbfeac17896c1e25b72",
+          "size": 1782,
+          "read_completed_ns": 1793975454314917000
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCCompilerABI.c": {
+          "status": "OK",
+          "sha256": "57d3a2bcceb36643f49614b4489578bcbd789d77def2351e1b94efc1adc90e08",
+          "size": 539,
+          "read_completed_ns": 1793975454316911400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineCompilerSupport.cmake": {
+          "status": "OK",
+          "sha256": "05c86917636e63a311deb371816b4873def1e29c784cb2b41c0fbc04bb63c95b",
+          "size": 11238,
+          "read_completed_ns": 1793975454317908400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\FeatureTesting.cmake": {
+          "status": "OK",
+          "sha256": "615f4b243c8fb7dc08223d3fc8e2c4cc3e703f96f47d20b9d176b9744433249c",
+          "size": 5353,
+          "read_completed_ns": 1793975454318905700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeCLinkerInformation.cmake": {
+          "status": "OK",
+          "sha256": "1955ff9e6e755ce461fa5bc212c1cdbfd8bb459d818e83135546dd5147b0eb0e",
+          "size": 1458,
+          "read_completed_ns": 1793975454321898400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeCommonLinkerInformation.cmake": {
+          "status": "OK",
+          "sha256": "40f9dd15de4aa5b7b73b5ceca6c51cf8c22215ccf3b641e67de2f0691ad7600e",
+          "size": 670,
+          "read_completed_ns": 1793975454322895400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeInspectCLinker.cmake": {
+          "status": "OK",
+          "sha256": "338b9d3c26e040c49d13b6030ae601f79a2a0c450e4d56ce5aaedc548a480f60",
+          "size": 316,
+          "read_completed_ns": 1793975454323892400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCXXInformation.cmake": {
+          "status": "OK",
+          "sha256": "75c16397638539081f8e3c7f29e45071309522ce82c8364830de436d9141ee13",
+          "size": 6611,
+          "read_completed_ns": 1793975454326884500
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU-CXX.cmake": {
+          "status": "OK",
+          "sha256": "04f982ab80ccfff26c67c56d0f7c11fdb3e64dc78e228f2381559ed994543513",
+          "size": 1714,
+          "read_completed_ns": 1793975454328879200
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeTestCXXCompiler.cmake": {
+          "status": "OK",
+          "sha256": "90afa7a7caeb7fbdae7656cf2588bf553f889fdb840b6d7ca98ee89fe1096c89",
+          "size": 4106,
+          "read_completed_ns": 1793975454332869600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeCXXCompilerABI.cpp": {
+          "status": "OK",
+          "sha256": "e85d3b2328157b91ebf98fc7d55dfb0f7e6bae60b908667ae80644bee02ba3ea",
+          "size": 406,
+          "read_completed_ns": 1793975454340848400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeCXXLinkerInformation.cmake": {
+          "status": "OK",
+          "sha256": "0270b1300ff4bc58e7fd4413ade0d5b2caa3932cf5f5a780c7057d086bd4aa2a",
+          "size": 1484,
+          "read_completed_ns": 1793975454346831700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeInspectCXXLinker.cmake": {
+          "status": "OK",
+          "sha256": "bc7f652d68e036d9507f4dcb5fa5fbae740e077a2fec618e4b43b27e3bdb75c6",
+          "size": 320,
+          "read_completed_ns": 1793975454349823400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeDetermineASMCompiler.cmake": {
+          "status": "OK",
+          "sha256": "92791261bc5e3f5aea8ae0ac40202a0677360e3821fa977c8e80726d5b3f801b",
+          "size": 12394,
+          "read_completed_ns": 1793975454351818100
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeASMCompiler.cmake.in": {
+          "status": "OK",
+          "sha256": "2aa024728b1e9d167c4008b7effc25b67b483fa70a376b083bb70629a794a6f8",
+          "size": 1718,
+          "read_completed_ns": 1793975454359588600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\CMakeFiles\\3.31.10\\CMakeASMCompiler.cmake": {
+          "status": "OK",
+          "sha256": "375ff6f1f7f5dcabb82077fbc592d0125ba1c6fa506a25cace8556f5abc281a7",
+          "size": 1217,
+          "read_completed_ns": 1793975454361622700
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeASMInformation.cmake": {
+          "status": "OK",
+          "sha256": "5b3054af1f6eb07085db1e3b5d776e6f7c334e51210ebe5f09a9f1ac4da22fa3",
+          "size": 4185,
+          "read_completed_ns": 1793975454362133500
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Compiler\\GNU-ASM.cmake": {
+          "status": "OK",
+          "sha256": "bc9f1577b69bc58337ec640062379e10768cffb0a5895be2dddde99f53dc6510",
+          "size": 549,
+          "read_completed_ns": 1793975454363126400
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\CMakeTestASMCompiler.cmake": {
+          "status": "OK",
+          "sha256": "0474c842d6b207e3a71aee918c9fe05a21754abb8d01ce22ea889393d4baf7cb",
+          "size": 890,
+          "read_completed_ns": 1793975454366118600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeASMLinkerInformation.cmake": {
+          "status": "OK",
+          "sha256": "c50b08992b8839061902538740d703e0bf15c86187f812a7887fb55b5584dccb",
+          "size": 1542,
+          "read_completed_ns": 1793975454366118600
+        },
+        "D:\\cmake\\share\\cmake-3.31\\Modules\\Internal\\CMakeInspectASMLinker.cmake": {
+          "status": "OK",
+          "sha256": "a33b50c58654bc8e1e9f54367c34a2409ce07ad742643059c8291d5c844eb03f",
+          "size": 815,
+          "read_completed_ns": 1793975454368113200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\openocd.cmake": {
+          "status": "OK",
+          "sha256": "2f246990f9ce63fc57826c9b2dc187fad3cd0ba807616f5636b468bae3617c9f",
+          "size": 3690,
+          "read_completed_ns": 1793975454370108800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\svd.cmake": {
+          "status": "OK",
+          "sha256": "cd4501fc029dc78bf145abbb8e981d5cad34c8b0d8335890137668e33f895022",
+          "size": 671,
+          "read_completed_ns": 1793975454370108800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32.cmake": {
+          "status": "OK",
+          "sha256": "2f81ada03fd2e5016face28e2f346184b0fe79b0ae90173f606628c6c289b778",
+          "size": 15337,
+          "read_completed_ns": 1793975454372103400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32-bootloader.cmake": {
+          "status": "OK",
+          "sha256": "0ac465b2a10ed8c25a7d6a75d51c936068d341cca06b3649c4ca7bf3b4c2dd7b",
+          "size": 672,
+          "read_completed_ns": 1793975454373099900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32f4.cmake": {
+          "status": "OK",
+          "sha256": "d6c37d353366f98c44e6eae95945e5cd1c6ffc98b6f5d16fe6b6f8ee63edacb5",
+          "size": 4320,
+          "read_completed_ns": 1793975454374098100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\cortex-m4f.cmake": {
+          "status": "OK",
+          "sha256": "a256c5cc4b183061e6990a41ed8b80166ce49bd6f8942019a71afe60039a05b7",
+          "size": 415,
+          "read_completed_ns": 1793975454375094800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32-stdperiph.cmake": {
+          "status": "OK",
+          "sha256": "29b40ac3866c687c7efe6e5f1f31c1b875ab644bb4b14713ef77acc366de3fe9",
+          "size": 87,
+          "read_completed_ns": 1793975454376092600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32f4-usb.cmake": {
+          "status": "OK",
+          "sha256": "b1e67038e3d1df3fb8d92bdac168b45d0772aa18f6b9ead2ac80f12f6b70e0ac",
+          "size": 1794,
+          "read_completed_ns": 1793975454377089700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32f7.cmake": {
+          "status": "OK",
+          "sha256": "4436897ee54e3dba881d942ce4ca45d489d109224aeea6927ce783c156203fef",
+          "size": 3849,
+          "read_completed_ns": 1793975454379084400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\cortex-m7.cmake": {
+          "status": "OK",
+          "sha256": "1e4d026e5c8e0f84461e76d78f19baf68864fe943eb55dac678727e0a12402f9",
+          "size": 390,
+          "read_completed_ns": 1793975454380081700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32f7-usb.cmake": {
+          "status": "OK",
+          "sha256": "833e44ab0bb700a376d3f9ef0f9af379eaf5d21252865861092d8bf45330a6b1",
+          "size": 1707,
+          "read_completed_ns": 1793975454381079100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32h7.cmake": {
+          "status": "OK",
+          "sha256": "1dcb029034ae1491a9c7a9b7d4fbd0f360d571930f29822afa55515b08af113e",
+          "size": 6148,
+          "read_completed_ns": 1793975454382076600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\stm32h7-usb.cmake": {
+          "status": "OK",
+          "sha256": "3d6901885a851b4a80febb0927269a23fb06f22982d13922f1c3c02ff76fc4e5",
+          "size": 1396,
+          "read_completed_ns": 1793975454385067800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\at32.cmake": {
+          "status": "OK",
+          "sha256": "e2316f599a334aa6c8a3e866ac68ab13d18a5abac04b46d207a27134af3f8e67",
+          "size": 15302,
+          "read_completed_ns": 1793975454387062900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\at32-bootloader.cmake": {
+          "status": "OK",
+          "sha256": "bf0be8a8273cf7c24182c23a31a477b494767a329d5258b7ee46fdc4d1f2efcf",
+          "size": 751,
+          "read_completed_ns": 1793975454388060100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\at32f4.cmake": {
+          "status": "OK",
+          "sha256": "f6917da1d58b59c3314c5d3e920c2b3bd1b33b2b58216e77a9a71c72397d7316",
+          "size": 3198,
+          "read_completed_ns": 1793975454390054500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\at32-stdperiph.cmake": {
+          "status": "OK",
+          "sha256": "52525b52550eb44a680abaef4b41b100320ffbcdcc192fbb9133fbed38da4aa3",
+          "size": 108,
+          "read_completed_ns": 1793975454392049000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\at32f4-usb.cmake": {
+          "status": "OK",
+          "sha256": "abf0988275f72f31f384ae9c1395d9ec0ffda1467d77af2503265eae2b78a563",
+          "size": 1219,
+          "read_completed_ns": 1793975454393046300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\sitl.cmake": {
+          "status": "OK",
+          "sha256": "332127ab8af0afc85635728eb3b7c6089d5db35543c2bfa750ceedf4431c4cde",
+          "size": 4872,
+          "read_completed_ns": 1793975454396038800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\cmake\\ci.cmake": {
+          "status": "OK",
+          "sha256": "c2666a44e991a8e72e16f47648c0b349f29804b215754f934a4bcc01f7fe5f9b",
+          "size": 635,
+          "read_completed_ns": 1793975454397035900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f5bb088f924610a2b5f93d2da577ea8531295a12a180a1a43dd0fd6925cd815e",
+          "size": 24,
+          "read_completed_ns": 1793975454398033000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b26ead896c72d971b7ad29a2551382a63f508f27de9dae74dbc10ab581ec6e55",
+          "size": 15616,
+          "read_completed_ns": 1793975454399030200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0cbd1742447a1948683c81810c1b8eae291eefa38d1fff5fd06ac9179eb17520",
+          "size": 183,
+          "read_completed_ns": 1793975454400027900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AIKONF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ec79f5bcb00adfd95486e76e38138496ec0b12d34967f4f6b2bdcc7d736e4480",
+          "size": 43,
+          "read_completed_ns": 1793975454401025200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AIRBOTF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f14498548a38d7e80eab9c196323c5cf05cef3dfced4102a1eae0e37e274c7a8",
+          "size": 30,
+          "read_completed_ns": 1793975454402022700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AIRBOTF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "5840f32425d115ac7444f26f9e6d9ad980f519ad95ff7c66c850ee0fa5ae09d6",
+          "size": 95,
+          "read_completed_ns": 1793975454403020900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ALIENFLIGHTF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "76165e43e381a5e9b9aca093846724a8cc82cf2b24851346650dbfa0db6aa8f8",
+          "size": 49,
+          "read_completed_ns": 1793975454404017300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ALIENFLIGHTNGF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "a9b3a1370b836c517ff7fcec965a0b489b79911cc58a67b75f9f6eeca7d8ffc4",
+          "size": 51,
+          "read_completed_ns": 1793975454404017300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ANYFC\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e6d98fa2055e1fc5d4132f4529403f3a38bd0f149920ae533a98a7dc2074cdaa",
+          "size": 39,
+          "read_completed_ns": 1793975454405014200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ANYFCF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "a42ffa05692c720d480c33ed5a3e3d1ffec0969cd931ca14a32ee10cfca6b78a",
+          "size": 72,
+          "read_completed_ns": 1793975454407009500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ANYFCM7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2b23d6f67979928432cf378bf91d19b5fed1a5ccef595bf770d48ac70a4b00ff",
+          "size": 43,
+          "read_completed_ns": 1793975454408006600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCF405AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "358ee1f0e6c4a6003dbfdbe9ef62b81ab893a683dd332504d3ca3027f0ecd101",
+          "size": 37,
+          "read_completed_ns": 1793975454409003800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCF4V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "12c9d6d155adf4dcb13fdb5b6451cca8f5641ff9060603f64cef6f48b6634404",
+          "size": 34,
+          "read_completed_ns": 1793975454410001600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCF4V3\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0e1eb5091a4b975ef27f9885fef85ebe759f414428bd190574ec2bef01d8c8ec",
+          "size": 73,
+          "read_completed_ns": 1793975454410998400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCF722AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "bafe720dab8733724a7362b3b03b6352ffb1cf168848036b1b04c31ba6871e52",
+          "size": 37,
+          "read_completed_ns": 1793975454411996100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCF7DUAL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e50278e895fc46e53c281677c94093b98f8a14c01b0b9f124500077cd0759652",
+          "size": 36,
+          "read_completed_ns": 1793975454412994300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCF7MINI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "46a678219d0f336a4371f25694991b03b09c6ebebc41d6188e994c917d406984",
+          "size": 78,
+          "read_completed_ns": 1793975454414987800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AOCODARCH7DUAL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "88d9b1214169c52b0f428c340f93cf2445100c3168d71cd139bbb2b91eae0fae",
+          "size": 36,
+          "read_completed_ns": 1793975454415985900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ASGARD32F4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7b94d69a930e3bf7678eae6c57961ea417cb54653ee50f8a669fb4f21bbfb73b",
+          "size": 46,
+          "read_completed_ns": 1793975454416982400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ASGARD32F7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ece10cda6a909391234cca05d30682f7562f5e215edb9969241b9815e538bb5d",
+          "size": 44,
+          "read_completed_ns": 1793975454417980100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ATOMRCF405NAVI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2eb3919c71432279d28a223eaa497cf2cf79e41fc3a547fd04ca8513231f1cec",
+          "size": 36,
+          "read_completed_ns": 1793975454418977800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ATOMRCF405NAVI_DELUX\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0e66122da63309a92f48e85f2b074fab0cb0af561b55b2eb4410f1975b31ff11",
+          "size": 42,
+          "read_completed_ns": 1793975454421969200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ATOMRCF405V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "4829762fabf9afc9136cdd655f7c2a6c9da0c0ae86d07822ae87ca15adc3928e",
+          "size": 48,
+          "read_completed_ns": 1793975454422966600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\AXISFLYINGF7PRO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b5fd0bc3539932d447b52fb2a39bc1de9e9c494a9cbed9163d25163c7f42b3ff",
+          "size": 35,
+          "read_completed_ns": 1793975454424961200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BEEROTORF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "6e977c7c8ff9a3da406b1004443fa1f600e779c6194ddb8f2214695fc83b85c6",
+          "size": 32,
+          "read_completed_ns": 1793975454426955700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BETAFLIGHTF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "735c0067b02f104ec8e910123943ce85444c063bcb1ce908aa8ee880f3e9801a",
+          "size": 34,
+          "read_completed_ns": 1793975454427953200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BETAFPVF411\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "1eae9cc36351d15f42e62169c9efba48a0306e1b186f092c9d154c62cbe671dd",
+          "size": 45,
+          "read_completed_ns": 1793975454430242300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BETAFPVF435\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2f614d6911b540a6bd82f564b14313376773847a6239b5f32109099016dcd690",
+          "size": 49,
+          "read_completed_ns": 1793975454431746700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BETAFPVF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "36d1880d4bb14c215aef1d8769cdbe51c8e5a42782f423005dfd72aa59fbac62",
+          "size": 33,
+          "read_completed_ns": 1793975454432743700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BLACKPILL_F411\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "434c4453e0f6945f7bfecec2555dd21b3df7043e1c27b64c72a5bde7d63b2ab4",
+          "size": 135,
+          "read_completed_ns": 1793975454433740800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\BLUEJAYF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2270349b6fe55d49879352be8e6952e28f839d26dbbfdf64f19aa3c6bc722a9e",
+          "size": 45,
+          "read_completed_ns": 1793975454435735600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\CLRACINGF4AIR\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "47b9d60f5d1168f791b304bed3297dd2c0a1556e687aa81f42c72df24849af21",
+          "size": 151,
+          "read_completed_ns": 1793975454436732700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\COLIBRI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "3df4297c6566ea28a146219769c042535b009c5e6c6808690b84cad419ee795a",
+          "size": 108,
+          "read_completed_ns": 1793975454437730300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\DAKEFPVF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e5a495c0ae9592bcac33b5483eb8444f77266ab9037eb92daf504691d7de4269",
+          "size": 33,
+          "read_completed_ns": 1793975454439877700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\DAKEFPVF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "495e50b8a92b5f1bd3cb4f19678c0650b64d2374874a4755869d378eaff7b914",
+          "size": 33,
+          "read_completed_ns": 1793975454440875300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\DALRCF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7f33fdfee1c7916f72feb1218765b8d2ccddc2a6dd7f771b4f12e9f695e97838",
+          "size": 31,
+          "read_completed_ns": 1793975454441872600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\DALRCF722DUAL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "a74b1a481f6eb1f17cd4ff1bdea218656ebeffcf890425eb128fe69d28ccb275",
+          "size": 35,
+          "read_completed_ns": 1793975454442871600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\F4BY\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2815cd6c6284a4582bccd555f1c391dd2f2abfc47243eb68226a84958839fb03",
+          "size": 40,
+          "read_completed_ns": 1793975454444864900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FF_F35_LIGHTNING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "4e10ad1ce5f2ea73ee712fa6827ab2d41ded06449e7fd099c6af010c7e1c45f3",
+          "size": 66,
+          "read_completed_ns": 1793975454445864700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FF_FORTINIF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "730c8cf37165234cbcbdca0d615030e3402617f7794817c459c75087100175f2",
+          "size": 48,
+          "read_completed_ns": 1793975454446860800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FF_PIKOF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "009d23020bcc3917c4494aa294d6131a8cc875b2083c17633db68467c5b80640",
+          "size": 93,
+          "read_completed_ns": 1793975454447859100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FIREWORKSV2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "49d0f5c740f0f17a3a698f347da24f23571825f34bfdeee1d8b4dc1b6a7a7983",
+          "size": 66,
+          "read_completed_ns": 1793975454448857000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FISHDRONEF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "899e62611787e155f4d19d5ab8919835c1bf65e7adc92d33ebd39145a6a03042",
+          "size": 47,
+          "read_completed_ns": 1793975454449854900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLASHHOBBYF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "3a84635376ded54bfa3e4f49324e729320700d639c10c1fbb803d2ab62ba951d",
+          "size": 36,
+          "read_completed_ns": 1793975454450852500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLASHHOBBYF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "9371353db12ef593abe01155496663eb2524e1aeb5b234c5b8032d44ac382256",
+          "size": 36,
+          "read_completed_ns": 1793975454451847400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYCOLORF7MINI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "c349c115df6e52096e6daf9fe4ee1182e6f5ff55214458b8db14900479270a69",
+          "size": 36,
+          "read_completed_ns": 1793975454452844400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYCOLORF7V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f3c322e60d82058d817232e43d3e534822b15f6e4e95145ee7578ecd4f9d4014",
+          "size": 34,
+          "read_completed_ns": 1793975454453843700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYWOOF405PRO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "92d05fb09fa3b535d5cc21d57235ab1792797d393cc9d2a9ffd7cc9548e7ef5e",
+          "size": 35,
+          "read_completed_ns": 1793975454455836200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYWOOF405S_AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "d396e5f20b2688a6f4a6a693a2b2f168149ffd6f006ea87f5c7acaf2f8962624",
+          "size": 51,
+          "read_completed_ns": 1793975454456833600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYWOOF411\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "27169f81c311fd0deeadb911b56e63de4e660dde19c66d9529ffe80992cbc5e2",
+          "size": 67,
+          "read_completed_ns": 1793975454457830700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYWOOF745\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "19434e9cebb3ee61601a00ba08a282f6121afc833ec615af5a06e9618861b453",
+          "size": 68,
+          "read_completed_ns": 1793975454459824900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FLYWOOF7DUAL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2d8367d60019c1475cb4b29eaf28f9c619c0dc1942e8d8a5d1d2920184353e21",
+          "size": 34,
+          "read_completed_ns": 1793975454460822900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FOXEERF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "16127672a4ec46b3550d09e4cf6a22d8d99346b57eab9f50c924592888ebfa62",
+          "size": 32,
+          "read_completed_ns": 1793975454461820000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FOXEERF722DUAL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "a4c4f3f541309be73d0b390be0955171ee08406afe0b18762ce1880ad803d360",
+          "size": 70,
+          "read_completed_ns": 1793975454461820000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FOXEERF722V4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0b2e2f3d68a6b70d2be226cf655b61c7f1231532399a7e0f9c47847f3024f450",
+          "size": 69,
+          "read_completed_ns": 1793975454462817900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FOXEERF745AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "fb473f6eca96ffa1b6852b9a2aeb8ca3209c24862bfdafe4324e8ab25bbf13e6",
+          "size": 71,
+          "read_completed_ns": 1793975454463814900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FOXEERH743\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "64b33d4571065499ee8888631ebcd43aa5cab614a5e4f3482c012d44869d4502",
+          "size": 30,
+          "read_completed_ns": 1793975454464811700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FRSKYF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "940061ca0d1b06917218113ddb3e62e79c858adede67bceda4106d0700762956",
+          "size": 43,
+          "read_completed_ns": 1793975454465809200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FRSKYPILOT\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7fb01af2ec3dd92163c1655a9c1316f7b545c1e48a0683130b4d739f632e555b",
+          "size": 68,
+          "read_completed_ns": 1793975454467803800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FRSKY_ROVERF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "8c95488371d17b2399da406220b19ad9bdf23630e7ee15869cbe16cf2538f5f9",
+          "size": 49,
+          "read_completed_ns": 1793975454468801100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\FURYF4OSD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0ca4a300849ac4705dc03fd139856db2fbeee868b90ada9c6c28d6989a6bb02b",
+          "size": 62,
+          "read_completed_ns": 1793975454468801100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\GEPRCF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "5b9f8dc99444780c23677ae1a1e96d732f11b3e43402e65fc896ad6795af8f85",
+          "size": 31,
+          "read_completed_ns": 1793975454469797800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\GEPRCF405_BT_HD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0e448be78cd1f838752a99ec888af4cbd50824319841be1547a833e71e4580a7",
+          "size": 37,
+          "read_completed_ns": 1793975454470795200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\GEPRCF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "8a7396ae51a4163dbfb782b7f533d57489cbaf6fd1033ffc181522f0cc4be60e",
+          "size": 31,
+          "read_completed_ns": 1793975454471792500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\GEPRCF722_BT_HD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "6693b79f51f61b88222e8f59be80047a6e080961673dbd7d98ab557fca91cc49",
+          "size": 37,
+          "read_completed_ns": 1793975454472790700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\GEPRC_F722_AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "68961d44ebf13632362a25d67740101fb7fd6ed42d1da72683b07fdaed37da44",
+          "size": 36,
+          "read_completed_ns": 1793975454473787600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\HAKRCF405D\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0bf7ea16b2e288366d484294cb71f8ac23183a0529f4428da1ae02166d5ab9c6",
+          "size": 32,
+          "read_completed_ns": 1793975454474784400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\HAKRCF405V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "41fb65d4c9b40586b11d0e5b6c2ea3241fb82e71bfb3e71884de1af07d8bc479",
+          "size": 33,
+          "read_completed_ns": 1793975454475782900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\HAKRCF411D\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "eeddc3406ebc034b48e7f39622953f18e295c2e7d6d867ea4a1b5547a8cfe7d3",
+          "size": 32,
+          "read_completed_ns": 1793975454476780000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\HAKRCF722V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "1364b974c9714dbc9eb2380df601cf21e9698a4c37313084c852e0d9dbf86437",
+          "size": 31,
+          "read_completed_ns": 1793975454477776700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\HAKRCKD722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b12d978e0a4a4d9f053c178d110626b68277b9ec392aa32e64fb0e6f4c75854b",
+          "size": 32,
+          "read_completed_ns": 1793975454478774700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\HGLRCF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "6f5e9b81197ba53e37a034de8442ba6c7b141386a88ba90a9b7fb8273e1349fd",
+          "size": 31,
+          "read_completed_ns": 1793975454479771700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHTF4_SUCCEXD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e44bc08511842a16eef1c38ddda18c415b46b805451a185f79adf25569017c25",
+          "size": 39,
+          "read_completed_ns": 1793975454480769700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHTF4_TWING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "3787bdf83fcfcd624492be33681e20f85bfc3a99bd69550bdca76cf94861f7f2",
+          "size": 51,
+          "read_completed_ns": 1793975454481767100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHTF7_TWING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "481cbe5a7635e393c5213019bd11306bdef09a0dada1db4b761ba804601b18c6",
+          "size": 37,
+          "read_completed_ns": 1793975454482764500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_2RAW_H743\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "c42bea6ebfa54db1b5d44d82954f5aff6cc2bed2245b3657019ead664fb31b70",
+          "size": 39,
+          "read_completed_ns": 1793975454483761500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_BLITZ_ATF435\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e19a0d486920fad265620e9e3e6992848fe61a1b1c4234b2e5c72a887fb96a22",
+          "size": 42,
+          "read_completed_ns": 1793975454484759800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_BLITZ_F722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2859019b00b4e4207cde77f646278d0b1d68993fba9cb44c63d7f96d8f4bf476",
+          "size": 42,
+          "read_completed_ns": 1793975454486754000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_BLITZ_F722_X1\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "be3268842ba75e225342988425919df74c9a4cb634f858276f9a8cb11d54a5ec",
+          "size": 92,
+          "read_completed_ns": 1793975454487750100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_BLITZ_F7_AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "13611f733627a99f20c525bdd266491ec96d6ce486e964df186a1ae6d367f60f",
+          "size": 56,
+          "read_completed_ns": 1793975454489745000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_BLITZ_F7_PRO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "827b79b05133cf886c6bf91a48624c5c18b17400ac7cf0f129cc9de11c94f25c",
+          "size": 42,
+          "read_completed_ns": 1793975454490743100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_BLITZ_H7_PRO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e3a87cf2492267b2b1ee8cbdbae3eb128d24c2c1400af85ada6575ff5b1da2f8",
+          "size": 40,
+          "read_completed_ns": 1793975454491739600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_H743_AIO_V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b2660b739ff333271a4e84a23f8771401930aa8f3c137b683fcfb3f3dfe8532e",
+          "size": 55,
+          "read_completed_ns": 1793975454492736800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\IFLIGHT_JBF7PRO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7d6c920362edcb1e334ea61c67e24ba09dae2c43afb7849c9cb2e54189ef453f",
+          "size": 37,
+          "read_completed_ns": 1793975454494731400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\JHEH7AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "cbe9fe47f676b0af0769d1d58a497963b83e9169f207ab08facc90b6f55e465a",
+          "size": 44,
+          "read_completed_ns": 1793975454495728700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\JHEMCUF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "c6c8134bf634b9fb4ad073f67b1840e92a03f9847f659e21ad936c3200addc3a",
+          "size": 32,
+          "read_completed_ns": 1793975454496726300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\JHEMCUF405WING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7b8836834293e6901129dfb4a512a1ff34e761519e0b3ee5ea6e823842deddce",
+          "size": 36,
+          "read_completed_ns": 1793975454497723900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\JHEMCUF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2076948cd5562779e98e9f6f9572956bc980f87a506ff4332617c48b7cfb5db2",
+          "size": 32,
+          "read_completed_ns": 1793975454499717900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\JHEMCUF745\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2743165aabd895bf94f0ef9b336c2e0895dae97c93e31aa2de935b33c0ba0b2a",
+          "size": 32,
+          "read_completed_ns": 1793975454500715300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\JHEMCUH743HD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "d321f0b65c144dcc805f3c6a61d18b9caaf304901b5914c8b4b31628f0a7c1dc",
+          "size": 32,
+          "read_completed_ns": 1793975454501712800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\KAKUTEF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ec4396f2d23b7b3d676e9590505f351ab7b23c503d6256bc50bf452cb7f66521",
+          "size": 126,
+          "read_completed_ns": 1793975454502710200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\KAKUTEF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "509ba71c0f2503da86fadc86f119cabda271e45645a55c1775378a3412206483",
+          "size": 97,
+          "read_completed_ns": 1793975454503707500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\KAKUTEF7MINIV3\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0ae0af69ce0e6369a3a3c8e31b5883a032cc96aa9fe45983e3c73a2a1ff6f332",
+          "size": 36,
+          "read_completed_ns": 1793975454504705500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\KAKUTEH7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "52654fa665906b271e6f6f3ade8bd97210eea1e548ba4d13853317cefb9e62e0",
+          "size": 94,
+          "read_completed_ns": 1793975454505702000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\KAKUTEH7WING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f65837b11660cbb854f2224b605c7177b141b046103bb88465aaa47b2c14e30a",
+          "size": 45,
+          "read_completed_ns": 1793975454506699400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\KROOZX\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7db3a8db23dc13b70af11e52c1e80c2e400f211eaa446b3c69d343510df8955f",
+          "size": 53,
+          "read_completed_ns": 1793975454507697300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAF405US\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2c7f12240723f0a40518bf68e14c9b7731568b4135b09534d4fc6cff1c357ac2",
+          "size": 70,
+          "read_completed_ns": 1793975454508694900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAF405_2022A\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "7ff14739622f5f06f4694e42a251912e4faac254064a393805b5d5454e5897cd",
+          "size": 74,
+          "read_completed_ns": 1793975454509692100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "829f7af4ae160b4192ab7b60b6a8c85018d3b57c73694295af34447a643f6f87",
+          "size": 66,
+          "read_completed_ns": 1793975454510689200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAF722_2022A\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "5af2c37eeed78636ff8cba61996a5c4478d07add55e320e0371d03ad0a839beb",
+          "size": 72,
+          "read_completed_ns": 1793975454511686200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAF722_WING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "62b310065202629c9ac9035ba4dde79214cd989b401c84fac8b282d4e6c58d27",
+          "size": 34,
+          "read_completed_ns": 1793975454512683500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAF722_X8\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "53f9062d73db1b4ff83f643371dcfe0b3a13a5bd62dcd06bc8a49e77c6e9d1a1",
+          "size": 32,
+          "read_completed_ns": 1793975454514678600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MAMBAH743\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "35f4288c84bdf10810461b435ceb20564a34b97b68126ce934fae209386cc519",
+          "size": 111,
+          "read_completed_ns": 1793975454515675700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "8252f5d603aee1859f9ed8b13288e6715ce4f265b0341eafc6cd2aca1175a376",
+          "size": 65,
+          "read_completed_ns": 1793975454516674100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF405CAN\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "921b2c9491ec5cd6c43034dd21bf3d5e489cc0bb65877ffcd04a8678db809e8e",
+          "size": 34,
+          "read_completed_ns": 1793975454518667700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF405SE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f223f2365df45d495392b8073ba566b234c1e5b07f1bbf0c246f5a0d70a26936",
+          "size": 72,
+          "read_completed_ns": 1793975454519665300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF405TE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "6f165676210f9a2c1ca6eebc73d3da194e482e60dc94765d08cca179f255befe",
+          "size": 69,
+          "read_completed_ns": 1793975454521660100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF411\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "fe20abc7599cf7dd9c77a245a269edb231fb471baf197dc268bf69e880553aea",
+          "size": 147,
+          "read_completed_ns": 1793975454522657800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF411SE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "26657df1e2b38f91a81b2b5d57e449693f21ecf7474025a6826c60d384ff72d1",
+          "size": 157,
+          "read_completed_ns": 1793975454523655100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF411TE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b8609df015eb3606e436893f05d5e6f0ff579bbf81155a906a81a250df821d30",
+          "size": 33,
+          "read_completed_ns": 1793975454525649400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "26dc38c308342d6d0499344a8bfc76951fb177bb1f584ae819a9d5a6da7795ed",
+          "size": 31,
+          "read_completed_ns": 1793975454526648000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF722PX\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "5eed3b992a4f984b301370dd2f43a622ab9c303770cd00e5430d01c0e8568b22",
+          "size": 106,
+          "read_completed_ns": 1793975454527645800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF722SE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "42c1034ff0ddb25407ba9578ec22bd351cb1f6f37707b35238a73d10621c6c78",
+          "size": 68,
+          "read_completed_ns": 1793975454529638900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKF765\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f57d55db74d3ff56c43bd05b3e5b51d1b4f3b2fc004431e9edd6d49ffd060ef4",
+          "size": 64,
+          "read_completed_ns": 1793975454530635600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\MATEKH743\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "c22278a2d54723818497a6b34a896daa2fff76a994b74f897b929796c36cfa01",
+          "size": 64,
+          "read_completed_ns": 1793975454531667200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\NEUTRONRCF435MINI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "5328760f6e38234e6ce62321c1e54914db452c1c46cc826b7d019b14217b9370",
+          "size": 39,
+          "read_completed_ns": 1793975454533170700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\NEUTRONRCF435SE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "0e56dddb6eadda0c49ea7934d3991e75820f48d7575bd9a7c9d3e310538a9275",
+          "size": 37,
+          "read_completed_ns": 1793975454534168200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\NEUTRONRCF435WING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "6b5fc1ff62992180c91f80143ffb76407f29aefcb244b711e062affd6732b83f",
+          "size": 39,
+          "read_completed_ns": 1793975454535165800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\NEUTRONRCH7BT\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "9c20352429291b52d1e289df09947913c87148f5210b57eda3216e016b555c17",
+          "size": 35,
+          "read_completed_ns": 1793975454535165800
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\NOX\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ac7d091e35c071d546f8bb2b4c897c25770024db78eacba920d7e045c06d1616",
+          "size": 25,
+          "read_completed_ns": 1793975454536162300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\OMNIBUSF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b7223f2e5cca322cc0d1a90017896c0c526711c2fc3cf22f2489fef5054225d0",
+          "size": 559,
+          "read_completed_ns": 1793975454537159600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\OMNIBUSF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "1b27c5290f641256fb634c0160940ad5cc785110de0efcc8ff444126b7db3e2f",
+          "size": 64,
+          "read_completed_ns": 1793975454538157100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\OMNIBUSF7NXT\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "5d585a5440f78dbed2754d257b1a7838c00f7ec4daf9221687c957179052385a",
+          "size": 34,
+          "read_completed_ns": 1793975454539250000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\PIXRACER\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "d6e195acc3c2221b454b577d805a1b2c2ec26409c6ad976887520120d18bfa7a",
+          "size": 41,
+          "read_completed_ns": 1793975454539757300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\REVO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "157999d550686c93ca0f44646c52bceaf10e26c8981a2c1a0f008b857602a487",
+          "size": 26,
+          "read_completed_ns": 1793975454541145500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\RUSH_BLADE_F7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ce74d477b2f7ddbf35d74e02cc9ee5d148464e2171ed415e4df2a6e17d6a5089",
+          "size": 73,
+          "read_completed_ns": 1793975454542157100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SAGEATF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "e34eaca45c59ca001fcab790906b8988d0b42c717f3f455f76ce71c2381873f3",
+          "size": 30,
+          "read_completed_ns": 1793975454543153300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SDMODELH7V1\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f85b321b955f17319fdc7895983c4e2d0979b940438129a158254b2b22e96cf1",
+          "size": 33,
+          "read_completed_ns": 1793975454544150700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SITL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "958413f7a2789cb3c85511444f02ad7094ca3a04d28dd2b6fa16eaaa824913ce",
+          "size": 19,
+          "read_completed_ns": 1793975454545148200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SKYSTARSF405HD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "024b28aedc9577f0100cfbaebba78bfc689d8cb8b068c90dc28943568f69ac9e",
+          "size": 71,
+          "read_completed_ns": 1793975454546145300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SKYSTARSF722HD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b61261ed8342a61520285c9ee03b831345648ddd7c45b7e842ca174e57b8e426",
+          "size": 115,
+          "read_completed_ns": 1793975454548139900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SKYSTARSH743HD\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "72bc2545980d8b1e8735b43b4cff5d7e0e720847dcc713d9e0a84c6489a0afe4",
+          "size": 36,
+          "read_completed_ns": 1793975454549137500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPARKY2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "71a971d6f87ea2d61cc27de1934aeca0f871738e191fea88a8c334a4a6767d92",
+          "size": 43,
+          "read_completed_ns": 1793975454550135000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEDIXF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ee0aba6d3c756b2f9b15399d2eed2a5361e91a72cfd12d420c7b9b2c22078b4d",
+          "size": 32,
+          "read_completed_ns": 1793975454551132600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEDIXF722\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "ffba5f18b185bd4baa61009d31d7420018b622b649352d5e55a7a85641ef01d1",
+          "size": 32,
+          "read_completed_ns": 1793975454552130500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "c31503b763b0325d56c69fb1f4ab31d019028d5e7eaf3883e78040562ea91f93",
+          "size": 143,
+          "read_completed_ns": 1793975454553956300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF405MINI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "da0770574e384e92ed2727291c8bd79f0e6e5982f633769b9bc8ffa317ddbc37",
+          "size": 87,
+          "read_completed_ns": 1793975454554955900
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF405V3\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "81f7d7ec9163989b458e7dcfccb814e41206d4c8494906751a5ebd659f07a24d",
+          "size": 37,
+          "read_completed_ns": 1793975454555953300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF405V4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "8a6ee2935b30c3958523c91b4df955fe9c6ec77be66124bbadd5f3f7d34344a6",
+          "size": 37,
+          "read_completed_ns": 1793975454557948600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF405WING\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "9da9ffab0395e14a4b1e6cfce9ecf86ceb1b479c73e4b403f130f29e35535de1",
+          "size": 39,
+          "read_completed_ns": 1793975454558946000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "8e103e3cdd944bbda26702049c4a401a2de809ba1e3a48cf48737d254d29886e",
+          "size": 33,
+          "read_completed_ns": 1793975454559942600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF745AIO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "300e6d54954ecbafbc7db5c97c20914ffd715a49da2a3d0026fb953d95c32a41",
+          "size": 36,
+          "read_completed_ns": 1793975454560940400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF7MINI\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "f319168db1d515ed7d7ef9b9442a377ddbc713250b83cf65ddd5a12a237133a6",
+          "size": 76,
+          "read_completed_ns": 1793975454561937300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF7V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "29f1e376794d489cff1675036a46e5a02ab2872931b71f4793520b975d860331",
+          "size": 35,
+          "read_completed_ns": 1793975454562934700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPEEDYBEEF7V3\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "49a87c618ebdbd145f8cdf3b5740a699407de78c68d1529e49d25508677897fe",
+          "size": 33,
+          "read_completed_ns": 1793975454564929500
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPRACINGF4EVO\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "2402efc9ab56f4102e7b194d190cc62cc92116430a5862bd6d629775c7ef8f00",
+          "size": 35,
+          "read_completed_ns": 1793975454565926700
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\SPRACINGF7DUAL\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "feadd8a5cc2974d6bdc79aca851b6d695591b336cdcb34d486997ebdc3d2a4e0",
+          "size": 50,
+          "read_completed_ns": 1793975454566924100
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\TAKERF722SE\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "df5f37a286f73a15b87dfbb3990b4ad3d77e7c2ac05d63cbc24017b1f686d42a",
+          "size": 31,
+          "read_completed_ns": 1793975454567922000
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\TMOTORF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "cbb597fbc508f4056bd856d71888bee294517db42185b6f8c44caade95dfec9a",
+          "size": 90,
+          "read_completed_ns": 1793975454568918600
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\TMOTORF7V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "4a3ed89c72b4bc12b830cc50de36ccff024b83ebb126f76d52441b8fb90f8f80",
+          "size": 32,
+          "read_completed_ns": 1793975454569916200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\TMOTORVELOXF7V2\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "dfc25ce24e6f46b31fc81f43da1d5d30949bfc056e48801b47ea9d5f6bff4439",
+          "size": 37,
+          "read_completed_ns": 1793975454571911300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\TUNERCF405\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "be4199180c5dc19f4f36f60fd1977e923a987440740cd97f72c1e14217d9a63f",
+          "size": 32,
+          "read_completed_ns": 1793975454572908200
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\YUPIF4\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "8705fb0ab14fb436dc49e3f172b3d2a6b1340643ef973264cd027fdaa6830401",
+          "size": 132,
+          "read_completed_ns": 1793975454573905400
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\YUPIF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "36311d394db5c1bc60c7845d86fa8af112913a65a37ffe2296d177af936b30f0",
+          "size": 42,
+          "read_completed_ns": 1793975454574903300
+        },
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929\\src\\main\\target\\ZEEZF7\\CMakeLists.txt": {
+          "status": "OK",
+          "sha256": "b62b829e7340acff0def079f4b5011855e50f37a795592b6321a4dae26dd1999",
+          "size": 88,
+          "read_completed_ns": 1793975454575900500
+        }
+      }
+    },
+    {
+      "stage": "target-closure",
+      "command": [
+        "C:/Users/Administrator/AppData/Local/Microsoft/WinGet/Links/ninja.exe",
+        "-C",
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed",
+        "-t",
+        "compdb-targets",
+        "-x",
+        "MATEKH743.elf"
+      ],
+      "exit_code": 0,
+      "target": "MATEKH743.elf",
+      "translation_units": 390,
+      "database": "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed\\ecra-target-compile_commands.json"
+    },
+    {
+      "stage": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed",
+        "--config",
+        "Release",
+        "--target",
+        "MATEKH743.elf",
+        "--parallel",
+        "6"
+      ],
+      "exit_code": 0,
+      "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-inputs\\preflight-mapped\\cmake-build.log"
+    }
+  ],
+  "git": {
+    "schema": 2,
+    "repository_root": "H:\\ECRA-WHOLE-S78\\firmware",
+    "project_subdir": ".",
+    "current_ref": "HEAD",
+    "base_ref": "221029e2b7d688a7a7cf96f3a46b59b7f38157a9",
+    "head_sha": "a040c6bef605f929fa017b7089c5b7976a2b2bba",
+    "base_sha": "221029e2b7d688a7a7cf96f3a46b59b7f38157a9",
+    "include_uncommitted": false,
+    "workspace_digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "src/main/drivers/serial_uart_stm32h7xx.c",
+        "new_path": "src/main/drivers/serial_uart_stm32h7xx.c",
+        "comment_only": false
+      }
+    ],
+    "current_gitdir_reference": "RELATIVE",
+    "current_source_root": "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929",
+    "current_build_path": "H:\\ECRA-WHOLE-P79-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\bde8823fcc1635ccd9c79bed",
+    "current_database_path": null
+  },
+  "engine_digest": "79fd38974912528b1829c4ddc543a77ee05337f5ec6c254b577f9c498849502d",
+  "translation_units": 388,
+  "input_files": 1386,
+  "snapshot_status": "VERIFIED",
+  "plan_sha256": "20ba4f50fa8497efb63dc2fd0aa7ad25efda7ddb55c7bd45a02efb56420e0f71",
+  "note": "真实构建与全部TU编译输入检查通过；尚未进行并发风险分类。正式扫描会重新检查输入与覆盖。",
+  "finished": "2026-11-06T14:37:21.052237+00:00"
+}

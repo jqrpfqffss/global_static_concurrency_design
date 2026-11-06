@@ -10,7 +10,10 @@
 | Phase 2/4 | 拒绝写原源码、ABA变化、目录替换、未证明命令/网络/显式闭包；审计由父进程管道写Medium目录，Low进程不能擦除 | `guarded_cmake.py`、`working_cmake.py`、`write_guard.py`、`scan_stop.py` | H1/H2/H6、G5限定；真实低完整性进程负例及输入污染/SDK/准备结果损坏 | 专项实际用例PASS；完整G5不据此关闭 | 上述原日志、`tests/test_working_cmake.py` |
 | 修复回归 | 无关的旧构建别名失效不阻断本轮；实际用到的已替换别名仍必须拒绝 | `portable.py`、`working_cmake.py`及相关断言 | v76独立冻结9项，源与副本SHA不变 | PASS，11.214秒 | [收据](acceptance/working-cmake-regressions-v76.json)、[日志](acceptance/working-cmake-regressions-v76.log) |
 | 完整扫描补验 | 无比较基准，使用同一封存当前构建完成三个TU全量及保存后刷新；禁止重新配置 | `tests/test_working_cmake_full.py`、冻结v76运行时 | U04/U06局部；实际生成头WIDTH=3、marker=12字节，原件不变 | PASS，889.333秒，独立1项；不混计进v76的1562项 | [补充收据](acceptance/cmake-working-full-v76-supplement.json)、[日志](acceptance/cmake-working-full-v76-supplement.log) |
-| Phase 6 | 冻结v76全量1562项、v77全量1563项；v77包内29专项/离线Git/真实Chrome重跑 | 各自独立测试副本与新Portable | G1/G5/G7/G8局部；不计物理机或人工UAT | RUNNING / NOT_VERIFIED，尚未收齐 | 工作根`full-regression-studio-v76.json`、`full-regression-studio-v77.json`及`portable-working-v77/acceptance.json`须实际生成最终PASS后更新 |
+| Phase 6 已收齐 | 冻结v76完整1562项，独立源与测试副本3995文件SHA不变 | v76修改集，尚不含包内Ninja探测修补或121号路径绑定 | 1560 PASS/2联网opt-in SKIP，5049.975秒，0失败/错误 | PASS_SCOPED | [最终收据](acceptance/full-regression-studio-v76-final.json)、[原日志](acceptance/full-regression-studio-v76.log) |
+| 包内真实GUI | v77内嵌解释器/工具/离线Git，安全停止后恢复及完整包导入 | 实际Chrome，原源/Git内容/大小/mtime不变；不计向导或人工UAT | 8组PASS，包内全部29专项及总载荷后验仍在运行 | PASS_SCOPED，不能称整个包验收通过 | [收据](acceptance/browser-working-cmake-v77.json)、[截图](ui/screenshots/working-cmake-v77/02-working-diff-evidence-1366.png) |
+| 无原件Viewer | 暂时移走原固件根及原构建/SDK/任务数据根，仅导入的独立完整包可用；真实Chrome查看归档main.c | U12/U19限定本机，源命名空间最终恢复、导入静态库SHA不变、0外部请求 | 3组PASS；首两轮控制器API名称/ARIA角色错误保留，不是产品故障 | PASS_SCOPED，不计物理离线电脑 | [最终收据](acceptance/offline-cmake-viewer-v77.json)、[原控制器错误1](acceptance/offline-cmake-viewer-v77-controller-first-failed.json)、[错误2](acceptance/offline-cmake-viewer-v77-controller-second-failed.json)、[截图](ui/screenshots/working-cmake-v77/04-imported-source-without-originals.png) |
+| Phase 6 在途 | v77完整1563项、v78完整1568项；包内29/34专项及完整载荷后验 | 独立冻结副本；121号路径绑定另有14专项、原F030全部字段0差及INAV 388TU预检查 | RUNNING / NOT_VERIFIED，尚未收齐 | 对应工作根`full-regression-studio-v77.json`、`full-regression-studio-v78.json`及`portable-working-v77/acceptance.json`、`portable-working-v78/acceptance.json`须实际最终PASS后更新 |
 
 ## 原始失败与修复边界
 

@@ -1,0 +1,28 @@
+import hashlib,json,os,sys,time,traceback
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v78';sys.path.insert(0,str(engine));work=w/'whole-native-inav-v78-inputs'
+old=json.loads((work/'acceptance.json').read_text('utf-8'));assert not old['passed'] and 'MATEKH743.elf' in old['error']
+root=Path(old['private_project']);data=Path('H:/ECRA-WHOLE-P79-SEED0');assert not data.exists() and not Path(old['data_root']).exists()
+target=work/'acceptance-mapped-v78.json';assert not target.exists()
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def stamps():return {p.relative_to(root).as_posix():[sha(p),p.stat().st_size,p.stat().st_mtime_ns] for p in root.rglob('*') if p.is_file()}
+before=stamps();start=time.monotonic();result={k:v for k,v in old.items() if k not in {'error','seconds','passed','status'}}
+result.update(passed=False,status='RUNNING_NEW_MAPPED_ARTIFACT_PREFLIGHT',prior_failed_receipt_sha256=sha(work/'acceptance.json'),
+ engine_manifest_sha256=sha(engine.with_name(engine.name+'.sha256.json')),engine=str(engine))
+try:
+ os.environ.update(GIT_OPTIONAL_LOCKS='0',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL='NUL',PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',SOURCE_DATE_EPOCH='1793577600')
+ cfg=json.loads(Path(old['profile']).read_text('utf-8'));assert sha(Path(old['profile']))==old['profile_sha256']
+ cfg['analysis']['output']['custom_dir']=str(data);config=work/'preflight-mapped-semantics.yaml'
+ from ecra.common import write_json
+ write_json(config,cfg)
+ from ecra.studio.preflight import run_preflight
+ with (work/'preflight-mapped.log').open('x',encoding='utf-8') as log:
+  check=run_preflight(config,data,work/'preflight-mapped',lambda message:print(message,file=log,flush=True))
+ assert check['passed'],check
+ assert stamps()==before and not Path(old['data_root']).exists()
+ result.update(passed=True,status='ACTUAL_MAPPED_ELF_MAP_BUILD_AND_388_TU_PREFLIGHT_PASS',preflight=check,
+  private_source_and_git_differences=[],original_failed_preflight_preserved=True,formal_native_data_root_still_absent=True)
+except BaseException:result.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());raise
+finally:
+ result['seconds']=time.monotonic()-start;target.write_text(json.dumps(result,indent=2)+'\n','utf-8')
+print(json.dumps(dict(passed=result['passed'],status=result['status'],seconds=result['seconds'])))

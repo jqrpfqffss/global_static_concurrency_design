@@ -544,7 +544,8 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     if not isinstance(entries, list) or not entries:
         raise ValueError("编译数据库必须是非空数组")
     units, ignored, assembly_sources = [], [], []
-    closure = a.get('build_closure', {})
+    from .managed_build_closure import resolve as resolve_managed_closure
+    closure,closure_binding=resolve_managed_closure(root,a,Path(candidates[0]).parent,cmake_steps,consumed_inputs)
     linked_sources = closure.get('linked_sources')
     linked_objects = closure.get('linked_objects')
     def absolute(value, directory=root):
@@ -621,7 +622,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
                 # Unbuilt/out-of-scope vendor files are not missing user code.
                 (excluded_sources if excluded(rel, a.get("exclude", [])) or not scope.contains(p) else sources).append(rel)
     covered = {u["source_file"] for u in units}
-    return units, dict(project_root=str(root), compile_database=str(candidates[0]), candidates=list(map(str, candidates)),
+    compilation = dict(project_root=str(root), compile_database=str(candidates[0]), candidates=list(map(str, candidates)),
                        selection_reason='managed cmake' if 'cmake' in a else ("explicit" if configured != "auto" else "unique candidate"),
                        unlisted_sources=sorted(set(sources) - covered) if not a.get('build_closure_only', True) else [],
                        excluded_from_build=sorted(set(sources) - covered),
@@ -633,3 +634,5 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
                        dependency_sources=[u['source_file'] for u in units if u['audit_role']=='dependency'],
                        cmake_cache=read_cache(Path(candidates[0]).parent,consumed_inputs=consumed_inputs), compilers=compiler_audit,
                        external_tools=[c for c in compiler_audit if c['external']], consumed_inputs=consumed_inputs)
+    if closure_binding is not None:compilation['build_closure_binding']=closure_binding
+    return units,compilation

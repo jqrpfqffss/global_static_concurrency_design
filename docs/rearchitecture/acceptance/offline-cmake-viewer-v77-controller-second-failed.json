@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "all_gates_passed": false,
+  "scope": "Actual Chrome archive source with original firmware and data namespace hidden.",
+  "bundle": "H:\\ECRAStudio-build-20261106-studio-v77\\ECRA-Portable",
+  "source_receipt_sha256": "f5957038b9a4676c832bef599b558891aac5c02266e620c106b39f7750a1066f",
+  "archive_source": {
+    "available": true,
+    "file": "main.c",
+    "text_node": 1017,
+    "sha256": "46a7f8ce3d43f2ea5809e46f6daeb35d92aca963fd9c3ad24d35d630e9ba5a5a",
+    "reason": "归档文本仅用于查看；精确原始字节与输入哈希仍保留在来源记录中。"
+  },
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-offline-cmake-viewer-v77-r2.py\", line 48, in <module>\n    click('link','变量与风险');click('button','shared ',True);click('button','归档源码')\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-offline-cmake-viewer-v77-r2.py\", line 30, in click\n    if time.monotonic()>deadline:raise ValueError('Missing/ambiguous action '+name)\nValueError: Missing/ambiguous action 归档源码\n",
+  "original_namespaces_restored": true,
+  "seconds": 77.53100000001723
+}

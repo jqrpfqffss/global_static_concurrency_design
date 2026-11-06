@@ -472,8 +472,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             if compilation.get('cmake_cache', {}).get(key):
                 executables.append(compilation['cmake_cache'][key])
         explicit.extend({Path(p).resolve() for p in executables if Path(p).is_file()})
-        explicit.extend(root / cfg['analysis']['build_closure'][key] for key in ('elf', 'map')
-                        if cfg['analysis'].get('build_closure', {}).get(key))
+        consumed_closure=compilation.get('build_closure',cfg['analysis'].get('build_closure',{}))
+        explicit.extend(root / consumed_closure[key] for key in ('elf', 'map') if consumed_closure.get(key))
         if not cfg['analysis'].get('build_closure_only', True):
             from .supplemental import selected_files
             explicit.extend(root / p for p in selected_files(root, scope, out))

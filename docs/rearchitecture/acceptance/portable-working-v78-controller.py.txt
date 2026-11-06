@@ -1,0 +1,95 @@
+"""Post-build embedded acceptance. Does not promote a candidate or close G1-G8."""
+import hashlib,json,os,shutil,subprocess,sys,time,traceback,urllib.request
+from pathlib import Path
+
+w=Path(__file__).parent
+engine=w/'frozen-engine-studio-v78'
+build=Path('H:/ECRAStudio-build-20261106-studio-v78')
+bundle=build/'ECRA-Portable'
+out=w/'portable-working-v78'
+out.mkdir(exist_ok=False)
+receipt=out/'acceptance.json'
+result=dict(passed=False,status='WAITING_COMPLETE_BUILD',all_gates_passed=False,
+    scope='Embedded Python and bundled tools; real guarded working CMake, stop/retry, generated inputs, strict independent full verification, Chrome evidence and package import. Local host only; not clean PC, physical32GB, human UAT or complete large native Diff.')
+def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def sha(path):
+    h=hashlib.sha256()
+    with Path(path).open('rb') as f:
+        for part in iter(lambda:f.read(1024**2),b''):h.update(part)
+    return h.hexdigest()
+save();start=time.monotonic()
+try:
+    deadline=start+3600
+    while not (build/'ECRA-Portable.zip').is_file():
+        if time.monotonic()>deadline:raise TimeoutError('Build not complete')
+        time.sleep(5)
+    for name in ['uncompressed','zip-extracted']:
+        record=json.loads((build/'portable-evidence'/name/'acceptance.json').read_text('utf-8'))
+        assert record['result']=='PASS',record['result']
+        result[name]=dict(result='PASS',commands=len(record['commands']),receipt_sha256=sha(build/'portable-evidence'/name/'acceptance.json'))
+    manifest=engine.with_name(engine.name+'.sha256.json')
+    assert sha(manifest)=='113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd'
+    rows=json.loads(manifest.read_text('utf-8'))['files']
+    application=[row for row in rows if row['file'].startswith('ecra/')]
+    assert application and all(sha(bundle/r['file'])==r['sha256'] for r in application)
+    payload_manifest=bundle/'FILES.sha256.json';inventory=json.loads(payload_manifest.read_text('utf-8'))
+    inventory_sha=sha(payload_manifest)
+    def differences():
+        bad=[p for p,h in inventory.items() if not (bundle/p).is_file() or sha(bundle/p)!=h]
+        actual={p.relative_to(bundle).as_posix() for p in bundle.rglob('*') if p.is_file()}
+        return bad+sorted(actual-set(inventory)-{'FILES.sha256.json'})
+    assert not differences()
+    result.update(status='RUNNING_EMBEDDED_AND_CHROME',application_files=len(application),payload_files=len(inventory),
+        snapshot_sha256=sha(manifest),zip_bytes=(build/'ECRA-Portable.zip').stat().st_size,zip_sha256=sha(build/'ECRA-Portable.zip'),
+        payload_manifest_sha256=inventory_sha);save()
+    env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',ECRA_PORTABLE_ROOT=str(bundle))
+    target=out/'tests-copy';(target/'tests').mkdir(parents=True)
+    test_names=['test_diff_summary_store','test_native_sequential_verification','test_working_checkpoint','test_working_cmake','test_working_cmake_full','test_managed_build_closure']
+    for name in [*test_names,'test_native_diff_summary_cache','test_native_diff_reader']:
+        shutil.copy2(engine/'tests'/(name+'.py'),target/'tests'/(name+'.py'))
+    (target/'tests/__init__.py').write_text('','utf-8')
+    code='import sys,unittest;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.loadTestsFromNames(sys.argv[2:]);r=unittest.TextTestRunner(verbosity=2).run(suite);raise SystemExit(not r.wasSuccessful())'
+    log=(out/'embedded-tests.log').open('xb')
+    test=subprocess.Popen([str(bundle/'runtime/python.exe'),'-B','-X','utf8','-c',code,str(target),*['tests.'+n for n in test_names]],
+        cwd=bundle,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+    browser_log=(out/'browser-driver.log').open('xb')
+    browser=subprocess.Popen([str(bundle/'runtime/python.exe'),'-B','-X','utf8',str(engine/'scripts/validate_working_cmake_ui.py'),
+        '--engine',str(bundle),'--work',str(out/'browser'),'--exercise-retry'],cwd=bundle,env=env,
+        stdout=browser_log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+    test.wait(timeout=5400);browser.wait(timeout=5400);log.close();browser_log.close()
+    sys.path.insert(0,str(engine))
+    from scripts.unittest_receipt import parse_summary
+    summary=parse_summary((out/'embedded-tests.log').read_text('utf-8',errors='replace'))
+    result['embedded_tests']=dict(summary,exit_code=test.returncode,log_sha256=sha(out/'embedded-tests.log'))
+    result['browser_receipt']=str(out/'browser/acceptance.json');save()
+    assert test.returncode==0 and summary['summary_ok'] and summary['tests']==34 and summary['skipped']==0,summary
+    ui=json.loads((out/'browser/acceptance.json').read_text('utf-8'));assert browser.returncode==0 and ui['passed'],ui.get('error')
+    result['browser_tests']=ui['tests'];result['browser_receipt_sha256']=sha(out/'browser/acceptance.json')
+    result['status']='VERIFYING_CMD_LAUNCHER_AND_PAYLOAD';save()
+    from ecra.studio.process_budget import ProcessBudget
+    from ecra.studio.write_guard import OwnedProcess
+    session=out/'cmd-session.json';data=out/'cmd-data';budget=ProcessBudget(2*1024**3);process=None
+    try:
+        with (out/'cmd-launcher.log').open('xb') as stream:
+            command='""'+str(bundle/'ECRA.cmd')+'" --no-browser --data-root "'+str(data)+'" --session-file "'+str(session)+'""'
+            process=OwnedProcess([os.environ['ComSpec'],'/d','/s','/c',command],cwd=bundle,env=env,log=stream)
+            budget.assign(process);process.resume();until=time.monotonic()+90
+            while not session.is_file():
+                if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Actual ECRA.cmd launcher failed')
+                time.sleep(.2)
+            info=json.loads(session.read_text('utf-8'));url='http://'+info['authority']
+            request=urllib.request.Request(url+'/api/scans',headers={'X-ECRA-Session':info['token'],'Origin':url})
+            with urllib.request.urlopen(request,timeout=30) as response:assert response.status==200
+            result['actual_cmd_launcher']='PASS_LOCAL_AUTHENTICATED_SCANS_ENDPOINT'
+    finally:
+        budget.close()
+        if process is not None:process.close()
+    changed=differences();assert not changed and sha(payload_manifest)==inventory_sha,changed
+    assert all(sha(bundle/r['file'])==r['sha256'] for r in application)
+    result.update(passed=True,status='PASS_SCOPED',payload_differences=[],application_differences=[],
+        payload_files_after=len(inventory)+1,physical32GB='NOT_VERIFIED',clean_offline_pc='NOT_VERIFIED',human_UAT='NOT_VERIFIED')
+except BaseException:
+    result.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());raise
+finally:
+    result['seconds']=time.monotonic()-start;save()
+print(json.dumps(dict(passed=result['passed'],receipt=str(receipt))))

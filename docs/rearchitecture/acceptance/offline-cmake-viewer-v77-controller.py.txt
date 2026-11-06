@@ -1,0 +1,73 @@
+"""Actual Chrome archive source with original firmware and data namespace hidden."""
+import hashlib,json,os,re,shutil,subprocess,sys,time,traceback,uuid
+from pathlib import Path
+w=Path(__file__).parent;bundle=Path('H:/ECRAStudio-build-20261106-studio-v77/ECRA-Portable');sys.path.insert(0,str(bundle))
+from ecra.report_package import sha256
+from ecra.common import write_json
+from ecra.scan_store import EvidenceProvider
+original=w/'portable-working-v77/browser';proof=json.loads((original/'acceptance.json').read_text('utf-8'));assert proof['passed']
+source=original/'未提交 固件';data=original/'data';viewer=original/'viewer';work=w/'portable-offline-cmake-viewer-v77-r3';work.mkdir(exist_ok=False)
+paths=[(source,original/'source-unavailable-during-view'),(data,original/'data-unavailable-during-view')]
+assert all(p.resolve().parent==original.resolve() and q.resolve().parent==original.resolve() and not q.exists() for p,q in paths)
+scans=list((viewer/'scans').glob('*/scan.db'));assert len(scans)==1
+provider=EvidenceProvider(scans[0]);static=sha256(scans[0]);scan_id=scans[0].parent.name
+npx=shutil.which('npx.cmd');assert npx
+result=dict(passed=False,all_gates_passed=False,scope=__doc__,bundle=str(bundle),source_receipt_sha256=sha256(original/'acceptance.json'))
+session='ecra-offline-'+uuid.uuid4().hex[:10];moved=[];server=log=None;opened=False;sequence=0;start=time.monotonic()
+def save():write_json(work/'acceptance.json',result)
+def cli(*args):
+ global sequence
+ sequence+=1;p=subprocess.run([npx,'--offline','--package','@playwright/cli','playwright-cli','-s='+session,*args],cwd=work,
+  stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf-8',timeout=60)
+ (work/('%03d-cli.log'%sequence)).write_text(p.stdout,'utf-8')
+ if p.returncode:raise RuntimeError(p.stdout)
+ return p.stdout
+def click(role,name,prefix=False):
+ deadline=time.monotonic()+40
+ while True:
+  tree=cli('snapshot');matches=re.findall(r'^\s*- '+re.escape(role)+r' "'+re.escape(name)+(r'[^"\n]*' if prefix else '')+r'" \[ref=([A-Za-z0-9_-]+)\]',tree,re.M)
+  if len(matches)==1:return cli('click',matches[0])
+  if time.monotonic()>deadline:raise ValueError('Missing/ambiguous action '+name)
+  time.sleep(.3)
+save()
+try:
+ for p,q in paths:p.rename(q);moved.append((p,q))
+ assert not source.exists() and not data.exists()
+ row=next(r for r in provider.symbols(search='shared')['items'] if r['name']=='shared')
+ archived=provider.archived_source(row['definition_file']);assert archived['available']
+ result['archive_source']=archived;save()
+ log=(work/'server.log').open('xb');session_file=work/'session.json'
+ server=subprocess.Popen([sys.executable,'-B','-X','utf8','-m','ecra.studio','--data-root',str(viewer),'--no-browser','--session-file',str(session_file)],
+  cwd=bundle,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',ECRA_PORTABLE_ROOT=str(bundle)),stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+ deadline=time.monotonic()+90
+ while not session_file.exists():
+  if server.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Viewer failed to start')
+  time.sleep(.2)
+ info=json.loads(session_file.read_text('utf-8'));base='http://'+info['authority']
+ cli('open',info['url'],'--browser=chrome');opened=True;cli('resize','1366','768')
+ click('link','变量与风险');click('button','shared ',True);click('tab','归档源码')
+ deadline=time.monotonic()+40
+ while True:
+  tree=cli('snapshot')
+  if '归档代码定位' in tree and 'BUILD_WIDTH' in tree and 'void ISR' in tree:break
+  if time.monotonic()>deadline:raise ValueError('Actual archived source text did not appear')
+  time.sleep(.3)
+ assert not source.exists() and not data.exists();cli('screenshot','--filename=01-source-without-originals.png')
+ console=cli('console');assert 'Errors: 0, Warnings: 0' in console,console
+ urls=re.findall(r'https?://[^\s]+',cli('requests','--all','--static'));assert urls and all(v.startswith(base+'/') for v in urls)
+ assert sha256(scans[0])==static
+ result.update(passed=True,source_unavailable_during_view=True,original_build_sdk_and_task_namespace_unavailable=True,
+  archive_static_sha256=static,archive_static_unchanged=True,scan_id=scan_id,browser_errors=0,external_requests=[],
+  screenshot_sha256=sha256(work/'01-source-without-originals.png'),tests=['ACTUAL_IMPORTED_ARCHIVE_SOURCE_WITHOUT_ORIGINAL_FIRMWARE_AND_DATA','REAL_CHROME_ARCHIVED_MAIN_SOURCE_AND_SHARED_VARIABLE','IMPORTED_STATIC_AUTHORITY_HASH_UNCHANGED'])
+except BaseException:result['error']=traceback.format_exc();raise
+finally:
+ if opened:
+  try:cli('close')
+  except Exception:result['browser_cleanup_error']=traceback.format_exc()
+ if server:server.terminate();server.wait(timeout=30)
+ if log:log.close()
+ for p,q in reversed(moved):
+  assert not p.exists() and q.resolve().parent==original.resolve();q.rename(p)
+ result['original_namespaces_restored']=all(p.exists() and not q.exists() for p,q in paths)
+ result['seconds']=time.monotonic()-start;save()
+print(json.dumps(dict(passed=result['passed'],receipt=str(work/'acceptance.json'))))

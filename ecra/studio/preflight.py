@@ -122,8 +122,8 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         explicit += [Path(unit['source']) for unit in units]
         explicit += [Path(path) for unit in units for path in unit['response_files']]
         explicit += [root/path for path in compilation.get('assembly_sources', [])]
-        explicit += [root/cfg['analysis']['build_closure'][key] for key in ('elf', 'map')
-                     if cfg['analysis'].get('build_closure', {}).get(key)]
+        consumed_closure=compilation.get('build_closure',cfg['analysis'].get('build_closure',{}))
+        explicit += [root/consumed_closure[key] for key in ('elf', 'map') if consumed_closure.get(key)]
         cache = Path(compilation['compile_database']).parent/'CMakeCache.txt'
         if cache.is_file(): explicit.append(cache)
         for key in ('CMAKE_TOOLCHAIN_FILE', 'CMAKE_COMMAND', 'CMAKE_MAKE_PROGRAM', 'CMAKE_C_COMPILER',

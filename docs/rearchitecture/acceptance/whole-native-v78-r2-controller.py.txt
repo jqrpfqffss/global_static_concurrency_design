@@ -1,0 +1,74 @@
+"""Gate and measure actual changed-source public native Diff and TU recovery."""
+import hashlib,json,os,subprocess,sys,time,traceback
+from datetime import datetime,timezone
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v78';inputs=w/'whole-native-inav-v78-inputs'
+queue=w/'whole-native-inav-v78-r2-queue.json';assert not queue.exists()
+state=dict(passed=False,status='WAITING_FROZEN_REGRESSION_AND_ACTUAL_BUILD',all_gates_passed=False,
+ scope='Actual CMake public-INAV-derived full Git Diff: complete baseline, two committed current TU interruption, new native scan ID with verified same-root cache recovery, independent uncached full verification. Controlled real source edit in a fresh complete two-commit private repository; not unchanged original golden G1, another independent G2 project, old/new whole-run speed comparison, physical32GB or UAT.')
+def save():queue.write_text(json.dumps(state,indent=2)+'\n','utf-8')
+def sha(p):
+ h=hashlib.sha256()
+ with Path(p).open('rb') as f:
+  for block in iter(lambda:f.read(1024**2),b''):h.update(block)
+ return h.hexdigest()
+save()
+try:
+ deadline=time.monotonic()+21600
+ needed=[w/'full-regression-studio-v78.json',inputs/'acceptance-mapped-v78.json']
+ while not all(p.is_file() for p in needed):
+  if queue.with_suffix('.stop').is_file():raise KeyboardInterrupt('Explicit stop before native work')
+  if time.monotonic()>deadline:raise TimeoutError('No final prerequisite receipts')
+  time.sleep(5)
+ reg,prep=[json.loads(p.read_text('utf-8')) for p in needed]
+ assert reg['passed'] and reg['tests']==1568 and reg['skipped']==2,reg
+ assert prep['passed'],prep
+ manifest=engine.with_name(engine.name+'.sha256.json');assert sha(manifest)==reg['manifest_sha256']
+ records=json.loads(manifest.read_text('utf-8'))['files'];root=Path(prep['private_project']);data=Path(prep['data_root']);config=Path(prep['profile'])
+ assert not data.exists() and sha(config)==prep['profile_sha256']
+ def stamps():return {p.relative_to(root).as_posix():[sha(p),p.stat().st_size,p.stat().st_mtime_ns] for p in root.rglob('*') if p.is_file()}
+ before=stamps();(inputs/'private-before-native.json').write_text(json.dumps(before,indent=2)+'\n','utf-8')
+ def verify():
+  assert stamps()==before,'Private original source/Git changed'
+  assert sha(config)==prep['profile_sha256']
+  assert not [r['file'] for r in records if not (engine/r['file']).is_file() or sha(engine/r['file'])!=r['sha256']]
+ env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',SOURCE_DATE_EPOCH='1793577600',
+  GIT_OPTIONAL_LOCKS='0',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL='NUL')
+ observer=w/'measure-whole-native-diff-v78-r2.py'
+ state.update(status='RUNNING_BASELINE_THEN_TWO_CURRENT_TU_STOP',started_utc=datetime.now(timezone.utc).isoformat(),
+  input_receipt_sha256=sha(needed[1]),engine_manifest_sha256=sha(manifest),profile_sha256=sha(config),
+  base_sha=prep['base_sha'],current_sha=prep['current_sha'],data_root=str(data),observer_sha256=sha(observer));save()
+ first=w/'whole-native-inav-v78-r2-stopped';second=w/'whole-native-inav-v78-r2-resumed'
+ common=[sys.executable,'-B','-X','utf8',str(observer),'--engine',str(engine),'--config',str(config),'--data-root',str(data),
+  '--mode','canonical-published','--limit-gib','16','--profile-id','whole-inav-diff-v78']
+ with (w/'whole-native-inav-v78-r2-stop-driver.log').open('xb') as f:
+  code=subprocess.call([*common,'--work',str(first),'--scan-id','whole-stopped'],env=dict(env,ECRA_WHOLE_STOP_AFTER_TUS='2'),stdout=f,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+ stopped=json.loads((first/'execution.json').read_text('utf-8'))
+ marker=json.loads((first/'intentional-tu-interruption.json').read_text('utf-8'))
+ assert code!=0 and stopped['exit_code']==130 and not stopped['complete'] and marker['committed_current_responses']==2,(code,stopped)
+ assert not (data/'scans/whole-stopped/manifest.json').exists()
+ verify();baselines={str(p):sha(p) for p in data.rglob('scan.db') if 'base-' in str(p)}
+ assert baselines,'No complete actual baseline authority found'
+ state.update(status='RUNNING_RECOVERY_AND_COMPLETE_INDEPENDENT_VERIFICATION',stopped_receipt=stopped,
+  interruption=marker,original_baseline_sha256=baselines);save()
+ with (w/'whole-native-inav-v78-r2-resume-driver.log').open('xb') as f:
+  code=subprocess.call([*common,'--work',str(second),'--scan-id','whole-resumed','--resume-published-from',str(first)],
+   env=env,stdout=f,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+ resumed=json.loads((second/'execution.json').read_text('utf-8'));assert code==0 and resumed['complete'],resumed
+ verify();assert all(sha(Path(p))==h for p,h in baselines.items())
+ sys.path.insert(0,str(engine));from ecra.scan_store import EvidenceProvider
+ out=data/'scans/whole-resumed';provider=EvidenceProvider(out/'scan.db')
+ verification=provider.load('report',('git_diff','full_verification'));cache=provider.load('report',('git_diff','tu_cache'))
+ assert verification['state']=='PASSED' and verification['semantic_mismatches']==0 and verification['classification_mismatches']==0
+ assert cache['hits']>=2 and cache['total']>=388,cache
+ symbols=provider.symbols(search='ecra_diff_acceptance_irq_count');assert symbols['total']==1,symbols
+ sid=symbols['items'][0]['symbol_id'];impact=provider.load('report',('git_diff','impacts',sid))
+ assert impact['selected'] is True and 'DIRECT_CHANGED' in impact['reasons'],impact
+ assert provider.records('accesses',symbol_id=sid)['total']>=1
+ assert not (out/'facts.json').exists() and not (data/'scans/whole-stopped/manifest.json').exists()
+ state.update(passed=True,status='PASS_CHANGED_SOURCE_NATIVE_DIFF_TU_RECOVERY_SCOPED',
+  finished_utc=datetime.now(timezone.utc).isoformat(),resumed_receipt=resumed,full_verification=verification,
+  current_tu_cache=cache,actual_counter_symbol=sid,actual_counter_impact_reasons=impact['reasons'],
+  scan_metadata=provider.metadata(),private_source_and_git_differences=[],original_baselines_unchanged=True,
+  physical32GB='NOT_VERIFIED',old_whole_native_control='NOT_VERIFIED',original_golden_g1='SEPARATE_V77_QUEUE',all_gates_passed=False);save()
+except BaseException:state.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());save();raise

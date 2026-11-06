@@ -1,0 +1,19 @@
+test_real_arm_linked_artifacts_bind_both_git_sides_and_uncached_full_verification (tests.test_managed_build_closure.ManagedBuildClosureNativeTests) ... ok
+test_exact_missing_logical_pair_binds_to_owned_outputs_with_full_hashes (tests.test_managed_build_closure.ManagedBuildClosureTests) ... ok
+test_existing_or_external_explicit_inputs_keep_their_original_meaning (tests.test_managed_build_closure.ManagedBuildClosureTests) ... ok
+test_missing_owner_or_one_artifact_fails_without_retargeting_or_dropping (tests.test_managed_build_closure.ManagedBuildClosureTests) ... ok
+test_unbuilt_project_mode_and_escaping_names_do_not_gain_a_binding (tests.test_managed_build_closure.ManagedBuildClosureTests) ... ok
+test_builtin_module_is_not_a_blanket_custom_process_exemption (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_external_configuration_reads_are_bound_and_source_globs_keep_namespace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_low_child_cannot_erase_parent_pipe_trace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_registered_junction_parent_spelling_is_accepted_but_other_junction_is_rejected (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_stale_unrelated_alias_does_not_block_new_input_but_used_alias_fails_closed (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_stop_during_copy_hash_and_kernel_check_is_cooperative (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_unsupported_builds_are_rejected_without_fallback (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_unverified_auto_mixed_cmake_database_and_supplement_modes_remain_blocked (tests.test_dirty_inputs.DirtyInputPlanningTests) ... ok
+test_tampered_capture_never_replaces_previous_and_unsupported_modes_remain_blocked (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 61.661s
+
+OK
