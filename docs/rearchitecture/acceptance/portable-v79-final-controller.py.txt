@@ -1,0 +1,72 @@
+"""Verify the frontend-only package after actual Chrome acceptance, without rerunning identical backend tests."""
+import json,os,sys,time,traceback,urllib.request
+from pathlib import Path
+w=Path(__file__).parent
+bundle=Path('H:/ECRAStudio-build-20261106-studio-v79/ECRA-Portable')
+sys.path.insert(0,str(bundle))
+from ecra.report_package import sha256
+from ecra.studio.process_budget import ProcessBudget
+from ecra.studio.write_guard import OwnedProcess
+work=w/'portable-final-v79';work.mkdir(exist_ok=False)
+result=dict(passed=False,status='VERIFYING',all_gates_passed=False,
+ scope='Frontend-only v79 candidate. Actual package Chrome source visibility and real CMD launcher are tested anew. All 474 Python/test/dependency source files exactly match frozen v78, whose 34 embedded tests and eight real CMake Chrome workflows are inherited only for their unchanged backend scope. Full backend v78 and large native measurements are separate; no clean PC, physical32GB or human UAT claim.')
+start=time.monotonic()
+def save():(work/'acceptance.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+save()
+try:
+ assembly_path=w/'portable-v79-assembly.json';assembly=json.loads(assembly_path.read_text('utf-8'))
+ parent_path=w/'portable-final-v78/acceptance.json';parent=json.loads(parent_path.read_text('utf-8'))
+ ui_path=w/'source-target-v79/acceptance.json';ui=json.loads(ui_path.read_text('utf-8'))
+ assert assembly['passed'] and parent['passed'] and ui['passed'] and ui['original_namespaces_restored']
+ assert len(ui['viewport_checks'])==5 and all(v['visibleHeight']>=min(v['row']['height'],v['pane']['height'])-1 for v in ui['viewport_checks'])
+ assert parent['original_embedded_summary']['passed_tests']==34 and parent['original_embedded_summary']['skipped']==0
+ source=bundle/'SOURCE-SNAPSHOT.json';source_rows=json.loads(source.read_text('utf-8'))['files']
+ previous=w/'frozen-engine-studio-v78.sha256.json';previous_rows=json.loads(previous.read_text('utf-8'))['files']
+ def backend(rows):return {r['file']:r['sha256'] for r in rows if r['file'].endswith('.py') or r['file'].startswith('requirements')}
+ assert backend(source_rows)==backend(previous_rows) and len(backend(source_rows))==474
+ assert sha256(source)==assembly['program_snapshot_sha256'] and sha256(previous)==assembly['backend_snapshot_sha256']
+ result.update(assembly_receipt_sha256=sha256(assembly_path),source_snapshot_sha256=sha256(source),
+  backend_snapshot_sha256=sha256(previous),backend_and_test_source_files=474,backend_source_differences=[],
+  inherited_v78_final_receipt_sha256=sha256(parent_path),inherited_v78_embedded_tests=parent['original_embedded_summary'],
+  inherited_v78_browser_receipt_sha256=parent['original_browser_receipt_sha256'],
+  actual_v79_chrome_receipt_sha256=sha256(ui_path),actual_v79_viewport_checks=len(ui['viewport_checks']))
+ save()
+ data=work/'cmd-data';session=work/'cmd-session.json';helper=work/'launch-studio.cmd'
+ assert str(helper).isascii() and not any(c in str(helper) for c in ' &()^%!')
+ helper.write_text('@echo off\r\ncall "'+str(bundle/'ECRA.cmd')+'" --no-browser --data-root "'+str(data)+'" --session-file "'+str(session)+'"\r\nexit /b %ERRORLEVEL%\r\n',encoding='ascii',newline='')
+ budget=ProcessBudget(2*1024**3);process=None
+ try:
+  with (work/'launcher.log').open('xb') as log:
+   process=OwnedProcess([os.environ['ComSpec'],'/d','/c',str(helper)],cwd=bundle,
+    env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',ECRA_PORTABLE_ROOT=str(bundle)),log=log)
+   budget.assign(process);process.resume();until=time.monotonic()+90
+   while not session.exists():
+    if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Actual owned ECRA.cmd startup failed')
+    time.sleep(.2)
+   info=json.loads(session.read_text('utf-8'));base='http://'+info['authority']
+   request=urllib.request.Request(base+'/api/scans',headers={'X-ECRA-Session':info['token'],'Origin':base})
+   with urllib.request.urlopen(request,timeout=45) as response:assert response.status==200
+   result['actual_cmd_launcher']='PASS_AUTHENTICATED_LOCAL_SCANS_ENDPOINT'
+ finally:
+  budget.close()
+  if process is not None:process.close()
+ manifest=bundle/'FILES.sha256.json';inventory=json.loads(manifest.read_text('utf-8'))
+ bad=[p for p,h in inventory.items() if not (bundle/p).is_file() or sha256(bundle/p)!=h]
+ files={p.relative_to(bundle).as_posix() for p in bundle.rglob('*') if p.is_file()}
+ extras=sorted(files-set(inventory)-{'FILES.sha256.json'});assert not bad and not extras,(bad,extras)
+ application=[r for r in source_rows if r['file'].startswith('ecra/')]
+ assert all(sha256(bundle/r['file'])==r['sha256'] for r in application)
+ old=Path('H:/ECRAStudio-build-20261106-studio-v78/ECRA-Portable')
+ old_inventory=json.loads((old/'FILES.sha256.json').read_text('utf-8'))
+ tool_names=[p for p in old_inventory if p.startswith(('runtime/','tools/','wheels/'))]
+ assert tool_names and all(p in inventory and inventory[p]==old_inventory[p] for p in tool_names)
+ archive=bundle.parent/'ECRA-Portable.zip';assert sha256(archive)==assembly['zip_sha256']
+ result.update(passed=True,status='PASS_SCOPED',application_files=len(application),application_differences=[],
+  runtime_tool_files_unchanged=len(tool_names),payload_files=len(inventory),complete_file_count=len(files),
+  payload_differences=bad,unexpected_files=extras,payload_manifest_sha256=sha256(manifest),
+  zip_bytes=archive.stat().st_size,zip_sha256=sha256(archive),
+  full_backend_regression='SEE_SEPARATE_FROZEN_V78_RECEIPT',large_native_final='NOT_VERIFIED_PENDING_SEPARATE_CONTROLLERS',
+  clean_offline_pc='NOT_VERIFIED',physical32GB='NOT_VERIFIED',human_UAT='NOT_VERIFIED')
+except BaseException:result.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());raise
+finally:result['seconds']=time.monotonic()-start;save()
+print(json.dumps(dict(passed=result['passed'],receipt=str(work/'acceptance.json'))))

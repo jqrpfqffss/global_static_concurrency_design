@@ -8,6 +8,6 @@
 
 修改为`ecra/managed_build_closure.py`、`compilation.py`、`cli.py`、`studio/preflight.py`。普通编译数据库及已有绝对闭包不新增绑定字段；原分析器不变。独立无缓存全量使用同一实际链接产物；原生输入快照、最终复验和损坏门禁不省略。未提交CMake的显式ELF/MAP仍未准入，本段先关闭固定提交CMake整轮Diff的缺口，不据此放宽117号V3策略。
 
-首次工作区5项实际回归PASS，31.562秒，包括真实ARM链接、两Git版本分别使用独立ELF/MAP、原件与索引不变及独立无缓存全量PASSED。增加同例真实预检查后，冻结v78的14项针对回归PASS/0跳过、61.661秒，原冻结源及独立副本4037文件SHA不变；[收据](acceptance/managed-build-closure-v78-focused.json)、[原日志](acceptance/managed-build-closure-v78-focused.log)。manifest SHA为`113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd`。其它四项覆盖原显式路径保留、归属缺失、缺少单侧产物、前缀/越界/未构建门禁；另9项保留原别名、命令审计、停止和未准入模式门禁。完整1568项回归、原F030全部字段对照及最新大库在新冻结修改集上重跑，收齐前NOT_VERIFIED。
+首次工作区5项实际回归PASS，31.562秒，包括真实ARM链接、两Git版本分别使用独立ELF/MAP、原件与索引不变及独立无缓存全量PASSED。增加同例真实预检查后，冻结v78的14项针对回归PASS/0跳过、61.661秒，原冻结源及独立副本4037文件SHA不变；[收据](acceptance/managed-build-closure-v78-focused.json)、[原日志](acceptance/managed-build-closure-v78-focused.log)。manifest SHA为`113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd`。其它四项覆盖原显式路径保留、归属缺失、缺少单侧产物、前缀/越界/未构建门禁；另9项保留原别名、命令审计、停止和未准入模式门禁。完整1568项回归及最新大库在新冻结修改集上重跑，最终收齐前NOT_VERIFIED；原F030全部字段对照与包内34专项已实际通过，见下段及[122号](122-portable-v79-and-source-target-acceptance.md)。
 
 原v76/v77完整回归、包内测试及真实Chrome继续按各自版本收据记账，不能替这份新增修改背书。原F030已在冻结v78实际重新原生扫描，保持原2 PARSED/2 PARTIAL及code=2，43个原文件内容/大小/mtime不变；原完整有序、类型敏感比较器对全部facts/report均0差，[收据](acceptance/managed-build-closure-f030-v78.json)、[完整执行信封](acceptance/managed-build-closure-f030-v78-envelope.jsonl)。它不能替代大型INAV。原INAV黄金使用显式绝对ELF/MAP，预期绑定不触发；仍须实际最新全部字段对照验证，不能只靠代码推理宣称0差。

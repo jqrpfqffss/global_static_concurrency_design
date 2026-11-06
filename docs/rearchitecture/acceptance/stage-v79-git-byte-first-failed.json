@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "scope": "First stage Git-blob byte audit; not a product test. Earlier committed receipt was normalized by core.autocrlf. Original raw receipt and JSON values retained; old Git blob is not rewritten.",
+  "git_index_byte_differences": [
+    "docs/rearchitecture/acceptance/browser-working-cmake-v77.json"
+  ],
+  "raw_sha256": "f5957038b9a4676c832bef599b558891aac5c02266e620c106b39f7750a1066f",
+  "prior_committed_sha256": "868a5e7488ef20041da012a0d790f493d767415fe41cedcbc5eac6ba7b22cc35",
+  "resolution": "Separate browser-working-cmake-v77-raw.json with -text; original file retained."
+}

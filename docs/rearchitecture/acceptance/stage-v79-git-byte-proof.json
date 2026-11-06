@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "files": 29,
+  "git_index_byte_differences": [],
+  "original_v77_committed_blob_unchanged": true,
+  "first_failed_audit_sha256": "f3eb51a5dc712a554816c92707d53d7b3539d9d60ed2205cfcdb8d2528cf924a",
+  "scope": "Every archived raw evidence blob is byte-identical to the original SHA; all 29 records independently checked after Git staging. Includes raw CRLF records and scripts, not a product or large-scan gate."
+}

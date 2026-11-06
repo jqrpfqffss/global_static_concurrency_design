@@ -1,0 +1,49 @@
+{
+  "passed": false,
+  "status": "FAIL_OR_NOT_VERIFIED",
+  "all_gates_passed": false,
+  "scope": "Embedded Python and bundled tools; real guarded working CMake, stop/retry, generated inputs, strict independent full verification, Chrome evidence and package import. Local host only; not clean PC, physical32GB, human UAT or complete large native Diff.",
+  "uncompressed": {
+    "result": "PASS",
+    "commands": 27,
+    "receipt_sha256": "12ca86b3c33a88829e413cc4525d70ab6493c4cf045abac08350a587cddc1338"
+  },
+  "zip-extracted": {
+    "result": "PASS",
+    "commands": 27,
+    "receipt_sha256": "9d0bbdb1e858246c118dcf3e3b4b14832f84d076501897636cb0d74a05117aac"
+  },
+  "application_files": 147,
+  "payload_files": 32264,
+  "snapshot_sha256": "f7f3d0582fe429b515a4640e148223a92d70af471ef70ac906a55783b4a3e97d",
+  "zip_bytes": 785552255,
+  "zip_sha256": "da275728e65698caaf9d2c4efbb5ff6f9ab12872efc1519674620c63b07f3a0a",
+  "payload_manifest_sha256": "bb9600cc91d4d032bef7443b07bb586204e2109a904aa76bcdc293109a92ffee",
+  "embedded_tests": {
+    "summary_ok": true,
+    "tests": 29,
+    "passed_tests": 29,
+    "seconds": 2935.607,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "exit_code": 0,
+    "log_sha256": "c809490b1dc4c1fadd8fd4d94f737591128f19a40443e7ca2a1fa8434e5323cf"
+  },
+  "browser_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v77\\browser\\acceptance.json",
+  "browser_tests": [
+    "REAL_CHROME_STOP_AFTER_COMPLETE_FIXED_INPUTS_AND_RETRY",
+    "RETRY_REUSES_ORIGINAL_BUILD_GENERATED_INPUTS_AND_CONFIG_WITHOUT_CMAKE",
+    "REAL_CHROME_CMAKE_WORKING_NATIVE_TASK_COMMITTED",
+    "ACTUAL_STAGED2_WORKING3_BASE1_GENERATED_HEADER_AND_C_TU",
+    "INDEPENDENT_UNCACHED_FULL_VERIFICATION_PASSED",
+    "SOURCE_GIT_INDEX_BYTES_SIZE_MTIME_UNCHANGED",
+    "REAL_CHROME_WORKING_DIFF_ACCESS_EVIDENCE",
+    "COMPLETE_PACKAGE_IMPORT_FACTS_REPORT_HASHES_IDENTICAL"
+  ],
+  "browser_receipt_sha256": "f5957038b9a4676c832bef599b558891aac5c02266e620c106b39f7750a1066f",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-portable-working-v77.py\", line 78, in <module>\n    if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Actual ECRA.cmd launcher failed')\nRuntimeError: Actual ECRA.cmd launcher failed\n",
+  "seconds": 3521.5160000000033
+}

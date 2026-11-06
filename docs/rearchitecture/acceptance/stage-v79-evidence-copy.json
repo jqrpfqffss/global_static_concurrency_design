@@ -1,0 +1,181 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Unmodified raw receipts, prior harness failures, scripts and screenshots. No session token files or ephemeral browser logs copied.",
+  "files": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-final-v77\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v77-final.json",
+      "bytes": 1733,
+      "sha256": "ce1ec1c0fab801dc46c03ccc32f478e2138d2889bae2b489a60270956570aaf2"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v77\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v77-controller-quote-failed.json",
+      "bytes": 2502,
+      "sha256": "ad45387c61acb92200f92cd4fa7220cf62d09c1b3654f49db5cc614a596d1f82"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v77\\embedded-tests.log",
+      "file": "docs/rearchitecture/acceptance/portable-v77-embedded-tests.log",
+      "bytes": 3620,
+      "sha256": "c809490b1dc4c1fadd8fd4d94f737591128f19a40443e7ca2a1fa8434e5323cf"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v77\\browser\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/browser-working-cmake-v77-raw.json",
+      "bytes": 546768,
+      "sha256": "f5957038b9a4676c832bef599b558891aac5c02266e620c106b39f7750a1066f"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-final-v78\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v78-final.json",
+      "bytes": 1734,
+      "sha256": "ccd16407f13aef91d0d5a9f7a1fa01a585a691eada96b4b82e96a031da0169b7"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v78-controller-quote-failed.json",
+      "bytes": 2502,
+      "sha256": "339755b4886eb70df98b930f0b7aaec508cb4387e9d0e38ef7cada157122f59d"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\embedded-tests.log",
+      "file": "docs/rearchitecture/acceptance/portable-v78-embedded-tests.log",
+      "bytes": 4330,
+      "sha256": "853725b8b07fa0c7fc14213f4a8799cb2f41a4b4aa5365ac26b9bcf8e2bbe51a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\browser\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/browser-working-cmake-v78.json",
+      "bytes": 553560,
+      "sha256": "cba7210505cbec057c380109c0db7b3a9d8757db571a97ac5341985721dc7ecb"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v77.json",
+      "file": "docs/rearchitecture/acceptance/full-regression-studio-v77-final.json",
+      "bytes": 1757,
+      "sha256": "7b89ca25209eff51116a612513988bc927317b26af21d3c6d13dd8898319248e"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v77.log",
+      "file": "docs/rearchitecture/acceptance/full-regression-studio-v77.log",
+      "bytes": 289787,
+      "sha256": "5756f867c9dd236b94349a80ce5500ecd6bdf9884e13925c57d18daea4fbc973"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-v79-assembly.json",
+      "file": "docs/rearchitecture/acceptance/portable-v79-assembly.json",
+      "bytes": 1507,
+      "sha256": "8686c26ccfcb2fb880750409500cea05d9640355ea576260a4b2bd8283dee1e2"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\source-target-v77-before\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/source-target-v77-before.json",
+      "bytes": 2988,
+      "sha256": "338b5173a28097a887d5460f3586e1af7b2c92e47cc097f7456995f18862ead5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\source-target-v79\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/source-target-v79.json",
+      "bytes": 6828,
+      "sha256": "50aadae839226a1029513eeb15606efa6ad94859f3dd0270f428f4d8ac0632f0"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-contract-source-target-v79.json",
+      "file": "docs/rearchitecture/acceptance/ui-contract-source-target-v79.json",
+      "bytes": 8819,
+      "sha256": "a6df87b10f913ba30a11010ae647ede956be998d772c93d2aec44b7902cdf8e3"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-source-target-v79.py",
+      "file": "docs/rearchitecture/acceptance/source-target-v79-controller.py.txt",
+      "bytes": 7882,
+      "sha256": "fa66ea97a212e4a4374eb6fb1354518bae633643499acf0fbba6dd4556ee89d6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\finalize-portable-working.py",
+      "file": "docs/rearchitecture/acceptance/portable-v77-v78-final-controller.py.txt",
+      "bytes": 5249,
+      "sha256": "793b40ff206c5fee61084dc2d1b5459705ade5a54c9cc2d0964f1005232cc0a6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\finalize-portable-v79.py",
+      "file": "docs/rearchitecture/acceptance/portable-v79-final-controller.py.txt",
+      "bytes": 5931,
+      "sha256": "614b7703726a7bbcf7ced67d6b8486dfb74e8f69512c0abcade91f4032db2fad"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\assemble-portable-v79.py",
+      "file": "docs/rearchitecture/acceptance/portable-v79-assembly-recipe.py.txt",
+      "bytes": 6000,
+      "sha256": "d2be1095759bf4b3f31c1b01085e9237975743a1deea18e41895bb880b18499e"
+    },
+    {
+      "source": "H:\\ECRAStudio-build-20261106-studio-v79\\portable-evidence\\uncompressed\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v79-uncompressed.json",
+      "bytes": 20410,
+      "sha256": "c2c2ae7e7cd73329ebe4946a2a2d1dc937e1a29dc92f3d05536727fef8391408"
+    },
+    {
+      "source": "H:\\ECRAStudio-build-20261106-studio-v79\\portable-evidence\\zip-extracted\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v79-zip-extracted.json",
+      "bytes": 21720,
+      "sha256": "5769a4cb324bb813fa2b6abdf9679b512c46484dbbd56f5e6b6c4f618f509788"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\source-target-v77-before\\01-source-without-originals.png",
+      "file": "docs/rearchitecture/ui/screenshots/source-target-v77-before/01-source-without-originals.png",
+      "bytes": 98097,
+      "sha256": "f698be7cdf63ffcc2a27479dd9f021b653f9321aa0da56fae9954ad550f9b891"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\source-target-v79\\01-source-without-originals.png",
+      "file": "docs/rearchitecture/ui/screenshots/source-target-v79/01-source-without-originals.png",
+      "bytes": 97811,
+      "sha256": "8de06c963e3ebd7faff2529ba666aa07e6ff22aae9bb4479868df2f327e09cec"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\source-target-v79\\02-source-1600.png",
+      "file": "docs/rearchitecture/ui/screenshots/source-target-v79/02-source-1600.png",
+      "bytes": 107602,
+      "sha256": "7568678e2269fc2ed33332b54b0f078eed971d7ad78525d4fff805d33b91c62e"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\source-target-v79\\03-target-and-draft-1366.png",
+      "file": "docs/rearchitecture/ui/screenshots/source-target-v79/03-target-and-draft-1366.png",
+      "bytes": 97811,
+      "sha256": "8de06c963e3ebd7faff2529ba666aa07e6ff22aae9bb4479868df2f327e09cec"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\browser\\00-safe-stopped.png",
+      "file": "docs/rearchitecture/ui/screenshots/working-cmake-v78/00-safe-stopped.png",
+      "bytes": 106759,
+      "sha256": "15c7feb706ed6881f1c97ccf6b372569b2c890cbbc45da1cd1bca7cf3582bb51"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\browser\\01-task-complete.png",
+      "file": "docs/rearchitecture/ui/screenshots/working-cmake-v78/01-task-complete.png",
+      "bytes": 110365,
+      "sha256": "7447411fc3f3ed53ed20230318ccf4d013d8d145e01757de57d31afb60524ffa"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\browser\\02-working-diff-evidence-1366.png",
+      "file": "docs/rearchitecture/ui/screenshots/working-cmake-v78/02-working-diff-evidence-1366.png",
+      "bytes": 98244,
+      "sha256": "3ea700a4ed0c82d1ee28ff7466e7012c2bc0d7efac696c9bf9a2915307c28a09"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v78\\browser\\03-working-diff-evidence-1600.png",
+      "file": "docs/rearchitecture/ui/screenshots/working-cmake-v78/03-working-diff-evidence-1600.png",
+      "bytes": 112082,
+      "sha256": "dbcafb4f51744a945a182d2340f8818f75640b6bdc7d65f8277d78be183daa3b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-final-v79\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/portable-v79-final.json",
+      "bytes": 2369,
+      "sha256": "da7950290a1c363ce0806a29d67be81791e74112c01decf03b752896e6fec170"
+    }
+  ]
+}

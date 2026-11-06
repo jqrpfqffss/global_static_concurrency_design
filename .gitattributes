@@ -2,3 +2,29 @@
 ecra/studio/sample_assets/sample.json text eol=lf
 ecra/studio/sample_assets/*.ecra-report binary
 tests/fixtures/e69_evidence.py text eol=lf
+
+# Preserve the exact bytes hashed in these immutable acceptance receipts.
+docs/rearchitecture/acceptance/portable-v77-final.json -text
+docs/rearchitecture/acceptance/portable-v77-controller-quote-failed.json -text
+docs/rearchitecture/acceptance/portable-v77-embedded-tests.log -text
+docs/rearchitecture/acceptance/browser-working-cmake-v77-raw.json -text
+docs/rearchitecture/acceptance/portable-v78-final.json -text
+docs/rearchitecture/acceptance/portable-v78-controller-quote-failed.json -text
+docs/rearchitecture/acceptance/portable-v78-embedded-tests.log -text
+docs/rearchitecture/acceptance/browser-working-cmake-v78.json -text
+docs/rearchitecture/acceptance/full-regression-studio-v77-final.json -text
+docs/rearchitecture/acceptance/full-regression-studio-v77.log -text
+docs/rearchitecture/acceptance/portable-v79-assembly.json -text
+docs/rearchitecture/acceptance/source-target-v77-before.json -text
+docs/rearchitecture/acceptance/source-target-v79.json -text
+docs/rearchitecture/acceptance/source-target-v79-controller.py.txt -text
+docs/rearchitecture/acceptance/portable-v77-v78-final-controller.py.txt -text
+docs/rearchitecture/acceptance/portable-v79-final-controller.py.txt -text
+docs/rearchitecture/acceptance/portable-v79-assembly-recipe.py.txt -text
+docs/rearchitecture/acceptance/portable-v79-uncompressed.json -text
+docs/rearchitecture/acceptance/portable-v79-zip-extracted.json -text
+docs/rearchitecture/acceptance/portable-v79-final.json -text
+docs/rearchitecture/acceptance/stage-v79-evidence-copy.json -text
+docs/rearchitecture/acceptance/ui-contract-source-target-v79.json -text
+docs/rearchitecture/acceptance/stage-v79-git-byte-first-failed.json -text
+docs/rearchitecture/acceptance/stage-v79-git-byte-proof.json -text

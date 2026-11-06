@@ -1,0 +1,258 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Actual Chrome archive source with original firmware and data namespace hidden.",
+  "bundle": "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable",
+  "source_receipt_sha256": "f5957038b9a4676c832bef599b558891aac5c02266e620c106b39f7750a1066f",
+  "archive_source": {
+    "available": true,
+    "file": "main.c",
+    "text_node": 1017,
+    "sha256": "46a7f8ce3d43f2ea5809e46f6daeb35d92aca963fd9c3ad24d35d630e9ba5a5a",
+    "reason": "归档文本仅用于查看；精确原始字节与输入哈希仍保留在来源记录中。"
+  },
+  "viewport_checks": [
+    {
+      "label": "initial-1366",
+      "available": true,
+      "line": "3",
+      "row": {
+        "top": 491.953125,
+        "bottom": 536.140625,
+        "height": 44.1875
+      },
+      "pane": {
+        "top": 482.3125,
+        "bottom": 546.3125,
+        "height": 64
+      },
+      "visibleHeight": 44.1875,
+      "documentScrollY": 0,
+      "author": "验收工程师",
+      "basis": "归档定位只读验收，未提交确认",
+      "buttons": [
+        {
+          "text": "确认有风险",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        },
+        {
+          "text": "确认无风险",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        },
+        {
+          "text": "暂无法确认",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        },
+        {
+          "text": "撤销上次确认",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        }
+      ]
+    },
+    {
+      "label": "reopen-1600",
+      "available": true,
+      "line": "3",
+      "row": {
+        "top": 555.953125,
+        "bottom": 578.046875,
+        "height": 22.09375
+      },
+      "pane": {
+        "top": 482.3125,
+        "bottom": 652.34375,
+        "height": 170.03125
+      },
+      "visibleHeight": 22.09375,
+      "documentScrollY": 0,
+      "author": "验收工程师",
+      "basis": "归档定位只读验收，未提交确认",
+      "buttons": [
+        {
+          "text": "确认有风险",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "确认无风险",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "暂无法确认",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "撤销上次确认",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        }
+      ]
+    },
+    {
+      "label": "jump-line1-1600",
+      "available": true,
+      "line": "1",
+      "row": {
+        "top": 555.765625,
+        "bottom": 577.859375,
+        "height": 22.09375
+      },
+      "pane": {
+        "top": 482.3125,
+        "bottom": 652.34375,
+        "height": 170.03125
+      },
+      "visibleHeight": 22.09375,
+      "documentScrollY": 0,
+      "author": "验收工程师",
+      "basis": "归档定位只读验收，未提交确认",
+      "buttons": [
+        {
+          "text": "确认有风险",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "确认无风险",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "暂无法确认",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "撤销上次确认",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        }
+      ]
+    },
+    {
+      "label": "jump-back-line3-1600",
+      "available": true,
+      "line": "3",
+      "row": {
+        "top": 555.953125,
+        "bottom": 578.046875,
+        "height": 22.09375
+      },
+      "pane": {
+        "top": 482.3125,
+        "bottom": 652.34375,
+        "height": 170.03125
+      },
+      "visibleHeight": 22.09375,
+      "documentScrollY": 0,
+      "author": "验收工程师",
+      "basis": "归档定位只读验收，未提交确认",
+      "buttons": [
+        {
+          "text": "确认有风险",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "确认无风险",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "暂无法确认",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        },
+        {
+          "text": "撤销上次确认",
+          "top": 827,
+          "bottom": 859,
+          "inViewport": true
+        }
+      ]
+    },
+    {
+      "label": "reopen-again-1366",
+      "available": true,
+      "line": "3",
+      "row": {
+        "top": 491.953125,
+        "bottom": 536.140625,
+        "height": 44.1875
+      },
+      "pane": {
+        "top": 482.3125,
+        "bottom": 546.3125,
+        "height": 64
+      },
+      "visibleHeight": 44.1875,
+      "documentScrollY": 0,
+      "author": "验收工程师",
+      "basis": "归档定位只读验收，未提交确认",
+      "buttons": [
+        {
+          "text": "确认有风险",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        },
+        {
+          "text": "确认无风险",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        },
+        {
+          "text": "暂无法确认",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        },
+        {
+          "text": "撤销上次确认",
+          "top": 695,
+          "bottom": 727,
+          "inViewport": true
+        }
+      ]
+    }
+  ],
+  "source_unavailable_during_view": true,
+  "original_build_sdk_and_task_namespace_unavailable": true,
+  "archive_static_sha256": "59e105f1a8dddbd90a2b28cb0ff4a22915a94fcd3556b85983c1624ab3b74bbe",
+  "archive_static_unchanged": true,
+  "scan_id": "00a6df8202be4101be6b8aad397347f8",
+  "browser_errors": 0,
+  "external_requests": [],
+  "screenshot_sha256": "8de06c963e3ebd7faff2529ba666aa07e6ff22aae9bb4479868df2f327e09cec",
+  "tests": [
+    "ACTUAL_IMPORTED_ARCHIVE_SOURCE_WITHOUT_ORIGINAL_FIRMWARE_AND_DATA",
+    "REAL_CHROME_ARCHIVED_MAIN_SOURCE_AND_SHARED_VARIABLE",
+    "IMPORTED_STATIC_AUTHORITY_HASH_UNCHANGED",
+    "SELECTED_SOURCE_VISIBLE_AFTER_LOAD_AND_REAL_JUMPS",
+    "CONFIRMATION_DRAFT_AND_FOUR_ACTIONS_RETAINED_WITH_DOCUMENT_SCROLL_ZERO"
+  ],
+  "original_namespaces_restored": true,
+  "seconds": 84.43699999997625
+}

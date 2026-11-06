@@ -1,0 +1,34 @@
+test_added_deleted_shape_and_private_fallback (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_all_dimensions_and_findings_preserve_complete_impacts (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_build_and_legacy_return_edges_and_order_sensitive_evidence (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_current_non_string_keys_are_not_coerced (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_head_top_level_is_released_before_baseline_import (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_identical_complete_summaries (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_malformed_and_repeated_json_do_not_publish_and_keep_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_modified_functions_and_consumed_returns (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_nested_scalar_types_lists_and_map_key_types (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_pinned_digest_change_blocks_comparison (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_verification_preserves_full_mismatch_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_corrupt_current_facts_block_publication_and_preserve_previous_scan (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_original_independent_extraction_runs_before_current_graph (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_complete_but_different_engine_is_rejected_instead_of_recaptured (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_existing_database_retry_has_no_new_cmake_checkpoint_requirement (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_incomplete_capture_can_be_started_again (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_task_state_identity_mode_and_config_bytes_are_bound (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_traversal_and_foreign_task_paths_are_rejected (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_builtin_module_is_not_a_blanket_custom_process_exemption (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_external_configuration_reads_are_bound_and_source_globs_keep_namespace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_low_child_cannot_erase_parent_pipe_trace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_registered_junction_parent_spelling_is_accepted_but_other_junction_is_rejected (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_stale_unrelated_alias_does_not_block_new_input_but_used_alias_fails_closed (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_stop_during_copy_hash_and_kernel_check_is_cooperative (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_unsupported_builds_are_rejected_without_fallback (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_actual_generated_inputs_staging_and_complete_native_diff (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_kernel_watch_detects_byte_aba_and_root_rename_is_blocked (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_source_write_from_real_cmake_is_denied_without_source_changes (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_generated_working_inputs_full_scan_and_saved_refresh_without_baseline (tests.test_working_cmake_full.WorkingCMakeFullTests) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 2935.607s
+
+OK
