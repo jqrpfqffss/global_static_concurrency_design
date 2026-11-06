@@ -1,4 +1,4 @@
-> 当前验收见[122号便携包与源码定位](122-portable-v79-and-source-target-acceptance.md)：v77完整1563项为1561 PASS/2联网SKIP；v78包内34专项及真实Chrome八组、完整分发后验PASS。v79只修复归档源码目标行不可见，五组真实操作/坐标及实际启动、32306文件后验通过，474个后端/测试/依赖源码与v78逐字节相同。v78完整1568项及最新原黄金冷扫描/当前侧、真实改动整轮Diff恢复仍待最终收据，见[120号](120-current-and-whole-diff-validation-contract.md)。CMake能力仍按117/121号限定准入；保存后25.28→1.52GiB不能当整轮成绩。其它G2、32GB真机、干净离线机、系统DPI与人工UAT待验，原跨环境严格报告FAIL保留，完整重构未完成。下文各版当前/最新/在途是历史记录。
+> 最新见[123号完整回归与实际原生启动](123-v78-full-regression-and-native-start.md)：冻结v78完整1568项已1566 PASS/2联网opt-in SKIP，0失败/错误，6015.042秒，4037源及独立副本SHA不变。v79便携包与归档定位见[122号](122-portable-v79-and-source-target-acceptance.md)：实际启动、五组真实Chrome及32306文件后验PASS，474个后端/测试/依赖源与v78逐字节相同；包内34后端专项及八组CMake流程分别记账。原黄金冷原生/当前活数据比较、真实改动整轮Diff恢复已在两个新数据根和16GiB Job实际启动，最终内存、磁盘、全字段差异与恢复仍NOT_VERIFIED。CMake仍按117/121号限定准入；保存后25.28→1.52GiB不能当整轮成绩。其它G2、32GB真机、干净离线机、系统DPI与人工UAT待验，原跨环境严格报告FAIL保留，完整重构未完成。下文各版当前/最新/在途是历史记录。
 
 > 最新修复候选见[109号v67](109-portable-v67-baseline-fix-acceptance.md)：包内8专项、实际ECRA.cmd启动、显式数据库及CMake宏变化真实Chrome流程通过，32,032分发文件测试后SHA不变；当前核心源码完整1525项为1523PASS/2联网SKIP。大型原生/冷Diff/物理机等仍待验，完整重构未完成。
 

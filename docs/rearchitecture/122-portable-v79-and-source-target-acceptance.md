@@ -2,6 +2,8 @@
 
 本轮在`optimize_ccc@c807040`上继续直接实施。后端固定为v78，前端v79只修改`studio/src/SourceViewer.vue`及对应构建资源。先冻结[45号交互合同](ui/45-archived-source-target-visibility.md)，沿用原九导航、分栏、颜色、证据滚动区和固定人工区；没有重新设计页面。完整重构仍未完成，本文的PASS仅覆盖表内范围。
 
+后续同日已收齐[123号v78完整回归](123-v78-full-regression-and-native-start.md)：1566 PASS/2联网SKIP，0失败/错误，6015.042秒。两份大型原生任务已实际启动；其最终结果仍待验。
+
 | 阶段 | 实现的核心功能 | 变更文件 | 测试/场景ID | 状态 | 对应证据 |
 |---|---|---|---|---|---|
 | Phase 4 | 加载归档代码及跳行后，将所选行移到现有证据区内；只处理最新请求，卸载后不再更新 | `studio/src/SourceViewer.vue`、`ecra/studio/web/index.html`及JS资源 | U12/U19/U22局部；真实Chrome，实际导入库，原固件和原构建/SDK/任务数据根暂时移走 | PASS_SCOPED | [5组坐标/操作收据](acceptance/source-target-v79.json)、[实际控制器](acceptance/source-target-v79-controller.py.txt) |
@@ -10,7 +12,7 @@
 | Phase 6 v77包内流程 | 内嵌Python 3.10.9及真实CMake/ARM/Git，实际ECRA.cmd启动 | v77 Portable | 29专项PASS/0跳过，2935.607秒；真实Chrome八组PASS；32265分发文件后验不变 | PASS_SCOPED | [最终补充](acceptance/portable-v77-final.json)、[29项原日志](acceptance/portable-v77-embedded-tests.log)、[Chrome原始字节收据](acceptance/browser-working-cmake-v77-raw.json) |
 | Phase 6 v78包内流程 | 上述流程加121号受控外置ELF/MAP绑定 | v78 Portable；148应用文件匹配冻结源 | 34专项PASS/0跳过，2681.587秒；真实Chrome八组PASS；32279分发文件后验不变 | PASS_SCOPED | [最终补充](acceptance/portable-v78-final.json)、[34项原日志](acceptance/portable-v78-embedded-tests.log)、[Chrome收据](acceptance/browser-working-cmake-v78.json) |
 | Phase 6 v79前端候选 | 原样复用经验证的后端及工具，重新构建和验证真实源码定位 | v79 Portable；148应用文件匹配冻结源 | 目录与中文ZIP各27检查、真实Chrome五组、实际ECRA.cmd认证API、32306文件完整后验PASS，无额外文件 | PASS_SCOPED，不计干净电脑/完整G7或G8 | [最终收据](acceptance/portable-v79-final.json)、[组装收据](acceptance/portable-v79-assembly.json)、[目录](acceptance/portable-v79-uncompressed.json)、[中文ZIP](acceptance/portable-v79-zip-extracted.json) |
-| Phase 2/6 大型当前侧与整轮Diff | 原黄金冷原生扫描及当前活对象比较；真实改动INAV派生工程的完整基准、两个当前TU后中断及新scan_id恢复 | 冻结v78后端，独立数据根及16GiB自有Job | 等1568项完整回归最终收据；实际388TU准备已PASS | NOT_VERIFIED，最终回执未收齐 | [120号合同及控制器](120-current-and-whole-diff-validation-contract.md) |
+| Phase 2/6 大型当前侧与整轮Diff | 原黄金冷原生扫描及当前活对象比较；真实改动INAV派生工程的完整基准、两个当前TU后中断及新scan_id恢复 | 冻结v78后端，独立数据根及16GiB自有Job | 1568项完整回归最终PASS；实际388TU准备PASS，两个正式任务已启动 | RUNNING / NOT_VERIFIED，最终回执未收齐 | [实际启动证据](123-v78-full-regression-and-native-start.md)、[120号合同及控制器](120-current-and-whole-diff-validation-contract.md) |
 
 ## 真实界面复核
 

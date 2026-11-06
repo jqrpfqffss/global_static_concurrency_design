@@ -1,0 +1,14 @@
+{
+  "passed": false,
+  "status": "RUNNING_BASELINE_THEN_TWO_CURRENT_TU_STOP",
+  "all_gates_passed": false,
+  "scope": "Actual CMake public-INAV-derived full Git Diff: complete baseline, two committed current TU interruption, new native scan ID with verified same-root cache recovery, independent uncached full verification. Controlled real source edit in a fresh complete two-commit private repository; not unchanged original golden G1, another independent G2 project, old/new whole-run speed comparison, physical32GB or UAT.",
+  "started_utc": "2026-11-06T16:08:53.011348+00:00",
+  "input_receipt_sha256": "ee89a31ab0c3eebe153f94371fe6739f8499e1039e5cc80529e036f387b3ac50",
+  "engine_manifest_sha256": "113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd",
+  "profile_sha256": "280e2cd5d02d7700c7a6b9234841fd3f1b05c1a09ecb55a07c561fae7ec065b2",
+  "base_sha": "221029e2b7d688a7a7cf96f3a46b59b7f38157a9",
+  "current_sha": "a040c6bef605f929fa017b7089c5b7976a2b2bba",
+  "data_root": "H:\\ECRA-WHOLE-D78-SEED0",
+  "observer_sha256": "8a2676e1702eff4e7bc37a32f3a504ee671615bd35a54e5be9a618d5a348f8c4"
+}

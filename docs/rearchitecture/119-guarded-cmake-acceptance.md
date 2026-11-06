@@ -1,5 +1,7 @@
 # CMake未提交输入、停止与恢复：逐版验收
 
+2026-11-07最终更新：[123号](123-v78-full-regression-and-native-start.md)已收齐v78完整1568项：1566 PASS/2联网opt-in SKIP，0失败/错误，6015.042秒，4037文件及独立副本SHA不变。v79前端及便携包见[122号](122-portable-v79-and-source-target-acceptance.md)；最新当前侧及整轮Diff/恢复已实际启动，最终仍待验。下表较早版本及其FAIL保持原范围。
+
 当前起点为`optimize_ccc@a76a180`，实现由Codex直接完成。没有改`config/semantics.yaml`、分析器、原摘要/比较及影响传播规则。冻结v76清单SHA为`0c69be750c09044dc93c3c383a37193d8c2ecac11bac84c186c682b5df5bfbca`；后续v77修补包内CMake 3.29内建Ninja版本探测并加入无基准完整扫描测试，4022文件清单SHA为`f7f3d0582fe429b515a4640e148223a92d70af471ef70ac906a55783b4a3e97d`。这份记录承接[117号准入合同](117-cmake-working-input-contract.md)，不等于全部CMake脚本均可安全固定。
 
 | 阶段 | 实现的核心功能 | 变更文件 | 场景/测试 | 结果 | 证据 |

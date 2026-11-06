@@ -1,0 +1,69 @@
+{
+  "passed": false,
+  "status": "RUNNING_NOT_VERIFIED",
+  "all_gates_passed": false,
+  "observed_utc": "2026-11-06T16:10:13.726423+00:00",
+  "completed_regression_passed": true,
+  "source_snapshot_sha256": "113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd",
+  "observations": [
+    {
+      "controller": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live-queue.json",
+      "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live",
+      "status": "RUNNING_COLD_PUBLIC_CANONICAL",
+      "complete": false,
+      "worker_pid": 2540,
+      "worker_alive": true,
+      "worker_create_time": 1793981337.2166178,
+      "seconds_since_start": 76.25,
+      "observed_processes": 12,
+      "job_limit_bytes": 17179869184,
+      "scope": "Actual released worker and descendant activity, not scan completion, final memory peak, semantic equality or successful recovery."
+    },
+    {
+      "controller": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-queue.json",
+      "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-stopped",
+      "status": "RUNNING_BASELINE_THEN_TWO_CURRENT_TU_STOP",
+      "complete": false,
+      "worker_pid": 10364,
+      "worker_alive": true,
+      "worker_create_time": 1793981333.8264687,
+      "seconds_since_start": 80.29700000002049,
+      "observed_processes": 4,
+      "job_limit_bytes": 17179869184,
+      "scope": "Actual released worker and descendant activity, not scan completion, final memory peak, semantic equality or successful recovery."
+    }
+  ],
+  "archived_immutable_files": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v78.json",
+      "file": "docs/rearchitecture/acceptance/full-regression-studio-v78-final.json",
+      "sha256": "39ea575c72b61467f9680b829b1c92d5f55457ffca2b5319a257224ec80926f8",
+      "bytes": 1858
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\full-regression-studio-v78.log",
+      "file": "docs/rearchitecture/acceptance/full-regression-studio-v78.log",
+      "sha256": "b722af51d07d453b0a8f3bf589efb726db4be7da818f026a69f9ad546b23a843",
+      "bytes": 290467
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-full-regression-studio-v78.py",
+      "file": "docs/rearchitecture/acceptance/full-regression-studio-v78-controller.py.txt",
+      "sha256": "f153d165f25d43ce39cfc0d0f689018b88aace514c0ef354e6e30fbafb812175",
+      "bytes": 3836
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live-queue.json",
+      "file": "docs/rearchitecture/acceptance/inav-current-published-native-v78-live-started.json",
+      "sha256": "e17d32d3de7fdb1b31158cfa6de03ee57a85d405dee4fdac84307e9235c86998",
+      "bytes": 2207
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-queue.json",
+      "file": "docs/rearchitecture/acceptance/whole-native-inav-v78-r2-started.json",
+      "sha256": "e3a93d938733fd1940ea84363c239c5d417f4e4334f6099c6b29963c5ed463c7",
+      "bytes": 1125
+    }
+  ],
+  "scope": "Final 1568-test regression PASS; two actual native workers started after that gate, still incomplete. The scope text of the original full-regression controller contains a stale a76 label; actual parent_commit is beb483e and exact immutable manifest governs identity. Original receipt untouched."
+}

@@ -28,3 +28,9 @@ docs/rearchitecture/acceptance/stage-v79-evidence-copy.json -text
 docs/rearchitecture/acceptance/ui-contract-source-target-v79.json -text
 docs/rearchitecture/acceptance/stage-v79-git-byte-first-failed.json -text
 docs/rearchitecture/acceptance/stage-v79-git-byte-proof.json -text
+docs/rearchitecture/acceptance/full-regression-studio-v78-final.json -text
+docs/rearchitecture/acceptance/full-regression-studio-v78.log -text
+docs/rearchitecture/acceptance/full-regression-studio-v78-controller.py.txt -text
+docs/rearchitecture/acceptance/inav-current-published-native-v78-live-started.json -text
+docs/rearchitecture/acceptance/whole-native-inav-v78-r2-started.json -text
+docs/rearchitecture/acceptance/large-v78-start-state.json -text

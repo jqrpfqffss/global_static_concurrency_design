@@ -1,5 +1,7 @@
 # 外置CMake的ELF/MAP路径绑定
 
+2026-11-07最终更新：[123号](123-v78-full-regression-and-native-start.md)已收齐包含本修改的冻结v78完整1568项，1566 PASS/2联网SKIP，0失败/错误。包内34专项及八组Chrome也已PASS，见[122号](122-portable-v79-and-source-target-acceptance.md)。原黄金最新冷原生及真实改动整轮Diff/恢复已启动，最终大型对照仍NOT_VERIFIED。
+
 整轮INAV真实准备暴露了现有路径缺口：实际388TU构建完成，ELF/MAP在受控外置构建目录，但配置中的`build/ecra-i/bin/MATEKH743.elf(.map)`仍被输入快照当作源码根下的文件读取，因MISSING明确失败。原`whole-native-inav-v78-inputs/acceptance.json`、预检查及source_changes均保留；不能删掉这两个输入来跑通测量。
 
 本阶段只为明确的逻辑构建前缀建立一一对应：配置必须选择外置CMake，两个声明均是配置`cmake.build_dir`内的相对路径，原声明位置均不存在，实际本轮构建步骤成功，目标目录有匹配当前源码根的ECRA归属标记，两个对应产物均在该真实构建目录存在。才将实际路径、完整SHA/大小和原声明写入`build_closure_binding`，并保留为`coverage.build_closure`及InputSnapshot真实输入。没有改原YAML、变量判定、链接符号判断、编译参数、ELF/MAP内容或比较规则。

@@ -1,0 +1,43 @@
+import hashlib,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+w=Path(__file__).parent;source=w/'frozen-engine-studio-v78';target=w/'frozen-tests-studio-v78'
+prior=w/'full-regression-studio-v72.json'
+while not prior.exists():time.sleep(2)
+assert json.loads(prior.read_text('utf-8'))['passed'],'Prior full v69 failed; inspect before starting new full suite'
+gate=w/'working-cmake-regressions-v78.json'
+while not gate.exists():time.sleep(2)
+assert json.loads(gate.read_text('utf-8'))['passed'],'Focused final baseline tests failed; full suite not started'
+manifest=source.with_name(source.name+'.sha256.json')
+def sha(path):
+ h=hashlib.sha256()
+ with path.open('rb') as stream:
+  for part in iter(lambda:stream.read(1024**2),b''):h.update(part)
+ return h.hexdigest()
+m=json.loads(manifest.read_text('utf-8'));assert m['passed'];assert not target.exists();target.mkdir()
+for row in m['files']:
+ p=source/row['file'];assert p.stat().st_size==row['size'] and sha(p)==row['sha256']
+ q=target/row['file'];q.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(p,q)
+expected_tests=int(subprocess.check_output([sys.executable,'-B','-c',"import unittest;print(unittest.defaultTestLoader.discover('tests').countTestCases())"],cwd=target,text=True))
+command=[sys.executable,'-B','-X','utf8','-m','unittest','discover','-s','tests','-v']
+log=w/'full-regression-studio-v78.log';start=time.monotonic()
+with log.open('xb') as stream:
+ code=subprocess.call(command,cwd=target,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0'),stdout=stream,stderr=subprocess.STDOUT)
+sys.path.insert(0,str(source))
+from scripts.unittest_receipt import parse_summary
+summary=parse_summary(log.read_text('utf-8',errors='replace'));differences=[]
+for label,root in [('engine',source),('test_copy',target)]:
+ for row in m['files']:
+  p=root/row['file']
+  if not p.is_file() or p.stat().st_size!=row['size'] or sha(p)!=row['sha256']:differences.append([label,row['file']])
+passed=(code==0 and summary['summary_ok'] and summary['tests']==expected_tests and summary['skipped']==2
+ and not any(summary[k] for k in ('failures','errors','expected_failures','unexpected_successes')) and not differences)
+result=dict(summary,passed=passed,exit_code=code,parent_commit=m['head'],working_tree_overlay=m.get('working_tree_overlay',False),
+ source=str(source),test_copy=str(target),frozen_files=len(m['files']),differences=differences,
+ manifest_sha256=sha(manifest),log=str(log),log_sha256=sha(log),command=command,
+ controller_seconds=time.monotonic()-start,effective_parent_seed='0',
+ scope='Exact v61 source overlay: previous functional changes plus canonical saved review/review-failed using complete per-object Packet, recursive-edge schema compatibility, streamed receipt/cache/file hashes and complete-syntax receipt projection; static algorithms unchanged. No CMake dirty, new Portable, large memory or G1-G8 completion.')
+result['scope']='Frozen v78 a76a180 working overlay: guarded CMake V3, exact prepared-input retry, native TU checkpoints, private full-reference cleanup, current GUI and stale alias isolation. Original v75 full FAIL retained; exact owned-build ELF/MAP binding, true ARM linked Git Diff, independent full verification and preflight added; exact CMake3.29 built-in Ninja version probe admitted and extra arguments/other origins rejected; actual no-baseline working-full mode added; this run includes the nine passing stale/used-alias and unsupported-mode regressions. Entire suite and independent source/test-copy hashes; physical32GB, clean PC, UAT and new large native Diff remain separate.'
+with (w/'full-regression-studio-v78.json').open('x',encoding='utf-8') as stream:json.dump(result,stream,indent=2)
+print(json.dumps(result),flush=True)
+raise SystemExit(0 if passed else 1)
+
