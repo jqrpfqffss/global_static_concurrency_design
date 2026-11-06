@@ -17,6 +17,7 @@ import uuid
 
 from .workspace import context,no_links,canonical,studio_data_root
 from .portable import bundle_root
+from .scan_stop import check_stop
 
 LEGACY_SCHEMA="""
 CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
@@ -50,7 +51,8 @@ def _git(root,*args,output=subprocess.PIPE):
 def _hash(path):
     value=hashlib.sha256()
     with path.open('rb') as stream:
-        for chunk in iter(lambda:stream.read(1024*1024),b''):value.update(chunk)
+        for chunk in iter(lambda:stream.read(1024*1024),b''):
+            check_stop();value.update(chunk)
     return value.hexdigest()
 
 
@@ -149,6 +151,7 @@ def capture(root,cfg,progress=None):
                 raise ValueError('隔离索引条目不等价')
             files=total=0
             for base,dirs,names in os.walk(repo,followlinks=False):
+                check_stop()
                 current=Path(base);dirs.sort();names.sort()
                 if current==repo:
                     dirs[:]=[name for name in dirs if name!='.git'];names=[name for name in names if name!='.git']
@@ -170,6 +173,7 @@ def capture(root,cfg,progress=None):
                     hashed=hashlib.sha256();size=0
                     with source.open('rb') as reader,target.open('xb') as writer:
                         for block in iter(lambda:reader.read(1024*1024),b''):
+                            check_stop()
                             writer.write(block);hashed.update(block);size+=len(block)
                         writer.flush()
                     if _hash(source)!=hashed.hexdigest():raise ValueError('复制期间输入字节变化: '+relative)

@@ -749,6 +749,7 @@ def _create_app(data_root, *, token, authority, startup):
         if saved['state'] not in {'FAILED', 'INTERRUPTED'}:
             raise ValueError('只有失败/已停止任务可恢复；完成任务请从配置发起新扫描')
         return tasks.start(folder/'semantics.yaml', profile_id=saved['profile_id'],
+                           retry_from=task_id,
                            mode=saved.get('mode','scan'),scan_id=saved['scan_id'],resources=dict(
                                preset='manual',peak_gib=saved['budget_bytes']/1024**3,
                                workers=saved.get('resource_policy',{}).get('workers',1)),

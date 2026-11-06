@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Post-manual-audit complete original frozen source/build/tool inputs SHA/size/mtime verification. This does not undo or excuse the separately recorded Git index cache refresh; no Git file invariance claim.",
+  "files": 4123,
+  "scopes": {
+    "real_build": 578,
+    "source": 3545
+  },
+  "input_manifest_sha256": "a97d28ede111d9c8c26d23ae93b577aea0071b623b28c80dec8affe842428f91",
+  "differences": [],
+  "seconds": 8.436999999976251,
+  "post_recovery_index_sha256": "2dc9337150c18eab6c83d52bab9a2f931e801c8fa31788ddc359c5952b673325",
+  "all_gates_passed": false
+}

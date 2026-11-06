@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "scope": "Real Chrome, guarded ARM CMake, staged/working/generated inputs and native Diff.\n\nDeveloper acceptance in a new private three-TU Git fixture, not G2 or UAT.\nProfiles are saved through the real API; task/result/evidence operations use\nfresh accessibility snapshots and real clicks. Requires Chrome and an already\ncached Playwright CLI. No downloads, customer repositories or live model.\n",
+  "tests": [
+    "REAL_CHROME_STOP_AFTER_COMPLETE_FIXED_INPUTS_AND_RETRY",
+    "RETRY_REUSES_ORIGINAL_BUILD_GENERATED_INPUTS_AND_CONFIG_WITHOUT_CMAKE",
+    "REAL_CHROME_CMAKE_WORKING_NATIVE_TASK_COMMITTED",
+    "ACTUAL_STAGED2_WORKING3_BASE1_GENERATED_HEADER_AND_C_TU",
+    "INDEPENDENT_UNCACHED_FULL_VERIFICATION_PASSED",
+    "SOURCE_GIT_INDEX_BYTES_SIZE_MTIME_UNCHANGED",
+    "REAL_CHROME_WORKING_DIFF_ACCESS_EVIDENCE",
+    "COMPLETE_PACKAGE_IMPORT_FACTS_REPORT_HASHES_IDENTICAL"
+  ],
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v74",
+  "all_gates_passed": false,
+  "profile_id": "71f7a132e0c44a73b4903b1138d84f4e",
+  "task_id": "ca55ea533fea4576bdbee55977746ae0",
+  "scan_id": "ca55ea533fea4576bdbee55977746ae0",
+  "source_files": 39,
+  "source_differences": [],
+  "engine_files": 120,
+  "engine_differences": [],
+  "width_bytes": {
+    "base": 4,
+    "current": 12
+  },
+  "full_verification": {
+    "state": "PASSED",
+    "variables": 4,
+    "reextracted_units": 3,
+    "classification_mismatches": 0,
+    "semantic_mismatches": 0
+  },
+  "source_authority_sha256": "f3efd1f5982e06b3916662987b3fe14b9809e5f69fec6dc1c97cb2839eeae7ef",
+  "package_sha256": "e9b9c8bc8ac5e76c72daf87ace51ba9156c5c521419200fc4ea9d7592e35dc3b",
+  "package_bytes": 685522,
+  "external_requests": [],
+  "browser_errors": 0,
+  "screenshots": {
+    "00-safe-stopped.png": "d54944ff49a73da8ef0c6485c67b56c0f62e50dea800e53ee46eb35fd761bee3",
+    "01-task-complete.png": "590a239a283aaf329c8c5df9134cdd3000ff9e1557aac016160fccf0e5696ef0",
+    "02-working-diff-evidence-1366.png": "ee4e8498e92c1109b24fa4333e936fe98a7d16d9c690183be0f73b1d05ee105b",
+    "03-working-diff-evidence-1600.png": "e178f036694bb67644551bc6f23ddbb294153ced38392d1dd169e2ee69432250"
+  },
+  "validator_sha256": "8eee207c4f18c3d398c81cc07b2eb8bd7805c6f9c4a34eccf7a2cc45a1ea7eda",
+  "seconds": 794.015000000014,
+  "traces": {}
+}

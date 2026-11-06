@@ -76,6 +76,7 @@ def build_path(value, *, prefer_junction=False):
         junction = (alias.exists() and bool(getattr(alias.lstat(), 'st_file_attributes', 0)
                                             & stat.FILE_ATTRIBUTE_REPARSE_POINT)) if compact else False
         if path.is_relative_to(root) and str(alias/path.relative_to(root)).isascii() and (not compact or junction):
+            if alias.resolve()!=root:raise ValueError(f'路径别名未指向原目录: {alias} -> {root}')
             return str(alias/path.relative_to(root))
     # A tool-side workspace may contain a Chinese project name even when the
     # package directory itself is ASCII. Aliasing only the package left that

@@ -16,6 +16,7 @@ import uuid
 from .common import write_json
 from .workspace import canonical, context, no_links
 from . import working_snapshot as working
+from .scan_stop import check_stop
 
 SCHEMA = '''CREATE TABLE files(logical TEXT PRIMARY KEY,physical TEXT NOT NULL,
 sha256 TEXT NOT NULL,size INTEGER NOT NULL,mtime_ns INTEGER NOT NULL);
@@ -25,6 +26,7 @@ SHA = re.compile(r'[0-9a-f]{64}')
 
 def _files(root):
     for base, dirs, names in os.walk(root, followlinks=False):
+        check_stop()
         dirs.sort();names.sort()
         for name in dirs+names:no_links(Path(base)/name)
         for name in names:
@@ -38,6 +40,7 @@ def _copy(source, target):
     before=source.stat();hashed=hashlib.sha256();size=0
     with source.open('rb') as reader,target.open('xb') as writer:
         for block in iter(lambda:reader.read(1024**2),b''):
+            check_stop()
             if shutil.disk_usage(target.parent).free<len(block)+512*1024**2:
                 raise ValueError('冻结编译输入的工作盘空闲不足；原输入保留')
             writer.write(block);hashed.update(block);size+=len(block)
@@ -52,12 +55,22 @@ def _copy(source, target):
     return hashed.hexdigest(),size,before.st_mtime_ns
 
 
-def create(capture, root, cfg, *, external_directories=(), external_files=(), proof_scope=None):
+def create(capture, root, cfg, *, external_directories=(), external_files=(), proof_scope=None, prepared=None):
     """Freeze explicitly audited search directories, including negative probes."""
     captured_proof=working.validate(capture,root,cfg)
-    if proof_scope not in {None,'COMPLETE_LOGICAL_CLANG_INPUTS_V1'}:raise ValueError('未知冻结编译输入证明范围')
+    cmake_scope=proof_scope=='COMPLETE_GUARDED_CMAKE_INPUTS_V1'
+    if proof_scope not in {None,'COMPLETE_LOGICAL_CLANG_INPUTS_V1','COMPLETE_GUARDED_CMAKE_INPUTS_V1'}:raise ValueError('未知冻结编译输入证明范围')
     ws=context(root,cfg['analysis']);original=no_links(ws.repository_root)
     captured=no_links(capture['folder']);tree=no_links(captured/'source')
+    owned_build=None
+    if cmake_scope:
+        if prepared is None:raise ValueError('只读CMake缺少完整准备结果')
+        owned_build=no_links(prepared['directory']);boundary=no_links(ws.build_root)
+        relative=owned_build.relative_to(boundary)
+        if (len(relative.parts)<3 or not re.fullmatch('working-cmake-[0-9a-f]{32}',relative.parts[0])
+                or relative.parts[1]!='builds' or (owned_build/'.ecra-build-owner').read_text('utf-8')!=str(no_links(root))
+                or (boundary/relative.parts[0]/'.ecra-write-guard').read_text('ascii')!='LOW_INTEGRITY_PRIVATE_DIRECTORY_V1\n'):
+            raise ValueError('CMake生成输入不属于已保护的新建构建目录')
     if not isinstance(external_directories,(list,tuple)):
         raise ValueError('外部搜索目录必须显式列为目录序列')
     if not isinstance(external_files,(list,tuple)):
@@ -73,11 +86,12 @@ def create(capture, root, cfg, *, external_directories=(), external_files=(), pr
         if original.is_relative_to(path) or any(path==other or path.is_relative_to(other) or other.is_relative_to(path) for other in directories):
             raise ValueError('外部搜索目录重叠或包含原工程；请提供互不重叠的边界')
         data=Path(ws.workspace_root)
-        if path==data or path.is_relative_to(data) or data.is_relative_to(path):
+        if (path==data or path.is_relative_to(data) or data.is_relative_to(path)) and path!=owned_build:
             raise ValueError('外部编译输入不能包含可变ECRA数据根')
         directories.append(path)
     folder=no_links(captured/('compiler-view-'+uuid.uuid4().hex));folder.mkdir()
     database=folder/'files.db';overlay=folder/'overlay.json'
+    alias_roots=[]
     with closing(sqlite3.connect(database)) as conn:
         conn.execute('PRAGMA synchronous=FULL');conn.executescript(SCHEMA)
         with closing(sqlite3.connect((captured/'capture.db').as_uri()+'?mode=ro',uri=True)) as source:
@@ -125,6 +139,24 @@ def create(capture, root, cfg, *, external_directories=(), external_files=(), pr
                 stream.write(separator);json.dump(dict(type='file',name=Path(logical).as_posix(),**{'external-contents':Path(physical).as_posix()}),stream,ensure_ascii=False);separator=','
             for logical,physical in remaps:
                 stream.write(separator);json.dump(dict(type='directory-remap',name=logical.as_posix(),**{'external-contents':physical.as_posix()}),stream,ensure_ascii=False);separator=','
+            if cmake_scope:
+                from .working_cmake import registered_aliases
+                used=set()
+                for target,alias in registered_aliases():
+                    if alias.resolve()!=target:raise ValueError('内部编译路径别名已变化')
+                    roots=[(original,tree),*remaps]
+                    for logical,physical in roots:
+                        if target.is_relative_to(logical):
+                            virtual,copied=alias,physical/target.relative_to(logical)
+                        elif logical.is_relative_to(target):
+                            virtual,copied=alias/logical.relative_to(target),physical
+                        else:continue
+                        if str(virtual) in used:continue
+                        used.add(str(virtual))
+                        stream.write(separator);json.dump(dict(type='directory-remap',name=virtual.as_posix(),
+                            **{'external-contents':copied.as_posix()}),stream,ensure_ascii=False);separator=','
+                        item=dict(alias=str(alias),target=str(target))
+                        if item not in alias_roots:alias_roots.append(item)
             stream.write(']}\n');stream.flush();os.fsync(stream.fileno())
     record=dict(format='ECRA_FROZEN_COMPILER_VIEW_V1',state='PENDING',root=str(no_links(root)),repository_root=str(original),project_id=ws.project_id,
                 capture=capture,capture_sha256=working._hash(captured/'capture.db'),directory_proof=captured_proof['directory_proof'],
@@ -134,6 +166,12 @@ def create(capture, root, cfg, *, external_directories=(), external_files=(), pr
     if proof_scope is not None:
         record.update(format='ECRA_FROZEN_COMPILER_VIEW_V2',proof_scope=proof_scope)
         del record['formal_dirty_enabled']
+    if cmake_scope:
+        from .workflow import analysis_config
+        from .common import digest
+        write_json(folder/'prepared.json',prepared)
+        record.update(format='ECRA_FROZEN_COMPILER_VIEW_V3',prepared_sha256=working._hash(folder/'prepared.json'),
+                      analysis_digest=digest(analysis_config(cfg)),owned_build_directory=str(owned_build),alias_roots=alias_roots)
     write_json(folder/'view.json',record)
     descriptor=dict(file=str(folder/'view.json'),sha256=working._hash(folder/'view.json'))
     validate(descriptor,root,cfg,_pending=True)
@@ -155,8 +193,9 @@ def _load(descriptor, root, cfg, *, _pending=False):
         raise ValueError('冻结编译视图描述已变化或超过读取预算')
     record=json.loads(path.read_bytes())
     legacy=record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V1' and record.get('formal_dirty_enabled') is False and 'proof_scope' not in record
-    modern=(record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2'
-        and record.get('proof_scope')=='COMPLETE_LOGICAL_CLANG_INPUTS_V1' and 'formal_dirty_enabled' not in record)
+    modern=((record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2' and record.get('proof_scope')=='COMPLETE_LOGICAL_CLANG_INPUTS_V1'
+        or record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V3' and record.get('proof_scope')=='COMPLETE_GUARDED_CMAKE_INPUTS_V1')
+        and 'formal_dirty_enabled' not in record)
     if (not (legacy or modern) or record.get('state')!=('PENDING' if _pending else 'COMPLETE')
             or record.get('project_id')!=ws.project_id
             or canonical(record.get('root',''))!=canonical(root)
@@ -167,6 +206,14 @@ def _load(descriptor, root, cfg, *, _pending=False):
         raise ValueError('冻结编译视图overlay已变化')
     if record.get('capture_sha256') is not None and working._hash(no_links(folder.parent/'capture.db'))!=record['capture_sha256']:
         raise ValueError('冻结捕获目录清单已变化')
+    if record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V3':
+        from .workflow import analysis_config
+        from .common import digest
+        if (working._hash(no_links(folder/'prepared.json'))!=record.get('prepared_sha256')
+                or digest(analysis_config(cfg))!=record.get('analysis_digest')):
+            raise ValueError('冻结CMake准备结果或有效分析配置已变化')
+        for alias in record.get('alias_roots',[]):
+            if Path(alias['alias']).resolve()!=no_links(alias['target']):raise ValueError('冻结CMake的内部路径别名已变化')
     return folder,record
 
 
@@ -176,7 +223,9 @@ def arguments(descriptor, root, cfg, unit):
     repo=no_links(record['repository_root'])
     directory=no_links(unit['directory'])
     cwd_allowed=directory.is_relative_to(repo) or any(directory.is_relative_to(no_links(path)) for path in record['external_directories'])
-    if not no_links(unit['source']).is_relative_to(repo) or not cwd_allowed:
+    source=no_links(unit['source']);build=record.get('owned_build_directory')
+    source_allowed=source.is_relative_to(repo) or build is not None and source.is_relative_to(no_links(build))
+    if not source_allowed or not cwd_allowed:
         raise ValueError('冻结编译视图只接收原工程内逻辑源码和明确捕获的工作目录')
     return ['-ivfsoverlay',str(folder/'overlay.json')]
 
@@ -220,6 +269,7 @@ def validate(descriptor, root, cfg, *, reverify_original=True, _pending=False, r
             compatible_config=candidate
         total=0
         for logical,physical,sha,size,mtime in conn.execute('SELECT logical,physical,sha256,size,mtime_ns FROM files ORDER BY logical'):
+            check_stop()
             path=no_links(physical)
             if not path.is_relative_to(folder.parent) or not path.is_file() or path.stat().st_size!=size or path.stat().st_mtime_ns!=mtime or working._hash(path)!=sha:
                 raise ValueError('冻结编译文件副本已变化：'+logical)
@@ -258,7 +308,7 @@ def validate(descriptor, root, cfg, *, reverify_original=True, _pending=False, r
                     expected=1+conn.execute('SELECT count(*) FROM directories WHERE substr(physical,1,?)=?',(len(prefix),prefix)).fetchone()[0]
                     if count!=expected:raise ValueError('编译搜索目录集合已变化')
     result=dict(valid=True,files=total,original_reverified=reverify_original,full_build_diff_equivalence='NOT_VERIFIED')
-    result.update(dict(proof_scope=record['proof_scope']) if record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2'
+    result.update(dict(proof_scope=record['proof_scope']) if record.get('format') in {'ECRA_FROZEN_COMPILER_VIEW_V2','ECRA_FROZEN_COMPILER_VIEW_V3'}
                   else dict(formal_dirty_enabled=False))
     return result
 
@@ -300,13 +350,49 @@ class ParentFiles:
         self.connection.execute('PRAGMA query_only=ON');self.connection.execute('PRAGMA trusted_schema=OFF')
         self.connection.execute('BEGIN')
         self.identity=dict(descriptor,original_final_reverification_required=True,formal_dirty_enabled=False)
-        if self.record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V2':
+        if self.record.get('format') in {'ECRA_FROZEN_COMPILER_VIEW_V2','ECRA_FROZEN_COMPILER_VIEW_V3'}:
             del self.identity['formal_dirty_enabled'];self.identity['proof_scope']=self.record['proof_scope']
+        self.build_token=None
+        self.source_names=None
+        if self.record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V3':
+            from .build_execution import FROZEN_BUILD
+            import weakref
+            self.build_token=FROZEN_BUILD.set((no_links(root),no_links(self.record['owned_build_directory']),weakref.ref(self)))
+
+    def prepared_compilation(self):
+        if self.record.get('format')!='ECRA_FROZEN_COMPILER_VIEW_V3':return None
+        from .common import read_json, digest
+        from .workflow import analysis_config
+        if (working._hash(self.folder/'prepared.json')!=self.record['prepared_sha256']
+                or digest(analysis_config(self.config))!=self.record['analysis_digest']):
+            raise ValueError('CMake准备结果/分析配置已变化，禁止重新构建或回退')
+        prepared=read_json(self.folder/'prepared.json')
+        if prepared.get('directory')!=self.record['owned_build_directory']:
+            raise ValueError('CMake准备结果的构建归属不一致')
+        out=no_links(context(self.record['root'],self.config['analysis']).results_root)
+        for index,step in enumerate(prepared['compilation'].get('cmake_steps',[])):
+            if not step.get('log'):continue
+            raw=self.read_bytes(step['log']);target=out/'diagnostics/cmake-preparation'/('step-'+str(index)+'.log')
+            target.parent.mkdir(parents=True,exist_ok=True)
+            if target.exists() and target.read_bytes()!=raw:raise ValueError('已归档CMake日志不一致')
+            if not target.exists():target.write_bytes(raw)
+            step['log']=str(target)
+        for index,row in enumerate(prepared['compilation'].get('guarded_build',{}).get('trace_files',[])):
+            raw=self.read_bytes(row['file'])
+            if hashlib.sha256(raw).hexdigest()!=row['sha256']:raise ValueError('CMake原始执行审计已变化')
+            target=out/'diagnostics/cmake-preparation'/('trace-'+str(index)+'.jsonl');target.parent.mkdir(parents=True,exist_ok=True)
+            if target.exists() and target.read_bytes()!=raw:raise ValueError('已归档CMake执行审计不一致')
+            if not target.exists():target.write_bytes(raw)
+            row['file']=str(target)
+        return prepared['units'],prepared['compilation']
 
     def __enter__(self):return self
     def __exit__(self,*_):self.close()
     def close(self):
         if self.connection is not None:self.connection.close();self.connection=None
+        if self.build_token is not None:
+            from .build_execution import FROZEN_BUILD
+            FROZEN_BUILD.reset(self.build_token);self.build_token=None
 
     def _row(self, path):
         if self.connection is None:raise ValueError('冻结父进程文件视图已经关闭')
@@ -348,7 +434,7 @@ class ParentFiles:
             for index,original in enumerate(self.record['external_directories']):
                 origin=no_links(original)
                 if logical.is_relative_to(origin):physical=self.folder/'external'/str(index)/logical.relative_to(origin);break
-            if physical is None:raise ValueError('父进程文件选择目录没有完整捕获边界')
+            if physical is None:raise ValueError('父进程文件选择目录没有完整捕获边界：'+str(logical))
         return logical,no_links(physical)
 
     def walk(self,directory):
@@ -357,12 +443,33 @@ class ParentFiles:
         logical,physical=self._directory_path(directory)
         for current,dirs,names in os.walk(physical,followlinks=False):
             for name in dirs+names:no_links(Path(current)/name)
+            self._verify_names(logical/Path(current).relative_to(physical),dirs,names)
             # Preserve os.walk's mutable dirs contract for caller pruning.
             yield str(logical/Path(current).relative_to(physical)),dirs,names
+
+    def _verify_names(self,logical,dirs,names):
+        if self.record.get('format')!='ECRA_FROZEN_COMPILER_VIEW_V3':return
+        repo=no_links(self.record['repository_root'])
+        if not logical.is_relative_to(repo):return
+        if self.source_names is None:
+            from collections import defaultdict
+            self.source_names=defaultdict(set)
+            for table in ('files','directories'):
+                for (value,) in self.connection.execute('SELECT logical FROM '+table):
+                    path=Path(value)
+                    if path!=repo and path.is_relative_to(repo):self.source_names[path.parent].add(path.name)
+        actual=set(dirs+names)
+        if logical==repo:actual.discard('.git')
+        if actual!=self.source_names[logical]:raise ValueError('冻结源码枚举目录与完整清单不一致：'+str(logical))
 
     def select_files(self,directory,pattern):
         self.assert_valid()
         logical,physical=self._directory_path(directory)
+        if self.record.get('format')=='ECRA_FROZEN_COMPILER_VIEW_V3':
+            dirs,names=[],[]
+            for item in no_links(physical).iterdir():
+                no_links(item);(dirs if item.is_dir() else names).append(item.name)
+            self._verify_names(logical,dirs,names)
         selected=[]
         for path in no_links(physical).glob(pattern):
             no_links(path);mapped=logical/path.relative_to(physical)

@@ -1,0 +1,38 @@
+{
+  "passed": false,
+  "status": "FAIL_OR_NOT_VERIFIED",
+  "all_gates_passed": false,
+  "scope": "Embedded Python and bundled tools; real guarded working CMake, stop/retry, generated inputs, strict independent full verification, Chrome evidence and package import. Local host only; not clean PC, physical32GB, human UAT or complete large native Diff.",
+  "uncompressed": {
+    "result": "PASS",
+    "commands": 27,
+    "receipt_sha256": "d5e10099ccdf7b8c9e33365f0f26cffd05028251faafadb8a12598163b96e344"
+  },
+  "zip-extracted": {
+    "result": "PASS",
+    "commands": 27,
+    "receipt_sha256": "e47b2b6dcaf77ecbe8bc65e4760b85d1edaa2d4c77fffff40a7bd04b5fa812b2"
+  },
+  "application_files": 147,
+  "payload_files": 32238,
+  "snapshot_sha256": "0c69be750c09044dc93c3c383a37193d8c2ecac11bac84c186c682b5df5bfbca",
+  "zip_bytes": 784878923,
+  "zip_sha256": "999192bff69790cdcbf939fe4a295916e8cf0d287108a2dceec042e6bfc27eff",
+  "payload_manifest_sha256": "64999d631c57b382595bd07993b76ccd0a0ef34c0e05029605dba58b363feaba",
+  "embedded_tests": {
+    "summary_ok": false,
+    "tests": 28,
+    "passed_tests": 27,
+    "seconds": 82.255,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "exit_code": 1,
+    "log_sha256": "40ebf2cff2851a718d1fbc50f62032a8ac6efef710fe4656a454ca706ddb7d7f"
+  },
+  "browser_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v76-r2\\browser\\acceptance.json",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-portable-working-v76-r2.py\", line 65, in <module>\n    assert test.returncode==0 and summary['summary_ok'] and summary['tests']==28 and summary['skipped']==0,summary\nAssertionError: {'summary_ok': False, 'tests': 28, 'passed_tests': 27, 'seconds': 82.255, 'failures': 0, 'errors': 1, 'skipped': 0, 'expected_failures': 0, 'unexpected_successes': 0}\n",
+  "seconds": 616.1410000000033
+}

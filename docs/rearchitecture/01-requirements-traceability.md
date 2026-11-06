@@ -1,4 +1,4 @@
-> 最新功能候选见[114号v71](114-portable-v71-typed-cold-reader-acceptance.md)：干净feceb27的严格原生冷基准读取，源码及包内各17专项、真实CMD/数据库及CMake界面/完整包导入已通过；144应用源匹配，32,033载荷及清单共32,034文件操作后校验一致。前版v69完整1533为1531PASS/2联网SKIP；本版1534和大库完整对照仍在运行，完整重构及G1–G8未完成。
+> 当前状态见[118号大库保存后比较](118-memory-comparison-final-acceptance.md)和[119号CMake未提交流程](119-guarded-cmake-acceptance.md)。v72完整1547项已1545 PASS/2联网SKIP；同一原INAV完整比较输出逐字节相同，Job提交峰值25.28→1.52 GiB，耗时与临时磁盘增加。v74真实CMake停止/恢复/证据/完整包八组PASS，但v75完整回归FAIL保留；v76修复后的9项PASS，全量1562项及含离线Git的新包仍在验收。最新已收齐的真实大型冷扫描是[115号v68、生产者v66](115-final-large-read-and-cold-acceptance.md)，没有改标为当前引擎。当前活数据及整轮大型Diff/恢复、其它G2、物理32GB/干净离线机/人工UAT仍待验，严格跨环境报告FAIL保留。下面各版“当前/最新/在途”均为原时间历史记录，不能覆盖本段或充当完整G1–G8通过。
 
 > 最新修复候选见[109号v67](109-portable-v67-baseline-fix-acceptance.md)：包内8专项、实际ECRA.cmd启动、显式数据库及CMake宏变化真实Chrome流程通过，32,032分发文件测试后SHA不变；当前核心源码完整1525项为1523PASS/2联网SKIP。大型原生/冷Diff/物理机等仍待验，完整重构未完成。
 

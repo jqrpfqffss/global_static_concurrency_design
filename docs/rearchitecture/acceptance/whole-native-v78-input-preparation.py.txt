@@ -1,0 +1,67 @@
+"""Private real INAV change for whole native Diff/retry resource acceptance."""
+import hashlib,json,os,shutil,subprocess,sys,time,traceback
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v77';sys.path.insert(0,str(engine))
+source=Path('I:/ECRAStudio-data/rearchitecture-20261101/inav-golden-f254-v1/firmware')
+root=Path('H:/ECRA-WHOLE-S78/firmware');data=Path('H:/ECRA-WHOLE-D78-SEED0')
+work=w/'whole-native-inav-v78-inputs';work.mkdir(exist_ok=False)
+assert not root.parent.exists() and not data.exists();root.parent.mkdir()
+empty=work/'empty-hooks';empty.mkdir()
+env=dict(os.environ,GIT_OPTIONAL_LOCKS='0',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL='NUL',PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0')
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def git(at,*args):
+ return subprocess.check_output(['git','--no-optional-locks','-C',str(at),'-c','commit.gpgSign=false',
+  '-c','core.hooksPath='+str(empty),'-c','core.fsmonitor=false','-c','gc.auto=0',*args],env=env,stderr=subprocess.STDOUT)
+result=dict(passed=False,status='PREPARING_PRIVATE_DERIVED_INPUTS',all_gates_passed=False,
+ scope='Real public INAV H743-derived private Git project. Fresh self-contained two-commit repository imports all approved tracked working source; original shallow history is not claimed or modified. Base copies the approved frozen working source; current adds an actual volatile counter write in compiled uartIrqHandler. No original source mutation, synthetic facts, input dropping or golden-comparison rule changes. A separate same-input original golden run remains required; this derived workload does not replace it.')
+start=time.monotonic()
+try:
+ index=source/'.git/index';source_index=sha(index);source_index_stamp=index.stat().st_mtime_ns
+ root.mkdir();git(root,'init','--template='+str(empty))
+ git(root,'config','user.name','ECRA private whole-Diff acceptance')
+ git(root,'config','user.email','acceptance@example.invalid');git(root,'config','core.autocrlf','false')
+ rows={}
+ for raw in git(source,'ls-files','-z').split(b'\0'):
+  if not raw:continue
+  name=raw.decode('utf-8');p=source/name;q=root/name
+  assert not Path(name).is_absolute() and '..' not in Path(name).parts and not p.is_symlink(),name
+  if not p.is_file():raise ValueError('Unproved missing/submodule input: '+name)
+  q.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(p,q)
+  assert sha(q)==sha(p);rows[name]=dict(sha256=sha(p),bytes=p.stat().st_size,mtime_ns=p.stat().st_mtime_ns)
+ (work/'all-approved-tracked.z').write_bytes(b'\0'.join(name.encode('utf-8') for name in rows)+b'\0')
+ git(root,'add','-f','--pathspec-from-file='+str(work/'all-approved-tracked.z'),'--pathspec-file-nul');git(root,'commit','-m','private baseline: exact approved frozen INAV working source')
+ base=git(root,'rev-parse','HEAD').decode().strip()
+ file=root/'src/main/drivers/serial_uart_stm32h7xx.c';raw=file.read_bytes();nl=b'\r\n' if b'\r\n' in raw else b'\n'
+ anchor=b'void uartIrqHandler(uartPort_t *s)'+nl+b'{'
+ assert raw.count(anchor)==1
+ changed=raw.replace(anchor,b'static volatile uint32_t ecra_diff_acceptance_irq_count;'+nl+nl+anchor+nl+b'    ecra_diff_acceptance_irq_count++;')
+ file.chmod(0o600);file.write_bytes(changed);git(root,'add','src/main/drivers/serial_uart_stm32h7xx.c')
+ git(root,'commit','-m','private resource acceptance: count actual UART IRQ calls')
+ head=git(root,'rev-parse','HEAD').decode().strip();assert head!=base
+ patch=git(root,'diff','--binary',base,head);(work/'actual-private-change.patch').write_bytes(patch)
+ assert b'ecra_diff_acceptance_irq_count++' in patch
+ from ecra.common import write_json
+ config=json.loads((source.parent/'semantics-build-short.yaml').read_text('utf-8'))
+ config['project']['root']=str(root);config['analysis']['output']=dict(location='custom',custom_dir=str(data))
+ config['analysis']['git_diff'].update(enabled=True,base_ref=base,current_ref='HEAD',include_uncommitted=False,verify_against_full=True)
+ profile=work/'semantics.yaml';write_json(profile,config)
+ assert sha(index)==source_index and index.stat().st_mtime_ns==source_index_stamp
+ assert all(sha(source/name)==r['sha256'] and source.joinpath(name).stat().st_mtime_ns==r['mtime_ns'] for name,r in rows.items())
+ write_json(work/'approved-source-before.json',rows)
+ result.update(status='PRIVATE_SOURCE_READY_BUILD_PENDING',source=str(source),private_project=str(root),data_root=str(data),
+  base_sha=base,current_sha=head,actual_change_patch_sha256=sha(work/'actual-private-change.patch'),profile=str(profile),profile_sha256=sha(profile),
+  copied_source_files=len(rows),original_source_and_index_unchanged=True,seconds=time.monotonic()-start)
+ import copy
+ preconfig=work/'preflight-semantics.yaml';check=copy.deepcopy(config)
+ check['analysis']['output']['custom_dir']='H:/ECRA-WHOLE-P78-SEED0';write_json(preconfig,check)
+ from ecra.studio.preflight import run_preflight
+ with (work/'preflight.log').open('x',encoding='utf-8') as log:
+  proof=run_preflight(preconfig,Path('H:/ECRA-WHOLE-P78-SEED0'),work/'preflight',lambda message:print(message,file=log,flush=True))
+ assert proof['passed'],proof
+ assert sha(index)==source_index and index.stat().st_mtime_ns==source_index_stamp
+ result.update(passed=True,status='ACTUAL_BUILD_PREFLIGHT_PASS_NOT_YET_NATIVE_DIFF',preflight=proof,seconds=time.monotonic()-start)
+except BaseException:
+ result.update(error=traceback.format_exc(),status='FAIL_OR_NOT_VERIFIED',seconds=time.monotonic()-start);raise
+finally:
+ (work/'acceptance.json').write_text(json.dumps(result,indent=2)+'\n','utf-8')
+print(json.dumps(dict(passed=result['passed'],status=result['status'],seconds=result['seconds'])))

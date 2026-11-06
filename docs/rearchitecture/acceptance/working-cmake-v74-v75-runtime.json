@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "scope": "Every ecra Python/runtime source file from frozen74 remains byte-identical in frozen75. Frontend text/build, validator trace collector, exact error assertion and acceptance documents differ; this does not relabel v74 results as a full v75 run.",
+  "before_manifest_sha256": "932d9c3e1018d7404ab66746121413ef90089d0419eb966ff7a59b4e6119b564",
+  "after_manifest_sha256": "9a3c1d282e1d9ea9a622f730c7c836a12ae1c1ab842a6d36a07ca87afcdeef10",
+  "runtime_differences": []
+}

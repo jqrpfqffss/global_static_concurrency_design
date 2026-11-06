@@ -42,9 +42,12 @@ def execute(args):
             finished.set();diagnostics.close()
     compiler_view=None
     if args.mode in {'scan', 'precheck'}:
+        from ..working_checkpoint import retry_inputs
+        reused=retry_inputs(args.data_root,args.result.parent,args.config,args.mode,lambda text:print(text,flush=True))
+        if reused is not None:args.config,compiler_view=reused
         from ..config import load_config
         root=configured_project_root(args.config);cfg,_=load_config(root,args.config)
-        if cfg['analysis']['git_diff'].get('include_uncommitted'):
+        if cfg['analysis']['git_diff'].get('include_uncommitted') and compiler_view is None:
             from ..dirty_inputs import capture_inputs
             compiler_view=capture_inputs(root,args.config,args.result.parent/'fixed-inputs',
                 progress=lambda text:print(text,flush=True))

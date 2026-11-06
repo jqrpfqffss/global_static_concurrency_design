@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
+import os
 
 from ..git_diff import git
 from ..workspace import no_links
@@ -94,8 +95,8 @@ def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', inc
         items=items, total=total, offset=offset, limit=limit, search=search,
         next_offset=offset+limit if offset+limit < total else None,
         dirty=dirty, include_uncommitted=include_uncommitted,build_mode=build_mode,
-        formal_scan_allowed=not include_uncommitted or build_mode=='database',
-        blocking_reason=('当前构建方式的未提交输入扫描仍阻断；请选择显式编译数据库并重新检查，CMake构建尚待独立验收。'
-            if include_uncommitted and build_mode!='database' else None),
+        formal_scan_allowed=not include_uncommitted or build_mode=='database' or (build_mode=='cmake' and os.name=='nt'),
+        blocking_reason=('当前构建方式的未提交扫描被阻断：需要显式编译数据库，或Windows/Ninja外置CMake；请检查实际构建配置。'
+            if include_uncommitted and build_mode!='database' and not (build_mode=='cmake' and os.name=='nt') else None),
         sampled_at=datetime.now(timezone.utc).isoformat(),
-        notice=('已选择当前工作区实际字节，包括已暂存、未暂存、重命名、删除和参与输入的未跟踪文件；不是只扫描暂存区。仅显式编译数据库模式支持此工作流，启动时仍须通过实际配置和固定输入检查。' if include_uncommitted else '固定提交比较不包含这些未提交修改。')+'这里只是当前预览，启动扫描时会重新固定输入。')
+        notice=('已选择当前工作区实际字节，包括已暂存、未暂存、重命名、删除和参与输入的未跟踪文件；不是只扫描暂存区。显式数据库或Windows/Ninja外置CMake启动时仍须通过实际配置、生成输入与SDK固定检查。' if include_uncommitted else '固定提交比较不包含这些未提交修改。')+'这里只是当前预览，启动扫描时会重新固定输入。')

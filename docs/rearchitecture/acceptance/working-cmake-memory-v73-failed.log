@@ -1,0 +1,165 @@
+test_builtin_module_is_not_a_blanket_custom_process_exemption (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_external_configuration_reads_are_bound_and_source_globs_keep_namespace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_low_child_cannot_erase_parent_pipe_trace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_registered_junction_parent_spelling_is_accepted_but_other_junction_is_rejected (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_stop_during_copy_hash_and_kernel_check_is_cooperative (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_unsupported_builds_are_rejected_without_fallback (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_actual_generated_inputs_staging_and_complete_native_diff (tests.test_working_cmake.WorkingCMakeTests) ... FAIL
+test_kernel_watch_detects_byte_aba_and_root_rename_is_blocked (tests.test_working_cmake.WorkingCMakeTests) ... FAIL
+test_source_write_from_real_cmake_is_denied_without_source_changes (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_native_clang_full_tu_facts_with_file_macro_map_and_ignored_header (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_native_redirect_only_vfs_keeps_logical_paths_macros_and_frozen_negative_probes (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_new_ignored_input_after_capture_invalidates_original_reverification (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_original_dynamic_macro_rejection_remains_on_the_capture (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_real_arm_gcc_preprocessor_file_base_and_timestamp_expansions_are_preserved (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_same_modified_status_with_changing_bytes_fails_capture (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_staged_worktree_rename_delete_untracked_ignored_and_binary_bytes_are_independent (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_tampered_capture_and_changed_original_are_never_treated_as_reverified (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_actual_worker_full_facts_macros_paths_and_positive_negative_probes_match_after_live_inputs_change (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_actual_worker_rejects_changed_overlay_descriptor_and_consumed_copy_without_publishing_facts (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_bad_request_cannot_mix_unsaved_source_disable_verification_or_use_unowned_logical_paths (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_external_additions_missing_files_and_uncaptured_copy_files_invalidate_full_closure (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_external_build_working_directory_must_be_captured_and_preserves_actual_worker_output (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_failed_final_closure_validation_keeps_pending_view_unusable_by_actual_worker (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_low_disk_or_external_copy_race_never_returns_an_accepted_view_and_auto_dirty_stays_blocked (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_actual_parent_readers_and_glob_keep_full_captured_bytes_after_original_files_change (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_changed_copy_and_capture_manifest_unknown_inputs_and_closed_view_are_rejected (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_empty_directory_identity_is_preserved_and_changes_never_become_unique_map_selection (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_formal_resume_does_not_ignore_new_frozen_parent_identity (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_legacy_file_only_capture_remains_valid_but_cannot_claim_directory_complete_parent_reads (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_parent_walk_enumerates_captured_names_using_original_logical_paths (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_real_constructor_assembly_and_map_proof_uses_captured_parent_bytes (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_source_and_external_empty_directory_additions_are_verified_separately_from_files (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_unused_single_directory_candidate_does_not_invalidate_other_source_inputs (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_windows_path_spelling_keeps_parent_input_and_real_worker_bytes (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_existing_directory_is_never_relabelled (tests.test_windows_write_guard.WindowsWriteGuardTests) ... ok
+test_new_directories_inside_source_or_installation_are_rejected_before_creation (tests.test_windows_write_guard.WindowsWriteGuardTests) ... ok
+test_real_low_child_and_descendant_can_read_source_but_cannot_mutate_medium_source (tests.test_windows_write_guard.WindowsWriteGuardTests) ... ok
+test_actual_bad_cmake_and_toolchain_are_actionable_and_no_source_outputs_are_created (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_actual_cmake_build_uses_external_tree_real_arm_target_and_complete_toolchain_inputs (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_failure_in_required_worker_precheck_cannot_reach_native_scan (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_generated_owned_native_worker_compiles_including_classification_observation (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_git_precheck_uses_the_same_offline_executable_as_native_git_and_missing_git_does_not_block_draft_save (tests.test_build_preflight.BuildPreflightTests) ... C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+ok
+test_missing_expected_macro_is_explicit_and_does_not_become_a_safety_result (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_missing_real_compiler_fails_before_any_native_publication_and_keeps_diagnostic (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_real_all_tu_parameters_inputs_and_pagination_without_writing_firmware_or_formal_build (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_build_root_cfg_and_rename_use_original_canonicalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_complete_fields_duplicates_and_nested_order (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_empty_optional_relations_and_missing_required_function_identity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_inherited_access_blocks_private_isolation_despite_positional_normalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_invalid_pool_references_fail_in_both_readers (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_partial_empty_and_malformed_authorities_do_not_complete (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_encodings_match_inline_with_repeated_references (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_keys_preserve_python_types_instead_of_sqlite_text_affinity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_unread_bodies_and_report_slices_are_never_decoded (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_failed_regeneration_never_replaces_locator_or_old_baseline (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_mutation_between_validation_and_archive_copy_blocks_new_publication (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_partial_baseline_never_publishes_complete_summary (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_valid_summary_cannot_bypass_isolated_source_pollution (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_added_deleted_shape_and_private_fallback (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_all_dimensions_and_findings_preserve_complete_impacts (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_build_and_legacy_return_edges_and_order_sensitive_evidence (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_current_non_string_keys_are_not_coerced (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_head_top_level_is_released_before_baseline_import (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_identical_complete_summaries (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_malformed_and_repeated_json_do_not_publish_and_keep_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_modified_functions_and_consumed_returns (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_nested_scalar_types_lists_and_map_key_types (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_pinned_digest_change_blocks_comparison (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_verification_preserves_full_mismatch_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_corrupt_current_facts_block_publication_and_preserve_previous_scan (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_original_independent_extraction_runs_before_current_graph (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_capture_is_reverified_after_real_baseline_before_current_is_consumed (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... 阶段开始：固定未提交CMake原HEAD、索引、全部工作字节及目录
+复制独立Git对象库，不更改原.git管理目录
+工作输入捕获完成 5 个文件；尚未证明构建与宏等价
+阶段开始：只读受监督CMake探测实际配置和编译闭包
+FAIL
+
+======================================================================
+FAIL: test_actual_generated_inputs_staging_and_complete_native_diff (tests.test_working_cmake.WorkingCMakeTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\ECRAStudio-data\rearchitecture-20261031\continuation-h3\frozen-focused-native-v73\tests\test_working_cmake.py", line 60, in test_actual_generated_inputs_staging_and_complete_native_diff
+    self.assertIn(code,(0,1,2),output.getvalue())
+AssertionError: 3 not found in (0, 1, 2) : 阶段开始：重新校验已固定工作区与SDK输入；剩余量未知
+ECRA 并发风险扫描：firmware
+固件路径：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\firmware
+扫描结果目录：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\scans\dirty-cmake
+Git 差异扫描；基准：5e245491ddb631135065c52368466d8518818da1；当前：5e245491ddb631135065c52368466d8518818da1；未提交修改：纳入本轮扫描
+阶段开始：Git 基准版本完整分析
+建立基准版本完整事实：5e245491ddb631135065c52368466d8518818da1
+基准完整事实需重新生成，旧权威库保留：没有可恢复的扫描检查点；请先运行 run（旧版报告需要重新扫描一次）
+ECRA 并发风险扫描：firmware
+固件路径：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\firmware
+扫描结果目录：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\results\git_diff\artifacts\base-5e245491ddb631135065c52368466d8518818da1
+阶段开始：编译数据库准备
+检查配置、libclang 和真实编译数据库…
+本次命令使用 --no-review，已跳过 OpenCode；候选项只会保存为 PENDING。
+保留非 ECRA 专用构建目录: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\trees\base-5e245491ddb63113\build\ecra；自动使用独立构建目录: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\builds\e15f7fb2ba1ba7a2d3831909
+GNU Make 路径兼容别名（同一目录）: C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\trees\base-5e245491ddb63113 -> C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\trees\base-5e245491ddb63113; C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\builds\e15f7fb2ba1ba7a2d3831909 -> C:\Users\ADMINI~1\AppData\Local\Temp\ECRA-P~1\dc1bf3ef9971975f228e901cebdf3dc2\e15f7fb2ba1ba7a2d3831909
+CMake 配置并刷新编译数据库…
+从 Ninja 完整依赖图读取目标编译闭包：firmware
+CMake 增量构建固件…
+阶段开始：扫描输入快照建立
+依赖快照 1/3: main.c
+依赖快照 2/3: other.c
+依赖快照 3/3: C:/Users/Administrator/AppData/Local/Temp/ECRA Diff cache 中文 v37pmmk5/data/projects/firmware_40d5c598acae3eb8a68a/builds/e15f7fb2ba1ba7a2d3831909/generated.c
+阶段开始：Clang 翻译单元提取
+Clang 1/3: main.c
+Clang 2/3: other.c
+Clang 3/3: C:/Users/Administrator/AppData/Local/Temp/ECRA Diff cache 中文 v37pmmk5/data/projects/firmware_40d5c598acae3eb8a68a/builds/e15f7fb2ba1ba7a2d3831909/generated.c
+阶段开始：输入一致性验证
+阶段开始：跨翻译单元事实归并
+阶段开始：输入一致性验证
+阶段开始：指针、函数指针及调用图分析
+阶段开始：跨翻译单元指针与函数指针求解
+阶段开始：执行上下文指针与调用图分析
+阶段开始：结构体字段、数组与重叠存储分析
+阶段开始：调用图上下文恢复
+阶段开始：NVIC 优先级与抢占关系分析
+阶段开始：可达性与不完整证据关联
+阶段开始：并发风险分类与保护证据
+阶段开始：发布前输入一致性验证
+未启用自动复核及证据包；完成最终输入校验后单次发布完整报告。
+已盘点 4 个变量，生成 1 个候选/盲区复核项。
+阶段开始：可选 OpenCode 复核
+阶段开始：报告生成与存储（单次发布）
+阶段开始：报告发布后输入一致性验证
+阶段开始：最终完整性验收
+完成：INCOMPLETE；完整证据 C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\results\git_diff\artifacts\base-5e245491ddb631135065c52368466d8518818da1\scan.db；请使用 ECRA Studio 查看。
+失败：ValueError: CMake输入目录在固定期间发生变化（即使已恢复也不接受）：C:\Users\Administrator\AppData\Local\Temp\ECRA Diff cache 中文 v37pmmk5\data\projects\firmware_40d5c598acae3eb8a68a\trees\working-3f3b21245ad947c1a8d4124477540261
+
+
+======================================================================
+FAIL: test_kernel_watch_detects_byte_aba_and_root_rename_is_blocked (tests.test_working_cmake.WorkingCMakeTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\ECRAStudio-data\rearchitecture-20261031\continuation-h3\frozen-focused-native-v73\tests\test_working_cmake.py", line 88, in test_kernel_watch_detects_byte_aba_and_root_rename_is_blocked
+    with self.assertRaises(OSError):self.root.rename(self.root.with_name('moved'))
+AssertionError: OSError not raised
+
+======================================================================
+FAIL: test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests)
+----------------------------------------------------------------------
+ValueError: analysis.compile_database 与 cmake.build_dir 不匹配；应为 C:\Users\Administrator\AppData\Local\Temp\ecra canonical 中文 p238jsjw\data\projects\firmware_f57b49a701d0681092a3\builds\working-cmake-61cb6c65b91849d491baaf60b8de034c\builds\9cc45563d4507713b16d9f07\compile_commands.json
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "H:\ECRAStudio-data\rearchitecture-20261031\continuation-h3\frozen-focused-native-v73\tests\test_frozen_dirty_diff.py", line 84, in test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical
+    with self.assertRaisesRegex(ValueError,'CMake'):
+AssertionError: "CMake" does not match "analysis.compile_database 与 cmake.build_dir 不匹配；应为 C:\Users\Administrator\AppData\Local\Temp\ecra canonical 中文 p238jsjw\data\projects\firmware_f57b49a701d0681092a3\builds\working-cmake-61cb6c65b91849d491baaf60b8de034c\builds\9cc45563d4507713b16d9f07\compile_commands.json"
+
+----------------------------------------------------------------------
+Ran 79 tests in 911.923s
+
+FAILED (failures=3)

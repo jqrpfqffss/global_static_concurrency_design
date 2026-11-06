@@ -125,7 +125,7 @@ def create_private_directory(path,*,source_root):
 
 class GuardedProcess:
     """Starts suspended. Caller assigns its Job before explicitly resuming."""
-    def __init__(self,argv,*,cwd,env,log,_low_integrity=True):
+    def __init__(self,argv,*,cwd,env,log,_low_integrity=True,stderr_log=None):
         import msvcrt
         self.api=api=Windows();self.args=list(map(str,argv));self._handle=None;self._thread=None;self.returncode=None
         executable=Path(self.args[0])
@@ -138,14 +138,15 @@ class GuardedProcess:
             with open(os.devnull,'rb') as null:
                 stdin=duplicate(msvcrt.get_osfhandle(null.fileno()))
             stdout=duplicate(msvcrt.get_osfhandle(log.fileno()))
+            stderr=stdout if stderr_log is None else duplicate(msvcrt.get_osfhandle(stderr_log.fileno()))
             size=ctypes.c_size_t();api.kernel.InitializeProcThreadAttributeList(None,1,0,ctypes.byref(size))
             attributes=ctypes.create_string_buffer(size.value)
             api.check(api.kernel.InitializeProcThreadAttributeList(attributes,1,0,ctypes.byref(size)));attributes_ready=True
-            handles=(w.HANDLE*2)(stdin,stdout)
+            handles=(w.HANDLE*len(duplicates))(*duplicates)
             api.check(api.kernel.UpdateProcThreadAttribute(attributes,0,0x20002,handles,ctypes.sizeof(handles),None,None))
             startup=StartupEx();startup.startup.cb=ctypes.sizeof(StartupEx);startup.attributes=ctypes.addressof(attributes)
             startup.startup.flags=0x100|1;startup.startup.show=0
-            startup.startup.stdin=stdin;startup.startup.stdout=stdout;startup.startup.stderr=stdout
+            startup.startup.stdin=stdin;startup.startup.stdout=stdout;startup.startup.stderr=stderr
             command=ctypes.create_unicode_buffer(subprocess.list2cmdline(self.args))
             environment=ctypes.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(env.items(),key=lambda item:item[0].upper()))+'\0\0')
             info=ProcessInfo();flags=0x4|0x400|0x80000|0x8000000  # suspended, Unicode env, explicit handle list, no window

@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "parent": "a76a180083d04480e9c6aef4423d512d9f3e29db",
+  "scope": "Supplementary source audit, not runtime equivalence. Original summarize/compare/normalization/impact top-level functions unchanged; verify_full split for sequential residency. Analyzer, user semantics and strict ordered native comparator unchanged after CRLF only.",
+  "unchanged_top_level_functions": [
+    "settings",
+    "git",
+    "write_comparison_patch",
+    "text",
+    "changes",
+    "pin",
+    "comment_insensitive",
+    "assert_pin",
+    "canonical_id",
+    "normalize",
+    "row_hashes",
+    "evidence_digest",
+    "pointer_hashes",
+    "build_arguments",
+    "variable_change_summary",
+    "summarize",
+    "variable_graph",
+    "risk_comparison",
+    "compare",
+    "representative_paths",
+    "selected_findings",
+    "presentation_view",
+    "_relative_worktree_gitdir",
+    "relocate_paths",
+    "relocate_config",
+    "current_context",
+    "check_isolated_tree",
+    "check_current_tree",
+    "prepare_current",
+    "prepare_base"
+  ],
+  "changed_top_level_functions": [
+    "verify_full"
+  ],
+  "added_top_level_functions": [
+    "full_reference_summary"
+  ],
+  "files": [
+    {
+      "file": "ecra/analysis.py",
+      "before_sha256": "ef9a376a3cf433c8b348afc1c2edb86efd113e5b600d253a317f75a73eef6630",
+      "working_sha256": "b1d7cd8287c4a840888cbdb253fa36ae9ef2aca8882aaf1c722573742a4c10a4",
+      "same_after_only_CRLF_conversion": true
+    },
+    {
+      "file": "config/semantics.yaml",
+      "before_sha256": "ca9cbc8b95c5fc7c99c296e72754ebd9290be47359e01ee8c00f3edac52248b2",
+      "working_sha256": "ecdedba056c39daecc1fea2e58a683af4955a80e7ce672f769cbf9d2a896b5b9",
+      "same_after_only_CRLF_conversion": true
+    },
+    {
+      "file": "scripts/compare_native_graphs.py",
+      "before_sha256": "427998f4705cdb753464e490ec2c11f243772ab88db2c92fd27d381d4fd9ba98",
+      "working_sha256": "427998f4705cdb753464e490ec2c11f243772ab88db2c92fd27d381d4fd9ba98",
+      "same_after_only_CRLF_conversion": true
+    }
+  ]
+}

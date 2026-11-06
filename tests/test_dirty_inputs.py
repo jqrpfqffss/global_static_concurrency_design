@@ -42,10 +42,12 @@ class DirtyInputPlanningTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'数据库.*变化'):
                 capture_inputs(case.root,case.config,case.data/'work/changed-db')
 
-    def test_unverified_cmake_auto_and_supplement_modes_remain_blocked(self):
-        for analysis in [dict(compile_database='auto'),dict(compile_database='db',cmake={}),
-                dict(compile_database='db',auto_configure_cmake=True),dict(compile_database='db',build_closure_only=False)]:
-            with self.subTest(analysis=analysis),self.assertRaisesRegex(ValueError,'显式编译数据库'):
+    def test_unverified_auto_mixed_cmake_database_and_supplement_modes_remain_blocked(self):
+        for analysis,reason in [(dict(compile_database='auto'),'显式编译数据库'),
+                (dict(compile_database='db',cmake={}),'compile_database: auto'),
+                (dict(compile_database='db',auto_configure_cmake=True),'显式编译数据库'),
+                (dict(compile_database='db',build_closure_only=False),'显式编译数据库')]:
+            with self.subTest(analysis=analysis),self.assertRaisesRegex(ValueError,reason):
                 supported(analysis)
 
     def test_real_stop_watcher_interrupts_capture_without_publishing_a_plan_or_touching_prior_scan(self):

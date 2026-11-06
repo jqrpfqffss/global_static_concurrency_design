@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "status": "EXACT_GOLDEN_INDEX_BYTES_AND_MTIME_RESTORED",
+  "original_index_written": true,
+  "scope": "Repair a manual git status index-cache refresh. Never rewrite the golden manifest, source or staged tree. Original index replacement is allowed here only if independently recreated bytes exactly match its pre-existing pinned SHA, size and mtime.",
+  "expected_sha256": "2dc9337150c18eab6c83d52bab9a2f931e801c8fa31788ddc359c5952b673325",
+  "expected_bytes": 435692,
+  "expected_mtime_ns": 1793493146117397000,
+  "index_after_manual_status_sha256": "4f3952105011d36e112f74a0ad95cb1f5d42c53439796df904113bf8c2dc6ace",
+  "private_candidate_sha256": "2dc9337150c18eab6c83d52bab9a2f931e801c8fa31788ddc359c5952b673325",
+  "private_candidate_bytes": 435692
+}

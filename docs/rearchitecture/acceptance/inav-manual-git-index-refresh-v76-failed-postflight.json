@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "status": "FAIL_BEFORE_EXACT_INDEX_RECOVERY",
+  "scope": "First post-manual-status check against the unchanged frozen-input database. It failed on exactly the original golden clone Git index in the tool execution output. This manually recorded audit receipt is not a generated test-controller success; it preserves the observed failure without changing the golden input manifest.",
+  "files": 4123,
+  "differences": ["I:/ECRAStudio-data/rearchitecture-20261101/inav-golden-f254-v1/firmware/.git/index"],
+  "expected_index_sha256": "2dc9337150c18eab6c83d52bab9a2f931e801c8fa31788ddc359c5952b673325",
+  "observed_index_sha256": "4f3952105011d36e112f74a0ad95cb1f5d42c53439796df904113bf8c2dc6ace",
+  "golden_manifest_rewritten": false
+}

@@ -63,7 +63,7 @@ class TaskManager:
             raise ValueError('任务不存在')
         return folder
 
-    def start(self, profile_path, *, profile_id, mode='scan', scan_id=None,resources=None,multicore=None):
+    def start(self, profile_path, *, profile_id, mode='scan', scan_id=None,resources=None,multicore=None,retry_from=None):
         from ..config import load_config, configured_project_root
         from ..workspace import formal_workspace
         from ..data_transfer import relocated_task_config
@@ -79,6 +79,11 @@ class TaskManager:
         if pressure['stop']:raise ValueError(pressure['reason']+'；暂不启动扫描，请待提交额度/内存恢复后重试。')
         if mode not in {'scan','precheck','review','review-failed','multicore'}:
             raise ValueError('未知任务模式')
+        if retry_from is not None:
+            previous=self.directory(retry_from);previous_task=read_task_json(previous/'task.json')
+            if (no_links(profile_path)!=previous/'semantics.yaml' or previous_task.get('state') not in {'FAILED','INTERRUPTED'}
+                    or previous_task.get('mode')!=mode or previous_task.get('profile_id')!=profile_id):
+                raise ValueError('恢复配置、模式或状态与原任务不符')
         if mode=='multicore':
             if (not isinstance(multicore,dict) or multicore.get('format')!='ECRA_MULTICORE_PLAN_V1'
                     or not isinstance(multicore.get('id'),str) or not IDENTITY.fullmatch(multicore['id'])
@@ -129,6 +134,8 @@ class TaskManager:
                 fixed_storage=storage_snapshot(self.data)
                 write_json(folder/'storage-policy.json',fixed_storage)
                 (folder/'semantics.yaml').write_bytes(execution_config)
+                if retry_from is not None:
+                    write_json(folder/'retry-source.json',dict(source_task=retry_from))
                 if mode=='multicore':write_json(folder/'multicore.json',multicore)
                 # Preserve the existing adjacent-library contract when the task's
                 # config is fixed outside the editable profile directory.
@@ -140,9 +147,11 @@ class TaskManager:
                 value = dict(id=ident, scan_id=ident if mode in {'scan','precheck','multicore'} else scan_id, mode=mode,
                              project_id=ws.project_id, project_root=str(root),
                              profile_id=profile_id, profile_revision=sha256(folder/'semantics.yaml'), state='RUNNING', started=now(),budget_bytes=limits['peak_bytes'],resource_policy=limits,
+                             build_mode='cmake' if 'cmake' in cfg['analysis'] else 'database',
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
                              checkpoint_mode='INPUT_VERIFIED_TU_CACHE',storage_policy=fixed_storage, samples=[], resources={})
                 if relocation:value['data_relocation']=relocation
+                if retry_from is not None:value['retry_from']=retry_from
                 write_json(folder/'task.json', value)
                 if mode=='multicore':
                     value['checkpoint_mode']='RETRY_DERIVATION_FROM_FIXED_INPUTS'
@@ -261,6 +270,9 @@ class TaskManager:
             raise ValueError('日志游标无效')
         folder = self.directory(ident)
         value = read_task_json(folder/'task.json')
+        if (folder/'reused-working-inputs.json').is_file():
+            reused=read_task_json(folder/'reused-working-inputs.json')
+            value['reused_working_inputs']=dict(source_task=reused['source_task'],proof=reused['proof'])
         log = folder/'console.log'
         with log.open('rb') as stream:
             stream.seek(offset)

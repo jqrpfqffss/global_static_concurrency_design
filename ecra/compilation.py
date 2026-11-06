@@ -8,7 +8,8 @@ import time
 import stat
 from pathlib import Path
 
-from .common import execute, read_json, relative, write_json
+from .common import read_json, relative, write_json
+from .build_execution import execute
 from .scope import AuditScope
 from .workspace import build_path as workspace_build_path, results_path, context, no_links
 from .portable import (bundle_root, tool_path, tool_environment, check_cache, read_cache,
@@ -46,6 +47,13 @@ def cmake_build_directory(root, analysis):
     preserve them and configure in a sibling tree instead, including for doctor.
     Keep the saved analysis configuration unchanged for review/resume digests.
     """
+    from .build_execution import FROZEN_BUILD
+    sealed=FROZEN_BUILD.get()
+    active=sealed[2]() if sealed is not None else None
+    if active is not None and active.connection is not None and no_links(root)==sealed[0]:
+        # Constructor-map lookup and all parent selections must use the same
+        # real prepared tree as Clang, without mutating analysis configuration.
+        return no_links(sealed[1])
     settings = analysis['cmake']
     boundary = root if settings.get('location') == 'project' else Path(context(root, analysis).build_root)
     configured = _validated_build_directory(root, workspace_build_path(root, analysis), boundary)
@@ -200,7 +208,8 @@ def configure_cmake(root, analysis, progress, build_firmware):
         records.append(dict(stage=name, command=argv, exit_code=proc.returncode, log=str(log)))
         if proc.returncode:
             raise ValueError(f'CMake {name} 失败，停止扫描。日志: {log}\n' + (proc.stdout+proc.stderr)[-6000:])
-    if target:
+    from .build_execution import BUILD_EXECUTOR
+    if target or BUILD_EXECUTOR.get() is not None:
         query = build/'.cmake/api/v1/query/client-ecra/cmakeFiles-v1'
         query.parent.mkdir(parents=True, exist_ok=True)
         query.touch()
@@ -484,6 +493,10 @@ def discover_databases(root):
 
 
 def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
+    if file_view is not None and 'cmake' in cfg['analysis']:
+        prepared=file_view.prepared_compilation()
+        if prepared is None:raise ValueError('未提交CMake缺少已封存准备结果，禁止实时重构建')
+        return prepared
     a = cfg["analysis"]
     progress = progress or (lambda message: None)
     from .workspace import context

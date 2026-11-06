@@ -1,0 +1,9 @@
+{
+  "status": "CONTROLLED_INTERRUPTION_NOT_VERIFIED",
+  "process_id": 14084,
+  "command": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe -B -X utf8 -m unittest tests.test_working_cmake -v",
+  "recorded_utc": "2026-11-06T05:01:08.5628482Z",
+  "reason": "Repeated complete SDK validation cost identified. Stop this owned development run, implement guarded validation/stop response and rerun an immutable source copy. No PASS claimed.",
+  "log": "working-cmake-v73-exploratory-v7.log",
+  "original_inputs": "PRIVATE_TEST_FIXTURE_ONLY"
+}

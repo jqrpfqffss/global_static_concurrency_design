@@ -79,10 +79,11 @@ class FrozenDirtyDiffTests(unittest.TestCase):
         self.assertNotEqual(baseline_root,self.root)
         self.assertEqual({str(p):sha256(p) for p in self.root.rglob('*') if p.is_file()},before)
         unsupported=read_json(self.config)
-        unsupported['analysis']['cmake']=dict(target='firmware',generator='Ninja',location='workspace')
+        unsupported['analysis']['cmake']=dict(target='firmware',generator='MinGW Makefiles',location='workspace')
         invalid=self.base/'unsupported-cmake.json';write_json(invalid,unsupported)
-        with self.assertRaisesRegex(ValueError,'CMake'):
+        with self.assertRaisesRegex(ValueError,'analysis[.]cmake[.]target.*Ninja'):
             run_canonical(self.root,invalid,no_review=True)
+        self.assertEqual({str(p):sha256(p) for p in self.root.rglob('*') if p.is_file()},before)
 
     def test_capture_is_reverified_after_real_baseline_before_current_is_consumed(self):
         from ecra import git_diff

@@ -1,0 +1,38 @@
+{
+  "passed": false,
+  "status": "FAIL_OR_NOT_VERIFIED",
+  "all_gates_passed": false,
+  "scope": "Embedded Python and bundled tools; real guarded working CMake, stop/retry, generated inputs, strict independent full verification, Chrome evidence and package import. Local host only; not clean PC, physical32GB, human UAT or complete large native Diff.",
+  "uncompressed": {
+    "result": "PASS",
+    "commands": 27,
+    "receipt_sha256": "02b22cc01a44442515678e0182723ce22014dda4b66b98c3f4789675c5ccbf6f"
+  },
+  "zip-extracted": {
+    "result": "PASS",
+    "commands": 27,
+    "receipt_sha256": "2eadc2473e62ec57262ecb206e27cc48024a99729a3193171b1a6de3de38912f"
+  },
+  "application_files": 147,
+  "payload_files": 31915,
+  "snapshot_sha256": "0c69be750c09044dc93c3c383a37193d8c2ecac11bac84c186c682b5df5bfbca",
+  "zip_bytes": 753741589,
+  "zip_sha256": "7d38b4fce035019051341678b726f572667baccc069b476ee956c8deee78b21d",
+  "payload_manifest_sha256": "666f058d6f2414fdff5e012db0eb94535378f75082607a5e2ab910363139761e",
+  "embedded_tests": {
+    "summary_ok": false,
+    "tests": 28,
+    "passed_tests": 25,
+    "seconds": 9.492,
+    "failures": 2,
+    "errors": 1,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "exit_code": 1,
+    "log_sha256": "c4ef690d0850ec26c930f73613466101b47cf1cbcd5f333a68e5307c448dada4"
+  },
+  "browser_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\portable-working-v76\\browser\\acceptance.json",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-portable-working-v76.py\", line 65, in <module>\n    assert test.returncode==0 and summary['summary_ok'] and summary['tests']==28 and summary['skipped']==0,summary\nAssertionError: {'summary_ok': False, 'tests': 28, 'passed_tests': 25, 'seconds': 9.492, 'failures': 2, 'errors': 1, 'skipped': 0, 'expected_failures': 0, 'unexpected_successes': 0}\n",
+  "seconds": 55.59399999998277
+}

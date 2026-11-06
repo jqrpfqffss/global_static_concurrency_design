@@ -13,12 +13,16 @@ from .workspace import no_links,studio_data_root
 
 
 def supported(analysis):
-    if ('cmake' in analysis or analysis.get('auto_configure_cmake',False)
+    if 'cmake' in analysis:
+        from .working_cmake import policy
+        policy(analysis)
+        return
+    if (analysis.get('auto_configure_cmake',False)
             or analysis.get('compile_database','auto')=='auto' or not analysis.get('build_closure_only',True)):
         raise ValueError('未提交输入的自动固定目前要求显式编译数据库；CMake/自动构建/补充扫描须先完成独立构建等价验收')
 
 
-def _search_directories(unit):
+def _search_directories(unit,*,resolve=no_links):
     separate={'-I','-iquote','-isystem','-idirafter','-F','-iframework','-isysroot','--sysroot','-resource-dir'}
     prefixes=sorted(separate,key=len,reverse=True)
     args=unit['arguments'];index=0
@@ -32,7 +36,7 @@ def _search_directories(unit):
             for prefix in prefixes:
                 if arg.startswith(prefix) and len(arg)>len(prefix):
                     value=arg[len(prefix):].lstrip('=');break
-        if value and value!='-':yield no_links(Path(unit['directory'])/value)
+        if value and value!='-':yield resolve(Path(unit['directory'])/value)
         index+=1
 
 
@@ -52,13 +56,21 @@ def capture_inputs(root,config,folder,progress=lambda text:None,*,scan_mode=None
     from .scan_diagnostics import ScanDiagnostics
     diagnostics=ScanDiagnostics(folder/'diagnostics',progress)
     try:
+        if 'cmake' in cfg['analysis']:
+            from .guarded_cmake import InputWatch
+            from .working_cmake import prepare as prepare_working
+            with InputWatch() as watch:
+                prepared=prepare_working(root,config,cfg,ws,folder,progress,diagnostics,watch)
+                descriptor=_capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics,prepared=prepared)
+                watch.check()
+                return descriptor
         return _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics)
     except BaseException as exc:
         diagnostics.failure(exc);raise
     finally:diagnostics.close()
 
 
-def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics):
+def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics,*,prepared=None):
     from .working_snapshot import capture,validate as validate_capture
     from .working_compiler_view import create,validate,ParentFiles
     from .compilation import prepare
@@ -67,9 +79,10 @@ def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics):
     from .workflow import analysis_config,engine_digest
     from clang import cindex
     engine=engine_digest();diagnostics.stage('固定原HEAD、索引与工作区字节/目录')
-    fixed=capture(root,cfg,progress)
+    fixed=capture(root,cfg,progress) if prepared is None else prepared[0]
     diagnostics.stage('盘点真实编译参数与完整外部搜索边界')
-    units,compilation=prepare(root,cfg,progress=progress,build_firmware=False)
+    units,compilation=(prepare(root,cfg,progress=progress,build_firmware=False)
+                       if prepared is None else prepared[1:3])
     requested=cfg['analysis'].get('libclang_file')
     if requested:
         requested=no_links(requested)
@@ -79,8 +92,7 @@ def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics):
     cindex.Index.create()
     files={no_links(config),no_links(compilation['compile_database']),no_links(cindex.conf.lib._name)}
     directories=[];repo=no_links(ws.repository_root)
-    if cfg['analysis']['git_diff'].get('enabled'):
-        files.add(no_links(resolved_executable(tool_path('git'),root)))
+    files.add(no_links(resolved_executable(tool_path('git'),root)))
     files.update(no_links(root/cfg['analysis']['build_closure'][key]) for key in ('elf','map')
         if cfg['analysis'].get('build_closure',{}).get(key))
     cache=Path(compilation['compile_database']).parent/'CMakeCache.txt'
@@ -88,7 +100,11 @@ def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics):
     for key in ('CMAKE_TOOLCHAIN_FILE','CMAKE_COMMAND','CMAKE_MAKE_PROGRAM','CMAKE_C_COMPILER',
             'CMAKE_CXX_COMPILER','CMAKE_ASM_COMPILER','CMAKE_AR','CMAKE_RANLIB','CMAKE_LINKER'):
         path=compilation.get('cmake_cache',{}).get(key)
-        if path and Path(path).is_file():files.add(no_links(path))
+        if path and Path(path).is_file():
+            # Cache tool spellings may be Windows App/WinGet links. Pin the
+            # resolved executable bytes, exactly as for the original argv.
+            files.add(no_links(path) if key=='CMAKE_TOOLCHAIN_FILE' else
+                      no_links(resolved_executable(path,root)))
     from .initialization import constructor_map_directory
     directories.append(no_links(constructor_map_directory(Path(cfg['project']['root']),cfg)))
     for unit in units:
@@ -99,7 +115,10 @@ def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics):
                 '-fmodule-map-file','-include-pch','-ivfsoverlay','-vfsoverlay','-Xclang=-load','-fplugin',
                 '-fpass-plugin')) for arg in unit['arguments']):
             raise ValueError('此编译数据库含尚未证明可冻结的模块/PCH/自带VFS/插件参数，请保留原配置并先完成该模式验收')
-        directories.extend(_search_directories(unit))
+        if prepared is None:directories.extend(_search_directories(unit))
+        else:
+            from .working_cmake import input_path
+            directories.extend(_search_directories(unit,resolve=input_path))
         cwd=no_links(unit['directory'])
         if not cwd.is_relative_to(repo):directories.append(cwd)
         files.update(no_links(p) for p in unit['response_files'])
@@ -125,11 +144,25 @@ def _capture_inputs(root,config,cfg,consumed,ws,folder,progress,diagnostics):
         if any(path==parent or path.is_relative_to(parent) for parent in external):continue
         external.append(path)
     files.update(no_links(p) for p in compilation.get('consumed_inputs',{}))
+    if prepared is not None:
+        directories.append(prepared[3])
+        directories.extend(no_links(p) for p in compilation['guarded_build']['configuration_directories'])
+        files.update(no_links(step['log']) for step in compilation.get('cmake_steps',[]) if step.get('log'))
+        files.update(no_links(row['file']) for row in compilation['guarded_build'].get('trace_files',[]))
+    # Configuration namespaces are part of the sealed build even though they
+    # need not be Clang include directories.
+    if prepared is not None:
+        external=[]
+        for path in sorted(set(directories),key=lambda p:(len(p.parts),str(p))):
+            if path.is_relative_to(repo) or not path.exists():continue
+            if not path.is_dir():raise ValueError('CMake输入搜索边界不是目录')
+            if not any(path==p or path.is_relative_to(p) for p in external):external.append(path)
     validate_capture(fixed,root,cfg,reverify_original=True)
     diagnostics.total_units=diagnostics.completed_units=0
     diagnostics.stage('固定SDK完整目录与元数据，重新核对原输入；剩余量未知')
-    descriptor=create(fixed,root,cfg,external_directories=external,external_files=sorted(files),
-        proof_scope='COMPLETE_LOGICAL_CLANG_INPUTS_V1')
+    build_record=(None if prepared is None else dict(units=units,compilation=compilation,directory=str(prepared[3])))
+    descriptor=create(fixed,root,cfg,external_directories=external,external_files=sorted(files),prepared=build_record,
+        proof_scope='COMPLETE_LOGICAL_CLANG_INPUTS_V1' if prepared is None else 'COMPLETE_GUARDED_CMAKE_INPUTS_V1')
     with ParentFiles(descriptor,root,cfg) as view:
         expected=dict(consumed,**compilation.get('consumed_inputs',{}))
         for path,row in expected.items():

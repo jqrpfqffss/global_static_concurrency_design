@@ -1,0 +1,121 @@
+C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_complete_but_different_engine_is_rejected_instead_of_recaptured (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_existing_database_retry_has_no_new_cmake_checkpoint_requirement (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_incomplete_capture_can_be_started_again (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_task_state_identity_mode_and_config_bytes_are_bound (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_traversal_and_foreign_task_paths_are_rejected (tests.test_working_checkpoint.WorkingCheckpointTests) ... ok
+test_builtin_module_is_not_a_blanket_custom_process_exemption (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_external_configuration_reads_are_bound_and_source_globs_keep_namespace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_low_child_cannot_erase_parent_pipe_trace (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_registered_junction_parent_spelling_is_accepted_but_other_junction_is_rejected (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_stop_during_copy_hash_and_kernel_check_is_cooperative (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_unsupported_builds_are_rejected_without_fallback (tests.test_working_cmake.WorkingCMakeAuditTests) ... ok
+test_actual_generated_inputs_staging_and_complete_native_diff (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_kernel_watch_detects_byte_aba_and_root_rename_is_blocked (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_source_write_from_real_cmake_is_denied_without_source_changes (tests.test_working_cmake.WorkingCMakeTests) ... ok
+test_authenticated_api_real_values_and_page_limit_survive_reopen (tests.test_git_versions.GitVersionTests) ... ok
+test_bad_ref_arguments_no_git_and_source_overlap_fail_without_source_write (tests.test_git_versions.GitVersionTests) ... ok
+test_explicit_working_input_preview_is_head_only_and_preserves_repository (tests.test_git_versions.GitVersionTests) ... ok
+test_real_ref_pages_search_and_annotated_commit_resolution_preserve_all_source_bytes (tests.test_git_versions.GitVersionTests) ... ok
+test_staged_unstaged_rename_and_untracked_are_truthful_and_never_included (tests.test_git_versions.GitVersionTests) ... ok
+test_archived_configs_survive_live_profile_change_and_real_owned_job_publishes (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_invalid_header_and_broken_elf_structure_never_publish_valid_results (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_missing_archive_config_bad_regions_and_stale_plan_fail_before_start (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_oversized_config_object_is_rejected_before_a_full_object_read (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_prechecked_manifest_change_is_failed_by_worker_and_retry_keeps_same_fixed_inputs (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_shared_scan_budget_rejects_start_then_same_fixed_plan_can_be_submitted (tests.test_multicore_workflow.MulticoreWorkflowTests) ... ok
+test_child_temporary_files_ignore_inherited_firmware_temp_and_broker_environment_stays_unchanged (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_host_commit_exhaustion_is_independent_of_free_physical_ram_and_unknown_metrics_are_not_zero (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_other_studio_cannot_mark_owned_running_task_interrupted (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_resource_presets_and_manual_bounds (tests.test_studio_resource_policy.ResourcePolicyTests) ... ok
+test_corrupt_or_missing_metadata_is_never_retried_or_replaced_with_stale_data (tests.test_task_metadata_reads.TaskMetadataReadTests) ... ok
+test_review_uses_its_own_real_counters_instead_of_old_scan_or_preflight_progress (tests.test_task_metadata_reads.TaskMetadataReadTests) ... ok
+test_transient_permission_error_recovers_real_bytes_and_permanent_error_is_bounded (tests.test_task_metadata_reads.TaskMetadataReadTests) ... ok
+test_native_clang_full_tu_facts_with_file_macro_map_and_ignored_header (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_native_redirect_only_vfs_keeps_logical_paths_macros_and_frozen_negative_probes (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_new_ignored_input_after_capture_invalidates_original_reverification (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_original_dynamic_macro_rejection_remains_on_the_capture (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_real_arm_gcc_preprocessor_file_base_and_timestamp_expansions_are_preserved (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_same_modified_status_with_changing_bytes_fails_capture (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_staged_worktree_rename_delete_untracked_ignored_and_binary_bytes_are_independent (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_tampered_capture_and_changed_original_are_never_treated_as_reverified (tests.test_working_snapshot.WorkingSnapshotTests) ... ok
+test_actual_worker_full_facts_macros_paths_and_positive_negative_probes_match_after_live_inputs_change (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_actual_worker_rejects_changed_overlay_descriptor_and_consumed_copy_without_publishing_facts (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_bad_request_cannot_mix_unsaved_source_disable_verification_or_use_unowned_logical_paths (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_external_additions_missing_files_and_uncaptured_copy_files_invalidate_full_closure (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_external_build_working_directory_must_be_captured_and_preserves_actual_worker_output (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_failed_final_closure_validation_keeps_pending_view_unusable_by_actual_worker (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_low_disk_or_external_copy_race_never_returns_an_accepted_view_and_auto_dirty_stays_blocked (tests.test_working_compiler_view.WorkingCompilerViewTests) ... ok
+test_actual_parent_readers_and_glob_keep_full_captured_bytes_after_original_files_change (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_changed_copy_and_capture_manifest_unknown_inputs_and_closed_view_are_rejected (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_empty_directory_identity_is_preserved_and_changes_never_become_unique_map_selection (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_formal_resume_does_not_ignore_new_frozen_parent_identity (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_legacy_file_only_capture_remains_valid_but_cannot_claim_directory_complete_parent_reads (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_parent_walk_enumerates_captured_names_using_original_logical_paths (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_real_constructor_assembly_and_map_proof_uses_captured_parent_bytes (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_source_and_external_empty_directory_additions_are_verified_separately_from_files (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_unused_single_directory_candidate_does_not_invalidate_other_source_inputs (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_windows_path_spelling_keeps_parent_input_and_real_worker_bytes (tests.test_frozen_parent_inputs.FrozenParentInputTests) ... ok
+test_existing_directory_is_never_relabelled (tests.test_windows_write_guard.WindowsWriteGuardTests) ... ok
+test_new_directories_inside_source_or_installation_are_rejected_before_creation (tests.test_windows_write_guard.WindowsWriteGuardTests) ... ok
+test_real_low_child_and_descendant_can_read_source_but_cannot_mutate_medium_source (tests.test_windows_write_guard.WindowsWriteGuardTests) ... ok
+test_actual_bad_cmake_and_toolchain_are_actionable_and_no_source_outputs_are_created (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_actual_cmake_build_uses_external_tree_real_arm_target_and_complete_toolchain_inputs (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_failure_in_required_worker_precheck_cannot_reach_native_scan (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_generated_owned_native_worker_compiles_including_classification_observation (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_git_precheck_uses_the_same_offline_executable_as_native_git_and_missing_git_does_not_block_draft_save (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_missing_expected_macro_is_explicit_and_does_not_become_a_safety_result (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_missing_real_compiler_fails_before_any_native_publication_and_keeps_diagnostic (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_real_all_tu_parameters_inputs_and_pagination_without_writing_firmware_or_formal_build (tests.test_build_preflight.BuildPreflightTests) ... ok
+test_build_root_cfg_and_rename_use_original_canonicalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_complete_fields_duplicates_and_nested_order (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_empty_optional_relations_and_missing_required_function_identity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_inherited_access_blocks_private_isolation_despite_positional_normalization (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_invalid_pool_references_fail_in_both_readers (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_partial_empty_and_malformed_authorities_do_not_complete (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_encodings_match_inline_with_repeated_references (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_pool_keys_preserve_python_types_instead_of_sqlite_text_affinity (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_unread_bodies_and_report_slices_are_never_decoded (tests.test_native_diff_reader.NativeDiffReaderTests) ... ok
+test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_failed_regeneration_never_replaces_locator_or_old_baseline (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_mutation_between_validation_and_archive_copy_blocks_new_publication (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_partial_baseline_never_publishes_complete_summary (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_real_cmake_changed_build_creates_new_authority_and_preserves_prior_version (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_valid_summary_cannot_bypass_isolated_source_pollution (tests.test_native_diff_summary_cache.NativeDiffSummaryCacheTests) ... ok
+test_added_deleted_shape_and_private_fallback (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_all_dimensions_and_findings_preserve_complete_impacts (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_build_and_legacy_return_edges_and_order_sensitive_evidence (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_current_non_string_keys_are_not_coerced (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_head_top_level_is_released_before_baseline_import (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_identical_complete_summaries (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_malformed_and_repeated_json_do_not_publish_and_keep_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_modified_functions_and_consumed_returns (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_nested_scalar_types_lists_and_map_key_types (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_pinned_digest_change_blocks_comparison (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_verification_preserves_full_mismatch_diagnostics (tests.test_diff_summary_store.DiffSummaryStoreTests) ... ok
+test_corrupt_current_facts_block_publication_and_preserve_previous_scan (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_original_independent_extraction_runs_before_current_graph (tests.test_native_sequential_verification.NativeSequentialVerificationTests) ... ok
+test_capture_is_reverified_after_real_baseline_before_current_is_consumed (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_diff_patch_uses_frozen_git_bytes_even_when_live_bytes_change_then_restore (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_dirty_diff_warm_and_corrupted_cache_retain_all_facts_and_uncached_verification (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... ok
+test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests) ... FAIL
+
+======================================================================
+FAIL: test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical (tests.test_frozen_dirty_diff.FrozenDirtyDiffTests)
+----------------------------------------------------------------------
+ValueError: analysis.cmake.target 当前需要 Ninja Generator
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "H:\ECRAStudio-data\rearchitecture-20261031\continuation-h3\frozen-focused-native-v74\tests\test_frozen_dirty_diff.py", line 84, in test_real_dirty_diff_full_verification_and_independent_full_facts_are_identical
+    with self.assertRaisesRegex(ValueError,'CMake'):
+AssertionError: "CMake" does not match "analysis.cmake.target 当前需要 Ninja Generator"
+
+----------------------------------------------------------------------
+Ran 102 tests in 1516.623s
+
+FAILED (failures=1)

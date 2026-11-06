@@ -1,0 +1,6 @@
+test_generated_working_inputs_full_scan_and_saved_refresh_without_baseline (tests.test_working_cmake_full.WorkingCMakeFullTests) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 889.333s
+
+OK

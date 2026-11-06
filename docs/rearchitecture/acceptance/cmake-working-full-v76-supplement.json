@@ -1,0 +1,26 @@
+{
+  "summary_ok": true,
+  "tests": 1,
+  "passed_tests": 1,
+  "seconds": 889.333,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "passed": true,
+  "exit_code": 0,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v76",
+  "source_manifest_sha256": "0c69be750c09044dc93c3c383a37193d8c2ecac11bac84c186c682b5df5bfbca",
+  "engine_differences": [],
+  "test_differences": [],
+  "test_files": {
+    "tests\\test_native_diff_summary_cache.py": "f019015b99406e9912b456f347ef1b98d55ca6de019885ab80e4b0f0de72fdb9",
+    "tests\\test_working_cmake.py": "25dca6a18b6b5dbc3d7f84bb7ba7ae9cfd9f8b53aa7adbadc10993502c467d19",
+    "tests\\test_working_cmake_full.py": "379ce70932b32533935783160a99a3c416c6e1db66512fc36b5526cb59ee0e9f",
+    "tests\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "log_sha256": "bc67d2ca5a9aa5482d3b3f67bfefec268abc772c34aa7ca698768884caebde75",
+  "controller_seconds": 891.9529999999795,
+  "scope": "Supplementary new full-mode working CMake real 3TU scan and saved refresh, no comparison baseline. Runtime is exactly frozen v76; this new test is outside its 1562-case suite and must not be counted in that suite."
+}

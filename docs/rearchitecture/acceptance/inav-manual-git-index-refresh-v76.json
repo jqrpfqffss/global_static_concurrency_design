@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "status": "MANUAL_AUDIT_METADATA_DEVIATION",
+  "scope": "An agent read-only-intended manual audit used git status without GIT_OPTIONAL_LOCKS=0. This is not a product scan/build operation. Do not claim that every original Git file stayed unchanged across this manual audit.",
+  "repository": "I:/ECRAStudio-data/rearchitecture-20261101/inav-golden-f254-v1/firmware",
+  "command": "git -C <repository> status --porcelain=v1 --untracked-files=no",
+  "observed_head": "f25434a9e2e58db1ad2ce3b87529a78393cad139",
+  "index_bytes_before": 435692,
+  "index_last_write_utc_before": "2026-11-01 00:32:26",
+  "index_last_write_utc_after": "2026-11-06 13:40:02",
+  "status_output": " M src/main/drivers/serial_uart_stm32h7xx.c",
+  "followup_cached_diff_with_optional_locks_disabled": "EMPTY",
+  "original_index_bytes_backed_up_before_command": false,
+  "index_restored_or_forged": false,
+  "firmware_or_build_inputs_postflight": "PENDING_SEPARATE_4123_FULL_HASH_VALIDATION",
+  "notes": "Do not infer source modifications from the pre-existing worktree modification shown by status. Exact source/tool/build input invariance must come from the original frozen-input database, independently of this Git index metadata deviation. Prior v68/v72 completed receipts predate this event and remain untouched. No old static state/fingerprint, comparator or golden manifest was rewritten."
+}

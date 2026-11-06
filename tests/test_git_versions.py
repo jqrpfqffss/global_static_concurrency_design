@@ -73,8 +73,11 @@ class GitVersionTests(unittest.TestCase):
         self.assertIs(value['formal_scan_allowed'],False);self.assertIn('阻断',value['blocking_reason'])
         supported=self.read(base_ref='v1',include_uncommitted=True,build_mode='database')
         self.assertTrue(supported['formal_scan_allowed']);self.assertIsNone(supported['blocking_reason'])
-        blocked=self.read(base_ref='v1',include_uncommitted=True,build_mode='cmake')
-        self.assertFalse(blocked['formal_scan_allowed']);self.assertIn('CMake',blocked['blocking_reason'])
+        cmake=self.read(base_ref='v1',include_uncommitted=True,build_mode='cmake')
+        import os
+        self.assertEqual(cmake['formal_scan_allowed'],os.name=='nt')
+        if os.name=='nt':self.assertIsNone(cmake['blocking_reason'])
+        else:self.assertIn('CMake',cmake['blocking_reason'])
         self.assertEqual(value['dirty']['unstaged'],1);self.assertEqual(value['dirty']['untracked'],1)
         self.assertIn('不是只扫描暂存区',value['notice'])
         with self.assertRaisesRegex(ValueError,'HEAD'):self.read(current_ref='v1',include_uncommitted=True)

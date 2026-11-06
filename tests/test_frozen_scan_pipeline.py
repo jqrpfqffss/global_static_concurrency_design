@@ -153,7 +153,8 @@ int main(void){shared++;return shared;}
                        dict(auto_configure_cmake=True),dict(build_closure_only=False)]:
             with self.subTest(update=update):
                 cfg=copy.deepcopy(self.cfg); cfg['analysis'].update(update)
-                with self.assertRaisesRegex(ValueError,'尚未验收'):check_mode(cfg,workspace,False)
+                reason='compile_database: auto' if 'cmake' in update else '尚未验收'
+                with self.assertRaisesRegex(ValueError,reason):check_mode(cfg,workspace,False)
         with self.assertRaisesRegex(ValueError,'显式独立'):check_mode(self.cfg,None,False)
         with self.assertRaisesRegex(ValueError,'新的原生'):check_mode(self.cfg,workspace,False)
 

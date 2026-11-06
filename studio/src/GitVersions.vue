@@ -33,10 +33,10 @@ async function read(at=0){
     </template>
     <label>Diff 基准 ref（空表示全量）<input :value="baseRef" :disabled="loading" @input="choose($event,'baseRef')"></label>
     <label>当前 ref<input :value="currentRef" :disabled="loading" @input="choose($event,'currentRef')"></label>
-    <label class="dirty-input-option"><input type="checkbox" :checked="includeUncommitted" :disabled="loading||(!baseRef&&!includeUncommitted)" @change="emit('update:includeUncommitted',($event.target as HTMLInputElement).checked)">纳入当前工作区未提交输入</label>
-    <p v-if="includeUncommitted&&!baseRef" role="alert">{{ buildMode==='database' ? '当前未启用Diff，将固定当前工作区进行全量扫描；实际编译输入以数据库为准。' : '当前构建方式尚不支持包含未提交输入；请取消此项，或改用实际编译数据库。' }}</p>
+    <label class="dirty-input-option"><input type="checkbox" :checked="includeUncommitted" :disabled="loading" @change="emit('update:includeUncommitted',($event.target as HTMLInputElement).checked)">纳入当前工作区未提交输入</label>
+    <p v-if="includeUncommitted&&!baseRef" role="alert">当前未启用Diff，将固定当前工作区进行全量扫描。{{ buildMode==='cmake' ? 'CMake要求Windows/Ninja外置构建；实际生成输入和SDK须通过完整固定检查。' : '实际编译输入以数据库为准。' }}</p>
     <p v-if="includeUncommitted&&currentRef!=='HEAD'&&!error" role="alert">纳入未提交输入仅适用于当前 ref 为 HEAD；请改为 HEAD，或取消此选项进行固定提交比较。</p>
-    <p v-else-if="includeUncommitted&&currentRef==='HEAD'&&baseRef" role="alert">已选择当前工作区实际字节，不是只扫描暂存区。{{ buildMode==='database' ? '启动时固定源码、实际编译数据库与SDK输入，并逐项验证；工程和暂存区保持原样。' : '当前构建方式仍被阻断；请使用重新导出的实际编译数据库，或取消此选项进行固定提交比较。' }}</p>
+    <p v-else-if="includeUncommitted&&currentRef==='HEAD'&&baseRef" role="alert">已选择当前工作区实际字节，不是只扫描暂存区。{{ buildMode==='cmake' ? '启动时以只读原工程完成Windows/Ninja外置构建，再固定实际生成输入、编译参数与SDK。尚未证明的自定义生成命令会明确阻断，请查看真实检查原因。' : '启动时固定源码、实际编译数据库与SDK输入，并逐项验证；工程和暂存区保持原样。' }}</p>
     <p v-else-if="baseRef&&!includeUncommitted">固定提交比较不包含未提交修改。保留原工作区与暂存区，不自动提交或切换分支。</p>
     <p v-if="current" class="identity">基准提交：{{state.base_sha||'全量扫描'}}<br>当前提交：{{state.current_sha}}</p>
     <p v-else-if="state?.available" role="status">所选引用已变更，请重新核对本地 Git 版本。</p>
