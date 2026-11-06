@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "hashes": {
+    "facts": {
+      "before": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+      "after": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa"
+    },
+    "report": {
+      "before": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db",
+      "after": "26af6df2f8a675ef2be0a25f2be4b45c807f1ba2a8cd21a4d7af72aa53ed52db"
+    }
+  },
+  "differences": {
+    "facts": null,
+    "report": null
+  },
+  "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+  "before": "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden\\scan.db",
+  "after": "H:\\ECRA-NATIVE-C68-SEED0\\scans\\native-golden\\scan.db",
+  "deep_integrity_checked": true,
+  "complete_fact_graph_restore": false,
+  "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "status": "PASS_COMPLETE_CURRENT_READER_ORIGINAL_ORACLE",
+  "all_gates_passed": false,
+  "whole_diff": "NOT_VERIFIED",
+  "scope": "Corrected clean feceb27 reader measured separately. Reuses immutable original full-reader oracle from frozen69 only after full PASS/postflight SHA and identical original summary/normalization AST. No authority fingerprint rewrite or producer rebranding.",
+  "unchanged_original_git_diff_functions": 31,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v71\\scripts\\validate_native_diff_reader.py",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v71",
+    "--source",
+    "H:/ECRA-NATIVE-A13-SEED0/scans/native-golden/scan.db",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-cold-diff-inav-v71-selected",
+    "--mode",
+    "selected",
+    "--job-gib",
+    "8"
+  ],
+  "summary_sha256": "001c02b85c0953787057ee3a8a6b110ec447e0e22f944cd28966164d2540f108",
+  "summary_bytes": 778008324,
+  "source_unchanged": true,
+  "complete_summary_bytes_equal": true,
+  "original_full_oracle": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-cold-diff-inav-v69-full\\summary.json",
+  "measured_execution": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-cold-diff-inav-v71-selected\\execution.json"
+}

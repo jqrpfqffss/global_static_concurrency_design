@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "inav-current-published-v68-report-job",
+  "limit_bytes": 2147483648,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-c",
+    "import sys;from pathlib import Path;from ecra.config import configured_project_root;from ecra.workflow import saved_run;p=Path(sys.argv[1]);raise SystemExit(0 if saved_run(configured_project_root(p),p,render_only=True,_out=Path(sys.argv[2])) in {0,1,2} else 1)",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v68-config\\semantics.yaml",
+    "H:\\ECRA-NATIVE-C68-SEED0\\scans\\native-golden"
+  ],
+  "exit_code": 0,
+  "seconds": 1821.2189999999828,
+  "peaks": {
+    "peak_job_commit_bytes": 667230208,
+    "working_set_bytes": 781557760,
+    "private_bytes": 660971520
+  }
+}

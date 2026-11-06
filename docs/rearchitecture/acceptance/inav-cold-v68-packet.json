@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "scope": "Measure complete Packet construction on a sealed native authority.\n\nfull uses the unchanged builder after ordinary complete reconstruction;\ncontrol reconstructs complete original facts and only the chosen finding;\nselected uses its complete per-object inputs. No model or source execution.\nBoth modes preserve original authority bytes. This is not a new native scan.\n",
+  "mode": "selected",
+  "finding_id": "GS-00abeb3d9a62f851",
+  "selected_accesses": 15216,
+  "packet_bytes": 615590601,
+  "packet_sha256": "2bb7e82e1d0d7b3f2981d6227edecc3de374fbb451e8a4e6a9cf9a7970a145d6",
+  "cache_key": "75046f4418a43d8c0fec9f4b41aabbed15e6dc925de36d18c84f67fdc71488c1",
+  "physical_packet_written": true,
+  "seconds": 353.35899999999674,
+  "source_bytes": 12590489600,
+  "before_sha256": "ecff81acf8f26688664e6c7f60b60022c39059f3a2bda2b36d228c86a6d72894",
+  "after_sha256": "ecff81acf8f26688664e6c7f60b60022c39059f3a2bda2b36d228c86a6d72894",
+  "all_gates_passed": false,
+  "receipt_projection_verified": true,
+  "physical_packet_sha256": "0ada64a8c2e42b54e94303dd39ec7394b74c2e2285ea52aec61cbb33e9430128"
+}

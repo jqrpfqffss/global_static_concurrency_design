@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "source_sha256": "4549110d23bfb9ed3c78d5ea686fbeeb94e9e140eac4b88974288c25bd4e7913",
+  "source_unchanged": true,
+  "complete_summary_bytes_equal": true,
+  "summary_sha256": "001c02b85c0953787057ee3a8a6b110ec447e0e22f944cd28966164d2540f108",
+  "summary_bytes": 778008324,
+  "whole_diff_memory": "NOT_VERIFIED",
+  "all_gates_passed": false,
+  "scope": "Independent complete byte comparison plus actual PASS postflight receipts from both isolated Job runs. No counts-only equivalence."
+}
