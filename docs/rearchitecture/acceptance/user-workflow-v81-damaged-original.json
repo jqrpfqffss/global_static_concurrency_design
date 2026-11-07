@@ -1,0 +1,6 @@
+{
+  "rejected": true,
+  "existing_events": 4,
+  "error": "操作未完成，原归档保留；诊断编号 2b5a8c0ccd354b86ad3f9521ee5162d6",
+  "usability_issue": "No next step beyond a diagnostic identifier"
+}

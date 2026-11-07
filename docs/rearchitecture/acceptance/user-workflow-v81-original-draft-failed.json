@@ -1,0 +1,12 @@
+{
+  "flow": "Write investigation note and handling, Escape back to list, reopen same real object",
+  "before": {
+    "comment": "已核对 systick_delay 中两次读取，还需要检查 64 位计数在 Cortex-M0 上的更新是否会被打断。",
+    "handling": "TO_VERIFY"
+  },
+  "after": {
+    "comment": "",
+    "handling": "TODO"
+  },
+  "passed": false
+}

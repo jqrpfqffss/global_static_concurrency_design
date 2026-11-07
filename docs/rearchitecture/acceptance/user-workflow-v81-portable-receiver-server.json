@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "status": "PASS_ACTUAL_CMD_RESTART_CLOSED_BY_TEST",
+  "scope": "Actual v81 CMD, Windows-only PATH, existing private user workflow data; not clean offline or second physical PC",
+  "pid": 29808,
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-receiver-v80\\data",
+  "prior_closed": "STOPPED_BY_TEST",
+  "bundle": "H:\\ECRAStudio-build-20261107-studio-v81\\ECRA-Portable",
+  "peak_job_commit_bytes": 57708544
+}

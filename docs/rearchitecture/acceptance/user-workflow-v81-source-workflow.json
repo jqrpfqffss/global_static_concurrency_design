@@ -1,0 +1,241 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "real_names_and_original_identities",
+      "value": "潜在并发关系 · 2 组\n\n根据归档证据推断的潜在交错，未经目标板采集；完整路径、成立条件与不确定性保留在每组证据中。\n\n关系 1 · 可能并发\n中断 · IRQ:SysTick_Handler\n原始身份：auto:SysTick_Handler:bacec779\n\n读改写 · SysTick_Handler()\n原始身份：c:@F@SysTick_Handler\n\nperipheral.c:58 · 定位代码\n主循环 · FOREGROUND\n原始身份：main\n\n读取 · systick_delay(uint64_t)\n原始身份：c:@F@systick_delay\n\nperipheral.c:73 · 定位代码\n本组全部路径引用、保护与成立条件\n关系 2 · 可能并发\n中断 · IRQ:SysTick_Handler\n原始身份：auto:SysTick_Handler:bacec779\n\n读改写 · SysTick_Handler()\n原始身份：c:@F@SysTick_Handler\n\nperipheral.c:58 · 定位代码\n主循环 · FOREGROUND\n原始身份：main\n\n读取 · systick_delay(uint64_t)\n原始身份：c:@F@systick_delay\n\nperipheral.c:74 · 定位代码\n本组全部路径引用、保护与成立条件"
+    },
+    {
+      "name": "escape_and_reopen_preserves_note_and_handling",
+      "value": {
+        "comment": "自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。",
+        "handling": "TO_VERIFY"
+      }
+    },
+    {
+      "name": "separate_variable_drafts_and_page_navigation",
+      "value": {
+        "comment": "自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。",
+        "handling": "TO_VERIFY"
+      }
+    },
+    {
+      "name": "actual_source_three_viewports_and_draft",
+      "value": [
+        {
+          "width": 1366,
+          "height": 768,
+          "row": "73\n    uint64_t expired_tick = get_expired_tick(systicks, period_ticks);\r",
+          "visible": 22.098215103149414,
+          "rowHeight": 22.098215103149414,
+          "scrollY": 0,
+          "buttons": [
+            {
+              "name": "确认有风险",
+              "top": 695.4285888671875,
+              "bottom": 727.4285888671875
+            },
+            {
+              "name": "确认无风险",
+              "top": 695.4285888671875,
+              "bottom": 727.4285888671875
+            },
+            {
+              "name": "暂无法确认",
+              "top": 695.4285888671875,
+              "bottom": 727.4285888671875
+            },
+            {
+              "name": "撤销上次确认",
+              "top": 695.4285888671875,
+              "bottom": 727.4285888671875
+            }
+          ]
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "row": "73\n    uint64_t expired_tick = get_expired_tick(systicks, period_ticks);\r",
+          "visible": 22.098215103149414,
+          "rowHeight": 22.098215103149414,
+          "scrollY": 0,
+          "buttons": [
+            {
+              "name": "确认有风险",
+              "top": 827.4285888671875,
+              "bottom": 859.4285888671875
+            },
+            {
+              "name": "确认无风险",
+              "top": 827.4285888671875,
+              "bottom": 859.4285888671875
+            },
+            {
+              "name": "暂无法确认",
+              "top": 827.4285888671875,
+              "bottom": 859.4285888671875
+            },
+            {
+              "name": "撤销上次确认",
+              "top": 827.4285888671875,
+              "bottom": 859.4285888671875
+            }
+          ]
+        },
+        {
+          "width": 1920,
+          "height": 1080,
+          "row": "73\n    uint64_t expired_tick = get_expired_tick(systicks, period_ticks);\r",
+          "visible": 22.098215103149414,
+          "rowHeight": 22.098215103149414,
+          "scrollY": 0,
+          "buttons": [
+            {
+              "name": "确认有风险",
+              "top": 1007.4285888671875,
+              "bottom": 1039.4285888671875
+            },
+            {
+              "name": "确认无风险",
+              "top": 1007.4285888671875,
+              "bottom": 1039.4285888671875
+            },
+            {
+              "name": "暂无法确认",
+              "top": 1007.4285888671875,
+              "bottom": 1039.4285888671875
+            },
+            {
+              "name": "撤销上次确认",
+              "top": 1007.4285888671875,
+              "bottom": 1039.4285888671875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "browser_leave_warning_cancelled_without_losing_draft",
+      "value": true
+    },
+    {
+      "name": "injected_read_failure_disables_decisions_and_retry_keeps_each_draft",
+      "value": true
+    },
+    {
+      "name": "explicit_confirmation_commits_actual_reason_and_state",
+      "value": {
+        "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+        "heads": [
+          {
+            "comment": "自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。",
+            "decision": "NEED_MORE_EVIDENCE",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "7bbfaf3d-84de-438d-a542-3616d75275e1",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TO_VERIFY",
+            "parents": [],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 1,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:36.765277+00:00"
+          }
+        ],
+        "conflict": false,
+        "decision": "NEED_MORE_EVIDENCE",
+        "handling_status": "TO_VERIFY",
+        "has_prior": false,
+        "inherited": false,
+        "inherited_sources": [],
+        "history": [
+          {
+            "comment": "自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。",
+            "decision": "NEED_MORE_EVIDENCE",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "7bbfaf3d-84de-438d-a542-3616d75275e1",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TO_VERIFY",
+            "parents": [],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 1,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:36.765277+00:00"
+          }
+        ],
+        "prior_reviews": []
+      }
+    },
+    {
+      "name": "undo_preserves_two_events_and_reload_continue_restores_position",
+      "value": {
+        "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+        "heads": [
+          {
+            "comment": "撤销 7bbfaf3d-84de-438d-a542-3616d75275e1：撤销自动化流程验收声明，恢复待确认；原声明与理由保留。",
+            "decision": "PENDING",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "16419843-b0ef-4780-9bce-19f10e73e08a",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TODO",
+            "parents": [
+              "7bbfaf3d-84de-438d-a542-3616d75275e1"
+            ],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 2,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:49.343390+00:00"
+          }
+        ],
+        "conflict": false,
+        "decision": "PENDING",
+        "handling_status": "TODO",
+        "has_prior": false,
+        "inherited": false,
+        "inherited_sources": [],
+        "history": [
+          {
+            "comment": "自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。",
+            "decision": "NEED_MORE_EVIDENCE",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "7bbfaf3d-84de-438d-a542-3616d75275e1",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TO_VERIFY",
+            "parents": [],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 1,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:36.765277+00:00"
+          },
+          {
+            "comment": "撤销 7bbfaf3d-84de-438d-a542-3616d75275e1：撤销自动化流程验收声明，恢复待确认；原声明与理由保留。",
+            "decision": "PENDING",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "16419843-b0ef-4780-9bce-19f10e73e08a",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TODO",
+            "parents": [
+              "7bbfaf3d-84de-438d-a542-3616d75275e1"
+            ],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 2,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:49.343390+00:00"
+          }
+        ],
+        "prior_reviews": []
+      }
+    }
+  ],
+  "scope": "Actual source CMD and actual imported F030 package; automated user journey, not human UAT",
+  "status": "PASS_SCOPED"
+}

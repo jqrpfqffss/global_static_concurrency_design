@@ -1,0 +1,16 @@
+{
+  "passed": false,
+  "status": "WAITING_ACTUAL_NATIVE_SCAN",
+  "scope": "Approved original F030 firmware; ordinary four-step GUI with actual existing compilation database, no YAML editing, source CMD on current host; not new G2/physical offline PC",
+  "saved_profiles": [
+    {
+      "id": "4e62f1f505634ad5aad216619e2d6ef3",
+      "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+      "yaml": "# 高级字段可在下方完整编辑\nversion: 1\nproject:\n  name: \"真实 F030 用户流程验收\"\n  root: \"H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware\"\n  core: \"Cortex-M0\"\nanalysis:\n  output: {location: user}\n  include_dirs: []\n  exclude_dirs: []\n  compile_database: \"H:/ECRAStudio-data/rearchitecture-20261031/baseline/compile_commands.json\"\n  auto_system_includes: true\ncontexts: [{\"id\":\"main\",\"kind\":\"MAIN\",\"functions\":[\"main\"]}]\nreview:\n  enabled: false\n",
+      "revision": "ded7e5edfed8f65d04e3db9c2285f6f9a28ca3faefbc78b6963ffdf977420d3b",
+      "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+      "name": "真实 F030 用户流程验收"
+    }
+  ],
+  "preflight_visible": "真实构建检查与执行计划\n\n实际配置/构建所选目标，并用全部TU的真实Clang参数检查编译输入。检查不会生成静态安全结论；OpenCode不参与此门禁。\n\n重新检查真实构建查看检查日志与资源\n真实构建与编译输入检查通过 · 2026-11-07T04:29:00.201327+00:00。正式扫描会重新检查。\n\n工程：H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware\n\n目标：真实编译数据库闭包 · 变体：以逐TU参数为准\n\n独立数据：H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-receiver-v80\\data\n\n编译数据库：H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\compile_commands.json\n\n全部 4 TU · 已校验 25 个输入 · VERIFIED\n\n实际工具路径与版本 · 2 项\n\n编译命令 1–4 / 4，逐TU展开查看全部参数\n\n1 · startup.c\n2 · main.c\n3 · peripheral.c\n4 · utils.c\n上一页编译命令\n下一页编译命令"
+}

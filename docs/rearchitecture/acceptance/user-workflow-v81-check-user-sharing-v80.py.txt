@@ -1,0 +1,37 @@
+import hashlib,json,time,traceback
+from user_receiver_browser import *
+result=dict(passed=False,checks=[],scope='Actual original F030 complete archive and actually browser-downloaded delta; independent data-root/source CMD; not second physical PC')
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save():(work/'sharing.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def check(name,value):result['checks'].append(dict(name=name,value=value));save();print(name,flush=True)
+save()
+try:
+ sender=work.parent/'user-journey-v80-fixed'
+ delta=max((sender/'.playwright-cli').glob('*.ecra-review-delta'),key=lambda p:p.stat().st_mtime)
+ assert sha(delta)==sha(sender/'data/exports'/delta.name)
+ result['browser_download']=dict(file=delta.name,bytes=delta.stat().st_size,sha256=sha(delta));save()
+ info=json.loads((work/'session.json').read_text('utf-8'));cli('open',info['url'],'--browser','chrome','--headed');cli('resize','1366','768')
+ click('button','导入历史结果');click('button','选择 .ecra-report');cli('upload',str(work.parent/'native-final-package-f030-v78-r2/standard-complete.ecra-report'))
+ time.sleep(2);assert api('/scans/native/human?symbol_id=c%3A%40systicks')['history']==[]
+ check('independent_gui_complete_import_zero_human_events',True)
+ click('button','选择 .ecra-review-delta');cli('upload',str(delta));time.sleep(1)
+ first=api('/scans/native/human?symbol_id=c%3A%40systicks');assert len(first['history'])==4 and first['decision']=='PENDING'
+ check('four_original_confirmation_and_undo_events_imported',first)
+ click('button','选择 .ecra-review-delta');cli('upload',str(delta));time.sleep(1)
+ second=api('/scans/native/human?symbol_id=c%3A%40systicks');assert second==first
+ visible=evaluate("document.querySelector('main').innerText");assert '新增人工事件 0' in visible
+ check('duplicate_import_idempotent_and_zero_events_visible',True)
+ click('link','项目概览');click('button','静态疑似 1');click('button','systicks 静态疑似 待确认 main.c:25');click('tab','人工历史')
+ text=evaluate("document.querySelector('.detail-evidence').innerText")
+ assert '4 个本轮事件' in text and '自动化用户流程验收' in text and '统计刷新故障' in text
+ cli('screenshot','--filename',str(output/'independent-receiver-four-events.png'))
+ check('recipient_can_read_original_reason_and_all_four_events',text)
+ # Genuine malformed file is rejected by the actual importer, not a fake API.
+ corrupt=work/'damaged.ecra-report';corrupt.write_bytes(b'Truncated real-user transfer test')
+ click('link','数据与共享');click('button','选择 .ecra-report');cli('upload',str(corrupt));time.sleep(1)
+ error=evaluate("document.querySelector('[role=alert]')?.innerText");assert error and api('/scans/native/human?symbol_id=c%3A%40systicks')==first
+ cli('screenshot','--filename',str(output/'damaged-package-error.png'))
+ check('damaged_file_rejected_existing_events_unchanged',error)
+ result.update(passed=True,status='PASS_SCOPED')
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:save()

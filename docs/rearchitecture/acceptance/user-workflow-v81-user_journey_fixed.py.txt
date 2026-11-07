@@ -1,0 +1,27 @@
+import json,os,re,shutil,subprocess,time,urllib.request
+from pathlib import Path
+work=Path(__file__).parent/'user-journey-v80-fixed'
+output=work/'output/playwright';output.mkdir(parents=True,exist_ok=True)
+session='ecra-user-v80-fixed'
+def cli(*args):
+ number=len(list(work.glob('cli-*.log')))+1
+ done=subprocess.run([shutil.which('node.exe'),'C:/Users/Administrator/AppData/Local/npm-cache/_npx/31e32ef8478fbf80/node_modules/@playwright/cli/playwright-cli.js','-s='+session,*map(str,args)],cwd=work,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf-8',timeout=120)
+ (work/('cli-%03d.log'%number)).write_text(done.stdout,'utf-8')
+ if done.returncode:raise RuntimeError(done.stdout)
+ return done.stdout
+
+def ref(role,name,prefix=False):
+ tree=cli('snapshot')
+ matches=re.findall(r'^\s*- '+re.escape(role)+r' "'+re.escape(name)+(r'[^"\n]*' if prefix else '')+r'"(.*?) \[ref=([A-Za-z0-9_-]+)\]',tree,re.M)
+ found=[ident for flags,ident in matches if '[disabled]' not in flags]
+ if len(found)!=1:raise ValueError('Missing or ambiguous action '+name+' '+repr(found))
+ return found[0]
+def click(role,name,prefix=False):return cli('click',ref(role,name,prefix))
+def fill(role,name,value):return cli('fill',ref(role,name),value)
+def evaluate(expression):
+ raw=cli('eval',expression);body=raw.split('### Result\n',1)[1].lstrip();return json.JSONDecoder().raw_decode(body)[0]
+def api(path):
+ info=json.loads((work/'session.json').read_text('utf-8'));base='http://'+info['authority']
+ req=urllib.request.Request(base+'/api'+path,headers={'X-ECRA-Session':info['token'],'Origin':base})
+ with urllib.request.urlopen(req,timeout=120) as response:return json.load(response)
+

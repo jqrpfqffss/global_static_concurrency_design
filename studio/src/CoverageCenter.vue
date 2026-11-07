@@ -23,6 +23,7 @@ const descriptions:Record<string,[string,string]>={
  ADDRESS_ESCAPE:['地址逸出','核对接收地址的函数、回调或外设用途；不能用缺少后续访问记录证明安全。'],
  TYPE_VARIANT:['类型存在变体','核对各TU的宏、头文件与类型布局，确认实际构建变体。'],
  FUNCTION_ADDRESS:['函数地址使用','核对回调注册、间接调用和上下文归属，保留未解析调用的可能影响。'],
+ EXECUTION_CONTEXT_UNRESOLVED:['执行上下文未恢复','核对该访问函数的调用者、main/中断/任务入口及回调注册；补齐真实入口证据后重新扫描，不能将未恢复的执行上下文视为没有并发访问。'],
  DEFINITION_MISSING:['缺少定义','核对定义是否位于排除目录、未入构建文件或解析失败TU；按原构建补齐证据。']
 }
 function kindTitle(raw:any){return typeof raw==='string'?(descriptions[raw]?.[0]||'未识别缺口类型：'+raw):'缺口类型未提供或不是短文本'}

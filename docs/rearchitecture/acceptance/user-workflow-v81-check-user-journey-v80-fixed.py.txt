@@ -1,0 +1,71 @@
+"""Real F030 GUI, browser fault injection separately labelled; never mock evidence."""
+import json,time,traceback
+from user_journey_fixed import *
+result=dict(passed=False,checks=[],scope='Actual source CMD and actual imported F030 package; automated user journey, not human UAT')
+def save():(work/'journey.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def check(name,value):
+ result['checks'].append(dict(name=name,value=value));save();print(name,flush=True)
+def state():return evaluate("({comment:document.querySelector('textarea').value,handling:document.querySelector('[aria-label=\"独立处理状态\"]').value})")
+def choose(prefix):return click('button',prefix,True)
+def screenshot(name):cli('screenshot','--filename',str(output/name))
+def assert_note(note,handling):
+ actual=state();assert actual==dict(comment=note,handling=handling),actual
+note='自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。'
+save()
+try:
+ text=evaluate("document.querySelector('.conflict-pairs').innerText")
+ assert all(s in text for s in ['SysTick_Handler()','systick_delay(uint64_t)','中断 · IRQ:SysTick_Handler','主循环 · FOREGROUND','c:@F@SysTick_Handler'])
+ check('real_names_and_original_identities',text)
+ fill('textbox','依据 / 修改或撤销理由',note);cli('select',ref('combobox','独立处理状态'),'TO_VERIFY')
+ cli('press','Escape');choose('systicks 静态疑似');assert_note(note,'TO_VERIFY')
+ check('escape_and_reopen_preserves_note_and_handling',state())
+ cli('select',ref('combobox','静态分类'),'')
+ snapshot=cli('snapshot');assert '_ebss 无法判断' in snapshot
+ choose('_ebss 无法判断');assert state()['comment']==''
+ fill('textbox','依据 / 修改或撤销理由','自动化验收：链接符号需要独立核对，不得串入 systicks 的笔记。')
+ choose('systicks 静态疑似');assert_note(note,'TO_VERIFY')
+ click('link','覆盖与诊断');click('link','变量与风险');assert_note(note,'TO_VERIFY')
+ check('separate_variable_drafts_and_page_navigation',state())
+ # Check source visibility through the real relationship button at three sizes.
+ click('button','peripheral.c:73 · 定位代码')
+ geometry=[]
+ for width,height in [(1366,768),(1600,900),(1920,1080)]:
+  cli('resize',str(width),str(height));click('tab','时序与访问');click('tab','归档源码')
+  current=evaluate("(()=>{const r=document.querySelector('.source-code .highlight').getBoundingClientRect(),p=document.querySelector('.detail-evidence').getBoundingClientRect(),c=document.querySelector('.source-code').getBoundingClientRect();return {width:innerWidth,height:innerHeight,row:document.querySelector('.source-code .highlight').innerText,visible:Math.max(0,Math.min(r.bottom,p.bottom,c.bottom,innerHeight)-Math.max(r.top,p.top,c.top,0)),rowHeight:r.height,scrollY,buttons:[...document.querySelectorAll('.decision-actions button')].map(e=>{const b=e.getBoundingClientRect();return {name:e.textContent,top:b.top,bottom:b.bottom}})}})()")
+  assert '73' in current['row'] and current['visible']>=min(current['rowHeight'],22)-1 and current['scrollY']==0
+  assert len(current['buttons'])==4 and all(b['top']>=0 and b['bottom']<=height for b in current['buttons'])
+  assert_note(note,'TO_VERIFY');geometry.append(current);screenshot('fixed-source-'+str(width)+'.png')
+ check('actual_source_three_viewports_and_draft',geometry)
+ # Browser-generated leave protection. Cancellation must keep all drafts.
+ raw=cli('reload');(work/'leave-warning.log').write_text(raw,'utf-8')
+ assert 'beforeunload' in raw.lower(),raw
+ cli('dialog-dismiss');assert_note(note,'TO_VERIFY')
+ check('browser_leave_warning_cancelled_without_losing_draft',True)
+ # Read outage is injected explicitly; all normal evidence came from real APIs.
+ cli('route','**/api/scans/native/human?**','--status','503','--content-type','application/json','--body','{"error":"测试注入：人工记录读取暂时失败"}')
+ choose('_ebss 无法判断')
+ fault=evaluate("({text:document.querySelector('main').innerText,disabled:[...document.querySelectorAll('.decision-actions button')].every(e=>e.disabled)})")
+ assert fault['disabled'] and '测试注入' in fault['text']
+ cli('unroute','**/api/scans/native/human?**');choose('_ebss 无法判断')
+ assert '链接符号' in state()['comment']
+ fill('textbox','依据 / 修改或撤销理由','')
+ choose('systicks 静态疑似');assert_note(note,'TO_VERIFY')
+ assert api('/scans/native/human?symbol_id=c%3A%40systicks')['history']==[]
+ check('injected_read_failure_disables_decisions_and_retry_keeps_each_draft',True)
+ fill('textbox','确认者','自动化用户流程验收')
+ click('button','暂无法确认')
+ saved=api('/scans/native/human?symbol_id=c%3A%40systicks')
+ assert saved['decision']=='NEED_MORE_EVIDENCE' and saved['handling_status']=='TO_VERIFY' and len(saved['history'])==1 and saved['history'][0]['comment']==note
+ assert state()['comment']==''
+ check('explicit_confirmation_commits_actual_reason_and_state',saved)
+ fill('textbox','依据 / 修改或撤销理由','撤销自动化流程验收声明，恢复待确认；原声明与理由保留。')
+ cli('select',ref('combobox','独立处理状态'),'TODO');click('button','撤销上次确认')
+ undone=api('/scans/native/human?symbol_id=c%3A%40systicks')
+ assert undone['decision']=='PENDING' and len(undone['history'])==2
+ cli('reload');click('link','人工确认');click('button','继续上次位置')
+ assert 'systicks' in evaluate("document.querySelector('.detail-heading').innerText")
+ click('tab','人工历史');screenshot('fixed-history-after-reload.png')
+ check('undo_preserves_two_events_and_reload_continue_restores_position',undone)
+ result.update(passed=True,status='PASS_SCOPED')
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:save()

@@ -1,0 +1,125 @@
+{
+  "passed": false,
+  "checks": [
+    {
+      "name": "independent_gui_complete_import_zero_human_events",
+      "value": true
+    },
+    {
+      "name": "four_original_confirmation_and_undo_events_imported",
+      "value": {
+        "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+        "heads": [
+          {
+            "comment": "撤销 68d569c6-aa9e-48c2-aae8-2b9a1ee83374：撤销统计刷新故障验收声明；原有自动化记录保留。",
+            "decision": "PENDING",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "37ca0a9d-d107-4361-b076-c575a61a29f4",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TODO",
+            "parents": [
+              "68d569c6-aa9e-48c2-aae8-2b9a1ee83374"
+            ],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 4,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:15:15.235664+00:00"
+          }
+        ],
+        "conflict": false,
+        "decision": "PENDING",
+        "handling_status": "TODO",
+        "has_prior": false,
+        "inherited": false,
+        "inherited_sources": [],
+        "history": [
+          {
+            "comment": "自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。",
+            "decision": "NEED_MORE_EVIDENCE",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "7bbfaf3d-84de-438d-a542-3616d75275e1",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TO_VERIFY",
+            "parents": [],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 1,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:36.765277+00:00"
+          },
+          {
+            "comment": "撤销 7bbfaf3d-84de-438d-a542-3616d75275e1：撤销自动化流程验收声明，恢复待确认；原声明与理由保留。",
+            "decision": "PENDING",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "16419843-b0ef-4780-9bce-19f10e73e08a",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TODO",
+            "parents": [
+              "7bbfaf3d-84de-438d-a542-3616d75275e1"
+            ],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 2,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:12:49.343390+00:00"
+          },
+          {
+            "comment": "自动化验收：确认事务成功后的统计刷新故障，不代表工程结论。",
+            "decision": "NEED_MORE_EVIDENCE",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "68d569c6-aa9e-48c2-aae8-2b9a1ee83374",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TODO",
+            "parents": [
+              "16419843-b0ef-4780-9bce-19f10e73e08a"
+            ],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 3,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:15:03.507972+00:00"
+          },
+          {
+            "comment": "撤销 68d569c6-aa9e-48c2-aae8-2b9a1ee83374：撤销统计刷新故障验收声明；原有自动化记录保留。",
+            "decision": "PENDING",
+            "device": "device-1175dd894ec24e5cbc63c71b914383ca",
+            "event_id": "37ca0a9d-d107-4361-b076-c575a61a29f4",
+            "fingerprint": "a392e7956db1b774df1b11c369a4c9599758e055cc7a19fec646c6f4807b48f8",
+            "handling_status": "TODO",
+            "parents": [
+              "68d569c6-aa9e-48c2-aae8-2b9a1ee83374"
+            ],
+            "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+            "reviewer": "自动化用户流程验收",
+            "revision": 4,
+            "scan_id": "native",
+            "symbol_id": "c:@systicks",
+            "timestamp": "2026-11-07T04:15:15.235664+00:00"
+          }
+        ],
+        "prior_reviews": []
+      }
+    },
+    {
+      "name": "duplicate_import_idempotent_and_zero_events_visible",
+      "value": true
+    },
+    {
+      "name": "recipient_can_read_original_reason_and_all_four_events",
+      "value": "不可变确认历史 · 4 个本轮事件\n暂无法确认 · 待验证\n\n自动化用户流程验收 · 2026-11-07T04:12:36.765277+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。\n\n7bbfaf3d-84de-438d-a542-3616d75275e1\n待确认 · 待修复\n\n自动化用户流程验收 · 2026-11-07T04:12:49.343390+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n撤销 7bbfaf3d-84de-438d-a542-3616d75275e1：撤销自动化流程验收声明，恢复待确认；原声明与理由保留。\n\n16419843-b0ef-4780-9bce-19f10e73e08a\n暂无法确认 · 待修复\n\n自动化用户流程验收 · 2026-11-07T04:15:03.507972+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n自动化验收：确认事务成功后的统计刷新故障，不代表工程结论。\n\n68d569c6-aa9e-48c2-aae8-2b9a1ee83374\n待确认 · 待修复\n\n自动化用户流程验收 · 2026-11-07T04:15:15.235664+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n撤销 68d569c6-aa9e-48c2-aae8-2b9a1ee83374：撤销统计刷新故障验收声明；原有自动化记录保留。\n\n37ca0a9d-d107-4361-b076-c575a61a29f4"
+    }
+  ],
+  "scope": "Actual original F030 complete archive and actually browser-downloaded delta; independent data-root/source CMD; not second physical PC",
+  "browser_download": {
+    "file": "ede02b7cbc80496e9fe2c0cce1d81225.ecra-review-delta",
+    "bytes": 2981,
+    "sha256": "dd28068ac3cf2af3f4446355d7bf020ca007b875d38505efe40f327a3856acc5"
+  },
+  "status": "FAIL",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-sharing-v80-r3.py\", line 37, in <module>\n    click('link','数据与共享');click('button','选择 .ecra-report');cli('upload',str(corrupt));wait_visible('File')\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-sharing-v80-r3.py\", line 10, in wait_visible\n    if time.monotonic()>deadline:raise TimeoutError('UI did not finish: '+text)\nTimeoutError: UI did not finish: File\n"
+}

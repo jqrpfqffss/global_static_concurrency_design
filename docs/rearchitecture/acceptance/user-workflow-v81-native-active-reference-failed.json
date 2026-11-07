@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "status": "FAIL",
+  "scope": "Approved original F030 firmware; ordinary four-step GUI with actual existing compilation database, no YAML editing, source CMD on current host; not new G2/physical offline PC",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-native-f030-v80.py\", line 19, in <module>\n    click('button','下一步');click('button','下一步');click('button','检查配置与工具路径')\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user_receiver_browser.py\", line 18, in click\n    def click(role,name,prefix=False):return cli('click',ref(role,name,prefix))\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user_receiver_browser.py\", line 16, in ref\n    if len(found)!=1:raise ValueError('Missing or ambiguous action '+name+' '+repr(found))\nValueError: Missing or ambiguous action 下一步 []\n",
+  "original_firmware_unchanged": true,
+  "original_files": 42
+}

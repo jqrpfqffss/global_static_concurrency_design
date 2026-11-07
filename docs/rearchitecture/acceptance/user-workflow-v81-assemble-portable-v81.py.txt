@@ -1,0 +1,74 @@
+"""Frontend-only candidate; exact backend/tools inherit the verified v78 bytes."""
+import hashlib,json,os,shutil,subprocess,sys,time,traceback,zipfile
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v81';old_engine=w/'frozen-engine-studio-v78'
+old=Path('H:/ECRAStudio-build-20261106-studio-v78/ECRA-Portable');out=Path('H:/ECRAStudio-build-20261107-studio-v81');assert not out.exists()
+out.mkdir();bundle=out/'ECRA-Portable';bundle.mkdir();evidence=out/'portable-evidence';evidence.mkdir()
+receipt=w/'portable-v81-assembly.json';assert not receipt.exists();start=time.monotonic()
+result=dict(passed=False,status='COPYING_EXACT_PROGRAM_WITH_FRONTEND_OVERLAY',all_gates_passed=False,
+ scope='Only frontend investigation drafts, selection readiness and archived evidence names and actionable import failures/known coverage labels changed. Every Python engine/test/dependency source matches frozen v78; all other tools/runtime bytes match the verified v78 package. New frontend, docs and complete program inventory are independently sealed; backend full v78 and large measurements remain separately scoped.')
+def sha(p):
+ h=hashlib.sha256()
+ with Path(p).open('rb') as f:
+  for b in iter(lambda:f.read(1024**2),b''):h.update(b)
+ return h.hexdigest()
+def save():receipt.write_text(json.dumps(result,indent=2)+'\n','utf-8')
+save()
+try:
+ source=engine.with_name(engine.name+'.sha256.json');previous=old_engine.with_name(old_engine.name+'.sha256.json')
+ assert sha(source)=='fb1dcaf4f66dbf92e0f33be784a5bb26a278c56d58a4b039325e764d4f7c98d3'
+ current=json.loads(source.read_text('utf-8'));prior=json.loads(previous.read_text('utf-8'))
+ def core(m):return {r['file']:r['sha256'] for r in m['files'] if r['file'].endswith('.py') or r['file'].startswith('requirements')}
+ assert core(current)==core(prior)
+ result.update(backend_and_test_source_files=len(core(current)),backend_source_differences=[],backend_snapshot_sha256=sha(previous),program_snapshot_sha256=sha(source));save()
+ inventory=json.loads((old/'FILES.sha256.json').read_text('utf-8'))
+ def copy_runtime(entry):
+  name,h=entry
+  if name.startswith(('ecra/','docs/rearchitecture/')) or name=='SOURCE-SNAPSHOT.json':return 0
+  p=old/name;assert p.is_file() and sha(p)==h,name
+  q=bundle/name;q.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(p,q);assert sha(q)==h
+  return 1
+ with ThreadPoolExecutor(max_workers=16) as pool:copied=sum(pool.map(copy_runtime,inventory.items()))
+ application=[]
+ for row in current['files']:
+  name=row['file']
+  if not name.startswith(('ecra/','docs/rearchitecture/')):continue
+  p=engine/name;assert sha(p)==row['sha256'];q=bundle/name;q.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(p,q)
+  if name.startswith('ecra/'):application.append(name)
+ shutil.copy2(source,bundle/'SOURCE-SNAPSHOT.json')
+ lock=json.loads((bundle/'portable-lock.json').read_text('utf-8'));lock['source_snapshot_sha256']=sha(source)
+ (bundle/'portable-lock.json').write_text(json.dumps(lock,ensure_ascii=False,indent=2)+'\n','utf-8')
+ version=(bundle/'VERSION.txt').read_text('utf-8');version+='\nFrontend candidate v81; Python analysis engine bytes equal frozen v78; source snapshot '+sha(source)+'\n'
+ (bundle/'VERSION.txt').write_text(version,'utf-8')
+ (bundle/'STAGE-SOURCE.json').write_text(json.dumps(dict(source_snapshot_sha256=sha(source),backend_snapshot_sha256=sha(previous),
+  backend_and_test_source_identical=True,frontend_scope='Investigation drafts are isolated per scan/canonical symbol with leave protection; unread evidence cannot submit decisions; archived function/context names retain raw identities.',all_gates_passed=False),indent=2)+'\n','utf-8')
+ result.update(status='WAITING_V78_COMPLETE_PACKAGE_VALIDATION',application_files=len(application),copied_runtime_tool_files=copied);save()
+ deadline=time.monotonic()+14400
+ while not (w/'portable-final-v78/acceptance.json').is_file() or json.loads((w/'portable-final-v78/acceptance.json').read_text('utf-8')).get('status')=='WAITING_ORIGINAL_TEST_CONTROLLER':
+  if time.monotonic()>deadline:raise TimeoutError('No final verified v78 package')
+  time.sleep(5)
+ parent=json.loads((w/'portable-final-v78/acceptance.json').read_text('utf-8'));assert parent['passed'],parent
+ result['verified_v78_package_receipt_sha256']=sha(w/'portable-final-v78/acceptance.json');save()
+ py=bundle/'runtime/python.exe';validator=bundle/'validate_portable.py'
+ def command(name,args):
+  with (evidence/(name+'.log')).open('xb') as f:code=subprocess.call(list(map(str,args)),cwd=bundle,stdout=f,stderr=subprocess.STDOUT,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
+  if code:raise RuntimeError(name+' failed; preserve raw log')
+ command('complete-inventory',[py,'-B',validator,'--bundle',bundle,'--write-hashes'])
+ command('uncompressed',[py,'-B',validator,'--bundle',bundle,'--work',evidence/'uncompressed'])
+ candidate=out/'ECRA-Portable.candidate.zip';result['status']='COMPRESSING_AND_CHECKING_CHINESE_ZIP';save()
+ with zipfile.ZipFile(candidate,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as archive:
+  for p in sorted(bundle.rglob('*')):
+   if p.is_file():archive.write(p,p.relative_to(out).as_posix())
+ extracted=out/'zip-extracted 中文/ECRA-Portable'
+ with zipfile.ZipFile(candidate) as archive:archive.extractall(extracted.parent)
+ command('zip-extracted',[extracted/'runtime/python.exe','-B',extracted/'validate_portable.py','--bundle',extracted,'--work',evidence/'zip-extracted'])
+ for name in ['uncompressed','zip-extracted']:
+  p=evidence/name/'acceptance.json';record=json.loads(p.read_text('utf-8'));assert record['result']=='PASS'
+  result[name]=dict(commands=len(record['commands']),receipt_sha256=sha(p))
+ final=out/'ECRA-Portable.zip';candidate.rename(final)
+ result.update(passed=True,status='PASS_ASSEMBLY_SCOPE_FRONTEND_ACCEPTANCE_PENDING',zip=str(final),zip_bytes=final.stat().st_size,zip_sha256=sha(final),
+  physical32GB='NOT_VERIFIED',clean_offline_pc='NOT_VERIFIED',human_UAT='NOT_VERIFIED')
+except BaseException:result.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());raise
+finally:result['seconds']=time.monotonic()-start;save()
+print(json.dumps(dict(passed=result['passed'],receipt=str(receipt))))

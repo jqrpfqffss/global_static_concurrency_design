@@ -43,3 +43,4 @@ docs/rearchitecture/acceptance/whole-v78-stop-* -text
 # Latest complete-package and actual large-archive Viewer evidence.
 docs/rearchitecture/acceptance/latest-large-v78-* -text
 docs/rearchitecture/acceptance/latest-viewer-v79-* -text
+docs/rearchitecture/acceptance/user-workflow-v81-* -text

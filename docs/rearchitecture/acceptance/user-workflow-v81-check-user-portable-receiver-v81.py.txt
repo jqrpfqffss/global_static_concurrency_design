@@ -1,0 +1,57 @@
+import json,re,time,traceback
+from user_portable_receiver import *
+result=dict(passed=False,checks=[],scope='Actual sealed v81 CMD after the private source service exited; real received history and real native F030 archive; no new human event')
+def save():(work/'journey.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def check(name,value):result['checks'].append(dict(name=name,value=value));save();print(name,flush=True)
+def ready(expression):
+ deadline=time.monotonic()+120
+ while True:
+  value=evaluate(expression)
+  if value:return value
+  if time.monotonic()>deadline:raise TimeoutError(expression)
+  time.sleep(.2)
+save()
+try:
+ info=json.loads((work/'session.json').read_text('utf-8'));cli('open',info['url'],'--browser','chrome','--headed');cli('resize','1366','768')
+ click('link','历史与对比');tree=cli('snapshot')
+ found=re.search(r'article "归档 native".*?button "继续人工确认"(?:.*?) \[ref=([^\]]+)\]',tree,re.S);assert found
+ cli('click',found[1]);ready("document.querySelector('.detail-heading h2')?.textContent==='systicks'")
+ click('tab','人工历史');history=evaluate("document.querySelector('.detail-evidence').innerText")
+ assert '4 个本轮事件' in history and '统计刷新故障' in history
+ baseline=api('/scans/native/human?symbol_id=c%3A%40systicks');assert len(baseline['history'])==4
+ cli('screenshot','--filename',str(output/'portable-restart-four-original-events.png'))
+ check('actual_process_restart_history_continue_restores_original_four_events',history)
+ click('tab','时序与访问')
+ names=ready("(()=>{const t=document.querySelector('.conflict-pairs')?.innerText;return t?.includes('中断 · IRQ:SysTick_Handler')&&t.includes('systick_delay(uint64_t)')?t:false})()")
+ check('actual_portable_archived_context_and_function_names',names)
+ note='便携包真实界面草稿验收：只测试失败恢复，不生成工程确认。'
+ fill('textbox','确认者','自动化便携包验收');fill('textbox','依据 / 修改或撤销理由',note);cli('select',ref('combobox','独立处理状态'),'FIXING')
+ cli('press','Escape');click('button','systicks 静态疑似 待确认 main.c:25')
+ assert evaluate("document.querySelector('textarea').value")==note
+ assert evaluate("document.querySelector('[aria-label=\"独立处理状态\"]').value")=='FIXING'
+ cli('route','**/api/scans/native/human','--status','503','--content-type','application/json','--body','{"error":"测试注入：确认提交暂时失败"}')
+ click('button','暂无法确认')
+ assert evaluate("document.querySelector('textarea').value")==note and api('/scans/native/human?symbol_id=c%3A%40systicks')==baseline
+ assert '测试注入' in evaluate("document.querySelector('[role=alert]').innerText")
+ cli('unroute','**/api/scans/native/human')
+ check('actual_portable_escape_and_failed_post_retain_draft_without_event',True)
+ raw=cli('reload');assert 'beforeunload' in raw.lower();cli('dialog-dismiss')
+ assert evaluate("document.querySelector('textarea').value")==note
+ fill('textbox','依据 / 修改或撤销理由','');cli('select',ref('combobox','独立处理状态'),'TODO')
+ check('actual_portable_leave_warning_cancelled_then_draft_explicitly_cleared',True)
+ click('link','数据与共享');click('button','选择 .ecra-report');cli('upload',str(work.parent/'user-receiver-v80/damaged.ecra-report'))
+ error=ready("document.querySelector('[role=alert]')?.innerText")
+ assert '文件是否传输完整' in error and '重新选择文件重试' in error and api('/scans/native/human?symbol_id=c%3A%40systicks')==baseline
+ check('actual_portable_damaged_import_actionable_and_history_unchanged',error)
+ # Open the real scan created through the wizard, using the visible history row.
+ click('link','历史与对比');tree=cli('snapshot')
+ found=re.search(r'article "归档 b7336600cd6641ef9a1c5faf35c77192".*?button "打开结果"(?:.*?) \[ref=([^\]]+)\]',tree,re.S);assert found
+ cli('click',found[1]);click('button','查看覆盖缺口');tree=cli('snapshot')
+ found=re.search(r'strong \[ref=[^\]]+\]: 执行上下文未恢复.*?button "查看完整证据"(?:.*?) \[ref=([^\]]+)\]',tree,re.S);assert found
+ cli('click',found[1]);text=evaluate("document.querySelector('main').innerText")
+ assert all(x in text for x in ['INCOMPLETE','局部解析 2','解析成功 2','核对该访问函数的调用者'])
+ cli('screenshot','--filename',str(output/'portable-real-native-coverage-guidance.png'))
+ check('actual_portable_real_native_gap_guidance_and_partial_coverage',text)
+ result.update(passed=True,status='PASS_SCOPED')
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:save()

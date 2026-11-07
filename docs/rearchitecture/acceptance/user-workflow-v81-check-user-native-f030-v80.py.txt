@@ -1,0 +1,43 @@
+import hashlib,json,time,traceback
+from user_receiver_browser import *
+result=dict(passed=False,status='REAL_FOUR_STEP_WIZARD',scope='Approved original F030 firmware; ordinary four-step GUI with actual existing compilation database, no YAML editing, source CMD on current host; not new G2/physical offline PC')
+def save():(work/'native-wizard.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def wait(expression,timeout=300):
+ deadline=time.monotonic()+timeout
+ while True:
+  value=evaluate(expression)
+  if value:return value
+  if time.monotonic()>deadline:raise TimeoutError(expression)
+  time.sleep(.2)
+save()
+try:
+ fill('textbox','工程名称','真实 F030 用户流程验收')
+ fill('textbox','固件目录（绝对路径）','H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware')
+ click('button','下一步');fill('textbox','核心标识','Cortex-M0');cli('select',ref('combobox','真实构建方式'),'database')
+ fill('textbox','编译数据库路径','H:/ECRAStudio-data/rearchitecture-20261031/baseline/compile_commands.json')
+ cli('select',ref('combobox','编译器标准头文件'),'on')
+ click('button','下一步');click('button','下一步');click('button','检查配置与工具路径')
+ wait("[...document.querySelectorAll('button')].some(b=>b.textContent==='保存独立配置'&&!b.disabled)")
+ click('button','保存独立配置')
+ wait("[...document.querySelectorAll('button')].some(b=>b.textContent==='检查真实构建'&&!b.disabled)")
+ result['saved_profiles']=api('/profiles')['items'];save()
+ assert len(result['saved_profiles'])==1
+ click('button','检查真实构建')
+ wait("[...document.querySelectorAll('button')].some(b=>b.textContent==='开始此配置扫描'&&!b.disabled)")
+ result['preflight_visible']=evaluate("document.querySelector('[aria-label=\"真实构建预检查\"]').innerText");save()
+ cli('screenshot','--filename',str(output/'native-real-compile-preflight.png'))
+ click('button','开始此配置扫描');result['status']='WAITING_ACTUAL_NATIVE_SCAN';save()
+ wait("[...document.querySelectorAll('h2')].some(e=>e.textContent==='扫描已发布')",600)
+ result['task_visible']=evaluate("document.querySelector('main').innerText")
+ result['tasks']=api('/tasks');save()
+ cli('screenshot','--filename',str(output/'native-scan-published.png'))
+ print(cli('snapshot')[-4500:],flush=True)
+ result.update(passed=True,status='PASS_ACTUAL_WIZARD_AND_NATIVE_PUBLICATION')
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:
+ root=Path('H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware')
+ after={str(p.relative_to(root)):dict(size=p.stat().st_size,mtime_ns=p.stat().st_mtime_ns,sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in root.rglob('*') if p.is_file()}
+ before=json.loads((work/'firmware-before.json').read_text('utf-8'))
+ result['original_firmware_unchanged']=after==before;result['original_files']=len(before)
+ if after!=before:result.update(passed=False,status='FAIL_ORIGINAL_FIRMWARE_CHANGED')
+ save()

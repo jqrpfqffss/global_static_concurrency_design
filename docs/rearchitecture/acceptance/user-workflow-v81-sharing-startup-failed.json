@@ -1,0 +1,12 @@
+{
+  "passed": false,
+  "checks": [],
+  "scope": "Actual original F030 complete archive and actually browser-downloaded delta; independent data-root/source CMD; not second physical PC",
+  "browser_download": {
+    "file": "ede02b7cbc80496e9fe2c0cce1d81225.ecra-review-delta",
+    "bytes": 2981,
+    "sha256": "dd28068ac3cf2af3f4446355d7bf020ca007b875d38505efe40f327a3856acc5"
+  },
+  "status": "FAIL",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-sharing-v80.py\", line 13, in <module>\n    info=json.loads((work/'session.json').read_text('utf-8'));cli('open',info['url'],'--browser','chrome','--headed');cli('resize','1366','768')\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\pathlib.py\", line 1134, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\pathlib.py\", line 1119, in open\n    return self._accessor.open(self, mode, buffering, encoding, errors,\nFileNotFoundError: [Errno 2] No such file or directory: 'H:\\\\ECRAStudio-data\\\\rearchitecture-20261031\\\\continuation-h3\\\\user-receiver-v80\\\\session.json'\n"
+}

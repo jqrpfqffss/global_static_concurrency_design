@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "original_package_sha256": "2e229b87cd53f80b1fd93ad34ce0e0d7741a699a0ae999aabc00a6b10089d173",
+  "scan_and_complete_evidence_bytes_unchanged": [
+    {
+      "root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-journey-v80\\data\\scans\\native",
+      "files": 61,
+      "differences": [],
+      "scan_db_sha256": "51bceb04f3942130ba43565b5928f1c0ee54bc51d88826569836b1229458e8dd"
+    },
+    {
+      "root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-journey-v80-fixed\\data\\scans\\native",
+      "files": 61,
+      "differences": [],
+      "scan_db_sha256": "51bceb04f3942130ba43565b5928f1c0ee54bc51d88826569836b1229458e8dd"
+    },
+    {
+      "root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-receiver-v80\\data\\scans\\native",
+      "files": 61,
+      "differences": [],
+      "scan_db_sha256": "51bceb04f3942130ba43565b5928f1c0ee54bc51d88826569836b1229458e8dd"
+    }
+  ],
+  "new_native_old_full_reports": []
+}

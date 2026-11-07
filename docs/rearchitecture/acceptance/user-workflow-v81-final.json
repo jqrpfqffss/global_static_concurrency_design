@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "status": "PASS_SCOPED_REAL_USER_WORKFLOW",
+  "scope": "Real user workflow and frontend-only v81 acceptance; not complete G1-G8",
+  "receipts": {
+    "user-journey-v80-fixed/journey.json": "04775ef14e6691e417ef2b4f236cb96bd08b297485d0972b1f491413c76ce39e",
+    "user-journey-v80-fixed/postcommit-refresh-fault.json": "9584c42f17fe13bb19aad50d56b8c52dceb2f743aecb5c315dbf7496698168c6",
+    "user-receiver-v80/sharing-final-supplement.json": "360fcd4b63fc95f21d9d3d8c27863fdaa19b000b4cef0b819634c3e265a96f42",
+    "user-receiver-v80/native-publication-supplement.json": "64fd0838e3470640a720b5c110099e92242557e6c22980737c1ba6aa7d29f5af",
+    "user-receiver-v80/coverage-label-final.json": "299e3cb582c57c3e0667507e0d53fa3b45010598b2422d0a9bc4b5cd58005a78",
+    "user-journey-large-v80/journey-r3.json": "05a82c9af6560df20c5c2c72d16df16fe4caa2edc2fc96b11b33ca103177de12",
+    "user-journey-large-v80/setup.json": "b942e86afab5aa8db10a29bcde8ef43c1d3c4eb90405f3faa14821ff18561170",
+    "user-receiver-portable-v81/journey.json": "9e798abcb6070bbe43a0e7b478ae8a334026c85d2fc3c7b0ae76a0e56393d618",
+    "user-large-portable-v81/journey.json": "45883db3d80b6fdcd2ad343bdd9cbeeb87a786cf945e0c712908caba96182504",
+    "user-journey-static-postflight-v81.json": "9c62c3449c34950a60721a1e4e3e50669abbf122759cb19b724357c92b4214e3",
+    "user-receiver-portable-v81/server.json": "f5793fd0df3dceed75efa3bbd1646e6c295a9595a3fd6259c1fe70f60fa7476d",
+    "user-large-portable-v81/server.json": "0143d578248a73598d838f61f00902aab6ac3e5c7404b4dc67198579cae28cde"
+  },
+  "source_snapshot_sha256": "fb1dcaf4f66dbf92e0f33be784a5bb26a278c56d58a4b039325e764d4f7c98d3",
+  "payload_manifest_sha256": "721e660013a51234773c688d96d404befe22504836d157b21ccf7070e4daa9b3",
+  "payload_files": 32452,
+  "complete_file_count": 32453,
+  "payload_differences": [],
+  "unexpected_files": [],
+  "application_files": 148,
+  "backend_test_dependency_identical_files": 474,
+  "runtime_tool_files_unchanged": 28805,
+  "inherited_backend_scope": "Frozen v78: 1566 PASS, 2 opt-in live skips; 34 embedded tests and eight working-CMake Chrome flows inherited only for byte-identical backend; not rerun in v81.",
+  "zip_bytes": 780302019,
+  "zip_sha256": "ef8b223147ce3c4e5783457a50b59c6307e0d65daa54f3760016e32c4bae88b1",
+  "directory_checks": {
+    "commands": 27,
+    "receipt_sha256": "305802f491305053fc19aaabdab5dda741dbba582d37468d1445dd5d6d954fd9"
+  },
+  "chinese_extracted_checks": {
+    "commands": 27,
+    "receipt_sha256": "0fd42a0dfd1db5744103962181474081426dd01e40c11aabf49eada4906c91b4"
+  },
+  "large_immutable_files": 2667,
+  "large_differences": [],
+  "large_scan_db_sha256": "c6180f66323ae9ce72711ee8c83858cdce04114cc1e210a30aaa7dc3e760163b",
+  "original_f030_files": 42,
+  "original_firmware_differences": [],
+  "f030_preserved_events": 4,
+  "large_human_events": 0,
+  "whole_diff_observation": {
+    "status": "RUNNING_RECOVERY_AND_COMPLETE_INDEPENDENT_VERIFICATION",
+    "passed": false
+  },
+  "not_verified": [
+    "Physical 32GB machine",
+    "Clean offline computer",
+    "Native OS DPI",
+    "Human blind UAT",
+    "Remaining authorized-by-path G2 projects unavailable",
+    "Complete whole changed-source Diff/recovery final receipt"
+  ]
+}

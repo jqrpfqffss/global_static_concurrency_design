@@ -1,0 +1,65 @@
+import json,sys,time,traceback
+from user_large_browser import *
+sys.path.insert(0,'H:/global_static_concurrency_design')
+from ecra.scan_store import EvidenceProvider
+result=dict(passed=False,checks=[],scope='Actual independent latest INAV full-package import and source CMD; all 113 visible conflict pairs checked against read-only archive, not a fresh native scan')
+def save():(work/'journey-r3.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def check(name,value):result['checks'].append(dict(name=name,value=value));save();print(name,flush=True)
+def primitives(node):return {x['key']:x['value'] for x in provider.node(node,limit=200)['items'] if 'value' in x}
+def wait_page(index):
+ deadline=time.monotonic()+90
+ while True:
+  value=evaluate("({text:document.querySelector('.conflict-pairs')?.innerText,rows:[...document.querySelectorAll('.conflict-pair')].map(r=>({title:r.querySelector(':scope>strong').textContent,parts:[...r.querySelectorAll('.context-lanes>div')].map(p=>({context:p.querySelector(':scope>.evidence-identity')?.innerText,function:p.querySelector('p .evidence-identity')?.innerText}))}))})")
+  if value['rows'] and value['rows'][0]['title'].startswith('关系 '+str(index+1)+' ·') and '正在读取' not in value['text']:return value
+  if time.monotonic()>deadline:raise TimeoutError('Relation page did not finish: '+str(index))
+  time.sleep(.2)
+save()
+try:
+ cli('reload');click('button','sysTickUptime 静态疑似 待确认 src/main/drivers/time.c:41')
+ sid=evaluate("document.querySelector('.detail-summary>.identity').textContent")
+ provider=EvidenceProvider(work/'data/scans/native-golden/scan.db')
+ finding=provider.records('findings',dataset='report',symbol_id=sid)['items'][0]
+ fields=provider.node(finding['node'],limit=200)['items'];pairs=next(x for x in fields if x['key']=='conflict_pairs')
+ assert pairs['total']==113
+ definitions={};contexts={};position=0
+ while True:
+  p=provider.records('contexts',offset=position,limit=200)
+  contexts.update({x['summary']['id']:x['summary'] for x in p['items']})
+  if p['next_offset'] is None:break
+  position=p['next_offset']
+ pages=[]
+ for offset in range(0,113,10):
+  if offset:click('button','后10组关系')
+  visible=wait_page(offset);actual=provider.node(pairs['id'],offset=offset,limit=10)
+  assert len(visible['rows'])==len(actual['items'])
+  for dom,row in zip(visible['rows'],actual['items']):
+   children=provider.node(row['id'],limit=200)['items'];parts=[next(x for x in children if x['key']==key) for key in ['participant_a','participant_b']]
+   for shown,part in zip(dom['parts'],parts):
+    truth=primitives(part['id']);fid=truth['function_id'];cid=truth['context_id']
+    assert shown['context'].endswith('原始身份：'+cid) and shown['function'].endswith('原始身份：'+fid)
+    if fid not in definitions:
+     rows=provider.records('functions',function_id=fid,limit=1)['items'];definitions[fid]=rows[0]['summary'] if rows else {}
+    definition=definitions[fid];name=definition.get('qualified_name') or definition.get('name') or (fid if definition else '函数名称未记录')
+    assert shown['function'].split('\n')[0]==name
+    context=contexts.get(cid)
+    if context:
+     assert not context.get('physical_id') or context['physical_id'] in shown['context']
+    else:assert shown['context'].startswith('执行上下文待核实')
+  pages.append(dict(offset=offset,count=len(visible['rows']),first=visible['rows'][0],last=visible['rows'][-1]))
+ check('all_113_pairs_226_participants_exact_raw_ids_and_archived_function_names',pages)
+ cli('screenshot','--filename',str(output/'large-last-pair-page.png'))
+ click('button','sysTickUptime 静态疑似 待确认 src/main/drivers/time.c:41');wait_page(0)
+ fill('textbox','依据 / 修改或撤销理由','大型归档自动化交互检查草稿，不提交实际工程结论。')
+ snapshot=cli('snapshot');refs=re.findall(r'button "src/main/drivers/time.c:57 · 定位代码" \[ref=([^\]]+)\]',snapshot)
+ assert refs;cli('click',refs[0]);view=[]
+ for width,height in [(1366,768),(1600,900),(1920,1080)]:
+  cli('resize',str(width),str(height));click('tab','时序与访问');click('tab','归档源码')
+  g=evaluate("(()=>{const r=document.querySelector('.source-code .highlight').getBoundingClientRect(),p=document.querySelector('.detail-evidence').getBoundingClientRect();return {width:innerWidth,height:innerHeight,line:document.querySelector('.source-code .highlight').innerText,visible:Math.max(0,Math.min(r.bottom,p.bottom,innerHeight)-Math.max(r.top,p.top,0)),scrollY,note:document.querySelector('textarea').value,buttons:[...document.querySelectorAll('.decision-actions button')].map(e=>({name:e.textContent,bottom:e.getBoundingClientRect().bottom}))}})()")
+  assert 'sysTickUptime++;' in g['line'] and g['visible']>=21 and g['scrollY']==0 and g['note'].startswith('大型归档') and all(b['bottom']<=height for b in g['buttons'])
+  view.append(g);cli('screenshot','--filename',str(output/('large-source-'+str(width)+'.png')))
+ check('large_real_source_three_viewports_preserve_note_and_actions',view)
+ fill('textbox','依据 / 修改或撤销理由','');assert api('/scans/native-golden/human?symbol_id='+urllib.parse.quote(sid))['history']==[]
+ check('no_implicit_human_events',True)
+ result.update(passed=True,status='PASS_SCOPED')
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:save()

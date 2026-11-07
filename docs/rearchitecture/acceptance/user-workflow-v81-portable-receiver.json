@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "actual_process_restart_history_continue_restores_original_four_events",
+      "value": "不可变确认历史 · 4 个本轮事件\n暂无法确认 · 待验证\n\n自动化用户流程验收 · 2026-11-07T04:12:36.765277+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n自动化操作验收：已核对 systick_delay 的两次读取；64 位计数是否可能被打断仍需核实，不作实际风险结论。\n\n7bbfaf3d-84de-438d-a542-3616d75275e1\n待确认 · 待修复\n\n自动化用户流程验收 · 2026-11-07T04:12:49.343390+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n撤销 7bbfaf3d-84de-438d-a542-3616d75275e1：撤销自动化流程验收声明，恢复待确认；原声明与理由保留。\n\n16419843-b0ef-4780-9bce-19f10e73e08a\n暂无法确认 · 待修复\n\n自动化用户流程验收 · 2026-11-07T04:15:03.507972+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n自动化验收：确认事务成功后的统计刷新故障，不代表工程结论。\n\n68d569c6-aa9e-48c2-aae8-2b9a1ee83374\n待确认 · 待修复\n\n自动化用户流程验收 · 2026-11-07T04:15:15.235664+00:00 · device-1175dd894ec24e5cbc63c71b914383ca\n\n撤销 68d569c6-aa9e-48c2-aae8-2b9a1ee83374：撤销统计刷新故障验收声明；原有自动化记录保留。\n\n37ca0a9d-d107-4361-b076-c575a61a29f4"
+    },
+    {
+      "name": "actual_portable_archived_context_and_function_names",
+      "value": "潜在并发关系 · 2 组\n\n根据归档证据推断的潜在交错，未经目标板采集；完整路径、成立条件与不确定性保留在每组证据中。\n\n关系 1 · 可能并发\n中断 · IRQ:SysTick_Handler\n原始身份：auto:SysTick_Handler:bacec779\n\n读改写 · SysTick_Handler()\n原始身份：c:@F@SysTick_Handler\n\nperipheral.c:58 · 定位代码\n主循环 · FOREGROUND\n原始身份：main\n\n读取 · systick_delay(uint64_t)\n原始身份：c:@F@systick_delay\n\nperipheral.c:73 · 定位代码\n本组全部路径引用、保护与成立条件\n关系 2 · 可能并发\n中断 · IRQ:SysTick_Handler\n原始身份：auto:SysTick_Handler:bacec779\n\n读改写 · SysTick_Handler()\n原始身份：c:@F@SysTick_Handler\n\nperipheral.c:58 · 定位代码\n主循环 · FOREGROUND\n原始身份：main\n\n读取 · systick_delay(uint64_t)\n原始身份：c:@F@systick_delay\n\nperipheral.c:74 · 定位代码\n本组全部路径引用、保护与成立条件"
+    },
+    {
+      "name": "actual_portable_escape_and_failed_post_retain_draft_without_event",
+      "value": true
+    },
+    {
+      "name": "actual_portable_leave_warning_cancelled_then_draft_explicitly_cleared",
+      "value": true
+    },
+    {
+      "name": "actual_portable_damaged_import_actionable_and_history_unchanged",
+      "value": "完整结果包导入未完成。请核对文件是否传输完整及数据盘可用空间，再重新选择文件重试；仍失败时请提供下方诊断信息。 操作未完成，原归档保留；诊断编号 7387fe286dcb46d48e96c1b87a35be02"
+    },
+    {
+      "name": "actual_portable_real_native_gap_guidance_and_partial_coverage",
+      "value": "覆盖与诊断\n\n基于本归档的原始记录。解析成功不等于变量安全；缺少关联不等于零影响。\n\n本次归档的覆盖状态\n\n引擎分析状态：INCOMPLETE；TU记录 4；缺口记录 236。\n\n局部解析 2\n解析成功 2\n变量覆盖阻断\n解析/别名/硬件记录\n编译单元\n构建与范围\n变量覆盖阻断\n\n引擎关联来自报告中的 symbol_ids 与 relevance_proofs；不由界面推断传播范围。\n\n匹配 5 项；显示 1–5。空列表不构成安全证明。\n\n缺口类型 / 身份\t归档位置与关联\t证据\n缺少定义\n\nB-128f723f5609175ffa5f\n\n\t\n\nstartup.c\n\n报告关联计数 5；身份列表 5\n\n\t查看完整证据\n局部解析不完整\n\nB-7b4348b8c5ed7a77e358\n\n\t\n\nstartup.c:25\n\n报告关联计数 5；身份列表 5\n\n\t查看完整证据\n类型存在变体\n\nB-010c373daf63131cb70e\n\n\t\n\n位置未提供或需读取原文\n\n报告关联计数 1；身份列表 1\n\n\t查看完整证据\n执行上下文未恢复\n\nB-5715696003619a2451aa\n\n\t\n\nstartup.c:38\n\n报告关联计数 1；身份列表 1\n\n\t查看完整证据\n执行上下文未恢复\n\nB-899727c9ccda8c38d5d3\n\n\t\n\nstartup.c:31\n\n报告关联计数 1；身份列表 1\n\n\t查看完整证据\n上一页记录\n每页最多50项\n下一页记录\n缺口原始证据与关联对象\n\n修复方向：核对该访问函数的调用者、main/中断/任务入口及回调注册；补齐真实入口证据后重新扫描，不能将未恢复的执行上下文视为没有并发访问。\n\n原始诊断\n全部对象关联证明\n查看归档位置代码\n当前记录的全部字段与证明\n归档关联身份（1）\n_sdata\n\nc:@_sdata\n\n:\n\n打开关联变量\n上一页关联\n1 / 1\n下一页关联\n归档全部事实与报告索引\n完整事实（调用图、全部TU、覆盖、指针、NVIC）\n输入与来源记录\n静态报告与覆盖诊断"
+    }
+  ],
+  "scope": "Actual sealed v81 CMD after the private source service exited; real received history and real native F030 archive; no new human event",
+  "status": "PASS_SCOPED"
+}

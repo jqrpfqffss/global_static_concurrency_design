@@ -1,0 +1,212 @@
+{
+  ".gitignore": {
+    "size": 21,
+    "mtime_ns": 1793441895545298500,
+    "sha256": "621a0356f64dde0b72b7d60304a0a2aab550424bf25ca8b93ac72e50df3dc878"
+  },
+  "build.sh": {
+    "size": 910,
+    "mtime_ns": 1793441895550285200,
+    "sha256": "3eb4a9a9c0a3361008bbe745572fbaaee6d729721e8459386ee3ae9886023afb"
+  },
+  "common.h": {
+    "size": 525,
+    "mtime_ns": 1793441895558263900,
+    "sha256": "aaf5df2c1e2853919232c4d54c5e26da0eb780bdd312403fe0b1fe6ca8e99529"
+  },
+  "debug-with-svd-cmdebug.gdb": {
+    "size": 151,
+    "mtime_ns": 1793441895559261100,
+    "sha256": "8ce4163b0763aee9c005752de4f5f66904a9d2a648c82e9b82b8a785e591030c"
+  },
+  "debug-with-svd-tools.gdb": {
+    "size": 148,
+    "mtime_ns": 1793441895559261100,
+    "sha256": "e81d4eda95fac40d3e8231d20ed4f0b88496506de73d11066684d34326c0960a"
+  },
+  "debug.gdb": {
+    "size": 96,
+    "mtime_ns": 1793441895560258100,
+    "sha256": "55a3579ab0b5258c2805037fdad5a85ae3e8668a6dbe7691702f24ff5e231cd2"
+  },
+  "flash.sh": {
+    "size": 155,
+    "mtime_ns": 1793441895561255400,
+    "sha256": "8b74b6d2a43aaac81191b28a1a63be475154821a1d7d5503f2634e4246677695"
+  },
+  "LICENSE": {
+    "size": 17096,
+    "mtime_ns": 1793441895548290700,
+    "sha256": "9343f5b1b62ea515a5c68112bdb62ad94ce8316e8c5c0f382e5b6a47ee26128e"
+  },
+  "linker.ld": {
+    "size": 4816,
+    "mtime_ns": 1793441895566242100,
+    "sha256": "c031c52aa419329282a8e4868ba5c61843060ac1fad303912cd3edbfb86005d8"
+  },
+  "main.c": {
+    "size": 29034,
+    "mtime_ns": 1793441895566242100,
+    "sha256": "4c96dc054cb3148cf295018da31ba0c1918861546b8bcc66af7eee17b4bf243b"
+  },
+  "peripheral.c": {
+    "size": 8848,
+    "mtime_ns": 1793441895567239400,
+    "sha256": "83e55a5baa36993260fb8e1d5ef2f1559c0e50f44dfba48e0c5611a55354e561"
+  },
+  "peripheral.h": {
+    "size": 929,
+    "mtime_ns": 1793441895567239400,
+    "sha256": "9d76e51d108b29294c0b43b5b09d059dc5db42563e74c81267aadbcdd8e8b2db"
+  },
+  "pin.h": {
+    "size": 398,
+    "mtime_ns": 1793441895568236700,
+    "sha256": "22aa5395d3e1acae1c76c538a47e96f0905eb789ec14d518fa02037418ceccc3"
+  },
+  "README.md": {
+    "size": 2813,
+    "mtime_ns": 1793441895549287800,
+    "sha256": "299b1a2617797d5dee2443a8766d70b93b4d9cf0dfac9c102daec6c8c8cb4993"
+  },
+  "README.zh-Hans.md": {
+    "size": 2803,
+    "mtime_ns": 1793441895550285200,
+    "sha256": "7438745a1a19d794432f8e7e76fca348e8fd475773d5da644fb297660d56b017"
+  },
+  "start-gdb-client-with-svd-cmdebug.sh": {
+    "size": 69,
+    "mtime_ns": 1793441895569234400,
+    "sha256": "a89804735bf91ccd644c8ea3eeb9ee78c6bcb001b58d042b641b8a053a9f11b2"
+  },
+  "start-gdb-client-with-svd-tools.sh": {
+    "size": 67,
+    "mtime_ns": 1793441895569234400,
+    "sha256": "d60839e9ec2bc432e325269298335bb10828e9acafc30216f2a3e64c3ba8bc8f"
+  },
+  "start-gdb-client.sh": {
+    "size": 52,
+    "mtime_ns": 1793441895570231900,
+    "sha256": "d29132d1736fdbf82ed22bfe8185801e7ee715568566c3b1edd187a5e1b095ca"
+  },
+  "start-gdb-server.sh": {
+    "size": 138,
+    "mtime_ns": 1793441895570231900,
+    "sha256": "a2c58e30fd6aab1c0088ad71e2fa3c95568eebc2413665cda44d913d533a0f5f"
+  },
+  "startup.c": {
+    "size": 3254,
+    "mtime_ns": 1793441895571228900,
+    "sha256": "a2ce18ed0b37cafc14f945e8a4eac1c667ac74e13db78107ce5b29edb6505f32"
+  },
+  "utils.c": {
+    "size": 917,
+    "mtime_ns": 1793441895577213700,
+    "sha256": "49c314e8b1e45ce016ed85ee5f19087a73d02e80deee2c2a050bf89cbac15cc6"
+  },
+  "utils.h": {
+    "size": 237,
+    "mtime_ns": 1793441895578210600,
+    "sha256": "de8cbc77d4a68425658ebb155b5a5cd5055c03902c86e75b06817a20083f52fd"
+  },
+  ".vscode\\extensions.json": {
+    "size": 496,
+    "mtime_ns": 1793441895546295700,
+    "sha256": "eb09637f3ea5cb55fd3a49818341d682a75188eb8a70024329b1fcce7bf4b753"
+  },
+  ".vscode\\launch.json": {
+    "size": 1953,
+    "mtime_ns": 1793441895547293400,
+    "sha256": "1497e517453c7b5e6678e8da2319294e7a440c5724df56c7387cb9493a09fc7d"
+  },
+  ".vscode\\settings.json": {
+    "size": 525,
+    "mtime_ns": 1793441895547293400,
+    "sha256": "416c90df7be21b329f1f33d2f52a34333756030b2d2b9d06ea5c52c95fb8f531"
+  },
+  ".vscode\\tasks.json": {
+    "size": 503,
+    "mtime_ns": 1793441895548290700,
+    "sha256": "77d858c60cda658fe7e8a520dfd0d34ae4eba08098ea9fb3bdfbbac47762a6c7"
+  },
+  "cmsis\\cmsis_compiler.h": {
+    "size": 9014,
+    "mtime_ns": 1793441895552279800,
+    "sha256": "cd3cbd1c771a5252827a14c75a12e7ed975f76b9fc1577d53a74ba0e7c1af6c3"
+  },
+  "cmsis\\cmsis_gcc.h": {
+    "size": 62344,
+    "mtime_ns": 1793441895553277500,
+    "sha256": "8c16d51f7884a9fc07c5cbe6f2bcd24e5e092ddc519f71d36740c2d2e2ff6a27"
+  },
+  "cmsis\\cmsis_version.h": {
+    "size": 1716,
+    "mtime_ns": 1793441895554274500,
+    "sha256": "280b9fc8739aefa878d47e68d7adbd4908a15f98ec193cdba1a4b514133f5c34"
+  },
+  "cmsis\\core_cm0.h": {
+    "size": 42208,
+    "mtime_ns": 1793441895554274500,
+    "sha256": "1beaa04c859225f75142d055e9c5dacfc9ac1d88c82934177f745b9c5f3f4094"
+  },
+  "cmsis\\README.md": {
+    "size": 456,
+    "mtime_ns": 1793441895552279800,
+    "sha256": "b568ed6ff48be2823fad03e312ad4c9be74bdf82e630ddbc330b7f8ec2ca3844"
+  },
+  "cmsis\\stm32f030x8.h": {
+    "size": 437010,
+    "mtime_ns": 1793441895556269100,
+    "sha256": "4bc46d91fb25f9b6ffd666a45a7515bc5c605403d6e84c055e4ca3b696a49610"
+  },
+  "cmsis\\stm32f0xx.h": {
+    "size": 11431,
+    "mtime_ns": 1793441895557266500,
+    "sha256": "eeb2f4e18b8b9bc55bbb2c06058b388ded1f9b3cef2c9fc849e3933dc36e7b71"
+  },
+  "cmsis\\system_stm32f0xx-ORIGIN.h": {
+    "size": 2484,
+    "mtime_ns": 1793441895557266500,
+    "sha256": "d54987dd1fb4512c4d43973be5ec65bbc045783e709defaad48f47b6c07b4983"
+  },
+  "cmsis\\system_stm32f0xx.h": {
+    "size": 8,
+    "mtime_ns": 1793441895558263900,
+    "sha256": "ebe41801037df7a354b168593f4545e58fd4a15dc7c2252cf5c0e7f5a799c048"
+  },
+  "images\\stm32f030.jpg": {
+    "size": 295155,
+    "mtime_ns": 1793441895563250000,
+    "sha256": "2413a89c0b241248bb2d13a04d6be1c84366582d068339c3ccf402af62ffc578"
+  },
+  "images\\stm32f030.mp4": {
+    "size": 732140,
+    "mtime_ns": 1793441895565244700,
+    "sha256": "c6a3c19f2eba87c5a4809ec7d8219b289ecdbab8071a06838a92fac26f7b44b3"
+  },
+  "svd\\STM32F0x0.svd": {
+    "size": 580750,
+    "mtime_ns": 1793441895576216200,
+    "sha256": "c7d425302a9ee101e8ad4158e89d732209378ef67f5a3fcea84b1b9c11d5b9b3"
+  },
+  "svd-cmdebug\\gdb.py": {
+    "size": 1290,
+    "mtime_ns": 1793441895572226300,
+    "sha256": "b1e1b4e25ba0308e2b1eb87a78334cda6d3b896c571dc4fcf63388ec491e970d"
+  },
+  "svd-cmdebug\\README.md": {
+    "size": 1929,
+    "mtime_ns": 1793441895572226300,
+    "sha256": "1b505b11a2f91a02ba0a91aafd829deac6b6048e6e95a3faf58a4c9e8508c9e0"
+  },
+  "svd-tools\\gdb-svd.py": {
+    "size": 16366,
+    "mtime_ns": 1793441895574220800,
+    "sha256": "6b96b3efd41576fcb7dc3c8b1658fd49e74aa55e50ea04d445965d76d30b9908"
+  },
+  "svd-tools\\README.md": {
+    "size": 1991,
+    "mtime_ns": 1793441895573223600,
+    "sha256": "f7965709ba49c66e8a5c842aa94bf52b889aa2b26611a30c809a6bc42bcfa38c"
+  }
+}

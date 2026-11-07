@@ -20,6 +20,8 @@ import ScanIdentity from './ScanIdentity.vue'
 import HistoryCenter from './HistoryCenter.vue'
 import DataRootSettings from './DataRootSettings.vue'
 import StorageUsage from './StorageUsage.vue'
+import EvidenceIdentity from './EvidenceIdentity.vue'
+import { ReviewDrafts } from './reviewDrafts'
 const navigation = [ ['overview','项目概览'], ['projects','工程配置'], ['tasks','扫描任务'], ['variables','变量与风险'], ['coverage','覆盖与诊断'], ['opencode','OpenCode 复核'], ['reviews','人工确认'], ['history','历史与对比'], ['sharing','数据与共享'] ]
 const route = ref(location.hash.slice(2) || 'overview'), compact = ref(false)
 const bootstrap = ref<any>(null), scans = ref<any[]>([]), scan = ref(localStorage.getItem('ecra-scan') || ''), summary = ref<any>(null)
@@ -30,6 +32,16 @@ const items = ref<any[]>([]), total = ref(0), offset = ref(0), search = ref(''),
 const defaultFilters=():Record<string,string>=>({handling_status:'',file:'',function:'',context:'',coverage:'',ai_state:'',diff:'',symbol_id:'',sort:'priority',order:'asc'})
 const extra=ref<Record<string,string>>(defaultFilters())
 const human = ref<any>(null), reviewer = ref(localStorage.getItem('ecra-reviewer') || ''), comment = ref(''), handling = ref('TODO')
+const drafts=new ReviewDrafts(), draftCount=ref(0), draftWarning=ref('')
+let editing:{scan:string,symbol:string,fingerprint:string,heads:string,savedHandling:string}|null=null
+let selectionGeneration=0
+const headsKey=(value:any)=>JSON.stringify((value.heads||[]).map((e:any)=>e.event_id).sort())
+watch([comment,handling],()=>{
+  if(!editing)return
+  drafts.update(editing.scan,editing.symbol,{comment:comment.value,handling:handling.value,fingerprint:editing.fingerprint,heads:editing.heads},editing.savedHandling)
+  draftCount.value=drafts.size
+},{flush:'sync'})
+function leavingWithDrafts(event:BeforeUnloadEvent){if(drafts.size){event.preventDefault();event.returnValue=''}}
 const accesses = ref<any>(null), findings = ref<any>(null), staticFields = ref<any[]>([]), storage = ref<any>(null), fromCoverage=ref(false)
 const sourceLocation=ref<any>(null), split=ref(Number(localStorage.getItem('ecra-split'))||38)
 function resizeSplit(event:PointerEvent){const el=event.currentTarget as HTMLElement;if(event.type==='pointerdown')el.setPointerCapture(event.pointerId);if(event.buttons===1){const rect=el.parentElement!.getBoundingClientRect();split.value=Math.max(30,Math.min(46,100*(event.clientX-rect.left)/rect.width));localStorage.setItem('ecra-split',String(split.value))}}
@@ -140,28 +152,39 @@ async function select(item: any) {
   await run(() => loadSelection(item))
 }
 async function loadSelection(item: any) {
-    selected.value = item; comment.value = ''; sourceLocation.value={file:item.definition_file||'',line:item.definition_line||1}
-    human.value = await api(apiScan.value + '/human?symbol_id=' + encodeURIComponent(item.symbol_id))
-    handling.value = human.value.handling_status
-    staticFields.value = (await api(apiScan.value + '/nodes/' + item.node + '?limit=200')).items
-    accesses.value = await api(apiScan.value + '/records/accesses?symbol_id=' + encodeURIComponent(item.symbol_id))
-    findings.value = await api(apiScan.value + '/records/findings?dataset=report&symbol_id=' + encodeURIComponent(item.symbol_id))
-    sourceRef.value = await api(apiScan.value + '/source?file='+encodeURIComponent(item.definition_file || ''))
+    const generation=++selectionGeneration,id=scan.value,base=apiScan.value,symbol=encodeURIComponent(item.symbol_id)
+    editing=null;selected.value=item;human.value=null;comment.value='';handling.value='TODO';draftWarning.value=''
+    staticFields.value=[];accesses.value=null;findings.value=null;sourceRef.value=null
+    sourceLocation.value={file:item.definition_file||'',line:item.definition_line||1}
+    const [review,fields,access,found,source]=await Promise.all([
+      api(base+'/human?symbol_id='+symbol),api(base+'/nodes/'+item.node+'?limit=200'),
+      api(base+'/records/accesses?symbol_id='+symbol),api(base+'/records/findings?dataset=report&symbol_id='+symbol),
+      api(base+'/source?file='+encodeURIComponent(item.definition_file||''))])
+    if(generation!==selectionGeneration||scan.value!==id||selected.value?.symbol_id!==item.symbol_id)return
+    human.value=review;staticFields.value=fields.items;accesses.value=access;findings.value=found;sourceRef.value=source
+    const draft=drafts.get(id,item.symbol_id),heads=headsKey(review)
+    comment.value=draft?.comment||'';handling.value=draft?.handling||review.handling_status
+    if(draft&&(draft.fingerprint!==review.fingerprint||draft.heads!==heads))draftWarning.value='草稿对应的证据或人工记录已变化。文字已保留，请重新核对后再确认。'
+    editing={scan:id,symbol:item.symbol_id,fingerprint:review.fingerprint,heads,savedHandling:review.handling_status}
     await rememberList()
 }
 async function saveDecision(decision: string, undo = false) {
   await run(async () => {
+    if(!human.value||!editing||editing.scan!==scan.value||editing.symbol!==selected.value?.symbol_id)throw Error('当前对象证据尚未读完，请重新选择对象后再确认。')
     const submittedComment=comment.value,submittedScan=scan.value,submittedSymbol=selected.value.symbol_id,base=apiScan.value
     const result = await api(base + '/human', 'POST', { symbol_id: submittedSymbol, fingerprint: human.value.fingerprint,
       decision, handling_status: handling.value, reviewer: reviewer.value, comment: submittedComment, expected_heads: human.value.heads.map((e: any) => e.event_id), resolve: human.value.conflict, undo })
     if (!result.saved) throw new Error('确认尚未提交')
+    drafts.remove(submittedScan,submittedSymbol);draftCount.value=drafts.size
+    if(scan.value===submittedScan&&selected.value?.symbol_id===submittedSymbol){editing=null;human.value=null;comment.value='';draftWarning.value=''}
+    notice.value='已保存，静态分类保持独立。'
     localStorage.setItem('ecra-reviewer', reviewer.value)
     const saved=await api(base + '/human?symbol_id=' + encodeURIComponent(submittedSymbol))
     if(scan.value!==submittedScan)return
-    if(selected.value?.symbol_id===submittedSymbol)human.value=saved
+    if(selected.value?.symbol_id===submittedSymbol){human.value=saved;handling.value=saved.handling_status;editing={scan:submittedScan,symbol:submittedSymbol,fingerprint:saved.fingerprint,heads:headsKey(saved),savedHandling:saved.handling_status}}
     const updated=await api(base + '/summary')
     if(scan.value!==submittedScan)return
-    summary.value = updated; await loadList(); notice.value = '已保存，静态分类保持独立。'; if(comment.value===submittedComment)comment.value = ''
+    summary.value = updated; await loadList()
   })
 }
 async function continueReview(historyId?:unknown) {
@@ -186,7 +209,13 @@ async function page(delta: number) { offset.value = Math.max(0, offset.value + d
 async function importFile(event: Event, delta = false) {
   const input = event.target as HTMLInputElement, file = input.files?.[0]
   if (!file) return
-  await run(async () => { notice.value = '正在校验归档结构、完整证据与人工历史…'; const result = await upload(delta ? apiScan.value + '/delta/import' : '/import', file); scan.value = result.scan_id; await refresh(); notice.value = `导入已提交：${result.scan_id}；新增人工事件 ${result.imported_events}` })
+  await run(async () => {
+    notice.value = '正在校验归档结构、完整证据与人工历史…'
+    let result
+    try { result=await upload(delta ? apiScan.value + '/delta/import' : '/import', file) }
+    catch(e:any){throw Error((delta?'确认增量':'完整结果包')+'导入未完成。请核对'+(delta?'增量与当前归档的归属、':'')+'文件是否传输完整及数据盘可用空间，再重新选择文件重试；仍失败时请提供下方诊断信息。\n'+e.message)}
+    scan.value=result.scan_id;notice.value=`导入已提交：${result.scan_id}；新增人工事件 ${result.imported_events}`;await refresh()
+  })
   input.value = ''
 }
 async function exportFile(kind: string) {
@@ -235,11 +264,11 @@ async function saveProfile() { await run(async () => { if(!profileCheck.value)th
 function openProfile(profile: any) { if(busy.value)return;profileId.value = profile.id; profileRevision.value = profile.revision; yaml.value = profile.yaml;savedYaml.value=profile.yaml;formSnapshot.value=null;yamlBackup.value=null;wizardStep.value = 4; profileCheck.value = null;error.value='';notice.value='' }
 function newProfile(){if(busy.value)return;profileId.value='';profileRevision.value='';savedYaml.value='';yaml.value='';profileCheck.value=null;formSnapshot.value=null;yamlBackup.value=null;projectName.value='';projectRoot.value='';projectCore.value='';buildMode.value='cmake';target.value='';toolchain.value='';variant.value='Debug';include.value='';exclude.value='';baseRef.value='';currentRef.value='HEAD';includeUncommitted.value=false;contextRows.value=initialContexts();contextsEditable.value=true;contextsReason.value='';systemHeaders.value='default';wizardStep.value=1;notice.value='';error.value=''}
 watch(yaml,()=>{profileCheck.value=null;savedYaml.value='';preflightReady.value=''},{flush:'sync'})
-function keydown(event: KeyboardEvent) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && isWorkbench.value) { event.preventDefault(); document.getElementById('variable-search')?.focus() } if (event.key === 'Escape') { compact.value = false; selected.value = null } }
-watch(scan, () => { localStorage.setItem('ecra-scan', scan.value); summary.value=null;items.value=[];priorityItems.value=[];selected.value = null; human.value = null; fromCoverage.value=false;offset.value = 0; restoreFilters(scan.value) },{flush:'sync'})
+function keydown(event: KeyboardEvent) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && isWorkbench.value) { event.preventDefault(); document.getElementById('variable-search')?.focus() } if (event.key === 'Escape') { compact.value = false;selectionGeneration++;editing=null; selected.value = null;human.value=null } }
+watch(scan, () => { selectionGeneration++;editing=null; localStorage.setItem('ecra-scan', scan.value); summary.value=null;items.value=[];priorityItems.value=[];selected.value = null; human.value = null; fromCoverage.value=false;offset.value = 0; restoreFilters(scan.value) },{flush:'sync'})
 watch(route, () => { if(route.value==='overview' && scan.value) readPage(async()=>{priorityItems.value=(await api(apiScan.value+'/symbols?limit=5')).items}); if (route.value === 'sharing' || route.value === 'settings') readPage(async () => { storage.value = await api('/storage') }); if (route.value === 'projects') readPage(async () => { profileList.value = (await api('/profiles')).items }) })
-onMounted(async () => { window.addEventListener('hashchange', hashed); window.addEventListener('keydown', keydown); restoreFilters(scan.value); await run(async () => { bootstrap.value = await api('/bootstrap'); await refresh() }) })
-onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.removeEventListener('keydown', keydown) })
+onMounted(async () => { window.addEventListener('beforeunload',leavingWithDrafts); window.addEventListener('hashchange', hashed); window.addEventListener('keydown', keydown); restoreFilters(scan.value); await run(async () => { bootstrap.value = await api('/bootstrap'); await refresh() }) })
+onUnmounted(() => { window.removeEventListener('beforeunload',leavingWithDrafts); window.removeEventListener('hashchange', hashed); window.removeEventListener('keydown', keydown) })
 </script>
 
 <template>
@@ -281,13 +310,13 @@ onUnmounted(() => { window.removeEventListener('hashchange', hashed); window.rem
             </div><div class="detail-tabs" role="tablist" aria-label="证据分组"><button v-for="[id,title] in [['access','时序与访问'],['relations','调用与保护'],['source','归档源码'],['history','人工历史']]" role="tab" :aria-selected="detailTab===id" @click="detailTab=id">{{ title }}</button></div>
             <div class="detail-evidence">
             <section v-show="detailTab==='access'" class="detail-group"><h3>潜在并发与判定条件</h3><p>展开静态理由查看成立前提；证据不足时保持未知。推断时序不是硬件采集。</p><FindingCard v-for="record in findings?.items" :key="record.node" :scan="scan" :node="record.node" :summary="record.summary" @source="openSource"/><p v-if="findings?.total===0">本对象没有独立finding；请核对变量覆盖状态。</p>
-            <h3>访问证据 · 共 {{ accesses?.total || 0 }} 项</h3><article v-for="record in accesses?.items" :key="record.ordinal" class="access-row"><strong>{{ label(record.summary.access_kind || '') }} · {{ record.summary.file }}:{{ record.summary.line }}</strong><p>{{ record.summary.function_id }} · {{ record.summary.expression || record.summary.source_text }}</p><button @click="openSource({file:record.summary.file,line:record.summary.line||1})">定位此访问代码</button><EvidenceNode :scan="scan" :node="record.node" :title="'完整访问 #'+(record.ordinal+1)"/></article><button v-if="accesses?.next_offset!==null && accesses?.next_offset!==undefined" @click="run(async()=>{ const next=await api(apiScan+'/records/accesses?symbol_id='+encodeURIComponent(selected.symbol_id)+'&offset='+accesses.next_offset); accesses={...next,items:[...accesses.items,...next.items]} })">继续读取访问</button></section>
+            <h3>访问证据 · 共 {{ accesses?.total || 0 }} 项</h3><article v-for="record in accesses?.items" :key="record.ordinal" class="access-row"><strong>{{ label(record.summary.access_kind || '') }} · {{ record.summary.file }}:{{ record.summary.line }}</strong><p><EvidenceIdentity :scan="scan" kind="function" :id="record.summary.function_id"/> · {{ record.summary.expression || record.summary.source_text }}</p><button @click="openSource({file:record.summary.file,line:record.summary.line||1})">定位此访问代码</button><EvidenceNode :scan="scan" :node="record.node" :title="'完整访问 #'+(record.ordinal+1)"/></article><button v-if="accesses?.next_offset!==null && accesses?.next_offset!==undefined" @click="run(async()=>{ const next=await api(apiScan+'/records/accesses?symbol_id='+encodeURIComponent(selected.symbol_id)+'&offset='+accesses.next_offset); accesses={...next,items:[...accesses.items,...next.items]} })">继续读取访问</button></section>
             <section v-show="detailTab==='relations'" class="detail-group"><CallTree :key="selected.symbol_id" :scan="scan" :symbol="selected.symbol_id"/><h3>完整相关调用、NVIC、保护、初始化、别名与未知事实</h3><p class="muted">保留全部字段、原始顺序、总数与哈希；可继续逐段读取。</p><template v-for="item in staticFields" :key="item.id"><EvidenceNode v-if="item.kind==='object' || item.kind==='list'" :scan="scan" :node="item.id" :title="field(item.key)"/></template><details><summary>对象所有原始字段（含未来字段）</summary><EvidenceNode :scan="scan" :node="selected.node" title="完整规范对象"/></details></section>
             <section v-if="detailTab==='source' && sourceLocation" class="detail-group"><SourceViewer :scan="scan" :file="sourceLocation.file" :line="sourceLocation.line"/></section>
             <section v-show="detailTab==='history'" class="detail-group"><h3>不可变确认历史 · {{ human?.history?.length || 0 }} 个本轮事件</h3><section v-if="human?.prior_reviews?.length" class="banner warning"><h4>{{ human?.inherited ? '完整输入与事实未变，沿用原人工确认' : human?.conflict ? '来源确认存在冲突，请显式解决' : '旧扫描确认保留为历史，当前证据须重新确认' }}</h4><details v-for="prior in human.prior_reviews"><summary>旧扫描 {{prior.binding.scan_id}} · {{prior.events.length}} 个原始事件</summary><article v-for="event in prior.events" class="history-event"><strong>{{label(event.decision)}}</strong><p>{{event.reviewer}} · {{event.timestamp}} · {{event.device}}</p><p>{{event.comment}}</p><small>旧证据指纹 {{event.fingerprint}}</small></article></details></section><article v-for="event in human?.history" class="history-event"><strong>{{ label(event.decision) }} · {{ label(event.handling_status) }}</strong><p>{{ event.reviewer }} · {{ event.timestamp }} · {{ event.device }}</p><p>{{ event.comment }}</p><small>{{ event.event_id }}</small></article></section>
             </div>
-            <section class="review-controls"><div class="review-content"><p class="muted">确认者为未经认证的声明；操作不改变静态/AI分类。</p><p v-if="human?.inherited" class="banner"><strong>沿用：{{ label(human.decision) }}</strong><span v-for="origin in human.inherited_sources" :key="origin.event_id"> · {{ origin.reviewer }} · {{ origin.timestamp }} · 原扫描 {{ origin.scan_id }}</span>。可查看“人工历史”中的原依据，或填写理由撤销。</p><div v-if="human?.conflict" class="banner error">离线并行确认冲突：先核对“人工历史”，填写依据后显式合并全部分支。</div><div class="review-fields"><label>确认者<input v-model="reviewer" :disabled="busy" placeholder="姓名或团队声明"></label><label>独立处理状态<select v-model="handling" :disabled="busy" aria-label="独立处理状态"><option v-for="state in ['TODO','FIXING','TO_VERIFY','CLOSED','ACCEPTED_RISK']" :value="state">{{ label(state) }}</option></select></label></div><label>依据 / 修改或撤销理由<textarea v-model="comment" :disabled="busy" rows="2" placeholder="确认无风险必须填写依据或证据引用"></textarea></label></div><div class="decision-actions"><button :disabled="busy || !reviewer.trim()" @click="saveDecision('CONFIRMED_RISK')">确认有风险</button><button :disabled="busy || !reviewer.trim() || !comment.trim()" @click="saveDecision('CONFIRMED_SAFE')">确认无风险</button><button :disabled="busy || !reviewer.trim()" @click="saveDecision('NEED_MORE_EVIDENCE')">暂无法确认</button><button :disabled="busy || !comment.trim() || (!human?.heads?.length && !human?.inherited) || human?.conflict" @click="saveDecision('PENDING', true)">撤销上次确认</button></div></section>
-          </template><div v-else class="empty"><h2>选择左侧对象查看完整证据</h2><p>支持同名static的独立身份。Ctrl+F查找，Esc返回列表。</p></div></section></div><section v-else class="panel empty">尚无结果包。请先从“数据与共享”导入。</section>
+            <section class="review-controls"><div class="review-content"><p class="muted">确认者为未经认证的声明；操作不改变静态/AI分类。<span v-if="draftCount" role="status">本窗口 {{draftCount}} 份未提交草稿；切换对象保留，刷新/关闭前请提交。</span></p><p v-if="draftWarning" class="banner warning" role="alert">{{draftWarning}}</p><p v-if="!human" role="status">当前对象证据未就绪，请等待读取完成；失败后可重新点击左侧对象。</p><p v-if="human?.inherited" class="banner"><strong>沿用：{{ label(human.decision) }}</strong><span v-for="origin in human.inherited_sources" :key="origin.event_id"> · {{ origin.reviewer }} · {{ origin.timestamp }} · 原扫描 {{ origin.scan_id }}</span>。可查看“人工历史”中的原依据，或填写理由撤销。</p><div v-if="human?.conflict" class="banner error">离线并行确认冲突：先核对“人工历史”，填写依据后显式合并全部分支。</div><div class="review-fields"><label>确认者<input v-model="reviewer" :disabled="busy || !human" placeholder="姓名或团队声明"></label><label>独立处理状态<select v-model="handling" :disabled="busy || !human" aria-label="独立处理状态"><option v-for="state in ['TODO','FIXING','TO_VERIFY','CLOSED','ACCEPTED_RISK']" :value="state">{{ label(state) }}</option></select></label></div><label>依据 / 修改或撤销理由<textarea v-model="comment" :disabled="busy || !human" rows="2" placeholder="确认无风险必须填写依据或证据引用"></textarea></label></div><div class="decision-actions"><button :disabled="busy || !human || !reviewer.trim()" @click="saveDecision('CONFIRMED_RISK')">确认有风险</button><button :disabled="busy || !human || !reviewer.trim() || !comment.trim()" @click="saveDecision('CONFIRMED_SAFE')">确认无风险</button><button :disabled="busy || !human || !reviewer.trim()" @click="saveDecision('NEED_MORE_EVIDENCE')">暂无法确认</button><button :disabled="busy || !human || !comment.trim() || (!human?.heads?.length && !human?.inherited) || human?.conflict" @click="saveDecision('PENDING', true)">撤销上次确认</button></div></section>
+          </template><div v-else class="empty"><h2>选择左侧对象查看完整证据</h2><p>支持同名static的独立身份。Ctrl+F查找，Esc返回列表。</p><p v-if="draftCount" role="status">本窗口保留 {{draftCount}} 份未提交草稿，重新选择对应对象可继续填写。刷新/关闭前请提交。</p></div></section></div><section v-else class="panel empty">尚无结果包。请先从“数据与共享”导入。</section>
         </template>
         <template v-else-if="route==='coverage'"><CoverageCenter v-if="scan&&summary" :key="scan" :scan="scan" :roots="summary.roots" @symbol="openCoverageSymbol"/><p v-else>{{scan?'正在读取当前归档；若读取失败，请查看上方诊断。':'尚无可查看的归档。'}}</p></template>
         <template v-else-if="route==='history'"><HistoryCenter v-if="bootstrap" :data-root="bootstrap.data_root" :busy="busy" @open="openScan" @continue="continueReview" @symbol="openHistorySymbol" /></template>

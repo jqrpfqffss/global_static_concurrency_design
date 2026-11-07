@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "events": 4,
+  "scope": "Every field, parent list and value of all four imported original events, after sealed v81 UI; no field excluded"
+}

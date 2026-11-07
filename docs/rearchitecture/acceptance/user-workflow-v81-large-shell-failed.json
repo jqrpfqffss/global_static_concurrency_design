@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "checks": [],
+  "scope": "Actual independent latest INAV full-package import and source CMD; all 113 visible conflict pairs checked against read-only archive, not a fresh native scan",
+  "status": "FAIL",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-large-v80.py\", line 19, in <module>\n    sid=evaluate(\"document.querySelector('.detail-summary>.identity').textContent\")\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user_large_browser.py\", line 21, in evaluate\n    raw=cli('eval',expression);body=raw.split('### Result\\n',1)[1].lstrip();return json.JSONDecoder().raw_decode(body)[0]\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user_large_browser.py\", line 10, in cli\n    if done.returncode:raise RuntimeError(done.stdout)\nRuntimeError\n"
+}

@@ -1,0 +1,77 @@
+import hashlib,json,time,traceback
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+w=Path(__file__).parent;bundle=Path('H:/ECRAStudio-build-20261107-studio-v81/ECRA-Portable')
+result=dict(passed=False,all_gates_passed=False,status='FINAL_BYTE_AND_RECEIPT_CHECK',scope='Real user workflow and frontend-only v81 acceptance; not complete G1-G8')
+def read(p):return json.loads(Path(p).read_text('utf-8'))
+def sha(p):
+ h=hashlib.sha256()
+ with Path(p).open('rb') as f:
+  for chunk in iter(lambda:f.read(1024**2),b''):h.update(chunk)
+ return h.hexdigest()
+def save():(w/'user-workflow-v81-final.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+save()
+try:
+ required=['user-journey-v80-fixed/journey.json','user-journey-v80-fixed/postcommit-refresh-fault.json',
+  'user-receiver-v80/sharing-final-supplement.json','user-receiver-v80/native-publication-supplement.json','user-receiver-v80/coverage-label-final.json',
+  'user-journey-large-v80/journey-r3.json','user-journey-large-v80/setup.json',
+  'user-receiver-portable-v81/journey.json','user-large-portable-v81/journey.json','user-journey-static-postflight-v81.json']
+ for name in required:assert read(w/name)['passed'],name
+ assert read(w/'user-journey-v80/original-draft-loss.json')['passed'] is False
+ for name in ['user-receiver-portable-v81','user-large-portable-v81']:
+  deadline=time.monotonic()+120
+  while not read(w/name/'server.json')['passed']:
+   if time.monotonic()>deadline:raise TimeoutError(name+' did not close')
+   time.sleep(.2)
+  required.append(name+'/server.json')
+ assembly=read(w/'portable-v81-assembly.json');assert assembly['passed']
+ manifest=bundle/'FILES.sha256.json';inventory=read(manifest)
+ def verify(entry):
+  name,digest=entry;p=bundle/name
+  return name if not p.is_file() or sha(p)!=digest else None
+ with ThreadPoolExecutor(max_workers=16) as pool:bad=[x for x in pool.map(verify,inventory.items()) if x]
+ files={p.relative_to(bundle).as_posix() for p in bundle.rglob('*') if p.is_file()}
+ extra=sorted(files-set(inventory)-{'FILES.sha256.json'});assert not bad and not extra,(bad,extra)
+ source=read(bundle/'SOURCE-SNAPSHOT.json');old=read(w/'frozen-engine-studio-v78.sha256.json')
+ def core(rows):return {r['file']:r['sha256'] for r in rows['files'] if r['file'].endswith('.py') or r['file'].startswith('requirements')}
+ assert core(source)==core(old) and len(core(source))==474
+ app=[r for r in source['files'] if r['file'].startswith('ecra/')]
+ assert all(sha(bundle/r['file'])==r['sha256'] for r in app)
+ assert sha(bundle/'SOURCE-SNAPSHOT.json')==assembly['program_snapshot_sha256']
+ assert sha(bundle.parent/'ECRA-Portable.zip')==assembly['zip_sha256']
+ inherited=read(w/'portable-final-v78/acceptance.json');assert inherited['passed'] and inherited['original_embedded_summary']['passed_tests']==34
+ original_inventory=read(Path('H:/ECRAStudio-build-20261106-studio-v78/ECRA-Portable/FILES.sha256.json'))
+ tool_names=[p for p in original_inventory if p.startswith(('runtime/','tools/','wheels/'))]
+ assert all(inventory.get(p)==original_inventory[p] for p in tool_names)
+ # All immutable imported large files, including all CAS evidence, remain exact.
+ before=read(w/'user-journey-large-v80/source-files.json');large=w/'user-journey-large-v80/data/scans/native-golden'
+ immutable={name:r['sha256'] for name,r in before.items() if name!='reviews.db'}
+ def check_large(entry):
+  name,digest=entry;return name if sha(large/name)!=digest else None
+ with ThreadPoolExecutor(max_workers=4) as pool:large_bad=[p for p in pool.map(check_large,immutable.items()) if p]
+ assert not large_bad
+ # No events were created in the final Portable round; prior four remain exact.
+ import sys
+ sys.path.insert(0,str(bundle))
+ from ecra.scan_store import EvidenceProvider
+ from ecra.human_reviews import ReviewStore
+ f030=w/'user-receiver-v80/data/scans/native';provider=EvidenceProvider(f030/'scan.db')
+ human=ReviewStore(f030/'reviews.db',provider.metadata()).history()
+ expected=read(w/'user-receiver-v80/sharing-final-supplement.json')['events']
+ assert {e['event_id'] for e in human}=={e['event_id'] for e in expected} and len(human)==4
+ large_provider=EvidenceProvider(large/'scan.db');assert ReviewStore(large/'reviews.db',large_provider.metadata()).history()==[]
+ native_root=Path('H:/ECRAStudio-data/rearchitecture-20261031/baseline/firmware');native_before=read(w/'user-receiver-v80/firmware-before.json')
+ native_after={str(p.relative_to(native_root)):dict(size=p.stat().st_size,mtime_ns=p.stat().st_mtime_ns,sha256=sha(p)) for p in native_root.rglob('*') if p.is_file()}
+ assert native_before==native_after
+ whole=read(w/'whole-native-inav-v78-r2-queue.json')
+ result.update(passed=True,status='PASS_SCOPED_REAL_USER_WORKFLOW',receipts={p:sha(w/p) for p in required},
+  source_snapshot_sha256=assembly['program_snapshot_sha256'],payload_manifest_sha256=sha(manifest),payload_files=len(inventory),complete_file_count=len(files),payload_differences=bad,unexpected_files=extra,
+  application_files=len(app),backend_test_dependency_identical_files=474,runtime_tool_files_unchanged=len(tool_names),
+  inherited_backend_scope='Frozen v78: 1566 PASS, 2 opt-in live skips; 34 embedded tests and eight working-CMake Chrome flows inherited only for byte-identical backend; not rerun in v81.',
+  zip_bytes=assembly['zip_bytes'],zip_sha256=assembly['zip_sha256'],directory_checks=assembly['uncompressed'],chinese_extracted_checks=assembly['zip-extracted'],
+  large_immutable_files=len(immutable),large_differences=large_bad,large_scan_db_sha256=sha(large/'scan.db'),original_f030_files=len(native_before),original_firmware_differences=[],
+  f030_preserved_events=4,large_human_events=0,whole_diff_observation=dict(status=whole['status'],passed=whole['passed']),
+  not_verified=['Physical 32GB machine','Clean offline computer','Native OS DPI','Human blind UAT','Remaining authorized-by-path G2 projects unavailable','Complete whole changed-source Diff/recovery final receipt'])
+except BaseException:result.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());raise
+finally:save()
+print(json.dumps(dict(passed=result['passed'],receipt=str(w/'user-workflow-v81-final.json'))))

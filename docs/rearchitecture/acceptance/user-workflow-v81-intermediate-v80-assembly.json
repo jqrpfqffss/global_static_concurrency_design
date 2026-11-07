@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "status": "PASS_ASSEMBLY_SCOPE_FRONTEND_ACCEPTANCE_PENDING",
+  "all_gates_passed": false,
+  "scope": "Only frontend investigation drafts, selection readiness and archived evidence names and actionable import failures changed. Every Python engine/test/dependency source matches frozen v78; all other tools/runtime bytes match the verified v78 package. New frontend, docs and complete program inventory are independently sealed; backend full v78 and large measurements remain separately scoped.",
+  "backend_and_test_source_files": 474,
+  "backend_source_differences": [],
+  "backend_snapshot_sha256": "113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd",
+  "program_snapshot_sha256": "b04d14a6aa3e156c97fe7adcde5114c1cfb6214654c2fb8885509931a8cacb02",
+  "application_files": 148,
+  "copied_runtime_tool_files": 28820,
+  "verified_v78_package_receipt_sha256": "ccd16407f13aef91d0d5a9f7a1fa01a585a691eada96b4b82e96a031da0169b7",
+  "uncompressed": {
+    "commands": 27,
+    "receipt_sha256": "fdc3eb003c25c9f13104e264ec2e0f59f191615a8453e86ea2cad98f334c96ac"
+  },
+  "zip-extracted": {
+    "commands": 27,
+    "receipt_sha256": "c2b7e713499b93924b982867f2cc94ba2acd6f72c12643afc3031ceaea4ed0b9"
+  },
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v80\\ECRA-Portable.zip",
+  "zip_bytes": 780301554,
+  "zip_sha256": "8a8e0e27abd66290b78ed485e0f0d838c5a30d675b0656fa7efc3b47eb05e033",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_pc": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED",
+  "seconds": 917.4220000000205
+}

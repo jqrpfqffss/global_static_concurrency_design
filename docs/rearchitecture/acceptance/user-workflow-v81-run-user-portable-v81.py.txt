@@ -1,0 +1,41 @@
+"""Actual sealed Portable restart after the corresponding private source server closes."""
+import argparse,json,os,sys,time,traceback
+from pathlib import Path
+p=argparse.ArgumentParser();p.add_argument('--name',required=True);p.add_argument('--previous',required=True);p.add_argument('--receipt',required=True);args=p.parse_args()
+w=Path(__file__).parent;previous=w/args.previous;work=w/args.name;work.mkdir(exist_ok=False)
+bundle=Path('H:/ECRAStudio-build-20261107-studio-v81/ECRA-Portable')
+result=dict(passed=False,status='WAITING_SEALED_PACKAGE_AND_PRIOR_SERVER_EXIT',scope='Actual v81 CMD, Windows-only PATH, existing private user workflow data; not clean offline or second physical PC')
+def save():(work/'server.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+save();budget=process=log=None
+try:
+ deadline=time.monotonic()+3600
+ while True:
+  assembly=w/'portable-v81-assembly.json';prior=json.loads((previous/args.receipt).read_text('utf-8'))
+  build=json.loads(assembly.read_text('utf-8')) if assembly.exists() else {}
+  if build.get('passed') and prior.get('passed'):break
+  if str(build.get('status','')).startswith('FAIL') or prior.get('status')=='FAIL':raise RuntimeError('Package or prior server proof failed')
+  if time.monotonic()>deadline:raise TimeoutError('Package/prior-server completion not available')
+  time.sleep(1)
+ sys.path.insert(0,str(bundle))
+ from ecra.studio.process_budget import ProcessBudget
+ from ecra.studio.write_guard import OwnedProcess
+ helper=work/'launch.cmd';session=work/'session.json'
+ helper.write_text('@echo off\r\ncall "'+str(bundle/'ECRA.cmd')+'" --no-browser --data-root "'+str(previous/'data')+'" --session-file "'+str(session)+'"\r\nexit /b %ERRORLEVEL%\r\n',encoding='ascii',newline='')
+ windows=Path(os.environ.get('SystemRoot','C:/Windows'))
+ log=(work/'launcher.log').open('xb');budget=ProcessBudget(2*1024**3)
+ process=OwnedProcess([str(windows/'System32/cmd.exe'),'/d','/c',str(helper)],cwd=bundle,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',LOCALAPPDATA=str(work/'user'),PATH=str(windows/'System32')+os.pathsep+str(windows)),log=log)
+ budget.assign(process);process.resume();deadline=time.monotonic()+120
+ while not session.exists():
+  if process.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Actual sealed CMD startup failed')
+  time.sleep(.2)
+ result.update(status='READY',pid=process.pid,data_root=str(previous/'data'),prior_closed=prior['status'],bundle=str(bundle));save();deadline=time.monotonic()+10800
+ while not (work/'stop').exists():
+  if process.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Viewer ended before test completion')
+  sample=budget.sample();result['peak_job_commit_bytes']=max(result.get('peak_job_commit_bytes',0),sample['peak_job_commit_bytes']);time.sleep(1)
+ result.update(passed=True,status='PASS_ACTUAL_CMD_RESTART_CLOSED_BY_TEST')
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:
+ if budget:budget.close()
+ if process:process.close()
+ if log:log.close()
+ save()

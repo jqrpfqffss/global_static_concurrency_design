@@ -1,0 +1,28 @@
+import hashlib,json,shutil,subprocess
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from datetime import datetime,timezone
+repo=Path('H:/global_static_concurrency_design');work=Path(__file__).parent;target=work/'frozen-engine-studio-v81'
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip()
+status=subprocess.check_output(['git','status','--porcelain'],cwd=repo,text=True)
+names=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=repo).decode('utf-8').split('\0')
+assert not target.exists();target.mkdir();rows=[]
+def copy_file(name):
+ p=repo/name
+ if not p.exists():return None
+ assert p.is_file() and not p.is_symlink(),name
+ raw=p.read_bytes();q=target/name;q.parent.mkdir(parents=True,exist_ok=True);q.write_bytes(raw);shutil.copystat(p,q)
+ h=hashlib.sha256(raw).hexdigest();assert hashlib.sha256(q.read_bytes()).hexdigest()==h
+ return dict(file=name,size=len(raw),sha256=h)
+with ThreadPoolExecutor(max_workers=16) as pool:
+ rows=[r for r in pool.map(copy_file,sorted(set(n for n in names if n))) if r]
+assert head==subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip()
+assert status==subprocess.check_output(['git','status','--porcelain'],cwd=repo,text=True)
+result=dict(format='ECRA_FROZEN_SOURCE_V1',passed=True,head=head,working_tree_overlay=bool(status.strip()),status=status,recorded_utc=datetime.now(timezone.utc).isoformat(),
+ scope='User investigation draft isolation and leave warning and known coverage/context kind translations; guarded evidence selection; archived function/context names only; Python backend unchanged from v78. Frontend source and user workflow acceptance tracked separately; full gates remain open.',files=rows)
+manifest=target.with_name(target.name+'.sha256.json');manifest.write_text(json.dumps(result,indent=2)+'\n','utf-8')
+print(json.dumps(dict(files=len(rows),manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest())))
+
+
+
+

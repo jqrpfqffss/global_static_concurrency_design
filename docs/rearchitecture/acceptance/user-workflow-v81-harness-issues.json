@@ -1,0 +1,17 @@
+{
+  "scope": "Preserved test-controller issues, not rewritten product PASS",
+  "cmd_redirection_artifacts": [
+    {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-journey-large-v80\\.identity').textContent",
+      "bytes": 213,
+      "sha256": "e6b81022ee4e8ef577600c935e4901e4b5c766648dca7141e32e1ade1755dabe"
+    },
+    {
+      "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-receiver-v80\\b.textContent",
+      "bytes": 206,
+      "sha256": "2132e90b86a1795f7ca2dec9166d24542bbbdc22b13fa2a355fd1c8369aec04b"
+    }
+  ],
+  "final_runner": "Node executable directly runs cached @playwright/cli 0.1.23 without CMD interpretation",
+  "native_observer_stop": "After actual task COMPLETE, interrupted an h2-only wait; actual h3 heading, COMPLETE/exit2 and unchanged original verified independently in native-publication-supplement.json"
+}

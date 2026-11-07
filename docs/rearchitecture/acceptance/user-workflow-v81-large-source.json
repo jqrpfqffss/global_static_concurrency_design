@@ -1,0 +1,459 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "all_113_pairs_226_participants_exact_raw_ids_and_archived_function_names",
+      "value": [
+        {
+          "offset": 0,
+          "count": 10,
+          "first": {
+            "title": "关系 1 · 可能并发",
+            "parts": [
+              {
+                "context": "主循环 · FOREGROUND\n原始身份：vector:slot:1",
+                "function": "micros()\n原始身份：c:@F@micros"
+              },
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 10 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:133\n原始身份：vector:slot:133",
+                "function": "micros()\n原始身份：c:@F@micros"
+              },
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 10,
+          "count": 10,
+          "first": {
+            "title": "关系 11 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:133\n原始身份：vector:slot:133",
+                "function": "micros()\n原始身份：c:@F@micros"
+              },
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 20 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:28\n原始身份：vector:slot:28",
+                "function": "microsISR()\n原始身份：c:@F@microsISR"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 20,
+          "count": 10,
+          "first": {
+            "title": "关系 21 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:29\n原始身份：vector:slot:29",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 30 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:31\n原始身份：vector:slot:31",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 30,
+          "count": 10,
+          "first": {
+            "title": "关系 31 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:31\n原始身份：vector:slot:31",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 40 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:43\n原始身份：vector:slot:43",
+                "function": "microsISR()\n原始身份：c:@F@microsISR"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 40,
+          "count": 10,
+          "first": {
+            "title": "关系 41 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:43\n原始身份：vector:slot:43",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 50 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:46\n原始身份：vector:slot:46",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 50,
+          "count": 10,
+          "first": {
+            "title": "关系 51 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:53\n原始身份：vector:slot:53",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 60 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:59\n原始身份：vector:slot:59",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 60,
+          "count": 10,
+          "first": {
+            "title": "关系 61 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:59\n原始身份：vector:slot:59",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 70 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:62\n原始身份：vector:slot:62",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 70,
+          "count": 10,
+          "first": {
+            "title": "关系 71 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:62\n原始身份：vector:slot:62",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 80 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:68\n原始身份：vector:slot:68",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 80,
+          "count": 10,
+          "first": {
+            "title": "关系 81 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:72\n原始身份：vector:slot:72",
+                "function": "microsISR()\n原始身份：c:@F@microsISR"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 90 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:75\n原始身份：vector:slot:75",
+                "function": "microsISR()\n原始身份：c:@F@microsISR"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 90,
+          "count": 10,
+          "first": {
+            "title": "关系 91 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:75\n原始身份：vector:slot:75",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 100 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:85\n原始身份：vector:slot:85",
+                "function": "microsISR()\n原始身份：c:@F@microsISR"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 100,
+          "count": 10,
+          "first": {
+            "title": "关系 101 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:85\n原始身份：vector:slot:85",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 110 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:98\n原始身份：vector:slot:98",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          }
+        },
+        {
+          "offset": 110,
+          "count": 3,
+          "first": {
+            "title": "关系 111 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:99\n原始身份：vector:slot:99",
+                "function": "micros()\n原始身份：c:@F@micros"
+              }
+            ]
+          },
+          "last": {
+            "title": "关系 113 · 可能并发",
+            "parts": [
+              {
+                "context": "中断 · IRQ:slot:15\n原始身份：vector:slot:15",
+                "function": "SysTick_Handler()\n原始身份：c:@F@SysTick_Handler"
+              },
+              {
+                "context": "中断 · IRQ:slot:99\n原始身份：vector:slot:99",
+                "function": "microsISR()\n原始身份：c:@F@microsISR"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "large_real_source_three_viewports_preserve_note_and_actions",
+      "value": [
+        {
+          "width": 1366,
+          "height": 768,
+          "line": "57\n        sysTickUptime++;\r",
+          "visible": 22.098215103149414,
+          "scrollY": 0,
+          "note": "大型归档自动化交互检查草稿，不提交实际工程结论。",
+          "buttons": [
+            {
+              "name": "确认有风险",
+              "bottom": 727.4285888671875
+            },
+            {
+              "name": "确认无风险",
+              "bottom": 727.4285888671875
+            },
+            {
+              "name": "暂无法确认",
+              "bottom": 727.4285888671875
+            },
+            {
+              "name": "撤销上次确认",
+              "bottom": 727.4285888671875
+            }
+          ]
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "line": "57\n        sysTickUptime++;\r",
+          "visible": 22.098215103149414,
+          "scrollY": 0,
+          "note": "大型归档自动化交互检查草稿，不提交实际工程结论。",
+          "buttons": [
+            {
+              "name": "确认有风险",
+              "bottom": 859.4285888671875
+            },
+            {
+              "name": "确认无风险",
+              "bottom": 859.4285888671875
+            },
+            {
+              "name": "暂无法确认",
+              "bottom": 859.4285888671875
+            },
+            {
+              "name": "撤销上次确认",
+              "bottom": 859.4285888671875
+            }
+          ]
+        },
+        {
+          "width": 1920,
+          "height": 1080,
+          "line": "57\n        sysTickUptime++;\r",
+          "visible": 22.098215103149414,
+          "scrollY": 0,
+          "note": "大型归档自动化交互检查草稿，不提交实际工程结论。",
+          "buttons": [
+            {
+              "name": "确认有风险",
+              "bottom": 1039.4285888671875
+            },
+            {
+              "name": "确认无风险",
+              "bottom": 1039.4285888671875
+            },
+            {
+              "name": "暂无法确认",
+              "bottom": 1039.4285888671875
+            },
+            {
+              "name": "撤销上次确认",
+              "bottom": 1039.4285888671875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "no_implicit_human_events",
+      "value": true
+    }
+  ],
+  "scope": "Actual independent latest INAV full-package import and source CMD; all 113 visible conflict pairs checked against read-only archive, not a fresh native scan",
+  "status": "PASS_SCOPED"
+}

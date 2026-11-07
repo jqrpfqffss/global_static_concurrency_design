@@ -1,0 +1,16 @@
+✔ drafts distinguish same-name static objects and scans; committing one keeps others (1.0443ms)
+✔ state-only edits are drafts; reverting to saved state clears the leave warning (0.1836ms)
+✔ function names use exact identities, never names parsed from a USR (0.43ms)
+✔ context pages retain unknowns and use exact archived identities (0.2392ms)
+✔ duplicate lookups share in-flight reads; failed names can retry (0.651ms)
+✔ bounded name cache evicts old pages and separates archives (0.2377ms)
+✔ malformed context pagination fails visibly instead of looping or claiming a match (0.182ms)
+✔ known unresolved and DMA context kinds are labels, future kinds remain explicit (0.8318ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 184.6511

@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "status": "PASS_ACTUAL_NATIVE_AND_ORIGINAL_UNCHANGED",
+  "task": {
+    "id": "b7336600cd6641ef9a1c5faf35c77192",
+    "scan_id": "b7336600cd6641ef9a1c5faf35c77192",
+    "mode": "scan",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "project_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\baseline\\firmware",
+    "profile_id": "4e62f1f505634ad5aad216619e2d6ef3",
+    "profile_revision": "ded7e5edfed8f65d04e3db9c2285f6f9a28ca3faefbc78b6963ffdf977420d3b",
+    "state": "COMPLETE",
+    "started": "2026-11-07T04:29:03.945144+00:00",
+    "budget_bytes": 17179869184,
+    "resource_policy": {
+      "preset": "auto",
+      "peak_bytes": 17179869184,
+      "soft_bytes": 12884901888,
+      "workers": 4
+    },
+    "build_mode": "database",
+    "previous_scan_available": true,
+    "checkpoint_mode": "INPUT_VERIFIED_TU_CACHE",
+    "storage_policy": {
+      "mode": "auto",
+      "revision": "missing",
+      "valid": true,
+      "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user-receiver-v80\\data"
+    },
+    "resources": {
+      "available": true,
+      "working_set_bytes": 57798656,
+      "private_bytes": 41758720,
+      "peak_job_commit_bytes": 187944960,
+      "limit_bytes": 17179869184,
+      "enforced_job_commit_limit_bytes": 17179869184,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 39376089088,
+      "system_commit_limit_bytes": 85825454080,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 37754875904,
+      "disk_free_bytes": 486255865856,
+      "host_pressure": {
+        "soft": false,
+        "stop": false,
+        "commit_headroom_bytes": 46449364992,
+        "physical_available_bytes": 37754875904,
+        "metrics_available": true,
+        "reason": ""
+      }
+    },
+    "task_disk_bytes": 11188197,
+    "exit_code": 2,
+    "finished": "2026-11-07T04:30:06.199051+00:00",
+    "published": true
+  },
+  "samples_count": 101,
+  "original_files": 42,
+  "source_differences": [],
+  "ui": "先处理需要核实的变量\n\n静态、AI 与人工结论分别保留；归档不能替代当前源码核对。\n\n继续人工确认\n发布者记录：静态已校验 · 原源码未重新验证。存在未知或待复核项时，不能形成全工程安全结论。\n静态疑似\n1\n无法判断\n5\n当前构建已证明安全\n7\n人工待确认\n15\n按优先级查看与处理\nsysticks\n\n静态疑似 main.c:25\n\n查看证据\n_ebss\n\n无法判断 :\n\n查看证据\n_edata\n\n无法判断 :\n\n查看证据\n_sbss\n\n无法判断 :\n\n查看证据\n_sdata\n\n无法判断 :\n\n查看证据\n\n完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。\n\n覆盖与未完成任务\n\n本轮静态清单 15 项\n\nOpenCode 未完成项仍需核实；不将未复核记录视为安全。\n\n查看覆盖缺口\n静态类别口径\n\n容器汇总：2\n\n本构建已证明安全：7\n\n静态疑似：1\n\n无法判断：5\n\n最近扫描与下一步\n\n当前归档 b7336600cd6641ef9a1c5faf35c77192 · 4e62f1f505634ad5aad216619e2d6ef3\n\n按当前已保存配置启动新扫描：4e62f1f505634ad5aad216619e2d6ef3 · 版本 ded7e5edfed8。扫描会重新核对真实输入，旧归档仍可打开。\n\n按此配置重新扫描\n\n使用自动预算；需要调整时进入扫描任务中心。\n\n查看证据 → 人工确认 → 导出标准包/增量 → 在其他电脑继续确认\n\n打开示例"
+}

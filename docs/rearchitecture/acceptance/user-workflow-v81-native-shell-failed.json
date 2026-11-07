@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "status": "FAIL",
+  "scope": "Approved original F030 firmware; ordinary four-step GUI with actual existing compilation database, no YAML editing, source CMD on current host; not new G2/physical offline PC",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-native-f030-v80-r2.py\", line 15, in <module>\n    wait(\"[...document.querySelectorAll('button')].some(b=>b.textContent==='保存独立配置'&&!b.disabled)\")\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-user-native-f030-v80-r2.py\", line 8, in wait\n    value=evaluate(expression)\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user_receiver_browser.py\", line 22, in evaluate\n    raw=cli('eval',expression);body=raw.split('### Result\\n',1)[1].lstrip();return json.JSONDecoder().raw_decode(body)[0]\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\user_receiver_browser.py\", line 10, in cli\n    if done.returncode:raise RuntimeError(done.stdout)\nRuntimeError\n",
+  "original_firmware_unchanged": true,
+  "original_files": 42
+}

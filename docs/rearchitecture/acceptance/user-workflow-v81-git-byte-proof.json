@@ -1,0 +1,328 @@
+{
+  "passed": true,
+  "scope": "Raw evidence and screenshots staged Git blob bytes match original indexed bytes; no text normalization",
+  "base_head": "75142c44d91484374e48243c9dcb55c4866c089e",
+  "evidence_index_sha256": "9d5765431739b49b4cec056851745de75988d67a94e6c8e3c75f7be126ec737e",
+  "files": [
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-final.json",
+      "bytes": 3329,
+      "sha256": "4df8fcfc6b199322e50c3de574c19f2af6da4a2d1c94032d6c53a8992ee60fa3"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-human-fields.json",
+      "bytes": 167,
+      "sha256": "78e03009f464c21e27c79a7d696c7b6f894ba08f21a10b7e17a24a13abebcd4f"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-original-draft-failed.json",
+      "bytes": 374,
+      "sha256": "15e3cbfc1cacc83c4e73204f17bacbdf8feb17bcb76301be48caf7418e130fb5"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-source-workflow.json",
+      "bytes": 10416,
+      "sha256": "04775ef14e6691e417ef2b4f236cb96bd08b297485d0972b1f491413c76ce39e"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-source-after-commit-fault.json",
+      "bytes": 7532,
+      "sha256": "9584c42f17fe13bb19aad50d56b8c52dceb2f743aecb5c315dbf7496698168c6"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-sharing-startup-failed.json",
+      "bytes": 1283,
+      "sha256": "6703e53d5d4c5a596f80089c9a2635ef872a11d6ff31a77c17e3f8aa3ad03489"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-sharing-wait-failed.json",
+      "bytes": 1966,
+      "sha256": "0c080017bd13d3067cd65fb89fc73985fe926fe1b39c8c3f3e6e2b012c1966f6"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-sharing-prefix-failed.json",
+      "bytes": 7393,
+      "sha256": "0929d5d31f103cad098413ad8c43aba26232f3408abd3ac96759ecd5f7f5c543"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-sharing-final-supplement.json",
+      "bytes": 3578,
+      "sha256": "360fcd4b63fc95f21d9d3d8c27863fdaa19b000b4cef0b819634c3e265a96f42"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-damaged-original.json",
+      "bytes": 217,
+      "sha256": "4881b55224929544d19a130b6ea873c2c0f1537f95fd12e5d5a7a41485e5dbae"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-native-active-reference-failed.json",
+      "bytes": 1050,
+      "sha256": "213dab08b15c800050d0d7357cebc403d1ded134adedb55055aa11d16537668d"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-native-shell-failed.json",
+      "bytes": 1188,
+      "sha256": "bb404c95509f84f6df467644aa6faf0fe34783caa0a3263ddc279aab931885af"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-native-observer-stopped.json",
+      "bytes": 2198,
+      "sha256": "29097cace0e55b5968c6366c5a5841b5706a44a1217d7244a790bec6b26e0f91"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-native-published.json",
+      "bytes": 3674,
+      "sha256": "64fd0838e3470640a720b5c110099e92242557e6c22980737c1ba6aa7d29f5af"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-native-firmware-before.json",
+      "bytes": 7179,
+      "sha256": "8a608549e1f1d37e141f1fc5232d92395f5fd7d9e41868599b7d11077ae47a6d"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-native-coverage.json",
+      "bytes": 2068,
+      "sha256": "299e3cb582c57c3e0667507e0d53fa3b45010598b2422d0a9bc4b5cd58005a78"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-large-shell-failed.json",
+      "bytes": 922,
+      "sha256": "e057574f0063df9fb9111a13066a82c4a024fde8284d28dc6949c26f44dc0331"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-large-shell-code-failed.json",
+      "bytes": 977,
+      "sha256": "9f2003ed5f957c68db9748a954617479811d16485d3a7fc17d719849d0fb34a2"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-large-source.json",
+      "bytes": 16251,
+      "sha256": "05a82c9af6560df20c5c2c72d16df16fe4caa2edc2fc96b11b33ca103177de12"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-large-source-postflight.json",
+      "bytes": 906,
+      "sha256": "b942e86afab5aa8db10a29bcde8ef43c1d3c4eb90405f3faa14821ff18561170"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-harness-issues.json",
+      "bytes": 917,
+      "sha256": "40d3ce96a1406b9d9d5bbc628b7185a7a3b76a3a1a12b137b1d3c29028688b29"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-static-postflight.json",
+      "bytes": 1039,
+      "sha256": "9c62c3449c34950a60721a1e4e3e50669abbf122759cb19b724357c92b4214e3"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-portable-receiver.json",
+      "bytes": 5332,
+      "sha256": "9e798abcb6070bbe43a0e7b478ae8a334026c85d2fc3c7b0ae76a0e56393d618"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-portable-large.json",
+      "bytes": 16255,
+      "sha256": "45883db3d80b6fdcd2ad343bdd9cbeeb87a786cf945e0c712908caba96182504"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-portable-receiver-server.json",
+      "bytes": 477,
+      "sha256": "f5793fd0df3dceed75efa3bbd1646e6c295a9595a3fd6259c1fe70f60fa7476d"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-portable-large-server.json",
+      "bytes": 511,
+      "sha256": "0143d578248a73598d838f61f00902aab6ac3e5c7404b4dc67198579cae28cde"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-assembly.json",
+      "bytes": 1599,
+      "sha256": "8a9922cd4010453cb7a8ede8bca31c1ff5d214c32966bd1ad379de65139e9f03"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-intermediate-v80-assembly.json",
+      "bytes": 1577,
+      "sha256": "5487762221d1a5f3f135773e00029a389495cd15926f400c4c2042661591c8c7"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-unit.log",
+      "bytes": 823,
+      "sha256": "043462b4063ee0b495815049696337f958787da19ee6cf573bd532e770824fd2"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-ui-contract.json",
+      "bytes": 9140,
+      "sha256": "25eacaffb2abc751ce7e8f226bf94c58e9c0a68b7d0e18e8c3678ab014c68c85"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-whole-diff-snapshot.json",
+      "bytes": 6659,
+      "sha256": "3a80be7e2662ee76580c8870d78373553601a6c534d21c0232bc08d20a195af5"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-journey-v80-fixed.py.txt",
+      "bytes": 5904,
+      "sha256": "cef962e2ab1f76d248067bd767fdac380c47b796348b9ae39d67c98116a36565"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-sharing-v80.py.txt",
+      "bytes": 3118,
+      "sha256": "dc92c49118093b7737db606bfeba638f03b8ea7c984f32f2cac3245e2d1ea7a8"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-sharing-v80-r3.py.txt",
+      "bytes": 3312,
+      "sha256": "0486ab2c46ecf7405ffb499261d73a867b25d7b23fb3f08751c0c556fb586328"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-native-f030-v80.py.txt",
+      "bytes": 3052,
+      "sha256": "c2466d9ffa6c5b4bafffecbd52aa9e759edc3bc272fdc5c1923bac47b65815ee"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-native-f030-v80-r3.py.txt",
+      "bytes": 2545,
+      "sha256": "6301920b59c04e5679bfb6a9cd6f7592364cf0ed9b4439a1f4e62281d0647de5"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-large-v80-r3.py.txt",
+      "bytes": 5490,
+      "sha256": "53c197aeefa5bc43e86601b96fc0617f29dc92fc1ca5f6a7ed74b7e2ab346e3c"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-large-portable-v81.py.txt",
+      "bytes": 5803,
+      "sha256": "fd25b615d7884ce47ac25f79811c042b4932a913667d8098f310a0fee01803ef"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-check-user-portable-receiver-v81.py.txt",
+      "bytes": 4671,
+      "sha256": "5e9942607f4a04aa735454b47e823628963a13f23b879f0f2a5a6a05d7ca068e"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-run-user-portable-v81.py.txt",
+      "bytes": 3097,
+      "sha256": "830d1198211397d4d3461744676df0a0bf2e929d90b1536117934b133e63a244"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-user_portable_receiver.py.txt",
+      "bytes": 1835,
+      "sha256": "be7e51f8c97d6e774b86d31a96fab873e3672fdfcccea344c8a9f9cb40445979"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-user_portable_large.py.txt",
+      "bytes": 2002,
+      "sha256": "60d8a3ba97f19197d31821f702e8c5b3c9eec0edc8d44a590e557fffc5356f50"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-user_journey_fixed.py.txt",
+      "bytes": 1709,
+      "sha256": "ab9830f50962c87db0c3dc95442a1b73f94a9176feefe1b029bdd09b4455121a"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-user_receiver_browser.py.txt",
+      "bytes": 1707,
+      "sha256": "433c7a06098b41df4d896401b66fd3eb0b5b354552ca1e1536fc39e7bd4c08e9"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-user_large_browser.py.txt",
+      "bytes": 1882,
+      "sha256": "51fbe84651d2fefe4975f41d87507f6d48e8196d0defe066144484eda6455943"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-finalize-user-workflow-v81.py.txt",
+      "bytes": 6219,
+      "sha256": "2a91e03900e24d116fe6521c421deef5f6f1695c90e2d1273f0839298ac6f79f"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-assemble-portable-v81.py.txt",
+      "bytes": 6356,
+      "sha256": "8585b637e2bd99100222d6300d9cc2f3df805f3199581983470c861372240053"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-freeze-stage-v81.py.txt",
+      "bytes": 2032,
+      "sha256": "17fe8d50f8e910cf02d306e9cc4e3f4d886aa2755f0fc1f2240ecf9e87b5be53"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-uncompressed.json",
+      "bytes": 20410,
+      "sha256": "305802f491305053fc19aaabdab5dda741dbba582d37468d1445dd5d6d954fd9"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-zip-extracted.json",
+      "bytes": 21720,
+      "sha256": "0fd42a0dfd1db5744103962181474081426dd01e40c11aabf49eada4906c91b4"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/01-original-draft.png",
+      "bytes": 92256,
+      "sha256": "3f5e59e19a4262e0e9845790e6c1e32af92399b3930c519a14bca4709699d3e6"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/02-original-lost-draft.png",
+      "bytes": 92099,
+      "sha256": "aebb6526eb76770d4c68ac47f9fd31b2fa6e36cbf15ec0713973c6621038e6a8"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/03-preserved-draft-source-1366.png",
+      "bytes": 98071,
+      "sha256": "0ec638b0d4cc1757066255bfb19d1059356bc98844f865765e9dd264ee90c902"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/04-damaged-actionable.png",
+      "bytes": 95102,
+      "sha256": "c6c2de61358d1eb28a6cf66a4e3eb542a5b4589489ba184050d6a6ad9ce6cd05"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/05-native-preflight.png",
+      "bytes": 108433,
+      "sha256": "c5052cd47f12b11907f68fa982fc99ffcdd881fa56cef64baebca0f793f31db1"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/06-native-published.png",
+      "bytes": 113090,
+      "sha256": "ff540512824b39cea8aa3ebbfad64a4bb7e8626d13087896ac36177a2fb97376"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/07-native-partial.png",
+      "bytes": 82083,
+      "sha256": "9c0d6b85ba012ab436579e8ace9fa994db61260daf7c1f0c768d03c227fb3950"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/08-portable-context-guidance.png",
+      "bytes": 76828,
+      "sha256": "6e40185e13234baa17a040d51cb259d8e6cbc4454ebd1537bf3421bff826efa4"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/09-portable-original-history.png",
+      "bytes": 98237,
+      "sha256": "089542f4b648752460fa146a6646a759ba69e6d4b1b87bcf7ffb269f65b52f9e"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/10-portable-main-irq.png",
+      "bytes": 114147,
+      "sha256": "9c948273269eeeac022fa5c960d956d30c933cba744588a60e10352e4dc20dd3"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/11-portable-source-1366.png",
+      "bytes": 95102,
+      "sha256": "deb82c6fe5c43c8a777a92daeb7a76bbbf39bf35b450a4c9ff2697f95cab76d6"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/12-portable-source-1600.png",
+      "bytes": 100906,
+      "sha256": "c95a6a3518ba2b8c725d76e8f51228f135925cf202d094e8ee1de5cb69c52d1d"
+    },
+    {
+      "file": "docs/rearchitecture/ui/screenshots/user-workflow-v81/13-portable-source-1920.png",
+      "bytes": 115364,
+      "sha256": "9fbd61c4565f5173688aed8553b39dea7ce55174d935841719d602e1032d1555"
+    },
+    {
+      "file": "docs/rearchitecture/acceptance/user-workflow-v81-browser-records.json",
+      "bytes": 175939,
+      "sha256": "f67bad8622baa728a1cfb4b7b07d1f2627127424555a9ed35061098bde5c39e1"
+    }
+  ]
+}
