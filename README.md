@@ -1,4 +1,4 @@
-OpenCode案例库与工程背景配置见 [复核资料指南](docs/studio-v88-review-materials-guide.md)。
+OpenCode 风险/安全结果展示、案例库和工程背景配置见 [v89 复核操作指南](docs/studio-v89-opencode-guide.md)，真实工程与模型验收见 [132号记录](docs/rearchitecture/132-opencode-results-live-review.md)。
 
 新版配置与开始扫描操作见 [配置与开始扫描指南](docs/studio-v84-configuration-guide.md)。
 

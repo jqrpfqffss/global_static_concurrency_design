@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "checks": [
+    "Empty confirmed-risk category remains empty; LIKELY is not relabeled CONFIRMED",
+    "Real likely-risk variable has readable reason, missing facts, process and archived source",
+    "Actual REVIEWED_SAFE / FALSE_POSITIVE appear in safe list; detail and source retained at three desktop sizes",
+    "Search/filter totals match complete ledger; expanded settings can scroll without hiding the workspace"
+  ],
+  "scope": "Browser clicks over actual complete F030/OpenCode outputs; no fabricated model response",
+  "status": "PASS_REAL_RESULTS_UI",
+  "scan_id": "9dc4ba9fab1a48e1955f5910e82478c7",
+  "groups": {
+    "confirmed": 0,
+    "likely": 1,
+    "safe": 5,
+    "unresolved": 0
+  }
+}

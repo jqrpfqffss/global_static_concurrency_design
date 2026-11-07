@@ -123,25 +123,73 @@ def queue_directory(path):
     return None
 
 
-def ai_page(out, offset=0, limit=50):
+def _ai_labels(alias='main'):
+    # The authoritative symbol projection supplies readable names without
+    # reconstructing facts/report or copying names into mutable AI receipts.
+    return (f"SELECT CAST(n.value AS TEXT) AS finding_id,f.symbol_id,s.name,"
+            f"s.definition_file,s.definition_line FROM {alias}.records f "
+            f"JOIN {alias}.edges e ON e.parent=f.node AND e.key='finding_id' "
+            f"JOIN {alias}.nodes n ON n.id=e.child LEFT JOIN {alias}.symbols s ON s.symbol_id=f.symbol_id "
+            "WHERE f.dataset='report' AND f.relation IN ('findings','review_safe_samples') GROUP BY n.value")
+
+
+def ai_page(out, offset=0, limit=50, *, outcome='', search=''):
+    from .decisions import review_category
     EvidenceProvider._bounds(offset,limit)
+    groups={key:0 for key in ('confirmed','likely','safe','unresolved')}
+    if outcome and outcome not in groups:
+        raise ValueError('OpenCode 结论筛选无效')
+    if not isinstance(search,str) or len(search)>256:
+        raise ValueError('复核搜索最多 256 字符')
+    search=search.strip()
     meta=runtime(out,with_reviews=False)
     if meta.get('ai_events_version')!=2:
         rows=runtime(out).get('reviews',[])
         states={}
+        labels={}
+        if rows and (Path(out)/'scan.db').is_file():
+            from .scan_store import connect_readonly
+            with closing(connect_readonly(Path(out)/'scan.db')) as conn:
+                labels={row['finding_id']:dict(row) for row in conn.execute(_ai_labels())}
         for row in rows:
             states[row['state']]=states.get(row['state'],0)+1
-        return dict(items=rows[offset:offset+limit],total=len(rows),states=states,offset=offset,
+            row.update(labels.get(row['finding_id'],{}))
+            row['outcome']=review_category(row)
+            groups[row['outcome']]+=1
+        all_total=len(rows)
+        rows=[row for row in rows if (not outcome or row['outcome']==outcome) and
+              (not search or any(search in str(row.get(k) or '') for k in ('finding_id','name','symbol_id','definition_file')))]
+        return dict(items=rows[offset:offset+limit],total=len(rows),all_total=all_total,states=states,groups=groups,offset=offset,
                     next_offset=offset+limit if offset+limit<len(rows) else None)
     with closing(sqlite3.connect((Path(out)/'reviews.db').resolve().as_uri()+'?mode=ro',uri=True)) as conn:
         conn.execute('PRAGMA trusted_schema=OFF')
-        source=(' FROM ai_events a WHERE a.sequence<=? AND NOT EXISTS(SELECT 1 FROM ai_events n '
-                'WHERE n.finding_id=a.finding_id AND n.sequence>a.sequence AND n.sequence<=?)')
+        conn.execute('ATTACH DATABASE ? AS evidence', ((Path(out)/'scan.db').resolve().as_uri()+'?mode=ro',))
+        # Same raw-outcome rule as decisions.review_category and the original
+        # review page. DONE alone never implies safety; stale/failed answers
+        # remain unresolved even when their historical payload says "safe".
+        verdict="CASE WHEN a.state='DONE' THEN json_extract(a.payload,'$.status') END"
+        category=(f"CASE {verdict} WHEN 'CONFIRMED' THEN 'confirmed' WHEN 'LIKELY' THEN 'likely' "
+                  "WHEN 'REVIEWED_SAFE' THEN 'safe' WHEN 'FALSE_POSITIVE' THEN 'safe' ELSE 'unresolved' END")
+        cte=("WITH latest AS (SELECT a.*,"+category+" AS outcome FROM ai_events a WHERE a.sequence<=? "
+             "AND NOT EXISTS(SELECT 1 FROM ai_events n WHERE n.finding_id=a.finding_id "
+             "AND n.sequence>a.sequence AND n.sequence<=?)), labels AS ("+_ai_labels('evidence')+") ")
         args=[meta['watermark']]*2
-        states=dict(conn.execute('SELECT a.state,count(*)'+source+' GROUP BY a.state',args))
-        total=sum(states.values())
-        rows=[json.loads(row[0]) for row in conn.execute('SELECT a.payload'+source+' ORDER BY a.ordinal LIMIT ? OFFSET ?', [*args,limit,offset])]
-        return dict(items=rows,total=total,states=states,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
+        states=dict(conn.execute(cte+'SELECT state,count(*) FROM latest GROUP BY state',args))
+        groups.update(dict(conn.execute(cte+'SELECT outcome,count(*) FROM latest GROUP BY outcome',args)))
+        where=[];filters=[]
+        if outcome:where.append('a.outcome=?');filters.append(outcome)
+        if search:
+            where.append("(instr(a.finding_id,?)>0 OR instr(coalesce(l.name,''),?)>0 OR "
+                         "instr(coalesce(l.symbol_id,''),?)>0 OR instr(coalesce(l.definition_file,''),?)>0)")
+            filters.extend([search]*4)
+        source=' FROM latest a LEFT JOIN labels l ON l.finding_id=a.finding_id'+(' WHERE '+' AND '.join(where) if where else '')
+        total=conn.execute(cte+'SELECT count(*)'+source,[*args,*filters]).fetchone()[0]
+        rows=[]
+        for payload,sid,name,file,line,group in conn.execute(cte+'SELECT a.payload,l.symbol_id,l.name,l.definition_file,l.definition_line,a.outcome'+source+' ORDER BY a.ordinal LIMIT ? OFFSET ?', [*args,*filters,limit,offset]):
+            row=json.loads(payload)
+            row.update(symbol_id=sid,name=name,definition_file=file,definition_line=line,outcome=group)
+            rows.append(row)
+        return dict(items=rows,total=total,all_total=sum(states.values()),states=states,groups=groups,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
 
 def persist(out, facts, report, reviews, *, _existing_only=False):

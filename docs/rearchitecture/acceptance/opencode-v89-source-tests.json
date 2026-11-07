@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "tests": 148,
+  "seconds": 92.65599999995902,
+  "modules": [
+    "test_effective_decisions",
+    "test_deep_review",
+    "test_native_review_workflow",
+    "test_review_integrity",
+    "test_review_language",
+    "test_review_sources",
+    "test_review_summary",
+    "test_review_contract",
+    "test_case_library",
+    "test_studio_ai_results",
+    "test_studio_api",
+    "test_studio_review_materials",
+    "test_review_presentation",
+    "test_review_packet_projection",
+    "test_native_review_packet",
+    "test_evidence_mcp",
+    "test_review_risk"
+  ],
+  "log": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\v89-frozen-tests.log",
+  "live_provider": "Separate real firmware round; ordinary live unit remains opt-in and skipped"
+}

@@ -288,9 +288,9 @@ def _create_app(data_root, *, token, authority, startup):
                     can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
     @app.get('/api/scans/{scan_id}/ai')
-    def ai_records(scan_id: str, offset: int=0, limit: int=50):
+    def ai_records(scan_id: str, offset: int=0, limit: int=50, outcome: str='', search: str=''):
         from ..scan_persistence import ai_page
-        return ai_page(scan_path(scan_id),offset,limit)
+        return ai_page(scan_path(scan_id),offset,limit,outcome=outcome,search=search)
 
     @app.get('/api/scans/{scan_id}/ai-artifact')
     def ai_artifact(scan_id: str, name: str, offset: int=0, limit: int=16384):

@@ -87,3 +87,32 @@ class ArchivedReviewSourceTests(unittest.TestCase):
         self.assertNotIn('*packet.json',config['permission']['read'])
         self.assertNotIn('*.h',config['permission']['read'])
         self.assertEqual(config['permission']['ecra_evidence_*'],'allow')
+
+    def test_exact_reference_permissions_support_worktree_relative_opencode_releases(self):
+        import os
+        repo=self.root/'repository';nested=repo/'firmware';nested.mkdir(parents=True)
+        (repo/'.git').mkdir()
+        library=self.out/'review/case-library/exact.md'
+        packet=self.out/'review/packet.json'
+        for base in [nested,repo]:
+            config=json.loads(_review_env([packet],reference_paths=[library],root=nested,
+                evidence_database=self.out/'scan.db',archived_sources_only=True)['OPENCODE_CONFIG_CONTENT'])
+            rules=config['permission']['read']
+            relative=os.path.relpath(library.resolve(),base.resolve())
+            self.assertEqual(rules[relative],'allow')
+            self.assertEqual(rules[Path(relative).as_posix()],'allow')
+            self.assertNotIn('*.md',rules);self.assertNotIn('*exact.md',rules)
+            self.assertEqual(rules['*'],'deny');self.assertEqual(config['permission']['*'],'deny')
+        formatting=json.loads(_review_env([packet],reference_paths=[library],root=nested,
+            format_only=True)['OPENCODE_CONFIG_CONTENT'])
+        self.assertNotIn('read',formatting['permission'])
+
+    def test_non_git_project_exact_read_paths_also_match_global_worktree_root(self):
+        import os
+        document=self.out/'review/case-library/exact.md'
+        rules=json.loads(_review_env([],reference_paths=[document],root=self.root,
+            archived_sources_only=True)['OPENCODE_PERMISSION'])['read']
+        relative=os.path.relpath(document.resolve(),Path(self.root.resolve().anchor))
+        self.assertEqual(rules[relative],'allow')
+        self.assertEqual(rules[Path(relative).as_posix()],'allow')
+        self.assertEqual(rules['*'],'deny');self.assertNotIn('*.md',rules)

@@ -435,10 +435,25 @@ ECRA发现 shared→读取旧值→实参保存→经调用路径写回同一sha
         + '\n聚焦事实：\n' + json.dumps(focused, ensure_ascii=False) + CONTRACT_PROMPT)
 
 
-def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None,archived_sources_only=False):
+def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None,archived_sources_only=False,root=None):
     # Formatting sessions have no source or tool access and no previous session.
     permissions = {'*': 'deny'}
     if not format_only:
+        # OpenCode releases match read against either absolute paths or paths
+        # relative to the project worktree. Keep both spellings for these exact
+        # packet/reference files; never widen canonical reviews to *.md/read:*.
+        bases=[]
+        if root is not None:
+            directory=Path(root).resolve();bases.append(directory)
+            worktree=None
+            for parent in (directory,*directory.parents):
+                if (parent/'.git').exists():
+                    worktree=parent
+                    if parent not in bases:bases.append(parent)
+                    break
+            # A non-Git project uses OpenCode's global worktree "/", not
+            # cwd. On Windows its read pattern is relative to the cwd drive.
+            if worktree is None:bases.append(Path(directory.anchor))
         readable = {'*': 'deny'}
         if not archived_sources_only:
             for suffix in ('c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 's', 'S', 'inc', 'ld', 'cmake', 'ioc'):
@@ -446,6 +461,12 @@ def _review_env(paths, *, format_only=False, reference_paths=(), evidence_databa
             readable['*CMakeLists.txt'] = 'allow'
         for path in [*paths, *reference_paths]:
             readable[str(path)] = readable[path.as_posix()] = 'allow'
+            resolved=path.resolve()
+            readable[str(resolved)]=readable[resolved.as_posix()]='allow'
+            for base in bases:
+                try:relative=os.path.relpath(resolved,base)
+                except ValueError:continue  # Different Windows drives use the absolute spelling.
+                readable[relative]=readable[Path(relative).as_posix()]='allow'
             if not archived_sources_only:readable['*' + path.name] = 'allow'
         permissions['read'] = readable
         if reference_paths:
@@ -745,7 +766,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                               if (packet.get('git_diff_impact') or {}).get(key)]],
                                         format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths,
                                         evidence_database=out/'scan.db' if is_canonical(out) else None,
-                                        archived_sources_only=archived_sources is not None))
+                                        archived_sources_only=archived_sources is not None,root=root))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')
                     record['exit_code'] = proc.returncode
