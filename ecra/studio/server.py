@@ -676,7 +676,7 @@ def _create_app(data_root, *, token, authority, startup):
     @app.post('/api/profiles/directories')
     def profile_directories(payload: dict):
         from .directories import browse
-        return browse(**{key:payload[key] for key in ('path','root','after','search','limit') if key in payload})
+        return browse(**{key:payload[key] for key in ('path','root','after','search','limit','kind') if key in payload})
 
     @app.post('/api/profiles/form-merge')
     def profile_form_merge(payload: dict):

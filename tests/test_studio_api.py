@@ -36,6 +36,18 @@ class StudioAPITests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/profiles/directories',json=payload,headers={'x-ecra-session':'bad'}).status_code,401)
         self.assertEqual(before,(file.read_bytes(),file.stat().st_mtime_ns,root.stat().st_mtime_ns))
 
+    def test_file_picker_explicit_kind_is_forwarded_and_authenticated(self):
+        root=Path(self.tmp.name)/'picker';root.mkdir()
+        target=root/'arm.cmake';target.write_text('unread','utf-8')
+        payload=dict(path=str(target),root=str(root),kind='toolchain')
+        response=self.client.post('/api/profiles/directories',json=payload)
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(response.json()['mode'],'file')
+        self.assertEqual(response.json()['relative'],'arm.cmake')
+        self.assertEqual(self.client.post('/api/profiles/directories',json=payload,headers={'x-ecra-session':'bad'}).status_code,401)
+        self.assertEqual(self.client.post('/api/profiles/directories',json={**payload,'kind':'compile_database'}).status_code,400)
+        self.assertEqual(target.read_text('utf-8'),'unread')
+
     def test_context_form_api_keeps_full_backup_and_refuses_shared_or_invalid_origins(self):
         import copy
         import yaml

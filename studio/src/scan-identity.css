@@ -4,12 +4,8 @@
 .scan-identity-trigger small{color:#667894;font-size:12px}
 header .header-scan{max-width:24%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header .badge{max-width:36%;white-space:normal;flex-shrink:0;line-height:1.45}
-.scan-identity-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border:1px solid #bfcddd;border-radius:8px;padding:24px;color:#22344d}
-.scan-identity-dialog::backdrop{background:#17283d66}
-.scan-identity-dialog[open]{display:flex;flex-direction:column}
-.scan-identity-dialog>h2,.scan-identity-dialog>p,.scan-identity-dialog>footer{flex-shrink:0}
-.scan-identity-fields{display:grid;grid-template-columns:minmax(120px,26%) minmax(0,1fr);gap:8px 16px;min-height:0;overflow:auto}
+.scan-identity-fields{display:grid;grid-template-columns:minmax(120px,26%) minmax(0,1fr);gap:8px 16px;min-height:0}
 .scan-identity-fields dt,.scan-identity-fields dd{padding:8px 0;margin:0;border-bottom:1px solid #e7edf4;overflow-wrap:anywhere;white-space:pre-wrap}
 .scan-identity-fields small{display:block;color:#667894;margin-top:8px}
-.scan-identity-dialog footer{display:flex;justify-content:flex-end;margin-top:16px}
-@media(max-width:600px){.scan-identity-dialog{padding:16px}.scan-identity-fields{grid-template-columns:1fr;gap:0}.scan-identity-fields dt{border:0;font-weight:600}}
+
+@media(max-width:600px){.scan-identity-fields{grid-template-columns:1fr;gap:0}.scan-identity-fields dt{border:0;font-weight:600}}

@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "status": "PASS_ASSEMBLY_SCOPE_ACTUAL_CMD_RESTART_PENDING",
+  "all_gates_passed": false,
+  "scope": "Engineering workspace UI plus explicit read-only build-file picker and bounded TU association query. Six backend/test source files differ from v81; analysis engine, dependencies, runtime and tools remain identical. Source and packaged scoped checks and complete distribution verification are independent of full G1-G8/UAT gates.",
+  "backend_and_test_source_files": 474,
+  "backend_source_differences": [
+    "ecra/studio/coverage.py",
+    "ecra/studio/directories.py",
+    "ecra/studio/server.py",
+    "tests/test_directory_browser.py",
+    "tests/test_studio_api.py",
+    "tests/test_studio_coverage.py"
+  ],
+  "backend_snapshot_sha256": "fb1dcaf4f66dbf92e0f33be784a5bb26a278c56d58a4b039325e764d4f7c98d3",
+  "program_snapshot_sha256": "4b35223c585b4ecaf46eb0b018c951aa4135f630453a8590fe17d243184fad5a",
+  "application_files": 148,
+  "copied_runtime_tool_files": 28821,
+  "verified_v78_package_receipt_sha256": "ccd16407f13aef91d0d5a9f7a1fa01a585a691eada96b4b82e96a031da0169b7",
+  "seconds": 437.5469999999623,
+  "first_failure": "Packaged test-only FastAPI TestClient dependencies httpx/httpx2 absent; host 31 passed. Real packaged HTTP/browser covered separately.",
+  "application_bytes_identical_to_first_candidate": true,
+  "packaged_direct_unit_count": 16,
+  "uncompressed": {
+    "commands": 27,
+    "receipt_sha256": "f633ea0db352f05a0344ecf3c09172f53be53d10cfdf4cb45bf59e97c4c4db47"
+  },
+  "zip-extracted": {
+    "commands": 27,
+    "receipt_sha256": "b53260450240983dc4d71b659e6c0063191543fa19784af60ed5b26e26050d76"
+  },
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v82\\ECRA-Portable.zip",
+  "zip_bytes": 784142534,
+  "zip_sha256": "766fd56b8a66f51cb4ea176b2bd65eb66a11062a04b28130d376926fe36b9174",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_pc": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED"
+}

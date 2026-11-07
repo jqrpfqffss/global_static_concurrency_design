@@ -1,0 +1,12 @@
+{
+  "summary_ok": true,
+  "tests": 31,
+  "passed_tests": 31,
+  "seconds": 12.391,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "scope": "Coverage query, metadata picker, authenticated Studio API; not full engine regression."
+}

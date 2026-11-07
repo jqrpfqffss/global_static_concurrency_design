@@ -1,6 +1,8 @@
 # STM32 全局变量与 static 变量并发排查工具（ECRA）
 
-**首次使用 v81 上位机，请从[详细用户教程：启动、扫描、排查、确认与结果交接](docs/studio-v81-user-tutorial.md)开始。** 教程按实际界面编写，包含四步工程向导、真实截图、未提交修改、备份恢复和常见问题；旧命令行/HTML教程另作历史参考。
+**新版 v82 界面请先看[布局与操作指南](docs/studio-v82-layout-guide.md)**：目录/源码可放大，人工确认、覆盖、历史和日志使用新的工作区布局。完整验证范围见[128号记录](docs/rearchitecture/128-engineering-workspace-usability.md)。
+
+**完整业务流程请从[详细用户教程：启动、扫描、排查、确认与结果交接](docs/studio-v81-user-tutorial.md)开始。** 教程按实际界面编写，包含四步工程向导、真实截图、未提交修改、备份恢复和常见问题；旧命令行/HTML教程另作历史参考。
 
 大型 STM32H743 飞控工程的目标构建、问题修正与实测状态见 [INAV H743 验收记录](docs/inav-h743-git-diff-validation.md)。多目标 CMake 工程可配置可选的 `analysis.cmake.target`，由 Ninja 实际依赖图选择完整固件闭包。
 

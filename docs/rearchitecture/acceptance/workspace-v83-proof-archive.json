@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "archive": "H:\\ECRAStudio-build-20261107-studio-v83\\portable-evidence\\workspace-ui-proof.zip",
+  "files": 78,
+  "sha256": "94088790e61e176c553c17304ecfbaad769b8f53c0503e8cd7676ca11d14a22e",
+  "scope": "Selected test programs, receipts and screenshots; excludes session credentials and raw launcher/browser logs. Original paths and real archived fixtures remain prerequisites for replay."
+}

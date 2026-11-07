@@ -75,5 +75,34 @@ class DirectoryBrowserTests(unittest.TestCase):
         self.assertEqual(value['mode'],'roots');self.assertIsNone(value['path']);self.assertTrue(value['items'])
         self.assertTrue(all(Path(row['path']).is_absolute() for row in value['items']))
 
+    def test_explicit_file_kinds_are_bounded_and_do_not_read_or_write_contents(self):
+        (self.root/'build').mkdir()
+        for name in ['compile_commands.json','arm 工具链.cmake','main.c','secret.json']:
+            (self.root/name).write_text('unread original',encoding='utf-8')
+        before={p.name:(p.stat().st_mtime_ns,p.stat().st_size) for p in self.root.iterdir()}
+        with patch('builtins.open',side_effect=AssertionError('Picker must not read contents')):
+            for kind,name in [('compile_database','compile_commands.json'),('toolchain','arm 工具链.cmake')]:
+                page=browse(str(self.root),root=str(self.root),kind=kind,limit=1)
+                rows=list(page['items'])
+                while page['next_after']:
+                    page=browse(str(self.root),root=str(self.root),kind=kind,after=page['next_after'],limit=1)
+                    rows.extend(page['items'])
+                self.assertEqual({row['name'] for row in rows},{'build',name})
+                selected=browse(str(self.root/name),root=str(self.root),kind=kind)
+                self.assertEqual(selected['mode'],'file');self.assertEqual(selected['relative'],name)
+                self.assertEqual(selected['parent'],str(self.root))
+        self.assertEqual(before,{p.name:(p.stat().st_mtime_ns,p.stat().st_size) for p in self.root.iterdir()})
+
+    def test_file_selection_rejects_wrong_kinds_root_escape_and_links(self):
+        outside=Path(self.tmp.name)/'outside.cmake';outside.write_text('unchanged','utf-8')
+        source=self.root/'source.c';source.write_text('unchanged','utf-8')
+        for path,kwargs in [(outside,dict(root=str(self.root),kind='toolchain')),(source,dict(kind='toolchain')),(source,dict(kind='unknown'))]:
+            with self.subTest(path=path,kwargs=kwargs),self.assertRaises(ValueError):browse(str(path),**kwargs)
+        link=self.root/'linked.cmake'
+        try:link.symlink_to(outside)
+        except OSError as exc:self.skipTest('Host cannot create an owned symlink: '+str(exc))
+        self.assertFalse(next(row for row in browse(str(self.root),kind='toolchain')['items'] if row['name']==link.name)['selectable'])
+        with self.assertRaises(ValueError):browse(str(link),kind='toolchain')
+
 
 if __name__=='__main__':unittest.main()

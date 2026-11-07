@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "large_immutable_files": 2667,
+  "large_static_sha256": "c6180f66323ae9ce72711ee8c83858cdce04114cc1e210a30aaa7dc3e760163b",
+  "large_differences": [],
+  "large_human_events": 0,
+  "f030": [
+    {
+      "scan_id": "b7336600cd6641ef9a1c5faf35c77192",
+      "immutable_files": 117,
+      "differences": [],
+      "scan_db_sha256": "8e99bcb064e61a510ae6f99aa530bf4ee74641555cdb9673d93ebb495a528346"
+    },
+    {
+      "scan_id": "native",
+      "immutable_files": 62,
+      "differences": [],
+      "scan_db_sha256": "51bceb04f3942130ba43565b5928f1c0ee54bc51d88826569836b1229458e8dd"
+    }
+  ]
+}

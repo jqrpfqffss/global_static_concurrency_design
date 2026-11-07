@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "association_files": 380,
+  "association_total": 128426,
+  "query_seconds": 0.35999999998603016,
+  "independent_per_symbol_seconds": 0.5150000000139698,
+  "all_counts_equal": true,
+  "query_plan": [
+    [
+      2,
+      0,
+      0,
+      "CO-ROUTINE variable_tus"
+    ],
+    [
+      12,
+      2,
+      0,
+      "SCAN v"
+    ],
+    [
+      14,
+      2,
+      0,
+      "SEARCH t USING PRIMARY KEY (parent=?)"
+    ],
+    [
+      21,
+      2,
+      0,
+      "SEARCH collection USING INTEGER PRIMARY KEY (rowid=?)"
+    ],
+    [
+      29,
+      2,
+      0,
+      "SEARCH c USING PRIMARY KEY (parent=?)"
+    ],
+    [
+      36,
+      2,
+      0,
+      "SEARCH name USING INTEGER PRIMARY KEY (rowid=?)"
+    ],
+    [
+      41,
+      2,
+      0,
+      "USE TEMP B-TREE FOR GROUP BY"
+    ],
+    [
+      80,
+      2,
+      0,
+      "USE TEMP B-TREE FOR count(DISTINCT)"
+    ],
+    [
+      84,
+      0,
+      0,
+      "SCAN variable_tus"
+    ]
+  ],
+  "static_stat_unchanged": true,
+  "scope": "Read-only full INAV association count comparison with an independent per-symbol traversal; no analysis classification change."
+}

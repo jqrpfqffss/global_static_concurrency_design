@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "sealed_restart_preserves_actual_two_confirmation_and_undo_events",
+      "value": true
+    },
+    {
+      "name": "sealed_workbench_geometry",
+      "value": {
+        "evidence": 325.58038330078125,
+        "buttonsBottom": 745.4285888671875
+      }
+    },
+    {
+      "name": "sealed_directory_keyboard_and_ten_rows",
+      "value": {
+        "height": 384.8482360839844,
+        "visible": 10
+      }
+    },
+    {
+      "name": "sealed_real_file_picker_and_authenticated_metadata_api",
+      "value": true
+    },
+    {
+      "name": "sealed_log_single_scroll_and_visible_paging",
+      "value": {
+        "paneOverflow": 0,
+        "logHeight": 276,
+        "buttonsBottom": 731.4286270141602
+      }
+    },
+    {
+      "name": "sealed_policy_options_visible_in_own_section",
+      "value": true
+    },
+    {
+      "name": "sealed_dialog_filter_error_retry_and_history_export_error_visible",
+      "value": true
+    }
+  ],
+  "scope": "Actual sealed v83 ECRA.cmd, bundled Python, Windows-only PATH; independent existing F030 and CMake Diff data. Not clean offline PC or physical UAT.",
+  "status": "PASS_SCOPED"
+}

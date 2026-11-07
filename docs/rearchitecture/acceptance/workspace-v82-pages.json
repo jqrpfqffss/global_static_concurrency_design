@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "coverage_list_and_full_details_beside_each_other",
+      "value": {
+        "sideBySide": true,
+        "height": 495.76788330078125,
+        "main": 712
+      }
+    },
+    {
+      "name": "history_compact_rows_real_comparison_full_identities_dialog",
+      "value": true
+    },
+    {
+      "name": "actual_existing_task_stages_and_log",
+      "value": {
+        "stages": 20,
+        "logHeight": 240.00001525878906
+      }
+    },
+    {
+      "name": "real_ai_empty_ledger_shows_unreviewed_boundary",
+      "value": "OpenCode 逐项复核\n\n静态分类、AI 答复和人工确认分别保留。打开本页不会调用模型或重新提取 TU。\n\n复核配置与执行说明\n复核全部疑似与未知\n仅重试技术失败\n任务日志与安全停止\n刷新原始状态\n本扫描目标 6 项\n等待复核：6\n复核对象\t状态\t尝试\nGS-0facb0f7948b184c\t等待复核\n：OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中\n\t0\nGS-06ac808d74e6aad9\t等待复核\n：OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中\n\t0\nGS-0ed08d01e2fe2e8f\t等待复核\n：OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中\n\t0\nGS-9577e7e94f75b3ca\t等待复核\n：OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中\n\t0\nGS-a1197826cc74dc9e\t等待复核\n：OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中\n\t0\nGS-d2e4367f9e48417a\t等待复核\n：OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中\n\t0\n上一页\n\n显示 1–6 / 6\n\n下一页"
+    },
+    {
+      "name": "sharing_four_sections_isolate_active_task_without_long_stacked_page",
+      "value": true
+    },
+    {
+      "name": "settings_location_transfer_and_policy_sections",
+      "value": true
+    },
+    {
+      "name": "real_previous_cmake_working_diff_package_import",
+      "value": "导入已提交：ca55ea533fea4576bdbee55977746ae0；新增人工事件 0"
+    },
+    {
+      "name": "real_diff_counts_independent_and_evidence_not_squeezed",
+      "value": {
+        "diff": "Git：8b9abecce47750091631c0f861fc40bf1f12f7d1 → HEAD · 影响清单 3 项 · 保守潜在影响 1 项\n范围与完整证据",
+        "evidence": 281.58038330078125,
+        "buttonsBottom": 745.4285888671875
+      }
+    }
+  ],
+  "scope": "All nine routes and settings on real F030 archives; explicit completed CMake working Diff package import; no simulated result data.",
+  "status": "PASS_SCOPED"
+}

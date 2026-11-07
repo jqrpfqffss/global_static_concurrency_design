@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from './api'
+import WorkspaceDialog from './WorkspaceDialog.vue'
+const planOpen=ref(false)
 const props=defineProps<{profile:any}>()
 const emit=defineEmits<{ready:[id:string],tasks:[id:string]}>()
 const task=ref<any>(null),plan=ref<any>(null),error=ref(''),busy=ref(false),offset=ref(0)
@@ -44,7 +46,7 @@ onUnmounted(()=>{generation++;if(timer)clearInterval(timer)})
     <div v-if="task&&['FAILED','INTERRUPTED'].includes(task.state)" class="banner error" role="alert"><strong>检查未通过，不能从向导启动扫描。</strong><p>{{task.preflight?.error||task.error||'检查已停止，请查看诊断后重试。'}}</p><p>{{task.preflight?.repair||'原有效结果与人工记录保留。'}}</p></div>
     <template v-if="plan?.check?.passed&&task?.state==='COMPLETE'">
       <div class="banner" role="status">真实构建与编译输入检查通过 · {{plan.check.finished}}。{{admitted===task.id?'正式扫描会重新检查。':'这是历史检查记录；请重新检查后从向导启动。'}}</div>
-      <p>工程：{{plan.check.project_root}}</p><p v-if="plan.check.analysis_root!==plan.check.project_root">固定版本分析根：{{plan.check.analysis_root}}</p>
+      <button @click="planOpen=true">查看完整构建计划与逐 TU 参数</button><WorkspaceDialog v-if="planOpen" title="真实构建计划与完整编译参数" @close="planOpen=false"><p>工程：{{plan.check.project_root}}</p><p v-if="plan.check.analysis_root!==plan.check.project_root">固定版本分析根：{{plan.check.analysis_root}}</p>
       <p>目标：{{plan.check.target||'真实编译数据库闭包'}} · 变体：{{plan.check.variant||'以逐TU参数为准'}}</p>
       <p>独立数据：{{plan.check.data_root}}</p><p>编译数据库：{{plan.check.compile_database}}</p><p v-if="plan.check.build_root">独立构建：{{plan.check.build_root}}</p>
       <p v-if="plan.check.git">{{plan.check.git.base_ref}} → {{plan.check.git.current_ref}} · {{plan.check.git.base_sha}} → {{plan.check.git.head_sha}}</p>
@@ -52,10 +54,10 @@ onUnmounted(()=>{generation++;if(timer)clearInterval(timer)})
       <details><summary>实际工具路径与版本 · {{plan.check.tools.length}} 项</summary><article v-for="tool in plan.check.tools"><strong>{{tool.field}}</strong><p>{{tool.path}}</p><pre>{{tool.version||tool.sha256}}</pre></article></details>
       <p>编译命令 {{plan.total?offset+1:0}}–{{Math.min(offset+plan.limit,plan.total)}} / {{plan.total}}，逐TU展开查看全部参数</p>
       <details v-for="unit in plan.items" :key="unit.ordinal"><summary>{{unit.ordinal+1}} · {{unit.source_file}}</summary><p>工作目录：{{unit.directory}}</p><h4>原始编译参数（顺序保留）</h4><pre>{{JSON.stringify(unit.original_arguments,null,2)}}</pre><h4>实际Clang参数（含宏、核心、include与ABI选项）</h4><pre>{{JSON.stringify(unit.arguments,null,2)}}</pre><p>引擎推断目标：{{unit.inferred_target||'以实际参数为准'}}</p></details>
-      <div class="actions"><button :disabled="busy||!offset" @click="action(()=>page(Math.max(0,offset-plan.limit)))">上一页编译命令</button><button :disabled="busy||plan.next_offset===null" @click="action(()=>page(plan.next_offset))">下一页编译命令</button></div>
+      <div class="actions"><button :disabled="busy||!offset" @click="action(()=>page(Math.max(0,offset-plan.limit)))">上一页编译命令</button><button :disabled="busy||plan.next_offset===null" @click="action(()=>page(plan.next_offset))">下一页编译命令</button></div></WorkspaceDialog>
     </template>
   </section>
 </template>
 <style scoped>
-.build-preflight{min-width:0;overflow-wrap:anywhere}.build-preflight pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto}.build-preflight details{margin:8px 0}.build-preflight button{margin:4px 8px 4px 0}.build-preflight article{border-bottom:1px solid var(--border,#d7dee8);padding:8px 0}
+.build-preflight{min-width:0;overflow-wrap:anywhere}.build-preflight pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:auto}.build-preflight details{margin:8px 0}.build-preflight button{margin:4px 8px 4px 0}.build-preflight article{border-bottom:1px solid var(--border,#d7dee8);padding:8px 0}
 </style>

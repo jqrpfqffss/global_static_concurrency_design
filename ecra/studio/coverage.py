@@ -40,10 +40,14 @@ class CoverageService:
 
     @staticmethod
     def _associations():
+        # Keep the selective symbol->TU-list traversal first. On large stores,
+        # SQLite otherwise starts at edge_child to avoid a GROUP BY sort and
+        # walks every unrelated call/alias/evidence edge. CROSS JOIN only fixes
+        # the loop order; the predicates and DISTINCT symbol counting are equal.
         return ("WITH variable_tus AS (SELECT c.child AS file_node,count(DISTINCT v.symbol_id) AS symbols "
-            "FROM symbols v JOIN edges t ON t.parent=v.node AND t.key='translation_units' "
-            "JOIN nodes collection ON collection.id=t.child AND collection.kind='list' "
-            "JOIN edges c ON c.parent=t.child JOIN nodes name ON name.id=c.child AND name.kind='str' "
+            "FROM symbols v CROSS JOIN edges t ON t.parent=v.node AND t.key='translation_units' "
+            "CROSS JOIN nodes collection ON collection.id=t.child AND collection.kind='list' "
+            "CROSS JOIN edges c ON c.parent=t.child CROSS JOIN nodes name ON name.id=c.child AND name.kind='str' "
             'GROUP BY c.child) ')
 
     @classmethod

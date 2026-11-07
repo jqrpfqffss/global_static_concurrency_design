@@ -1,52 +1,89 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { api } from './api'
-const props=defineProps<{title:string,start:string,root?:string,purpose?:'data'}>()
+import WorkspaceDialog from './WorkspaceDialog.vue'
+const props=defineProps<{title:string,start:string,root?:string,purpose?:'data',kind?:'compile_database'|'toolchain'}>()
 const emit=defineEmits<{selected:[value:{path:string,relative:string|null}],close:[]}>()
-const dialog=ref<HTMLDialogElement|null>(null),state=ref<any>(null),pathText=ref(props.start),search=ref(''),error=ref(''),loading=ref(false)
-const history=ref<(string|null)[]>([]),cursor=ref<string|null>(null)
-let generation=0
+const state=ref<any>(null),pathText=ref(props.start),search=ref(''),error=ref(''),loading=ref(false),chosen=ref<any>(null)
+const pageHistory=ref<(string|null)[]>([]),cursor=ref<string|null>(null),back=ref<string[]>([]),forward=ref<string[]>([])
+const recent=ref<string[]>([]),pathInput=ref<HTMLInputElement|null>(null),list=ref<HTMLElement|null>(null)
+const key='ecra-recent-directories'
+const fileMode=computed(()=>!!props.kind)
+const normalized=(p:string)=>p.replace(/\\/g,'/').replace(/\/$/,'').toLowerCase()
+const allowed=(p:string)=>!props.root||normalized(p)===normalized(props.root)||normalized(p).startsWith(normalized(props.root)+'/')
+const breadcrumbs=computed(()=>{
+ const raw=(state.value?.path||'').replace(/\\/g,'/'),parts=raw.split('/').filter(Boolean),rows:{name:string,path:string}[]=[]
+ let prefix=raw.startsWith('//')?'//':raw.startsWith('/')?'/':''
+ for(const part of parts){prefix+=part+'/';if(allowed(prefix))rows.push({name:part,path:prefix})}
+ return rows
+})
 async function read(path:string,after:string|null=null){
-  if(loading.value)return
-  const request=++generation;loading.value=true;error.value=''
-  try{
-    const result=await api('/profiles/directories','POST',{path,root:props.root,search:search.value,after,limit:50})
-    if(request===generation){state.value=result;pathText.value=result.path||'';cursor.value=after}
-  }catch(e:any){if(request===generation){state.value=null;error.value=e.message}}
-  finally{if(request===generation)loading.value=false}
+ if(loading.value)return false
+ loading.value=true;error.value=''
+ try{let result=await api('/profiles/directories','POST',{path,root:props.root,search:search.value,after,limit:50,kind:props.kind});const file=result.mode==='file'?{...result,kind:'file',selectable:true}:null;if(file)result=await api('/profiles/directories','POST',{path:file.parent,root:props.root,limit:50,kind:props.kind});state.value=result;pathText.value=result.path||'';cursor.value=after;chosen.value=file;return true}
+ catch(e:any){error.value=e.message;return false}finally{loading.value=false}
 }
-function navigate(path:string){search.value='';history.value=[];cursor.value=null;read(path)}
-function filter(){history.value=[];cursor.value=null;read(pathText.value)}
-function next(){const after=state.value.next_after;history.value.push(cursor.value);read(pathText.value,after)}
-function previous(){const after=history.value.pop()??null;read(pathText.value,after)}
-onMounted(()=>{dialog.value!.showModal();read(props.start)})
-onBeforeUnmount(()=>{generation++})
+async function navigate(path:string,record=true){
+ if(loading.value)return
+ const old=state.value?.path||'';search.value=''
+ if(await read(path)){pageHistory.value=[];if(record&&old!==path){back.value.push(old);forward.value=[]}await focusList()}
+}
+async function focusList(){await nextTick();(list.value?.querySelector<HTMLButtonElement>('.directory-row:not(:disabled)')||pathInput.value)?.focus()}
+async function travel(reverse=false){
+ const from=reverse?forward:back,to=reverse?back:forward;if(!from.value.length||loading.value)return
+ const old=state.value?.path||'',path=from.value[from.value.length-1];search.value=''
+ if(await read(path)){from.value.pop();to.value.push(old);pageHistory.value=[];await focusList()}
+}
+async function filter(){if(await read(pathText.value))pageHistory.value=[]}
+async function next(){const prior=cursor.value;if(await read(state.value.path,state.value.next_after))pageHistory.value.push(prior)}
+async function previous(){if(await read(state.value.path,pageHistory.value[pageHistory.value.length-1]??null))pageHistory.value.pop()}
+function choose(item:any){if(state.value.mode==='roots'||item.selectable)chosen.value=item}
+async function activate(item:any){if(item.kind==='file'){choose(item);await accept()}else await navigate(item.path)}
+async function accept(){
+ if(loading.value||!state.value||state.value.changed||error.value||(fileMode.value&&chosen.value?.kind!=='file'))return
+ const path=chosen.value?.path||state.value.path;if(!path)return
+ loading.value=true;error.value=''
+ try{
+  const result=await api('/profiles/directories','POST',{path,root:props.root,limit:1,kind:props.kind})
+  if(result.mode!==(fileMode.value?'file':'directory')||result.changed)throw Error('目录已变化，请重新打开并核对后选择。')
+  try{localStorage.setItem(key,JSON.stringify([result.parent&&fileMode.value?result.parent:result.path,...recent.value.filter(x=>x!==(fileMode.value?result.parent:result.path))].slice(0,8)))}catch{}
+  emit('selected',{path:result.path,relative:result.relative})
+ }catch(e:any){error.value=e.message}finally{loading.value=false}
+}
+function keyboard(event:KeyboardEvent){
+ if(event.altKey&&['ArrowLeft','ArrowRight','ArrowUp'].includes(event.key)){event.preventDefault();event.stopPropagation();if(event.key==='ArrowUp'){if(state.value?.parent)navigate(state.value.parent)}else travel(event.key==='ArrowRight')}
+ if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='l'){event.preventDefault();pathInput.value?.focus();pathInput.value?.select()}
+}
+async function rowKey(event:KeyboardEvent,index:number){
+ if(event.key==='Enter'){event.preventDefault();activate(state.value.items[index]);return}
+ const delta=event.key==='ArrowDown'?1:event.key==='ArrowUp'?-1:0
+ if(delta||['Home','End'].includes(event.key)){event.preventDefault();const i=event.key==='Home'?0:event.key==='End'?state.value.items.length-1:Math.max(0,Math.min(state.value.items.length-1,index+delta));choose(state.value.items[i]);await nextTick();list.value?.querySelectorAll<HTMLButtonElement>('.directory-row')[i]?.focus()}
+}
+onMounted(()=>{try{recent.value=JSON.parse(localStorage.getItem(key)||'[]').filter((x:any)=>typeof x==='string'&&allowed(x)).slice(0,8)}catch{};read(props.start)})
 </script>
-
 <template>
-  <Teleport to="body">
-    <dialog ref="dialog" class="directory-dialog" :aria-label="title" @cancel.prevent="emit('close')">
-      <h2>{{title}}</h2>
-      <p class="muted">只读目录浏览，不上传源码、不创建文件夹。{{purpose==='data'?'选择后仍须检查归属与权限，再保存为下次启动目录。':root?'范围选择限制在当前固件根内。':'选择后仅登记路径；构建仍须检查。'}}</p>
-      <form class="directory-path" @submit.prevent="navigate(pathText)"><label>要浏览的绝对目录<input aria-label="要浏览的绝对目录" v-model="pathText" :disabled="loading"></label><button :disabled="loading">打开目录</button></form>
-      <div class="actions"><button type="button" :disabled="loading" @click="navigate(root||'')">{{root?'返回工程根目录':'本机驱动器'}}</button><button type="button" :disabled="loading||!state?.parent" @click="navigate(state.parent)">返回父目录</button></div>
-      <p v-if="error" class="banner error" role="alert">{{error}}</p>
-      <p v-if="loading" role="status">正在读取当前层目录…</p>
-      <template v-if="state">
-        <p class="identity">当前：{{state.path||'本机驱动器'}}<br v-if="root"><span v-if="root">相对工程：{{state.relative}}</span></p>
-        <form v-if="state.mode==='directory'" class="directory-search" @submit.prevent="filter"><label>筛选当前层目录<input aria-label="筛选当前层目录" v-model="search" :disabled="loading"></label><button :disabled="loading">筛选目录</button></form>
-        <p class="muted" :class="{warning:state.changed}">{{state.notice}} <span v-if="state.total!==null">匹配 {{state.total}} 项 · 本页 {{state.items.length}} 项</span></p>
-        <div class="directory-items" role="tree" aria-label="当前分支目录树">
-          <div v-for="item in state.items" :key="item.name" role="treeitem" :aria-label="item.name" class="directory-item"><button type="button" :disabled="loading||(state.mode!=='roots'&&!item.selectable)" @click="navigate(item.path)">进入 {{item.name}}</button><small v-if="item.reason">{{item.reason}}</small></div>
-          <p v-if="!state.items.length">当前层没有匹配的子目录。仍可选择当前目录。</p>
-        </div>
-        <div class="page-controls" v-if="state.mode==='directory'"><button type="button" :disabled="loading||!history.length" @click="previous">上一页目录</button><span>第 {{history.length+1}} 页</span><button type="button" :disabled="loading||!state.next_after" @click="next">下一页目录</button></div>
-      </template>
-      <footer><button type="button" @click="emit('close')">取消选择</button><button type="button" :disabled="loading||!state||state.mode!=='directory'||state.changed" class="primary" @click="emit('selected',{path:state.path,relative:state.relative})">使用此目录</button></footer>
-    </dialog>
-  </Teleport>
+ <WorkspaceDialog :title="title" @close="emit('close')" @keydown="keyboard">
+  <div class="directory-browser">
+   <form class="directory-path" @submit.prevent="navigate(pathText)"><div class="actions"><button type="button" aria-label="后退目录" :disabled="loading||!back.length" @click="travel()">←</button><button type="button" aria-label="前进目录" :disabled="loading||!forward.length" @click="travel(true)">→</button><button type="button" :disabled="loading||!state?.parent" @click="navigate(state.parent)">上一级</button></div><label class="sr-only" for="directory-path">要浏览的绝对目录</label><input id="directory-path" ref="pathInput" aria-label="要浏览的绝对目录" v-model="pathText" :disabled="loading"><button :disabled="loading">打开目录</button></form>
+   <div class="directory-location"><button :disabled="loading" @click="navigate(root||'')">{{root?'工程根':'本机驱动器'}}</button><button v-for="crumb in breadcrumbs" :key="crumb.path" :disabled="loading" @click="navigate(crumb.path)">{{crumb.name}}</button></div>
+   <div v-if="error" class="banner error" role="alert">{{error}}</div>
+   <div class="directory-content">
+    <nav class="directory-places" aria-label="常用目录"><strong>位置</strong><button :disabled="loading" @click="navigate(root||'')">{{root?'工程根目录':'本机驱动器'}}</button><strong v-if="recent.length">最近选择</strong><button v-for="path in recent" :key="path" :title="path" :disabled="loading" @click="navigate(path)">{{path}}</button></nav>
+    <div class="directory-list-pane">
+     <form class="directory-search" @submit.prevent="filter"><label class="sr-only" for="directory-search">筛选当前层目录</label><input id="directory-search" aria-label="筛选当前层目录" v-model="search" :disabled="loading||state?.mode==='roots'" placeholder="筛选当前目录，不递归搜索"><button :disabled="loading||state?.mode==='roots'">筛选目录</button></form>
+     <div class="directory-column-heading">{{fileMode?'目录 / 文件名称':'目录名称'}} <span>{{loading?'读取中…':state?.total===null?'驱动器':`${state?.total??0} 项`}}</span></div>
+     <div ref="list" class="directory-items" role="listbox" aria-label="当前层目录" :aria-busy="loading">
+      <button v-for="(item,index) in state?.items" :key="item.name" class="directory-row" role="option" :aria-selected="chosen?.path===item.path" :disabled="loading||(state.mode!=='roots'&&!item.selectable)" @click="choose(item)" @dblclick="activate(item)" @keydown="rowKey($event,Number(index))"><span aria-hidden="true">{{item.kind==='file'?'▤':'▸'}}</span><span>{{item.name}}</span><small v-if="item.reason&&state.mode!=='roots'">{{item.reason}}</small></button>
+      <p v-if="state&&!state.items.length">{{fileMode?'没有匹配的目录或文件。':'没有匹配的子目录。可以选择当前目录。'}}</p>
+     </div>
+     <div class="directory-status"><span v-if="state?.changed" class="error">目录已变化，请重新打开后选择。</span><span v-else>{{fileMode?'仅显示目录及'+(kind==='compile_database'?' compile_commands.json':' .cmake 文件'):'单击选择，双击或 Enter 进入'}}</span><div v-if="pageHistory.length||state?.next_after" class="actions"><button :disabled="loading||!pageHistory.length" @click="previous">上一页目录</button><span>第 {{pageHistory.length+1}} 页</span><button :disabled="loading||!state?.next_after" @click="next">下一页目录</button></div></div>
+    </div>
+   </div>
+  </div>
+  <template #footer><div class="directory-selection"><strong>已选择：</strong><span>{{(fileMode?(chosen?.kind==='file'?chosen.path:'请选择文件'):chosen?.path||state?.path)||'请进入驱动器选择目录'}}</span><small>只读浏览；{{purpose==='data'?'确认后仍需检查并保存数据位置。':'仅登记路径，不创建文件或上传源码。'}}</small></div><div class="actions"><button @click="emit('close')">取消选择</button><button class="primary" :disabled="loading||!!error||!state||state.changed||(fileMode?chosen?.kind!=='file':(!chosen&&state.mode!=='directory'))" @click="accept">{{fileMode?'使用此文件':'使用此目录'}}</button></div></template>
+ </WorkspaceDialog>
 </template>
-
 <style scoped>
-.directory-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 32px);border:1px solid #d9e1ed;border-radius:8px;padding:24px;color:#22344d;overflow:auto}.directory-dialog::backdrop{background:#17283d80}.directory-path,.directory-search{display:flex;gap:12px;align-items:flex-end;margin-bottom:12px}.directory-path label,.directory-search label{flex:1;min-width:0;margin:0}.directory-path button,.directory-search button{flex-shrink:0}.directory-dialog p{margin:8px 0}.directory-items{height:clamp(100px,24dvh,260px);overflow:auto;border:1px solid #d9e1ed;border-radius:4px;margin-top:12px;padding:0 12px}.directory-item{padding:8px 0;border-bottom:1px solid #e7edf4;min-width:0}.directory-item button{text-align:left;max-width:100%;overflow-wrap:anywhere}.directory-item small{display:block;color:#667894}.directory-dialog footer{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #d9e1ed;padding-top:12px;margin-top:12px;position:sticky;bottom:-24px;background:white}.directory-dialog .identity{max-height:52px;overflow:auto}@media(max-height:790px){.directory-dialog{padding:16px}.directory-dialog .muted{font-size:12px}.directory-dialog h2{margin-bottom:8px}.directory-items{height:16dvh}.directory-dialog footer{bottom:-16px}}
+.directory-browser{height:100%;display:flex;flex-direction:column;gap:8px;min-height:0}.directory-path,.directory-search{display:flex;align-items:center;gap:8px;flex-shrink:0}.directory-path input,.directory-search input{margin:0;flex:1}.directory-path>button,.directory-path>.actions,.directory-search button{flex-shrink:0}.directory-location{display:flex;gap:4px;align-items:center;overflow-x:auto;flex-shrink:0}.directory-location button{padding:2px 8px;min-height:28px;white-space:nowrap}.directory-content{display:flex;gap:12px;flex:1;min-height:0}.directory-places{width:190px;flex-shrink:0;overflow:auto;border-right:1px solid #d9e1ed;padding-right:8px}.directory-places strong{padding:8px}.directory-places button{text-align:left;overflow-wrap:anywhere;border:0;padding:6px 8px}.directory-list-pane{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px}.directory-column-heading{display:flex;justify-content:space-between;border-bottom:1px solid #d9e1ed;padding:4px 8px;color:#566579}.directory-items{flex:1;min-height:0;overflow:auto}.directory-row{width:100%;min-height:36px;display:flex;align-items:center;gap:8px;text-align:left;border:0;border-radius:2px;padding:6px 8px}.directory-row>span:nth-child(2){overflow-wrap:anywhere}.directory-row[aria-selected=true]{background:#eaf1ff;box-shadow:inset 3px 0 #245edb}.directory-row small{color:#667894}.directory-status{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;min-height:24px;flex-shrink:0}.directory-status button{padding:2px 8px;min-height:28px}.directory-selection{min-width:0;flex:1;font-size:13px;overflow-wrap:anywhere}.directory-selection small{display:block;color:#667894}
+@media(max-width:750px),(max-height:500px){.directory-places{display:none}.directory-location{display:none}.directory-status>span{display:none}.directory-path .actions{gap:2px}.directory-path .actions button{padding:4px}.directory-selection small{display:none}.directory-browser{gap:4px}}
 </style>

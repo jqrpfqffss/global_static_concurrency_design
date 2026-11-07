@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "large_tu_actual_browser_after_bounded_query_fix",
+      "seconds_including_cli_actions": 8.59399999998277,
+      "value": {
+        "rows": 50,
+        "sideBySide": true,
+        "height": 495.76788330078125,
+        "text": "引擎分析状态：INCOMPLETE；TU记录 388；缺口记录 1534856。\n\n解析成功 388"
+      }
+    },
+    {
+      "name": "large_ai_ledger_real_state",
+      "value": "OpenCode 逐项复核\n\n静态分类、AI 答复和人工确认分别保留。打开本页不会调用模型或重新提取 TU。\n\n归档模式缺少本机检查点或原源码，不能重新复核；可查看已有答复与收据。\n\n复核配置与执行说明\n复核全部疑似与未知\n仅重试技术失败\n任务日志与安全停止\n刷新原始状态\n本扫描目标 3540 项\n等待复核：3540\n复核对象\t状态\t尝试\nGS-00316bac5ca7b829\t等待复核 · 说明\t0\nGS-0033ea7e2d222122\t等待复核 · 说明\t0\nGS-00578918231a8355\t等待复核 · 说明\t0\nGS-00768cf5f11f0b61\t等待复核 · 说明\t0\nGS-0087aa27f7bbb45d\t等待复核 · 说明\t0\nGS-00abeb3d9a62f851\t等待复核 · 说明\t0\nGS-00b91f2518e33fed\t等待复核 · 说明\t0\nGS-00c74647b484e8c6\t等待复核 · 说明\t0\nGS-00d8327ca2be8046\t等待复核 · 说明\t0\nGS-0110620a64d5a470\t等待复核 · 说明\t0\nGS-0123ef890407a3e7\t等待复核 · 说明\t0\nGS-013cee1fb8b0043f\t等待复核 · 说明\t0\nGS-013ddc04197b0c6c\t等待复核 · 说明\t0\nGS-013e777de5c383a5\t等待复核 · 说明\t0\nGS-014722e6076940ca\t等待复核 · 说明\t0\nGS-01d26020de46c92b\t等待复核 · 说明\t0\nGS-01ddeb76a719620d\t等待复核 · 说明\t0\nGS-01efd6446f3d48d5\t等待复核 · 说明\t0\nGS-0216f35f31166fea\t等待复核 · 说明\t0\nGS-0250ab4cb4f90de6\t等待复核 · 说明\t0\nGS-02b081c5899645e7\t等待复核 · 说明\t0\nGS-031442edc9688ef7\t等待复核 · 说明\t0\nGS-0323016e547baaa4\t等待复核 · 说明\t0\nGS-03d19e5637f790ff\t等待复核 · 说明\t0\nGS-03d89d9f189e2571\t等待复核 · 说明\t0\nGS-040def7c8c7a6885\t等待复核 · 说明\t0\nGS-042c3548539f1744\t等待复核 · 说明\t0\nGS-042fe991f8026c44\t等待复核 · 说明\t0\nGS-0461d6a32a9a996e\t等待复核 · 说明\t0\nGS-04cf61497dfa2276\t等待复核 · 说明\t0\nGS-04eab2fcfcf568c1\t等待复核 · 说明\t0\nGS-04f9c2c1af4ff91e\t等待复核 · 说明\t0\nGS-04fe89104ec25da9\t等待复核 · 说明\t0\nGS-051c85f0dea01bca\t等待复核 · 说明\t0\nGS-055ea9fcc77ebd92\t等待复核 · 说明\t0\nGS-056398f2d2b0eec1\t等待复核 · 说明\t0\nGS-0572085273bd0297\t等待复核 · 说明\t0\nGS-05a35ea6b53fa61b\t等待复核 · 说明\t0\nGS-05fff109df3e630b\t等待复核 · 说明\t0\nGS-061d07c90103722a\t等待复核 · 说明\t0\nGS-0649291a2a5b2a98\t等待复核 · 说明\t0\nGS-06527c99d0cbaf22\t等待复核 · 说明\t0\nGS-067c9da2b8aaa37f\t等待复核 · 说明\t0\nGS-0686d486d3773acf\t等待复核 · 说明\t0\nGS-06b335f25cfdb6ed\t等待复核 · 说明\t0\nGS-06fbee2a7ebee7e5\t等待复核 · 说明\t0\nGS-070d485aa32c359f\t等待复核 · 说明\t0\nGS-074dfb290059b399\t等待复核 · 说明\t0\nGS-07f50a37eaab51e2\t等待复核 · 说明\t0\nGS-080a6bc31e0a04a4\t等待复核 · 说明\t0\n上一页\n\n显示 1–50 / 3540\n\n下一页"
+    },
+    {
+      "name": "final_large_viewer_workbench",
+      "value": {
+        "evidence": 325.58038330078125,
+        "buttonsBottom": 745.4285888671875
+      }
+    }
+  ],
+  "status": "PASS_SCOPED"
+}

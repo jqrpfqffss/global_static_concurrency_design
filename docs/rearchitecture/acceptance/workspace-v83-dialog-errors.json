@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "scope": "Actual error responses injected in browser transport only, real archives retained; no fabricated success or analysis.",
+  "checks": [
+    "filter_error_visible_in_active_dialog",
+    "filter_retry_clears_error",
+    "history_export_error_visible_in_active_dialog"
+  ],
+  "status": "PASS_SCOPED"
+}

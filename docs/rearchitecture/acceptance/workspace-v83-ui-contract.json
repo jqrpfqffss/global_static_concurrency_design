@@ -1,0 +1,350 @@
+{
+  "passed": true,
+  "checks": {
+    "frozen_navigation_order": true,
+    "no_fake_timeout_or_raw_html": true,
+    "no_remote_frontend_assets": true,
+    "server_side_page_limit": true,
+    "three_independent_dimensions": true,
+    "real_write_receipts": true,
+    "real_scan_task_component": true,
+    "real_scan_task_endpoints": true,
+    "real_cleanup_endpoints_and_confirmation": true,
+    "real_legacy_migration_and_opaque_evidence": true,
+    "bounded_source_and_call_navigation": true,
+    "session_origin_host_checks": true
+  },
+  "api_routes": [
+    [
+      "get",
+      "/api/bootstrap"
+    ],
+    [
+      "get",
+      "/api/settings/data-root"
+    ],
+    [
+      "post",
+      "/api/data-transfers/preview"
+    ],
+    [
+      "get",
+      "/api/data-transfers"
+    ],
+    [
+      "post",
+      "/api/data-transfers"
+    ],
+    [
+      "get",
+      "/api/data-transfers/{ident}"
+    ],
+    [
+      "post",
+      "/api/data-transfers/{ident}/resume"
+    ],
+    [
+      "post",
+      "/api/settings/data-root/preview"
+    ],
+    [
+      "put",
+      "/api/settings/data-root"
+    ],
+    [
+      "post",
+      "/api/sample/open"
+    ],
+    [
+      "get",
+      "/api/scans"
+    ],
+    [
+      "get",
+      "/api/history"
+    ],
+    [
+      "get",
+      "/api/history/compare"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/summary"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/ai"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/ai-artifact"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/symbols"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/symbol"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage/groups"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage/issues"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage/blockers"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage/tus"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage/related"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/coverage/position"
+    ],
+    [
+      "put",
+      "/api/scans/{scan_id}/coverage/position"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/records/{relation}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/symbol-functions"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/call-neighbors"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/nodes/{node_id}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/text/{node_id}"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/source"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/legacy-files"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/legacy-file"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/source-window"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/human"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/human"
+    ],
+    [
+      "get",
+      "/api/scans/{scan_id}/position"
+    ],
+    [
+      "put",
+      "/api/scans/{scan_id}/position"
+    ],
+    [
+      "post",
+      "/api/import"
+    ],
+    [
+      "post",
+      "/api/migrations/preview"
+    ],
+    [
+      "post",
+      "/api/multicore/elf"
+    ],
+    [
+      "post",
+      "/api/multicore/preview"
+    ],
+    [
+      "post",
+      "/api/multicore/start"
+    ],
+    [
+      "post",
+      "/api/migrations"
+    ],
+    [
+      "get",
+      "/api/migrations"
+    ],
+    [
+      "get",
+      "/api/migrations/{job_id}"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/delta/import"
+    ],
+    [
+      "post",
+      "/api/scans/{scan_id}/export"
+    ],
+    [
+      "get",
+      "/api/download/{name}"
+    ],
+    [
+      "post",
+      "/api/download/{name}/ticket"
+    ],
+    [
+      "get",
+      "/export-download/{ticket}"
+    ],
+    [
+      "get",
+      "/api/storage/policy"
+    ],
+    [
+      "post",
+      "/api/storage/policy"
+    ],
+    [
+      "get",
+      "/api/storage"
+    ],
+    [
+      "get",
+      "/api/profiles"
+    ],
+    [
+      "post",
+      "/api/profiles/form"
+    ],
+    [
+      "post",
+      "/api/profiles/git-versions"
+    ],
+    [
+      "post",
+      "/api/profiles/directories"
+    ],
+    [
+      "post",
+      "/api/profiles/form-merge"
+    ],
+    [
+      "get",
+      "/api/profiles/drafts/{identity}"
+    ],
+    [
+      "post",
+      "/api/storage/cleanup"
+    ],
+    [
+      "get",
+      "/api/storage/cleanup/jobs"
+    ],
+    [
+      "get",
+      "/api/storage/cleanup/jobs/{job_id}"
+    ],
+    [
+      "get",
+      "/api/storage/cleanup/previews/{preview_id}"
+    ],
+    [
+      "get",
+      "/api/tasks"
+    ],
+    [
+      "post",
+      "/api/tasks"
+    ],
+    [
+      "get",
+      "/api/tasks/{task_id}"
+    ],
+    [
+      "get",
+      "/api/tasks/{task_id}/plan"
+    ],
+    [
+      "post",
+      "/api/tasks/{task_id}/stop"
+    ],
+    [
+      "post",
+      "/api/tasks/{task_id}/retry"
+    ],
+    [
+      "post",
+      "/api/profiles/check"
+    ],
+    [
+      "post",
+      "/api/profiles"
+    ]
+  ],
+  "source_hashes": {
+    "studio\\src\\api.ts": "416f041ccdb3731ba224145020a52239bcb50d1830b33f8fd6224a6d445a9e38",
+    "studio\\src\\App.vue": "49678ba1d756979b2e5adf54d22a15243d97582a80222052ded19697e8c026ac",
+    "studio\\src\\BuildPreflight.vue": "1958bc1fa7cdce59822ac7e2c4c2a83b408004d409a89df0ce1051ba2bc01f54",
+    "studio\\src\\CallNode.vue": "a37fe55fc47dc7f1f01cc07db475b62dae0c5b3cf9e4430249ab588dc4a6de88",
+    "studio\\src\\CallTree.vue": "9681ebb66921b2f8cd3ab1b5d24dd95a41898bfe39801cd324aa4694418abda9",
+    "studio\\src\\CleanupCenter.vue": "77d5890534cb9726018acc6c421512306b4f3bcc65adbc47bd036d52e102fd61",
+    "studio\\src\\ConflictPairs.vue": "baa50336095239f105af9056c8ce9bdd0c73e744fc0081dad77b3d3751a88659",
+    "studio\\src\\ContextEditor.vue": "4618fc3199180c254cd3d6db67f0e88856c51aa448184fecca3d2d69329b9bdf",
+    "studio\\src\\CoverageCenter.vue": "fc64c06fc7c27bf736185c7a364d8e67552f08679b718e8cd689470dbdc18222",
+    "studio\\src\\DataRootSettings.vue": "e340c58c71fe8d690e0b78d058def69583e4e2addf22a2e39db7008252cde3f2",
+    "studio\\src\\DataRootTransfer.vue": "77fbb607884c47352a92e6c369f9eee7aafb8acd040613cfd3892e1ab35695e0",
+    "studio\\src\\DirectoryBrowser.vue": "7673616c7a8af2d4e3ab158efc3036279e75f06ac4293a8d1c194d2acc5be921",
+    "studio\\src\\EvidenceIdentity.vue": "22af0b4d4e34962261d3065241301163b93636adda5f0056d1f08e05a122fa3e",
+    "studio\\src\\evidenceNames.ts": "71d8a10fc8b64cab10150727342ad06bb02fb2488787b59d0f543946e10722bd",
+    "studio\\src\\EvidenceNode.vue": "dccf103f76d4b427494e737b4190cc67a469a7a027bf2dcfe8180951e6a1d7b5",
+    "studio\\src\\FindingCard.vue": "fc8ac3739ccc7ae4f3d384a199d3096c2f5cfca7beb357e364799c216b00dfd3",
+    "studio\\src\\FunctionNames.vue": "534d5c9e9a73d0f58bb29c6f55359115b83542285661f5117b6111a0dd099a50",
+    "studio\\src\\GitVersions.vue": "367d02a3638d6307ebc1b334b154d35a2fbe228bfceb6e127bc86babdb7d4433",
+    "studio\\src\\history.css": "52b44248fc7984b00756eb52340617d534396cb4992041485b108cd8fc3b9335",
+    "studio\\src\\HistoryCenter.vue": "47f63f4167ea0639493a1897f617da25cb591701ee3efac867cb6b382c2b5b7f",
+    "studio\\src\\HistoryComparison.vue": "6a961d3af3c3e9c48f36c90d65ca5f6ed8b9e7480ec986bf490e64da699d3d1c",
+    "studio\\src\\LegacyArchive.vue": "724a2537368c77b06eddef0c71d7258f570ca3c9aca101f56d93ef6651f47616",
+    "studio\\src\\main.ts": "b46de87e7e4ec6d679e055d739bf28009b7739c639dfcb0e0b34e2de9393725a",
+    "studio\\src\\MigrationCenter.vue": "c9cb12c0302cf3e40c9dea5cbc7917e7ab91571cd92edd4aaf562543a328faf4",
+    "studio\\src\\MulticoreCenter.vue": "74799443fffc7416a64abf0136a525f6b4cfd70a6800042e24038780d8c3e24f",
+    "studio\\src\\ReviewCenter.vue": "e40db0f0b529727d70feeae448b9f610c6439f037b87c1d478f320b544ea8560",
+    "studio\\src\\reviewDrafts.ts": "095b2a4908abb7cd57a7bd3f65d045a0ff569dbd47497c279283b30c3c8ee7b6",
+    "studio\\src\\scan-identity.css": "cbfc9d8ceee9a9e50c542967b3b2979cd0befd60754d94db5ba2584fab040242",
+    "studio\\src\\ScanIdentity.vue": "bc114b199fe372be36145a345f7653f2fcf13d09f845c5d09fa0dc8f54b07f93",
+    "studio\\src\\SourceViewer.vue": "635f1c9ce5044c0118f3bfa254ab5567db8b1ead1ffefa2fd62397ca585905a8",
+    "studio\\src\\StoragePolicySettings.vue": "be8dff8e9cac0f07552ad547f7d0d39944b996b7e58f4485e7c0188a555ee0ba",
+    "studio\\src\\StorageUsage.vue": "70fcbf4a856329da78891954a94641b90b3da38ee879235b49a2f8d64f0d1143",
+    "studio\\src\\style.css": "9c9519999bcc9efd8239f8131da129816aae9cba6a4ed00a4cb6bd19b079dfe1",
+    "studio\\src\\TaskCenter.vue": "c21eaa872ce4f518f23d566681d49ee19e7234e733c3564bce06493380ce3a7b",
+    "studio\\src\\workbench.css": "ff4d1134f0bbc64067ab606e308f6d9228284f69d438978678d60a6474185cde",
+    "studio\\src\\WorkspaceDialog.vue": "3e98671b753dc720b2480371609c45a8e6c3dac96703f5fdfdff603aa3dfd964"
+  },
+  "scope": "Static contracts only; no claim of U01–U24 completion, visual quality or native Windows DPI"
+}

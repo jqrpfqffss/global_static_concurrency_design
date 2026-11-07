@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "directory_1366_at_least_10_visible_rows",
+      "value": {
+        "height": 384.8482360839844,
+        "visible": 10
+      }
+    },
+    {
+      "name": "directory_paging_keyboard_navigation_maximize_failure_cancel_preserve_original_field",
+      "value": true
+    },
+    {
+      "name": "real_metadata_file_pickers_select_only_explicit_build_file_types",
+      "value": true
+    },
+    {
+      "name": "wizard_groups_keep_all_fields_and_four_steps",
+      "value": true
+    },
+    {
+      "name": "workbench_reading_and_decisions_1366",
+      "value": {
+        "evidence": 325.58038330078125,
+        "list": 512.857177734375,
+        "visibleObjects": 10,
+        "sourceLines": 13,
+        "buttonsBottom": 745.4285888671875,
+        "textareaHeight": 68
+      }
+    },
+    {
+      "name": "workbench_reading_and_decisions_1600",
+      "value": {
+        "evidence": 457.58038330078125,
+        "list": 644.857177734375,
+        "visibleObjects": 13,
+        "sourceLines": 19,
+        "buttonsBottom": 877.4285888671875,
+        "textareaHeight": 68
+      }
+    },
+    {
+      "name": "workbench_reading_and_decisions_1920",
+      "value": {
+        "evidence": 637.5803833007812,
+        "list": 824.857177734375,
+        "visibleObjects": 15,
+        "sourceLines": 28,
+        "buttonsBottom": 1057.4285888671875,
+        "textareaHeight": 68
+      }
+    },
+    {
+      "name": "source_maximize_font_wrap_filter_modal_focus_and_restore_keep_selection",
+      "value": true
+    },
+    {
+      "name": "adjacent_and_short_view_return_keep_per_object_draft",
+      "value": true
+    },
+    {
+      "name": "real_human_post_and_undo_append_two_events_without_changing_static_classification",
+      "value": true
+    }
+  ],
+  "scope": "Real browser with independent F030 archives; CSS viewport tests, not native Windows DPI or human UAT.",
+  "status": "PASS_INITIAL_FUNCTIONAL_AND_GEOMETRY"
+}

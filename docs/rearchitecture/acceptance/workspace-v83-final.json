@@ -1,0 +1,74 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Final engineering workspace repair only. Real browser and immutable-file checks; not all G1-G8/U01-U24.",
+  "status": "PASS_SCOPED_FINAL_WORKSPACE_REPAIR",
+  "recorded_utc": "2026-11-07T08:23:16Z",
+  "actual_cmd_browser_receipts": {
+    "ui-v83-portable/acceptance.json": {
+      "sha256": "752422fb97e2f70d4acf52e9b99eeb3bb7ef34cb60fe96a5f46a2d359619245b",
+      "status": "PASS_SCOPED"
+    },
+    "ui-v83-portable/server.json": {
+      "sha256": "5ad7913d7735847c6da4df944df501dd1cefb0bd8df65faf1d6851dad78b880f",
+      "status": "PASS_ACTUAL_CMD_RESTART_CLOSED_BY_TEST"
+    },
+    "ui-v83-large-portable/acceptance.json": {
+      "sha256": "34b9367bc71ea43d7336e12fef929291debd0a30f6609c648a0fc548ea93214a",
+      "status": "PASS_SCOPED"
+    },
+    "ui-v83-large-portable/server.json": {
+      "sha256": "fc473c522b69a01be9eda0624424ed3fa3e69805498f16eb39936d69ea6e8c00",
+      "status": "PASS_ACTUAL_CMD_RESTART_CLOSED_BY_TEST"
+    }
+  },
+  "assembly_receipt_sha256": "182e8272a5a6409c0df143886ee77594c25b5e05811ab272dcf2d501b3f95e13",
+  "program_files_unchanged": 32864,
+  "repository_code_matches_frozen_files": 473,
+  "large_immutable_files_unchanged": 2667,
+  "large_static_sha256": "c6180f66323ae9ce72711ee8c83858cdce04114cc1e210a30aaa7dc3e760163b",
+  "large_human_events": 0,
+  "f030": [
+    {
+      "scan_id": "b7336600cd6641ef9a1c5faf35c77192",
+      "immutable_files": 117,
+      "scan_db_sha256": "8e99bcb064e61a510ae6f99aa530bf4ee74641555cdb9673d93ebb495a528346"
+    },
+    {
+      "scan_id": "native",
+      "immutable_files": 62,
+      "scan_db_sha256": "51bceb04f3942130ba43565b5928f1c0ee54bc51d88826569836b1229458e8dd"
+    }
+  ],
+  "firmware_files_unchanged": 42,
+  "firmware_names_size_mtime_sha256_unchanged": true,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v83\\ECRA-Portable.zip",
+  "zip_sha256": "6f25c62bd096a87015e517d920e9499139ad8fd0df11165feedc3091b090a33e",
+  "inherited_checks": {
+    "v82_runtime_commands": 54,
+    "v82_packaged_direct_tests": 16,
+    "byte_identical_backend_and_tests": 474,
+    "v83_rerun_claimed": false
+  },
+  "source_checks": {
+    "targeted_backend_tests": 31,
+    "node_state_tests": 8,
+    "ui_contract_checks": 12,
+    "frontend_typecheck_and_build": "PASS"
+  },
+  "whole_large_diff_recovery": {
+    "execution_complete": false,
+    "complete_package_passed": false,
+    "complete_package_status": "WAITING_REAL_NATIVE_FINAL_GATE",
+    "ui_scope_does_not_override": true
+  },
+  "unverified": [
+    "other_G2_projects",
+    "physical_32GB_PC",
+    "clean_offline_PC",
+    "native_Windows_DPI",
+    "human_UAT",
+    "whole_large_Diff_recovery_final_gate"
+  ],
+  "strict_cross_environment_report_fail": "PRESERVED_NOT_RELAXED"
+}

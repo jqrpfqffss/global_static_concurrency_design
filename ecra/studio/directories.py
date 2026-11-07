@@ -33,7 +33,8 @@ def _roots():
     return [dict(name='/',path='/',selectable=False,reason='进入后选择实际工程目录')]
 
 
-def browse(path=None,*,root=None,after=None,search='',limit=50):
+def browse(path=None,*,root=None,after=None,search='',limit=50,kind='directory'):
+    if kind not in ('directory','compile_database','toolchain'):raise ValueError('不支持的本机选择类型')
     if type(limit) is not int or not 1<=limit<=100:raise ValueError('目录分页大小必须为1至100')
     if not isinstance(search,str) or len(search)>256 or '\0' in search:raise ValueError('当前层目录筛选文本无效')
     if after is not None and (not isinstance(after,str) or not after or len(after)>32767 or '\0' in after):raise ValueError('目录分页游标无效')
@@ -41,6 +42,15 @@ def browse(path=None,*,root=None,after=None,search='',limit=50):
     if path is None or path=='':
         if bound:path=str(bound)
         else:return dict(mode='roots',path=None,root=None,parent=None,items=_roots(),total=None,next_after=None,changed=False,notice='本机驱动器；仅进入用户选择的目录，不读取源码内容。')
+    def matches_file(name):
+        return name.casefold()=='compile_commands.json' if kind=='compile_database' else name.casefold().endswith('.cmake')
+    if kind!='directory':
+        if not isinstance(path,str) or '\0' in path or len(path)>32767 or not Path(path).is_absolute():raise ValueError('请选择有效的绝对文件或目录路径')
+        candidate=no_links(Path(path))
+        if bound and not candidate.is_relative_to(bound):raise ValueError('文件选择不能超出当前限定根目录')
+        if candidate.is_file():
+            if not matches_file(candidate.name):raise ValueError('请选择 compile_commands.json' if kind=='compile_database' else '请选择 .cmake 工具链文件')
+            return dict(mode='file',path=str(candidate),parent=str(candidate.parent),relative=str(candidate.relative_to(bound)) if bound else None,changed=False)
     folder=_directory(path)
     if bound and not folder.is_relative_to(bound):raise ValueError('范围目录不能超出当前固件工程根目录')
     before=folder.stat();counts=dict(total=0,files=0,links=0,vanished=0);needle=search.casefold()
@@ -52,13 +62,16 @@ def browse(path=None,*,root=None,after=None,search='',limit=50):
                 except FileNotFoundError:counts['vanished']+=1;continue
                 linked=stat.S_ISLNK(info.st_mode) or bool(getattr(info,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT)
                 if linked:counts['links']+=1
-                elif not stat.S_ISDIR(info.st_mode):counts['files']+=1;continue
+                is_directory=stat.S_ISDIR(info.st_mode)
+                if not linked and not is_directory:
+                    counts['files']+=1
+                    if kind=='directory' or not stat.S_ISREG(info.st_mode) or not matches_file(entry.name):continue
                 if needle not in entry.name.casefold():continue
                 counts['total']+=1;key=(entry.name.casefold(),entry.name)
                 if cursor is not None and key<=cursor:continue
                 target=folder/entry.name
                 yield key,dict(name=entry.name,path=str(target),relative=str(target.relative_to(bound)) if bound else None,
-                               selectable=not linked,reason='链接/重解析项不跟随；请选择真实目录' if linked else '')
+                               selectable=not linked,kind='directory' if is_directory else 'file',reason='链接/重解析项不跟随；请选择真实目录' if linked else '')
     # nsmallest consumes the whole level for a truthful total using O(limit)
     # retained entries, even when a directory contains millions of siblings.
     found=heapq.nsmallest(limit+1,entries(),key=lambda row:row[0]);items=[row[1] for row in found[:limit]]

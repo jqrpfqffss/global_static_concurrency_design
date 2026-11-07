@@ -80,6 +80,30 @@ class StudioCoverageTests(unittest.TestCase):
             query.translation_units(zero_only=True)
         self.assertEqual(query.translation_units()['total'],4)
 
+    def test_tu_associations_ignore_unrelated_graph_and_count_each_symbol_once(self):
+        from collections import Counter
+        from ecra.scan_store import connect_readonly, _decode
+        self.facts['variables'][0]['translation_units']=['a.c','a.c',None,{'future':'a.c'}]
+        self.facts['variables'].append(dict(symbol_id='c',name='g_c',translation_units={'future':['zero.c']}))
+        self.facts['unrelated_graph']=[dict(caller=f'function-{i}',edges=['a.c','b.c',str(i)]) for i in range(10000)]
+        query=self.publish();before=sha256(self.path)
+        expected=Counter()
+        for variable in self.facts['variables']:
+            origins=variable['translation_units']
+            if isinstance(origins,list):expected.update(set(value for value in origins if isinstance(value,str)))
+        with connect_readonly(self.path) as conn:
+            # A bounded VM-step budget catches scanning all unrelated edges.
+            steps=0
+            def budget():
+                nonlocal steps
+                steps+=1000
+                return steps>20000
+            conn.set_progress_handler(budget,1000)
+            counts=dict(conn.execute(query._associations()+"SELECT file_node,symbols FROM variable_tus"))
+            actual={_decode('str',conn.execute('SELECT value FROM nodes WHERE id=?',(node,)).fetchone()[0]):count for node,count in counts.items()}
+        self.assertEqual(actual,dict(expected));self.assertEqual(sha256(self.path),before)
+        self.assertFalse(query.translation_units()['zero_filter_available'])
+
     def test_missing_collections_are_explicit_and_long_diagnostics_keep_complete_node_refs(self):
         query=self.publish();issue=query.issues()['items'][0]
         self.assertNotIn('diagnostic',issue['summary'])

@@ -6,6 +6,7 @@ import StoragePolicySettings from './StoragePolicySettings.vue'
 import DataRootTransfer from './DataRootTransfer.vue'
 const props=defineProps<{busy:boolean}>()
 const state=ref<any>(null),path=ref(''),plan=ref<any>(null),working=ref(false),error=ref(''),notice=ref(''),repair=ref(false),browsing=ref(false)
+const section=ref('location')
 const browseButton=ref<HTMLButtonElement|null>(null)
 const origins:Record<string,string>={STARTUP_ARGUMENT:'启动参数指定',ENVIRONMENT:'ECRA_DATA_ROOT指定',GUI_DEFAULT:'GUI保存的默认目录',SYSTEM_DEFAULT:'系统默认目录',RECOVERY_DEFAULT:'启动设置恢复目录'}
 async function read(){state.value=await api('/settings/data-root')}
@@ -29,7 +30,7 @@ onMounted(async()=>{working.value=true;try{await read();path.value=state.value.s
 </script>
 <template>
  <section class="panel data-root-settings" aria-label="独立数据根设置">
-  <h2>独立数据根</h2>
+  <div class="section-tabs" role="tablist" aria-label="数据设置分组"><button v-for="[id,title] in [['location','数据位置'],['transfer','整套备份与恢复'],['policy','存储策略']]" role="tab" :aria-selected="section===id" @click="section=id">{{title}}</button></div><div v-show="section==='location'"><h2>独立数据根</h2>
   <template v-if="state">
    <p>当前使用：<span class="identity">{{state.current_root}}</span><br>来源：{{origins[state.source]||state.source}}</p>
    <p>下次保存的默认目录：<span class="identity">{{state.selected_root||'尚未设置，使用系统默认'}}</span></p>
@@ -49,8 +50,8 @@ onMounted(async()=>{working.value=true;try{await read();path.value=state.value.s
   <p v-if="error" role="alert" class="banner error">数据目录未保存：{{error}}</p>
   <p v-if="notice" role="status" class="banner">{{notice}}</p>
   <DirectoryBrowser v-if="browsing" title="选择下次启动数据目录" purpose="data" :start="path" @selected="selected" @close="closeBrowser"/>
-  <StoragePolicySettings :busy="busy||working"/>
-  <DataRootTransfer v-if="state" :current-root="state.current_root" :busy="busy||working"/>
+  </div><div v-show="section==='policy'"><StoragePolicySettings :busy="busy||working"/></div>
+  <div v-show="section==='transfer'"><DataRootTransfer v-if="state" :current-root="state.current_root" :busy="busy||working"/></div>
  </section>
 </template>
 <style scoped>

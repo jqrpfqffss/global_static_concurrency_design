@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from './api'
 defineProps<{busy:boolean}>()
-const state=ref<any>(null),mode=ref('auto'),working=ref(false),error=ref(''),notice=ref(''),repair=ref(false),expanded=ref(false)
+const state=ref<any>(null),mode=ref('auto'),working=ref(false),error=ref(''),notice=ref(''),repair=ref(false),expanded=ref(true)
 const names:Record<string,string>={auto:'自动节省存储空间',off:'保持普通文件'}
 async function read(){state.value=await api('/storage/policy');mode.value=state.value.mode||'auto';if(!state.value.valid)expanded.value=true}
 function toggle(event:Event){expanded.value=(event.currentTarget as HTMLDetailsElement).open}

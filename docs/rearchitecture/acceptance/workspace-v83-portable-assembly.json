@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "status": "PASS_SEALED_INVENTORY_AND_ZIP_ACTUAL_CMD_PENDING",
+  "all_gates_passed": false,
+  "source_snapshot_sha256": "ad0950527bf32402e10104a46910a56980d6e065fe2f285d960cd689e35f0941",
+  "backend_and_tests_identical_to_v82": true,
+  "backend_and_test_source_files": 474,
+  "inherited_v82_receipt_sha256": "7925d30e8349ce6e76a5c3d4ed9bc5ed514078dc4fe43b17a8df2e861fc47ac2",
+  "inherited_runtime_checks": 54,
+  "inherited_packaged_direct_tests": 16,
+  "inheritance": "54 runtime/build/scan commands and 16 packaged direct unit tests ran on v82, not rerun on v83; runtime/tools/backend verified byte-identical. v83 actual CMD/browser, inventory and ZIP roundtrip separately recorded.",
+  "copied_runtime_tool_files": 28821,
+  "application_files": 148,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v83\\ECRA-Portable.zip",
+  "zip_bytes": 784150984,
+  "zip_sha256": "6f25c62bd096a87015e517d920e9499139ad8fd0df11165feedc3091b090a33e",
+  "complete_inventory_files": 32865,
+  "zip_crc_and_chinese_extraction_sha256_identical": true,
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_pc": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED",
+  "seconds": 243.79699999996228
+}
