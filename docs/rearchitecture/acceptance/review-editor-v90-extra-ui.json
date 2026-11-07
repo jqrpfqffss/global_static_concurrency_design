@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "checks": [
+    "Only two plain-text fields save without case-index format warnings or invented confirmation",
+    "External config edit causes conflict without overwriting either version; explicit reload preserves choice; empty background still saves"
+  ],
+  "status": "PASS_PACKAGED_MINIMAL_FORM_CONFLICT_AND_WRITE_SCOPE",
+  "program_changed_files": [
+    "config/concurrency_cases.md",
+    "config/review_context.md"
+  ],
+  "other_program_files_unchanged": 32936,
+  "profiles_created": 0
+}

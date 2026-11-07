@@ -1,0 +1,147 @@
+{
+  "passed": true,
+  "status": "PASS_REAL_FULL_ROUND_WITH_CASE_BODY_READS",
+  "scan_id": "3ce7f311a3e54b658f7fdd060cdb06a1",
+  "task_id": "70a35ef40980459bbb155d9d3b50c6b1",
+  "target_count": 6,
+  "states": {
+    "DONE": 6
+  },
+  "verdicts": {
+    "LIKELY": 1,
+    "FALSE_POSITIVE": 5
+  },
+  "model": "deepseek/deepseek-flash",
+  "workers": 2,
+  "timeout_seconds": 900,
+  "process_exit_code": 2,
+  "overall_run_status": "INCOMPLETE",
+  "materials": {
+    "concurrency_cases.md": {
+      "path": "concurrency_cases.md",
+      "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v90\\config\\concurrency_cases.md",
+      "bytes": 58462,
+      "sha256": "bc6550086fb059da93428eddb43e7807b995a163bb5e435ab876ccee3568ac23",
+      "mode": "config"
+    },
+    "review_context.md": {
+      "path": "review_context.md",
+      "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v90\\config\\review_context.md",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "config"
+    }
+  },
+  "background_input_empty": true,
+  "frozen_background_checked_in_every_analyze_prompt": true,
+  "context_marker_in_every_analyze_prompt": null,
+  "firmware_unchanged_files": 42,
+  "static_database_sha256": "8aa4b25798e35f5218b66d8e5fcc37beaeb87951e616f4ef5e3117e476a2d0cd",
+  "receipts": [
+    {
+      "finding_id": "GS-0facb0f7948b184c",
+      "status": "LIKELY",
+      "case_body_reads": [
+        {
+          "offset": 1152,
+          "limit": 160,
+          "output_chars": 5298,
+          "output_sha256": "0f74d7116d8794c87572f18ef9f0cd3a3d290b5f9cb9e0f8c0684799b56b4776"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 9,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-06ac808d74e6aad9",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1203,
+          "limit": 110,
+          "output_chars": 3658,
+          "output_sha256": "d0ad670a65c19a62036242e779795c6dae509e7dbbea0fb58f60cc2ce9fdee67"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 8,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-0ed08d01e2fe2e8f",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1256,
+          "limit": 130,
+          "output_chars": 3364,
+          "output_sha256": "4915ce09479f307f1ae868a042ff9368d454daa91430e2bcdbd80fc4adda6903"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 3,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-9577e7e94f75b3ca",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1256,
+          "limit": 130,
+          "output_chars": 3364,
+          "output_sha256": "4915ce09479f307f1ae868a042ff9368d454daa91430e2bcdbd80fc4adda6903"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 5,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-a1197826cc74dc9e",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1203,
+          "limit": 100,
+          "output_chars": 3473,
+          "output_sha256": "0ec352d358d0c60dd3e92ab5f8b617884d0a4d849ac518b0e8684f4bb8ed1e19"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 7,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-d2e4367f9e48417a",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1203,
+          "limit": 55,
+          "output_chars": 1977,
+          "output_sha256": "47c259d06d8d46aac502f96747e0ae091104851bf67c0a209cbeb83a57c53a6e"
+        },
+        {
+          "offset": 1256,
+          "limit": 50,
+          "output_chars": 1909,
+          "output_sha256": "91b09d36bf39675902e833d0ab350e86948495e817e97b7c51d605690d709c8e"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 5,
+      "summary_validation": "PASSED"
+    }
+  ],
+  "limitations": [
+    "Automated real model/software acceptance, not human UAT or hardware execution"
+  ]
+}

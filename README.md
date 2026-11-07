@@ -1,4 +1,4 @@
-OpenCode 风险/安全结果展示、案例库和工程背景配置见 [v89 复核操作指南](docs/studio-v89-opencode-guide.md)，真实工程与模型验收见 [132号记录](docs/rearchitecture/132-opencode-results-live-review.md)。
+案例库和工程背景可随时在上位机编辑 config 原文件，无需先保存工程配置，背景允许为空。见 [v90 填写式编辑指南](docs/studio-v90-review-materials-guide.md)；风险/安全展示和上一轮真实复核见 [132号记录](docs/rearchitecture/132-opencode-results-live-review.md)。
 
 新版配置与开始扫描操作见 [配置与开始扫描指南](docs/studio-v84-configuration-guide.md)。
 

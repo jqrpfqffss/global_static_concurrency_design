@@ -15,6 +15,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from ecra.config import read_yaml
 from ecra.review import verify_receipt
 from ecra.review_integrity import review_targets
+from ecra.review_context import review_context_section
 from ecra.scan_persistence import runtime
 from ecra.scan_store import EvidenceProvider
 
@@ -42,6 +43,8 @@ def audit(data,scan_id,task_id,context_marker,firmware_before,static_before):
     case_sha=materials['concurrency_cases.md']['sha256']
     snapshot=folder/'case-library'/(case_sha+'.md')
     assert sha(snapshot)==case_sha,'Case body differs from configured material'
+    background=review_context_section(task_folder/'review_context.md')
+    if not background:assert (task_folder/'review_context.md').read_bytes()==b'', 'Empty-background acceptance expects an empty frozen file'
     receipts=[]
     for row in rows:
         verify_receipt(root,folder,row)
@@ -51,8 +54,10 @@ def audit(data,scan_id,task_id,context_marker,firmware_before,static_before):
         successful=[]
         for attempt in calls:
             prompt=(folder/attempt['prompt_file']).read_text('utf-8')
-            assert context_marker in prompt,'Configured engineering background did not reach original prompt'
-            assert 'UI89_INPUT_COMMENT_SHOULD_NOT_REACH_MODEL' not in prompt,'Template comment reached model'
+            if background:
+                assert background in prompt,'Frozen engineering background did not reach original prompt'
+                if context_marker:assert context_marker in prompt,'Expected background marker missing'
+            else:assert '提供的当前工程背景（待源码和运行配置核实）' not in prompt,'Empty background was replaced by another source'
             assert case_sha in prompt and 'CASE-0001' in prompt,'Configured case index missing'
             assert attempt['model']==cfg['review']['model'],'Model differs from UI-saved profile'
             events=[json.loads(line) for line in (folder/attempt['stdout_file']).read_text('utf-8').splitlines() if line.strip()]
@@ -77,15 +82,17 @@ def audit(data,scan_id,task_id,context_marker,firmware_before,static_before):
                 target_count=len(rows),states=dict(Counter(r['state'] for r in rows)),verdicts=dict(Counter(r['status'] for r in rows)),
                 model=cfg['review']['model'],workers=cfg['review']['workers'],timeout_seconds=cfg['review']['timeout_seconds'],
                 process_exit_code=task['exit_code'],overall_run_status=current.get('report',{}).get('run_status'),
-                materials=materials,context_marker_in_every_analyze_prompt=True,firmware_unchanged_files=len(after),
+                materials=materials,background_input_empty=not bool(background),frozen_background_checked_in_every_analyze_prompt=True,
+                context_marker_in_every_analyze_prompt=True if context_marker else None,firmware_unchanged_files=len(after),
                 static_database_sha256=static_before,receipts=receipts,
                 limitations=['Automated real model/software acceptance, not human UAT or hardware execution'])
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    for name in ('data-root','scan-id','task-id','context-marker','firmware-before','static-before','output'):
+    for name in ('data-root','scan-id','task-id','firmware-before','static-before','output'):
         parser.add_argument('--'+name,required=True)
+    parser.add_argument('--context-marker',default='',help='Optional known text for nonempty project background; empty background is audited directly')
     args=parser.parse_args()
     result=audit(args.data_root,args.scan_id,args.task_id,args.context_marker,args.firmware_before,args.static_before)
     Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')

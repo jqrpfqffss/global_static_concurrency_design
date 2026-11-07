@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "checks": [
+    "No saved project/profile required; no source selector, external path or import control",
+    "Empty background saves as zero bytes and reopens empty without blocking review",
+    "Plain form generates CASE-0027/headings/safe code fence while all 26 original cases remain byte-identical",
+    "Cross-tab drafts survive saving another document; close confirms unsaved work; YAML profiles remain absent",
+    "Search/reopen/edit work with pinned Save and readable editor at two desktop sizes"
+  ],
+  "scope": "Real browser/editor over isolated copies of tool config; no firmware or release configuration edited",
+  "status": "PASS_PROFILE_INDEPENDENT_CONFIG_EDITOR",
+  "case_count": 27,
+  "profiles_created": 0
+}

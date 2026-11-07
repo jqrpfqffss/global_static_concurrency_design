@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "scope": "After minimal-input/BOM/metadata preservation fixes: actual targeted unittest invocations",
+  "source_tests": 22,
+  "packaged_tests": 22,
+  "source_exit_code": 0,
+  "packaged_exit_code": 0,
+  "modules": [
+    "tests.test_review_document_forms",
+    "tests.test_studio_review_materials"
+  ],
+  "packaged_python": "H:/ECRAStudio-build-20261107-studio-v90/ECRA-Portable/runtime/python.exe",
+  "files": {
+    "ecra/studio/review_document_forms.py": "427de86e3b2e9c43e864585bfd38b803f36940f0afa47c28627c923961c7de0f",
+    "ecra/studio/review_materials.py": "384fc9ce086f8f4999172efa07e1fdbfc2df6f39a2a15fccbda061174e6b70a6",
+    "tests/test_review_document_forms.py": "5363271bc0f0c37d6964c6ffc8adce9fc57374d2168da2ae66cacc64c04a970f",
+    "tests/test_studio_review_materials.py": "390393b1028b2c14085bf518acbdde5bc28eb1b4c7e154fadec723e6e8ecb168"
+  }
+}

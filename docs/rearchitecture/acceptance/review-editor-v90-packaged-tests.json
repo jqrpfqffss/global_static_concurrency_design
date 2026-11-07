@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "status": "PASS_STAGED_PACKAGED_TESTS_AWAIT_FINAL_LIVE_AUDIT_AND_SEAL",
+  "all_gates_passed": false,
+  "copied_runtime_tool_files": 28830,
+  "changed_python_and_test_files": [
+    "ecra/studio/review_document_forms.py",
+    "ecra/studio/review_materials.py",
+    "ecra/studio/server.py",
+    "scripts/audit_studio_live_review.py",
+    "tests/test_review_document_forms.py",
+    "tests/test_studio_api.py",
+    "tests/test_studio_review_materials.py"
+  ],
+  "source_snapshot_sha256": "424b60057c3edd675d750331298ea5c045119f36c1966b23431dc003e0dd0110",
+  "packaged_tests": 141,
+  "packaged_test_exit_code": 0,
+  "seconds": 145.26500000001397
+}

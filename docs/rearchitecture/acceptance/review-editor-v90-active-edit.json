@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "status": "PASS_REAL_EMPTY_CONTEXT_AND_MID_REVIEW_EDITS",
+  "checks": [
+    "Real native scan and real OpenCode start with zero-byte background. Both config originals edited while review RUNNING; original task snapshots unchanged."
+  ],
+  "scan_task_id": "3ce7f311a3e54b658f7fdd060cdb06a1",
+  "scan_id": "3ce7f311a3e54b658f7fdd060cdb06a1",
+  "static_database_sha256_before_review": "8aa4b25798e35f5218b66d8e5fcc37beaeb87951e616f4ef5e3117e476a2d0cd",
+  "review_task_id": "70a35ef40980459bbb155d9d3b50c6b1",
+  "frozen_materials_before_edit": {
+    "concurrency_cases.md": {
+      "path": "concurrency_cases.md",
+      "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v90\\config\\concurrency_cases.md",
+      "bytes": 58462,
+      "sha256": "bc6550086fb059da93428eddb43e7807b995a163bb5e435ab876ccee3568ac23",
+      "mode": "config"
+    },
+    "review_context.md": {
+      "path": "review_context.md",
+      "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v90\\config\\review_context.md",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "config"
+    }
+  },
+  "observed_before_and_after_editor_saves": "RUNNING",
+  "final_model_states": {
+    "DONE": 6
+  },
+  "final_model_verdicts": {
+    "LIKELY": 1,
+    "FALSE_POSITIVE": 5
+  },
+  "config_context_after_sha256": "f8c061d4c731af4bf8500c5c41114d2c5345cae624e5c7d4edadf9a43bac4d1f",
+  "config_cases_after_sha256": "bb6fb38f45b35abe174b69d0b6471c1fa2907b310230e1808d02491efb7f7997"
+}
