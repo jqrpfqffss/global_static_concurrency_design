@@ -1,5 +1,7 @@
 # STM32 全局变量与 static 变量并发排查工具（ECRA）
 
+**首次使用 v81 上位机，请从[详细用户教程：启动、扫描、排查、确认与结果交接](docs/studio-v81-user-tutorial.md)开始。** 教程按实际界面编写，包含四步工程向导、真实截图、未提交修改、备份恢复和常见问题；旧命令行/HTML教程另作历史参考。
+
 大型 STM32H743 飞控工程的目标构建、问题修正与实测状态见 [INAV H743 验收记录](docs/inav-h743-git-diff-validation.md)。多目标 CMake 工程可配置可选的 `analysis.cmake.target`，由 Ninja 实际依赖图选择完整固件闭包。
 
 **ECRA Studio 重构进行中**：双击 `ECRA.cmd` 或运行 `py -3.10 run_ecra.py ui`，可保存独立工程配置、发起真实 SQLite 扫描、安全停止/校验 TU 后恢复、查看完整证据及调用树、进行人工确认和结果包交换。可选 OpenCode 复核有独立任务与账本。**完整重构及发布门禁仍未全部通过**；[本轮可验证实现](docs/rearchitecture/04-canonical-pipeline-progress.md)、[阶段验收与阻断项](docs/rearchitecture/performance-and-acceptance.md)、[操作指南](docs/rearchitecture/portable-and-user-guide.md)。
