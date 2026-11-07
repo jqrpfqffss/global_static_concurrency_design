@@ -7,6 +7,33 @@ from ecra.studio.directories import browse
 
 
 class DirectoryBrowserTests(unittest.TestCase):
+    def test_project_file_pages_include_headers_and_arbitrary_regular_files_without_reading_contents(self):
+        (self.root/'sub').mkdir()
+        names=['业务, 文件.c','header with spaces.h','board.ld','说明.txt']
+        for name in names:(self.root/name).write_text('original content','utf-8')
+        before={p.name:(p.stat().st_size,p.stat().st_mtime_ns) for p in self.root.iterdir()}
+        rows=[];after=None
+        with patch('pathlib.Path.open',side_effect=AssertionError('Picker cannot open source contents')):
+            while True:
+                page=browse(str(self.root),root=str(self.root),kind='project_file',after=after,limit=2)
+                rows.extend(page['items']);after=page['next_after']
+                if after is None:break
+            for name in names:
+                item=browse(str(self.root/name),root=str(self.root),kind='project_file')
+                self.assertEqual(item['mode'],'file');self.assertEqual(item['relative'],name)
+        self.assertEqual({row['name'] for row in rows},set(names)|{'sub'})
+        self.assertEqual(before,{p.name:(p.stat().st_size,p.stat().st_mtime_ns) for p in self.root.iterdir()})
+
+    def test_project_file_requires_root_and_rejects_escape_and_links(self):
+        outside=Path(self.tmp.name)/'outside.c';outside.write_text('untouched','utf-8')
+        for args in [dict(path=str(self.root)),dict(path=str(outside),root=str(self.root)),dict(path=str(self.root.parent),root=str(self.root))]:
+            with self.subTest(args=args),self.assertRaises(ValueError):browse(kind='project_file',**args)
+        link=self.root/'alias.c'
+        try:link.symlink_to(outside)
+        except OSError as exc:self.skipTest(str(exc))
+        self.assertFalse(next(row for row in browse(str(self.root),root=str(self.root),kind='project_file')['items'] if row['name']=='alias.c')['selectable'])
+        with self.assertRaises(ValueError):browse(str(link),root=str(self.root),kind='project_file')
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(prefix='ecra-dir-')
         self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)/'固件, 工程';self.root.mkdir();self.root=self.root.resolve()

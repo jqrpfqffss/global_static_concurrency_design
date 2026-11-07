@@ -34,6 +34,16 @@ review: {enabled: false}
 
 
 class ProfileFormTests(unittest.TestCase):
+    def test_single_file_exclusions_roundtrip_exact_paths_preserve_others_and_have_primary_location(self):
+        values=['Core/Src/syscalls.c','Core/Src/业务, 文件.c','include/header with spaces.h']
+        result=merge_form(RAW,{'options':{'analysis.exclude_files':values}})
+        expected=yaml.safe_load(RAW);expected['analysis']['exclude_files']=values
+        self.assertEqual(yaml.safe_load(result['yaml']),expected)
+        state=form_state(result['yaml']);self.assertEqual(state['form']['options']['analysis.exclude_files'],values)
+        row=next(row for row in state['inventory'] if row['path']=='analysis.exclude_files')
+        self.assertEqual(row['location'],'纳入与排除');self.assertIn('# 工程原始注释',result['yaml'])
+        self.assertEqual(merge_form(result['yaml'],{})['yaml'],result['yaml'])
+
     def test_switch_to_cmake_does_not_overwrite_explicit_options_with_branch_defaults(self):
         raw='version: 1\nproject: {root: "D:/firmware"}\nanalysis: {compile_database: auto}\nreview: {enabled: false}\n'
         result=merge_form(raw,{'build_mode':'cmake','options':{'analysis.cmake.generator':'Unix Makefiles','analysis.cmake.build':False}})

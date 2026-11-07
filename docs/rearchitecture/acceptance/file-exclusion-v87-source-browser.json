@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "single_file_exclusion_is_visible_in_primary_range_tab",
+      "value": true
+    },
+    {
+      "name": "cancel_does_not_modify_file_exclusions",
+      "value": true
+    },
+    {
+      "name": "multiselect_across_directory_and_page_keeps_exact_unicode_comma_space_paths",
+      "value": true
+    },
+    {
+      "name": "repeated_picker_addition_does_not_duplicate_path",
+      "value": true
+    },
+    {
+      "name": "paste_many_paths_and_remove_one_are_direct_operations",
+      "value": true
+    },
+    {
+      "name": "only_analysis_exclude_files_changes_all_other_configuration_and_comment_survive",
+      "value": true
+    },
+    {
+      "name": "save_reopen_and_form_return_preserve_exact_file_exclusion",
+      "value": true
+    },
+    {
+      "name": "actual_native_scan_excludes_only_other_file_definitions_and_retains_its_access_to_main_variable",
+      "value": {
+        "scan_id": "c0f124bee4ea45cf80143a362034a993",
+        "remaining_main_states": 1,
+        "g_counter_accesses": 7
+      }
+    }
+  ],
+  "scope": "Actual source CMD, real UI selections and real CMake native scan; selected metadata fixtures are not fabricated scan results. Not human UAT.",
+  "scan_id": "c0f124bee4ea45cf80143a362034a993",
+  "status": "PASS_SCOPED"
+}

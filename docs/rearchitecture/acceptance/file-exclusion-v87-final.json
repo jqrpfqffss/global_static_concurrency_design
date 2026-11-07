@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Primary single-file exclusion controls and actual scan semantics; not all rearchitecture gates.",
+  "status": "PASS_SCOPED_SINGLE_FILE_EXCLUSION",
+  "recorded_utc": "2026-11-07T10:44:24Z",
+  "actual_browser_and_server_receipts": {
+    "ui-v87/acceptance.json": "1032a8909687c0fa607a369c1ce5cc493047674eeeb6ae85384a8537facd5a10",
+    "ui-v87/server.json": "a094a1735bddf3cc83e87517f4ce4f379e433baad88bbb3f9be75e77f03cda86",
+    "ui-v87-portable/acceptance.json": "8db19c7fa5a5249b4c9a240a4c0e66357cab88601847a6f0fd464ef6ddc15610",
+    "ui-v87-portable/server.json": "e3d4415fa2854b60f962f2c342d1191617793d8eead1c609420b6e268a7143de"
+  },
+  "firmware_original_42_files_unchanged": true,
+  "owned_fixture_names_size_mtime_sha256_unchanged": {
+    "ui-v87": 61,
+    "ui-v87-portable-inputs": 61
+  },
+  "packaged_program_files_unchanged": 32893,
+  "frozen_code_files_match": 476,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v87\\ECRA-Portable.zip",
+  "zip_sha256": "4dc6fdebc6a102fea03d4cf7f53c0115084451e310677346725b0fcfd2ec566a",
+  "source_scoped_tests": 43,
+  "packaged_directory_profile_tests": 28,
+  "real_model_call": "NOT_VERIFIED",
+  "unverified": [
+    "other_G2_projects",
+    "physical_32GB_PC",
+    "clean_offline_PC",
+    "native_Windows_DPI",
+    "human_UAT",
+    "whole_large_Diff_recovery_final_gate"
+  ],
+  "strict_cross_environment_report_FAIL": "PRESERVED_NOT_RELAXED"
+}

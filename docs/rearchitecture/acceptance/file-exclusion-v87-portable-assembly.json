@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "status": "PASS_SEALED_INVENTORY_AND_ZIP_ACTUAL_CMD_PENDING",
+  "all_gates_passed": false,
+  "source_snapshot_sha256": "b177414832fb2692375585a9bfcc807ec4d5f8fda9a5a0f9497f0385128da58b",
+  "backend_and_tests_identical_to_v86": false,
+  "changed_backend_test_files": [
+    "ecra/studio/directories.py",
+    "ecra/studio/profile_options.py",
+    "tests/test_directory_browser.py",
+    "tests/test_profile_forms.py"
+  ],
+  "backend_and_test_source_files": 475,
+  "inherited_v86_receipt_sha256": "a3fb2c7b73038af0dc9683e9fa5b36a9680b64762d5280b4db2dd24334573c4e",
+  "inherited_runtime_checks": 54,
+  "packaged_directory_and_profile_tests": 28,
+  "inheritance": "Runtime/tools copied and byte-verified from v86; 54 historical tool/runtime commands are inherited only. Four directory/descriptor/test files differ; analysis engine and lossless config merger unchanged. v87 packaged directory/profile tests and actual UI/native scan recorded separately.",
+  "copied_runtime_tool_files": 28821,
+  "application_files": 149,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v87\\ECRA-Portable.zip",
+  "zip_bytes": 784660521,
+  "zip_sha256": "4dc6fdebc6a102fea03d4cf7f53c0115084451e310677346725b0fcfd2ec566a",
+  "complete_inventory_files": 32894,
+  "zip_crc_and_chinese_extraction_sha256_identical": true,
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_pc": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED",
+  "seconds": 270.9220000000205
+}

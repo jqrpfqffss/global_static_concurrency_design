@@ -22,7 +22,7 @@ OPTIONS = [
     option('analysis.cmake.clean_before_configure','构建细节','构建前清理专用目录','boolean','只清理经归属校验的ECRA构建目录；开启可避免旧缓存。'),
     option('analysis.cmake.timeout_seconds','构建细节','构建超时（秒）','number','单次配置或构建的最长等待时间；默认600秒。','600',0.001),
     option('analysis.cmake.allow_external_toolchain','构建细节','允许外部工具链文件','boolean','工具链在固件目录外时按实际情况开启；仍会校验输入。'),
-    option('analysis.exclude_files','排查选项','排除变量清单文件','lines','每行一个相对工程路径；只排除其变量，仍保留调用依赖。','Core/Src/syscalls.c'),
+    option('analysis.exclude_files','纳入与排除','排除单个文件中的变量','lines','每行一个相对工程路径；只排除其变量，仍保留调用依赖。','Core/Src/syscalls.c'),
     option('analysis.exclude','排查选项','跳过解析的文件模式','lines','会减少解析覆盖；通常优先用“排除变量清单文件”。','Core/Src/legacy_unused.c'),
     option('analysis.expected_defines','排查选项','必须存在的编译宏','lines','每行一个宏；只核对真实命令，不会替你注入。','STM32F103xB\nUSE_HAL_DRIVER'),
     option('analysis.parse_timeout_seconds','排查选项','单文件解析超时（秒）','number','默认180秒；大文件频繁超时时再增加。','180',0.001),

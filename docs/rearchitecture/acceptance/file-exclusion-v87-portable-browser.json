@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "sealed_imported_single_file_is_visible_removable_and_replaced_by_real_picker",
+      "value": true
+    },
+    {
+      "name": "sealed_yaml_exactly_matches_requested_field_change",
+      "value": true
+    },
+    {
+      "name": "sealed_actual_scan_excludes_other_definitions_keeps_main_same_name_and_other_isr_access",
+      "value": {
+        "scan_id": "e7595b93790346fcad7986110100d1ec",
+        "retained_other_accesses": 1,
+        "function": "USART1_IRQHandler"
+      }
+    },
+    {
+      "name": "sealed_saved_configuration_reopens_with_the_same_file_exclusion",
+      "value": true
+    }
+  ],
+  "scope": "Actual sealed v87 CMD and bundled Python, Windows-only PATH; real CMake scan with single-file exclusion. Not clean offline PC or human UAT.",
+  "scan_id": "e7595b93790346fcad7986110100d1ec",
+  "status": "PASS_SCOPED_FINAL"
+}
