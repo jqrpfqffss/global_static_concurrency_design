@@ -4,7 +4,7 @@ import { api } from './api'
 import WorkspaceDialog from './WorkspaceDialog.vue'
 const planOpen=ref(false)
 const props=defineProps<{profile:any}>()
-const emit=defineEmits<{ready:[id:string],tasks:[id:string]}>()
+const emit=defineEmits<{ready:[id:string],tasks:[id:string],failed:[]}>()
 const task=ref<any>(null),plan=ref<any>(null),error=ref(''),busy=ref(false),offset=ref(0)
 const admitted=ref('')
 let timer:ReturnType<typeof setInterval>|undefined,polling=false,generation=0
@@ -15,14 +15,14 @@ async function poll(){
   polling=true;const id=task.value.id,epoch=generation
   try{const value=await api('/tasks/'+id);if(epoch!==generation||task.value?.id!==id)return;task.value=value
     if(value.state==='COMPLETE'&&value.preflight?.passed){if(!plan.value)await page(0);if(epoch!==generation||task.value?.id!==id)return;emit('ready',admitted.value===id?id:'')}
-    else emit('ready','')
+    else {emit('ready','');if(['FAILED','INTERRUPTED'].includes(value.state))emit('failed')}
     error.value=''
-  }catch(e:any){if(epoch===generation){error.value=e.message;emit('ready','')}}finally{polling=false}
+  }catch(e:any){if(epoch===generation){error.value=e.message;emit('ready','');emit('failed')}}finally{polling=false}
 }
-async function action(fn:()=>Promise<any>){if(busy.value)return;busy.value=true;error.value='';try{await fn()}catch(e:any){error.value=e.message;emit('ready','')}finally{busy.value=false}}
+async function action(fn:()=>Promise<any>){if(busy.value)return;busy.value=true;error.value='';try{await fn()}catch(e:any){error.value=e.message;emit('ready','');emit('failed')}finally{busy.value=false}}
 async function start(){await action(async()=>{const epoch=++generation;emit('ready','');admitted.value='';task.value=null;plan.value=null;offset.value=0;const p=props.profile
   if(!p)throw Error('请先检查并保存当前独立配置。')
-  const value=await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,mode:'precheck',resources:{preset:'auto',workers:4}})
+  const value=await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,mode:'precheck',resources:{preset:'auto'}})
   if(epoch===generation&&props.profile?.revision===p.revision&&props.profile?.id===p.id){admitted.value=value.id;task.value=value;await poll()}
 })}
 async function reopen(){const epoch=++generation;emit('ready','');admitted.value='';task.value=null;plan.value=null;offset.value=0;error.value=''
@@ -32,6 +32,7 @@ async function reopen(){const epoch=++generation;emit('ready','');admitted.value
 watch(()=>props.profile?.project_id+'|'+props.profile?.id+'|'+props.profile?.revision,reopen)
 onMounted(()=>{reopen();timer=setInterval(poll,1000)})
 onUnmounted(()=>{generation++;if(timer)clearInterval(timer)})
+defineExpose({start})
 </script>
 <template>
   <section class="build-preflight" aria-label="真实构建预检查">

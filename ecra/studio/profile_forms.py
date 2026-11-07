@@ -14,9 +14,10 @@ import tempfile
 
 import yaml as engine_yaml
 from ..config import UniqueKeyLoader
+from .profile_options import state as option_state, validate as validate_option, inventory
 
 MAX_BYTES=4*1024**2
-FIELDS={'project_name','project_root','project_core','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','include_uncommitted','contexts','system_headers'}
+FIELDS={'project_name','project_root','project_core','build_mode','target','toolchain','variant','include_dirs','exclude_dirs','base_ref','current_ref','include_uncommitted','contexts','system_headers','options'}
 CONTEXT_KINDS={'ISR','TASK','MAIN','CALLBACK','DMA','CORE','FOREGROUND','IRQ','EXTERNAL_ASYNC','UNKNOWN_CONTEXT'}
 
 
@@ -179,13 +180,14 @@ def form_state(raw):
     headers=analysis.get('auto_system_includes')
     if 'auto_system_includes' in analysis and type(headers) is not bool:raise ValueError('analysis.auto_system_includes 必须是布尔值，请在高级YAML修复')
     result['system_headers']='default' if headers is None else 'on' if headers else 'off'
+    result['options']=option_state(value)
     _,document=_roundtrip(raw);reason='';context_reason=''
     try:result['contexts']=_context_form(document)
     except ValueError as exc:result['contexts']=[];context_reason=str(exc)
     for path in [('project','root'),('analysis','include_dirs'),('analysis','cmake','target'),('analysis','git_diff','base_ref')]:
         try:_parents(document,path)
         except ValueError as exc:reason=str(exc);break
-    return dict(form=result,editable=not reason,reason=reason,contexts_editable=not context_reason,contexts_reason=context_reason,sha256=hashlib.sha256(raw.encode('utf-8')).hexdigest())
+    return dict(form=result,inventory=inventory(value),editable=not reason,reason=reason,contexts_editable=not context_reason,contexts_reason=context_reason,sha256=hashlib.sha256(raw.encode('utf-8')).hexdigest())
 
 
 def merge_form(raw,changes):
@@ -193,6 +195,10 @@ def merge_form(raw,changes):
     if not isinstance(changes,dict) or set(changes)-FIELDS:raise ValueError('表单包含未知修改字段')
     for key,value in changes.items():
         if key=='contexts':continue
+        if key=='options':
+            if not isinstance(value,dict):raise ValueError('附加配置修改必须是映射')
+            for path,item in value.items():validate_option(path,item)
+            continue
         if key=='include_uncommitted':
             if type(value) is not bool:raise ValueError('纳入未提交输入必须是布尔值')
         elif key in {'include_dirs','exclude_dirs'}:
@@ -211,6 +217,11 @@ def merge_form(raw,changes):
             remove(('analysis','compile_database'))
             if 'cmake' not in before.get('analysis',{}):
                 for key,value in dict(generator='Ninja',build=True,build_type='Debug').items():set_value(('analysis','cmake',key),value)
+    # Explicit choices must follow branch defaults when switching from compdb.
+    for path,value in changes.get('options',{}).items():
+        if path.startswith('analysis.cmake.') and mode!='cmake':raise ValueError('编译数据库模式不能修改CMake配置')
+        if value is None:remove(tuple(path.split('.')))
+        else:set_value(tuple(path.split('.')),value)
     paths=dict(project_name=('project','name'),project_root=('project','root'),include_dirs=('analysis','include_dirs'),exclude_dirs=('analysis','exclude_dirs'))
     for key,path in paths.items():
         if key in changes:set_value(path,changes[key])
@@ -236,14 +247,19 @@ def merge_form(raw,changes):
         if changes['system_headers']=='default':remove(('analysis','auto_system_includes'))
         else:set_value(('analysis','auto_system_includes'),changes['system_headers']=='on')
     from ruamel.yaml.scalarstring import DoubleQuotedScalarString
-    from ruamel.yaml.comments import CommentedSeq
+    from ruamel.yaml.comments import CommentedSeq,CommentedMap
+    def styled(value):
+        if isinstance(value,str):return DoubleQuotedScalarString(value)
+        if isinstance(value,list):return CommentedSeq(styled(item) for item in value)
+        if isinstance(value,dict):return CommentedMap((key,styled(item)) for key,item in value.items())
+        return value
     for path,value,deleted in operations:
         actual_parent=_parents(document,path,create=not deleted);expected_parent=_parents(expected,path,create=not deleted)
         if deleted:
             if actual_parent is not None:actual_parent.pop(path[-1],None)
             if expected_parent is not None:expected_parent.pop(path[-1],None)
         else:
-            actual_parent[path[-1]]=DoubleQuotedScalarString(value) if isinstance(value,str) else CommentedSeq(DoubleQuotedScalarString(item) for item in value) if isinstance(value,list) else value
+            actual_parent[path[-1]]=styled(value)
             expected_parent[path[-1]]=copy.deepcopy(value)
     if 'contexts' in changes:_merge_contexts(document,expected,changes['contexts'])
     stream=io.StringIO();parser.dump(document,stream);result=stream.getvalue();after=_plain(result)

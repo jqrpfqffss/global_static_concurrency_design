@@ -1,3 +1,5 @@
+新版配置与开始扫描操作见 [配置与开始扫描指南](docs/studio-v84-configuration-guide.md)。
+
 # STM32 全局变量与 static 变量并发排查工具（ECRA）
 
 **新版 v82 界面请先看[布局与操作指南](docs/studio-v82-layout-guide.md)**：目录/源码可放大，人工确认、覆盖、历史和日志使用新的工作区布局。完整验证范围见[128号记录](docs/rearchitecture/128-engineering-workspace-usability.md)。

@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "checks": [],
+  "scope": "Actual source CMD, real F030 input and native scan. No model call or simulated success; not physical UAT.",
+  "status": "FAIL",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\check-ui-v84.py\", line 15, in <module>\n    assert ref('button','检查真实构建') and ref('button','开始此配置扫描')\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui_v84_browser.py\", line 20, in ref\n    if len(found)>1 or time.monotonic()>deadline:raise ValueError('Missing or ambiguous action '+name+' '+repr(found))\nValueError: Missing or ambiguous action 检查真实构建 []\n"
+}

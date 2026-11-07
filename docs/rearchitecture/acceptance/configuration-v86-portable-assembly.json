@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "status": "PASS_SEALED_INVENTORY_AND_ZIP_ACTUAL_CMD_PENDING",
+  "all_gates_passed": false,
+  "source_snapshot_sha256": "f1b73ebbe6d09e1122df9c06933cab0b8505d6120c400789b2d05fe8c41f4a39",
+  "backend_and_tests_identical_to_v83": false,
+  "changed_backend_test_files": [
+    "ecra/studio/profile_forms.py",
+    "ecra/studio/profile_options.py",
+    "ecra/studio/resource_policy.py",
+    "ecra/studio/server.py",
+    "ecra/studio/tasks.py",
+    "tests/test_profile_forms.py",
+    "tests/test_studio_resource_policy.py"
+  ],
+  "backend_and_test_source_files": 475,
+  "inherited_v83_receipt_sha256": "182e8272a5a6409c0df143886ee77594c25b5e05811ab272dcf2d501b3f95e13",
+  "inherited_runtime_checks": 54,
+  "packaged_profile_and_resource_tests": 22,
+  "inheritance": "54 tool/runtime/build/scan commands ran on v82; v83 runtime/tools were byte-verified, and are again byte-verified here. Backend changes are limited to seven listed form/server/scheduling/test files. v84 packaged profile/resource tests and actual CMD/browser/scans recorded independently. No inherited claim for new backend behavior.",
+  "copied_runtime_tool_files": 28821,
+  "application_files": 149,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v86\\ECRA-Portable.zip",
+  "zip_bytes": 784528737,
+  "zip_sha256": "8a7d676698e866f94a071dd7749e39aced7899460efc9035cca4c38cb7779bda",
+  "complete_inventory_files": 32885,
+  "zip_crc_and_chinese_extraction_sha256_identical": true,
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_pc": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED",
+  "seconds": 251.95300000003772
+}

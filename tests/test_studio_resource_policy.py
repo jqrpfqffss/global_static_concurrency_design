@@ -9,6 +9,12 @@ from ecra.studio.resource_policy import policy
 
 
 class ResourcePolicyTests(unittest.TestCase):
+    def test_profile_workers_are_used_unless_user_overrides_and_low_memory_still_limits(self):
+        self.assertEqual(policy({'preset':'auto'},configured_workers=7)['workers'],7)
+        self.assertEqual(policy({'workers':2},configured_workers=7)['workers'],2)
+        self.assertEqual(policy({'preset':'low'},configured_workers=7)['workers'],1)
+        with self.assertRaises(ValueError):policy({},configured_workers=True)
+
     def test_host_commit_exhaustion_is_independent_of_free_physical_ram_and_unknown_metrics_are_not_zero(self):
         from ecra.studio.resource_policy import host_pressure
         gib=1024**3

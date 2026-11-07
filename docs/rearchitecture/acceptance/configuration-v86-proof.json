@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "files": 33,
+  "archive": "H:\\ECRAStudio-build-20261107-studio-v86\\portable-evidence\\configuration-review-proof.zip",
+  "sha256": "21a812b4d74bba330360e5ae9e2711ec9114ab4b92f9893736ce94257a724085",
+  "scope": "Actual final scripts, test log, receipts and screenshots; original partial/failure receipts retained; excludes session and raw launcher/browser credential logs."
+}

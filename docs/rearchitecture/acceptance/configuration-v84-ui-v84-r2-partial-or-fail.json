@@ -1,0 +1,38 @@
+{
+  "passed": false,
+  "checks": [
+    {
+      "name": "reopen_saved_profile_enables_real_precheck_and_start",
+      "value": true
+    },
+    {
+      "name": "opencode_form_values_roundtrip_without_enabling_model",
+      "value": {
+        "enabled": false,
+        "command": [
+          "D:/tool path/opencode.exe",
+          "--literal argument"
+        ],
+        "workers": 3,
+        "summary": {
+          "max_chars": 200
+        }
+      }
+    },
+    {
+      "name": "failed_real_precheck_stops_scan_and_allows_repair",
+      "value": true
+    },
+    {
+      "name": "single_explicit_start_runs_check_save_real_precheck_and_native_scan",
+      "value": {
+        "task_id": "3f00187b51794144a834d4d6ced5f31a",
+        "scan_id": "3f00187b51794144a834d4d6ced5f31a"
+      }
+    }
+  ],
+  "scope": "Actual source CMD, real F030 input and native scan. No model call or simulated success; not physical UAT.",
+  "task_id": "3f00187b51794144a834d4d6ced5f31a",
+  "scan_id": "3f00187b51794144a834d4d6ced5f31a",
+  "status": "HARNESS_INTERRUPTED_WRONG_SOURCE_SELECTOR"
+}

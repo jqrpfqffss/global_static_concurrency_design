@@ -1,0 +1,23 @@
+{
+  "passed": false,
+  "checks": [
+    {
+      "name": "collapsed_review_prioritizes_readable_source",
+      "value": {
+        "height": 470.919677734375,
+        "formHidden": true
+      }
+    },
+    {
+      "name": "collapse_and_object_switch_preserve_draft_explicit_confirm_undo_keep_events",
+      "value": true
+    },
+    {
+      "name": "technical_evidence_is_opt_in_and_complete_raw_object_remains_accessible",
+      "value": true
+    }
+  ],
+  "scope": "Actual source CMD, real F030 input and native scan. No model call or simulated success; not physical UAT.",
+  "status": "PASS_REVIEW_CMAKE_ENVIRONMENT_ALIAS_BLOCKED",
+  "environment_failure": "LOCALAPPDATA isolated test path too long for ASCII alias root; no production path rules changed"
+}

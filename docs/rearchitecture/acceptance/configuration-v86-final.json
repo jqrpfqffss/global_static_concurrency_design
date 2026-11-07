@@ -1,0 +1,85 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Configuration and review usability repair only. Actual source F030 scan and packaged CMake scan; no provider/model invocation.",
+  "status": "PASS_SCOPED_CONFIGURATION_AND_REVIEW",
+  "recorded_utc": "2026-11-07T09:42:53Z",
+  "source_f030_native_scan": "3f00187b51794144a834d4d6ced5f31a",
+  "source_f030_and_error_flow_checks": [
+    {
+      "name": "reopen_saved_profile_enables_real_precheck_and_start",
+      "value": true
+    },
+    {
+      "name": "opencode_form_values_roundtrip_without_enabling_model",
+      "value": {
+        "enabled": false,
+        "command": [
+          "D:/tool path/opencode.exe",
+          "--literal argument"
+        ],
+        "workers": 3,
+        "summary": {
+          "max_chars": 200
+        }
+      }
+    },
+    {
+      "name": "failed_real_precheck_stops_scan_and_allows_repair",
+      "value": true
+    },
+    {
+      "name": "single_explicit_start_runs_check_save_real_precheck_and_native_scan",
+      "value": {
+        "task_id": "3f00187b51794144a834d4d6ced5f31a",
+        "scan_id": "3f00187b51794144a834d4d6ced5f31a"
+      }
+    }
+  ],
+  "review_checks": [
+    {
+      "name": "collapsed_review_prioritizes_readable_source",
+      "value": {
+        "height": 470.919677734375,
+        "formHidden": true
+      }
+    },
+    {
+      "name": "collapse_and_object_switch_preserve_draft_explicit_confirm_undo_keep_events",
+      "value": true
+    },
+    {
+      "name": "technical_evidence_is_opt_in_and_complete_raw_object_remains_accessible",
+      "value": true
+    }
+  ],
+  "packaged_browser_receipt_sha256": "a56d98481654d4f164ce376ac0a77e5105bcfde96ad5e71b2a97e13cc0164b9c",
+  "packaged_server_receipt_sha256": "47d54320579836a40478dce962e9a844d3bd1704b40a8128ce4107eb8fdc4be9",
+  "assembly_receipt_sha256": "a3fb2c7b73038af0dc9683e9fa5b36a9680b64762d5280b4db2dd24334573c4e",
+  "firmware_names_size_mtime_sha256_unchanged": 42,
+  "teaching_cmake_source_names_size_mtime_sha256_unchanged": 5,
+  "existing_archive_static_files_unchanged": 310,
+  "review_confirmation_and_undo_events": 2,
+  "program_files_unchanged": 32884,
+  "frozen_repository_program_files_match": 475,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v86\\ECRA-Portable.zip",
+  "zip_sha256": "8a7d676698e866f94a071dd7749e39aced7899460efc9035cca4c38cb7779bda",
+  "scoped_source_tests": 45,
+  "packaged_profile_resource_tests": 22,
+  "ui_contract_checks": 12,
+  "preserved_failures": [
+    "first_harness_used_wrong_historical_button_name",
+    "source_harness_wrong_source_lines_selector",
+    "isolated_CMake_ALIAS_ROOT_too_long_then_retried_with_explicit_short_root"
+  ],
+  "unverified": [
+    "real_OpenCode_provider_call",
+    "other_G2_projects",
+    "physical_32GB_PC",
+    "clean_offline_PC",
+    "native_Windows_DPI",
+    "human_UAT",
+    "whole_large_Diff_recovery_final_gate"
+  ],
+  "strict_cross_environment_report_FAIL": "PRESERVED_NOT_RELAXED"
+}

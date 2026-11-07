@@ -662,6 +662,11 @@ def _create_app(data_root, *, token, authority, startup):
                 items[-1]['name']=name if isinstance(name,str) and name.strip() else path.stem
         return dict(items=items)
 
+    @app.get('/api/profiles/options')
+    def profile_options():
+        from .profile_options import OPTIONS
+        return dict(items=OPTIONS)
+
     @app.post('/api/profiles/form')
     def profile_form(payload: dict):
         from .profile_forms import form_state

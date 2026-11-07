@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "malformed_command_shows_local_repair_message_and_page_remains_usable",
+      "value": true
+    },
+    {
+      "name": "explicit_repair_writes_argument_array_without_enabling_provider",
+      "value": true
+    },
+    {
+      "name": "repaired_configuration_real_precheck_and_native_cmake_scan_complete",
+      "value": {
+        "workers": 2,
+        "target": "demo",
+        "variant": "Release"
+      }
+    },
+    {
+      "name": "final_package_collapsed_evidence_geometry",
+      "value": {
+        "height": 470.919677734375,
+        "hidden": true
+      }
+    }
+  ],
+  "scope": "Actual sealed v86 CMD, bundled Python, Windows-only PATH and isolated short alias root. Malformed original option preserved then explicitly repaired via real UI, real CMake scan; no model call.",
+  "scan_id": "5b91c46f3c5e49cfa6aa3566212b5d38",
+  "status": "PASS_SCOPED_FINAL"
+}

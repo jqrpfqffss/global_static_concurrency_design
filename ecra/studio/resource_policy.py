@@ -18,8 +18,9 @@ def host_pressure(sample):
         metrics_available=headroom is not None and physical is not None,reason=reason)
 
 
-def policy(value=None):
-    value=value or {}
+def policy(value=None, *, configured_workers=None):
+    value=dict(value or {})
+    if 'workers' not in value and configured_workers is not None:value['workers']=configured_workers
     preset=value.get('preset','auto')
     if preset not in {'auto','low','high','manual'}:raise ValueError('资源预设必须是自动/低内存/高性能/手动')
     peak=value.get('peak_gib',16) if preset=='manual' else (8 if preset=='low' else 16)

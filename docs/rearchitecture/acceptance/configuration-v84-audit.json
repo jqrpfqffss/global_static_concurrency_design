@@ -1,0 +1,172 @@
+{
+  "passed": true,
+  "active_fields": 31,
+  "option_descriptors": 45,
+  "undocumented_active_fields": [],
+  "inventory": [
+    {
+      "path": "version",
+      "location": "兼容与位置设置",
+      "hint": "配置格式版本，当前使用1。"
+    },
+    {
+      "path": "project.root",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "project.chip",
+      "location": "工程",
+      "hint": "仅作工程说明；实际芯片宏来自编译命令。"
+    },
+    {
+      "path": "project.core",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "project.native_word_bits",
+      "location": "工程",
+      "hint": "通常填32；必须是8的正整数倍。"
+    },
+    {
+      "path": "analysis.git_diff.enabled",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.git_diff.base_ref",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.git_diff.current_ref",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.include_dirs",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.exclude_dirs",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.exclude_files",
+      "location": "排查选项",
+      "hint": "每行一个相对工程路径；只排除其变量，仍保留调用依赖。"
+    },
+    {
+      "path": "analysis.parse_timeout_seconds",
+      "location": "排查选项",
+      "hint": "默认180秒；大文件频繁超时时再增加。"
+    },
+    {
+      "path": "analysis.extraction_workers",
+      "location": "排查选项",
+      "hint": "1–8；内存紧张时减少。任务中心预算仍会约束实际并行。"
+    },
+    {
+      "path": "analysis.auto_system_includes",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.open_report",
+      "location": "兼容与位置设置",
+      "hint": "旧CLI报告开关；Studio正式扫描不生成旧HTML，不用于启动上位机。"
+    },
+    {
+      "path": "analysis.cmake.build_dir",
+      "location": "构建细节",
+      "hint": "保留已有工程配置；正式构建仍由独立数据根隔离管理。"
+    },
+    {
+      "path": "analysis.cmake.generator",
+      "location": "构建细节",
+      "hint": "与工程真实构建方式一致；按目标选TU时需要Ninja。"
+    },
+    {
+      "path": "analysis.cmake.build_type",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.cmake.toolchain_file",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "analysis.cmake.args",
+      "location": "构建细节",
+      "hint": "每行一个完整参数，空格保留；不要填-S、-B或-G。"
+    },
+    {
+      "path": "analysis.cmake.clean_before_configure",
+      "location": "构建细节",
+      "hint": "只清理经归属校验的ECRA构建目录；开启可避免旧缓存。"
+    },
+    {
+      "path": "analysis.cmake.build",
+      "location": "构建细节",
+      "hint": "通常开启；关闭时只配置并取得编译数据库。"
+    },
+    {
+      "path": "contexts",
+      "location": "普通表单",
+      "hint": "在原文中完整保留；仅修改明确选择的配置项。"
+    },
+    {
+      "path": "review.enabled",
+      "location": "OpenCode",
+      "hint": "首次接入建议关闭；开启后扫描会调用所配命令，可能使用联网模型。"
+    },
+    {
+      "path": "review.command",
+      "location": "OpenCode",
+      "hint": "第一行是程序路径，其余每行一个参数；不要填整条shell命令。"
+    },
+    {
+      "path": "review.timeout_seconds",
+      "location": "OpenCode",
+      "hint": "每次调用的等待上限，不是变量之间的间隔。"
+    },
+    {
+      "path": "review.retries",
+      "location": "OpenCode",
+      "hint": "0表示不作技术重试；格式修复另行计算。"
+    },
+    {
+      "path": "review.workers",
+      "location": "OpenCode",
+      "hint": "1–8个独立只读会话；按模型服务容量填写。"
+    },
+    {
+      "path": "review.summary.enabled",
+      "location": "OpenCode",
+      "hint": "关闭后仍完整保留复核理由和证据。"
+    },
+    {
+      "path": "review.summary.max_chars",
+      "location": "OpenCode",
+      "hint": "按字符计算，含标点；不是token，不会直接截断理由。"
+    },
+    {
+      "path": "review.summary.fix_retries",
+      "location": "OpenCode",
+      "hint": "摘要不合格时最多重新修复几次，范围0–10。"
+    }
+  ],
+  "source_targeted_tests": {
+    "command": "py -3.10 -B -X utf8 -m unittest tests.test_profile_forms tests.test_studio_resource_policy tests.test_studio_api tests.test_build_preflight",
+    "tests": 44,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 18.819
+  },
+  "frontend_typecheck_build": "PASS",
+  "real_model_call": "NOT_VERIFIED"
+}

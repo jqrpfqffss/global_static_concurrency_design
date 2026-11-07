@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "sealed_actual_cmake_precheck_and_native_scan_honors_profile_workers",
+      "value": {
+        "scan_id": "d2ac3aa957024b2ab7e9b1b0f5833ef9",
+        "workers": 2
+      }
+    },
+    {
+      "name": "sealed_archived_real_target_and_build_variant_match_configuration",
+      "value": true
+    },
+    {
+      "name": "sealed_collapsible_review_workspace_geometry",
+      "value": {
+        "height": 470.919677734375,
+        "hidden": true
+      }
+    },
+    {
+      "name": "sealed_restart_preserves_confirmation_and_undo_events",
+      "value": true
+    },
+    {
+      "name": "sealed_opencode_settings_have_values_and_plain_hints",
+      "value": true
+    }
+  ],
+  "scope": "Actual sealed v84 ECRA.cmd, bundled Python and Windows-only PATH; actual CMake precheck and native scan, archived F030 review, OpenCode settings only; no model call. Explicit isolated short ECRA_PATH_ALIAS_ROOT; not clean offline PC or physical UAT.",
+  "cmake_task_id": "d2ac3aa957024b2ab7e9b1b0f5833ef9",
+  "cmake_scan_id": "d2ac3aa957024b2ab7e9b1b0f5833ef9",
+  "status": "PASS_SCOPED",
+  "scope_text_corrected": "Copied test header originally said source CMD; server.json and launch.cmd bind this run to the actual sealed v84 package. Original receipt retained."
+}

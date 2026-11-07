@@ -34,6 +34,55 @@ review: {enabled: false}
 
 
 class ProfileFormTests(unittest.TestCase):
+    def test_switch_to_cmake_does_not_overwrite_explicit_options_with_branch_defaults(self):
+        raw='version: 1\nproject: {root: "D:/firmware"}\nanalysis: {compile_database: auto}\nreview: {enabled: false}\n'
+        result=merge_form(raw,{'build_mode':'cmake','options':{'analysis.cmake.generator':'Unix Makefiles','analysis.cmake.build':False}})
+        actual=yaml.safe_load(result['yaml'])['analysis']
+        self.assertNotIn('compile_database',actual)
+        self.assertEqual(actual['cmake'],dict(generator='Unix Makefiles',build=False,build_type='Debug'))
+
+    def test_live_semantics_has_a_documented_editing_location_for_every_active_field(self):
+        from pathlib import Path
+        from ecra.studio.profile_options import BY_PATH,validate
+        raw=(Path(__file__).resolve().parents[1]/'config/semantics.yaml').read_text('utf-8')
+        state=form_state(raw)
+        self.assertTrue(state['inventory'])
+        self.assertFalse([row['path'] for row in state['inventory'] if row['location']=='高级原文'])
+        self.assertEqual(merge_form(raw,{})['yaml'],raw)
+        for path,value in state['form']['options'].items():
+            if value is not None:validate(path,value)
+        self.assertTrue(all(spec['hint'] and spec['label'] for spec in BY_PATH.values()))
+
+    def test_review_and_extended_settings_change_only_requested_paths(self):
+        values={'review.enabled':True,'review.command':['D:/tool path/opencode.exe','--flag with spaces'],
+                'review.model':'provider/model','review.workers':3,'review.timeout_seconds':600,
+                'review.retries':1,'review.summary.enabled':False,'review.summary.max_chars':200,
+                'review.summary.fix_retries':0,'analysis.exclude_files':['dir with space/a.c'],
+                'analysis.cmake.args':['-DNAME=has spaces'],'project.native_word_bits':32,
+                'entry_registrations':[dict(api='BSP_Register',callback_arg=1,kind='ISR',context_id='irq')],
+                'call_edges':[dict(caller='dispatch',callee='callback',future={'evidence':[1,True]})]}
+        expected=yaml.safe_load(RAW)
+        for path,value in values.items():
+            parent=expected
+            parts=path.split('.')
+            for key in parts[:-1]:parent=parent.setdefault(key,{})
+            parent[parts[-1]]=value
+        result=merge_form(RAW,{'options':values})
+        self.assertEqual(yaml.safe_load(result['yaml']),expected)
+        self.assertIn('# 工程原始注释',result['yaml']);self.assertIn('# 高级生成器保留',result['yaml'])
+        actual=form_state(result['yaml'])['form']['options']
+        for key,value in values.items():self.assertEqual(actual[key],value)
+        reset=merge_form(result['yaml'],{'options':{'review.model':None}})
+        expected['review'].pop('model');self.assertEqual(yaml.safe_load(reset['yaml']),expected)
+
+    def test_options_reject_invalid_types_limits_unknown_paths_and_shared_parents(self):
+        for values in [{'review.workers':True},{'review.workers':9},{'review.command':'opencode run'},
+                       {'review.summary.max_chars':0},{'review.timeout_seconds':float('nan')},
+                       {'project.root':'other'},{'entry_registrations':['not a mapping']}]:
+            with self.subTest(values=values),self.assertRaises(ValueError):merge_form(RAW,{'options':values})
+        raw=RAW.replace('review: {enabled: false}','review: &shared {enabled: false}\nother_review: *shared')
+        with self.assertRaises(ValueError):merge_form(raw,{'options':{'review.enabled':True}})
+
     def test_core_identity_is_an_explicit_lossless_edit_and_empty_removes_only_that_field(self):
         before=yaml.safe_load(RAW)
         result=merge_form(RAW,dict(project_core='Cortex-M7'))

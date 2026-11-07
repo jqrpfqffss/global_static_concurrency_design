@@ -72,7 +72,7 @@ class TaskManager:
         cfg, _ = load_config(root, profile_path)
         if relocation:cfg['analysis']['output']=dict(location='user')
         from .resource_policy import policy
-        limits=policy(resources)
+        limits=policy(resources,configured_workers=cfg['analysis'].get('extraction_workers'))
         from .resource_policy import host_pressure
         from ..scan_diagnostics import memory
         pressure=host_pressure(memory())
