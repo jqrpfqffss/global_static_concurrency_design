@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from './api'
 import WorkspaceDialog from './WorkspaceDialog.vue'
+import ReviewMaterials from './ReviewMaterials.vue'
 const selected=ref<any>(null),configurationOpen=ref(false),artifactBusy=ref(false)
 let artifactRequest=0
 function closeArtifact(){artifactRequest++;artifact.value=null;artifactBusy.value=false}
@@ -20,7 +21,7 @@ onMounted(async()=>{try{profiles.value=(await api('/profiles')).items.filter((p:
   <p v-if="!canReview" class="banner warning">归档模式缺少本机检查点或原源码，不能重新复核；可查看已有答复与收据。</p><section class="ai-controls"><details :open="configurationOpen" @toggle="configurationOpen=($event.target as HTMLDetailsElement).open"><summary>复核配置与执行说明</summary>
     <label>复核配置<select v-model="profile" aria-label="OpenCode复核配置"><option v-for="p in profiles" :value="p.id">{{p.project_root}} · {{p.id.slice(0,8)}}</option></select></label>
     <p>使用该配置中的 command、provider/model、Worker、超时和重试设置。发起后先验证原输入闭包；模型或工具不可用会记录“技术失败”。</p>
-    </details><div class="actions"><button class="primary" :disabled="busy||!canReview||!profile" @click="start('review')">复核全部疑似与未知</button><button :disabled="busy||!canReview||!profile||!page?.states?.TECH_FAILED" @click="start('review-failed')">仅重试技术失败</button><button @click="emit('tasks')">任务日志与安全停止</button><button :disabled="busy" @click="refresh">刷新原始状态</button></div>
+    </details><ReviewMaterials :profile="profiles.find(p=>p.id===profile)"/><div class="actions"><button class="primary" :disabled="busy||!canReview||!profile" @click="start('review')">复核全部疑似与未知</button><button :disabled="busy||!canReview||!profile||!page?.states?.TECH_FAILED" @click="start('review-failed')">仅重试技术失败</button><button @click="emit('tasks')">任务日志与安全停止</button><button :disabled="busy" @click="refresh">刷新原始状态</button></div>
   </section>
   <template v-if="page"><div class="records-toolbar"><span>本扫描目标 {{page.total}} 项</span><span v-for="(count,state) in page.states" class="tag">{{names[String(state)]||state}}：{{count}}</span></div><p v-if="!page.total">此结果没有独立 AI 账本；可在静态归档索引查看旧格式记录。未复核不能解释为安全。</p>
   <div class="inspector-layout" :class="{'no-inspector':!selected}"><section class="panel inspector-list"><table class="data-table ai-table"><thead><tr><th>复核对象</th><th>状态</th><th>尝试</th></tr></thead><tbody><tr v-for="row in page.items" :key="row.finding_id" :class="{selected:selected?.finding_id===row.finding_id}"><td><button @click="selected=row">{{row.finding_id}}</button></td><td>{{names[row.state]||row.state}}<small v-if="row.status">{{names[row.status]||row.status}}</small><span v-if="row.error" class="ai-note" :title="row.error"> · 说明</span></td><td>{{row.attempt_count||0}}</td></tr></tbody></table></section>

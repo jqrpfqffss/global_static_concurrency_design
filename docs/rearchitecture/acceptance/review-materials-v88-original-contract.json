@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scope": "Original review prompt/algorithm, CLI and workflow consumers unchanged byte-for-byte from v87; new producer freezes adjacent documents only.",
+  "sha256": {
+    "ecra/review.py": "7f549c50bb577ebe964150a754a81a568b4f1ce0912ecd286c9270dbd3138a3f",
+    "ecra/review_context.py": "130f60115ba063b1fc40d3d434ce71f9922de54ca006efd3e54e78d0976fcc88",
+    "ecra/case_library.py": "97317043a054371a243d581fb180db2f2103b9534d4fb10f7125badee91d49c2",
+    "ecra/cli.py": "b6d874f65adadd1b58e10a965bced362b98e3a1c1df9bcfb723b22ba574f7866",
+    "ecra/workflow.py": "6695b8b5e7a39be37af072f28f169de92e01ec7b9fa5ed3cbad5ff8cc1d012d7",
+    "ecra/review_contract.py": "d864e1e1ac2d6b729bbf900cc952857d79fbe2adb98ae93770eae120f16b8a5f",
+    "ecra/review_summary.py": "0e5a74afa11720b7104b539d1da2ad8a630c92eaea7c0616cd352eb463c85f06",
+    "ecra/review_integrity.py": "ed682e1258966bf6f3671d2ab40cc739718c6fb46fb90e2abcead1cbfb903804"
+  }
+}

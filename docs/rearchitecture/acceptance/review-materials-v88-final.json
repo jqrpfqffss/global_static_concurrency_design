@@ -1,0 +1,105 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Review material configuration and exact original prompt handoff; deliberate missing command tests technical failure only, no live provider.",
+  "status": "PASS_SCOPED_REVIEW_DOCUMENT_HANDOFF",
+  "recorded_utc": "2026-11-07T11:25:55Z",
+  "source_and_packaged_browser_receipts": {
+    "ui-v88-r2/acceptance.json": "99f931e210ae86e6cbea1d65b40c223bc87bce0c84d708785ff677e91e426d22",
+    "ui-v88-r2/server.json": "1da155e4dc53ed5966ad8c461230a3fbdee047cde5ffc8e68be2fb8377fde513",
+    "ui-v88-portable-r2/acceptance.json": "6eb50b8dad2a6f20526c8447614cb326c48f6995b739ffa43df5ab45e5eb34fb",
+    "ui-v88-portable-r2/server.json": "9b0fa50bb6296d37159544aa243c7ac96c1da9c02c9446a8d5cf557b76f64389"
+  },
+  "original_review_engine_files_unchanged": [
+    "ecra/review.py",
+    "ecra/review_context.py",
+    "ecra/case_library.py",
+    "ecra/cli.py",
+    "ecra/workflow.py",
+    "ecra/review_contract.py",
+    "ecra/review_summary.py",
+    "ecra/review_integrity.py"
+  ],
+  "review_documents_per_entry": {
+    "scan_task_id": {
+      "concurrency_cases.md": {
+        "path": "concurrency_cases.md",
+        "origin": "H:\\ECRAStudio-build-20261107-studio-v88\\ECRA-Portable\\config\\concurrency_cases.md",
+        "bytes": 57792,
+        "sha256": "85b45cdff897edee2ba53db42c26318f6e40f70d271f09bc885cefe5073c2e77",
+        "mode": "automatic"
+      },
+      "review_context.md": {
+        "path": "review_context.md",
+        "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v88-r2\\data\\projects\\d3bfd4e049451b0bc47ca8e8ba9e6b873c17214f9e60bfbc7d2c6a0c225e280f\\profiles\\review-materials\\d8e821350c6a81ff4734baf4a35f896db4a01be0ef2e5ccd26244e3fc1b11d82.md",
+        "bytes": 115,
+        "sha256": "d8e821350c6a81ff4734baf4a35f896db4a01be0ef2e5ccd26244e3fc1b11d82",
+        "mode": "managed"
+      }
+    },
+    "review_task_id": {
+      "concurrency_cases.md": {
+        "path": "concurrency_cases.md",
+        "origin": "H:\\ECRAStudio-build-20261107-studio-v88\\ECRA-Portable\\config\\concurrency_cases.md",
+        "bytes": 57792,
+        "sha256": "85b45cdff897edee2ba53db42c26318f6e40f70d271f09bc885cefe5073c2e77",
+        "mode": "automatic"
+      },
+      "review_context.md": {
+        "path": "review_context.md",
+        "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v88-r2\\data\\projects\\d3bfd4e049451b0bc47ca8e8ba9e6b873c17214f9e60bfbc7d2c6a0c225e280f\\profiles\\review-materials\\ed9eec811c3049fdacb6aab13b4a268e5cca85b111805cbd66160f3a2355d72f.md",
+        "bytes": 78,
+        "sha256": "ed9eec811c3049fdacb6aab13b4a268e5cca85b111805cbd66160f3a2355d72f",
+        "mode": "managed"
+      }
+    },
+    "review_failed_task_id": {
+      "concurrency_cases.md": {
+        "path": "concurrency_cases.md",
+        "origin": "H:\\ECRAStudio-build-20261107-studio-v88\\ECRA-Portable\\config\\concurrency_cases.md",
+        "bytes": 57792,
+        "sha256": "85b45cdff897edee2ba53db42c26318f6e40f70d271f09bc885cefe5073c2e77",
+        "mode": "automatic"
+      },
+      "review_context.md": {
+        "path": "review_context.md",
+        "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v88-r2\\data\\projects\\d3bfd4e049451b0bc47ca8e8ba9e6b873c17214f9e60bfbc7d2c6a0c225e280f\\profiles\\review-materials\\ed9eec811c3049fdacb6aab13b4a268e5cca85b111805cbd66160f3a2355d72f.md",
+        "bytes": 78,
+        "sha256": "ed9eec811c3049fdacb6aab13b4a268e5cca85b111805cbd66160f3a2355d72f",
+        "mode": "managed"
+      }
+    }
+  },
+  "source_tests": {
+    "tests": 77,
+    "skipped_live_provider": 1
+  },
+  "packaged_tests": {
+    "tests": 58,
+    "skipped_live_provider": 1
+  },
+  "actual_entry_points": [
+    "scan_offline_prepare",
+    "review",
+    "review-failed"
+  ],
+  "static_db_sha256_after": "fdb674d0737c179603b130b6aad22c2b359b1b3ee441ab116b0f9b54b4991708",
+  "static_db_unchanged_during_both_reviews_asserted_in_browser": true,
+  "human_events": 0,
+  "original_42_firmware_files_unchanged": true,
+  "owned_fixture_files_unchanged": 5,
+  "packaged_program_files_unchanged": 32913,
+  "frozen_code_files_match": 479,
+  "zip": "H:\\ECRAStudio-build-20261107-studio-v88\\ECRA-Portable.zip",
+  "zip_sha256": "3739ba3ba43c339af60a7089f5523b5df6d053aa2a6755f8e79321c3611167a3",
+  "unverified": [
+    "live_OpenCode_provider_success",
+    "physical_32GB_PC",
+    "clean_offline_PC",
+    "native_Windows_DPI",
+    "human_UAT",
+    "other_G2_projects",
+    "whole_large_Diff_recovery_final_gate"
+  ],
+  "strict_cross_environment_report_FAIL": "PRESERVED_NOT_RELAXED"
+}

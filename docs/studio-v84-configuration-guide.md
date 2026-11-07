@@ -1,6 +1,6 @@
-# 配置与人工确认操作说明（v87最终版）
+# 配置与人工确认操作说明（v88最终版）
 
-本机入口：`H:/ECRAStudio-build-20261107-studio-v87/ECRA-Portable/ECRA.cmd`。
+本机入口：`H:/ECRAStudio-build-20261107-studio-v88/ECRA-Portable/ECRA.cmd`。
 
 ## 配好后怎样开始扫描
 
@@ -31,3 +31,5 @@
 ![收起填写区后的证据阅读](rearchitecture/ui/workspace-v84/review-collapsed.png)
 
 本轮验收范围与尚待验证项见 [129号记录](rearchitecture/129-configuration-and-review-usability.md)。
+
+案例库与review_context.md的选择、编辑及读取规则见[复核资料指南](studio-v88-review-materials-guide.md)。

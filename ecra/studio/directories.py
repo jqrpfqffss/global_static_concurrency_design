@@ -34,7 +34,7 @@ def _roots():
 
 
 def browse(path=None,*,root=None,after=None,search='',limit=50,kind='directory'):
-    if kind not in ('directory','compile_database','toolchain','project_file'):raise ValueError('不支持的本机选择类型')
+    if kind not in ('directory','compile_database','toolchain','project_file','review_document'):raise ValueError('不支持的本机选择类型')
     if kind=='project_file' and root is None:raise ValueError('选择工程文件必须限定固件根目录')
     if type(limit) is not int or not 1<=limit<=100:raise ValueError('目录分页大小必须为1至100')
     if not isinstance(search,str) or len(search)>256 or '\0' in search:raise ValueError('当前层目录筛选文本无效')
@@ -45,13 +45,14 @@ def browse(path=None,*,root=None,after=None,search='',limit=50,kind='directory')
         else:return dict(mode='roots',path=None,root=None,parent=None,items=_roots(),total=None,next_after=None,changed=False,notice='本机驱动器；仅进入用户选择的目录，不读取源码内容。')
     def matches_file(name):
         if kind=='project_file':return True
+        if kind=='review_document':return name.casefold().endswith(('.md','.markdown','.txt'))
         return name.casefold()=='compile_commands.json' if kind=='compile_database' else name.casefold().endswith('.cmake')
     if kind!='directory':
         if not isinstance(path,str) or '\0' in path or len(path)>32767 or not Path(path).is_absolute():raise ValueError('请选择有效的绝对文件或目录路径')
         candidate=no_links(Path(path))
         if bound and not candidate.is_relative_to(bound):raise ValueError('文件选择不能超出当前限定根目录')
         if candidate.is_file():
-            if not matches_file(candidate.name):raise ValueError('请选择 compile_commands.json' if kind=='compile_database' else '请选择 .cmake 工具链文件')
+            if not matches_file(candidate.name):raise ValueError('请选择 Markdown 或文本文件' if kind=='review_document' else '请选择 compile_commands.json' if kind=='compile_database' else '请选择 .cmake 工具链文件')
             return dict(mode='file',path=str(candidate),parent=str(candidate.parent),relative=str(candidate.relative_to(bound)) if bound else None,changed=False)
     folder=_directory(path)
     if bound and not folder.is_relative_to(bound):raise ValueError('范围目录不能超出当前固件工程根目录')

@@ -137,12 +137,10 @@ class TaskManager:
                 if retry_from is not None:
                     write_json(folder/'retry-source.json',dict(source_task=retry_from))
                 if mode=='multicore':write_json(folder/'multicore.json',multicore)
-                # Preserve the existing adjacent-library contract when the task's
-                # config is fixed outside the editable profile directory.
-                for name in ('review_context.md','concurrency_cases.md'):
-                    source=no_links(Path(profile_path).parent/name)
-                    if source.is_file():
-                        (folder/name).write_bytes(source.read_bytes())
+                # Native scan and manual/retry review all consume adjacent task
+                # documents. Resolve the profile/default sources before freezing.
+                from .review_materials import stage_for_task
+                materials=stage_for_task(profile_path,folder,mode,cfg,retry=retry_from is not None)
                 from ..report_package import sha256
                 value = dict(id=ident, scan_id=ident if mode in {'scan','precheck','multicore'} else scan_id, mode=mode,
                              project_id=ws.project_id, project_root=str(root),
@@ -151,6 +149,7 @@ class TaskManager:
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
                              checkpoint_mode='INPUT_VERIFIED_TU_CACHE',storage_policy=fixed_storage, samples=[], resources={})
                 if relocation:value['data_relocation']=relocation
+                value['review_materials']=materials
                 if retry_from is not None:value['retry_from']=retry_from
                 write_json(folder/'task.json', value)
                 if mode=='multicore':
@@ -162,6 +161,10 @@ class TaskManager:
                 budget = ProcessBudget(value['budget_bytes'])
                 ownership.callback(budget.close)
                 stream = (folder/'console.log').open('wb')
+                if materials['status']=='FROZEN':
+                    for name,record in materials['documents'].items():
+                        stream.write(('复核资料已冻结：'+name+' · '+str(record['bytes'])+' 字节 · SHA-256 '+record['sha256']+'\n').encode('utf-8'))
+                    stream.flush()
                 ownership.callback(stream.close)
                 from .resource_policy import temporary_environment
                 env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'

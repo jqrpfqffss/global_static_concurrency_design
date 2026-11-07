@@ -1,0 +1,29 @@
+{
+  "passed": false,
+  "checks": [
+    {
+      "name": "default_case_library_is_readable_from_real_config_and_has_26_entries",
+      "value": true
+    },
+    {
+      "name": "project_context_editor_saves_effective_content_without_overwriting_tool_template",
+      "value": true
+    },
+    {
+      "name": "external_markdown_picker_reads_and_saves_custom_case_library",
+      "value": true
+    },
+    {
+      "name": "missing_document_is_visible_and_cannot_replace_saved_binding",
+      "value": true
+    },
+    {
+      "name": "material_settings_reopen_and_do_not_rewrite_semantics_yaml",
+      "value": true
+    }
+  ],
+  "scope": "Real UI and native task handoff. Deliberately absent model executable verifies TECH_FAILED path and original prompt generation; no network model or simulated success.",
+  "profile_id": "6a709432d12949c0a4e344c60441e20a",
+  "project_id": "f713da61503040f49eb3a3c66b48db9a55c36b9df4787ef5251bd3dee03338f0",
+  "status": "PASS_CONFIG_UI_COPIED_CMAKE_CACHE_ENVIRONMENT_BLOCKED"
+}

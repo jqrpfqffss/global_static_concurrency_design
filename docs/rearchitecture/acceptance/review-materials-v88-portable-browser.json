@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "final_package_keeps_direct_single_file_exclusions",
+      "value": true
+    },
+    {
+      "name": "final_package_reads_26_builtin_cases_and_saves_project_background",
+      "value": true
+    },
+    {
+      "name": "real_scan_offline_prepare_freezes_exact_cases_and_context_then_generates_original_prompt_without_model",
+      "value": true
+    },
+    {
+      "name": "editing_background_leaves_already_started_task_snapshot_unchanged",
+      "value": true
+    },
+    {
+      "name": "manual_review_uses_new_frozen_background_and_actual_technical_failure_keeps_static_authority",
+      "value": {
+        "TECH_FAILED": 6
+      }
+    },
+    {
+      "name": "failed_only_review_entry_also_freezes_same_complete_cases_and_keeps_original_static_bytes",
+      "value": true
+    }
+  ],
+  "scope": "Actual v88 CMD, bundled Python/Windows-only PATH, real scan/prepare/manual review/review-failed. Missing model command is deliberate; only original prompt handoff and TECH_FAILED verified, no live provider.",
+  "scan_id": "1002e29018144e5290adc4af931aede0",
+  "scan_task_id": "1002e29018144e5290adc4af931aede0",
+  "review_task_id": "272a2eba53c9434e8b1f84040b752617",
+  "review_failed_task_id": "76180c8bab224ddc821d9cb38f844fff",
+  "status": "PASS_SCOPED_NO_LIVE_PROVIDER"
+}

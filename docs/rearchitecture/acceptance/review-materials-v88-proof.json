@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "archive": "H:\\ECRAStudio-build-20261107-studio-v88\\portable-evidence\\review-materials-proof.zip",
+  "sha256": "ffe520c182d231b1615f8818286b9fc3aed2fc5daa8de21ad4dba637b2deae04",
+  "scope": "Selected scripts, test logs, actual snapshots/prompts and screenshots. Deliberately absent model command; no live-provider verdict. Session files and raw browser/launcher logs excluded."
+}

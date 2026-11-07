@@ -1,3 +1,5 @@
+OpenCode案例库与工程背景配置见 [复核资料指南](docs/studio-v88-review-materials-guide.md)。
+
 新版配置与开始扫描操作见 [配置与开始扫描指南](docs/studio-v84-configuration-guide.md)。
 
 # STM32 全局变量与 static 变量并发排查工具（ECRA）

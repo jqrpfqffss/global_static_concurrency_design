@@ -13,6 +13,22 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_review_document_endpoints_authenticate_and_preserve_yaml_with_revision_conflicts(self):
+        import hashlib
+        project='a'*64;ident='b'*32
+        path=self.data/'projects'/project/'profiles'/(ident+'.yaml');path.parent.mkdir(parents=True)
+        path.write_text('version: 1\nproject: {root: "D:/firmware"}\n','utf-8');raw=path.read_bytes()
+        base=f'/api/profiles/{project}/{ident}/review-materials'
+        self.assertEqual(self.client.get(base,headers={'x-ecra-session':'bad'}).status_code,401)
+        state=self.client.get(base);self.assertEqual(state.status_code,200,state.text)
+        spec={'revision':state.json()['revision'],'profile_revision':hashlib.sha256(raw).hexdigest(),
+              'documents':{'concurrency_cases.md':{'mode':'builtin'},'review_context.md':{'mode':'managed','content':'API_CONTEXT_SENTINEL'}}}
+        saved=self.client.post(base,json=spec);self.assertEqual(saved.status_code,200,saved.text)
+        self.assertEqual(saved.json()['documents']['review_context.md']['text'],'API_CONTEXT_SENTINEL')
+        self.assertEqual(path.read_bytes(),raw)
+        self.assertEqual(self.client.post(base,json=spec).status_code,409)
+        self.assertEqual(self.client.post(base+'/preview',json={'name':'unknown','source':{}}).status_code,400)
+
     def test_real_builtin_sample_api_is_idempotent_authenticated_and_preserves_existing_scan(self):
         from ecra.report_package import sha256
         original=self.data/'scans/scan-api/scan.db';before=sha256(original)

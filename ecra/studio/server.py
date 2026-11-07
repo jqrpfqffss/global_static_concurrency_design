@@ -727,6 +727,25 @@ def _create_app(data_root, *, token, authority, startup):
     def list_tasks():
         return dict(items=tasks.list())
 
+    @app.get('/api/profiles/{project_id}/{profile_id}/review-materials')
+    def review_materials(project_id: str, profile_id: str):
+        from .review_materials import describe
+        return describe(profile_path(project_id,profile_id))
+
+    @app.post('/api/profiles/{project_id}/{profile_id}/review-materials')
+    def save_review_materials(project_id: str, profile_id: str, payload: dict):
+        from .review_materials import save
+        path=profile_path(project_id,profile_id)
+        if hashlib.sha256(path.read_bytes()).hexdigest()!=payload.get('profile_revision'):
+            raise ReviewConflict('工程配置已变化，请重新打开后再保存复核资料')
+        return save(data,path,payload)
+
+    @app.post('/api/profiles/{project_id}/{profile_id}/review-materials/preview')
+    def preview_review_materials(project_id: str, profile_id: str, payload: dict):
+        from .review_materials import source,inspect_document
+        path=profile_path(project_id,profile_id);name=payload.get('name')
+        return inspect_document(source(path,name,payload.get('source',{})),name)
+
     @app.post('/api/tasks')
     def start_task(payload: dict):
         path = profile_path(payload['project_id'], payload['profile_id'])

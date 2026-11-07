@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { api } from './api'
 import WorkspaceDialog from './WorkspaceDialog.vue'
-const props=defineProps<{title:string,start:string,root?:string,purpose?:'data',kind?:'compile_database'|'toolchain'|'project_file',multiple?:boolean}>()
+const props=defineProps<{title:string,start:string,root?:string,purpose?:'data',kind?:'compile_database'|'toolchain'|'project_file'|'review_document',multiple?:boolean}>()
 const emit=defineEmits<{selected:[value:{path:string,relative:string|null}],close:[],selectedFiles:[value:{path:string,relative:string|null}[]]}>()
 const state=ref<any>(null),pathText=ref(props.start),search=ref(''),error=ref(''),loading=ref(false),chosen=ref<any>(null)
 const pageHistory=ref<(string|null)[]>([]),cursor=ref<string|null>(null),back=ref<string[]>([]),forward=ref<string[]>([])
@@ -88,7 +88,7 @@ onMounted(()=>{try{recent.value=JSON.parse(localStorage.getItem(key)||'[]').filt
       <button v-for="(item,index) in state?.items" :key="item.name" class="directory-row" role="option" :aria-selected="multiple&&item.kind==='file'?!!picked[item.path]:chosen?.path===item.path" :disabled="loading||(state.mode!=='roots'&&!item.selectable)" @click="(!multiple||$event.detail<2)&&choose(item)" @dblclick="activate(item)" @keydown="rowKey($event,Number(index))"><span aria-hidden="true">{{item.kind==='file'?(multiple?(picked[item.path]?'☑':'☐'):'▤'):'▸'}}</span><span>{{item.name}}</span><small v-if="item.reason&&state.mode!=='roots'">{{item.reason}}</small></button>
       <p v-if="state&&!state.items.length">{{fileMode?'没有匹配的目录或文件。':'没有匹配的子目录。可以选择当前目录。'}}</p>
      </div>
-     <div class="directory-status"><span v-if="state?.changed" class="error">目录已变化，请重新打开后选择。</span><span v-else>{{fileMode?'仅显示目录及'+(kind==='project_file'?'工程内文件（单击勾选，可跨目录选择）':kind==='compile_database'?' compile_commands.json':' .cmake 文件'):'单击选择，双击或 Enter 进入'}}</span><div v-if="pageHistory.length||state?.next_after" class="actions"><button :disabled="loading||!pageHistory.length" @click="previous">上一页目录</button><span>第 {{pageHistory.length+1}} 页</span><button :disabled="loading||!state?.next_after" @click="next">下一页目录</button></div></div>
+     <div class="directory-status"><span v-if="state?.changed" class="error">目录已变化，请重新打开后选择。</span><span v-else>{{fileMode?'仅显示目录及'+(kind==='review_document'?' Markdown / 文本文件':kind==='project_file'?'工程内文件（单击勾选，可跨目录选择）':kind==='compile_database'?' compile_commands.json':' .cmake 文件'):'单击选择，双击或 Enter 进入'}}</span><div v-if="pageHistory.length||state?.next_after" class="actions"><button :disabled="loading||!pageHistory.length" @click="previous">上一页目录</button><span>第 {{pageHistory.length+1}} 页</span><button :disabled="loading||!state?.next_after" @click="next">下一页目录</button></div></div>
     </div>
    </div>
   </div>

@@ -36,6 +36,7 @@ OPTIONS = [
     option('analysis.git_diff.cache_enabled','排查选项','差异扫描缓存','boolean','通常保持默认开启；缓存仍须经过内容与环境校验。'),
     option('analysis.git_diff.verify_against_full','排查选项','差异结果对照全量','boolean','开启会增加一次完整分析作严格对照，耗时和磁盘占用会增加。'),
     option('review.enabled','OpenCode','扫描后自动OpenCode复核','boolean','首次接入建议关闭；开启后扫描会调用所配命令，可能使用联网模型。'),
+    option('review.prepare_packets','OpenCode','关闭自动复核时仍准备输入','boolean','自动复核关闭时仍生成Packet和提示词，便于离线核对；自动复核开启时仍会调用模型。'),
     option('review.command','OpenCode','OpenCode命令与参数','lines','第一行是程序路径，其余每行一个参数；不要填整条shell命令。','opencode'),
     option('review.model','OpenCode','模型','text','填写已登录的provider/model；留空使用OpenCode自己的默认模型。','provider/model'),
     option('review.timeout_seconds','OpenCode','单次复核超时（秒）','number','每次调用的等待上限，不是变量之间的间隔。','600',0.001),

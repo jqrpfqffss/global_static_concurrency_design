@@ -1,0 +1,26 @@
+{
+  "passed": false,
+  "status": "FAIL",
+  "all_gates_passed": false,
+  "source_snapshot_sha256": "c377fe22b3fd35ca77907066cb9d4fe1bb9bb84822e5d21731229aa55c5c3a37",
+  "backend_and_tests_identical_to_v87": false,
+  "changed_backend_test_files": [
+    "ecra/studio/directories.py",
+    "ecra/studio/profile_options.py",
+    "ecra/studio/review_materials.py",
+    "ecra/studio/server.py",
+    "ecra/studio/tasks.py",
+    "tests/test_studio_api.py",
+    "tests/test_studio_review_materials.py"
+  ],
+  "backend_and_test_source_files": 477,
+  "inherited_v87_receipt_sha256": "d7874171118aba8cf960de443ead8d139f84bc725f9cb83b0bab7ddd9761c728",
+  "inherited_runtime_checks": 54,
+  "packaged_review_and_config_tests": 58,
+  "packaged_live_provider_skipped": 1,
+  "inheritance": "Runtime/tools copied and byte-verified from v87. Historical 54 runtime commands inherited only. Seven studio producer/API/test files differ; original review, case, workflow and analysis engines unchanged. Actual v88 packaged tests and UI/task snapshots recorded separately; live provider skipped.",
+  "copied_runtime_tool_files": 28821,
+  "application_files": 150,
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\assemble-portable-v88.py\", line 49, in <module>\n    subprocess.run([str(bundle/'runtime/python.exe'),'-B','-m','unittest','tests.test_studio_review_materials','tests.test_case_library','tests.test_deep_review','tests.test_native_review_workflow','tests.test_directory_browser','tests.test_profile_forms'],cwd=bundle,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),stdout=log,stderr=subprocess.STDOUT,check=True)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\lib\\subprocess.py\", line 526, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '['H:\\\\ECRAStudio-build-20261107-studio-v88\\\\ECRA-Portable\\\\runtime\\\\python.exe', '-B', '-m', 'unittest', 'tests.test_studio_review_materials', 'tests.test_case_library', 'tests.test_deep_review', 'tests.test_native_review_workflow', 'tests.test_directory_browser', 'tests.test_profile_forms']' returned non-zero exit status 1.\n",
+  "seconds": 95.38999999995576
+}

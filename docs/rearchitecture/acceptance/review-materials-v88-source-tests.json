@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "tests": 77,
+  "skipped": 1,
+  "seconds": 51.59299999999348,
+  "scope": "Original review contracts and new document producer/API/file configuration. Skipped live provider is not verified."
+}
