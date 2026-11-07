@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "name": "failed-native-gate",
+      "expected_rejection": true,
+      "exit_code": 1,
+      "raw_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-gate-rejections-v78\\failed-native-gate\\acceptance.json",
+      "raw_receipt_sha256": "5f355776b0e273d00e0f09458bab8f1d1baa313b5d1213f23ba4edd99990bc2a",
+      "package_or_worker_started": false
+    },
+    {
+      "name": "different-accepted-scan-path",
+      "expected_rejection": true,
+      "exit_code": 1,
+      "raw_receipt": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-gate-rejections-v78\\different-accepted-scan-path\\acceptance.json",
+      "raw_receipt_sha256": "d6f7351b086e5f500b23103440006da9a9e783da4bb932b962bbb66753e4b201",
+      "package_or_worker_started": false
+    }
+  ],
+  "source_differences": [],
+  "controller_sha256": "39905a2c280bf736cc3e967c24cb894d484fd746c8eb2eea9421fe81854fb34a",
+  "scope": "Two expected post-processing gate rejections before any export/import worker: explicit failed prerequisite and mismatch between accepted source and requested scan. No real producer failure, native/G2/GUI or performance claim."
+}

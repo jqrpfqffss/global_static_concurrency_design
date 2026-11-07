@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "state": "COMPLETE_SAME_INPUT_LIVE_CONSUMER",
+  "scope": "INSTRUMENTED actual public native full scan: complete facts/report are live while the unchanged production summarize/compare consumer runs. Same-input immutable baseline; no real source edit, Git pin/baseline preparation or new whole native Diff claim. Report is returned untouched and must pass full ordered G1 against the original authority.",
+  "comparison_sha256": "8c5a97824be8442b8a8d05f35d6f88761dadde2bc5ae6d187289e575260506c4",
+  "comparison_bytes": 892,
+  "report_mutated": false
+}

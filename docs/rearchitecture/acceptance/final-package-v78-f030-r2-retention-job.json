@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v78\\scripts\\measure_storage_policy.py",
+    "--spec",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\retention-spec.json",
+    "--output",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\retention.json"
+  ],
+  "limit_bytes": 2147483648,
+  "scope": "retention",
+  "pid": 10336,
+  "create_time": 1793988284.1869264,
+  "exit_disk_sample": {
+    "package_work": {
+      "files": 85,
+      "logical_bytes": 12903554,
+      "allocated_bytes": 13050720,
+      "unique_files": 85,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.015000000013969839
+    },
+    "source_data_root": {
+      "files": 128,
+      "logical_bytes": 11922475,
+      "allocated_bytes": 7371760,
+      "unique_files": 128,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.01600000000325963
+    }
+  },
+  "exit_code": 0,
+  "seconds": 1.0780000000377186,
+  "peaks": {
+    "working_set_bytes": 1372160,
+    "private_bytes": 393216,
+    "peak_job_commit_bytes": 18575360,
+    "package_work_sampled_allocated_bytes": 13050720,
+    "source_data_root_sampled_allocated_bytes": 7371760
+  }
+}

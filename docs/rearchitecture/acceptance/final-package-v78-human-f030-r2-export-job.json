@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-worker-v78.py",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v78",
+    "--source",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-inputs\\data\\scans\\native",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\export",
+    "--package",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\standard-complete.ecra-report",
+    "--mode",
+    "export"
+  ],
+  "limit_bytes": 2147483648,
+  "scope": "export",
+  "pid": 19144,
+  "create_time": 1793988492.4993863,
+  "exit_disk_sample": {
+    "package_work": {
+      "files": 7,
+      "logical_bytes": 3535808,
+      "allocated_bytes": 3584256,
+      "unique_files": 7,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    },
+    "source_data_root": {
+      "files": 64,
+      "logical_bytes": 9261190,
+      "allocated_bytes": 9363656,
+      "unique_files": 64,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    }
+  },
+  "exit_code": 0,
+  "seconds": 16.79599999997299,
+  "peaks": {
+    "working_set_bytes": 43851776,
+    "private_bytes": 30744576,
+    "peak_job_commit_bytes": 33005568,
+    "package_work_sampled_allocated_bytes": 3584256,
+    "source_data_root_sampled_allocated_bytes": 9363656
+  }
+}

@@ -1,5 +1,7 @@
 # v78完整回归与大型原生任务实际启动
 
+后续最终结果见[125号](125-live-current-native-and-complete-package-acceptance.md)：当前侧原生/G1/报告/Packet已通过；整轮已中断后恢复，最新大型完整包在途。本页两份任务的启动状态及`*-started.json`仅保留为原时间证据，不覆盖后续结果。
+
 2026-11-07已收齐冻结v78最终回执：1568项中1566 PASS、2联网opt-in SKIP，0失败、0错误，6015.042秒。4037个冻结文件及独立测试副本全部SHA未变。原日志SHA256为`b722af51d07d453b0a8f3bf589efb726db4be7da818f026a69f9ad546b23a843`；版本由清单`113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd`固定。原收据scope沿用了旧`a76a180`文字，但真实`parent_commit`是`beb483e650eb35d73b97a8f1661ae841d4cee4d6`并带受控修改集；不修改旧收据，不把这段旧文字当成真实HEAD。
 
 | 阶段 | 实现的核心功能 | 变更文件 | 测试/场景ID | 状态 | 对应证据 |

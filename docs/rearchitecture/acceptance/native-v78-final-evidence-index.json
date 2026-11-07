@@ -1,0 +1,357 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "observed_utc": "2026-11-06T23:52:48.062061+00:00",
+  "files": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live-queue.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-controller.json",
+      "bytes": 3333,
+      "sha256": "78ed967b70281fa924913630bba2b98e87d830b797911e9bd176467050bd99f3"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live\\execution.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-execution.json",
+      "bytes": 4836,
+      "sha256": "ff96a4b626e83cde2f130cf85e9df74f7aa71705a06558a773c1cb7f208e4c92"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live\\live-current-comparison.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-live-comparison.json",
+      "bytes": 578,
+      "sha256": "824a5d6aa577502c67dcb77ddc96f66327c34012e75f9e4764d25eaa90945843"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live\\live-current-comparison-output.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-live-output.json",
+      "bytes": 892,
+      "sha256": "8c5a97824be8442b8a8d05f35d6f88761dadde2bc5ae6d187289e575260506c4"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live\\console.log",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-console.log",
+      "bytes": 46137,
+      "sha256": "3749160667cfaf4f025a1b403e5f9ea2a81d3827b1b50557b377aa303c09c5d8"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-full-comparison.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-ordered-comparison.json",
+      "bytes": 1239,
+      "sha256": "66a11642c3e20fc0ea5d651c322cae741190ac9b7bf8a3d6003b644b77a6c8a6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-envelope.jsonl",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-ordered-envelope.jsonl",
+      "bytes": 5776,
+      "sha256": "bb3fbac4f7cedb053ece8f55e84fecec5defa4ed5cbf9702903aa9570686514b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-postflight.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-postflight.json",
+      "bytes": 169,
+      "sha256": "e7a43a9021d3d4465f70fd7bacb8c57c1192862133bcbbe139ec577f52b5f110"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-compare-job\\execution.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-comparison-job.json",
+      "bytes": 1005,
+      "sha256": "d5ead808950dc2ddb49e951347901520de322eb816b4b8c3886319441f6bca19"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-report-job\\execution.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-report-job.json",
+      "bytes": 903,
+      "sha256": "a2b3b7dab96d67f0f6eb2d1e25ee430aa136b1dda4552693c18836d98275a64b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-packet\\execution.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-packet-job.json",
+      "bytes": 3215,
+      "sha256": "c8c750b6b7f9a9daee222cc45c4bf31d0d60f5d73e29b12a129b45fff7f65d9b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-packet\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-packet.json",
+      "bytes": 1153,
+      "sha256": "2fbb781b8db4fd90646de486025f5799186fffe8aa9fbc20badc806e26ee71da"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-final.json",
+      "bytes": 34415,
+      "sha256": "c5d9a008cf58be61f722d3fbfc38383ff685a7ff34e86b8a0c091872d2562499"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\export\\worker.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-export.json",
+      "bytes": 16999,
+      "sha256": "24e2c56cc6cf8cf1d20b1d0bd65e62329f0da923c2922af1c861abbe99cc90d5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\import\\worker.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-import.json",
+      "bytes": 4148,
+      "sha256": "2e43ffa88350ea748cf43954d6cd699bf5d7f058cb9b4bc0b880bfd719c044bc"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\ordered-comparison.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-comparison.json",
+      "bytes": 1395,
+      "sha256": "5742d127458cc719d23840bc1fa9ea4944afb2f092ee07a79b594a74f56363f4"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\ordered-envelope.jsonl",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-envelope.jsonl",
+      "bytes": 2412,
+      "sha256": "ed878b79e0490140578a37159ccc2bc2051d06c7f2ff58e8b1d59a1d5e28c07a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\retention.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-retention.json",
+      "bytes": 3683,
+      "sha256": "c7aa15434a525d3b2e8de772335b891fb87a0651f7008454921daafb42bdbfe9"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\export\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-export-job.json",
+      "bytes": 1235,
+      "sha256": "d9de412057a802eaafd2fd43ee0c2f23cccb3365c7825d601c38081f09894c81"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\import\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-import-job.json",
+      "bytes": 1497,
+      "sha256": "0ce574c11894763436721f22caff2a73cc985405947d9fdf95539205cc78ab20"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\compare\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-compare-job.json",
+      "bytes": 1314,
+      "sha256": "f3c80c9b4a6a979d8a34b22ff9fcb0249685258df65599c23abbd07445d29c9e"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\retention\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-v1-retention-job.json",
+      "bytes": 977,
+      "sha256": "0fc7b250aca046b32150be3be0598200938ffbe1bf6402f0a4ed0e0ffbe5a0a4"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-final.json",
+      "bytes": 37145,
+      "sha256": "d489dc4b5469d39e1e22a0112127b0b602e118008e5cff8f2ad91bc5230b614c"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\export\\worker.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-export.json",
+      "bytes": 17010,
+      "sha256": "1d5480f9b18586b6bda7ed8e5c2613050fa54c20d144de3c01afe34e5612b527"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\import\\worker.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-import.json",
+      "bytes": 4147,
+      "sha256": "587d9d8262c394e14938267109f9bbd78d89b92b8fcfeee713b2f750a5a2acc3"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\ordered-comparison.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-comparison.json",
+      "bytes": 1395,
+      "sha256": "02b51a632c307ada45960fe168cd5ce1e0181e568b698d47c8dabdb689bd4b41"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\ordered-envelope.jsonl",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-envelope.jsonl",
+      "bytes": 2412,
+      "sha256": "ed878b79e0490140578a37159ccc2bc2051d06c7f2ff58e8b1d59a1d5e28c07a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\retention.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-retention.json",
+      "bytes": 3683,
+      "sha256": "f56027b083de3444feb90c285595942ef9b4ce86fc6d5e66d886f98027d6c555"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\export\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-export-job.json",
+      "bytes": 1766,
+      "sha256": "794e4aadbf5019a087280ebbe02c85bc2e4315b53e2120747c291a239dd1bce5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\import\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-import-job.json",
+      "bytes": 2058,
+      "sha256": "f322fe4edb9f82308132278d7b3ad16caf944375a81e3e990735d1e9cead5e37"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\compare\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-compare-job.json",
+      "bytes": 1855,
+      "sha256": "d47365b51e8da1dcba63b1b00f169007fdcc1553ddcd7943732af5472c91e41b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\retention\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-f030-r2-retention-job.json",
+      "bytes": 1539,
+      "sha256": "b4664e7cd9ae18b49f759221eb15be36ab1986913114fe2f4a82480792137f20"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-final.json",
+      "bytes": 36729,
+      "sha256": "275e6dafbec59d6d78d62fad037a10775f4ea878eb729fe4d2bd7e341ed485db"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\export\\worker.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-export.json",
+      "bytes": 17015,
+      "sha256": "ae9d0fabe33c5b393e3bea57ff06231e74a1c8230d762b00830431e1ba743f9d"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\import\\worker.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-import.json",
+      "bytes": 4164,
+      "sha256": "bd8782265a3c7565b66b1f4a336b7b27043a7d6afcd21ee105c8ea34ec860d84"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\ordered-comparison.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-comparison.json",
+      "bytes": 1412,
+      "sha256": "61c893a4d7260f37db80bea33f3c37510fee13778e9c72225bd159158e4abb28"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\ordered-envelope.jsonl",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-envelope.jsonl",
+      "bytes": 2412,
+      "sha256": "ed878b79e0490140578a37159ccc2bc2051d06c7f2ff58e8b1d59a1d5e28c07a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\retention.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-retention.json",
+      "bytes": 3203,
+      "sha256": "776a1490e8c820b8ded1a00003bd8b165978e342a25e9f50bd6f7ea07d5d3c5d"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\export\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-export-job.json",
+      "bytes": 1781,
+      "sha256": "ab1d391385cfa60a48beb43f3f61466b14177de4d8d39100b5bfce3fcd279c5b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\import\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-import-job.json",
+      "bytes": 2074,
+      "sha256": "9b9319bd92034ffb05bc97bf3545833ea94aadafbf58ad6a4998b64b01389227"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\compare\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-compare-job.json",
+      "bytes": 1883,
+      "sha256": "200e4a232c57ec5d5b220753bacad92d6f5cf76413ee55518474e1a795028335"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\retention\\execution.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-f030-r2-retention-job.json",
+      "bytes": 1530,
+      "sha256": "5897eafd35fd7a6112538fb8f8469ccf7587733b2853c46bd1536fbb56a4c651"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-native-final-package-v78.py",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-controller-first.py.txt",
+      "bytes": 11665,
+      "sha256": "d69837a6ce6054101ff92bd5ea7ca86f485f257b69f120a0946997f0047bff69"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-native-final-package-v78-r2.py",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-controller-r2.py.txt",
+      "bytes": 12848,
+      "sha256": "39905a2c280bf736cc3e967c24cb894d484fd746c8eb2eea9421fe81854fb34a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-worker-v78.py",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-worker.py.txt",
+      "bytes": 7399,
+      "sha256": "6b1fac7db2652d10d0bee7ffe5895eb7ce36169cfa865591b576acf6919e9b25"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\queue-native-final-packages-v78.py",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-queue-controller.py.txt",
+      "bytes": 2427,
+      "sha256": "8a4e4732ea603ba39028b692712d84d4a3951984dba06a189f95f9b6da45d64e"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\prepare-final-package-human-f030-v78.py",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-copy-setup.py.txt",
+      "bytes": 2584,
+      "sha256": "4d9b460c2c24145bc161a5982e6195726dea518ac8e46d6b0ee5fd743250ad2b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-packages-v78-queue.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-queued.json",
+      "bytes": 3003,
+      "sha256": "1d777e7add54af92aaad2647ae83003d8fc18c174191b73fb45195f9d20423e9"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-inputs\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-human-copy-input.json",
+      "bytes": 2435,
+      "sha256": "0718eb0738a8d29aa8c7379e8a31fa26514ccd350cee204d3de02d034ad6ebdb"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-stopped\\execution.json",
+      "file": "docs/rearchitecture/acceptance/whole-v78-stop-execution.json",
+      "bytes": 4587,
+      "sha256": "c11c1a502dc6b12883b984f742b1e41cc76e6ec4fbc2cfa8767168a5c9f2c0cc"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-stopped\\intentional-tu-interruption.json",
+      "file": "docs/rearchitecture/acceptance/whole-v78-stop-marker.json",
+      "bytes": 379,
+      "sha256": "b5696e5f2113072fc0f7dd1398b648dd0cae7bc116979fbf67d2790d3e5f0bfb"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-stopped\\console.log",
+      "file": "docs/rearchitecture/acceptance/whole-v78-stop-console.log",
+      "bytes": 71967,
+      "sha256": "595d776d2a27a225664f25a6cad2c19a3e1d06c96c50d411959b48bd16455bc4"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-queue.json",
+      "file": "docs/rearchitecture/acceptance/whole-v78-stop-recovery-in-progress.json",
+      "bytes": 6659,
+      "sha256": "3a80be7e2662ee76580c8870d78373553601a6c534d21c0232bc08d20a195af5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-v78-completed-raw-metrics.json",
+      "file": "docs/rearchitecture/acceptance/native-v78-final-raw-metrics.json",
+      "bytes": 955,
+      "sha256": "562493470e8550d3bff483edb1e7b29fa66e6960458f99a63e09906850aac5df"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\validate-final-package-gates-v78.py",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-negative-gate-controller.py.txt",
+      "bytes": 2559,
+      "sha256": "e766e43f07076f6a779586d10db09bc09656291e210f4457e1324ed43dc0e6c2"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-gate-rejections-v78\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-negative-gates.json",
+      "bytes": 1255,
+      "sha256": "7df2d17f68cae5897e3529a151f83ceada2ecca6f4021c7a73497790c995e809"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-gate-rejections-v78\\failed-native-gate\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-negative-failed-prerequisite-raw.json",
+      "bytes": 1345,
+      "sha256": "5f355776b0e273d00e0f09458bab8f1d1baa313b5d1213f23ba4edd99990bc2a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-gate-rejections-v78\\different-accepted-scan-path\\acceptance.json",
+      "file": "docs/rearchitecture/acceptance/final-package-v78-negative-scan-binding-raw.json",
+      "bytes": 1262,
+      "sha256": "d6f7351b086e5f500b23103440006da9a9e783da4bb932b962bbb66753e4b201"
+    }
+  ],
+  "scope": "Completed live-current native/G1/consumer receipts and real F030 complete-package proofs. Whole native recovery and latest large packages remain incomplete; no original receipt rewritten.",
+  "expected_gate_rejections": "Two deliberate prerequisite fixtures; raw rejection receipts are not real native failures."
+}

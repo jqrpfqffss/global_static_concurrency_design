@@ -1,0 +1,105 @@
+"""Actual complete-package export/import acceptance; never an analyzer or mock."""
+import argparse,hashlib,json,sqlite3,sys,time,traceback,zipfile
+from contextlib import closing
+from pathlib import Path
+
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--engine',type=Path,required=True);p.add_argument('--source',type=Path,required=True)
+p.add_argument('--work',type=Path,required=True);p.add_argument('--package',type=Path,required=True)
+p.add_argument('--mode',choices=['export','import'],required=True);p.add_argument('--export-receipt',type=Path)
+p.add_argument('--viewer',type=Path)
+a=p.parse_args();sys.path.insert(0,str(a.engine))
+from ecra.report_package import export_report,import_report,sha256
+from ecra.scan_store import EvidenceProvider,connect_readonly
+from ecra.workspace import no_links
+from ecra.common import write_json
+
+source=no_links(a.source);work=no_links(a.work);assert work.is_dir() and not (work/'worker.json').exists()
+package=no_links(a.package);start=time.monotonic()
+result=dict(passed=False,mode=a.mode,source=str(source),engine=str(a.engine),python=sys.version,
+ scope='Actual production complete-package APIs. No complete fact graph restored; all raw graph roots and every review-table row are additionally compared. Not native rescanning, physical second PC, or full G1-G8.')
+
+def inventory(root):
+    values={}
+    for item in sorted(root.rglob('*')):
+        no_links(item)
+        if item.is_file():
+            st=item.stat();values[item.relative_to(root).as_posix()]=dict(sha256=sha256(item),size=st.st_size,mtime_ns=st.st_mtime_ns)
+    return values
+
+def raw_roots(database):
+    with closing(connect_readonly(database)) as c:
+        return [list(r) for r in c.execute('SELECT r.name,n.kind,n.hash,n.length FROM roots r JOIN nodes n ON n.id=r.node ORDER BY r.name')]
+
+def review_rows(database):
+    """Typed, primary-key ordered digest of every actual table; no dropped field."""
+    with closing(sqlite3.connect(database.resolve().as_uri()+'?mode=ro',uri=True)) as c:
+        c.execute('PRAGMA trusted_schema=OFF');c.execute('PRAGMA query_only=ON')
+        c.execute('PRAGMA cache_size=-4096');c.execute('PRAGMA temp_store=FILE')
+        tables={}
+        for (table,) in c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"):
+            def ident(s):return '"'+s.replace('"','""')+'"'
+            columns=list(c.execute('PRAGMA table_info('+ident(table)+')'))
+            primary=[r[1] for r in sorted(columns,key=lambda r:r[5]) if r[5]]
+            order=primary or [r[1] for r in columns]
+            h=hashlib.sha256();count=0
+            for row in c.execute('SELECT * FROM '+ident(table)+' ORDER BY '+','.join(map(ident,order))):
+                count+=1
+                for value in row:
+                    if isinstance(value,bytes):kind=b'bytes';raw=value
+                    else:kind=type(value).__name__.encode('ascii');raw=json.dumps(value,ensure_ascii=False,allow_nan=False).encode('utf-8')
+                    h.update(len(kind).to_bytes(8,'big'));h.update(kind);h.update(len(raw).to_bytes(8,'big'));h.update(raw)
+            tables[table]=dict(columns=[r[1] for r in columns],primary_key=primary,rows=count,sha256=h.hexdigest())
+        return tables
+
+try:
+    if a.mode=='export':
+        assert (source/'manifest.json').is_file() and (source/'scan.db').is_file()
+        before=inventory(source);roots=raw_roots(source/'scan.db');reviews=review_rows(source/'reviews.db')
+        print('Starting actual production complete export; source authority is immutable.',flush=True)
+        manifest=export_report(source,package,compression='compact')
+        after=inventory(source)
+        assert before==after,'Source scan files changed during export'
+        with zipfile.ZipFile(package) as z:
+            archived=json.loads(z.read('manifest.json'))
+            names=[v.filename for v in z.infolist()]
+            assert archived==manifest and len(names)==len(set(names))
+            assert set(names)==set(manifest['files'])|{'manifest.json'}
+            evidence={v.relative_to(source).as_posix() for v in (source/'evidence').glob('*') if v.is_file()}
+            assert evidence=={name for name in manifest['files'] if name.startswith('evidence/')}
+            codecs={name:z.getinfo(name).compress_type for name in ['scan.db','reviews.db']}
+        write_json(work/'source-files.json',before);write_json(work/'manifest.json',manifest)
+        result.update(passed=True,package=str(package),package_bytes=package.stat().st_size,package_sha256=sha256(package),
+            source_files_sha256=sha256(work/'source-files.json'),source_file_count=len(before),source_differences=[],
+            raw_graph_roots=roots,review_tables=reviews,manifest=manifest,archive_members=len(names),compression_methods=codecs,
+            standard_complete=True,refuses_source_reverification=manifest['source_reverification'] is False)
+    else:
+        assert a.export_receipt and a.viewer and not a.viewer.exists()
+        export=json.loads(a.export_receipt.read_text('utf-8'))
+        assert export['passed'] and export['mode']=='export' and export['source']==str(source)
+        assert package.stat().st_size==export['package_bytes'] and sha256(package)==export['package_sha256']
+        print('Starting actual strict import into a new independent Viewer root.',flush=True)
+        imported=import_report(package,a.viewer)
+        restored=a.viewer/'scans'/imported['scan_id']
+        assert not imported['repeated']
+        provider=EvidenceProvider(restored/'scan.db');metadata=provider.metadata()
+        assert raw_roots(restored/'scan.db')==export['raw_graph_roots'],'Raw graph root mismatch (including provenance)'
+        reviews=review_rows(restored/'reviews.db')
+        assert reviews==export['review_tables'],'Full review-table data mismatch'
+        local=json.loads((restored/'manifest.json').read_text('utf-8'))
+        assert local['import_origin']==export['package_sha256']
+        for name,record in export['manifest']['files'].items():
+            if name=='reviews.db':continue # rebuilt trusted schema; every logical row is checked above
+            item=restored/name
+            assert item.is_file() and item.stat().st_size==record['size'] and sha256(item)==record['sha256'],name
+        assert {v.name for v in (restored/'evidence').glob('*') if v.is_file()}=={Path(n).name for n in export['manifest']['files'] if n.startswith('evidence/')}
+        original=json.loads((a.export_receipt.parent/'source-files.json').read_text('utf-8'))
+        assert inventory(source)==original,'Original scan changed during independent import'
+        assert sha256(package)==export['package_sha256']
+        result.update(passed=True,import_result=imported,restored_scan=str(restored),metadata=metadata,
+            raw_graph_roots=export['raw_graph_roots'],all_raw_roots_equal=True,all_review_tables_equal=True,
+            review_tables=reviews,package_sha256=export['package_sha256'],source_differences=[],all_payload_hashes_checked=True,
+            source_reverification=False,firmware_or_toolchain_invoked=False)
+except BaseException:result['error']=traceback.format_exc();raise
+finally:result['seconds']=time.monotonic()-start;write_json(work/'worker.json',result)
+print(json.dumps(dict(passed=result['passed'],mode=a.mode,receipt=str(work/'worker.json'))),flush=True)

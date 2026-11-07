@@ -1,0 +1,27 @@
+"""Release post-processing only after the real F030 end-to-end controller proof."""
+import hashlib,json,os,subprocess,sys
+from datetime import datetime,timezone
+from pathlib import Path
+w=Path(__file__).parent;proof_path=w/'native-final-package-f030-v78-r2/acceptance.json'
+proof=json.loads(proof_path.read_text('utf-8'))
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+controller=w/'run-native-final-package-v78-r2.py';worker=w/'native-final-package-worker-v78.py'
+assert proof['passed'] and proof['status']=='PASS_COMPLETE_ROUNDTRIP_SCOPED'
+assert sha(controller)==proof['controller_sha256'] and sha(worker)==proof['worker_sha256']
+receipt=w/'native-final-packages-v78-queue.json';assert not receipt.exists()
+jobs=[]
+for name,source,gate,extra in [
+ ('inav',Path('H:/ECRA-NATIVE-L78-SEED0/scans/native-golden'),w/'inav-current-published-native-v78-live-queue.json',
+  ['--old-data-root','I:/ECRA-O3-SEED0','--common-root','I:/ECRA-B1']),
+ ('whole',Path('H:/ECRA-WHOLE-D78-SEED0/scans/whole-resumed'),w/'whole-native-inav-v78-r2-queue.json',['--gate-kind','whole'])]:
+ work=w/('native-final-package-'+name+'-v78-r2');assert not work.exists()
+ command=[sys.executable,'-B','-X','utf8',str(controller),'--source',str(source),'--gate',str(gate),'--work',str(work),*extra]
+ with (w/('native-final-package-'+name+'-v78-r2.stdout.log')).open('xb') as out,(w/('native-final-package-'+name+'-v78-r2.stderr.log')).open('xb') as err:
+  process=subprocess.Popen(command,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0'),
+   stdout=out,stderr=err,creationflags=subprocess.CREATE_NO_WINDOW)
+ jobs.append(dict(name=name,pid=process.pid,work=str(work),source=str(source),native_gate=str(gate),command=command,
+  status='WAITING_ACTUAL_NATIVE_ACCEPTANCE_NOT_A_COMPLETION_RECEIPT'))
+receipt.write_text(json.dumps(dict(passed=False,status='WAITING_LARGE_NATIVE_FINAL_GATES',all_gates_passed=False,
+ started_utc=datetime.now(timezone.utc).isoformat(),f030_controller_proof_sha256=sha(proof_path),controller_sha256=sha(controller),worker_sha256=sha(worker),jobs=jobs,
+ scope='Two ordinary acceptance controllers wait for their exact native final PASS; no current or whole package has been claimed exported/imported. Verified F030 controller is unchanged; no engine, firmware, old data or comparator modified.'),ensure_ascii=False,indent=2)+'\n','utf-8')
+print(json.dumps(dict(jobs=len(jobs),receipt=str(receipt))))

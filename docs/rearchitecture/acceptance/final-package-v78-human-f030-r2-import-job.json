@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "command": [
+    "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable\\runtime\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-worker-v78.py",
+    "--engine",
+    "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable",
+    "--source",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-inputs\\data\\scans\\native",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\import",
+    "--package",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\standard-complete.ecra-report",
+    "--mode",
+    "import",
+    "--export-receipt",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\export\\worker.json",
+    "--viewer",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-r2\\independent-viewer-data"
+  ],
+  "limit_bytes": 2147483648,
+  "scope": "import",
+  "pid": 17956,
+  "create_time": 1793988508.922727,
+  "exit_disk_sample": {
+    "package_work": {
+      "files": 75,
+      "logical_bytes": 12844791,
+      "allocated_bytes": 12989112,
+      "unique_files": 75,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.015000000013969839
+    },
+    "source_data_root": {
+      "files": 64,
+      "logical_bytes": 9261190,
+      "allocated_bytes": 9363656,
+      "unique_files": 64,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.0
+    }
+  },
+  "exit_code": 0,
+  "seconds": 11.203000000037719,
+  "peaks": {
+    "working_set_bytes": 43540480,
+    "private_bytes": 31076352,
+    "peak_job_commit_bytes": 34725888,
+    "package_work_sampled_allocated_bytes": 12989112,
+    "source_data_root_sampled_allocated_bytes": 9363656
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "scope": "Actual baseline fully analyzed, then two real current TU responses committed by production CLI; interrupt before third is consumed. Controlled diagnostic only, not complete scan.",
+  "interrupted": true,
+  "current_root": "H:\\ECRA-WHOLE-D78-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929",
+  "committed_current_responses": 2
+}

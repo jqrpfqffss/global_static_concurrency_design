@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "archive": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-v78-completed-raw-metrics.zip",
+  "bytes": 3220867,
+  "sha256": "fcf5d4e79ffe199b97d6d567c19334c1ce33792e6e0d6992a80889d34c8e1b31",
+  "files": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live\\resources.jsonl",
+      "bytes": 44772331,
+      "sha256": "907bc35848f3ce854fcf102bcb9c8fe272b2e58c4f99034fd9c99d9ac33c2b0b"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-stopped\\resources.jsonl",
+      "bytes": 23914699,
+      "sha256": "8753966cf33fb24bbd6ded04126488e303c90bcd249bdbd31b643d2548084e16"
+    }
+  ],
+  "scope": "Complete raw samples from finished live-current and intentionally interrupted first whole job. Not a standard report archive or final resumed-job evidence."
+}

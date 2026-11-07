@@ -1,0 +1,146 @@
+{
+  "passed": true,
+  "mode": "import",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\managed-closure-native-f030-v78\\data\\scans\\native",
+  "engine": "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable",
+  "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "scope": "Actual production complete-package APIs. No complete fact graph restored; all raw graph roots and every review-table row are additionally compared. Not native rescanning, physical second PC, or full G1-G8.",
+  "import_result": {
+    "scan_id": "native",
+    "imported_events": 0,
+    "repeated": false
+  },
+  "restored_scan": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\independent-viewer-data\\scans\\native",
+  "metadata": {
+    "scan_id": "native",
+    "project_id": "1b46a7e5456fa22bd9bfd3fdb11e421e10d459f35e282dc0b625b0cd663bd1cd",
+    "profile_id": "default",
+    "state": "UNVERIFIED",
+    "facts_hash": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+    "report_hash": "71ff3072eb41d15021189f6775a2aab7071d37b3d6b4d2fa0992ef42fa692fea"
+  },
+  "raw_graph_roots": [
+    [
+      "facts",
+      "object",
+      "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+      52
+    ],
+    [
+      "provenance",
+      "object",
+      "6e53b72a0c56f3e5629372fb4094ac3df8b6af387b8a72a09405ddddf9318338",
+      6
+    ],
+    [
+      "report",
+      "object",
+      "71ff3072eb41d15021189f6775a2aab7071d37b3d6b4d2fa0992ef42fa692fea",
+      10
+    ]
+  ],
+  "all_raw_roots_equal": true,
+  "all_review_tables_equal": true,
+  "review_tables": {
+    "ai_events": {
+      "columns": [
+        "sequence",
+        "ordinal",
+        "finding_id",
+        "state",
+        "hash",
+        "payload"
+      ],
+      "primary_key": [
+        "sequence"
+      ],
+      "rows": 6,
+      "sha256": "77c41f35089bfdde65bc13ed2f045ed6282a8c4be5c5a76618f3a1e06b5906f5"
+    },
+    "ai_snapshots": {
+      "columns": [
+        "sequence",
+        "hash",
+        "payload"
+      ],
+      "primary_key": [
+        "sequence"
+      ],
+      "rows": 1,
+      "sha256": "470058b92b87beb8efb5e045287a95000df1861b198c4890a87d81eb4828adef"
+    },
+    "binding": {
+      "columns": [
+        "singleton",
+        "scan_id",
+        "project_id",
+        "facts_hash",
+        "report_hash"
+      ],
+      "primary_key": [
+        "singleton"
+      ],
+      "rows": 1,
+      "sha256": "dc1dc5ad68038f362ff76ddb643e55db7b1a0f3b23e74c342c853f632bc42fa7"
+    },
+    "events": {
+      "columns": [
+        "event_id",
+        "symbol_id",
+        "fingerprint",
+        "revision",
+        "payload"
+      ],
+      "primary_key": [
+        "event_id"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "positions": {
+      "columns": [
+        "name",
+        "value"
+      ],
+      "primary_key": [
+        "name"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "predecessors": {
+      "columns": [
+        "event_id",
+        "parent_id"
+      ],
+      "primary_key": [
+        "event_id",
+        "parent_id"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prior_decisions": {
+      "columns": [
+        "symbol_id",
+        "fingerprint",
+        "source_scan",
+        "source_fingerprint",
+        "hash",
+        "payload"
+      ],
+      "primary_key": [
+        "symbol_id",
+        "source_scan"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "package_sha256": "604de4321eda18d70926256072d7349137ddf5f7e2709dd6bb6917866bda7a1e",
+  "source_differences": [],
+  "all_payload_hashes_checked": true,
+  "source_reverification": false,
+  "firmware_or_toolchain_invoked": false,
+  "seconds": 11.280999999959022
+}

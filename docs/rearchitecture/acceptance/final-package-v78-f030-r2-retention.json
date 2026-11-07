@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "recorded_utc": "2026-11-06T18:04:45.207797+00:00",
+  "seconds": 0.7650000000139698,
+  "scope": "Read-only Windows file allocation for explicit, complete retention scopes.\n\nFile-backed identity ledger deduplicates hardlinks within each policy. No file\ncontents, attributes, compression or user data are changed. Reports exclude\ndirectory/MFT/ADS allocation and cannot reconstruct a historical peak. Scope\nand stability must be reviewed before a result is used for the G4 gate.\n",
+  "spec": {
+    "standard_archive_included": true,
+    "policies": {
+      "current": [
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\managed-closure-native-f030-v78\\data"
+        },
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\standard-complete.ecra-report"
+        }
+      ]
+    },
+    "scope": "Complete published native data root, including all caches/build/work/recovery files without cleanup, shared actual build inputs and one complete standard package. Independent Viewer root, observers and frozen programs excluded only as verification infrastructure; all retained on disk."
+  },
+  "policies": {
+    "current": {
+      "roots": [
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\managed-closure-native-f030-v78\\data"
+        },
+        {
+          "name": "data",
+          "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-r2\\standard-complete.ecra-report"
+        }
+      ],
+      "files": 129,
+      "logical_bytes": 15412612,
+      "allocated_bytes": 10865648,
+      "unique_files": 129,
+      "categories": {
+        "settings_and_other_retained_files": {
+          "files": 14,
+          "logical_bytes": 26771,
+          "allocated_bytes": 39064,
+          "unique_files": 14
+        },
+        "ai_human_db": {
+          "files": 1,
+          "logical_bytes": 65536,
+          "allocated_bytes": 65536,
+          "unique_files": 1
+        },
+        "canonical_static_db": {
+          "files": 1,
+          "logical_bytes": 8966144,
+          "allocated_bytes": 5967872,
+          "unique_files": 1
+        },
+        "raw_worker_responses": {
+          "files": 32,
+          "logical_bytes": 1981098,
+          "allocated_bytes": 680520,
+          "unique_files": 32
+        },
+        "diagnostics_and_audit": {
+          "files": 16,
+          "logical_bytes": 72340,
+          "allocated_bytes": 106568,
+          "unique_files": 16
+        },
+        "archived_evidence_objects": {
+          "files": 60,
+          "logical_bytes": 216791,
+          "allocated_bytes": 315592,
+          "unique_files": 60
+        },
+        "cache": {
+          "files": 4,
+          "logical_bytes": 593795,
+          "allocated_bytes": 196608,
+          "unique_files": 4
+        },
+        "exports": {
+          "files": 1,
+          "logical_bytes": 3490137,
+          "allocated_bytes": 3493888,
+          "unique_files": 1
+        }
+      },
+      "stable": true,
+      "verification_files": 129,
+      "differences": []
+    }
+  },
+  "historical_disk_peak": "NOT_RECONSTRUCTABLE",
+  "standard_package": "NOT_INCLUDED_UNLESS_EXPLICIT_SCOPE",
+  "full_G4": "NOT_CLOSED_BY_THIS_OBSERVER",
+  "retained_file_contents_read_or_written": false,
+  "allocation_scope": "NTFS FILE_STANDARD_INFO allocation, hardlink-deduplicated per policy; excludes directory/MFT/ADS"
+}

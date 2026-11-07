@@ -1,0 +1,31 @@
+"""Expected gate rejections; never fake a successful native producer."""
+import hashlib,json,os,subprocess,sys
+from pathlib import Path
+w=Path(__file__).parent;controller=w/'run-native-final-package-v78-r2.py'
+work=w/'native-final-package-gate-rejections-v78';assert not work.exists();work.mkdir()
+source=w/'managed-closure-native-f030-v78/data/scans/native'
+other=w/'native-final-package-human-f030-v78-inputs/data/scans/native'
+original_gate=w/'managed-closure-native-f030-v78/acceptance.json'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+before={str(p):sha(p) for root in [source,other] for p in root.rglob('*') if p.is_file()}
+failed=work/'explicit-failed-prerequisite.json'
+failed.write_text(json.dumps(dict(passed=False,status='FAIL_EXPLICIT_NEGATIVE_GATE_FIXTURE',
+ scope='Artificial failed prerequisite only, not a real native scan failure.')),'utf-8')
+cases=[]
+for name,target,gate in [('failed-native-gate',source,failed),('different-accepted-scan-path',other,original_gate)]:
+ output=work/name
+ command=[sys.executable,'-B','-X','utf8',str(controller),'--source',str(target),'--gate',str(gate),'--work',str(output)]
+ with (work/(name+'.log')).open('xb') as log:
+  code=subprocess.call(command,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),stdout=log,stderr=subprocess.STDOUT)
+ record=json.loads((output/'acceptance.json').read_text('utf-8'))
+ assert code!=0 and not record['passed'] and record['status']=='FAIL_OR_NOT_VERIFIED'
+ assert not (output/'standard-complete.ecra-report').exists() and not any((output/v).exists() for v in ['export','import','independent-viewer-data'])
+ if name=='failed-native-gate':assert 'Native prerequisite failed' in record['error']
+ else:assert "comparison['after']" in record['error'] and 'AssertionError' in record['error']
+ cases.append(dict(name=name,expected_rejection=True,exit_code=code,raw_receipt=str(output/'acceptance.json'),
+  raw_receipt_sha256=sha(output/'acceptance.json'),package_or_worker_started=False))
+assert all(Path(name).is_file() and sha(Path(name))==value for name,value in before.items())
+receipt=work/'acceptance.json'
+receipt.write_text(json.dumps(dict(passed=True,cases=cases,source_differences=[],controller_sha256=sha(controller),
+ scope='Two expected post-processing gate rejections before any export/import worker: explicit failed prerequisite and mismatch between accepted source and requested scan. No real producer failure, native/G2/GUI or performance claim.'),indent=2)+'\n','utf-8')
+print(json.dumps(dict(passed=True,cases=len(cases),receipt=str(receipt))))

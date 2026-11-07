@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "status": "FAIL_OR_NOT_VERIFIED",
+  "all_gates_passed": false,
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\managed-closure-native-f030-v78\\data\\scans\\native",
+  "scope": "Actual production complete compact export, bundled Python3.10.9 strict independent import, existing full ordered comparator, exact raw roots/review tables and complete retention allocation. Original source and all prior outputs preserved; no cleanup. Not physical32GB/clean PC/UAT or full G4.",
+  "controller_sha256": "39905a2c280bf736cc3e967c24cb894d484fd746c8eb2eea9421fe81854fb34a",
+  "worker_sha256": "6b1fac7db2652d10d0bee7ffe5895eb7ce36169cfa865591b576acf6919e9b25",
+  "disk_sampling_interval_seconds": 30,
+  "disk_scope": "Sampled file-allocation lower bounds including mandatory exit samples; excludes directory/MFT/ADS and unobserved transients.",
+  "error": "Traceback (most recent call last):\n  File \"H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-native-final-package-v78-r2.py\", line 43, in <module>\n    if str(gate.get('status','')).startswith(('FAIL','STOPPED')):raise ValueError('Native prerequisite failed; do not export an unaccepted producer')\nValueError: Native prerequisite failed; do not export an unaccepted producer\n",
+  "seconds": 0.0470000000204891
+}

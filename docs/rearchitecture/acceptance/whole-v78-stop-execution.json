@@ -1,0 +1,118 @@
+{
+  "complete": false,
+  "scope": "Measure a real native CLI run without restoring complete facts in the observer.\n\nWindows Job accounting includes every descendant. The explicit safety memory cap\nis recorded; hitting it is a controlled failure, never labelled a natural OOM.\nThis harness does not establish semantic equivalence, a physical 32GB test, or\nthe complete G4 disk gate. File allocation is a sampled lower bound excluding\ndirectory/MFT metadata and alternate data streams. Paging rates are host-wide.\n",
+  "mode": "canonical-published",
+  "engine": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v78",
+  "config": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-inputs\\semantics.yaml",
+  "config_sha256": "280e2cd5d02d7700c7a6b9234841fd3f1b05c1a09ecb55a07c561fae7ec065b2",
+  "data_root": "H:\\ECRA-WHOLE-D78-SEED0",
+  "safety_job_commit_limit_bytes": 17179869184,
+  "controlled_limit_experiment": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "physical_disk_peak": "SAMPLED_FILE_ALLOCATION_LOWER_BOUND_EXCLUDES_METADATA_ADS",
+  "system_paging_rate": "PDH_HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA",
+  "paging_samples_valid": 17042,
+  "canonical_scope": "Public run_canonical including final publication",
+  "logical_disk_peak_is_sampled_lower_bound": true,
+  "recovery": null,
+  "cold_extraction": true,
+  "started": "2026-11-06T16:08:53.291879+00:00",
+  "peaks": {
+    "working_set_bytes": 10623680512,
+    "private_bytes": 10697584640,
+    "peak_job_commit_bytes": 10712293376,
+    "sampled_output_logical_bytes": 40809717993,
+    "sampled_output_allocated_bytes": 28378555272
+  },
+  "samples": 17042,
+  "cache_reuse": null,
+  "diagnostic_fault": null,
+  "classification_diagnostics": false,
+  "observer_script_sha256": "8a2676e1702eff4e7bc37a32f3a504ee671615bd35a54e5be9a618d5a348f8c4",
+  "worker_temporary_root": "H:\\ECRA-WHOLE-D78-SEED0\\work\\native-observer\\whole-stopped\\temporary",
+  "output_volume_free_at_start": 589853855744,
+  "pid": 10364,
+  "seconds": 21512.483999999997,
+  "last": {
+    "seconds": 21500.467999999993,
+    "available": true,
+    "working_set_bytes": 4188041216,
+    "private_bytes": 4191621120,
+    "peak_job_commit_bytes": 10712293376,
+    "limit_bytes": 17179869184,
+    "enforced_job_commit_limit_bytes": 17179869184,
+    "job_limit_flags": 8704,
+    "processes": 4,
+    "sampled_processes": 4,
+    "write_bytes": 0,
+    "system_commit_bytes": 26172665856,
+    "system_commit_limit_bytes": 85825454080,
+    "system_commit_peak_bytes": 59076931584,
+    "system_physical_total_bytes": 68645584896,
+    "system_physical_available_bytes": 48203902976,
+    "system_commit_headroom_bytes": 59652788224,
+    "host_paging": {
+      "available": true,
+      "values": {
+        "pages_input_per_second": 98.56883959045042,
+        "pages_output_per_second": 0.0
+      },
+      "errors": {},
+      "scope": "HOST_WIDE_NOT_ATTRIBUTABLE_TO_ECRA"
+    },
+    "disk_free_bytes": 552136613888,
+    "whole_volume_used_change_bytes": 37717241856,
+    "volume_change_scope": "WHOLE_VOLUME_INCLUDES_UNLINKED_OPEN_TEMP_FILES_AND_OTHER_WRITERS",
+    "main_process_memory": {
+      "rss": 4019453952,
+      "vms": 4042199040,
+      "num_page_faults": 70680606,
+      "peak_wset": 10628501504,
+      "wset": 4019453952,
+      "peak_paged_pool": 340960,
+      "paged_pool": 328240,
+      "peak_nonpaged_pool": 928760,
+      "nonpaged_pool": 555424,
+      "pagefile": 4042199040,
+      "peak_pagefile": 10705760256,
+      "private": 4042199040
+    },
+    "output_disk": {
+      "files": 24323,
+      "logical_bytes": 40805806285,
+      "allocated_bytes": 28241342840,
+      "unique_files": 24322,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 11.5
+    },
+    "output_disk_observed_seconds": 21500.467999999993
+  },
+  "exit_code": 130,
+  "final_output_disk": {
+    "files": 24329,
+    "logical_bytes": 40809717993,
+    "allocated_bytes": 28245262840,
+    "unique_files": 24328,
+    "sampling_partial": false,
+    "unmeasured_files": 0,
+    "observation_seconds": 11.344000000040978
+  },
+  "output": "H:\\ECRA-WHOLE-D78-SEED0\\scans\\whole-stopped",
+  "validity": {
+    "analysis_valid": false,
+    "state": "INTERRUPTED"
+  },
+  "publication": {
+    "manifest_sha256": null,
+    "format": null,
+    "state": null,
+    "scan_id": null
+  },
+  "tu_cache": {
+    "hits": 0,
+    "extracted": 10,
+    "corrupt": 0,
+    "total": 10
+  }
+}

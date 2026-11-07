@@ -1,0 +1,30 @@
+"""Nonempty human-event package test on a separate copy of approved native F030."""
+import json,sys
+from pathlib import Path
+w=Path(__file__).parent;engine=w/'frozen-engine-studio-v78';sys.path.insert(0,str(engine))
+from ecra.report_package import import_report,sha256
+from ecra.scan_store import EvidenceProvider
+from ecra.human_reviews import ReviewStore
+from scripts.compare_native_graphs import compare
+prior=w/'native-final-package-f030-v78-r2';accepted=json.loads((prior/'acceptance.json').read_text('utf-8'))
+assert accepted['passed'] and accepted['roundtrip_passed']
+package=prior/'standard-complete.ecra-report';assert sha256(package)==accepted['package_sha256']
+work=w/'native-final-package-human-f030-v78-inputs';assert not work.exists();work.mkdir()
+data=work/'data';imported=import_report(package,data);source=data/'scans'/imported['scan_id']
+provider=EvidenceProvider(source/'scan.db');before=sha256(source/'scan.db')
+sid=provider.symbols(limit=1)['items'][0]['symbol_id'];fingerprint=provider.fingerprint(sid)
+store=ReviewStore(source/'reviews.db',provider.metadata(),device='automated-package-acceptance')
+one=store.append(sid,fingerprint,decision='NEED_MORE_EVIDENCE',reviewer='自动化完整包验收声明',
+ comment='仅验证归档记录保存，不代表实际固件风险结论。')
+two=store.undo(sid,fingerprint,reviewer='自动化完整包验收声明',comment='撤销本次验收声明，保留原事件及理由。',expected_heads=[one['event_id']])
+history=store.history(sid);assert len(history)==2 and store.current(sid,fingerprint)['decision']=='PENDING'
+assert sha256(source/'scan.db')==before and sha256(package)==accepted['package_sha256']
+original=w/'managed-closure-native-f030-v78/data/scans/native/scan.db'
+comparison=compare(original,source/'scan.db',envelope=work/'envelope.jsonl');assert comparison['passed']
+gate=dict(passed=True,status='PASS_ACCEPTED_NATIVE_COPY_WITH_TEST_EVENTS_NOT_NEW_NATIVE',
+ scope=__doc__+' Two explicit automated declarations (need evidence and undo), not real human UAT or a new native/G2 producer. Original native and package untouched.',
+ data_root=str(data),manifest_sha256=accepted['engine_manifest_sha256'],comparison=comparison,
+ scan_db_sha256=before,source_package_sha256=sha256(package),symbol_id=sid,event_ids=[one['event_id'],two['event_id']],
+ human_events=2,current_decision='PENDING',original_static_unchanged=True)
+(work/'acceptance.json').write_text(json.dumps(gate,ensure_ascii=False,indent=2)+'\n','utf-8')
+print(json.dumps(dict(passed=True,events=len(history),gate=str(work/'acceptance.json'))))

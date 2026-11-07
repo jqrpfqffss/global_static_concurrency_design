@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "scope": "inav-current-published-v78-live-compare-job",
+  "limit_bytes": 2147483648,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v78\\scripts\\compare_native_graphs.py",
+    "--before",
+    "H:\\ECRA-NATIVE-A13-SEED0\\scans\\native-golden\\scan.db",
+    "--after",
+    "H:\\ECRA-NATIVE-L78-SEED0\\scans\\native-golden\\scan.db",
+    "--receipt",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-full-comparison.json",
+    "--envelope",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-v78-live-envelope.jsonl"
+  ],
+  "exit_code": 0,
+  "seconds": 2751.625,
+  "peaks": {
+    "peak_job_commit_bytes": 614608896,
+    "working_set_bytes": 610852864,
+    "private_bytes": 614055936
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "passed": false,
+  "status": "WAITING_LARGE_NATIVE_FINAL_GATES",
+  "all_gates_passed": false,
+  "started_utc": "2026-11-06T18:06:51.069432+00:00",
+  "f030_controller_proof_sha256": "d489dc4b5469d39e1e22a0112127b0b602e118008e5cff8f2ad91bc5230b614c",
+  "controller_sha256": "39905a2c280bf736cc3e967c24cb894d484fd746c8eb2eea9421fe81854fb34a",
+  "worker_sha256": "6b1fac7db2652d10d0bee7ffe5895eb7ce36169cfa865591b576acf6919e9b25",
+  "jobs": [
+    {
+      "name": "inav",
+      "pid": 15156,
+      "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2",
+      "source": "H:\\ECRA-NATIVE-L78-SEED0\\scans\\native-golden",
+      "native_gate": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live-queue.json",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-native-final-package-v78-r2.py",
+        "--source",
+        "H:\\ECRA-NATIVE-L78-SEED0\\scans\\native-golden",
+        "--gate",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\inav-current-published-native-v78-live-queue.json",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2",
+        "--old-data-root",
+        "I:/ECRA-O3-SEED0",
+        "--common-root",
+        "I:/ECRA-B1"
+      ],
+      "status": "WAITING_ACTUAL_NATIVE_ACCEPTANCE_NOT_A_COMPLETION_RECEIPT"
+    },
+    {
+      "name": "whole",
+      "pid": 9248,
+      "work": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-whole-v78-r2",
+      "source": "H:\\ECRA-WHOLE-D78-SEED0\\scans\\whole-resumed",
+      "native_gate": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-queue.json",
+      "command": [
+        "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-native-final-package-v78-r2.py",
+        "--source",
+        "H:\\ECRA-WHOLE-D78-SEED0\\scans\\whole-resumed",
+        "--gate",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-queue.json",
+        "--work",
+        "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-whole-v78-r2",
+        "--gate-kind",
+        "whole"
+      ],
+      "status": "WAITING_ACTUAL_NATIVE_ACCEPTANCE_NOT_A_COMPLETION_RECEIPT"
+    }
+  ],
+  "scope": "Two ordinary acceptance controllers wait for their exact native final PASS; no current or whole package has been claimed exported/imported. Verified F030 controller is unchanged; no engine, firmware, old data or comparator modified."
+}

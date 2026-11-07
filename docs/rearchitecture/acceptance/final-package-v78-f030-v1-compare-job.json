@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v78\\scripts\\compare_native_graphs.py",
+    "--before",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\managed-closure-native-f030-v78\\data\\scans\\native\\scan.db",
+    "--after",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\independent-viewer-data\\scans\\native\\scan.db",
+    "--receipt",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\ordered-comparison.json",
+    "--envelope",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-f030-v78-v1\\ordered-envelope.jsonl"
+  ],
+  "limit_bytes": 2147483648,
+  "scope": "compare",
+  "pid": 29736,
+  "create_time": 1793988080.9204261,
+  "exit_code": 0,
+  "seconds": 10.14100000000326,
+  "peaks": {
+    "working_set_bytes": 39481344,
+    "private_bytes": 27729920,
+    "peak_job_commit_bytes": 29954048,
+    "package_work_sampled_allocated_bytes": 13005488,
+    "source_data_root_sampled_allocated_bytes": 7371760
+  }
+}

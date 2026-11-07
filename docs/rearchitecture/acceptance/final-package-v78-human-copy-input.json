@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "status": "PASS_ACCEPTED_NATIVE_COPY_WITH_TEST_EVENTS_NOT_NEW_NATIVE",
+  "scope": "Nonempty human-event package test on a separate copy of approved native F030. Two explicit automated declarations (need evidence and undo), not real human UAT or a new native/G2 producer. Original native and package untouched.",
+  "data_root": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-inputs\\data",
+  "manifest_sha256": "113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd",
+  "comparison": {
+    "passed": true,
+    "hashes": {
+      "facts": {
+        "before": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48",
+        "after": "514fa4543569ada226992813ef3b63164d99032f505e7b01e7919e29126e4c48"
+      },
+      "report": {
+        "before": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6",
+        "after": "62fd77e001bef0561313db0d9d148bab6c29ddf47a4b930bbc813e325a0af4b6"
+      }
+    },
+    "differences": {
+      "facts": null,
+      "report": null
+    },
+    "scope": "Strict ordered/typed native comparison without loading complete fact graphs.\n\nInputs must be full canonical graphs. Legacy JSON can be streamed into one by\npublish_json_scan; original JSON/results are never modified. Only the existing\nclean_report contract and explicitly documented execution envelope are removed\nfrom the comparison hash. Every other field, order and duplicate is retained.\n",
+    "before": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\managed-closure-native-f030-v78\\data\\scans\\native\\scan.db",
+    "after": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-human-f030-v78-inputs\\data\\scans\\native\\scan.db",
+    "deep_integrity_checked": true,
+    "complete_fact_graph_restore": false,
+    "large_native_G1": "Requires matching independently native inputs and receipts; this tool alone is not G1"
+  },
+  "scan_db_sha256": "51bceb04f3942130ba43565b5928f1c0ee54bc51d88826569836b1229458e8dd",
+  "source_package_sha256": "2e229b87cd53f80b1fd93ad34ce0e0d7741a699a0ae999aabc00a6b10089d173",
+  "symbol_id": "c:@Exceptions",
+  "event_ids": [
+    "2e69acd3-95a2-4598-8adf-81f5a1ec2cc5",
+    "20de4362-29d7-4d0c-97af-ee4cd5aefcfe"
+  ],
+  "human_events": 2,
+  "current_decision": "PENDING",
+  "original_static_unchanged": true
+}

@@ -1,0 +1,138 @@
+"""Wait for real native acceptance, then bound complete package and strict roundtrip."""
+import argparse,hashlib,json,os,subprocess,sys,time,traceback
+import psutil
+from datetime import datetime,timezone
+from pathlib import Path
+
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--source',type=Path,required=True);p.add_argument('--work',type=Path,required=True)
+p.add_argument('--gate',type=Path,required=True);p.add_argument('--gate-kind',choices=['native','whole'],default='native')
+p.add_argument('--old-data-root',type=Path);p.add_argument('--common-root',type=Path)
+a=p.parse_args();w=Path(__file__).parent;engine=w/'frozen-engine-studio-v78'
+bundle=Path('H:/ECRAStudio-build-20261106-studio-v79/ECRA-Portable')
+sys.path.insert(0,str(engine))
+from ecra.report_package import sha256
+from ecra.workspace import no_links
+from ecra.studio.process_budget import ProcessBudget
+from ecra.studio.write_guard import OwnedProcess
+from ecra.studio.resource_policy import temporary_environment
+from ecra.scan_diagnostics import memory
+from scripts.native_metrics import directory_size,PagingRates
+
+work=no_links(a.work);source=no_links(a.source);data=source.parent.parent
+assert source.parent.name=='scans' and not (work==data or work.is_relative_to(data) or data.is_relative_to(work))
+assert not work.exists();work.mkdir(parents=True)
+receipt=work/'acceptance.json';started=time.monotonic()
+result=dict(passed=False,status='WAITING_REAL_NATIVE_FINAL_GATE',all_gates_passed=False,source=str(source),
+ scope='Actual production complete compact export, bundled Python3.10.9 strict independent import, existing full ordered comparator, exact raw roots/review tables and complete retention allocation. Original source and all prior outputs preserved; no cleanup. Not physical32GB/clean PC/UAT or full G4.')
+def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+def check_stop():
+    if (work/'stop').exists():raise KeyboardInterrupt('Explicit owned acceptance stop')
+def engine_bad(rows):return [r['file'] for r in rows if not (engine/r['file']).is_file() or sha256(engine/r['file'])!=r['sha256']]
+save()
+try:
+    until=time.monotonic()+48*3600
+    while True:
+        check_stop()
+        try:gate=json.loads(a.gate.read_text('utf-8'))
+        except (OSError,json.JSONDecodeError):gate={}
+        if gate.get('passed') is True:break
+        if str(gate.get('status','')).startswith(('FAIL','STOPPED')):raise ValueError('Native prerequisite failed; do not export an unaccepted producer')
+        if time.monotonic()>until:raise TimeoutError('No final native acceptance; no package operations started')
+        time.sleep(5)
+    if gate.get('data_root'):assert Path(gate['data_root']).resolve()==data.resolve()
+    if a.gate_kind=='native':
+        comparison=gate.get('comparison')
+        if isinstance(comparison,str):comparison=json.loads(Path(comparison).read_text('utf-8'))
+        assert comparison and comparison['passed'] and Path(comparison['after']).resolve()==(source/'scan.db').resolve()
+    else:
+        full=gate['full_verification'];assert full['state']=='PASSED' and full['semantic_mismatches']==full['classification_mismatches']==0
+        assert gate['scan_metadata']['scan_id']==source.name
+    manifest=engine.with_name(engine.name+'.sha256.json');rows=json.loads(manifest.read_text('utf-8'))['files']
+    assert sha256(manifest)=='113465220a07a2ffcb354f07d761d9fecab2beab68b25fe345ec48126e7351cd'
+    assert gate.get('engine_manifest_sha256',gate.get('manifest_sha256'))==sha256(manifest)
+    assert not engine_bad(rows)
+    if gate.get('scan_db_sha256'):assert sha256(source/'scan.db')==gate['scan_db_sha256']
+    assert sha256(bundle/'FILES.sha256.json')=='4cc69160bc621f77196f57da99a6754fe0bca5757e280cd6466229701b89e893'
+    inventory=json.loads((bundle/'FILES.sha256.json').read_text('utf-8'))
+    def bundle_bad():return [name for name,h in inventory.items() if not (bundle/name).is_file() or sha256(bundle/name)!=h]
+    assert not bundle_bad()
+    python_rows=[r for r in rows if r['file'].startswith('ecra/') and r['file'].endswith('.py')]
+    assert all(sha256(bundle/r['file'])==r['sha256'] for r in python_rows)
+    result.update(status='EXPORTING_NEW_STANDARD_COMPLETE_PACKAGE',native_gate_sha256=sha256(a.gate),
+        engine_manifest_sha256=sha256(manifest),portable_payload_manifest_sha256=sha256(bundle/'FILES.sha256.json'),
+        python_engine_files_identical=len(python_rows),started_operations_utc=datetime.now(timezone.utc).isoformat());save()
+    def bounded(name,command,gib=2):
+        step=work/name;step.mkdir();budget=ProcessBudget(gib*1024**3);proc=None;peaks={};begin=time.monotonic()
+        record=dict(passed=False,command=list(map(str,command)),limit_bytes=gib*1024**3,scope=name)
+        paging=PagingRates();last_disk=0;disk=None
+        try:
+            with (step/'console.log').open('xb') as log,(step/'resources.jsonl').open('x',encoding='utf-8') as samples:
+                proc=OwnedProcess(list(map(str,command)),cwd=engine,
+                    env=temporary_environment(step,dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',GIT_OPTIONAL_LOCKS='0')),log=log)
+                budget.assign(proc);record.update(pid=proc.pid,create_time=psutil.Process(proc.pid).create_time());proc.resume()
+                while True:
+                    check_stop();sample=budget.sample();system=memory();now=time.monotonic()
+                    for k in ['working_set_bytes','private_bytes','peak_job_commit_bytes']:peaks[k]=max(peaks.get(k,0),sample.get(k,0))
+                    if now-last_disk>=30:
+                        disk=dict(package_work=directory_size(work),source_data_root=directory_size(data));last_disk=now
+                        for k,v in disk.items():peaks[k+'_sampled_allocated_bytes']=max(peaks.get(k+'_sampled_allocated_bytes',0),v['allocated_bytes'])
+                    samples.write(json.dumps(dict(seconds=now-begin,**sample,system=system,host_paging=paging.sample(),disk=disk),ensure_ascii=False)+'\n');samples.flush()
+                    if system.get('system_physical_available_bytes',2**63)<8*1024**3:raise MemoryError('Physical headroom below8GiB; stop only this owned package job')
+                    if __import__('shutil').disk_usage(work).free<8*1024**3:raise OSError('Work volume free space below8GiB; preserve partial evidence')
+                    if proc.poll() is not None:break
+                    time.sleep(1)
+                code=proc.wait(timeout=30);last=budget.sample()
+                peaks['peak_job_commit_bytes']=max(peaks.get('peak_job_commit_bytes',0),last.get('peak_job_commit_bytes',0))
+                record.update(passed=code==0,exit_code=code,seconds=time.monotonic()-begin,peaks=peaks)
+        except BaseException:record['error']=traceback.format_exc();raise
+        finally:
+            paging.close();budget.close()
+            if proc is not None:proc.close()
+            (step/'execution.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n','utf-8')
+        assert record['passed'],record
+        return record
+    worker=w/'native-final-package-worker-v78.py';archive=work/'standard-complete.ecra-report'
+    result['export_job']=bounded('export',[sys.executable,'-B','-X','utf8',worker,'--engine',engine,'--source',source,
+        '--work',work/'export','--package',archive,'--mode','export'])
+    exported=json.loads((work/'export/worker.json').read_text('utf-8'));assert exported['passed'];result['export']=exported;save()
+    viewer=work/'independent-viewer-data';result['status']='STRICT_IMPORT_WITH_BUNDLED_PYTHON';save()
+    result['import_job']=bounded('import',[bundle/'runtime/python.exe','-B','-X','utf8',worker,'--engine',bundle,'--source',source,
+        '--work',work/'import','--package',archive,'--mode','import','--export-receipt',work/'export/worker.json','--viewer',viewer])
+    imported=json.loads((work/'import/worker.json').read_text('utf-8'));assert imported['passed'];result['import']=imported;save()
+    restored=Path(imported['restored_scan']);result['status']='COMPLETE_ORDERED_ROUNDTRIP_COMPARISON';save()
+    result['compare_job']=bounded('compare',[sys.executable,'-B','-X','utf8',engine/'scripts/compare_native_graphs.py',
+        '--before',source/'scan.db','--after',restored/'scan.db','--receipt',work/'ordered-comparison.json','--envelope',work/'ordered-envelope.jsonl'])
+    ordered=json.loads((work/'ordered-comparison.json').read_text('utf-8'));assert ordered['passed']
+    result.update(status='MEASURING_COMPLETE_FINAL_RETENTION',roundtrip_passed=True,ordered_comparison=ordered);save()
+    components=[dict(name='data',path=str(data))]
+    if a.common_root:components.append(dict(name='common',path=str(a.common_root)))
+    current=[*components,dict(name='data',path=str(archive))];policies=dict(current=current)
+    if a.old_data_root:
+        policies['original']=[dict(name='data',path=str(a.old_data_root))]+([dict(name='common',path=str(a.common_root))] if a.common_root else [])
+    spec=dict(standard_archive_included=True,policies=policies,
+        scope='Complete published native data root, including all caches/build/work/recovery files without cleanup, shared actual build inputs and one complete standard package. Independent Viewer root, observers and frozen programs excluded only as verification infrastructure; all retained on disk.')
+    (work/'retention-spec.json').write_text(json.dumps(spec,ensure_ascii=False,indent=2)+'\n','utf-8')
+    result['retention_job']=bounded('retention',[sys.executable,'-B','-X','utf8',engine/'scripts/measure_storage_policy.py',
+        '--spec',work/'retention-spec.json','--output',work/'retention.json'])
+    measured=json.loads((work/'retention.json').read_text('utf-8'));assert measured['passed']
+    size_pass=None
+    if a.old_data_root:
+        before=measured['policies']['original']['allocated_bytes'];after=measured['policies']['current']['allocated_bytes']
+        size_pass=after*100<=before*30
+        result['final_size_comparison']=dict(before_allocated_bytes=before,after_allocated_bytes=after,target_reduction_percent=70,
+            passed=size_pass,integer_rule='after*100 <= before*30',reduction_percent=(before-after)*100/before)
+    # Re-hash every source scan file and both frozen program inputs after all operations.
+    source_rows=json.loads((work/'export/source-files.json').read_text('utf-8'))
+    actual={v.relative_to(source).as_posix() for v in source.rglob('*') if v.is_file()}
+    source_bad=[name for name,r in source_rows.items() if not (source/name).is_file() or sha256(source/name)!=r['sha256']
+        or (source/name).stat().st_size!=r['size'] or (source/name).stat().st_mtime_ns!=r['mtime_ns']]
+    assert not source_bad and actual==set(source_rows)
+    assert not engine_bad(rows) and not bundle_bad() and sha256(archive)==exported['package_sha256']
+    result.update(passed=size_pass is not False,status='PASS_COMPLETE_ROUNDTRIP_SCOPED' if size_pass is not False else 'FAIL_G4_FINAL_SIZE_SCOPED',
+        final_size_target_verified=size_pass,package_bytes=archive.stat().st_size,package_sha256=sha256(archive),
+        source_differences=[],engine_differences=[],portable_differences=[],retention=measured,
+        finished_utc=datetime.now(timezone.utc).isoformat(),full_G4='NOT_CLOSED',physical32GB='NOT_VERIFIED',clean_offline_pc='NOT_VERIFIED',human_UAT='NOT_VERIFIED')
+except BaseException:result.update(status='FAIL_OR_NOT_VERIFIED',error=traceback.format_exc());raise
+finally:result['seconds']=time.monotonic()-started;save()
+print(json.dumps(dict(passed=result['passed'],status=result['status'],receipt=str(receipt))),flush=True)

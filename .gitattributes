@@ -34,3 +34,8 @@ docs/rearchitecture/acceptance/full-regression-studio-v78-controller.py.txt -tex
 docs/rearchitecture/acceptance/inav-current-published-native-v78-live-started.json -text
 docs/rearchitecture/acceptance/whole-native-inav-v78-r2-started.json -text
 docs/rearchitecture/acceptance/large-v78-start-state.json -text
+
+# Native final/roundtrip receipts retain their originally hashed raw bytes.
+docs/rearchitecture/acceptance/native-v78-final-* -text
+docs/rearchitecture/acceptance/final-package-v78-* -text
+docs/rearchitecture/acceptance/whole-v78-stop-* -text
