@@ -1,5 +1,7 @@
 # 便携包与归档源码定位：最终限定验收
 
+> 后续最终结果见[126号](126-latest-large-package-and-recovery-acceptance.md)：最新INAV完整包、全字段往返和71.64745%最终保留量子门限已PASS，原件后验不变；真实大型归档六组Chrome/服务重启通过。整轮Diff/恢复及其完整包仍未结束。以下为本文件原时间点的合同或历史结果，不把旧在途状态当作最新结论。
+
 本轮在`optimize_ccc@c807040`上继续直接实施。后端固定为v78，前端v79只修改`studio/src/SourceViewer.vue`及对应构建资源。先冻结[45号交互合同](ui/45-archived-source-target-visibility.md)，沿用原九导航、分栏、颜色、证据滚动区和固定人工区；没有重新设计页面。完整重构仍未完成，本文的PASS仅覆盖表内范围。
 
 后续同日已收齐[123号v78完整回归](123-v78-full-regression-and-native-start.md)：1566 PASS/2联网SKIP，0失败/错误，6015.042秒。两份大型原生任务已实际启动；其最终结果仍待验。

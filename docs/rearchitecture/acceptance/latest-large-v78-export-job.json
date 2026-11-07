@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-worker-v78.py",
+    "--engine",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\frozen-engine-studio-v78",
+    "--source",
+    "H:\\ECRA-NATIVE-L78-SEED0\\scans\\native-golden",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\export",
+    "--package",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\standard-complete.ecra-report",
+    "--mode",
+    "export"
+  ],
+  "limit_bytes": 2147483648,
+  "scope": "export",
+  "pid": 6212,
+  "create_time": 1794008851.2863214,
+  "exit_disk_sample": {
+    "package_work": {
+      "files": 7,
+      "logical_bytes": 3165501462,
+      "allocated_bytes": 3165524216,
+      "unique_files": 7,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.6559999999590218
+    },
+    "source_data_root": {
+      "files": 7726,
+      "logical_bytes": 23387445836,
+      "allocated_bytes": 9230222520,
+      "unique_files": 7726,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.8910000000032596
+    }
+  },
+  "exit_code": 0,
+  "seconds": 4636.75,
+  "peaks": {
+    "working_set_bytes": 624410624,
+    "private_bytes": 628105216,
+    "peak_job_commit_bytes": 628346880,
+    "package_work_sampled_allocated_bytes": 15746531408,
+    "source_data_root_sampled_allocated_bytes": 9230222520
+  }
+}

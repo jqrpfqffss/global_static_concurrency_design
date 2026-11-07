@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "status": "PASS_INDEPENDENT_COPY_AND_ORIGINAL_UNCHANGED",
+  "scope": "Actual v79 CMD and browser on an exact independent copy of the latest strict package import; original firmware remains on this host. Not physical second PC, clean offline PC, or complete U19.",
+  "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\independent-viewer-data\\scans\\native-golden",
+  "import_receipt_sha256": "eb82991a0027968cf0bc8d82f0aeec5dc44c9fe09bf6f0da59f1f88a08761d9a",
+  "package_sha256": "7e72bc5d7ee4f01d5e88bf17845aa6c50d7cae5974a11f5422193b970fc787f5",
+  "copied_files": 2668,
+  "static_sha256_before": "c6180f66323ae9ce72711ee8c83858cdce04114cc1e210a30aaa7dc3e760163b",
+  "pid": 9460,
+  "limit_bytes": 2147483648,
+  "peak_job_commit_bytes": 58265600,
+  "source_differences": [],
+  "static_unchanged": true
+}

@@ -1,0 +1,398 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "tests": [
+    {
+      "name": "REAL_HOME_CARD_AND_FILTERED_SQL_COUNT_EQUAL",
+      "passed": true,
+      "count": 1318
+    },
+    {
+      "name": "EXACT_NATIVE_IDENTITY_ALL_FIVE_ACCESSES_AND_UNRESOLVED_NVIC",
+      "passed": true
+    },
+    {
+      "name": "ALL_113_REAL_RELATION_SUMMARIES_PAGED_AND_FIRST_REFERENCE_ON_EACH_PAGE_MATCHES_AUTHORITY",
+      "passed": true,
+      "pages": 12
+    },
+    {
+      "name": "REAL_ARCHIVED_RMW_LINE_VISIBLE_THREE_VIEWPORTS_WITH_FOUR_ACTIONS_AND_DRAFT",
+      "passed": true,
+      "system_DPI": "NOT_VERIFIED"
+    },
+    {
+      "name": "RELOAD_CONTINUE_PREVIOUS_POSITION_RESTORES_EXACT_TWO_EVENTS_AND_PARENT_LINK",
+      "passed": true
+    },
+    {
+      "name": "SECOND_ACTUAL_PORTABLE_PROCESS_CONTINUES_SQL_POSITION_AND_EXACT_ORIGINAL_HISTORY",
+      "passed": true
+    }
+  ],
+  "scope": "Actual v79 CMD, Windows-only PATH and Chrome using exact copy of latest native complete-package strict import. Original firmware still exists on host; not clean PC or full U19.",
+  "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+  "relation_pages": [
+    {
+      "offset": 0,
+      "numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "first_reference": 5285198
+    },
+    {
+      "offset": 10,
+      "numbers": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "first_reference": 5285240
+    },
+    {
+      "offset": 20,
+      "numbers": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "first_reference": 5285280
+    },
+    {
+      "offset": 30,
+      "numbers": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "first_reference": 5285320
+    },
+    {
+      "offset": 40,
+      "numbers": [
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "first_reference": 5285360
+    },
+    {
+      "offset": 50,
+      "numbers": [
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "first_reference": 5285400
+    },
+    {
+      "offset": 60,
+      "numbers": [
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70
+      ],
+      "first_reference": 5285440
+    },
+    {
+      "offset": 70,
+      "numbers": [
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "first_reference": 5285480
+    },
+    {
+      "offset": 80,
+      "numbers": [
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90
+      ],
+      "first_reference": 5285520
+    },
+    {
+      "offset": 90,
+      "numbers": [
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100
+      ],
+      "first_reference": 5285560
+    },
+    {
+      "offset": 100,
+      "numbers": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110
+      ],
+      "first_reference": 5285600
+    },
+    {
+      "offset": 110,
+      "numbers": [
+        111,
+        112,
+        113
+      ],
+      "first_reference": 5285640
+    }
+  ],
+  "source_viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "line": "57",
+      "text": "57        sysTickUptime++;\r",
+      "rowHeight": 22.09375,
+      "paneHeight": 197.09375,
+      "visibleHeight": 22.09375,
+      "scrollY": 0,
+      "buttons": [
+        {
+          "label": "确认有风险",
+          "visible": true
+        },
+        {
+          "label": "确认无风险",
+          "visible": true
+        },
+        {
+          "label": "暂无法确认",
+          "visible": true
+        },
+        {
+          "label": "撤销上次确认",
+          "visible": true
+        }
+      ],
+      "author": "自动化归档验收声明",
+      "basis": "仅验收新完整包的界面和事件保存；不代表工程风险结论。"
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "line": "57",
+      "text": "57        sysTickUptime++;\r",
+      "rowHeight": 22.09375,
+      "paneHeight": 329.09375,
+      "visibleHeight": 22.09375,
+      "scrollY": 0,
+      "buttons": [
+        {
+          "label": "确认有风险",
+          "visible": true
+        },
+        {
+          "label": "确认无风险",
+          "visible": true
+        },
+        {
+          "label": "暂无法确认",
+          "visible": true
+        },
+        {
+          "label": "撤销上次确认",
+          "visible": true
+        }
+      ],
+      "author": "自动化归档验收声明",
+      "basis": "仅验收新完整包的界面和事件保存；不代表工程风险结论。"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "line": "57",
+      "text": "57        sysTickUptime++;\r",
+      "rowHeight": 22.09375,
+      "paneHeight": 509.09375,
+      "visibleHeight": 22.09375,
+      "scrollY": 0,
+      "buttons": [
+        {
+          "label": "确认有风险",
+          "visible": true
+        },
+        {
+          "label": "确认无风险",
+          "visible": true
+        },
+        {
+          "label": "暂无法确认",
+          "visible": true
+        },
+        {
+          "label": "撤销上次确认",
+          "visible": true
+        }
+      ],
+      "author": "自动化归档验收声明",
+      "basis": "仅验收新完整包的界面和事件保存；不代表工程风险结论。"
+    }
+  ],
+  "submitted_event": {
+    "comment": "仅验收新完整包的界面和事件保存；不代表工程风险结论。",
+    "decision": "NEED_MORE_EVIDENCE",
+    "device": "device-3e8f31d9022446a983c59615555ef88f",
+    "event_id": "ba988dfc-7c24-4c69-b894-2af07cac10a7",
+    "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+    "handling_status": "TODO",
+    "parents": [],
+    "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+    "reviewer": "自动化归档验收声明",
+    "revision": 1,
+    "scan_id": "native-golden",
+    "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+    "timestamp": "2026-11-07T02:41:26.286350+00:00"
+  },
+  "human_after_undo": {
+    "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+    "heads": [
+      {
+        "comment": "撤销 ba988dfc-7c24-4c69-b894-2af07cac10a7：撤销自动化验收声明，恢复待确认；保留原声明和理由。",
+        "decision": "PENDING",
+        "device": "device-3e8f31d9022446a983c59615555ef88f",
+        "event_id": "012162b4-dafb-479a-9d8e-5e952fc88176",
+        "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+        "handling_status": "TODO",
+        "parents": [
+          "ba988dfc-7c24-4c69-b894-2af07cac10a7"
+        ],
+        "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+        "reviewer": "自动化归档验收声明",
+        "revision": 2,
+        "scan_id": "native-golden",
+        "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+        "timestamp": "2026-11-07T02:41:33.282813+00:00"
+      }
+    ],
+    "conflict": false,
+    "decision": "PENDING",
+    "handling_status": "TODO",
+    "has_prior": false,
+    "inherited": false,
+    "inherited_sources": [],
+    "history": [
+      {
+        "comment": "仅验收新完整包的界面和事件保存；不代表工程风险结论。",
+        "decision": "NEED_MORE_EVIDENCE",
+        "device": "device-3e8f31d9022446a983c59615555ef88f",
+        "event_id": "ba988dfc-7c24-4c69-b894-2af07cac10a7",
+        "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+        "handling_status": "TODO",
+        "parents": [],
+        "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+        "reviewer": "自动化归档验收声明",
+        "revision": 1,
+        "scan_id": "native-golden",
+        "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+        "timestamp": "2026-11-07T02:41:26.286350+00:00"
+      },
+      {
+        "comment": "撤销 ba988dfc-7c24-4c69-b894-2af07cac10a7：撤销自动化验收声明，恢复待确认；保留原声明和理由。",
+        "decision": "PENDING",
+        "device": "device-3e8f31d9022446a983c59615555ef88f",
+        "event_id": "012162b4-dafb-479a-9d8e-5e952fc88176",
+        "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+        "handling_status": "TODO",
+        "parents": [
+          "ba988dfc-7c24-4c69-b894-2af07cac10a7"
+        ],
+        "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+        "reviewer": "自动化归档验收声明",
+        "revision": 2,
+        "scan_id": "native-golden",
+        "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+        "timestamp": "2026-11-07T02:41:33.282813+00:00"
+      }
+    ],
+    "prior_reviews": []
+  },
+  "original_failed_receipt_sha256": "e2fecdf3da1359a59d686bdb9cdb28609b428858e6a227791adce765fc2454f5",
+  "failure_audit": "First controller incorrectly waited for automatic selection after reload. Existing documented and tested workflow uses 人工确认 → 继续上次位置. No application, event, or assertion about persisted state changed.",
+  "browser_errors": 0,
+  "external_requests": [],
+  "tasks": [],
+  "actual_service_restart": true
+}

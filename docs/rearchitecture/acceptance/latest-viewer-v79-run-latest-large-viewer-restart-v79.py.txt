@@ -1,0 +1,43 @@
+"""A second actual Portable process for the existing independently verified Viewer copy."""
+import json,os,sys,time,traceback,psutil
+from pathlib import Path
+w=Path(__file__).parent;work=w/'latest-large-viewer-v79';bundle=Path('H:/ECRAStudio-build-20261106-studio-v79/ECRA-Portable');sys.path.insert(0,str(bundle))
+from ecra.report_package import sha256
+from ecra.studio.process_budget import ProcessBudget
+from ecra.studio.write_guard import OwnedProcess
+result=dict(passed=False,status='WAITING_FIRST_OWNED_SERVER_EXIT',scope='Second actual ECRA.cmd startup on same independent Viewer copy. Browser continues saved position and reads the unchanged two-event history; not 1000 decisions or physical second-PC UAT.')
+receipt=work/'restart-server.json'
+def save():receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+save();budget=process=log=None
+try:
+ until=time.monotonic()+1800
+ while True:
+  proof=json.loads((work/'setup.json').read_text('utf-8'))
+  if proof['passed']:break
+  if proof['status']=='FAIL':raise RuntimeError(proof.get('error'))
+  if time.monotonic()>until:raise TimeoutError('Original owned server did not complete postflight')
+  time.sleep(1)
+ assert not psutil.pid_exists(proof['pid']), 'Previous owned launcher still exists; do not overlap data-root service'
+ result['first_server_receipt_sha256']=sha256(work/'setup.json');result['first_pid']=proof['pid']
+ helper=work/'launch-restart.cmd';session=work/'session-restart.json'
+ helper.write_text('@echo off\r\ncall "'+str(bundle/'ECRA.cmd')+'" --no-browser --data-root "'+str(work/'data')+'" --session-file "'+str(session)+'"\r\nexit /b %ERRORLEVEL%\r\n',encoding='ascii',newline='')
+ windows=Path(os.environ.get('SystemRoot','C:/Windows'))
+ log=(work/'launcher-restart.log').open('xb');budget=ProcessBudget(2*1024**3)
+ process=OwnedProcess([str(windows/'System32/cmd.exe'),'/d','/c',str(helper)],cwd=bundle,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',LOCALAPPDATA=str(work/'user'),PATH=str(windows/'System32')+os.pathsep+str(windows)),log=log)
+ budget.assign(process);process.resume();until=time.monotonic()+120
+ while not session.exists():
+  if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Actual second CMD startup failed')
+  time.sleep(.2)
+ result.update(status='READY_FOR_REOPEN',pid=process.pid,old_launcher_exited=True);save()
+ until=time.monotonic()+1800
+ while not (work/'stop-restart').exists():
+  if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Reopened Viewer exited/timed out')
+  sample=budget.sample();result['peak_service_job_commit_bytes']=max(result.get('peak_service_job_commit_bytes',0),sample['peak_job_commit_bytes']);time.sleep(1)
+ assert sha256(work/'data/scans/native-golden/scan.db')==proof['static_sha256_before']
+ result.update(passed=True,status='PASS_ACTUAL_PROCESS_RESTART_STATIC_UNCHANGED',static_unchanged=True)
+except BaseException:result.update(status='FAIL',error=traceback.format_exc());raise
+finally:
+ if budget:budget.close()
+ if process:process.close()
+ if log:log.close()
+ save()

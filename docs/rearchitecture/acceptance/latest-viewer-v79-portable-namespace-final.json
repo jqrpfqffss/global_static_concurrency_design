@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "recorded_utc": "2026-11-07T03:01:25.956915+00:00",
+  "payload_files": 32305,
+  "actual_files": 32306,
+  "unexpected_files": [],
+  "missing_files": [],
+  "manifest_sha256": "4cc69160bc621f77196f57da99a6754fe0bca5757e280cd6466229701b89e893",
+  "scope": "Final namespace check after both actual GUI services exited. Every expected payload SHA is independently checked by the latest complete-package controller; this supplement checks no new files were added."
+}

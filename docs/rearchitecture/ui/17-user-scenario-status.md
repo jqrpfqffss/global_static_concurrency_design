@@ -1,4 +1,6 @@
-# U01–U24 当前完整场景状态
+# U01–U24：v15 完整场景历史记录
+
+> 本表是 v15 的原始完整场景结果，保留其中的 FAIL，不将其当作当前版本重新执行后的结果。后续构建/未提交 CMake 流程见 [117号](../117-cmake-working-input-contract.md)，v79 Portable 见 [122号](../122-portable-v79-and-source-target-acceptance.md)，最新大型包及归档界面增量见 [126号](../126-latest-large-package-and-recovery-acceptance.md)。后续子场景通过也不能直接把整个 U01–U24 或人工 UAT 升级为 PASS。
 
 逐项使用PASS/FAIL/NOT_VERIFIED。已通过的子步骤不自动升级为完整场景PASS。运行时b50103f、实际Portable v15；真实浏览器步骤、数据库断言、截图和失败日志见下列收据对应的scripts/validate_*.py。完整UAT/G7仍未通过。
 

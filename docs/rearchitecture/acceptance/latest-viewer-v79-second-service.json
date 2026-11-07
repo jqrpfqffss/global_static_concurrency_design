@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "status": "PASS_ACTUAL_PROCESS_RESTART_STATIC_UNCHANGED",
+  "scope": "Second actual ECRA.cmd startup on same independent Viewer copy. Browser continues saved position and reads the unchanged two-event history; not 1000 decisions or physical second-PC UAT.",
+  "first_server_receipt_sha256": "95c573d025db52b0dac32bb4a1e866c48e545ceac2d582f5a10c728d9c7f6936",
+  "first_pid": 9460,
+  "pid": 17844,
+  "old_launcher_exited": true,
+  "peak_service_job_commit_bytes": 54591488,
+  "static_unchanged": true
+}

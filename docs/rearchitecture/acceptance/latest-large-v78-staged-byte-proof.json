@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "files": 42,
+  "staged_blob_differences": [],
+  "scope": "Each actual staged Git blob compared to the exact original evidence SHA; no newline normalization accepted."
+}

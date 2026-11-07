@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "command": [
+    "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable\\runtime\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-worker-v78.py",
+    "--engine",
+    "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable",
+    "--source",
+    "H:\\ECRA-NATIVE-L78-SEED0\\scans\\native-golden",
+    "--work",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\import",
+    "--package",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\standard-complete.ecra-report",
+    "--mode",
+    "import",
+    "--export-receipt",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\export\\worker.json",
+    "--viewer",
+    "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\independent-viewer-data"
+  ],
+  "limit_bytes": 2147483648,
+  "scope": "import",
+  "pid": 28892,
+  "create_time": 1794013488.094508,
+  "exit_disk_sample": {
+    "package_work": {
+      "files": 2680,
+      "logical_bytes": 15781341815,
+      "allocated_bytes": 15787716904,
+      "unique_files": 2680,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.26600000000325963
+    },
+    "source_data_root": {
+      "files": 7726,
+      "logical_bytes": 23387445836,
+      "allocated_bytes": 9230222520,
+      "unique_files": 7726,
+      "sampling_partial": false,
+      "unmeasured_files": 0,
+      "observation_seconds": 0.7959999999729916
+    }
+  },
+  "exit_code": 0,
+  "seconds": 2557.3429999999935,
+  "peaks": {
+    "working_set_bytes": 613994496,
+    "private_bytes": 618033152,
+    "peak_job_commit_bytes": 618037248,
+    "package_work_sampled_allocated_bytes": 18210963584,
+    "source_data_root_sampled_allocated_bytes": 9230222520
+  }
+}

@@ -1,0 +1,54 @@
+import json,sys,time,traceback,urllib.parse
+from latest_large_browser import *
+r=json.loads((work/'ui-acceptance.json').read_text('utf-8'));assert len(r['tests'])==3 and not r.get('error')
+def save():(work/'ui-acceptance.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n','utf-8')
+def human():return api('/scans/native-golden/human?'+urllib.parse.urlencode(dict(symbol_id=r['symbol_id'])))
+def wait_true(fn,seconds=120):
+ until=time.monotonic()+seconds
+ while True:
+  value=fn()
+  if value:return value
+  if time.monotonic()>until:raise TimeoutError('Actual UI/backend response did not complete')
+  time.sleep(.2)
+try:
+ assert human()['history']==[]
+ fill('textbox','确认者','自动化归档验收声明')
+ fill('textbox','依据 / 修改或撤销理由','仅验收新完整包的界面和事件保存；不代表工程风险结论。')
+ click('tab','归档源码')
+ fill('spinbutton','定位源码行','57');click('button','跳转行')
+ checks=[]
+ for width,height in [(1366,768),(1600,900),(1920,1080)]:
+  cli('resize',str(width),str(height));click('tab','时序与访问');click('tab','归档源码')
+  fill('spinbutton','定位源码行','57');click('button','跳转行')
+  expression="() => {const row=document.querySelector('.source-code .highlight'),pane=document.querySelector('.detail-evidence');if(!row||!pane)return null;const a=row.getBoundingClientRect(),p=pane.getBoundingClientRect();return {line:row.querySelector('.source-line')?.textContent,text:row.textContent,rowHeight:a.height,paneHeight:p.height,visibleHeight:Math.max(0,Math.min(a.bottom,p.bottom)-Math.max(a.top,p.top)),scrollY:window.scrollY,buttons:[...document.querySelectorAll('.decision-actions button')].map(b=>{let q=b.getBoundingClientRect();return {label:b.textContent,visible:q.top>=0&&q.bottom<=innerHeight}}),author:document.querySelector('.review-controls input')?.value,basis:document.querySelector('.review-controls textarea')?.value}}"
+  def loaded():
+   q=evaluate(expression)
+   return q if q and q['line']=='57' and 'sysTickUptime++' in q['text'] else None
+  q=wait_true(loaded);assert q['visibleHeight']>=min(q['rowHeight'],q['paneHeight'])-1 and q['scrollY']==0
+  assert len(q['buttons'])==4 and all(b['visible'] for b in q['buttons'])
+  assert q['author']=='自动化归档验收声明' and '不代表工程风险结论' in q['basis']
+  checks.append(dict(width=width,height=height,**q));r['source_viewports']=checks;save()
+  cli('screenshot','--filename='+str(output/('04-source-'+str(width)+'.png')))
+ r['tests'].append(dict(name='REAL_ARCHIVED_RMW_LINE_VISIBLE_THREE_VIEWPORTS_WITH_FOUR_ACTIONS_AND_DRAFT',passed=True,system_DPI='NOT_VERIFIED'));save()
+ cli('resize','1366','768');click('button','暂无法确认')
+ current=wait_true(lambda: (q if (q:=human())['decision']=='NEED_MORE_EVIDENCE' else None))
+ assert len(current['history'])==1 and current['history'][0]['reviewer']=='自动化归档验收声明'
+ first=current['history'][0];r['submitted_event']=first;save()
+ fill('textbox','依据 / 修改或撤销理由','撤销自动化验收声明，恢复待确认；保留原声明和理由。')
+ click('button','撤销上次确认')
+ current=wait_true(lambda: (q if (q:=human())['decision']=='PENDING' and len(q['history'])==2 else None))
+ assert any(v['event_id']==first['event_id'] and v['comment']==first['comment'] for v in current['history'])
+ r['human_after_undo']=current;save()
+ cli('reload');wait_true(lambda: '静态：静态疑似；人工：待确认' in cli('snapshot'))
+ click('tab','人工历史');tree=cli('snapshot')
+ assert '仅验收新完整包的界面和事件保存' in tree and '撤销自动化验收声明' in tree
+ cli('screenshot','--filename='+str(output/'05-history-after-reopen-1366.png'))
+ r['tests'].append(dict(name='ACTUAL_NEED_MORE_EVIDENCE_UNDO_AND_RELOAD_PRESERVE_BOTH_EVENTS_AND_REASONS',passed=True));save()
+ assert api('/tasks')['items']==[]
+ console=cli('console');assert 'Errors: 0, Warnings: 0' in console
+ info=json.loads((work/'session.json').read_text('utf-8'));base='http://'+info['authority']
+ urls=re.findall(r'https?://[^\s]+',cli('requests','--all','--static'));assert urls and all(v.startswith(base+'/') for v in urls)
+ r.update(passed=True,browser_errors=0,external_requests=[],tasks=[],actual_readonly_mode='ARCHIVED_EVIDENCE_WITHOUT_NATIVE_RESCAN',physical_second_pc='NOT_VERIFIED',human_UAT='NOT_VERIFIED')
+except BaseException:r['error']=traceback.format_exc();raise
+finally:save()
+print(json.dumps(dict(passed=r['passed'],tests=len(r['tests']))))

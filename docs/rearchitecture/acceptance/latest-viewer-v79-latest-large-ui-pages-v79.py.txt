@@ -1,0 +1,46 @@
+import json,re,sys,time,traceback
+from latest_large_browser import *
+sys.path.insert(0,'H:/ECRAStudio-build-20261106-studio-v79/ECRA-Portable')
+from ecra.scan_store import EvidenceProvider
+p=EvidenceProvider(work/'data/scans/native-golden/scan.db');r=json.loads((work/'ui-acceptance.json').read_text('utf-8'));sid=r['symbol_id']
+def save():(work/'ui-acceptance.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n','utf-8')
+try:
+ tree=cli('snapshot');assert sid in tree and '访问证据 · 共 5 项' in tree and '无法恢复全部竞争 IRQ 优先级' in tree and '不代表目标板实测' in tree
+ rows=evaluate("() => Array.from(document.querySelectorAll('.access-row')).map(e=>e.textContent)")
+ accesses=p.records('accesses',symbol_id=sid,limit=200);assert len(rows)==accesses['total']==5
+ for shown,actual in zip(rows,accesses['items']):
+  assert actual['function_id'] in shown and actual['summary']['file']+':'+str(actual['summary']['line']) in shown
+ r['tests'].append(dict(name='EXACT_NATIVE_IDENTITY_ALL_FIVE_ACCESSES_AND_UNRESOLVED_NVIC',passed=True));save()
+ cli('screenshot','--filename='+str(output/'02-real-main-irq-1366.png'))
+ finding=p.records('findings',dataset='report',symbol_id=sid)['items'][0]
+ pairs=next(v for v in p.node(finding['node'],limit=200)['items'] if v.get('key')=='conflict_pairs')
+ pages=[];seen=[]
+ for offset in range(0,pairs['total'],10):
+  if offset:click('button','后10组关系')
+  deadline=time.monotonic()+120
+  while True:
+   tree=cli('snapshot')
+   if '显示 '+str(offset+1)+'–'+str(min(offset+10,pairs['total']))+' / '+str(pairs['total']) in tree and '正在读取关系…' not in tree:break
+   if time.monotonic()>deadline:raise TimeoutError('Real conflict page incomplete')
+   time.sleep(.2)
+  shown=evaluate("() => Array.from(document.querySelectorAll('.conflict-pairs > article > strong')).map(e=>e.textContent)")
+  numbers=[int(re.search(r'关系 (\d+)',v).group(1)) for v in shown]
+  assert numbers==list(range(offset+1,min(offset+10,pairs['total'])+1));seen.extend(numbers)
+  expected=p.node(pairs['id'],offset=offset,limit=10)
+  refs=re.findall(r'generic "本组全部路径引用、保护与成立条件" \[ref=([^]]+)\]',tree);assert len(refs)==len(expected['items'])
+  cli('click',refs[0])
+  until=time.monotonic()+120
+  while True:
+   text=evaluate("() => document.querySelector('.conflict-pairs > article .node-content')?.textContent || ''")
+   if '#'+str(expected['items'][0]['id'])+' ·' in text:break
+   if time.monotonic()>until:raise TimeoutError('Real first relation reference absent')
+   time.sleep(.2)
+  # The expanded first reference is the same observed DOM element; collapse it.
+  tree=cli('snapshot');first=re.findall(r'generic "本组全部路径引用、保护与成立条件" \[ref=([^]]+)\]',tree)[0];cli('click',first)
+  pages.append(dict(offset=offset,numbers=numbers,first_reference=expected['items'][0]['id']))
+  r['relation_pages']=pages;save()
+ assert seen==list(range(1,114));r['tests'].append(dict(name='ALL_113_REAL_RELATION_SUMMARIES_PAGED_AND_FIRST_REFERENCE_ON_EACH_PAGE_MATCHES_AUTHORITY',passed=True,pages=len(pages)));save()
+ cli('screenshot','--filename='+str(output/'03-final-relation-page-1366.png'))
+except BaseException:
+ r['error']=traceback.format_exc();save();raise
+print(json.dumps(dict(tests=len(r['tests']),pages=len(r.get('relation_pages',[])))))

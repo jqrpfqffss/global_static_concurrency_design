@@ -1,0 +1,30 @@
+{
+  "standard_archive_included": true,
+  "policies": {
+    "current": [
+      {
+        "name": "data",
+        "path": "H:\\ECRA-NATIVE-L78-SEED0"
+      },
+      {
+        "name": "common",
+        "path": "I:\\ECRA-B1"
+      },
+      {
+        "name": "data",
+        "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\standard-complete.ecra-report"
+      }
+    ],
+    "original": [
+      {
+        "name": "data",
+        "path": "I:\\ECRA-O3-SEED0"
+      },
+      {
+        "name": "common",
+        "path": "I:\\ECRA-B1"
+      }
+    ]
+  },
+  "scope": "Complete published native data root, including all caches/build/work/recovery files without cleanup, shared actual build inputs and one complete standard package. Independent Viewer root, observers and frozen programs excluded only as verification infrastructure; all retained on disk."
+}

@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "status": "WAITING_REAL_NATIVE_FINAL_GATE",
+  "all_gates_passed": false,
+  "source": "H:\\ECRA-WHOLE-D78-SEED0\\scans\\whole-resumed",
+  "scope": "Actual production complete compact export, bundled Python3.10.9 strict independent import, existing full ordered comparator, exact raw roots/review tables and complete retention allocation. Original source and all prior outputs preserved; no cleanup. Not physical32GB/clean PC/UAT or full G4.",
+  "controller_sha256": "39905a2c280bf736cc3e967c24cb894d484fd746c8eb2eea9421fe81854fb34a",
+  "worker_sha256": "6b1fac7db2652d10d0bee7ffe5895eb7ce36169cfa865591b576acf6919e9b25",
+  "disk_sampling_interval_seconds": 30,
+  "disk_scope": "Sampled file-allocation lower bounds including mandatory exit samples; excludes directory/MFT/ADS and unobserved transients."
+}

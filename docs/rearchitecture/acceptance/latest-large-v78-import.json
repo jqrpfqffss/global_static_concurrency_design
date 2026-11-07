@@ -1,0 +1,146 @@
+{
+  "passed": true,
+  "mode": "import",
+  "source": "H:\\ECRA-NATIVE-L78-SEED0\\scans\\native-golden",
+  "engine": "H:\\ECRAStudio-build-20261106-studio-v79\\ECRA-Portable",
+  "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "scope": "Actual production complete-package APIs. No complete fact graph restored; all raw graph roots and every review-table row are additionally compared. Not native rescanning, physical second PC, or full G1-G8.",
+  "import_result": {
+    "scan_id": "native-golden",
+    "imported_events": 0,
+    "repeated": false
+  },
+  "restored_scan": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\independent-viewer-data\\scans\\native-golden",
+  "metadata": {
+    "scan_id": "native-golden",
+    "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+    "profile_id": "same-golden-input",
+    "state": "UNVERIFIED",
+    "facts_hash": "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+    "report_hash": "0ba2cda8ff1e3eb47a58ce592d76f4956119dd3eec42e079d3d3f8ccab91aa5c"
+  },
+  "raw_graph_roots": [
+    [
+      "facts",
+      "object",
+      "43153000056630428dd91c4af9787cda65c107f4690814e36b607e21de4696aa",
+      55
+    ],
+    [
+      "provenance",
+      "object",
+      "8f159e0073f910a8ef68a7adf9f851b38d811639960d077fd6c0fc659506d562",
+      6
+    ],
+    [
+      "report",
+      "object",
+      "0ba2cda8ff1e3eb47a58ce592d76f4956119dd3eec42e079d3d3f8ccab91aa5c",
+      10
+    ]
+  ],
+  "all_raw_roots_equal": true,
+  "all_review_tables_equal": true,
+  "review_tables": {
+    "ai_events": {
+      "columns": [
+        "sequence",
+        "ordinal",
+        "finding_id",
+        "state",
+        "hash",
+        "payload"
+      ],
+      "primary_key": [
+        "sequence"
+      ],
+      "rows": 3540,
+      "sha256": "8185f6788675498e02ae0bcd2ebaa49cc23735abd7505fe7f6449ef73b58872e"
+    },
+    "ai_snapshots": {
+      "columns": [
+        "sequence",
+        "hash",
+        "payload"
+      ],
+      "primary_key": [
+        "sequence"
+      ],
+      "rows": 1,
+      "sha256": "e67a2b8dabb197458fa8cace5197b192b07fc23baef7337392b4aeafcf1f1407"
+    },
+    "binding": {
+      "columns": [
+        "singleton",
+        "scan_id",
+        "project_id",
+        "facts_hash",
+        "report_hash"
+      ],
+      "primary_key": [
+        "singleton"
+      ],
+      "rows": 1,
+      "sha256": "47c0f31afb22ba98b1d4ae05214d02e813429fee8ed916b2a2c1230f72f0bb5c"
+    },
+    "events": {
+      "columns": [
+        "event_id",
+        "symbol_id",
+        "fingerprint",
+        "revision",
+        "payload"
+      ],
+      "primary_key": [
+        "event_id"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "positions": {
+      "columns": [
+        "name",
+        "value"
+      ],
+      "primary_key": [
+        "name"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "predecessors": {
+      "columns": [
+        "event_id",
+        "parent_id"
+      ],
+      "primary_key": [
+        "event_id",
+        "parent_id"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prior_decisions": {
+      "columns": [
+        "symbol_id",
+        "fingerprint",
+        "source_scan",
+        "source_fingerprint",
+        "hash",
+        "payload"
+      ],
+      "primary_key": [
+        "symbol_id",
+        "source_scan"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "package_sha256": "7e72bc5d7ee4f01d5e88bf17845aa6c50d7cae5974a11f5422193b970fc787f5",
+  "source_differences": [],
+  "all_payload_hashes_checked": true,
+  "source_reverification": false,
+  "firmware_or_toolchain_invoked": false,
+  "seconds": 2554.6089999999967
+}

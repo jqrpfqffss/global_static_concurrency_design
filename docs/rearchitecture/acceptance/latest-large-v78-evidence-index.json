@@ -1,0 +1,259 @@
+{
+  "passed": true,
+  "recorded_utc": "2026-11-07T03:02:03.241302+00:00",
+  "files": [
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\acceptance.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-final.json",
+      "bytes": 593423,
+      "sha256": "6115c4dd5b19e2a2f80619b31c8e8389ef7d640c1887e4be7ac692179ecda1ce"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\export\\worker.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-export.json",
+      "bytes": 549970,
+      "sha256": "108c4056fd993ea314162502460f35c90f2df49917d2df7918ce9684429daba8"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\import\\worker.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-import.json",
+      "bytes": 4114,
+      "sha256": "eb82991a0027968cf0bc8d82f0aeec5dc44c9fe09bf6f0da59f1f88a08761d9a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\export\\source-files.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-original-scan-files.json",
+      "bytes": 1452131,
+      "sha256": "247f6bc74583886299a77c2f605a6af49cea1084d42b405c38dde972f20d26c6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\ordered-comparison.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-ordered-comparison.json",
+      "bytes": 1334,
+      "sha256": "a06a50d4846e5285f33646cbd6cc5dc4cbe3d2d27d0702d57936127626b487d5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\ordered-envelope.jsonl",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-ordered-envelope.jsonl",
+      "bytes": 5776,
+      "sha256": "8ef9f794b4ffd6273a9998871d20489cead541b9b007ee2ebdd3dd85dfd7e778"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\retention-spec.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-retention-spec.json",
+      "bytes": 931,
+      "sha256": "47017f94eebcf1ef89255eca6fc0aefe772615b03f35e9e5a4021ec01ca4bf92"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\retention.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-retention.json",
+      "bytes": 5941,
+      "sha256": "d4b031e488f14cc6b694a7a4185d3c3f430f89de14fba512b5c5e91b01233c80"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\export\\execution.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-export-job.json",
+      "bytes": 1736,
+      "sha256": "800c993684200745be68533927902f3e3b1018944b5097006a2784e53c6f6955"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\export\\console.log",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-export.log",
+      "bytes": 243,
+      "sha256": "e485e7eb6104c082524b3c44f018af3e515e124569d6e663d7d29c54cc425903"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\import\\execution.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-import-job.json",
+      "bytes": 2015,
+      "sha256": "26d2b75275e907280d0f74127fd76363f6925cab7a75912dffe8044980bd4f65"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\import\\console.log",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-import.log",
+      "bytes": 234,
+      "sha256": "b6e79b020ab12cc5e4c7c5dbbb5f5a09daa6ba48cf8173b36591be6e0a5beb9a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\compare\\execution.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-compare-job.json",
+      "bytes": 1837,
+      "sha256": "4d359c789808bfb2303fc2e30b449d4a79ca57c6428f5aa6ee6527dfe883e4d6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\compare\\console.log",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-compare.log",
+      "bytes": 81,
+      "sha256": "7b54831743b04950a894f30b2963ee32d39b7a8e1fcd0c9c9986f917527baf97"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\retention\\execution.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-retention-job.json",
+      "bytes": 1563,
+      "sha256": "69fb049db5e5634162973a68e5c37ae319da8f8dd41b970f8cbaec36ab9c1c0f"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-inav-v78-r2\\retention\\console.log",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-retention.log",
+      "bytes": 174,
+      "sha256": "1b5b72476f737cb4dc1e16d12049edc705993fdf623a2a66e2ce8d02cdaa96a9"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-v78-raw-resources.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-raw-resources.json",
+      "bytes": 938,
+      "sha256": "41262e16ac802a273cbdbf98a23d30ce579014357886d08d0de3f90695cd648a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\final-acceptance.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-final.json",
+      "bytes": 66245,
+      "sha256": "77a855ae7e92e45c77ed0729107455c4cb13a14627bc5f4f6ca0de4e2dd578c1"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\ui-acceptance.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-first-controller-failed.json",
+      "bytes": 10135,
+      "sha256": "e2fecdf3da1359a59d686bdb9cdb28609b428858e6a227791adce765fc2454f5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\ui-reload-supplement.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-continue-supplement.json",
+      "bytes": 10113,
+      "sha256": "b20363078fb153f10594a5278578e13fba569139771384854ba8a74e9707de7f"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\ui-final.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-restart-browser.json",
+      "bytes": 10284,
+      "sha256": "fe907d1a53b3645be49e01f4673704c87d20bfacb51128a2c76716c7050e34c5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\setup.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-copy-and-first-service.json",
+      "bytes": 898,
+      "sha256": "95c573d025db52b0dac32bb4a1e866c48e545ceac2d582f5a10c728d9c7f6936"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\restart-server.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-second-service.json",
+      "bytes": 534,
+      "sha256": "a6ad3b204ce25a0584bb1fee8e10f679126dcf37f61af20a181734520fa1a1fd"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\portable-namespace-final.json",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-portable-namespace-final.json",
+      "bytes": 492,
+      "sha256": "683efa82183375474b73eeb241d2152fbff93f6549c5f17fad856ff7dadba44f"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\prepare-latest-large-viewer-v79.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-prepare-latest-large-viewer-v79.py.txt",
+      "bytes": 3780,
+      "sha256": "6c2acba7c3ce222ce1f53c7acb7474c533e7eb6255edcd826ed40ee49319b7ac"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest_large_browser.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-latest_large_browser.py.txt",
+      "bytes": 1571,
+      "sha256": "aec707c68d04299f4d5880ceb4bba40c4509ce14975b0063d051f2adc8b3ee47"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest_large_browser_restart.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-latest_large_browser_restart.py.txt",
+      "bytes": 1603,
+      "sha256": "1447ce546c9e20ea4dc27cf143897b905a04e5474da313c481acb2fa817da3c6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-ui-pages-v79.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-latest-large-ui-pages-v79.py.txt",
+      "bytes": 3415,
+      "sha256": "f0e4499d955fa16cd417ff1b3aed914f8c541332d74f1f27f5cf1a8db492f8b6"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-ui-decisions-v79.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-latest-large-ui-decisions-v79.py.txt",
+      "bytes": 4583,
+      "sha256": "c0723b8a56c87f9bdefee9603fd48969094add5f127e6a9800ce29b035ad8838"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\run-latest-large-viewer-restart-v79.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-run-latest-large-viewer-restart-v79.py.txt",
+      "bytes": 3142,
+      "sha256": "927921443ba19643fb3341a6dcd85527c0cd0b27d20172f2e02b03bedcf6f649"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\finalize-latest-large-viewer-v79.py",
+      "destination": "docs/rearchitecture/acceptance/latest-viewer-v79-finalize-latest-large-viewer-v79.py.txt",
+      "bytes": 3841,
+      "sha256": "cdc3b16f4e5557acb4c5d004c9358c7c48cbc2c0bc4411e3205f4ec9a295111a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\01-overview-1366.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/01-overview-1366.png",
+      "bytes": 98678,
+      "sha256": "894c26ae52859a29b0a943311d6bdfbbabe40eb9a330737ed1e04a9f1e0be379"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\02-real-main-irq-1366.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/02-real-main-irq-1366.png",
+      "bytes": 103939,
+      "sha256": "9cf0862ed22278e82c2fe2b08b839321562bf2256424c290f955aec427d1269a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\03-final-relation-page-1366.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/03-final-relation-page-1366.png",
+      "bytes": 99949,
+      "sha256": "51c11e37466524127b48872e6b2bef14d658d0c2333d08e25fcbf3f5d9a4df25"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\04-source-1366.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/04-source-1366.png",
+      "bytes": 99506,
+      "sha256": "880d3b7801d30afcf831fb3e3fd3b054fefab472bf8be84aeedfe4d317f3a444"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\04-source-1600.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/04-source-1600.png",
+      "bytes": 110252,
+      "sha256": "12602b8e0f4cb6288beffd82339b8a4ebcff0fc3390abc95daacd6695322182a"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\04-source-1920.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/04-source-1920.png",
+      "bytes": 123136,
+      "sha256": "eacc5dcaf7a771d8181671163239cbb3eec482cc429214d6eb39854b37fdfbcb"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\05-history-after-continue-1366.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/05-history-after-continue-1366.png",
+      "bytes": 98108,
+      "sha256": "3c86d8c18a91b05cbf1236b738849ff00eee5da8fb1deaceb0a5296f0110f651"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\06-actual-process-restart-history-1600.png",
+      "destination": "docs/rearchitecture/ui/screenshots/latest-large-viewer-v79/06-actual-process-restart-history-1600.png",
+      "bytes": 115580,
+      "sha256": "7011779a1c19f210ba7b8d4937f7a164ab4b62f5a51c25f3911e3ea0d82a05b7"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-queue.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-whole-controller-snapshot.json",
+      "bytes": 6659,
+      "sha256": "3a80be7e2662ee76580c8870d78373553601a6c534d21c0232bc08d20a195af5"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\whole-native-inav-v78-r2-resumed\\execution.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-whole-resource-snapshot.json",
+      "bytes": 4583,
+      "sha256": "d5c31b643f9ed13ceddea64d8ddf428c9f0b37cb06aad41b8768b5a0a34912dc"
+    },
+    {
+      "source": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\native-final-package-whole-v78-r2\\acceptance.json",
+      "destination": "docs/rearchitecture/acceptance/latest-large-v78-whole-package-snapshot.json",
+      "bytes": 839,
+      "sha256": "ea88e9eb27788b363182fbfcaa58f06e8643a4195de481629a5cbaba8f876e0f"
+    }
+  ],
+  "scope": "Exact raw copies; active whole-recovery snapshots are not final acceptance. Raw browser archive stays at original external path and excludes session credentials."
+}

@@ -1,0 +1,37 @@
+import hashlib,json,sqlite3,sys,zipfile
+from pathlib import Path
+w=Path(__file__).parent;work=w/'latest-large-viewer-v79';sys.path.insert(0,'H:/ECRAStudio-build-20261106-studio-v79/ECRA-Portable')
+from ecra.report_package import sha256
+before=json.loads((work/'source-files.json').read_text('utf-8'))
+setup=json.loads((work/'setup.json').read_text('utf-8'));ui=json.loads((work/'ui-final.json').read_text('utf-8'));restart=json.loads((work/'restart-server.json').read_text('utf-8'))
+assert setup['passed'] and ui['passed'] and restart['passed'] and len(ui['tests'])==6
+original=json.loads((work/'ui-acceptance.json').read_text('utf-8'));assert original['passed'] is False and 'TimeoutError' in original['error']
+assert ui['original_failed_receipt_sha256']==sha256(work/'ui-acceptance.json')
+scan=work/'data/scans/native-golden';bad=[name for name,meta in before.items() if name!='reviews.db' and (not (scan/name).is_file() or sha256(scan/name)!=meta['sha256'])];assert not bad
+with sqlite3.connect((scan/'reviews.db').as_uri()+'?mode=ro',uri=True) as c:
+ human=[json.loads(r[0]) for r in c.execute('SELECT payload FROM events ORDER BY revision')]
+ parents=list(c.execute('SELECT event_id,parent_id FROM predecessors ORDER BY event_id,parent_id'))
+ ai=c.execute('SELECT count(*) FROM ai_events').fetchone()[0];snapshots=c.execute('SELECT count(*) FROM ai_snapshots').fetchone()[0]
+assert len(human)==2 and human==ui['human_after_undo']['history'] and parents==[(human[1]['event_id'],human[0]['event_id'])]
+assert ai==3540 and snapshots==1
+archive=work/'browser-records-without-session-credentials.zip';assert not archive.exists()
+rows=[];excluded=[]
+with zipfile.ZipFile(archive,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+ for f in sorted([*work.glob('cli-*.log'),*work.glob('restart-cli-*.log'),*(work/'.playwright-cli').glob('*.yml')]):
+  if '#session=' in f.read_text('utf-8'):
+   excluded.append(dict(file=str(f),reason='Contains ephemeral local session credential; private original retained'));continue
+  name=f.relative_to(work).as_posix();z.write(f,name);rows.append(dict(file=name,bytes=f.stat().st_size,sha256=sha256(f)))
+result=dict(passed=True,all_gates_passed=False,scope=ui['scope'],tests=ui['tests'],
+ input_package_sha256=setup['package_sha256'],import_receipt_sha256=setup['import_receipt_sha256'],
+ copied_files=setup['copied_files'],static_sha256=setup['static_sha256_before'],static_and_all_evidence_differences=bad,
+ original_import_differences=setup['source_differences'],source_viewports=ui['source_viewports'],relation_pages=ui['relation_pages'],
+ actual_human_events=human,predecessors=parents,retained_ai_events=ai,retained_ai_snapshots=snapshots,
+ actual_first_service_pid=setup['pid'],actual_restarted_service_pid=restart['pid'],original_launcher_exited=restart['old_launcher_exited'],
+ first_service_job_commit_peak_bytes=setup['peak_job_commit_bytes'],second_service_job_commit_peak_bytes=restart['peak_service_job_commit_bytes'],
+ memory_scope='Each actual ECRA service process tree only, excluding separately launched Chrome/CLI and test controllers; not total GUI/G3.',
+ first_failure_sha256=sha256(work/'ui-acceptance.json'),failure_audit=ui['failure_audit'],
+ browser_errors=0,external_requests=[],tasks=[],physical_second_pc='NOT_VERIFIED',system_DPI='NOT_VERIFIED',human_UAT='NOT_VERIFIED',
+ screenshots=[dict(path=str(p),sha256=sha256(p)) for p in sorted((work/'output/playwright').glob('*.png'))],
+ raw_browser_archive=dict(path=str(archive),bytes=archive.stat().st_size,sha256=sha256(archive),files=rows,excluded=excluded))
+(work/'final-acceptance.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+print(json.dumps(dict(passed=True,tests=len(result['tests']),screenshots=len(result['screenshots']),raw_logs=len(rows))))

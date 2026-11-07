@@ -1,0 +1,2036 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "scope": "Actual v79 CMD, Windows-only PATH and Chrome using exact copy of latest native complete-package strict import. Original firmware still exists on host; not clean PC or full U19.",
+  "tests": [
+    {
+      "name": "REAL_HOME_CARD_AND_FILTERED_SQL_COUNT_EQUAL",
+      "passed": true,
+      "count": 1318
+    },
+    {
+      "name": "EXACT_NATIVE_IDENTITY_ALL_FIVE_ACCESSES_AND_UNRESOLVED_NVIC",
+      "passed": true
+    },
+    {
+      "name": "ALL_113_REAL_RELATION_SUMMARIES_PAGED_AND_FIRST_REFERENCE_ON_EACH_PAGE_MATCHES_AUTHORITY",
+      "passed": true,
+      "pages": 12
+    },
+    {
+      "name": "REAL_ARCHIVED_RMW_LINE_VISIBLE_THREE_VIEWPORTS_WITH_FOUR_ACTIONS_AND_DRAFT",
+      "passed": true,
+      "system_DPI": "NOT_VERIFIED"
+    },
+    {
+      "name": "RELOAD_CONTINUE_PREVIOUS_POSITION_RESTORES_EXACT_TWO_EVENTS_AND_PARENT_LINK",
+      "passed": true
+    },
+    {
+      "name": "SECOND_ACTUAL_PORTABLE_PROCESS_CONTINUES_SQL_POSITION_AND_EXACT_ORIGINAL_HISTORY",
+      "passed": true
+    }
+  ],
+  "input_package_sha256": "7e72bc5d7ee4f01d5e88bf17845aa6c50d7cae5974a11f5422193b970fc787f5",
+  "import_receipt_sha256": "eb82991a0027968cf0bc8d82f0aeec5dc44c9fe09bf6f0da59f1f88a08761d9a",
+  "copied_files": 2668,
+  "static_sha256": "c6180f66323ae9ce72711ee8c83858cdce04114cc1e210a30aaa7dc3e760163b",
+  "static_and_all_evidence_differences": [],
+  "original_import_differences": [],
+  "source_viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "line": "57",
+      "text": "57        sysTickUptime++;\r",
+      "rowHeight": 22.09375,
+      "paneHeight": 197.09375,
+      "visibleHeight": 22.09375,
+      "scrollY": 0,
+      "buttons": [
+        {
+          "label": "确认有风险",
+          "visible": true
+        },
+        {
+          "label": "确认无风险",
+          "visible": true
+        },
+        {
+          "label": "暂无法确认",
+          "visible": true
+        },
+        {
+          "label": "撤销上次确认",
+          "visible": true
+        }
+      ],
+      "author": "自动化归档验收声明",
+      "basis": "仅验收新完整包的界面和事件保存；不代表工程风险结论。"
+    },
+    {
+      "width": 1600,
+      "height": 900,
+      "line": "57",
+      "text": "57        sysTickUptime++;\r",
+      "rowHeight": 22.09375,
+      "paneHeight": 329.09375,
+      "visibleHeight": 22.09375,
+      "scrollY": 0,
+      "buttons": [
+        {
+          "label": "确认有风险",
+          "visible": true
+        },
+        {
+          "label": "确认无风险",
+          "visible": true
+        },
+        {
+          "label": "暂无法确认",
+          "visible": true
+        },
+        {
+          "label": "撤销上次确认",
+          "visible": true
+        }
+      ],
+      "author": "自动化归档验收声明",
+      "basis": "仅验收新完整包的界面和事件保存；不代表工程风险结论。"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "line": "57",
+      "text": "57        sysTickUptime++;\r",
+      "rowHeight": 22.09375,
+      "paneHeight": 509.09375,
+      "visibleHeight": 22.09375,
+      "scrollY": 0,
+      "buttons": [
+        {
+          "label": "确认有风险",
+          "visible": true
+        },
+        {
+          "label": "确认无风险",
+          "visible": true
+        },
+        {
+          "label": "暂无法确认",
+          "visible": true
+        },
+        {
+          "label": "撤销上次确认",
+          "visible": true
+        }
+      ],
+      "author": "自动化归档验收声明",
+      "basis": "仅验收新完整包的界面和事件保存；不代表工程风险结论。"
+    }
+  ],
+  "relation_pages": [
+    {
+      "offset": 0,
+      "numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "first_reference": 5285198
+    },
+    {
+      "offset": 10,
+      "numbers": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "first_reference": 5285240
+    },
+    {
+      "offset": 20,
+      "numbers": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "first_reference": 5285280
+    },
+    {
+      "offset": 30,
+      "numbers": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "first_reference": 5285320
+    },
+    {
+      "offset": 40,
+      "numbers": [
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "first_reference": 5285360
+    },
+    {
+      "offset": 50,
+      "numbers": [
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "first_reference": 5285400
+    },
+    {
+      "offset": 60,
+      "numbers": [
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70
+      ],
+      "first_reference": 5285440
+    },
+    {
+      "offset": 70,
+      "numbers": [
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "first_reference": 5285480
+    },
+    {
+      "offset": 80,
+      "numbers": [
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90
+      ],
+      "first_reference": 5285520
+    },
+    {
+      "offset": 90,
+      "numbers": [
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100
+      ],
+      "first_reference": 5285560
+    },
+    {
+      "offset": 100,
+      "numbers": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110
+      ],
+      "first_reference": 5285600
+    },
+    {
+      "offset": 110,
+      "numbers": [
+        111,
+        112,
+        113
+      ],
+      "first_reference": 5285640
+    }
+  ],
+  "actual_human_events": [
+    {
+      "comment": "仅验收新完整包的界面和事件保存；不代表工程风险结论。",
+      "decision": "NEED_MORE_EVIDENCE",
+      "device": "device-3e8f31d9022446a983c59615555ef88f",
+      "event_id": "ba988dfc-7c24-4c69-b894-2af07cac10a7",
+      "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+      "handling_status": "TODO",
+      "parents": [],
+      "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+      "reviewer": "自动化归档验收声明",
+      "revision": 1,
+      "scan_id": "native-golden",
+      "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+      "timestamp": "2026-11-07T02:41:26.286350+00:00"
+    },
+    {
+      "comment": "撤销 ba988dfc-7c24-4c69-b894-2af07cac10a7：撤销自动化验收声明，恢复待确认；保留原声明和理由。",
+      "decision": "PENDING",
+      "device": "device-3e8f31d9022446a983c59615555ef88f",
+      "event_id": "012162b4-dafb-479a-9d8e-5e952fc88176",
+      "fingerprint": "5ba553fc6388f948b647716faa4d1c7092340e73f2dbc5cfe96560d1701002f7",
+      "handling_status": "TODO",
+      "parents": [
+        "ba988dfc-7c24-4c69-b894-2af07cac10a7"
+      ],
+      "project_id": "5a9c0c24c12d3378438ecaa809362bb1de673dc0562311145a91665db618bcae",
+      "reviewer": "自动化归档验收声明",
+      "revision": 2,
+      "scan_id": "native-golden",
+      "symbol_id": "tu::src/main/drivers/time.c::c:time.c@sysTickUptime",
+      "timestamp": "2026-11-07T02:41:33.282813+00:00"
+    }
+  ],
+  "predecessors": [
+    [
+      "012162b4-dafb-479a-9d8e-5e952fc88176",
+      "ba988dfc-7c24-4c69-b894-2af07cac10a7"
+    ]
+  ],
+  "retained_ai_events": 3540,
+  "retained_ai_snapshots": 1,
+  "actual_first_service_pid": 9460,
+  "actual_restarted_service_pid": 17844,
+  "original_launcher_exited": true,
+  "first_service_job_commit_peak_bytes": 58265600,
+  "second_service_job_commit_peak_bytes": 54591488,
+  "memory_scope": "Each actual ECRA service process tree only, excluding separately launched Chrome/CLI and test controllers; not total GUI/G3.",
+  "first_failure_sha256": "e2fecdf3da1359a59d686bdb9cdb28609b428858e6a227791adce765fc2454f5",
+  "failure_audit": "First controller incorrectly waited for automatic selection after reload. Existing documented and tested workflow uses 人工确认 → 继续上次位置. No application, event, or assertion about persisted state changed.",
+  "browser_errors": 0,
+  "external_requests": [],
+  "tasks": [],
+  "physical_second_pc": "NOT_VERIFIED",
+  "system_DPI": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED",
+  "screenshots": [
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\01-overview-1366.png",
+      "sha256": "894c26ae52859a29b0a943311d6bdfbbabe40eb9a330737ed1e04a9f1e0be379"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\02-real-main-irq-1366.png",
+      "sha256": "9cf0862ed22278e82c2fe2b08b839321562bf2256424c290f955aec427d1269a"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\03-final-relation-page-1366.png",
+      "sha256": "51c11e37466524127b48872e6b2bef14d658d0c2333d08e25fcbf3f5d9a4df25"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\04-source-1366.png",
+      "sha256": "880d3b7801d30afcf831fb3e3fd3b054fefab472bf8be84aeedfe4d317f3a444"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\04-source-1600.png",
+      "sha256": "12602b8e0f4cb6288beffd82339b8a4ebcff0fc3390abc95daacd6695322182a"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\04-source-1920.png",
+      "sha256": "eacc5dcaf7a771d8181671163239cbb3eec482cc429214d6eb39854b37fdfbcb"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\05-history-after-continue-1366.png",
+      "sha256": "3c86d8c18a91b05cbf1236b738849ff00eee5da8fb1deaceb0a5296f0110f651"
+    },
+    {
+      "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\output\\playwright\\06-actual-process-restart-history-1600.png",
+      "sha256": "7011779a1c19f210ba7b8d4937f7a164ab4b62f5a51c25f3911e3ea0d82a05b7"
+    }
+  ],
+  "raw_browser_archive": {
+    "path": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\browser-records-without-session-credentials.zip",
+    "bytes": 727485,
+    "sha256": "15100c4d4548184d96b184c8c251cbdb9ceb212a20ae800c9adcc9df840bdab3",
+    "files": [
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-35-10-725Z.yml",
+        "bytes": 2263,
+        "sha256": "3ba5740527188573e8e0cdf1ba47c0dc93d155cf650903d93453fdc89e26fb33"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-35-29-785Z.yml",
+        "bytes": 26703,
+        "sha256": "90b2c624976e0b437c1196aeb6a874ce174f704d530c0be67e77d22cb8634cca"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-35-55-380Z.yml",
+        "bytes": 5456,
+        "sha256": "df3b0701327c40db3a8e4279403f6e7896ecff1df4223e0c27d55ac9f4e1fb65"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-36-01-856Z.yml",
+        "bytes": 19722,
+        "sha256": "3b54d7554167bc0068ecb85d3121ffb17f7f43db8aa6a0bdd07c89cddddda6ad"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-36-48-964Z.yml",
+        "bytes": 21632,
+        "sha256": "f5dcf464fbb6b1ac727a07b858d4b02419b3ac7b24bee7f61428cc335da0c3c1"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-36-54-294Z.yml",
+        "bytes": 23533,
+        "sha256": "a2c1ccf4e9270266de62cd0b3d35ac758581ee63f7a59d119291eb760a582540"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-36-57-963Z.yml",
+        "bytes": 19742,
+        "sha256": "eadf4c1515dc0782e73b04f64a4d2a03b89c0d1dde6f15535fce132e3758beff"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-03-271Z.yml",
+        "bytes": 21652,
+        "sha256": "88d2d9ba85e0f525c70726298ca5cd3842f389f522169cc05bfc0fa05435f018"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-08-686Z.yml",
+        "bytes": 23553,
+        "sha256": "6390bc5d9e39a48a4762efdd5a0de4672eae4e4dd7004138f0e50253a24b765f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-12-375Z.yml",
+        "bytes": 19788,
+        "sha256": "d5a90cf12af41ce48e0e6893da3f4f161ecbc4390ad4d1a7d4f074d16da3fbe7"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-17-759Z.yml",
+        "bytes": 21729,
+        "sha256": "23b5b024cd29efb417c1c4cec8ab2ce7bdb2388827b8646c46b13df1ad9801b3"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-23-144Z.yml",
+        "bytes": 23661,
+        "sha256": "a61759a00c35beb9634f45f790c665ad68d30a8c320d042f664dabbf84f729d2"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-26-734Z.yml",
+        "bytes": 19871,
+        "sha256": "5a0a9c41ca5ae2c4330d224ff8e1b6d872c023732c71a9996ee7b70c8f594348"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-32-226Z.yml",
+        "bytes": 21811,
+        "sha256": "0accca229e79b60ed0ffefffa50e2e54caa982aa0d4ae03341fb3da20c7e73ae"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-37-579Z.yml",
+        "bytes": 23742,
+        "sha256": "fa17abee7a9eebf88648c3d8a5a176c62460f9ae8b7facb684170df97b2933fd"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-41-199Z.yml",
+        "bytes": 19868,
+        "sha256": "1853a4489027a1c8382c8d1dcd32ce53b3d7b1d2b315b648359042be27a012a9"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-46-681Z.yml",
+        "bytes": 21808,
+        "sha256": "c1c3a1c3d9a777156e916e4878c7b92111935ba88d14b43295c51d37ca9c6e15"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-51-968Z.yml",
+        "bytes": 23739,
+        "sha256": "7a2e1581ecce481eaee66e9898c537c29320b861aba92d5adefe64589ab34eb9"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-37-55-587Z.yml",
+        "bytes": 19868,
+        "sha256": "283cc430e7df7471fa2c8e1999bd686eb069cb137428f98ea9eccf3d7c72edf8"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-00-927Z.yml",
+        "bytes": 21808,
+        "sha256": "9c3b71fe1b83b22b524308a42f9194c081a2c0032a798cd11ce2983263346a27"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-06-255Z.yml",
+        "bytes": 23739,
+        "sha256": "62a7950aafd3e3d4a8e8847f81581bf7969c593914db2a9f818e2f84304126fc"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-09-902Z.yml",
+        "bytes": 19871,
+        "sha256": "fb1431d3099f605b78d6684221d2dea3556c82683d9624025d7cc1247087aac7"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-15-746Z.yml",
+        "bytes": 21811,
+        "sha256": "26df1da1b5eb08643264287808fb805414caac2898f916a0cfc25da4ec891cdc"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-21-157Z.yml",
+        "bytes": 23742,
+        "sha256": "03c5e2421120eecbfc3ad482742a78b6e488121c7c623a7f5953e4375efee1ee"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-24-811Z.yml",
+        "bytes": 19868,
+        "sha256": "5bf50326e03aacfd3596b1f9e0cafa0ec6b9cd161ed7d46898db60c8f8e1073e"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-30-242Z.yml",
+        "bytes": 21808,
+        "sha256": "229f819119c2f1b172b007b857e827df03acb9ae0c71fbea4fe0335246a69f28"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-35-684Z.yml",
+        "bytes": 23739,
+        "sha256": "54ffdd32fc5f59405d06eefa7b9ea57fd7b389aec9e3e4e52eaeb62e3b8bb47c"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-39-322Z.yml",
+        "bytes": 19871,
+        "sha256": "b2f801fd1afd7692600d9e2be1b031a20c604cf3336a412b9ef769120e8fb943"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-44-760Z.yml",
+        "bytes": 21811,
+        "sha256": "5c71b1931970744c7c2f27784c75c1e49a850f0a7db7dfed601954243defc487"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-50-667Z.yml",
+        "bytes": 23742,
+        "sha256": "91c4d256a01f0c0fea8275a197f6d360057a175aa1406ce1e3709900a6bd534f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-54-260Z.yml",
+        "bytes": 19870,
+        "sha256": "c8e2e479bb6ed0b54d9c27abda843df984a7cb43a441f9c81a05f382ccf754d5"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-38-59-662Z.yml",
+        "bytes": 21810,
+        "sha256": "da7ce0d945ad0f3fbaeab08a3ab7d70d6b4f1774a0fa28ee5e014b693834755e"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-05-232Z.yml",
+        "bytes": 23741,
+        "sha256": "4025a5305d96b79f0fa3b843a4309863ef5b2b12d59c804d9ed6f8f72031760c"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-08-831Z.yml",
+        "bytes": 19880,
+        "sha256": "300974871a471b824ff0f7683f38d51806ae69a2dfaf7afa0a1bcf00b9621c10"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-14-214Z.yml",
+        "bytes": 21820,
+        "sha256": "e94ef2fd0d8e1be5d511c7fb310b82c287e8f7cc8ac969e0282fa8c0787f9759"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-19-620Z.yml",
+        "bytes": 23751,
+        "sha256": "bb4222586eddbc4c3d7cb25242d1118a9599fd827acfd3621db1eb9cf7a27178"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-23-228Z.yml",
+        "bytes": 13841,
+        "sha256": "03cb74bcb202efceeaecb9e3e2fd6c93c7b3f5eec5fdefb77801401793dc2efd"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-28-603Z.yml",
+        "bytes": 15781,
+        "sha256": "609566facf270da2599e27bb9f97a169cf8ad179deffdc65dbbaf0bfd9cb022f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-39-34-004Z.yml",
+        "bytes": 17712,
+        "sha256": "bc61fba4acf4647d4671b680e75baa0896796c3ad4a06361578f961681fdd4ba"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-19-607Z.yml",
+        "bytes": 14379,
+        "sha256": "15832915b5e324b1ad50813449394877bed065df3d588b26aef73d85e0c5398f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-25-832Z.yml",
+        "bytes": 14149,
+        "sha256": "5bbd72cc857ccb61fc9250ca8ab5608d102d542388aa64da8a0a2f5a6ef0903b"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-31-060Z.yml",
+        "bytes": 17891,
+        "sha256": "2b2d2d7745c7fddb2845967b39a32d858bbf03b9c34eb50aa14fab2f2393409f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-35-800Z.yml",
+        "bytes": 14379,
+        "sha256": "879cdb2bac7f65ae9bb826a455dcad1ab29f9d6dad94e574d12161d5d715eada"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-42-498Z.yml",
+        "bytes": 14149,
+        "sha256": "f2d0f8f2867b98b6ba1b60062251df88b1967696c2f834b5e01f340a9678fb28"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-50-719Z.yml",
+        "bytes": 17891,
+        "sha256": "2b2d2d7745c7fddb2845967b39a32d858bbf03b9c34eb50aa14fab2f2393409f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-40-54-403Z.yml",
+        "bytes": 14379,
+        "sha256": "fac4617f389adce4795cd11c0468e85ed19ab349ba70f0ecdd6965e6b61b7fc7"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-00-981Z.yml",
+        "bytes": 14149,
+        "sha256": "859e173716131369b1247fc56ce797f327e3eaec43668ceba47ebaf24b7b987d"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-09-034Z.yml",
+        "bytes": 17891,
+        "sha256": "2b2d2d7745c7fddb2845967b39a32d858bbf03b9c34eb50aa14fab2f2393409f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-12-750Z.yml",
+        "bytes": 14379,
+        "sha256": "75fc8bd4176d7a0e4cc052fe0d2b5389ffb566a9510de9c89793858a6eb6c59c"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-19-250Z.yml",
+        "bytes": 14149,
+        "sha256": "1a07a3755c591fe21d1171bde8c1932005d9672563970bf5c788a32f6511e04f"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-27-357Z.yml",
+        "bytes": 14125,
+        "sha256": "b5ef2fc7f355c89a95fcfbe5bccc01a02c2f9481dcea2281c5ffad6031bb5384"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-34-339Z.yml",
+        "bytes": 14107,
+        "sha256": "18f7cae3f4f2ed18750e888d1a9325fc96dbf2eacf4883ba4a59f0db40bde320"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-41-35-835Z.yml",
+        "bytes": 5397,
+        "sha256": "9a735dc7bc978e9bb956ca4c22e88412dd2d634dd7d3cc5c47c4a2e0293a8c97"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-44-02-450Z.yml",
+        "bytes": 5703,
+        "sha256": "c5f4f799da04c988b74f91b775489536c0af43a70f52255d65aa1a78470bd9fc"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-44-09-179Z.yml",
+        "bytes": 20428,
+        "sha256": "1207865333c245daf773405d89f9c0910a69c4b771ed2bc5495732b7024632e2"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-44-13-693Z.yml",
+        "bytes": 8664,
+        "sha256": "a72177d9e21ade7b25dccdd4005eed101df4e66bbe09a880846fe2653154ba25"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-46-07-870Z.yml",
+        "bytes": 2263,
+        "sha256": "3ba5740527188573e8e0cdf1ba47c0dc93d155cf650903d93453fdc89e26fb33"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-46-16-199Z.yml",
+        "bytes": 19872,
+        "sha256": "59c08da4978bd312968000dd8c52b88ea5b6b8d42ba93f7c97934b599f4fd415"
+      },
+      {
+        "file": ".playwright-cli/page-2026-11-07T02-46-19-439Z.yml",
+        "bytes": 8449,
+        "sha256": "bdb7ad6098319b13b1a8069db6d93ab8122b8aded11b44a466012388a53760a9"
+      },
+      {
+        "file": "cli-002.log",
+        "bytes": 96,
+        "sha256": "f64f17d52a18a97b13cd66760b0bf68374d3a58c0aa6816bd31312f50f63ac1a"
+      },
+      {
+        "file": "cli-003.log",
+        "bytes": 6077,
+        "sha256": "4a811bdba9225feb074dfd90c9b6e10dc99f2b930c99ca15c80da1c3537f436f"
+      },
+      {
+        "file": "cli-004.log",
+        "bytes": 310,
+        "sha256": "d500743940694fd856ce223f85088f716f1ef579db5830fc2b3b6541f3229961"
+      },
+      {
+        "file": "cli-005.log",
+        "bytes": 6077,
+        "sha256": "4a811bdba9225feb074dfd90c9b6e10dc99f2b930c99ca15c80da1c3537f436f"
+      },
+      {
+        "file": "cli-006.log",
+        "bytes": 293,
+        "sha256": "0aa27965fe14f04c8100220e77bba951391ad2816f8e713f0aa7535ddfcc9daa"
+      },
+      {
+        "file": "cli-007.log",
+        "bytes": 27250,
+        "sha256": "a6373b270ad1c50d653683b51f4edd9ea44929fb27d04203d9b1b2bdbc51f488"
+      },
+      {
+        "file": "cli-008.log",
+        "bytes": 27250,
+        "sha256": "a6373b270ad1c50d653683b51f4edd9ea44929fb27d04203d9b1b2bdbc51f488"
+      },
+      {
+        "file": "cli-009.log",
+        "bytes": 27250,
+        "sha256": "a6373b270ad1c50d653683b51f4edd9ea44929fb27d04203d9b1b2bdbc51f488"
+      },
+      {
+        "file": "cli-010.log",
+        "bytes": 181,
+        "sha256": "47aef074de63878c3e58cab1fb56e46d0d800531a8eb951d3132e113cbcb1cd1"
+      },
+      {
+        "file": "cli-011.log",
+        "bytes": 27336,
+        "sha256": "72bce43b1e6f7c72f5844cc5d470bfa012f8669ec62da59c1ede3af488b03470"
+      },
+      {
+        "file": "cli-012.log",
+        "bytes": 287,
+        "sha256": "67a676cd152d4831545d8126a8d68e954a458ccf41a3f5b6fb897bb824e13ad0"
+      },
+      {
+        "file": "cli-013.log",
+        "bytes": 5709,
+        "sha256": "105ee5fccda1dad9fbb6962f16554f9c6eaaee8d4adfa7850fb3c108b337e3ec"
+      },
+      {
+        "file": "cli-014.log",
+        "bytes": 322,
+        "sha256": "37d4c227290781e99197965cafd9daefd7eab395dfeccc5db6ddd856a85b4089"
+      },
+      {
+        "file": "cli-015.log",
+        "bytes": 20197,
+        "sha256": "792c98f7f1fe845ea36d920560c1b94397f7858086cf98f24e1a37ed464a5e02"
+      },
+      {
+        "file": "cli-016.log",
+        "bytes": 20197,
+        "sha256": "792c98f7f1fe845ea36d920560c1b94397f7858086cf98f24e1a37ed464a5e02"
+      },
+      {
+        "file": "cli-017.log",
+        "bytes": 843,
+        "sha256": "cde56d9593f96f9246431d6a99e19ff6a43edc793ee9fd1486633b2689b6c367"
+      },
+      {
+        "file": "cli-018.log",
+        "bytes": 325,
+        "sha256": "11b91b306f419086491abf462f236ae2d4fe2de93cb83b2bbd2dc7b65ca9f6af"
+      },
+      {
+        "file": "cli-019.log",
+        "bytes": 20197,
+        "sha256": "792c98f7f1fe845ea36d920560c1b94397f7858086cf98f24e1a37ed464a5e02"
+      },
+      {
+        "file": "cli-020.log",
+        "bytes": 496,
+        "sha256": "47e21fa4b36483756d1a515b7e2628d4883e974616159a301a85401a70c0b56c"
+      },
+      {
+        "file": "cli-021.log",
+        "bytes": 317,
+        "sha256": "be8c85a0e8d21ecf185b998d0019939df9e072ecff38486519c7c0da23e828e9"
+      },
+      {
+        "file": "cli-022.log",
+        "bytes": 644,
+        "sha256": "c8e4004b10eefcbfc75bf99ee130323c1b485a7cb07cce22ef16a5c605f4a5da"
+      },
+      {
+        "file": "cli-023.log",
+        "bytes": 22137,
+        "sha256": "cd8d764c1bc0a7a6dec7a3c634e4f8956eba3945b160cc47746bdfa2efbe4d48"
+      },
+      {
+        "file": "cli-024.log",
+        "bytes": 316,
+        "sha256": "ea5853febb770d4d44cd7f3c37a784016c41566d6ff70e9987d97b1ff6e5433b"
+      },
+      {
+        "file": "cli-025.log",
+        "bytes": 24068,
+        "sha256": "0d79ad570193b6adb1d54100c466a858adf7e53d163837a51858fabc28f54fae"
+      },
+      {
+        "file": "cli-026.log",
+        "bytes": 295,
+        "sha256": "94169240cd464ecdcbd7472d4d23dabecae23d06a4964af4319859c8066b05c6"
+      },
+      {
+        "file": "cli-027.log",
+        "bytes": 20217,
+        "sha256": "164a336ef6d6eefa69a879548bf500316dac1ce28bde56e9eb06059bb4f0ced5"
+      },
+      {
+        "file": "cli-028.log",
+        "bytes": 505,
+        "sha256": "5ef0c5eb63253c5501b39ed638a167a68a5da8476054cd76e7738d9d41e80d5a"
+      },
+      {
+        "file": "cli-029.log",
+        "bytes": 317,
+        "sha256": "7c99813b2968db338c8a85105582dcde3296865687a11a703275582fc45a5402"
+      },
+      {
+        "file": "cli-030.log",
+        "bytes": 646,
+        "sha256": "be395030961a516781849292506917c3d76965a1b1db7685aee5545e5aa42051"
+      },
+      {
+        "file": "cli-031.log",
+        "bytes": 22157,
+        "sha256": "e4f2e20db5a8689833c755bfc06c5944dd30420a95ad78bd396a8a30fa45e17c"
+      },
+      {
+        "file": "cli-032.log",
+        "bytes": 316,
+        "sha256": "ad7f2098ac691c68495e1ff6d77bc3b758eab8fddcca95e0a74212053c9c19fd"
+      },
+      {
+        "file": "cli-033.log",
+        "bytes": 24088,
+        "sha256": "af34d7514848fd098a0bec4837c754138d7cdecf05274f3989f02b5b152e5e02"
+      },
+      {
+        "file": "cli-034.log",
+        "bytes": 295,
+        "sha256": "a7df83b632bf3c4811d2114f6b582225dc6fa8c3216cad6416d419791828e259"
+      },
+      {
+        "file": "cli-035.log",
+        "bytes": 20263,
+        "sha256": "978f18aed01028565c50ec1ea86bd4d4229d5246fcf6165e6e56202c38676125"
+      },
+      {
+        "file": "cli-036.log",
+        "bytes": 505,
+        "sha256": "9d3ce815ef89d6692a25e308ac5c1bdde4e9d5da5a1b4f007bc85710e7d59afa"
+      },
+      {
+        "file": "cli-037.log",
+        "bytes": 317,
+        "sha256": "0d34c29ab46617d88ea86d68e0c3a24932d3c35bf045e997f7b73a2e28259995"
+      },
+      {
+        "file": "cli-038.log",
+        "bytes": 646,
+        "sha256": "05558d9094cd9170f65d550ff110956ab4810504c4626aeee117cf620ed7f606"
+      },
+      {
+        "file": "cli-039.log",
+        "bytes": 22234,
+        "sha256": "1d79b935b477abc119225ae24a919c0b7ea9fb714ef48357a8899a8379895916"
+      },
+      {
+        "file": "cli-040.log",
+        "bytes": 316,
+        "sha256": "c5078b967140d10bb2761eae5a01be32c681a6ad5c39a877c45802608a69c9c2"
+      },
+      {
+        "file": "cli-041.log",
+        "bytes": 24196,
+        "sha256": "bf047acdbb618d40ca0527fe0648444a6782cc3d7b93a87355bb1d2b63c492e9"
+      },
+      {
+        "file": "cli-042.log",
+        "bytes": 295,
+        "sha256": "215fa5106b22f2eac376e534f9adab797f996ba1625c7babb2f370660800f030"
+      },
+      {
+        "file": "cli-043.log",
+        "bytes": 20346,
+        "sha256": "627e949892f233e29710637f35a8e5785c0a820721b93512b1d3ab0c77109d31"
+      },
+      {
+        "file": "cli-044.log",
+        "bytes": 505,
+        "sha256": "70b63c43ba27db8570682fac87f77db78685fd7afeb77bb3474a406d19f40dc4"
+      },
+      {
+        "file": "cli-045.log",
+        "bytes": 317,
+        "sha256": "f87a5723053257baf4ca30eb54f015078481797f856f45e065b13b7dc8272449"
+      },
+      {
+        "file": "cli-046.log",
+        "bytes": 646,
+        "sha256": "0626897540b43d1f73d04837921c22360a28b6a21b637edb6746881e2d254a94"
+      },
+      {
+        "file": "cli-047.log",
+        "bytes": 22316,
+        "sha256": "302ba39b9f9eb788839f51c9b6c81a638928350541de46cf71af77c08b3e5f44"
+      },
+      {
+        "file": "cli-048.log",
+        "bytes": 316,
+        "sha256": "165b0bd70796356c1a466aea4961c585b332460e23b8ad58ababd2151bf67f7d"
+      },
+      {
+        "file": "cli-049.log",
+        "bytes": 24277,
+        "sha256": "136e04bd626ec1a12b30ac0a21b677afd4e2ad19045bc2358dd3e4baa4aa6796"
+      },
+      {
+        "file": "cli-050.log",
+        "bytes": 295,
+        "sha256": "c394288d4ce22f5b835535fb884a08fa7e0847f83dfe0c6a8c63910e0083646f"
+      },
+      {
+        "file": "cli-051.log",
+        "bytes": 20343,
+        "sha256": "01e6b252a5324114d33610fb06a5a951c621bf252f1263ff15a6fa66f28374f5"
+      },
+      {
+        "file": "cli-052.log",
+        "bytes": 505,
+        "sha256": "10fdf8ff7134c90741b490bf76adaddcdc577321cf9aa3635acce462feb0d760"
+      },
+      {
+        "file": "cli-053.log",
+        "bytes": 317,
+        "sha256": "99c64ef5c9f4f96ccfc83359683719f9c34891fb1d46a79ba7e7cef7e7a1242d"
+      },
+      {
+        "file": "cli-054.log",
+        "bytes": 646,
+        "sha256": "074d529adfac38b24e482b60ec626c9af930a2a01a9a7437474258f19a231142"
+      },
+      {
+        "file": "cli-055.log",
+        "bytes": 22313,
+        "sha256": "8f6bec3ec8f5bcd3c43d6690eea8609b062a334ef20a817df203cf85125193c6"
+      },
+      {
+        "file": "cli-056.log",
+        "bytes": 316,
+        "sha256": "a10c5c010c137963a3a900e036670b4d2d134202187f4247dc4f602396de9f0f"
+      },
+      {
+        "file": "cli-057.log",
+        "bytes": 24274,
+        "sha256": "7e57ea52efa3fdc68c2d5a4c6227eca9d833766daab7ced627015dbf64bd5676"
+      },
+      {
+        "file": "cli-058.log",
+        "bytes": 295,
+        "sha256": "096efcc9c2846609dcb47ee02a7018ff658a11af2c89d8aaf350094e9cb706e4"
+      },
+      {
+        "file": "cli-059.log",
+        "bytes": 20343,
+        "sha256": "04cc37977e6943eb4521b056410573e9768e87ee4fa50c47a83e0c31dc495da9"
+      },
+      {
+        "file": "cli-060.log",
+        "bytes": 505,
+        "sha256": "5a340d3c70862f8ee92f60c557a8929b00c6512df17b9ca41080bf3a5e90a2b5"
+      },
+      {
+        "file": "cli-061.log",
+        "bytes": 317,
+        "sha256": "b3189cf2918d495a460d73bc8277f0f5ff2530a7531deb85b68ff31faca6bdee"
+      },
+      {
+        "file": "cli-062.log",
+        "bytes": 646,
+        "sha256": "e61ee1b67eaa7a10f76f37c654137bbe4a347775061c0f3a0fd98cb1c22e3a9b"
+      },
+      {
+        "file": "cli-063.log",
+        "bytes": 22313,
+        "sha256": "8d6aa6c28989b7099e6acb3bd5e94c917306731f12cf79eefb51906e25ff6c02"
+      },
+      {
+        "file": "cli-064.log",
+        "bytes": 316,
+        "sha256": "bc25a9c1185f840f0ba68c3b3e2cc4ea21edb305379d300a25bd1a70115ace58"
+      },
+      {
+        "file": "cli-065.log",
+        "bytes": 24274,
+        "sha256": "4127c4d3608c649b5035316b8a9bd4372a41ecf23c699772a546b0259e87205a"
+      },
+      {
+        "file": "cli-066.log",
+        "bytes": 295,
+        "sha256": "c0d74697b125ac8c322dd3f0e5e920e4f1b12d888f0407000a51cd2b5b416fc0"
+      },
+      {
+        "file": "cli-067.log",
+        "bytes": 20346,
+        "sha256": "699e0b651589aa549ece88f6c0f5c52feaa6f3a6ca75aa6de5d06d055fc17691"
+      },
+      {
+        "file": "cli-068.log",
+        "bytes": 505,
+        "sha256": "181783a739fb49786b14996b0e203f2c1b13fd478a6af635516e80e14f1a3b49"
+      },
+      {
+        "file": "cli-069.log",
+        "bytes": 317,
+        "sha256": "a8eabec0ae4339ff3d70aedcedee7fcb13f30010c10f8856813e27479bc9999e"
+      },
+      {
+        "file": "cli-070.log",
+        "bytes": 646,
+        "sha256": "aa9dbb670e4dd96bb350225e16081337851a055b851cd098ea98797ac89777ec"
+      },
+      {
+        "file": "cli-071.log",
+        "bytes": 22316,
+        "sha256": "360b329ff4e895e7ee1d9fc60fef0536ece4f4f7dbd289f3de7521f56e602443"
+      },
+      {
+        "file": "cli-072.log",
+        "bytes": 316,
+        "sha256": "b0dcccef41a5fd2ff871e63bb4adebc9a50e8ee2a1369ac09e1c3f6d650eaad2"
+      },
+      {
+        "file": "cli-073.log",
+        "bytes": 24277,
+        "sha256": "4a1b1b2937ec1b2ce820448927e09b150ab2cca0c83a428535dd5bb1d328bcfc"
+      },
+      {
+        "file": "cli-074.log",
+        "bytes": 295,
+        "sha256": "e0c35d77afac9c212cf35bc51cfc38f73ea9fb90b3a641b40ab2b2a46bbd1a6b"
+      },
+      {
+        "file": "cli-075.log",
+        "bytes": 20343,
+        "sha256": "c7970ac0e5c20d59629704e504685b92d8bf0c4330e58a3b659ea616778d14b4"
+      },
+      {
+        "file": "cli-076.log",
+        "bytes": 505,
+        "sha256": "39d36d8fe9ffb95eccd35bf159c50a004e72a6864246df2f16de40d88890a8d3"
+      },
+      {
+        "file": "cli-077.log",
+        "bytes": 317,
+        "sha256": "633ed1d8b18b0fa2276735ee4061e3d0ffa8d10fcb744dd62f62f68db519f0d7"
+      },
+      {
+        "file": "cli-078.log",
+        "bytes": 646,
+        "sha256": "a3837eec17edad1beb4b431fd6a421d558b57f7561ac3cefc78916c95ee96e41"
+      },
+      {
+        "file": "cli-079.log",
+        "bytes": 22313,
+        "sha256": "9761be2c523263d55ded2c0a31dcf01c327808a7a7aca2ab4e74c2fdcf5676c0"
+      },
+      {
+        "file": "cli-080.log",
+        "bytes": 316,
+        "sha256": "c73067c5c0f96e99db01c14841e8cef31fc8af2b99682b42cc7a910cc5ede2ae"
+      },
+      {
+        "file": "cli-081.log",
+        "bytes": 24274,
+        "sha256": "bb09c7dbde633be7690719b27b447c602ae9e612e92f9c147130d32bc59d5faf"
+      },
+      {
+        "file": "cli-082.log",
+        "bytes": 295,
+        "sha256": "4ef32c840a0f05aaed89447760c636a5e7fad21f7c6bf240fdffef66a73fe600"
+      },
+      {
+        "file": "cli-083.log",
+        "bytes": 20346,
+        "sha256": "b9b301adb0c04481e8077743e53b7fcfa4acee18eeb83933fdc166daf2b90822"
+      },
+      {
+        "file": "cli-084.log",
+        "bytes": 505,
+        "sha256": "53e7ccc7fda150c335c8bbb1601f49e7baa4592abb8841777642cc8e233addd9"
+      },
+      {
+        "file": "cli-085.log",
+        "bytes": 317,
+        "sha256": "59f06ed52db35bfe50425774d4469c8b225a6fa24d5efd9b37d1930f2a851dcb"
+      },
+      {
+        "file": "cli-086.log",
+        "bytes": 646,
+        "sha256": "c403864e945f91e2ef3b0ba0cc7feda59bffb775f83ea8420e26619b2cc55da8"
+      },
+      {
+        "file": "cli-087.log",
+        "bytes": 22316,
+        "sha256": "003a28709ec54b2f67d89239e1cd5c98eae6dbf06c8372ee8a2a20aaaf0b2cd2"
+      },
+      {
+        "file": "cli-088.log",
+        "bytes": 316,
+        "sha256": "253198a5cffe8a78a6449690066290dc8da1e1f6e0d0b5214d8c444ad8e6edc8"
+      },
+      {
+        "file": "cli-089.log",
+        "bytes": 24277,
+        "sha256": "3573f988f131c5708541e11f0476e1839758109d6ce08427ba83f33d91f86112"
+      },
+      {
+        "file": "cli-090.log",
+        "bytes": 295,
+        "sha256": "ae246e3fdd35e03999400cfcf9872c3e30d62494f65cf2cb8319a5a24e108a3e"
+      },
+      {
+        "file": "cli-091.log",
+        "bytes": 20345,
+        "sha256": "62e481b46f215d2c51736f2ef350b14724a775d0f5945f56c87563461a8c8ce4"
+      },
+      {
+        "file": "cli-092.log",
+        "bytes": 506,
+        "sha256": "f5de871caa851b1dd7748cf0cb314715f22bbfaffc4aacd517b25a6c3238751c"
+      },
+      {
+        "file": "cli-093.log",
+        "bytes": 317,
+        "sha256": "cd379754d9aa53a53b5fc4912c0071a39532982831cdb753b09ff5f6f9daadd3"
+      },
+      {
+        "file": "cli-094.log",
+        "bytes": 646,
+        "sha256": "b6634a99db7338f2f56dae0c89a52de398ae88fd40aaf4c61b3e86dff3a1b6dd"
+      },
+      {
+        "file": "cli-095.log",
+        "bytes": 22315,
+        "sha256": "5a62ab6e47f92c50f67be7c2f50e51d908c10f208566df94b1a2ace20b5870c1"
+      },
+      {
+        "file": "cli-096.log",
+        "bytes": 316,
+        "sha256": "f15f62c373e75a6d1939e63fa9c6d0e81e94c0cf35a7d7af3ee9aae8dea7a219"
+      },
+      {
+        "file": "cli-097.log",
+        "bytes": 24276,
+        "sha256": "0427d68b4884899c2e25e30397253aab382b804b08390fcd3064f23b48ca4b7d"
+      },
+      {
+        "file": "cli-098.log",
+        "bytes": 295,
+        "sha256": "4432dae778b7a67be7a8f92cee77a6803d7b69752074b735819dff8d9ef6e9af"
+      },
+      {
+        "file": "cli-099.log",
+        "bytes": 20355,
+        "sha256": "7badf188c990f5ae51d7d38c7ba448da9365d6094cae1c1305d2bddd31c94891"
+      },
+      {
+        "file": "cli-100.log",
+        "bytes": 515,
+        "sha256": "bcf7bd2502b321e60362176fc8ad5f0ca94372e6cca972c18251ef794e6b86f0"
+      },
+      {
+        "file": "cli-101.log",
+        "bytes": 317,
+        "sha256": "8f9f76d2c4a92f20abd3d9592bcd364fa5586f8a458d749dc2e3d566019980d2"
+      },
+      {
+        "file": "cli-102.log",
+        "bytes": 646,
+        "sha256": "860688f9087b0007ae99e96bef6f2d92f83c7a01a2b3e47480ae5ffab51db8f5"
+      },
+      {
+        "file": "cli-103.log",
+        "bytes": 22325,
+        "sha256": "7088abcbedf005ee2f624a2d3e1f77ded7de63df4910e6020ac7dba98bf0f394"
+      },
+      {
+        "file": "cli-104.log",
+        "bytes": 316,
+        "sha256": "c250a177720ff738744f90bf788d3b1eea4ea11af74cb3643c5b344f3fdf56b3"
+      },
+      {
+        "file": "cli-105.log",
+        "bytes": 24286,
+        "sha256": "be146bc7765caa910fa740d0d143967e6df6dd29825db3254dcd01d59077e1e7"
+      },
+      {
+        "file": "cli-106.log",
+        "bytes": 295,
+        "sha256": "e726d2567d1a0ff00add861610e7ee2f0df9f26e1502e8cbd17141d816ef4a21"
+      },
+      {
+        "file": "cli-107.log",
+        "bytes": 14225,
+        "sha256": "f2c999646644de93478a0f5e9fe5f2638696977de4a941d56ac1e2328501cab3"
+      },
+      {
+        "file": "cli-108.log",
+        "bytes": 284,
+        "sha256": "0c697725ed23e46c719998428240f077e0ef23b9e174c84beb5b7e3ea9a896c7"
+      },
+      {
+        "file": "cli-109.log",
+        "bytes": 317,
+        "sha256": "d7d0fe6c893751978b6d9da141de1cb0ce810083b4a6645369e487786b3a5e6b"
+      },
+      {
+        "file": "cli-110.log",
+        "bytes": 646,
+        "sha256": "534f238918eb4f6d4d028a980c32ccee1ae3695706f1c61f47465dada300a6d3"
+      },
+      {
+        "file": "cli-111.log",
+        "bytes": 16195,
+        "sha256": "00e9452740d46b23395118cd7af4219a3f05bf17abdca6bab0f12b170b7c5e87"
+      },
+      {
+        "file": "cli-112.log",
+        "bytes": 316,
+        "sha256": "f347998b0f9ace4c7009b30f058fee5ee045f85bad1574a84877952f5fdd24b7"
+      },
+      {
+        "file": "cli-113.log",
+        "bytes": 343,
+        "sha256": "9a94758addfd03247bdc6a96c7566dbb18aac5c13cb4d2028baf7192df811587"
+      },
+      {
+        "file": "cli-114.log",
+        "bytes": 18156,
+        "sha256": "bb88055b438ff273fdb0938dc967e8a642dc737ef4d649252d3da8ba956fa29c"
+      },
+      {
+        "file": "cli-115.log",
+        "bytes": 130,
+        "sha256": "c9b5f9774d9ad626e1897181e24f41a10a6ce32169cf664b0a6d3b811e79d802"
+      },
+      {
+        "file": "cli-116.log",
+        "bytes": 18225,
+        "sha256": "474cdb753cce8c72093b39078224f42ce82dd7084a52e060828fe0091cb32580"
+      },
+      {
+        "file": "cli-117.log",
+        "bytes": 202,
+        "sha256": "ce76c63106e80a5162d70d507d9d8622b9c62b965302b304b364ec5af723a1ba"
+      },
+      {
+        "file": "cli-118.log",
+        "bytes": 18337,
+        "sha256": "111d4a00676e91c0e0b0c7d68bbc49abe5bfc2a1f3ef18df7e2cb0cb76947cfe"
+      },
+      {
+        "file": "cli-119.log",
+        "bytes": 290,
+        "sha256": "e60515ab66dec89ff9ebe02eb9761661eaf92eaa911680518b9cab085363ee4d"
+      },
+      {
+        "file": "cli-120.log",
+        "bytes": 14807,
+        "sha256": "5b0df27dc7e3e0b9c285e6f710fdf7236c4ad1347b55fda9adef4eb84305b9b6"
+      },
+      {
+        "file": "cli-121.log",
+        "bytes": 114,
+        "sha256": "6aea6fbac72b2ff7fa4f7b533d3fb7e04f0db0e69848b5a19d213815f24d8a68"
+      },
+      {
+        "file": "cli-122.log",
+        "bytes": 14807,
+        "sha256": "1f8b1dd4176a1b6f7a0e7e2d4704605ea95ccaebd64fa03193b579ef22032883"
+      },
+      {
+        "file": "cli-123.log",
+        "bytes": 290,
+        "sha256": "a9aa9caf8ef0f6927522f00e0e815d999538772d9cc388d558be2550f6939740"
+      },
+      {
+        "file": "cli-124.log",
+        "bytes": 96,
+        "sha256": "f64f17d52a18a97b13cd66760b0bf68374d3a58c0aa6816bd31312f50f63ac1a"
+      },
+      {
+        "file": "cli-125.log",
+        "bytes": 14577,
+        "sha256": "ef74ba4d9670debae249756acf22e5dd97eea33bdb77b58d509233256360b640"
+      },
+      {
+        "file": "cli-126.log",
+        "bytes": 293,
+        "sha256": "c0980e66b89caba229ed0808c6fe7ad1c8e784484d8e5f463f081fd68adef70a"
+      },
+      {
+        "file": "cli-127.log",
+        "bytes": 18337,
+        "sha256": "812f07e2e6fe7518684a7a91691fcfaf8c6265a1ad02834a80c89dc3c104a43c"
+      },
+      {
+        "file": "cli-128.log",
+        "bytes": 290,
+        "sha256": "edd1313888949ba65d4c8f8ca0f979d9ba9b7497d8f76ebff5e0a5d2dd4f6ebd"
+      },
+      {
+        "file": "cli-129.log",
+        "bytes": 14807,
+        "sha256": "cb2bea85a0b2ef4db01f9fa770d15dc262feb3e9204ab7dbf13a4fb1e0e43a79"
+      },
+      {
+        "file": "cli-130.log",
+        "bytes": 114,
+        "sha256": "6aea6fbac72b2ff7fa4f7b533d3fb7e04f0db0e69848b5a19d213815f24d8a68"
+      },
+      {
+        "file": "cli-131.log",
+        "bytes": 14807,
+        "sha256": "d42733412094252e800971323a1649e4eb24bce72ebd114dd8f2af14112861bb"
+      },
+      {
+        "file": "cli-132.log",
+        "bytes": 290,
+        "sha256": "21d07b3f738b8064743edd12decb29d270f8e1b20870a32e10aa1a4072d66cc2"
+      },
+      {
+        "file": "cli-133.log",
+        "bytes": 1442,
+        "sha256": "d0ba28d0389c0ba9763fc552d6ecef94e9e4f5be45e56688448504ae993ed1a3"
+      },
+      {
+        "file": "cli-134.log",
+        "bytes": 304,
+        "sha256": "6b5d256f9f60ac7bc4eeca7bd80ee9bed8a115d7cd009fc3d8f6a5b110fbbf1c"
+      },
+      {
+        "file": "cli-135.log",
+        "bytes": 96,
+        "sha256": "b7c37dacaa8815d359a08fdf5159a34dbec2cbc859eabf4b54b6f2d927f18997"
+      },
+      {
+        "file": "cli-136.log",
+        "bytes": 14577,
+        "sha256": "028c6d1467045f4209729c8b53093bcfa60a62e29bde57e941c2326efbc22b43"
+      },
+      {
+        "file": "cli-137.log",
+        "bytes": 293,
+        "sha256": "5bec0d6df16f220dccfd4ba5503092b8a07e3b0fb7f5efc296ea09c8bb521eb5"
+      },
+      {
+        "file": "cli-138.log",
+        "bytes": 18337,
+        "sha256": "812f07e2e6fe7518684a7a91691fcfaf8c6265a1ad02834a80c89dc3c104a43c"
+      },
+      {
+        "file": "cli-139.log",
+        "bytes": 290,
+        "sha256": "0b9d71567f961d2154e125230333cd5c7505710d0cd66712b0a58d749540a00f"
+      },
+      {
+        "file": "cli-140.log",
+        "bytes": 14807,
+        "sha256": "92aec1ee2bb2e7ba5d86009cb38247460f030dc1d9101bb003b80d1bdcabdbef"
+      },
+      {
+        "file": "cli-141.log",
+        "bytes": 114,
+        "sha256": "6aea6fbac72b2ff7fa4f7b533d3fb7e04f0db0e69848b5a19d213815f24d8a68"
+      },
+      {
+        "file": "cli-142.log",
+        "bytes": 14807,
+        "sha256": "f4c7ebac2360add8d3e219ea41a0825d69e08b041dc0e8fc35849076e62b3ba5"
+      },
+      {
+        "file": "cli-143.log",
+        "bytes": 290,
+        "sha256": "4a4459415732841fd394165a72bd48edb2af5cebfcfde3bba9c65dcaa325e1f8"
+      },
+      {
+        "file": "cli-144.log",
+        "bytes": 1442,
+        "sha256": "68bbc18b4f65b80aaf6a8359ab516995b3ba35f2b61ffe5528d22790a5cc418c"
+      },
+      {
+        "file": "cli-145.log",
+        "bytes": 304,
+        "sha256": "2f5e181906452dcbad42bd81c473f8b65b8d3ab63fda23d513cd71e3f9cc3956"
+      },
+      {
+        "file": "cli-146.log",
+        "bytes": 97,
+        "sha256": "b973981c81cc189ee8b020ee91e5ccbde3bcadb8df826bac006cba3c778a8d20"
+      },
+      {
+        "file": "cli-147.log",
+        "bytes": 14577,
+        "sha256": "4ef861e712fec97dde601723c746ae5a02575773dc8aecae7d9d598878cd19ac"
+      },
+      {
+        "file": "cli-148.log",
+        "bytes": 293,
+        "sha256": "c2defa9c51907b807accbe2668d9b816b2e8a20819476163a789f9c6b747df5c"
+      },
+      {
+        "file": "cli-149.log",
+        "bytes": 18337,
+        "sha256": "812f07e2e6fe7518684a7a91691fcfaf8c6265a1ad02834a80c89dc3c104a43c"
+      },
+      {
+        "file": "cli-150.log",
+        "bytes": 290,
+        "sha256": "c1127a9b97c634f5f59fdec47e754327ebc3b94a9232b461fadbfee9fb18e355"
+      },
+      {
+        "file": "cli-151.log",
+        "bytes": 14807,
+        "sha256": "0a446a5a68478f0a36afa95adab87ff0ba8a6edbd333f6657569a6465c7e389f"
+      },
+      {
+        "file": "cli-152.log",
+        "bytes": 114,
+        "sha256": "6aea6fbac72b2ff7fa4f7b533d3fb7e04f0db0e69848b5a19d213815f24d8a68"
+      },
+      {
+        "file": "cli-153.log",
+        "bytes": 14807,
+        "sha256": "7b5120b6eff56b3338cda6f205ed65993684c224a0068a5591bf9c4618048fbf"
+      },
+      {
+        "file": "cli-154.log",
+        "bytes": 290,
+        "sha256": "6f078f972e69fd6224b0aded5d0816b46b2348ef2afbf4e8cbb61ed5e387fde5"
+      },
+      {
+        "file": "cli-155.log",
+        "bytes": 1442,
+        "sha256": "658cbf3eba48c998245429bb92918fc124544cf5fc81d5972f1d3adbe7e44c3a"
+      },
+      {
+        "file": "cli-156.log",
+        "bytes": 304,
+        "sha256": "e81eed1b532fc5284d6eefb9429fbea8a81fbe9ed84ffa8a918514cfc0b8c62d"
+      },
+      {
+        "file": "cli-157.log",
+        "bytes": 96,
+        "sha256": "f64f17d52a18a97b13cd66760b0bf68374d3a58c0aa6816bd31312f50f63ac1a"
+      },
+      {
+        "file": "cli-158.log",
+        "bytes": 14577,
+        "sha256": "4aa9f84a3c03a35225791063e33a6587022e51417872d16b87f39a0e9fe41d0f"
+      },
+      {
+        "file": "cli-159.log",
+        "bytes": 296,
+        "sha256": "d192c7435831ea088b361da302251664f55d156ab0cae3a6ec9aabac5e9005cf"
+      },
+      {
+        "file": "cli-160.log",
+        "bytes": 14553,
+        "sha256": "66f73ac986f87afc54b5686a9291f22e8c7fbc88151d2f827bd325191d2fc388"
+      },
+      {
+        "file": "cli-161.log",
+        "bytes": 199,
+        "sha256": "d62138259a26e15471612a3ae77920e9e8aa52c8488babe39885ccf613f3498f"
+      },
+      {
+        "file": "cli-162.log",
+        "bytes": 14677,
+        "sha256": "43401ef0d27274f469b0cf29dd3b5634cf680589e8cb97655ffcf059f84dfa73"
+      },
+      {
+        "file": "cli-163.log",
+        "bytes": 299,
+        "sha256": "cb7e5450b0458866654eaf37433923588fa888f2345db4422451c4f5d58951e0"
+      },
+      {
+        "file": "cli-164.log",
+        "bytes": 248,
+        "sha256": "545eb11f910b321d86c6064ff94c3f71ba4b96c37b400adeae5ab0fec93d26dd"
+      },
+      {
+        "file": "cli-165.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-166.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-167.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-168.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-169.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-170.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-171.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-172.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-173.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-174.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-175.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-176.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-177.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-178.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-179.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-180.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-181.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-182.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-183.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-184.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-185.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-186.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-187.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-188.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-189.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-190.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-191.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-192.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-193.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-194.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-195.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-196.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-197.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-198.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-199.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-200.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-201.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-202.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-203.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-204.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-205.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-206.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-207.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-208.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-209.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-210.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-211.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-212.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-213.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-214.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-215.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-216.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-217.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-218.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-219.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-220.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-221.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-222.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-223.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-224.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-225.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-226.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-227.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-228.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-229.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-230.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-231.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-232.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-233.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-234.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-235.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-236.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-237.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-238.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-239.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-240.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-241.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-242.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-243.log",
+        "bytes": 5794,
+        "sha256": "57b33005a697163d7557c4dfe4c2cbb650f956e48f13eb5a3388b912084f709c"
+      },
+      {
+        "file": "cli-244.log",
+        "bytes": 289,
+        "sha256": "d3f847b4f5088ed4d6d1c8981c184b69578edf5d4e225c2b9d6c8d6eb767f465"
+      },
+      {
+        "file": "cli-245.log",
+        "bytes": 5957,
+        "sha256": "fdec207bc55cdb2ebd4ddb319aca415dd058cb943c081b17cb84020bc0cd4dc8"
+      },
+      {
+        "file": "cli-246.log",
+        "bytes": 297,
+        "sha256": "92dc23c0e95217597871c357d480bcac0f5fd8949fb0355405e269cc506fde70"
+      },
+      {
+        "file": "cli-247.log",
+        "bytes": 20905,
+        "sha256": "60e2a5b169067f49acaed395bc4583c58da22d140008147f626540fa0ee807ca"
+      },
+      {
+        "file": "cli-248.log",
+        "bytes": 20905,
+        "sha256": "60e2a5b169067f49acaed395bc4583c58da22d140008147f626540fa0ee807ca"
+      },
+      {
+        "file": "cli-249.log",
+        "bytes": 288,
+        "sha256": "44dfe929c36de7bee54266ff10a7e92e112872fea6526ee11e0e7930b5ce5273"
+      },
+      {
+        "file": "cli-250.log",
+        "bytes": 8965,
+        "sha256": "105cdd9e47b365902ccb7c0d0ba5195fa1292926a0c8d52682be81a26159f838"
+      },
+      {
+        "file": "cli-251.log",
+        "bytes": 352,
+        "sha256": "69a804a28f635d52a1aea02a4972dcacd0a25252e7674db68859b8bf48127f60"
+      },
+      {
+        "file": "cli-252.log",
+        "bytes": 58,
+        "sha256": "5e022534a5fe0feeb06a8fc815ff2ad8e4598aae62e789579db7dbcbfb58bc2a"
+      },
+      {
+        "file": "cli-253.log",
+        "bytes": 45974,
+        "sha256": "4a0c281afb80b18f78c224e3cdbb44e0ed275956a93101093b97b1b89af77986"
+      },
+      {
+        "file": "cli-254.log",
+        "bytes": 42,
+        "sha256": "686ed9c58b99e915fd4f0542983479ea21c058101ded57854b5193ed447e44d1"
+      },
+      {
+        "file": "restart-cli-002.log",
+        "bytes": 96,
+        "sha256": "b7c37dacaa8815d359a08fdf5159a34dbec2cbc859eabf4b54b6f2d927f18997"
+      },
+      {
+        "file": "restart-cli-003.log",
+        "bytes": 6077,
+        "sha256": "778ca48b5859d14de2b41b513f5e836dfd18a6257b49015fc47729490eb0fb4e"
+      },
+      {
+        "file": "restart-cli-004.log",
+        "bytes": 297,
+        "sha256": "803b77aac2de126bbeacfc8ee2a65bde44bdc905f9bcfef1ba61e287e069de2b"
+      },
+      {
+        "file": "restart-cli-005.log",
+        "bytes": 20348,
+        "sha256": "48713ff25f3a8fbdd87c4cad70b1a6a78325483333662ff81f063a3d0157e8da"
+      },
+      {
+        "file": "restart-cli-006.log",
+        "bytes": 288,
+        "sha256": "feb04b67b3f49977719819c7684c062b88fb53e4fc6be5a1fed9c1a5fbb45a1d"
+      },
+      {
+        "file": "restart-cli-007.log",
+        "bytes": 8749,
+        "sha256": "ee88989200b00c61a48e9b4a646e2a6f9af49344d580b96e44e41f56a2ac3699"
+      },
+      {
+        "file": "restart-cli-008.log",
+        "bytes": 376,
+        "sha256": "a246730b069a1596d0c791b0687db9cc3ce4dda8e823a50ffd1dc3a00c6a68b2"
+      },
+      {
+        "file": "restart-cli-009.log",
+        "bytes": 58,
+        "sha256": "5e022534a5fe0feeb06a8fc815ff2ad8e4598aae62e789579db7dbcbfb58bc2a"
+      },
+      {
+        "file": "restart-cli-010.log",
+        "bytes": 5264,
+        "sha256": "4532124a8e81f791e660060056c16e97048644ec42cceeb74d304112b3543efe"
+      },
+      {
+        "file": "restart-cli-011.log",
+        "bytes": 50,
+        "sha256": "26b1a0d412ff164f62fddb43394c67555342a5163f09d03f76f709483fea5888"
+      }
+    ],
+    "excluded": [
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\cli-001.log",
+        "reason": "Contains ephemeral local session credential; private original retained"
+      },
+      {
+        "file": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-viewer-v79\\restart-cli-001.log",
+        "reason": "Contains ephemeral local session credential; private original retained"
+      }
+    ]
+  }
+}

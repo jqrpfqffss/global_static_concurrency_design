@@ -1,0 +1,52 @@
+"""Independent exact copy of the verified import for actual shipped Viewer UI checks."""
+import hashlib,json,os,shutil,sys,time,traceback,urllib.request
+from pathlib import Path
+w=Path(__file__).parent;bundle=Path('H:/ECRAStudio-build-20261106-studio-v79/ECRA-Portable')
+sys.path.insert(0,str(bundle))
+from ecra.report_package import sha256
+from ecra.studio.process_budget import ProcessBudget
+from ecra.studio.write_guard import OwnedProcess
+from ecra.workspace import no_links
+source=w/'native-final-package-inav-v78-r2/independent-viewer-data/scans/native-golden'
+work=w/'latest-large-viewer-v79';assert not work.exists();work.mkdir()
+proof=w/'native-final-package-inav-v78-r2/import/worker.json';receipt=json.loads(proof.read_text('utf-8'))
+assert receipt['passed'] and receipt['all_raw_roots_equal'] and receipt['all_review_tables_equal']
+assert Path(receipt['restored_scan']).resolve()==source.resolve()
+destination=work/'data/scans/native-golden';state=dict(passed=False,status='COPYING_VERIFIED_IMPORT',scope='Actual v79 CMD and browser on an exact independent copy of the latest strict package import; original firmware remains on this host. Not physical second PC, clean offline PC, or complete U19.',source=str(source),import_receipt_sha256=sha256(proof),package_sha256=receipt['package_sha256'])
+def save():(work/'setup.json').write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n','utf-8')
+def files(root):
+ result={}
+ for p in root.rglob('*'):
+  no_links(p)
+  if p.is_file():result[p.relative_to(root).as_posix()]=dict(size=p.stat().st_size,sha256=sha256(p))
+ return result
+save();budget=process=log=None
+try:
+ before=files(source);shutil.copytree(source,destination);assert files(destination)==before
+ (work/'source-files.json').write_text(json.dumps(before,indent=2)+'\n','utf-8')
+ state.update(status='STARTING_ACTUAL_CMD',copied_files=len(before),static_sha256_before=before['scan.db']['sha256']);save()
+ helper=work/'launch.cmd';session=work/'session.json'
+ helper.write_text('@echo off\r\ncall "'+str(bundle/'ECRA.cmd')+'" --no-browser --data-root "'+str(work/'data')+'" --session-file "'+str(session)+'"\r\nexit /b %ERRORLEVEL%\r\n',encoding='ascii',newline='')
+ windows=Path(os.environ.get('SystemRoot','C:/Windows'))
+ log=(work/'launcher.log').open('xb');budget=ProcessBudget(2*1024**3)
+ process=OwnedProcess([str(windows/'System32/cmd.exe'),'/d','/c',str(helper)],cwd=bundle,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED='0',LOCALAPPDATA=str(work/'user'),PATH=str(windows/'System32')+os.pathsep+str(windows)),log=log)
+ budget.assign(process);process.resume();until=time.monotonic()+120
+ while not session.exists():
+  if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Actual CMD startup failed')
+  time.sleep(.2)
+ state.update(status='READY_FOR_REAL_BROWSER',pid=process.pid,limit_bytes=2*1024**3);save()
+ until=time.monotonic()+3600
+ with (work/'resources.jsonl').open('x',encoding='utf-8') as stream:
+  while not (work/'stop').exists():
+   if process.poll() is not None or time.monotonic()>until:raise RuntimeError('Viewer ended or acceptance timed out')
+   sample=budget.sample();state['peak_job_commit_bytes']=max(state.get('peak_job_commit_bytes',0),sample['peak_job_commit_bytes'])
+   stream.write(json.dumps(sample)+'\n');stream.flush();time.sleep(1)
+ assert files(source)==before
+ assert sha256(destination/'scan.db')==before['scan.db']['sha256']
+ state.update(passed=True,status='PASS_INDEPENDENT_COPY_AND_ORIGINAL_UNCHANGED',source_differences=[],static_unchanged=True)
+except BaseException:state.update(status='FAIL',error=traceback.format_exc());raise
+finally:
+ if budget:budget.close()
+ if process:process.close()
+ if log:log.close()
+ save()

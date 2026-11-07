@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "archive": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\latest-large-v78-raw-resources.zip",
+  "archive_bytes": 384924,
+  "archive_sha256": "f83d75bdde8ec625c61efbb59a17799ba17e459208a995c151210078d05eefff",
+  "files": [
+    {
+      "file": "export/resources.jsonl",
+      "bytes": 5373738,
+      "sha256": "5240c3379cdd3a081652614892e7829db87678a4573ba4d349be1a5761660d05"
+    },
+    {
+      "file": "import/resources.jsonl",
+      "bytes": 3079073,
+      "sha256": "4a682bb6eaf65ab86b289b2444c6a589efb025005b01019fa32c5523f68d8906"
+    },
+    {
+      "file": "compare/resources.jsonl",
+      "bytes": 3074232,
+      "sha256": "ffafcea8e293f968b3d9fc9c9da60bb3cb9f4d56712ffcdabf445091ff2a8d33"
+    },
+    {
+      "file": "retention/resources.jsonl",
+      "bytes": 614573,
+      "sha256": "06190edc3725908c9d60a85bb5fc5d537dd8d73a2808763b7e04984643b90a28"
+    }
+  ]
+}
