@@ -332,6 +332,30 @@ class ProtectionIndex:
             raise ValueError('保护证据索引与当前事实快照不一致，必须重新建立索引。')
 
 
+def _fixed_exception_slots(context):
+    """Recognize architectural exceptions independently of C handler names.
+
+    Vector-table entries carry ABI slots; configured handlers can identify
+    the same exception by vector/IRQn name or IRQ number. A positive IRQ
+    number is an external IRQ number, never an ABI slot.
+    """
+    slots = set()
+    if type(context.get('slot')) is int:
+        slots.add(context['slot'])
+    for value in (context.get('vector'), context.get('irq'), context.get('physical_id')):
+        if type(value) is int:
+            slots.add(value + 16)
+        elif isinstance(value, str):
+            value = value.removeprefix('IRQ:')
+            if value.startswith('slot:') and value[5:].isdigit():
+                slots.add(int(value[5:]))
+            elif value in {'NMI', 'NMI_Handler', 'NMI_IRQn', 'NonMaskableInt_IRQn'}:
+                slots.add(2)
+            elif value in {'HardFault', 'HardFault_Handler', 'HardFault_IRQn'}:
+                slots.add(3)
+    return slots
+
+
 def assess(accesses, events, contexts, facts, cfg, *, index=None):
     if index is not None:
         index.validate(facts)
@@ -362,7 +386,9 @@ def assess(accesses, events, contexts, facts, cfg, *, index=None):
         windows = ([w for w in index.windows_by_symbol.get(relevant[0]['symbol_id'], ())
                     if w['context_id'] in mains] if relevant else [])
         funcs = index.functions
-    unmaskable = any(funcs.get(b['function_id'], {}).get('name') in {'NMI_Handler', 'HardFault_Handler'}
+    fixed_slots = {c: _fixed_exception_slots(contexts[c]) for c in isrs}
+    unmaskable = any(fixed_slots[c] & {2, 3} for c in isrs)
+    unmaskable |= any(funcs.get(b['function_id'], {}).get('name') in {'NMI_Handler', 'HardFault_Handler'}
                      for b in facts['context_bindings'] if b['call_depth'] == 0 and b['context_id'] in isrs)
     unmaskable |= any(contexts[c].get('unmaskable') for c in isrs)
     main_accesses = [a for a in relevant if set(a.get('contexts', [])) & mains]
@@ -372,10 +398,11 @@ def assess(accesses, events, contexts, facts, cfg, *, index=None):
     isr_pairs = [r for r in facts.get('preemption_relations', []) if set(r['contexts']) <= isrs]
     participants = bool(mains and isrs) and ids == mains | isrs and not unmaskable
     participants &= all(r['relation'] == 'SERIAL' for r in isr_pairs)
-    nmi = any(funcs.get(b['function_id'], {}).get('name') == 'NMI_Handler'
+    nmi = any(2 in fixed_slots[c] for c in isrs)
+    nmi |= any(funcs.get(b['function_id'], {}).get('name') == 'NMI_Handler'
               for b in facts['context_bindings'] if b['call_depth'] == 0 and b['context_id'] in isrs)
     if (complete and mains and isrs and ids == mains | isrs and not nmi
-            and not any(contexts[c].get('unmaskable') for c in isrs)
+            and not any(contexts[c].get('unmaskable') and fixed_slots[c] != {3} for c in isrs)
             and all(r['relation'] == 'SERIAL' for r in isr_pairs)
             and windows and all(w.get('faultmask') for w in windows)):
         return 'EFFECTIVE', details, 'CFG 完整访问窗口持续 FAULTMASK=1；竞争方不含 NMI。'

@@ -140,6 +140,35 @@ def has_entry_label(cursor):
     return any(child.kind.name in {'LABEL_STMT', 'CASE_STMT', 'DEFAULT_STMT'} for child in walk(cursor))
 
 
+def function_alias_attribute(cursor):
+    """Recognize an actual Clang alias attribute, never source/comment text.
+
+    Macro attribute token extents can include unrelated declarations. Only
+    Clang's expanded declaration can supply the target in that case.
+    """
+    return next((child for child in cursor.get_children()
+                 if child.kind.name.endswith('_ATTR')
+                 and tokens(child, 1) in (['alias'], ['__alias__'])), None)
+
+
+def function_alias_target(cursor):
+    lib = ci.conf.lib
+    policy = lib.clang_getCursorPrintingPolicy
+    policy.argtypes, policy.restype = [ci.Cursor], ctypes.c_void_p
+    printed = lib.clang_getCursorPrettyPrinted
+    printed.argtypes, printed.restype = [ci.Cursor, ctypes.c_void_p], ci._CXString
+    printed.errcheck = ci._CXString.from_result
+    dispose = lib.clang_PrintingPolicy_dispose
+    dispose.argtypes, dispose.restype = [ctypes.c_void_p], None
+    value = policy(cursor)
+    try:
+        text = printed(cursor, value)
+    finally:
+        dispose(value)
+    targets = re.findall(r'__attribute__\s*\(\(\s*(?:__)?alias(?:__)?\s*\(\s*"([A-Za-z_$][A-Za-z_0-9.$]*)"\s*\)\s*\)\)', text)
+    return (targets[0] if len(targets) == 1 else None), text
+
+
 class Extractor:
     def __init__(self, request):
         self.root = Path(request["root"]).resolve()
@@ -147,6 +176,7 @@ class Extractor:
         self.cfg = request["config"]
         self.tu_name = self.unit["source_file"]
         self.variables, self.functions, self.symbols = {}, {}, {}
+        self.function_definition_cursors, self.function_alias_cursors = {}, {}
         self.accesses, self.calls, self.unknowns = [], [], []
         self.events, self.irq_priority_events, self.registrations, self.snapshots = [], [], [], []
         self.control_flow = []
@@ -209,7 +239,8 @@ class Extractor:
         k = c.kind.name
         if k in FUNCTIONS:
             function = c
-            if c.is_definition():
+            alias_attribute = function_alias_attribute(c)
+            if c.is_definition() or alias_attribute is not None:
                 attributes = [ch for ch in c.get_children() if ch.kind.name.endswith('_ATTR')]
                 f = dict(function_id=self.fid(c), name=c.spelling, qualified_name=c.displayname,
                          linkage=c.linkage.name, is_static=c.linkage.name == "INTERNAL",
@@ -228,6 +259,14 @@ class Extractor:
                          is_variadic=c.type.kind.name == 'FUNCTIONPROTO' and c.type.is_function_variadic(),
                          **self.loc(c), end_line=c.extent.end.line, end_offset=c.extent.end.offset)
                 self.functions[f["function_id"]] = f
+                if c.is_definition():
+                    self.function_definition_cursors[f['function_id']] = c
+                if alias_attribute is not None:
+                    self.function_alias_cursors[f['function_id']] = c
+                    f['function_alias'] = dict(status='UNRESOLVED', declaration=dict(self.loc(c)),
+                        attribute_kind=alias_attribute.kind.name,
+                        attribute_spelling=' '.join(tokens(alias_attribute, 8)),
+                        translation_unit=self.tu_name)
                 f['semantic_digest'] = digest([t.spelling for t in c.get_tokens() if t.kind.name != 'COMMENT'])
                 if k != "FUNCTION_DECL":
                     self.issue("CPP_SEMANTICS_REVIEW", c, f["function_id"])
@@ -330,6 +369,50 @@ class Extractor:
             # Include project and actually included vendor headers; no name-based filtering.
             if self.interesting(child):
                 self.declare(child, function)
+
+    def recover_function_aliases(self):
+        """Bind no-argument C ABI aliases to exact strong bodies in this TU.
+
+        Alias forwarding is a distinct control-flow relation, not a fabricated
+        source call. Parameter/return forwarding and weak-target interposition
+        require additional modeling and must not silently become empty bodies.
+        """
+        inlined = ci.conf.lib.clang_Cursor_isFunctionInlined
+        inlined.argtypes, inlined.restype = [ci.Cursor], ctypes.c_uint
+        definitions = defaultdict(list)
+        for fid, cursor in self.function_definition_cursors.items():
+            definitions[cursor.mangled_name].append((fid, cursor))
+        for fid, cursor in self.function_alias_cursors.items():
+            row = self.functions[fid]
+            evidence = row['function_alias']
+            try:
+                target, expanded = function_alias_target(cursor)
+            except (AttributeError, OSError, ctypes.ArgumentError) as exc:
+                evidence['reason'] = 'Clang 无法提供已展开的 alias 参数：' + str(exc)
+                continue
+            evidence['target_symbol'] = target
+            evidence['expanded_declaration'] = expanded
+            matches = definitions.get(target, ())
+            if len(matches) != 1:
+                evidence['reason'] = 'alias 目标不是当前 TU 中唯一的真实函数体'
+                continue
+            target_id, body = matches[0]
+            target_row = self.functions[target_id]
+            if (cursor.kind.name != 'FUNCTION_DECL' or cursor.is_definition()
+                    or cursor.type.get_canonical() != body.type.get_canonical()
+                    or cursor.type.get_canonical().kind.name != 'FUNCTIONPROTO'
+                    or row['parameter_count'] != 0 or row['return_type_kind'] != 'VOID'
+                    or row['is_variadic'] or target_row.get('is_weak')
+                    or inlined(body)):
+                evidence['reason'] = 'alias 需要准确相同的无参数 void ABI 和非 weak、非 inline 目标；其他形式尚未证明'
+                continue
+            evidence.update(status='RESOLVED', target_function_id=target_id,
+                            target_definition=dict(self.loc(body)),
+                            resolution='CLANG_GNU_ALIAS_SAME_TU_EXACT_LINK_SYMBOL')
+            self.calls.append(dict(caller_function_id=fid, callee_function_id=target_id,
+                callee_name=target_row['name'], call_kind='GNU_FUNCTION_ALIAS',
+                alias_evidence=dict(evidence), **self.loc(cursor),
+                resolution=evidence['resolution'], source_text=self.source(cursor)))
 
     def record_members(self, typ, prefix='', seen=(), base_offset_bits=0, union_groups=()):
         """Return declared field paths for a record, including nested records.
@@ -876,6 +959,7 @@ class Extractor:
         dynamic_inputs = dynamic_input_abstraction(tu, macro_dependencies, self.root)
         start_stage('Clang 声明提取', self.tu_name)
         self.declare(tu.cursor)
+        self.recover_function_aliases()
         # A macro may change only a global/static initializer, with no change
         # to any function's source tokens. Bind declarations as consumers too.
         from .macro_semantics import function_signatures

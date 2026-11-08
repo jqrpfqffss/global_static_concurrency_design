@@ -73,6 +73,11 @@ def build_path(value, *, prefer_junction=False):
     if os.name != 'nt' or (str(path).isascii() and not compact):
         return str(path)
     for root, alias in sorted(_BUILD_ALIASES.items(), key=lambda item: len(str(item[0])), reverse=True):
+        # Compact build paths have one deterministic alias per exact directory.
+        # Reusing an ancestor would make CMake's cache/database spelling depend
+        # on which directories happened to be registered earlier in this run.
+        if compact and root != path:
+            continue
         junction = (alias.exists() and bool(getattr(alias.lstat(), 'st_file_attributes', 0)
                                             & stat.FILE_ATTRIBUTE_REPARSE_POINT)) if compact else False
         if path.is_relative_to(root) and str(alias/path.relative_to(root)).isascii() and (not compact or junction):
@@ -81,9 +86,15 @@ def build_path(value, *, prefer_junction=False):
     # A tool-side workspace may contain a Chinese project name even when the
     # package directory itself is ASCII. Aliasing only the package left that
     # suffix unchanged and ARM ar/ranlib could fail in CMake's compiler probe.
-    # Cover the nearest existing directory, including non-ASCII descendants.
-    root = path if path.is_dir() else path.parent
-    while not root.is_dir():
+    # Compact callers identify a directory even before its first configure.
+    # A junction may target that not-yet-created directory; retaining the exact
+    # target makes the first configure and later runs use the same spelling
+    # without creating or modifying the target here. Noncompact tool/file paths
+    # continue to alias the nearest existing directory and retain sibling layout.
+    if compact and path.exists() and not path.is_dir():
+        raise ValueError('短构建别名要求目录：'+str(path))
+    root = path if compact or path.is_dir() else path.parent
+    while not compact and not root.is_dir():
         root = root.parent
     root = root.resolve()
     alias = Path(_short_path(root))

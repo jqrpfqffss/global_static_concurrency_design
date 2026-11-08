@@ -21,6 +21,15 @@ def _is_link(path):
         bool(getattr(path.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT))
 
 
+def cmake_toolchain_input(root, build, value):
+    """Resolve the configure input using CMake's build-first relative contract."""
+    path = Path(value)
+    if not path.is_absolute():
+        built = Path(build) / path
+        path = built if built.is_file() else Path(root) / path
+    return path.resolve()
+
+
 def _validated_build_directory(root, requested, boundary=None):
     for item in (requested, *requested.parents):
         if _is_link(item):
@@ -147,7 +156,16 @@ def configure_cmake(root, analysis, progress, build_firmware):
     command += ['-DCMAKE_BUILD_TYPE=' + settings.get('build_type', 'Debug')]
     if settings.get('toolchain_file'):
         toolchain = (root/settings['toolchain_file']).resolve()
-        command += ['-DCMAKE_TOOLCHAIN_FILE=' + (build_path(toolchain) if bundle_root() else str(toolchain))]
+        previous_toolchain = read_cache(build).get('CMAKE_TOOLCHAIN_FILE')
+        same_toolchain = (toolchain.is_file() and previous_toolchain
+                          and cmake_toolchain_input(root, build, previous_toolchain) == toolchain)
+        will_clean = settings.get('clean_before_configure', False) and build_firmware
+        # Repeating -D overwrites CMake's initialized FILEPATH/help metadata,
+        # changing an otherwise identical Cache on the first reconfigure.
+        # Keep the proved same cached input, but explicitly select new/changed
+        # toolchains and every fresh configure after an owned-directory clean.
+        if not same_toolchain or will_clean:
+            command += ['-DCMAKE_TOOLCHAIN_FILE=' + (build_path(toolchain) if bundle_root() else str(toolchain))]
     args = settings.get('args', [])
     if any(x in {'-S', '-B', '-G', '--preset', '--build', '--install'} or x.startswith(('-S', '-B', '-G', '--preset=')) for x in args):
         raise ValueError('cmake.args 不可覆盖源码/构建目录或生成器；请使用对应配置字段')
@@ -273,6 +291,75 @@ def configure_cmake(root, analysis, progress, build_firmware):
     return database, records
 
 
+def _include_probe_encodings():
+    encodings = ['utf-8']
+    if os.name == 'nt':
+        import ctypes
+        import codecs
+        encoding = 'cp' + str(ctypes.windll.kernel32.GetACP())
+        if codecs.lookup(encoding).name != codecs.lookup('utf-8').name:
+            encodings.append(encoding)
+    return encodings
+
+
+def _include_probe_diagnostic(stderr):
+    if isinstance(stderr, str):
+        return stderr[-2000:]
+    variants = []
+    seen = set()
+    for encoding in _include_probe_encodings():
+        try:
+            text = stderr.decode(encoding, errors='strict')
+        except UnicodeDecodeError:
+            continue
+        if text not in seen:
+            seen.add(text)
+            variants.append('[' + encoding + ']\n' + text[-2000:])
+    return '\n'.join(variants) if variants else '无法严格解码输出；原始stderr字节(hex)：' + stderr[-1000:].hex(' ')
+
+
+def _include_probe_paths(stderr, directory):
+    start = '#include <...> search starts here:'
+    end = 'End of search list.'
+    capture = complete = False
+    paths = []
+    encodings = _include_probe_encodings()
+    for line in stderr.splitlines():
+        marker = line.strip()
+        if marker == (start.encode('ascii') if isinstance(line, bytes) else start):
+            capture = True
+        elif marker == (end.encode('ascii') if isinstance(line, bytes) else end):
+            if capture:
+                complete = True
+            capture = False
+        elif capture and marker:
+            texts = []
+            if isinstance(marker, str):
+                texts.append(marker)
+            else:
+                for encoding in encodings:
+                    try:
+                        texts.append(marker.decode(encoding, errors='strict'))
+                    except UnicodeDecodeError:
+                        continue
+            existing = {}
+            for text in texts:
+                try:
+                    path = (Path(directory) / text).resolve()
+                    if path.is_dir():
+                        existing[os.path.normcase(str(path))] = str(path)
+                except (OSError, ValueError, RuntimeError):
+                    continue
+            if len(existing) > 1:
+                raise ValueError('头文件路径编码有歧义，存在不同的实际目录：' + '；'.join(existing.values()))
+            if not existing:
+                raise ValueError('无法无损恢复GCC报告的头文件目录：' + repr(marker))
+            paths.append(next(iter(existing.values())))
+    if not complete or capture:
+        raise ValueError('GCC输出缺少完整的标准头搜索列表')
+    return list(dict.fromkeys(paths))
+
+
 def system_includes(unit):
     """Ask the actual Arm GCC for its search path; never evaluate a shell line."""
     raw = unit['original_arguments']
@@ -292,20 +379,17 @@ def system_includes(unit):
             sysroot.extend([arg, args[i+1]])
     language = system_include_language(unit)
     proc = execute([executable, *sysroot, '-E', '-x', language, '-v', '-'], stdin=subprocess.DEVNULL,
-                   cwd=unit['directory'], env=dict(tool_environment(), LC_ALL='C'), timeout=20)
-    paths, capture = [], False
-    for line in proc.stderr.splitlines():
-        if '#include <...> search starts here:' in line:
-            capture = True
-        elif 'End of search list.' in line:
-            capture = False
-        elif capture:
-            p = (Path(unit['directory']) / line.strip()).resolve()
-            if p.is_dir():
-                paths.append(str(p))
-    if proc.returncode or not paths:
-        raise ValueError(f'Arm GCC 标准头文件探测失败: {compiler}\n{proc.stderr[-2000:]}')
-    return list(dict.fromkeys(paths))
+                   cwd=unit['directory'], env=dict(tool_environment(), LC_ALL='C'), timeout=20,
+                   text=False, encoding=None, errors=None)
+    try:
+        if proc.returncode:
+            raise ValueError('编译器退出码：' + str(proc.returncode))
+        paths = _include_probe_paths(proc.stderr, unit['directory'])
+        if not paths:
+            raise ValueError('标准头搜索列表为空')
+    except ValueError as exc:
+        raise ValueError(f'Arm GCC 标准头文件探测失败: {compiler}\n{exc}\n{_include_probe_diagnostic(proc.stderr)}') from exc
+    return paths
 
 
 def system_include_language(unit):

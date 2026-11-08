@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 import sqlite3
 import tempfile
-import time
 import unittest
 
 from fastapi.testclient import TestClient
@@ -18,6 +17,7 @@ from ecra.studio.server import create_app
 from ecra.studio.migration_jobs import MigrationJobs
 from ecra.storage_activity import DataActivity
 from ecra.workspace import WorkspaceResolver
+from tests.async_jobs import wait_migration,settle_migration,cleanup_temporary
 
 
 class LegacyImportTests(unittest.TestCase):
@@ -71,31 +71,31 @@ class LegacyImportTests(unittest.TestCase):
         (self.old/'facts.json').unlink()
         app=create_app(self.data,token='degraded-token',authority='127.0.0.1:12345')
         with TestClient(app,base_url='http://127.0.0.1:12345',headers={'x-ecra-session':'degraded-token','origin':'http://127.0.0.1:12345'}) as client:
-            payload=dict(source=str(self.old),project_root=str(self.root))
-            self.assertEqual(client.post('/api/migrations/preview',json=payload).status_code,400)
-            preview=client.post('/api/migrations/preview',json=dict(payload,allow_degraded=True))
-            self.assertEqual(preview.status_code,200,preview.text);plan=preview.json();self.assertTrue(plan['degraded'])
-            start=client.post('/api/migrations',json=dict(payload,allow_degraded=True,revision=plan['revision']))
-            self.assertEqual(start.status_code,200,start.text);ident=start.json()['id'];deadline=time.monotonic()+10
-            while True:
-                job=client.get('/api/migrations/'+ident).json()
-                if job['state']!='RUNNING':break
-                if time.monotonic()>deadline:self.fail('migration did not finish')
-                time.sleep(.02)
-            self.assertEqual(job['state'],'COMPLETE',job);scan=job['scan_id']
-            summary=client.get('/api/scans/'+scan+'/summary')
-            self.assertEqual(summary.status_code,200,summary.text);value=summary.json()
-            self.assertTrue(value['legacy_degraded']);self.assertFalse(value['can_confirm']);self.assertFalse(value['can_review'])
-            self.assertEqual(value['static_counts'],{});self.assertEqual(value['total'],0)
-            denied=client.post('/api/scans/'+scan+'/human',json=dict(symbol_id='invented',reviewer='no',decision='CONFIRMED_SAFE'))
-            self.assertEqual(denied.status_code,400);self.assertIn('未验证原件',denied.json()['error'])
-            files=client.get('/api/scans/'+scan+'/legacy-files').json()['items']
-            text=next(row for row in files if row['file']=='review/answer.txt')
-            raw=client.get('/api/scans/'+scan+'/legacy-file?ordinal='+str(text['ordinal'])).json()
-            self.assertIn('<script>',raw['text']);self.assertEqual(raw['source'],'归档旧文件原始字节；仅文本/十六进制查看，不作为当前安全证明')
+            ident=None
+            try:
+                payload=dict(source=str(self.old),project_root=str(self.root))
+                self.assertEqual(client.post('/api/migrations/preview',json=payload).status_code,400)
+                preview=client.post('/api/migrations/preview',json=dict(payload,allow_degraded=True))
+                self.assertEqual(preview.status_code,200,preview.text);plan=preview.json();self.assertTrue(plan['degraded'])
+                start=client.post('/api/migrations',json=dict(payload,allow_degraded=True,revision=plan['revision']))
+                self.assertEqual(start.status_code,200,start.text);ident=start.json()['id']
+                job=wait_migration(client,ident)
+                self.assertEqual(job['state'],'COMPLETE',job);scan=job['scan_id']
+                summary=client.get('/api/scans/'+scan+'/summary')
+                self.assertEqual(summary.status_code,200,summary.text);value=summary.json()
+                self.assertTrue(value['legacy_degraded']);self.assertFalse(value['can_confirm']);self.assertFalse(value['can_review'])
+                self.assertEqual(value['static_counts'],{});self.assertEqual(value['total'],0)
+                denied=client.post('/api/scans/'+scan+'/human',json=dict(symbol_id='invented',reviewer='no',decision='CONFIRMED_SAFE'))
+                self.assertEqual(denied.status_code,400);self.assertIn('未验证原件',denied.json()['error'])
+                files=client.get('/api/scans/'+scan+'/legacy-files').json()['items']
+                text=next(row for row in files if row['file']=='review/answer.txt')
+                raw=client.get('/api/scans/'+scan+'/legacy-file?ordinal='+str(text['ordinal'])).json()
+                self.assertIn('<script>',raw['text']);self.assertEqual(raw['source'],'归档旧文件原始字节；仅文本/十六进制查看，不作为当前安全证明')
+            finally:
+                if ident is not None:settle_migration(self,client,ident)
 
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(prefix='ECRA 旧归档 '); self.addCleanup(self.temp.cleanup)
+        self.temp=tempfile.TemporaryDirectory(prefix='ECRA 旧归档 '); self.addCleanup(cleanup_temporary,self,self.temp)
         self.base=Path(self.temp.name); self.root=self.base/'firmware'; self.root.mkdir()
         self.old=self.root/'.ecra'; self.old.mkdir(); (self.old/'reports').mkdir(); (self.old/'review').mkdir()
         self.data=self.base/'new-data'
@@ -224,33 +224,33 @@ class LegacyImportTests(unittest.TestCase):
             legacy_import.inspect(target,self.root,self.data)
 
     def test_real_api_job_and_bounded_opaque_artifacts_are_safe_and_persistent(self):
-        client=TestClient(create_app(self.data,token='t',authority='127.0.0.1:12345'),base_url='http://127.0.0.1:12345',
-            headers={'x-ecra-session':'t','origin':'http://127.0.0.1:12345'})
-        payload=dict(source=str(self.old),project_root=str(self.root))
-        plan=client.post('/api/migrations/preview',json=payload); self.assertEqual(plan.status_code,200,plan.text)
-        request=dict(payload,revision=plan.json()['revision'])
-        bad=client.post('/api/migrations',json=dict(request,revision='stale'))
-        self.assertEqual(bad.status_code,400,bad.text)
-        started=client.post('/api/migrations',json=request); self.assertEqual(started.status_code,200,started.text)
-        deadline=time.monotonic()+30
-        while time.monotonic()<deadline:
-            job=client.get('/api/migrations/'+started.json()['id']).json()
-            if job['state']!='RUNNING':break
-            time.sleep(.02)
-        self.assertEqual(job['state'],'COMPLETE',job)
-        scan=job['scan_id']; prefix='/api/scans/'+scan
-        self.assertTrue(client.get(prefix+'/summary').json()['legacy_warning'])
-        entries=client.get(prefix+'/legacy-files').json()['items']
-        text=next(x for x in entries if x['file']=='review/answer.txt')
-        preview=client.get(prefix+'/legacy-file',params=dict(ordinal=text['ordinal'],limit=16384)).json()
-        self.assertIn('<script>',preview['text']); self.assertEqual(preview['encoding'],'utf-8')
-        binary=next(x for x in entries if x['file']=='unknown.bin')
-        value=client.get(prefix+'/legacy-file',params=dict(ordinal=binary['ordinal'],limit=50)).json()
-        self.assertEqual(value['encoding'],'hex'); self.assertEqual(value['next_offset'],50)
-        self.assertLess(len(json.dumps(value)),3000)
-        self.assertEqual(client.get(prefix+'/legacy-files?limit=999').status_code,400)
-        self.assertEqual(client.get(prefix+'/legacy-file?ordinal=-1').status_code,400)
-        self.assertEqual(MigrationJobs(self.data).get(job['id'])['state'],'COMPLETE')
+        with TestClient(create_app(self.data,token='t',authority='127.0.0.1:12345'),base_url='http://127.0.0.1:12345',
+            headers={'x-ecra-session':'t','origin':'http://127.0.0.1:12345'}) as client:
+            ident=None
+            try:
+                payload=dict(source=str(self.old),project_root=str(self.root))
+                plan=client.post('/api/migrations/preview',json=payload); self.assertEqual(plan.status_code,200,plan.text)
+                request=dict(payload,revision=plan.json()['revision'])
+                bad=client.post('/api/migrations',json=dict(request,revision='stale'))
+                self.assertEqual(bad.status_code,400,bad.text)
+                started=client.post('/api/migrations',json=request); self.assertEqual(started.status_code,200,started.text)
+                ident=started.json()['id'];job=wait_migration(client,ident)
+                self.assertEqual(job['state'],'COMPLETE',job)
+                scan=job['scan_id']; prefix='/api/scans/'+scan
+                self.assertTrue(client.get(prefix+'/summary').json()['legacy_warning'])
+                entries=client.get(prefix+'/legacy-files').json()['items']
+                text=next(x for x in entries if x['file']=='review/answer.txt')
+                preview=client.get(prefix+'/legacy-file',params=dict(ordinal=text['ordinal'],limit=16384)).json()
+                self.assertIn('<script>',preview['text']); self.assertEqual(preview['encoding'],'utf-8')
+                binary=next(x for x in entries if x['file']=='unknown.bin')
+                value=client.get(prefix+'/legacy-file',params=dict(ordinal=binary['ordinal'],limit=50)).json()
+                self.assertEqual(value['encoding'],'hex'); self.assertEqual(value['next_offset'],50)
+                self.assertLess(len(json.dumps(value)),3000)
+                self.assertEqual(client.get(prefix+'/legacy-files?limit=999').status_code,400)
+                self.assertEqual(client.get(prefix+'/legacy-file?ordinal=-1').status_code,400)
+                self.assertEqual(MigrationJobs(self.data).get(job['id'])['state'],'COMPLETE')
+            finally:
+                if ident is not None:settle_migration(self,client,ident)
 
     def test_live_process_lease_prevents_false_restart_recovery(self):
         jobs=MigrationJobs(self.data)

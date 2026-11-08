@@ -7,6 +7,7 @@ import secrets
 import sqlite3
 import tempfile
 import uuid
+import zipfile
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse as BaseJSONResponse
@@ -18,6 +19,7 @@ from ..report_package import import_report, export_report, import_delta, export_
 from ..scan_store import EvidenceProvider, connect_readonly
 from ..workspace import no_links, studio_data_root, formal_workspace
 from ..storage_activity import DataActivity,DataBusy
+from .display_manifest import DISPLAY_MANIFEST_LIMIT,manifest_object as _manifest_object,display_manifest as _display_manifest
 
 
 def _startup_barrier(function):
@@ -34,6 +36,22 @@ class JSONResponse(BaseJSONResponse):
         # Escaped lone UTF-16 surrogates are valid legacy JSON. Sending them
         # as literal UTF-8 would fail or corrupt the original evidence value.
         return json.dumps(content,ensure_ascii=True,allow_nan=False,separators=(',',':')).encode('utf-8')
+
+
+def _uploaded_manifest_shape(path):
+    # The core importer still checks all paths, budgets, hashes and bindings.
+    # Guard the JSON container here so malformed input never becomes an
+    # AttributeError before the importer can report a domain validation error.
+    with zipfile.ZipFile(path) as package:
+        try:
+            member = package.getinfo('manifest.json')
+        except KeyError:
+            return  # importer supplies its existing missing-manifest error
+        if member.file_size<=DISPLAY_MANIFEST_LIMIT and not member.flag_bits&1:
+            with package.open(member) as stream:
+                raw=stream.read(DISPLAY_MANIFEST_LIMIT+1)
+            if len(raw)<=DISPLAY_MANIFEST_LIMIT:
+                return _manifest_object(raw,'结果包导入阶段')
 
 
 def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
@@ -135,6 +153,14 @@ def _create_app(data_root, *, token, authority, startup):
                 message=('写入磁盘空间不足，操作未能正常完成。请检查独立数据目录及系统临时目录所在盘，释放空间后核对当前结果和人工状态再重试。'
                          '“数据与共享”可查看占用和安全回收计划。当前数据目录：'+str(data)+'。技术信息：'+str(exc))
                 return JSONResponse(dict(error=message,code='DISK_FULL',detail=str(exc)),status_code=400)
+            locked=isinstance(exc,sqlite3.Error) and (
+                (type(sqlite_code) is int and sqlite_code&255 in {5,6})
+                or str(exc).strip().lower() in {'database is locked','database table is locked','database schema is locked'})
+            if locked:
+                action='人工确认保存' if request.method=='POST' and request.url.path.endswith('/human') else '当前数据操作'
+                message=(action+'遇到数据库占用，未能正常完成。已保存记录保留；请保留当前窗口中的未提交草稿，'
+                         '等待其它写入完成，核对人工历史及当前状态后重试。不要删除数据库或确认记录。技术信息：'+str(exc))
+                return JSONResponse(dict(error=message,code='DATABASE_BUSY',detail=str(exc)),status_code=409)
             return JSONResponse(dict(error=str(exc)), status_code=409 if isinstance(exc, ReviewConflict) else 400)
         import traceback
         folder = no_links(data/'work/errors'); folder.mkdir(parents=True, exist_ok=True)
@@ -227,20 +253,23 @@ def _create_app(data_root, *, token, authority, startup):
         root = no_links(data/'scans')
         if root.exists():
             for directory in sorted(root.iterdir()):
-                no_links(directory)
-                if not directory.is_dir() or not (directory/'scan.db').is_file():
-                    continue
-                if (directory/'storage.json').is_file() and not (directory/'manifest.json').is_file():
-                    continue  # task work is never mistaken for a published result
                 try:
+                    no_links(directory)
+                    if not directory.is_dir() or not (directory/'scan.db').is_file():
+                        continue
+                    if (directory/'storage.json').is_file() and not (directory/'manifest.json').is_file():
+                        continue  # task work is never mistaken for a published result
                     item = EvidenceProvider(directory/'scan.db').metadata()
+                    if item['scan_id']!=directory.name:
+                        raise ValueError('扫描目录与静态库身份不一致；请保留原件并核对完整结果包')
                     item['mode'] = 'OFFLINE_ARCHIVE'
+                    item['can_open'] = True
                     if (directory/'manifest.json').is_file():
-                        manifest = json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
+                        manifest = _display_manifest(directory/'manifest.json', item)
                         if manifest.get('format') == 'ECRA_LOCAL_SCAN':
                             item.update(mode='LOCAL_SNAPSHOT', state=manifest['state'], completed_at=manifest.get('completed_at'))
-                except (ValueError, sqlite3.Error, OSError) as exc:
-                    item = dict(scan_id=directory.name, state='FAILED', error=str(exc))
+                except (ValueError, sqlite3.Error, OSError, KeyError, TypeError) as exc:
+                    item = dict(scan_id=directory.name, state='FAILED', can_open=False, error=str(exc))
                 result.append(item)
         return dict(items=result)
 
@@ -267,7 +296,7 @@ def _create_app(data_root, *, token, authority, startup):
         mode = 'OFFLINE_ARCHIVE'
         manifest_path = scan_path(scan_id)/'manifest.json'
         if manifest_path.is_file():
-            manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+            manifest = _display_manifest(manifest_path, binding)
             if manifest.get('format') == 'ECRA_LOCAL_SCAN':
                 binding['state'] = manifest['state']; mode = 'LOCAL_SNAPSHOT'
         try:
@@ -536,7 +565,27 @@ def _create_app(data_root, *, token, authority, startup):
                     if total>128*1024**3:
                         raise ValueError('上传包超过128GiB预算')
                     stream.write(block)
-            return await run_in_threadpool(import_report, upload, data)
+            try:
+                incoming = await run_in_threadpool(_uploaded_manifest_shape, upload)
+                if incoming is not None:
+                    ident = incoming.get('scan_id')
+                    if isinstance(ident,str) and IDENTITY.fullmatch(ident):
+                        existing = no_links(data/'scans'/ident)
+                        if (existing/'manifest.json').is_file() and (existing/'scan.db').is_file():
+                            # Merging also reads the existing manifest. A bad
+                            # target must not become another internal .get error.
+                            try:
+                                binding = await run_in_threadpool(lambda: EvidenceProvider(existing/'scan.db').metadata())
+                                await run_in_threadpool(_display_manifest,existing/'manifest.json',binding)
+                            except ValueError as exc:
+                                raise ValueError('结果包导入阶段：已有扫描清单无法校验，本次未合并；已有证据与人工记录保留。'
+                                                 '请在新的独立数据目录导入完整备份，或重新扫描。技术信息：'+str(exc)) from exc
+                return await run_in_threadpool(import_report, upload, data)
+            except (zipfile.BadZipFile, EOFError) as exc:
+                return JSONResponse(dict(code='INVALID_REPORT_ARCHIVE',detail=str(exc),
+                    error='结果包导入阶段失败：文件不是完整有效的 ZIP 结果包，或包内容已损坏。'
+                          '本次未发布结果，已有扫描与人工记录保留；原上传文件未修改。'
+                          '请重新获取完整的 .ecra-report 备份，在“数据与共享”重新导入。技术信息：'+str(exc)),status_code=400)
 
     @app.post('/api/migrations/preview')
     def migration_preview(payload: dict):

@@ -1,0 +1,21 @@
+{
+  "observed_utc": "2026-11-08T14:38:35.691418+00:00",
+  "scope": "Read-only file fingerprint of three existing QA scan.db files; no browser/product mutation",
+  "scans": [
+    {
+      "scan_id": "31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "bytes": 62476288,
+      "sha256": "b770def0104944ac7a7e43facb56e7b856aa022adc60053a8e188365f18936f3"
+    },
+    {
+      "scan_id": "builtin-stm32-demo-v1",
+      "bytes": 1093632,
+      "sha256": "261ff9b60b1ce40f233704520d93e280804d07ee1bc119cb5430bd9b67bae12e"
+    },
+    {
+      "scan_id": "c27a0641d2b94576a7d1b67359221e54",
+      "bytes": 241664,
+      "sha256": "c80fe1ecac6dc01dbf561a15430c8ac169f6bab083e77b431a373dd461d9fbf5"
+    }
+  ]
+}

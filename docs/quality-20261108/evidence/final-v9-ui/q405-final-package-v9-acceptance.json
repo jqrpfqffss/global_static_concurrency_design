@@ -1,0 +1,99 @@
+{
+  "status": "Q405_FINAL_EXTRACTED_V9_PORTABLE_NATIVE_UAT_PASSED",
+  "completed_utc": "2026-11-08T13:58:40.590423+00:00",
+  "scope": "Only final V9 affected confirmation-identity UI and existing history preservation; prior V8 independent17-screenshot review is separate.",
+  "package_root": "H:\\ECRA-quality-20261108-offline-build-v9\\解压 终验\\ECRA-Portable",
+  "ecra_import": "H:\\ECRA-quality-20261108-offline-build-v9\\解压 终验\\ECRA-Portable\\ecra\\__init__.py",
+  "workflow_import": "H:\\ECRA-quality-20261108-offline-build-v9\\解压 终验\\ECRA-Portable\\ecra\\workflow.py",
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "identity_read_scope": "Independent exact extracted-package import with host Python -B, not a second service or embedded runtime test.",
+  "zip": {
+    "path": "H:\\ECRA-quality-20261108-offline-build-v9\\ECRA-Portable.zip",
+    "bytes": 785692863,
+    "sha256": "7a0e45b0f3dda3ee47d7759f9784ab66ca9f8fa089543157f64c9f9be9a6c03d"
+  },
+  "coordinator_extraction_receipt": "output/quality-20261108/continuation/extracted-v9-receipt.json",
+  "runtime": "Actual ECRA.cmd startup by coordinator, Windows-only PATH, PORTABLE",
+  "service_root_pid": 38208,
+  "origin": "http://127.0.0.1:63386",
+  "loaded_js": "/assets/index-hDrZQigI.js",
+  "packaged_assets_sha256": {
+    "ecra/studio/web/assets/index-hDrZQigI.js": "d106069b09350a17f9be9240d30ef2a8ff5ac096e724636fcc1adb95c30c2435",
+    "ecra/studio/web/assets/index-C8hLhrqC.css": "9f500dc086f715825459c777c8891a884f455af851a490a57d7867acb37025ba"
+  },
+  "browser_session": "ecra-quality-package-v4",
+  "profile": "H:/ECRA-quality-20261108-offline-build-v4/ui-browser-profile",
+  "config": "output/quality-20261108/continuation/package-ui-final-v8/native-window.config.json",
+  "viewport": null,
+  "native_content": {
+    "width": 1447,
+    "height": 631
+  },
+  "native_bounds": {
+    "left": 0,
+    "top": 0,
+    "width": 1461,
+    "height": 781,
+    "windowState": "normal"
+  },
+  "screen_available": {
+    "width": 1463,
+    "height": 783
+  },
+  "dpr_observed": 1.75,
+  "visual_scale_observed": 1,
+  "no_zoom_or_dpi_change": true,
+  "no_simulated_viewport": true,
+  "cases": [
+    {
+      "id": "Q405-PACKAGE-F411",
+      "status": "PASSED",
+      "route": "Overview → continue review → archived source → open form → normal page scroll",
+      "observed": "Four confirmation buttons, github_stm32_bare_metal · g_cli.command_list[*].name, apps/cli/cli_simple.c:20 and independent human pending status simultaneously visible.",
+      "screenshot": "output/playwright/quality-20261108/final-v9-package-q405-01-f411-form-native.png",
+      "log": "cli-008-find.log"
+    },
+    {
+      "id": "Q405-PACKAGE-NMI",
+      "status": "PASSED",
+      "route": "History → resolved-nmi → human risk1 → shared → normal page scroll",
+      "observed": "Common confirmation area updates to resolved-nmi · shared / main.c:1 / human confirmed risk, beside four buttons; no stale F411 identity.",
+      "screenshot": "output/playwright/quality-20261108/final-v9-package-q405-02-nmi-form-native.png",
+      "log": "cli-020-find.log"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "output/playwright/quality-20261108/final-v9-package-q405-01-f411-form-native.png",
+      "sha256": "527e5489968f77ecb96e0367545ea85a831818575a757dfbff12edb2c6337630",
+      "size": [
+        1447,
+        631
+      ],
+      "actually_viewed": true
+    },
+    {
+      "path": "output/playwright/quality-20261108/final-v9-package-q405-02-nmi-form-native.png",
+      "sha256": "9b32e2288d381427314401e5a934858474bf723c588f173c6e8dfb94dfea7cf9",
+      "size": [
+        1447,
+        631
+      ],
+      "actually_viewed": true
+    }
+  ],
+  "cli_commands": 27,
+  "cli_exit_codes_all_zero": true,
+  "human_event_count": 3,
+  "human_event_ids_and_payloads_unchanged": true,
+  "no_typing_signing_or_revocation": true,
+  "browser_gracefully_closed": true,
+  "service_left_running_for_coordinator": true,
+  "final_close_log": "cli-027-close.log",
+  "source_or_test_mutations": "None by reviewer. Only new evidence/helpers/docs.",
+  "limitations": [
+    "Native content1447×631 only; no new1366/1920 target physical-window or OS scaling claim.",
+    "No scans, AI or signing/revocation repeated for this two-source UI change.",
+    "V8 original failed screenshot and V9 source-preview receipts preserved separately."
+  ]
+}

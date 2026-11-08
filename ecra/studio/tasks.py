@@ -13,6 +13,7 @@ from ..common import write_json, read_json
 from ..workspace import no_links
 from ..report_package import IDENTITY
 from .process_budget import ProcessBudget
+from .task_records import display_record
 
 
 def now():
@@ -45,15 +46,23 @@ class TaskManager:
         else:
             try:
                 for path in self.work.glob('*/task.json'):
-                    value = read_task_json(path)
+                    value = self.record(path)
                     if value['state'] in {'RUNNING', 'STOP_REQUESTED'}:
                         value.update(state='INTERRUPTED', finished=now(), error='上次监督器退出；保留完整 TU 缓存与诊断，可重新校验输入后恢复。')
                         write_json(path, value)
             finally:lease.__exit__(None,None,None)
 
     def list(self):
-        return sorted((read_task_json(path) for path in self.work.glob('*/task.json')),
+        return sorted((self.record(path) for path in self.work.glob('*/task.json')),
                       key=lambda item:item['started'], reverse=True)
+
+    def record(self, path):
+        return display_record(path, read_task_json, ident=path.parent.name,
+            states={'RUNNING','STOP_REQUESTED','COMPLETE','FAILED','INTERRUPTED'},
+            validate=lambda value:isinstance(value.get('mode'),str)
+                and value['mode'] in {'scan','precheck','review','review-failed','multicore'}
+                and isinstance(value.get('scan_id'),str) and IDENTITY.fullmatch(value['scan_id']),
+            action='请保留此文件供排查；从已保存工程配置重新发起任务，或打开历史中的有效扫描。')
 
     def directory(self, ident):
         if not IDENTITY.fullmatch(ident):
@@ -255,12 +264,25 @@ class TaskManager:
                 threading.Event().wait(.5)
             value.update(exit_code=process.returncode, finished=now())
             published = (self.data/'scans'/value['scan_id']/'manifest.json').is_file()
-            result=read_task_json(folder/'worker-result.json') if (folder/'worker-result.json').is_file() else {}
-            if result.get('error'):
-                value['error']=result['error']
-            checked = (folder/'preflight/preflight.json').is_file() and read_task_json(folder/'preflight/preflight.json').get('passed')
-            value['state'] = 'COMPLETE' if process.returncode in {0,1,2} and (checked if value['mode']=='precheck' else published) and result.get('operation_completed') else (
-                'INTERRUPTED' if process.returncode==130 else 'FAILED')
+            try:
+                result=read_task_json(folder/'worker-result.json') if (folder/'worker-result.json').is_file() else {}
+                if (not isinstance(result,dict) or type(result.get('exit_code')) is not int or result['exit_code'] != process.returncode
+                        or type(result.get('operation_completed')) is not bool
+                        or (result['operation_completed'] and result.get('error'))):
+                    raise ValueError('工作进程完成收据缺失、字段无效或退出状态不一致')
+                if result.get('error'):
+                    value['error']=result['error']
+                checked = False
+                if value['mode']=='precheck' and (folder/'preflight/preflight.json').is_file():
+                    preflight=read_task_json(folder/'preflight/preflight.json')
+                    if not isinstance(preflight,dict) or type(preflight.get('passed')) is not bool:
+                        raise ValueError('编译输入检查收据字段无效')
+                    checked=preflight['passed']
+                value['state'] = 'COMPLETE' if process.returncode in {0,1,2} and (checked if value['mode']=='precheck' else published) and result['operation_completed'] else (
+                    'INTERRUPTED' if process.returncode==130 else 'FAILED')
+            except (OSError,ValueError,TypeError) as exc:
+                value['state']='INTERRUPTED' if process.returncode==130 else 'FAILED'
+                value['error']='任务已退出，但完成状态未能校验：'+str(exc)+'。原收据、日志与已发布结果保留；请查看本任务日志并重新核对输入后重试。'
             value['published'] = published
             write_json(folder/'task.json',value)
         finally:
@@ -272,16 +294,36 @@ class TaskManager:
         if type(offset) is not int or offset<0 or not 1<=limit<=65536:
             raise ValueError('日志游标无效')
         folder = self.directory(ident)
-        value = read_task_json(folder/'task.json')
+        value = self.record(folder/'task.json')
+        if value.get('metadata_error'):
+            value['log']=dict(text='',offset=0,next_offset=0,total=0)
+            return value
+
+        def diagnostic(path,kind=dict):
+            try:
+                result=read_task_json(path)
+                if not isinstance(result,kind):raise ValueError('诊断字段结构无效')
+                return result
+            except (OSError,ValueError,TypeError) as exc:
+                value.setdefault('diagnostic_errors',[]).append('任务诊断无法读取：'+str(path)+'。'+str(exc)+'；原文件保留，请结合任务状态与日志排查。')
+                return None
+
         if (folder/'reused-working-inputs.json').is_file():
-            reused=read_task_json(folder/'reused-working-inputs.json')
-            value['reused_working_inputs']=dict(source_task=reused['source_task'],proof=reused['proof'])
+            reused=diagnostic(folder/'reused-working-inputs.json')
+            if reused is not None:
+                if 'source_task' in reused and 'proof' in reused:
+                    value['reused_working_inputs']=dict(source_task=reused['source_task'],proof=reused['proof'])
+                else:value.setdefault('diagnostic_errors',[]).append('复用输入诊断缺少来源任务或校验证据；请核对 '+str(folder/'reused-working-inputs.json'))
         log = folder/'console.log'
-        with log.open('rb') as stream:
-            stream.seek(offset)
-            raw = stream.read(limit)
-        value['log'] = dict(text=raw.decode('utf-8',errors='replace'), offset=offset,
-                            next_offset=offset+len(raw), total=log.stat().st_size)
+        try:
+            with log.open('rb') as stream:
+                stream.seek(offset)
+                raw = stream.read(limit)
+            value['log'] = dict(text=raw.decode('utf-8',errors='replace'), offset=offset,
+                                next_offset=offset+len(raw), total=log.stat().st_size)
+        except OSError as exc:
+            value['log']=dict(text='',offset=offset,next_offset=offset,total=offset,
+                error='任务日志无法读取：'+str(log)+'。'+str(exc)+'；任务状态与原文件保留。')
         diagnostics = self.data/'scans'/value['scan_id']/'diagnostics'
         value['progress_kind']='TU_EXTRACTION'
         if value['mode'] in {'review','review-failed'}:
@@ -293,14 +335,16 @@ class TaskManager:
         if value['mode']=='multicore':diagnostics=folder/'multicore-diagnostics'
         preflight = folder/'preflight/preflight.json'
         if value['mode'] in {'scan','precheck'} and preflight.is_file():
-            value['preflight'] = read_task_json(preflight)
+            check=diagnostic(preflight)
+            if check is not None:value['preflight']=check
             if value['mode']=='precheck' or value['progress_kind']=='WORKING_INPUT_INVENTORY' or not diagnostics.exists():
                 diagnostics=folder/'preflight/diagnostics'
                 value['progress_kind']='COMPILE_INPUT_PRECHECK'
         for key, name in [('stages','scan_stages.json'),('failure','exception.json'),('memory','memory_profile.json'),('tu_cache','tu_cache.json'),('progress','scan_progress.json')]:
             path = diagnostics/name
             if path.is_file():
-                value[key] = read_task_json(path)
+                result=diagnostic(path,list if key=='stages' else dict)
+                if result is not None:value[key]=result
         return value
 
     def stop(self, ident):

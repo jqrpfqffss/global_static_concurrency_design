@@ -6,6 +6,17 @@
 
 # STM32 全局变量与 static 变量并发排查工具（ECRA）
 
+首次使用便携包：完整解压到独立目录后双击 `ECRA.cmd`，在工作台“新建工程”配置固件与真实构建，再开始扫描。结果从工作台打开；“人工确认”保存后，可在下次启动时继续上次位置。关闭浏览器标签不会退出服务，退出请关闭启动窗口或按 Ctrl+C。便携包内置 Python 和运行依赖，OpenCode 是可选的外部安装项。
+
+从源码启动工作台需要 Studio 依赖：
+
+```powershell
+py -3.10 -m pip install -r requirements-studio.txt
+py -3.10 run_ecra.py ui
+```
+
+只安装 `requirements.txt` 用于静态命令行扫描。默认数据在 `%LOCALAPPDATA%/ECRAStudio/data`，可用 `ECRA_DATA_ROOT` 指定独立数据目录；升级时保留数据根和已有配置。当前包仍是开发验收候选，本轮质量检查及未完成验证见 [交付验收记录](docs/quality-20261108/README.md)。
+
 **新版 v82 界面请先看[布局与操作指南](docs/studio-v82-layout-guide.md)**：目录/源码可放大，人工确认、覆盖、历史和日志使用新的工作区布局。完整验证范围见[128号记录](docs/rearchitecture/128-engineering-workspace-usability.md)。
 
 **完整业务流程请从[详细用户教程：启动、扫描、排查、确认与结果交接](docs/studio-v81-user-tutorial.md)开始。** 教程按实际界面编写，包含四步工程向导、真实截图、未提交修改、备份恢复和常见问题；旧命令行/HTML教程另作历史参考。
@@ -14,7 +25,7 @@
 
 **ECRA Studio 重构进行中**：双击 `ECRA.cmd` 或运行 `py -3.10 run_ecra.py ui`，可保存独立工程配置、发起真实 SQLite 扫描、安全停止/校验 TU 后恢复、查看完整证据及调用树、进行人工确认和结果包交换。可选 OpenCode 复核有独立任务与账本。**完整重构及发布门禁仍未全部通过**；[本轮可验证实现](docs/rearchitecture/04-canonical-pipeline-progress.md)、[阶段验收与阻断项](docs/rearchitecture/performance-and-acceptance.md)、[操作指南](docs/rearchitecture/portable-and-user-guide.md)。
 
-CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `--legacy-output`，仅供兼容验证和黄金基线。旧数据的共享编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。`read_saved_json` 兼容旧逻辑路径和新库，GUI/AI 的分页导航共用 EvidenceProvider。保护区算法未修改；大型原生 full/Diff、资源收益和全部用户场景尚不能视为通过。
+CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `--legacy-output`，仅供兼容验证和黄金基线。旧数据的共享编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。`read_saved_json` 兼容旧逻辑路径和新库，GUI/AI 的分页导航共用 EvidenceProvider。本轮保护证据、输入稳定性修复及大型和目标环境的实际验收范围见交付验收记录。
 
 新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。新结果由Studio同一工作台查询；显式兼容模式才生成旧 `results/index.html`。默认差异清单只选有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
 
@@ -27,6 +38,8 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
 日常差异配置只需 `enabled`、`base_ref`、`current_ref`：直接比较任意两个分支、标签或提交。`current_ref: HEAD` 扫描当前检出版本；指定其它分支时自动在隔离工作树分析，报告仍保存到原输出目录。旧 `target_ref` / `compare_mode` 配置需按[参数取舍与迁移说明](docs/git-diff-concurrency-validation.md#参数取舍与迁移)修改；缓存与保守影响扩大自动处理。
 
 变量详情对照基准与当前版本的访问类型、布局、执行上下文、保护屏蔽观测、调用子图及覆盖变化，并链接代码差异。未变化的完整证据默认收起，继续参与并发分析。标量与结构体/数组容器转换时保留匹配不确定性，不能把根对象的容器汇总类别当作“风险新增”或“风险消除”的依据。
+
+显式启用 `analysis.git_diff.include_uncommitted: true` 的受控 CMake 工作字节模式，全量和差异扫描都要固定、重新核对完整 SDK。这个阶段可能较长，请以任务阶段和日志为准；正常停止会保留已校验 TU 缓存，恢复前仍须重新核对输入。
 
 缓存还会核对预定义宏的语义影响。`__DATE__`、`__TIME__`、`__TIMESTAMP__` 仅在已证明不消费字符串值的不可变构建元数据场景中允许复用，字符串内容仍记录为未知；参与运行逻辑、存储布局或同 TU 派生常量时明确停止提取。这类用途目前不支持，可由工程提供纳入快照的确定生成输入后重扫；真实预处理构建输入导入仍待实现。不能关闭检查后宣称结果完整。
 
@@ -82,9 +95,9 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
    .\dist\ECRA-Portable\ecra.cmd --help
    ```
 
-   内置 Python 应显示 `Python 3.12.10`。打包脚本会自检内置 Python、依赖、CMake、Ninja 和 ARM 工具链，还会解压生成的 ZIP 再检查一次。最终交付文件为 `dist\ECRA-Portable.zip`。
+   内置 Python 应显示 `Python 3.10.9`，以 `config/portable_sources.psd1` 和包内 `portable-lock.json` 的实际收据为准。打包脚本会自检内置 Python、依赖、CMake、Ninja 和 ARM 工具链，还会解压生成的 ZIP 再检查一次。最终交付文件为 `dist\ECRA-Portable.zip`。已有目录或 ZIP 时脚本会拒绝覆盖；请用 `-OutputDir D:/ECRA-build-new` 选择新的输出目录，保留旧包及配置。
 
-**新电脑已安装 Python 3.10 也不影响上述打包。** 准备脚本使用缓存中的嵌入式 Python 检查 wheel；打包脚本使用缓存中的 Python 3.12.10 和对应的依赖 wheel，不调用系统 PATH 中的 Python 3.10。不要因为新电脑的 Python 版本是 3.10 就把 `config/portable_sources.psd1` 改为 3.10；如果确实要改用 3.10 打包，需要同时更换匹配的嵌入式 Python 和依赖 wheel，重新准备缓存并通过自检。
+**系统安装的 Python 不决定便携包版本。** 准备和打包脚本使用缓存中的嵌入式 Python 3.10.9 与匹配的 cp310 依赖 wheel。不要只修改版本号；更换便携 Python 需要同步调整运行时、路径文件及依赖 wheel，并重新通过实际自检。
 
 ### 新电脑只有源码、没有缓存
 
@@ -94,7 +107,7 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
 
 ## 完整变量清单与覆盖检查
 
-`index.html` 默认打开“全部全局 / static 变量清单”。常量和未使用变量也保留；全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）均可查询。同名 static 按编译单元区分。结构体成员和已知数组元素按独立存储分析；父对象仅汇总，不重复计入分类分母。普通自动局部变量和函数参数用于恢复别名，不作为独立共享对象盘点。
+工作台的“变量与证据”显示完整清单；显式 `--legacy-output` 才生成可直接离线打开的旧 `index.html`。常量和未使用变量也保留；全局变量、文件 static、函数 static（含头文件实例和 C++ 静态成员）均可查询。同名 static 按编译单元区分。结构体成员和已知数组元素按独立存储分析；父对象仅汇总，不重复计入分类分母。普通自动局部变量和函数参数用于恢复别名，不作为独立共享对象盘点。
 
 默认 `analysis.build_closure_only: true`，只分析当前固件编译数据库中的 TU；可通过 `analysis.build_closure.linked_sources / linked_objects` 进一步限定实际链接输入。其他板卡、未启用功能和未编入目标的源码不参与并发分类。`include_dirs / exclude_dirs` 限定要排查的变量范围，范围外但实际参与构建的函数仍用于恢复调用与访问。
 
@@ -112,6 +125,12 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
 
 裸机物理执行域为 `FOREGROUND`、`IRQ:<vector>`、`DMA:<id>`、`EXTERNAL_ASYNC` 和 `UNKNOWN_CONTEXT`。主循环同步调用的任务和 callback 继承执行者；同一 IRQ 不因多条调用路径而与自己并发。参数和自动局部别名按物理上下文传播，全局/static 存储仍保持共享。
 
+手工 `contexts` 必须准确声明真实入口。`ISR` 同时用于普通 IRQ 和 NMI/HardFault；当源码没有恢复物理 ABI 时，当前屏蔽分析依赖用户将普通可屏蔽 IRQ 声明正确。自定义 C 函数名本身不证明可屏蔽，NMI/HardFault 应明确提供正确的 `vector`（例如 `slot:2` / `slot:3`）、IRQn 或不可屏蔽约束；身份不能确定时，不应把依赖该声明的 SAFE 当成独立硬件证明。此配置前提现尚未在每条报告中单独列出。
+
+已从真实向量表恢复的槽位、不可屏蔽属性和入口不能被同名配置覆盖。同 ID 的相容声明作为独立配置证据保留，矛盾身份或不同入口会明确停止并提示修改手工 ID；也可使用独立手工 ID 并正确关联同一 `vector`。自动拆分/注册生成的 ID 同样不能静默覆盖其他执行域。同一物理槽的相容多来源会保留全部实际入口和来源，不选择最后一项作为唯一证据。
+
+GNU函数 `alias` 声明不会按空函数处理。对于Clang明确识别、展开后目标符号精确匹配同一TU中非weak、非inline真实函数体、相同无参数void ABI的别名，facts保留声明/展开属性/目标定义，并以 `GNU_FUNCTION_ALIAS` 类型传播控制流和真实中断槽身份；目标可在声明之后定义。C强定义覆盖weak alias沿现有链接身份合并处理，不能用弱函数壳替换真实强函数体。带参数/返回值、无法证明的目标、weak目标替换、同名汇编实现或未展开汇编可能覆盖weak alias时明确停止，不对遗漏函数体生成安全结论，已完成的提取事实仍保留。该范围不等于通用指针、汇编或任意链接器重写支持。
+
 安全证明包括无运行访问、只读、单一 foreground、单一 IRQ、已证明不能交错、完整有效保护、严格初始化阶段写入，以及附加的不重叠成员/元素证据。`volatile`、字长、单 writer、出现 Lock/disable API 本身均不是安全证明。初始化证明要求异步源启用顺序的实际证据，不默认 main 入口就是所有 IRQ 尚未启用。
 
 `coverage.blocker_fanout` 记录单个缺口影响的变量和相关性；`analysis.max_unknown_fanout_debug` 控制诊断阈值。UNKNOWN 超过 10% 时输出根因分布用于继续定位，不把比例用作 SAFE 判定条件。完整调用图保存全部入口和边；路径数量过大时报告明确区分图证据和最短见证，避免枚举指数数量的调用链。
@@ -123,7 +142,7 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
 
 ## 裸机 CMake 工程：配置一次，日常一条命令
 
-旧CLI使用 [`config/semantics.yaml`](config/semantics.yaml)。该文件的 `project.root` 指向当前要排查的固件，切换项目时修改这一项及该项目的排查/CMake参数；运行数据默认保存在独立用户数据根（Windows `%LOCALAPPDATA%/ECRAStudio/data`，可设置 `ECRA_DATA_ROOT`）下 `projects/<工程身份>/results/`，旧 `.ecra/` 与工具workspace按精确身份复制迁移并保留原始数据，旧证明仍需重新验证。GUI预览另存每项目profile。在工具根目录执行：
+命令行使用 [`config/semantics.yaml`](config/semantics.yaml)，也可通过 `--config <配置文件>` 显式选择。该文件的 `project.root` 指向当前要排查的固件，切换项目时修改这一项及该项目的排查/CMake参数。默认 SQLite 结果在独立数据根 `scans/<扫描ID>/`，工作台保存的工程配置和历次结果由工作台管理。只有显式兼容模式才使用旧报告结构。旧 `.ecra/` 与工具 workspace 迁移会保留原始数据，旧证明仍需重新验证。
 
 可在 [`config/review_context.md`](config/review_context.md) 填写当前工程补充背景及源码依据。每次正常变量复核读取它，作为待源码核实的用户声明。修改后运行 `review`，会重新复核全部静态疑似/未知变量。使用 `--config` 时，将同名 Markdown 放在实际 semantics.yaml 旁边；切换工程时同步更新。
 
@@ -143,7 +162,7 @@ OpenCode 内部遵循八步方法，核查间接访问、真实抢占、跨函�
 py -3.10 run_ecra.py
 ```
 
-自动刷新 CMake 编译数据库、增量构建、排查自有目录、输出该项目 `results/index.html` 和 `results/opencode_review.html`。新工程默认本地静态排查；当前工程及复核开关以 config/semantics.yaml 为准。只做本地扫描时加 `--no-review`。`analysis.open_report: true` 可自动打开浏览器。
+按配置刷新 CMake 编译数据库、执行构建并排查自有目录，默认保存 SQLite 扫描。新工程默认本地静态排查；当前工程及复核开关以 config/semantics.yaml 为准。只做本地扫描时加 `--no-review`。使用 Studio 查看默认结果；需要兼容的两个 HTML 时显式加 `--legacy-output`，此时 `analysis.open_report: true` 可自动打开旧报告。
 
 OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围内未确认问题、或尚不能确定。确认存在一个变量缺陷即可回答“有问题”，但剩余疑似项、失败项和覆盖盲区仍保留，不能宣称全工程排查完成。`LIKELY` 不算最终定论，下次 `review` 会重新复核。
 
@@ -169,10 +188,10 @@ OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围�
 
 ```powershell
 py -3.10 -m pip install -r requirements.txt
-py -3.10 H:/global_static_concurrency_design/run_ecra.py init --project "D:/MyFirmware"
+py -3.10 H:/global_static_concurrency_design/run_ecra.py init --project "D:/MyFirmware" --config "D:/ECRA-config/semantics.yaml"
 ```
 
-把示例固件路径换成自己的。检测到 `CMakeLists.txt` 时，初始化会创建唯一的 `config/semantics.yaml` CMake 模板；主要编辑 `project.root`、包含/排除目录和 CMake 参数。以后只需执行一条完整排查命令；`doctor`、`review`、`report`、`status` 保留用于分步定位问题。
+把示例固件路径换成自己的。`init` 只创建尚不存在的配置，不覆盖仓库或用户已有配置；已有 `config/semantics.yaml` 可直接编辑，或像上例选择新的外置文件。检测到 `CMakeLists.txt` 时生成 CMake 模板；主要编辑 `project.root`、包含/排除目录和 CMake 参数。复制命令输出中的下一步命令，它会保留外置 `--config`。`doctor`、`review`、`report`、`status` 保留用于分步定位问题。
 
 默认运行/分步命令均从 `project.root` 读取固件目录；`--project <目录>` 可仅用于临时覆盖。已安装工具目录不可写时，可在启动前设置 `$env:ECRA_CONFIG_HOME='D:/ecra-config'`，把唯一的 `semantics.yaml` 放到独立可写位置。跨工程验证及已知边界见[移植验收记录](docs/portability-validation.md)。
 
@@ -218,8 +237,8 @@ OpenCode 每项 Packet 包含全部访问和完整调用链，保护、初始化
 更新后必须重新运行完整扫描，旧报告不能只刷新：
 
 ```powershell
-python run_ecra.py --profile <你的项目ID> --no-review
-python run_ecra.py review --profile <你的项目ID>
+py -3.10 run_ecra.py --config "D:/ECRA-config/semantics.yaml" --no-review
+py -3.10 run_ecra.py review --config "D:/ECRA-config/semantics.yaml"
 ```
 
 大型回归的范围与证据边界见 [大型项目验收说明](docs/large-project-validation.md)。逐项校验保证核对记录不漏项，不能替代对模型推理和真实固件配置的验证。
@@ -237,7 +256,7 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 | `python H:/global_static_concurrency_design/run_ecra.py` | 重新盘点源码并执行完整复核流程 |
 | `py -3.10 run_ecra.py review` | 重新复核当前全部静态 SUSPECT/UNKNOWN，包含已有 DONE |
 | `py -3.10 run_ecra.py review-failed` | 仅重试 TECH_FAILED，DONE（包括证据不足）不重复调用 |
-| `python H:/global_static_concurrency_design/run_ecra.py report` | 校验已有扫描，仅刷新两个 HTML 及配套报告，不调用模型 |
+| `python H:/global_static_concurrency_design/run_ecra.py report` | 校验已有扫描并刷新同种存储格式的报告，不调用模型；默认 SQLite 不生成旧 HTML |
 | `python H:/global_static_concurrency_design/run_ecra.py status` | 显示已保存进度、未完成数量、能否恢复及下一步建议；加 `--json` 输出结构化信息 |
 | `python H:/global_static_concurrency_design/run_ecra.py doctor` | 检查源码分析环境与 OpenCode 命令可用性，保留上轮运行记录和报告 |
 
@@ -249,10 +268,19 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 
 ## 先运行自带示例
 
+工作台可直接“打开示例”，使用包内已验证教学归档，不改当前工程配置。下面是源码开发者的 CLI 方式；`setup_demo.py` 会替换所选配置目录中的活动配置，因此示例使用独立目录，并在生成后恢复原环境设置：
+
 ```powershell
 cd H:/global_static_concurrency_design
-python examples/stm32_demo/setup_demo.py
-python run_ecra.py --project examples/stm32_demo --no-review
+$demoConfigHome = Join-Path $env:LOCALAPPDATA 'ECRAStudio/demo-config'
+$previousConfigHome = $env:ECRA_CONFIG_HOME
+try {
+  $env:ECRA_CONFIG_HOME = $demoConfigHome
+  py -3.10 examples/stm32_demo/setup_demo.py
+} finally {
+  $env:ECRA_CONFIG_HOME = $previousConfigHome
+}
+py -3.10 run_ecra.py --config "$demoConfigHome/semantics.yaml" --project examples/stm32_demo --no-review
 ```
 
 示例使用 Cortex-M7 参数解析真实 C 文件，包括同名 static、头文件 static、函数级 static 重入、旧快照写回、宏/普通读改写、DMA buffer 和未知回调。它只生成分析报告，不调用模型。返回码 **2** 是预期结果：示例特意保留了未解决的上下文和指针问题。
@@ -333,6 +361,8 @@ review:
 
 ## 输出与状态
 
+默认扫描使用 `scans/<扫描ID>/scan.db` 保存静态事实、`reviews.db` 保存独立 AI/人工账本，`manifest.json` 标识已发布扫描。用工作台查看和导出标准 `.ecra-report` 结果包；从 `status --json` 和运行日志定位当前输出。不要把旧 `dist/` 或历史 HTML 当作最近扫描。以下表格和 SQL 只描述显式 `--legacy-output` 的兼容产物与旧结构，不是默认 SQLite 数据库的查询合同。
+
 | 输出 | 用途 |
 |---|---|
 | `results/index.html` | HTML 1：全量变量、读写/调用链、独立风险变量表及覆盖盲区 |
@@ -379,7 +409,7 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 `review-failed` 已通过[真实子进程故障注入与真实 OpenCode 恢复测试](docs/review_failed_validation.md)：只重试 TECH_FAILED，成功项退出失败集合，没有失败项时不启动复核进程。
 
-同一文件中的同类盲区合并成复核项，所有具体位置仍保存在原始事实和该项证据中。队列从开始就列出全部项，处理中断也能看到尚未处理的项目。`--no-review` 默认保存两个 HTML、静态报告与完整待办清单，证据包在实际复核时生成；需要提前导出全部包时可设置 `review.prepare_packets: true`。
+同一文件中的同类盲区合并成复核项，所有具体位置仍保存在原始事实和该项证据中。队列从开始就列出全部项，处理中断也能看到尚未处理的项目。`--no-review` 保存静态报告与完整待办清单；两个 HTML 仅在 `--legacy-output` 兼容模式生成。证据包在实际复核时生成；需要提前导出全部包时可设置 `review.prepare_packets: true`。
 
 通过 `opencode run --format json` 获取事件，Parser 兼容纯 JSON、前后解释、fenced JSON 和最后一个匹配 finding_id 的完整对象。最小 Validator 只硬校验 finding_id、五种 status、非空 reason、evidence 列表及源码位置；CONFIRMED/REVIEWED_SAFE/FALSE_POSITIVE 至少一处证据，LIKELY/NEED_MORE_CONTEXT 至少一个明确 missing_context。文字长度及可选展示字段不导致技术失败。
 

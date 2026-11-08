@@ -46,7 +46,10 @@ def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=
     if bundle and not Path(exe).is_file():
         raise ValueError('Portable 差异模式缺少离线 Git：请将完整 MinGit 解压到 tools/git（包含 cmd/git.exe）')
     try:
-        proc = subprocess.run([exe, '-c', 'core.longpaths=true', '-C', str(root), *args], stdout=_stdout,
+        # GIT_OPTIONAL_LOCKS alone does not disable porcelain diff's stat-only
+        # index refresh. All comparison callers preserve the original index.
+        proc = subprocess.run([exe, '-c', 'core.longpaths=true', '-c', 'diff.autoRefreshIndex=false',
+                               '-C', str(root), *args], stdout=_stdout,
                               stderr=subprocess.PIPE, timeout=300,
                               env=dict(os.environ, GIT_OPTIONAL_LOCKS='0'))
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -100,17 +103,52 @@ def text(root, *args):
     return git(root, *args).decode('utf-8', 'strict').strip()
 
 
+def _content_changes(root, base, current=None):
+    """Content-aware paths, including zero-line/binary/rename changes.
+
+    Older Git can emit stat-only paths in raw --name-status/--name-only output
+    even with --exit-code. Numstat computes actual content without refreshing
+    the caller's index; zero counts are meaningful records, not empty changes.
+    """
+    raw = git(root, 'diff', '--no-relative', '--no-ext-diff', '--no-textconv', '--numstat', '-z', '--find-renames', base,
+              *([current] if current else []), '--', _reject_stderr=True)
+    if not raw:return set()
+    if not raw.endswith(b'\0'):raise ValueError('Git 内容差异记录未完整结束，拒绝缩小比较范围')
+    fields=raw.split(b'\0')[:-1];result=set();index=0
+    while index<len(fields):
+        columns=fields[index].split(b'\t',2);index+=1
+        if len(columns)!=3 or any(value!=b'-' and not value.isdigit() for value in columns[:2]):
+            raise ValueError('Git 内容差异记录格式无效，拒绝缩小比较范围')
+        if columns[2]:old=new=columns[2]
+        else:
+            if index+1>=len(fields) or not fields[index] or not fields[index+1]:
+                raise ValueError('Git 重命名内容记录不完整，拒绝缩小比较范围')
+            old,new=fields[index:index+2];index+=2
+        result.add((old.decode('utf-8','strict'),new.decode('utf-8','strict')))
+    return result
+
+
 def changes(root, base, current=None):
-    fields = git(root, 'diff', '--no-relative', '--name-status', '-z', '--find-renames', base,
-                 *([current] if current else []), '--').split(b'\0')
+    fields = git(root, 'diff', '--no-relative', '--no-ext-diff', '--no-textconv', '--name-status', '-z', '--find-renames', base,
+                 *([current] if current else []), '--', _reject_stderr=True).split(b'\0')
+    content=_content_changes(root,base,current)
     result = []
+    covered=set()
     i = 0
     while i < len(fields) and fields[i]:
         status = fields[i].decode('ascii')
         old = fields[i+1].decode('utf-8', 'strict')
         new = fields[i+2].decode('utf-8', 'strict') if status.startswith(('R', 'C')) else old
-        result.append(dict(status=status, old_path=old, new_path=new))
+        pair=(old,new)
+        if pair in content:
+            result.append(dict(status=status, old_path=old, new_path=new));covered.add(pair)
+        elif status.startswith(('R','C')) and (old,old) in content and (new,new) in content:
+            # Preserve a genuine raw rename if content output represented the
+            # same operation as delete/add. Never use a rename's old path to
+            # retain a separate stat-only modification of that unchanged file.
+            result.append(dict(status=status,old_path=old,new_path=new));covered.update(((old,old),(new,new)))
         i += 3 if status.startswith(('R', 'C')) else 2
+    if content-covered:raise ValueError('Git 名称与内容差异记录不一致，拒绝丢弃真实源码变化')
     return result
 
 
@@ -831,7 +869,7 @@ def check_isolated_tree(source, sha, build=None):
     source = Path(source)
     if text(source, 'rev-parse', 'HEAD') != sha:
         raise ValueError('隔离工作树提交身份已变化；请重新扫描')
-    if any(git(source, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')):
+    if _content_changes(source,'HEAD'):
         raise ValueError(f'隔离源码已变化，拒绝使用污染的事实: {source}')
     repo = Path(text(source, 'rev-parse', '--show-toplevel'))
     from .compilation import _owns_build_directory
@@ -951,8 +989,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
         from .compilation import cmake_build_directory
         pinned['base_build_path'] = str(cmake_build_directory(base_root, baseline['analysis']))
     allowed_database = None
-    modified_paths = git(directory, 'diff', 'HEAD', '--name-only', '-z').split(b'\0')
-    if any(p and p.decode('utf-8') != allowed_database for p in modified_paths):
+    if _content_changes(directory,'HEAD'):
         raise ValueError('隔离基准源码已被修改；拒绝使用污染的基准事实')
     if 'cmake' not in baseline['analysis']:
         db = baseline['analysis'].get('compile_database', 'auto')

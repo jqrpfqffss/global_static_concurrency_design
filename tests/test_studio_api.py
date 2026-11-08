@@ -272,6 +272,18 @@ class StudioAPITests(unittest.TestCase):
         with patch('ecra.human_reviews.ReviewStore.append',side_effect=sqlite3.OperationalError('database is locked')):
             response=self.client.post('/api/scans/scan-api/human',json=request)
         self.assertNotIn('DISK_FULL',response.text);self.assertIn('database is locked',response.text)
+        self.assertEqual(response.status_code,409)
+        self.assertEqual(response.json()['code'],'DATABASE_BUSY')
+        self.assertIn('人工确认保存',response.json()['error'])
+        self.assertIn('未提交草稿',response.json()['error'])
+        self.assertIn('核对人工历史',response.json()['error'])
+        self.assertIsNot(response.json().get('saved'),True)
+        self.assertEqual(ReviewStore(path/'reviews.db',self.provider.metadata()).history(),[])
+        # The same request can be retried normally once the actual writer exits.
+        response=self.client.post('/api/scans/scan-api/human',json=request)
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertTrue(response.json()['saved'])
+        self.assertEqual(len(ReviewStore(path/'reviews.db',self.provider.metadata()).history()),1)
 
     def test_real_package_upload_and_export_use_same_protocol(self):
         package = Path(self.tmp.name)/'result.ecra-report'

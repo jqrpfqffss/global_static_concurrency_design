@@ -1,0 +1,10 @@
+{
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "ecra_module": "H:\\global_static_concurrency_design\\ecra\\__init__.py",
+  "workflow_module": "H:\\global_static_concurrency_design\\ecra\\workflow.py",
+  "python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+  "python_version": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.19044-SP0",
+  "os_name": "nt",
+  "is_user_admin": true
+}

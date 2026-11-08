@@ -19,7 +19,7 @@ from ..workspace import formal_workspace, no_links, validate_analysis_inputs
 
 def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
     from ..config import configured_project_root, load_config
-    from ..compilation import prepare
+    from ..compilation import prepare, cmake_toolchain_input
     from ..input_snapshot import InputSnapshot
     from ..portable import resolved_executable, tool_environment, tool_path
     from ..report_package import sha256
@@ -129,8 +129,10 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         for key in ('CMAKE_TOOLCHAIN_FILE', 'CMAKE_COMMAND', 'CMAKE_MAKE_PROGRAM', 'CMAKE_C_COMPILER',
                     'CMAKE_CXX_COMPILER', 'CMAKE_ASM_COMPILER', 'CMAKE_AR', 'CMAKE_RANLIB', 'CMAKE_LINKER'):
             path = compilation.get('cmake_cache', {}).get(key)
-            if path and Path(path).is_file():
-                explicit.append(Path(path) if key=='CMAKE_TOOLCHAIN_FILE' else resolved_executable(path,root))
+            if path and key=='CMAKE_TOOLCHAIN_FILE':
+                explicit.append(cmake_toolchain_input(root,cache.parent,path))
+            elif path and Path(path).is_file():
+                explicit.append(resolved_executable(path,root))
         snapshot = InputSnapshot(root, folder/'diagnostics', explicit,
                                  dict(consumed, **compilation.get('consumed_inputs', {})),file_view=frozen)
         workers = folder/'workers'; workers.mkdir()

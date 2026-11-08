@@ -1,0 +1,11 @@
+{
+  "engine_unchanged": true,
+  "source_sha_size_mtime_and_namespace_unchanged": true,
+  "index_sha256_before": "8321a9f3a1bded15a631f2aea5e1297a11677b946b7124a4922729cd13ac1be4",
+  "index_sha256_after": "8321a9f3a1bded15a631f2aea5e1297a11677b946b7124a4922729cd13ac1be4",
+  "head_before": "3c632672a3076998477e36e2e2db1bb126240aa5",
+  "head_after": "3c632672a3076998477e36e2e2db1bb126240aa5",
+  "config_sha256_before": "f6eb690e55ed1e9657a990b57b8416e1f1a3c95114824602a5330a9b10614649",
+  "config_sha256_after": "f6eb690e55ed1e9657a990b57b8416e1f1a3c95114824602a5330a9b10614649",
+  "source_status_after": "M App/lab.h"
+}

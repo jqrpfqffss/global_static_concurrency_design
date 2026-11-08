@@ -20,11 +20,23 @@ def recover_assembly_functions(source, file, functions):
     """
     clean = re.sub(r'/\*.*?\*/', lambda m: '\n' * m[0].count('\n'), source, flags=re.S)
     if re.search(r'^\s*(?:#|\.macro\b|\.include\b)', clean, re.M):
+        if any(f.get('function_alias') and f.get('is_weak') for f in functions):
+            raise ValueError('UNRESOLVED_FUNCTION_ALIAS_LINKAGE：' + file
+                + ' 的汇编预处理/宏/包含尚未展开，无法排除对 C weak alias 的强符号覆盖；已提取事实保留，不生成安全结论。')
         return [], []
     lines = [re.split(r'//|\s@', line, maxsplit=1)[0].strip() for line in clean.splitlines()]
     typed = {match[1] for line in lines
              if (match := re.fullmatch(r'\.type\s+([A-Za-z_]\w*)\s*,\s*%function', line))}
     existing = {f['name']: f for f in functions}
+    for name, function in existing.items():
+        if not function.get('function_alias'):
+            continue
+        # A same-symbol assembler body can replace a weak C alias. The
+        # existing C identity must not hide that linker choice. Selecting and
+        # modeling arbitrary assembler bodies is outside this recovery path.
+        if any(line == name + ':' for line in lines):
+            raise ValueError('UNRESOLVED_FUNCTION_ALIAS_LINKAGE：' + file + ' 定义了 C alias 同名汇编符号 '
+                + name + '；不能证明最终选中的函数体，已提取事实保留，不生成安全结论。')
     definitions, ranges = [], []
     for name in sorted(typed - existing.keys()):
         starts = [i for i, line in enumerate(lines) if line == name + ':']
@@ -119,6 +131,22 @@ def recover_assembly_vectors(source, file, functions_by_name):
 
 
 def recover_vector_entries(facts):
+    # A real alias declaration is executable identity, not an empty function.
+    # Keep completed extraction facts, but never publish safety after dropping
+    # an unsupported alias body or its possible interrupt entry.
+    for function in facts.get('functions', []):
+        alias = function.get('function_alias')
+        if alias is not None and alias.get('status') != 'RESOLVED':
+            raise ValueError('UNRESOLVED_FUNCTION_ALIAS：'
+                + str(function.get('file')) + ':' + str(function.get('line'))
+                + ' ' + function['name'] + ' -> ' + str(alias.get('target_symbol'))
+                + '；' + alias.get('reason', '别名目标证据不足')
+                + '。已提取事实保留；不能将未恢复的函数体或中断入口当作无访问并生成安全结论。')
+        if (alias is not None and function.get('is_weak')
+                and any(issue.get('kind') in {'PARSE_FAILED', 'ASSEMBLY_SOURCE_REVIEW'}
+                        for issue in facts.get('unknowns', []))):
+            raise ValueError('UNRESOLVED_FUNCTION_ALIAS_LINKAGE：' + function['name']
+                + ' 是 weak alias，存在未解析源码/汇编，无法证明没有强符号覆盖；已提取事实保留，不生成安全结论。')
     from .target_set import point_targets
     variables = {v['symbol_id']: v for v in facts['variables'] if v.get('linker_section') in SECTIONS}
     entries = list(facts.get('assembly_vector_entries', []))

@@ -101,6 +101,72 @@ def preemption_relations(facts, contexts, cfg=None):
     return facts['preemption_relations']
 
 
+def _supplement_context(source, configured, source_roots, selected_roots, funcs):
+    """A configured label must not replace recovered hardware evidence."""
+    aliases = {'IRQ': 'ISR', 'FOREGROUND': 'MAIN'}
+    conflicts = []
+    if aliases.get(configured['kind'], configured['kind']) != aliases.get(source['kind'], source['kind']):
+        conflicts.append('kind')
+    selectors = any(configured.get(key) for key in ('functions', 'patterns', 'regex'))
+    if selectors and (not selected_roots or not selected_roots <= source_roots):
+        conflicts.append('functions/patterns/regex')
+    names = {name for fid in source_roots if fid in funcs for name in
+             (funcs[fid]['name'], funcs[fid]['qualified_name'], fid)}
+    from .protection import _fixed_exception_slots
+    for key in ('vector', 'irq'):
+        value = configured.get(key)
+        if value is None:
+            continue
+        same = key in source and type(value) is type(source[key]) and value == source[key]
+        same |= key == 'vector' and isinstance(value, str) and value in names
+        same |= (type(source.get('slot')) is int and
+                 _fixed_exception_slots({key: value}) == {source['slot']})
+        if not same:
+            conflicts.append(key)
+    for key, value in source.items():
+        if key in {'id', 'kind', 'vector', 'irq'} or key not in configured:
+            continue
+        if type(configured[key]) is not type(value) or configured[key] != value:
+            conflicts.append(key)
+    for key in ('slot', 'unmaskable', 'physical_id', 'physical_kind', 'function_id', 'channel', 'stream'):
+        if key in configured and key not in source:
+            conflicts.append(key)
+    if conflicts:
+        raise ValueError(f"配置上下文 {configured['id']!r} 与源码恢复的物理入口冲突："
+                         + ', '.join(sorted(set(conflicts)))
+                         + '；不会覆盖已恢复的向量、不可屏蔽属性或真实入口。请使用不同的手工 id，并明确关联正确 vector/irq。')
+    # Keep additions (including declared scheduling numbers) as separately
+    # sourced evidence; they must not become recovered hardware properties.
+    result = dict(source)
+    result['configuration_evidence'] = [*source.get('configuration_evidence', []), dict(configured)]
+    return result
+
+
+def _add_source_context(contexts, roots, cid, context):
+    """Keep every recovered entry of a compatible physical domain."""
+    if cid in contexts:
+        current = contexts[cid]
+        physical = ('kind', 'slot', 'vector', 'irq', 'unmaskable', 'physical_id',
+                    'physical_kind', 'channel', 'stream', 'core', 'core_id', 'direction',
+                    'priority', 'preemption_priority', 'subpriority', 'grouping',
+                    'priority_grouping', 'priority_bits', 'preemption_bits', 'subpriority_bits')
+        if any(type(current.get(key)) is not type(context.get(key))
+               or current.get(key) != context.get(key) for key in physical):
+            raise ValueError(f'源码恢复的上下文 {cid!r} 存在矛盾物理证据；不能选择最后一项作为安全依据。')
+        current['source_entries'].append(dict(context))
+    else:
+        contexts[cid] = dict(context, source_entries=[dict(context)])
+    roots[cid].add(context['function_id'])
+
+
+def _add_auto_context(contexts, roots, cid, context, fid, configured, funcs):
+    if cid in contexts:
+        if contexts[cid].get('discovery') != 'configured' or cid not in configured:
+            raise ValueError(f'上下文标识冲突：自动恢复的 {cid!r} 已存在；不会覆盖既有执行域。请为手工上下文使用不同 id。')
+        context = _supplement_context(context, configured[cid], {fid}, roots[cid], funcs)
+    contexts[cid] = context
+
+
 def context_graph(facts, cfg):
     funcs = {f["function_id"]: f for f in facts["functions"]}
     graph = defaultdict(set)
@@ -119,16 +185,15 @@ def context_graph(facts, cfg):
         facts["calls"].append(dict(caller_function_id=a, callee_function_id=b, callee_name=callees[0]["name"],
                                    call_kind="CONFIGURED", file=callers[0]["file"], line=callers[0]["line"]))
     contexts, roots, matched, disabled = {}, defaultdict(set), set(), set()
+    configured = {context['id']: context for context in cfg['contexts']}
     for h in facts.get('hardware_contexts', []):
-        contexts[h['id']] = dict(h, discovery='HAL DMA argument contract')
-        roots[h['id']].add(h['function_id'])
+        _add_source_context(contexts, roots, h['id'], dict(h, discovery='HAL DMA argument contract'))
     for entry in facts.get('vector_entries', []):
         fid = entry['function_id']
         if fid not in funcs:
             continue
         cid = 'vector:' + entry['vector']
-        contexts[cid] = dict(entry, id=cid, reentrant=False)
-        roots[cid].add(fid)
+        _add_source_context(contexts, roots, cid, dict(entry, id=cid, reentrant=False))
         matched.add(fid)
     for c in cfg["contexts"]:
         fs = [f for f in funcs.values() if matches(f, c)]
@@ -137,7 +202,12 @@ def context_graph(facts, cfg):
             continue
         if not fs:
             issues.append(dict(kind="UNMATCHED_CONTEXT", context_id=c["id"]))
-        contexts[c["id"]] = dict(c, discovery="configured", reentrant=c.get("reentrant", False))
+        cid = c['id']
+        if cid in contexts:
+            contexts[cid] = _supplement_context(contexts[cid], c, roots[cid],
+                                                 {f['function_id'] for f in fs}, funcs)
+        else:
+            contexts[cid] = dict(c, discovery="configured", reentrant=c.get("reentrant", False))
         for f in fs:
             roots[c["id"]].add(f["function_id"])
             matched.add(f["function_id"])
@@ -157,7 +227,8 @@ def context_graph(facts, cfg):
                 kind = "MAIN"
             if kind:
                 cid = "auto:" + name + ":" + digest(fid)[:8]
-                contexts[cid] = dict(id=cid, kind=kind, discovery="name_convention")
+                _add_auto_context(contexts, roots, cid, dict(id=cid, kind=kind, discovery="name_convention"),
+                                  fid, configured, funcs)
                 roots[cid].add(fid)
         seen_registrations = set()
         for reg in facts["registrations"]:
@@ -180,6 +251,21 @@ def context_graph(facts, cfg):
                 and reg.get('api') in {'xTaskCreate', 'xTaskCreateStatic'})
             if reg.get('kind') in {'TIMER', 'DEFERRED'} or kernel_timer_task:
                 cid = 'auto:freertos:timer_daemon'
+                if cid in contexts and contexts[cid].get('discovery') != 'freertos_timer_daemon':
+                    daemon_roots = {row['function_id'] for row in facts['registrations']
+                        if row.get('kind') in {'TIMER', 'DEFERRED'} or (
+                            funcs.get(row['function_id'], {}).get('name') == 'prvTimerTask'
+                            and funcs.get(row.get('registered_by'), {}).get('name') == 'xTimerCreateTimerTask'
+                            and row.get('api') in {'xTaskCreate', 'xTaskCreateStatic'})}
+                    if contexts[cid].get('discovery') != 'configured' or cid not in configured:
+                        raise ValueError(f'上下文标识冲突：{cid!r} 保留给已恢复的软件定时器守护任务；请为手工上下文使用不同 id。')
+                    original_roots = set(roots[cid])
+                    contexts[cid] = _supplement_context(dict(id=cid, kind='TASK', reentrant=False,
+                        discovery='freertos_timer_daemon', registrations=[],
+                        execution_note='FreeRTOS 定时器回调与延后执行函数共享同一个串行守护任务'),
+                        configured[cid], daemon_roots, original_roots, funcs)
+                    contexts[cid]['registrations'].extend(row for row in facts['registrations']
+                        if row['function_id'] in original_roots and row['function_id'] in daemon_roots)
                 contexts.setdefault(cid, dict(id=cid, kind='TASK', discovery='freertos_timer_daemon',
                     reentrant=False, registrations=[], execution_note='FreeRTOS 定时器回调与延后执行函数共享同一个串行守护任务'))
                 contexts[cid]['registrations'].append(reg)
@@ -201,8 +287,8 @@ def context_graph(facts, cfg):
             else:
                 ordinal = sum(key[0] == fid and key[1] == reg['file'] for key in seen_registrations)
                 cid = "auto:" + kind.lower() + ":" + funcs[fid]["name"] + ":" + digest([fid, reg["file"], ordinal])[:12]
-                contexts[cid] = dict(id=cid, kind=kind, discovery="task_registration", registration=reg,
-                                     reentrant=reg.get("may_repeat", kind == 'TASK'))
+                _add_auto_context(contexts, roots, cid, dict(id=cid, kind=kind, discovery="task_registration", registration=reg,
+                                     reentrant=reg.get("may_repeat", kind == 'TASK')), fid, configured, funcs)
             roots[cid].add(fid)
     from .physical import normalize_contexts
     contexts, roots = normalize_contexts(contexts, roots, graph, funcs, cfg, facts)
@@ -1309,8 +1395,17 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
     for variable in analyzed_variables:
         if variable.get('root_symbol_id'):
             members_by_root[variable['root_symbol_id']].append(variable)
-    for container in [v for v in facts['variables'] if v.get('resource_kind') in {'STRUCT_CONTAINER', 'ARRAY_CONTAINER'}]:
+    for container in [v for v in facts['variables'] if v.get('resource_kind') in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER'}]:
         members = members_by_root.get(container['symbol_id'], [])
+        if container.get('resource_kind') == 'STRUCT_MEMBER_CONTAINER':
+            # Nested containers retain the original root identity. Select
+            # concrete descendants by that identity and canonical field path,
+            # never by display-name prefixes (history != history_stash).
+            parent_path = canonical_member_path(container.get('field_path'))
+            members = [member for member in members_by_root.get(container.get('root_symbol_id'), [])
+                       if parent_path and canonical_member_path(member.get('field_path')).startswith(
+                           (parent_path + '.', parent_path + '['))]
+            container['member_symbol_ids'] = [member['symbol_id'] for member in members]
         if container.get('resource_kind') == 'ARRAY_CONTAINER':
             members = [v for v in analyzed_variables if v.get('array_root_symbol_id') == container['symbol_id']]
             source_accesses = by_var[container['symbol_id']]

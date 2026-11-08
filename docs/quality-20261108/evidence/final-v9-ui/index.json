@@ -1,0 +1,211 @@
+{
+  "status": "FINAL_V9_UI_EVIDENCE_ARCHIVED_AND_SCOPED",
+  "archived_utc": "2026-11-08T14:33:19.528938+00:00",
+  "product_mutations": false,
+  "browser_or_service_started": false,
+  "inav_access": false,
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "zip": {
+    "path": "H:\\ECRA-quality-20261108-offline-build-v9\\ECRA-Portable.zip",
+    "bytes": 785692863,
+    "sha256": "7a0e45b0f3dda3ee47d7759f9784ab66ca9f8fa089543157f64c9f9be9a6c03d"
+  },
+  "receipts": [
+    {
+      "source": "output/quality-20261108/continuation/q405-final-package-v9/acceptance.json",
+      "file": "q405-final-package-v9-acceptance.json",
+      "bytes": 4518,
+      "sha256": "e4b0538f89f7ab22c0f8da43a0e6ffe62ff5225ae87bd535072e265bada01de2",
+      "byte_identical_to_source": true
+    },
+    {
+      "source": "output/quality-20261108/continuation/native-diff-ui-final-v9/acceptance.json",
+      "file": "native-diff-ui-final-v9-acceptance.json",
+      "bytes": 5766,
+      "sha256": "fb6de2ddbc3df9add14b48296bde1b117417896bd38a213f0d35235f4ecbfcc4",
+      "byte_identical_to_source": true
+    },
+    {
+      "source": "output/quality-20261108/continuation/q405-final-package-v9/review-events-comparison.json",
+      "file": "q405-review-events-comparison.json",
+      "bytes": 1217,
+      "sha256": "c971063cbdc560b84080b4dc8200e12a9039c8af5d0125e574b56373880f54b2",
+      "byte_identical_to_source": true
+    },
+    {
+      "source": "output/quality-20261108/continuation/q405-final-package-v9-render/acceptance.json",
+      "file": "q405-final-package-v9-render-acceptance.json",
+      "bytes": 8839,
+      "sha256": "a7f663125b27d2811cee6852edc1e818aaadc7c1aba4a14cadf1dc4a20653dbf",
+      "byte_identical_to_source": true
+    },
+    {
+      "source": "output/quality-20261108/continuation/q405-final-package-v9-render/review-events-comparison.json",
+      "file": "q405-render-review-events-comparison.json",
+      "bytes": 1217,
+      "sha256": "c3cf1e4fc3143f5726eeb0ed5f479bdd5a25168715d21c71ca25056fd97c75fa",
+      "byte_identical_to_source": true
+    },
+    {
+      "source": "output/quality-20261108/continuation/q405-final-package-v9-render/static-before.json",
+      "file": "q405-render-static-before.json",
+      "bytes": 706,
+      "sha256": "342bb8a3834e1be784cd8164bc6c31dee3495daa3c98bb6053638787489c38b6",
+      "byte_identical_to_source": true
+    },
+    {
+      "source": "output/quality-20261108/continuation/q405-final-package-v9-render/static-after.json",
+      "file": "q405-render-static-after.json",
+      "bytes": 741,
+      "sha256": "49c83787eb63a7f6bf104ad485e615420fb6bac9e749d765bd3d8ead619e6f2f",
+      "byte_identical_to_source": true
+    }
+  ],
+  "screenshots": [
+    {
+      "source": "output/playwright/quality-20261108/final-v9-package-q405-01-f411-form-native.png",
+      "file": "01-q405-final-v9-f411.png",
+      "bytes": 66032,
+      "sha256": "527e5489968f77ecb96e0367545ea85a831818575a757dfbff12edb2c6337630",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1447,
+        631
+      ],
+      "mode": "FINAL_V9_PORTABLE / UNVERIFIED_ARCHIVE",
+      "caption_zh": "正式 V9 解压包；F411 长源码下展开填写区并普通滚动至按钮。项目 github_stm32_bare_metal、叶项 g_cli.command_list[*].name、定义 apps/cli/cli_simple.c:20、独立人工待确认状态与四个按钮同屏。未填写或签署。",
+      "window_evidence": "Actual content1447×631 independently read; viewport:null; outer/bounds1461×781@0,0 normal, within screen available1463×783. Screenshot pixels1447×631.",
+      "actual_image_viewed": true,
+      "observation_scope": "Q405 final package reviewer operated this scene; screenshots actually viewed by reviewer and coordinator."
+    },
+    {
+      "source": "output/playwright/quality-20261108/final-v9-package-q405-02-nmi-form-native.png",
+      "file": "02-q405-final-v9-nmi.png",
+      "bytes": 63321,
+      "sha256": "9b32e2288d381427314401e5a934858474bf723c588f173c6e8dfb94dfea7cf9",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1447,
+        631
+      ],
+      "mode": "FINAL_V9_PORTABLE / UNVERIFIED_ARCHIVE",
+      "caption_zh": "正式 V9 解压包；从历史切换 resolved-nmi 的 shared，确认栏更新为本项目、本变量、main.c:1 与既有人工风险状态，四个按钮仍可见，没有残留 F411 身份。未签署或撤销。",
+      "window_evidence": "Actual content1447×631 independently read; viewport:null; outer/bounds1461×781@0,0 normal. Screenshot pixels1447×631.",
+      "actual_image_viewed": true,
+      "observation_scope": "Q405 final package reviewer operated this scene; screenshots actually viewed by reviewer and coordinator."
+    },
+    {
+      "source": "output/playwright/quality-20261108/final-v9-native-diff-confirmation-final.png",
+      "file": "03-native-diff-final-v9-confirmation.png",
+      "bytes": 64997,
+      "sha256": "0e587a4e3eadd2bd072e9555fd0436754d7996c1b8316599aee8564b6e2b2dbc",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1448,
+        632
+      ],
+      "mode": "FINAL_V9_PORTABLE / LOCAL_SNAPSHOT / EXISTING_V8_SCAN",
+      "caption_zh": "正式 V9 解压包读取已有同引擎 V8 native Diff。shared 的两个读改写访问下方，确认区同时显示 中文 空格 Git 工程 · shared、main.c:3、人工待确认及四个按钮。发布记录静态已校验不等于全工程安全；分析仍 INCOMPLETE。未签署。",
+      "window_evidence": "Browser opened with viewport:null. PNG pixels1448×632 only; numeric inner/outer/bounds were not retained in the native Diff receipt/log. Do not substitute Q405 geometry or equate PNG size to independently queried inner dimensions.",
+      "actual_image_viewed": true,
+      "observation_scope": "Coordinator operated native Diff UI; this archive reviewer independently viewed the saved original screenshot, without reopening product."
+    },
+    {
+      "source": "output/playwright/quality-20261108/final-v9-native-diff-all-five-final.png",
+      "file": "04-native-diff-final-v9-all-five.png",
+      "bytes": 69044,
+      "sha256": "5f45259fa3ac78c2d6506f147a8120372993cc01f329e1ac9c1f4cf5d379815c",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1448,
+        632
+      ],
+      "mode": "FINAL_V9_PORTABLE / LOCAL_SNAPSHOT / EXISTING_V8_SCAN",
+      "caption_zh": "正式 V9 解压包读取同一已有 native Diff；退出详情并清空筛选后显示全部 5 项（shared、vectors 容器与 3 个安全叶项）。顶部仍分列影响清单 3 与保守潜在影响 2；全部 5 项不是全部安全或新一轮扫描。",
+      "window_evidence": "Browser opened with viewport:null. PNG pixels1448×632 only; exact native geometry not retained. No1366×768/1920×1080 native or OS scaling claim.",
+      "actual_image_viewed": true,
+      "observation_scope": "Coordinator operated native Diff UI; this archive reviewer independently viewed the saved original screenshot, without reopening product."
+    },
+    {
+      "source": "output/playwright/quality-20261108/final-v8-13-native-form-scrolled.png",
+      "file": "05-q405-before-final-v8.png",
+      "bytes": 63248,
+      "sha256": "7f8d30ba9118bde67d7e53993a98771ffa35834e028aee103bfaffe497a53e41",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1447,
+        631
+      ],
+      "mode": "HISTORICAL_FINAL_V8_PORTABLE / UNVERIFIED_ARCHIVE / BEFORE_FIX",
+      "caption_zh": "保留的 V8 原缺陷画面：F411 长源码滚到填写/按钮处时，确认栏只有“当前：待确认”，变量身份离开视野。用于说明 Q405 修复前行为，不能作为 V9 仍失败的证据。",
+      "window_evidence": "Original V8 actual content1447×631; viewport:null, independent native metadata in original V8 acceptance. Historical before image, not final V9.",
+      "actual_image_viewed": true,
+      "observation_scope": "Original V8 reviewer operated and viewed the scene; archive reviewer re-viewed original screenshot during consolidation."
+    },
+    {
+      "source": "output/playwright/quality-20261108/final-v9-package-q405-render-01-f411-1366.png",
+      "file": "06-q405-final-v9-render-1366.png",
+      "bytes": 126065,
+      "sha256": "f5060db71d6987c1dbb2ff787a9cef0b49723e90f6f6794c623285816e6d4f17",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1366,
+        768
+      ],
+      "mode": "FINAL_V9_PORTABLE / UNVERIFIED_ARCHIVE / RENDERING_VIEWPORT_ONLY",
+      "caption_zh": "正式 V9 包，1366×768 渲染视口。F411 真实长叶项的项目/变量/定义/人工状态与四按钮同屏，无截断或页面横向溢出；名称在本宽度下能单行放下，不构成额外超长名称强制换行验证。",
+      "window_evidence": "page.viewportSize and inner independently read 1366×768; outer1463×783 unchanged. Rendering only, not physical-window fit or OS scaling.",
+      "actual_image_viewed": true,
+      "observation_scope": "Independent reviewer actually operated and viewed final package; no signing or state injection."
+    },
+    {
+      "source": "output/playwright/quality-20261108/final-v9-package-q405-render-02-f411-1920.png",
+      "file": "07-q405-final-v9-render-1920.png",
+      "bytes": 171510,
+      "sha256": "ea7d5b2b0caf687b4c7499cd06e2061583bfed28dd533925fa809af2a6a4602e",
+      "byte_identical_to_source": true,
+      "pixel_size": [
+        1920,
+        1080
+      ],
+      "mode": "FINAL_V9_PORTABLE / UNVERIFIED_ARCHIVE / RENDERING_VIEWPORT_ONLY",
+      "caption_zh": "正式 V9 包，1920×1080 渲染视口。F411 真实长叶项的项目/变量/定义/人工状态与四按钮同屏，无截断或页面横向溢出；名称在本宽度下能单行放下，不构成额外超长名称强制换行验证。",
+      "window_evidence": "page.viewportSize and inner independently read 1920×1080; outer1463×783 unchanged. Rendering only, not physical-window fit or OS scaling.",
+      "actual_image_viewed": true,
+      "observation_scope": "Independent reviewer actually operated and viewed final package; no signing or state injection."
+    }
+  ],
+  "review": {
+    "q405": "Actual final V9 package UI actions, all27 CLI exits0; old3 human event IDs/payload hashes unchanged; no signing/revocation.",
+    "native_diff": "Final V9 package read existing same-engine V8 native Diff only; no V9 rerun of full/Diff/full claimed.",
+    "native_static_sha256": "2db113e09143b3ea88939fdb62e3be4252b6d46e233fc2d90f9e6f4a471a6d41",
+    "native_static_unchanged_scope": "Original native Diff acceptance records static identical to actual V8 scan. This consolidation reviewed the receipt; it did not recompute customer/scan databases.",
+    "native_human_events": 0,
+    "native_analysis_status": "INCOMPLETE",
+    "native_publication_state": "STATIC_VALIDATED",
+    "native_inventory_total": 5,
+    "native_selected_count": 3,
+    "native_conservative_count": 2,
+    "native_geometry_gap": "viewport:null recorded in open command; console.log geometry produced no returned values in saved CLI output. Only PNG pixel dimensions are newly measured.",
+    "rendering_supplement": "Final V9 Q4051366×768/1920×1080 rendering only; previous native geometry limits remain unchanged."
+  },
+  "rendering_supplement": {
+    "added_utc": "2026-11-08T14:42:49.494577+00:00",
+    "status": "Q405_FINAL_V9_RENDERING_VIEWPORTS_1366_AND_1920_PASSED",
+    "prior_index_sha256": "6caed0bd1f911722f525c35db1160c74694348652eb5b9cd74348aea1e3d96c7",
+    "viewports": [
+      [
+        1366,
+        768
+      ],
+      [
+        1920,
+        1080
+      ]
+    ],
+    "physical_window_claim": false,
+    "subject_single_line_at_tested_widths": true,
+    "all_three_scan_db_hashes_unchanged": true,
+    "human_event_hashes_unchanged": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "status": "PASS_ZIP_INTEGRITY_AWAIT_ACTUAL_EXTRACTED_UI",
+  "bundle": "H:\\ECRA-quality-20261108-delivery\\便携 中文\\ECRA-Portable",
+  "zip": "H:\\ECRA-quality-20261108-delivery\\ECRA-Quality-20261108-local.zip",
+  "bytes": 787798791,
+  "sha256": "b02a9e30a9270bfa35c558bc3191d3305c7f02624d789ea24a48f8d6399272ab",
+  "extracted": "H:\\ECRA-quality-20261108-delivery\\解压 终验\\ECRA-Portable",
+  "extracted_all_file_hashes_equal": true,
+  "no_git": true,
+  "files": 32988,
+  "seconds": 184.0470000000205,
+  "all_release_gates_passed": false
+}

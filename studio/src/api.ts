@@ -35,7 +35,8 @@ const labels: Record<string, string> = {
   TODO: '待修复', FIXING: '修复中', TO_VERIFY: '待验证', CLOSED: '已关闭', ACCEPTED_RISK: '接受风险',
   UNVERIFIED: '来源尚未验证', LEGACY_READ_ONLY: '旧格式只读', STATIC_VALIDATED: '发布者记录：静态已校验',
   DONE: '复核完成（结论独立）', TECH_FAILED:'复核技术失败', NEED_MORE_CONTEXT:'复核缺少条件', NOT_QUEUED:'未列入复核', COMPLETE:'覆盖记录完整',
-  READ: '读取', WRITE: '写入', RMW: '读改写', PARSED: '解析成功', PARTIAL: '部分覆盖', FAILED: '失败'
+  READ: '读取', WRITE: '写入', RMW: '读改写', ADDRESS_TAKEN: '取地址', PARSED: '解析成功', PARTIAL: '部分覆盖', FAILED: '失败',
+  MODELED_SCOPE_COMPLETE: '已完成建模范围分析'
 }
 export function label(value: string) { return labels[value] || `未识别状态：${value}` }
 const fields: Record<string, string> = {

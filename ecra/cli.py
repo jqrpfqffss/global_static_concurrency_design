@@ -482,7 +482,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             explicit.append(cache)
             toolchain = compilation.get('cmake_cache', {}).get('CMAKE_TOOLCHAIN_FILE')
             if toolchain:
-                explicit.append(toolchain)
+                from .compilation import cmake_toolchain_input
+                explicit.append(cmake_toolchain_input(root, cache.parent, toolchain))
         snapshot_inputs = InputSnapshot(root, out / 'diagnostics', explicit,
                                        dict(consumed_config, **compilation.get('consumed_inputs', {})),
                                        file_view=frozen_files)
@@ -997,8 +998,16 @@ def main(argv=None):
                 launcher = 'ecra'
             elif os.name == 'nt':
                 launcher = '& ' + launcher  # PowerShell quoted executable
-            print('环境检查：' + launcher + ' doctor')
-            print('一键排查：' + launcher)
+            config_option = ''
+            if args.config:
+                if os.name == 'nt':
+                    quoted_config = "'" + str(path).replace("'", "''") + "'"
+                else:
+                    import shlex
+                    quoted_config = shlex.quote(str(path))
+                config_option = ' --config ' + quoted_config
+            print('环境检查：' + launcher + ' doctor' + config_option)
+            print('一键排查：' + launcher + config_option)
             return 0
         executor = run
         if args.command == 'run' and not args.legacy_output:

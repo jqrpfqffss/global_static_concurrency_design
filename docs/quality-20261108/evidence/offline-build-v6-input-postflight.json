@@ -1,0 +1,38 @@
+{
+  "status": "PASSED",
+  "product_build_exit_code": 0,
+  "source": "H:\\ECRA-quality-20261108\\continuation-builder-source-v6",
+  "output": "H:\\ECRA-quality-20261108-offline-build-v6",
+  "source_snapshot_sha256": "638452f8b2c6068a29a191cd16827f159ca103a0e7d4ceed2cedaaafb663717e",
+  "core_digest": "65c0fb3dbc29bda7ad74aeeadeb4666c6b1eeda545bc9521c3961f476eca7682",
+  "source_files_unchanged": true,
+  "source_file_count": 4370,
+  "cache_input_files_before": 27921,
+  "cache_input_files_after": 27921,
+  "cache_input_bytes_unchanged": true,
+  "cache_changed_paths": [],
+  "old_archives_unchanged": true,
+  "prior_archives_after": {
+    "H:\\ECRA-quality-20261108-offline-build-v4\\ECRA-Portable.zip": {
+      "bytes": 785690591,
+      "sha256": "f91fa403252d1ff2eb533c83eb5d6558f6f3f2fe55835d977869a80b28003586"
+    },
+    "H:\\ECRA-quality-20261108-delivery\\ECRA-Quality-20261108-local.zip": {
+      "bytes": 787798791,
+      "sha256": "b02a9e30a9270bfa35c558bc3191d3305c7f02624d789ea24a48f8d6399272ab"
+    }
+  },
+  "mutable_cache_diagnostics_after": {
+    "local-tools.json": {
+      "bytes": 13163,
+      "sha256": "712cc1b6f944f546e5227e289c8b88f735af843bf7bd993e37a413840e39d5ed"
+    },
+    "preparation-result.json": {
+      "bytes": 923,
+      "sha256": "878aa793642aa4ec218456f2202d00aea3d89cb41a9f53ae03cc461a3a69f77d"
+    }
+  },
+  "elapsed_seconds": 1086.172,
+  "finished": "2026-11-08T11:54:29.852566+00:00",
+  "note": "A fresh full build via shipped offline scripts. Product GUI interaction is a separate acceptance, not inferred from build success."
+}

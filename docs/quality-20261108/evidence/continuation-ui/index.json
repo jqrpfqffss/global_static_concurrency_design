@@ -1,0 +1,96 @@
+{
+  "scope": "Actual viewed viewport screenshots retained in repository documentation; source-preview images explicitly distinguished from final package proof",
+  "images": [
+    {
+      "file": "v4-package-first-1366.png",
+      "bytes": 50445,
+      "sha256": "280a0258e0c9a0cfc188a691441c59985569a03cc4219c116230124481b8cf62",
+      "source": "output/playwright/quality-20261108/continuation/v4-package-first-1366.png",
+      "mode": "ACTUAL_V4_EXTRACTED_PACKAGE"
+    },
+    {
+      "file": "v4-nmi-manual-open-1366.png",
+      "bytes": 117953,
+      "sha256": "2e3c284df91bae2e510f58729dd626357122ace9604247e1ec70a05cb06e6c45",
+      "source": "output/playwright/quality-20261108/continuation/v4-nmi-manual-open-1366.png",
+      "mode": "ACTUAL_V4_EXTRACTED_PACKAGE"
+    },
+    {
+      "file": "v4-nmi-saved-1366.png",
+      "bytes": 107907,
+      "sha256": "2446fb78a6c5414b47400b7796ce79a34d9f5941622559bb982f5dce7d41a9c0",
+      "source": "output/playwright/quality-20261108/continuation/v4-nmi-saved-1366.png",
+      "mode": "ACTUAL_V4_EXTRACTED_PACKAGE"
+    },
+    {
+      "file": "v4-after-browser-reopen-continue-1366.png",
+      "bytes": 101718,
+      "sha256": "6182903a1b024b800a9bc8d850124911418978a4adc048ad6b2af469fedd4c8f",
+      "source": "output/playwright/quality-20261108/continuation/v4-after-browser-reopen-continue-1366.png",
+      "mode": "ACTUAL_V4_EXTRACTED_PACKAGE"
+    },
+    {
+      "file": "v5-source-alias-corrected-1920.png",
+      "bytes": 126073,
+      "sha256": "a50e3cfcbbb83e8e38c49cff915d53605a08b44660027d939dd64cc7112ba83f",
+      "source": "output/playwright/quality-20261108/continuation/v5-source-alias-corrected-1920.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "v5-source-alias-scrolled-1366.png",
+      "bytes": 94016,
+      "sha256": "2d19a9002dc83feec42f329b36b9ada13d844ca9a2f15abcc3b5906066899725",
+      "source": "output/playwright/quality-20261108/continuation/v5-source-alias-scrolled-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-r2-old-f411-derived-parent-1366.png",
+      "bytes": 99784,
+      "sha256": "a39e73bf2b77e0f72e41ff4ed034dd81139f4ffc2b02ba614504cf79d398d455",
+      "source": "output/playwright/quality-20261108/continuation/ui-r2-old-f411-derived-parent-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-r2-f411-long-chain-1366.png",
+      "bytes": 112120,
+      "sha256": "4d0630af38c733bf867b122a761c7799d408487616a3fe4045f517b4cb720dcc",
+      "source": "output/playwright/quality-20261108/continuation/ui-r2-f411-long-chain-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-r2-corrupt-manifest-explained-1366.png",
+      "bytes": 67519,
+      "sha256": "4cf3fedc2798eb06ca9e344750b8ae6db55b153b5c874071d5a643bb27a00704",
+      "source": "output/playwright/quality-20261108/continuation/ui-r2-corrupt-manifest-explained-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-r2-manifest-retry-restored-1366.png",
+      "bytes": 73966,
+      "sha256": "e6d7a845198cd802ddd5149049dca5d1c2507717e6de7d4b9bad9014802aa612",
+      "source": "output/playwright/quality-20261108/continuation/ui-r2-manifest-retry-restored-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-r2-address-kind-before-1366.png",
+      "bytes": 112656,
+      "sha256": "ba2ba98d9820bb767108fef404af25dc51526b3aa23a317bca7016cce967c33a",
+      "source": "output/playwright/quality-20261108/continuation/ui-r2-address-kind-before-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-v7-address-kind-corrected-1366.png",
+      "bytes": 111591,
+      "sha256": "31f0e62c7b8746397e68edcf8800443645b7d3dd4e98d22f9abbac403cb0e82b",
+      "source": "output/playwright/quality-20261108/continuation/ui-v7-address-kind-corrected-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    },
+    {
+      "file": "ui-v7-standard-export-succeeded-1366.png",
+      "bytes": 58027,
+      "sha256": "6f25f78762dc9e912d503336326a4e02f271b11862a23969a2f8c7ee620b9c3d",
+      "source": "output/playwright/quality-20261108/continuation/ui-v7-standard-export-succeeded-1366.png",
+      "mode": "EXPLICIT_SOURCE_UI_PREVIEW_NOT_FINAL_PACKAGE"
+    }
+  ]
+}

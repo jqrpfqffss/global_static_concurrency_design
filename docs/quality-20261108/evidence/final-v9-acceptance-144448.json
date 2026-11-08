@@ -1,0 +1,185 @@
+{
+  "status": "LOCAL_CANDIDATE_VERIFIED_WITH_LARGE_GATE_STILL_RUNNING",
+  "release_accepted": false,
+  "checked": "2026-11-08T14:44:48.866187+00:00",
+  "receipts": [
+    {
+      "path": "final-worktree-v9.json",
+      "sha256": "c56ad93c5601e39698d63a36294b65cd1ef6c71c2817a6aa2e47990e82ffaa89",
+      "status": "DEVIATIONS_FOUND",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "offline-build-v9/receipt.json",
+      "sha256": "936bc6ea1754dbb002e5915217ea85b52900c8267639f65993c6cd2a561fa537",
+      "status": "BUILT_PENDING_PRODUCT_ACCEPTANCE",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "offline-build-v9/input-postflight.json",
+      "sha256": "65e49095725b98b4c8405d330735487bdab2e8efbc6174d73e5046a25fda0313",
+      "status": "PASSED",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "offline-build-v9/build-component-audit.json",
+      "sha256": "bfe92dd1092632210b0927c419f52ef9187e158f781cf204d6b6feb2379e96c9",
+      "status": "PASSED_SCOPED_BUILD_AND_COMPONENT_AUDIT",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "extracted-v9-receipt.json",
+      "sha256": "8a9a4dd5d6e4bb7b3afad8aa689fbfeda1d02899ebb5c9388c973a2b0a0803bc",
+      "status": "EXTRACTED_HASH_AND_CURRENT_MANUALS_PASSED_PENDING_PRODUCT_UAT",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "regression/main-v8-git-smoke/receipt.json",
+      "sha256": "bd220299c5d3aa93473b0c8ea10b21acd4addb3c377448cf17ef05e6d614a528",
+      "status": "PASSED",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "q405-final-package-v9/acceptance.json",
+      "sha256": "e4b0538f89f7ab22c0f8da43a0e6ffe62ff5225ae87bd535072e265bada01de2",
+      "status": "Q405_FINAL_EXTRACTED_V9_PORTABLE_NATIVE_UAT_PASSED",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "native-diff-ui-final-v9/acceptance.json",
+      "sha256": "fb6de2ddbc3df9add14b48296bde1b117417896bd38a213f0d35235f4ecbfcc4",
+      "status": "ACTUAL_FINAL_V9_PORTABLE_NATIVE_DIFF_READING_PASSED",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "q405-final-package-v9-render/acceptance.json",
+      "sha256": "a7f663125b27d2811cee6852edc1e818aaadc7c1aba4a14cadf1dc4a20653dbf",
+      "status": "Q405_FINAL_V9_RENDERING_VIEWPORTS_1366_AND_1920_PASSED",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    },
+    {
+      "path": "current-docs-v9-links.json",
+      "sha256": "ef3767085dc3214c4d01f67b25f75f3771cd6ecaab3f4b5955b2ca1222d80a91",
+      "status": "PASS",
+      "scope": "Original receipt retained verbatim; later UAT does not rewrite earlier pending wording"
+    }
+  ],
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "final_package": "H:/ECRA-quality-20261108-offline-build-v9/ECRA-Portable.zip",
+  "package_sha256": "7a0e45b0f3dda3ee47d7759f9784ab66ca9f8fa089543157f64c9f9be9a6c03d",
+  "code_and_official_builder_consistent": true,
+  "nonruntime_deviations_preserved": [
+    {
+      "scope": "build_portable.ps1",
+      "sha256": {
+        "worktree": "69aeebd31b85dd020375ca55bc50aeb04f3c710fab219b2d33c3799a414185cd",
+        "frozen_v9": "dc984598e15d699eed83327d80d6c469767d49034f42d940849423f4c63f1a20",
+        "builder_v9": "69aeebd31b85dd020375ca55bc50aeb04f3c710fab219b2d33c3799a414185cd"
+      },
+      "classification": "NONRUNTIME_INTENTIONALLY_PRESERVED_ENGINE_SNAPSHOT_PACKAGER",
+      "runtime_production_mismatch": false,
+      "official_builder_mismatch": false,
+      "coordinator_scope_confirmation": "Engine-only directories intentionally retain the older auxiliary packager; they are not the promised entry for rebuilding the official package. Main workspace and actual builder use reviewed69ae.",
+      "correction": "No source or package modified; retain the observed dc98 versus69ae difference."
+    }
+  ],
+  "diff_check_exit": 0,
+  "staging_empty": true,
+  "ui_shutdown": "All final UI/browser sessions normally closed; real Ctrl+C receipts separately preserved",
+  "old_ui_pid_existence": [],
+  "large_gate": {
+    "task_id": "f2f751073cb34310b8d8beb06673a501",
+    "scope": "NEW product task after engine upgrade; owned incremental build, not cold build or same-engine recovery",
+    "engine": "63a5cff7e9babcf0a4982726f68ca8390ad5f840b92d31d41e511a859d857710",
+    "controller_status": "TASK_RUNNING",
+    "task_state": "RUNNING",
+    "last_original_poll": "2026-11-08T14:44:47.682281+00:00",
+    "stage": {
+      "completed_units": 388,
+      "total_units": 388,
+      "snapshot_status": "VERIFIED",
+      "stage": "报告生成与存储（单次发布）",
+      "fact_counts": {
+        "variables": 16567,
+        "functions": 491011,
+        "accesses": 1208050,
+        "calls": 20224,
+        "unknowns": 1534856,
+        "protection_events": 17324,
+        "registrations": 0,
+        "snapshots": 5738,
+        "pointer_constraints": 198583,
+        "semantic_calls": 109033,
+        "indirect_accesses": 400926,
+        "irq_priority_events": 820,
+        "control_flow": 491009,
+        "pointer_storage": 1284509,
+        "constant_regions": 11,
+        "nvic_programs": 491009,
+        "nvic_globals": 1769,
+        "nvic_irq_definitions": 148,
+        "constant_pruned_evidence": 15,
+        "translation_units": 388,
+        "failed_tu_preprocessing": 0,
+        "assembly_vector_entries": 55,
+        "hardware_contexts": 1,
+        "address_escapes": 5056,
+        "resolved_pointer_facts": 14649,
+        "pointer_targets": 9398,
+        "vector_entries": 55,
+        "resolved_assembly_references": 171,
+        "physical_contexts": 57,
+        "context_bindings": 9307,
+        "contexts": 57,
+        "recursive_edges": 14,
+        "context_pruned_uncertainties": 0,
+        "struct_containers": 793,
+        "nvic_resolved_events": 39,
+        "nvic_lifecycle_barriers": 6629,
+        "nvic_priorities": 54,
+        "preemption_relations": 1596,
+        "assembly_references": 173,
+        "mask_windows": 1007376,
+        "multi_field_coherence": 109360
+      }
+    },
+    "official_scan_db_exists": false,
+    "manifest_exists": false,
+    "pending": [
+      {
+        "name": "scan.db.d138929782794d12a4ec6fa1b4a31817.pending",
+        "bytes": 10080198656,
+        "mtime_utc": "2026-11-08T14:44:48.821280+00:00"
+      }
+    ],
+    "resources": {
+      "available": true,
+      "working_set_bytes": 9488658432,
+      "private_bytes": 9549193216,
+      "peak_job_commit_bytes": 10021474304,
+      "limit_bytes": 17179869184,
+      "enforced_job_commit_limit_bytes": 17179869184,
+      "job_limit_flags": 8704,
+      "processes": 2,
+      "sampled_processes": 2,
+      "write_bytes": 0,
+      "system_commit_bytes": 44470132736,
+      "system_commit_limit_bytes": 85825454080,
+      "system_physical_total_bytes": 68645584896,
+      "system_physical_available_bytes": 34550255616,
+      "disk_free_bytes": 350025580544,
+      "host_pressure": {
+        "soft": false,
+        "stop": false,
+        "commit_headroom_bytes": 41355321344,
+        "physical_available_bytes": 34550255616,
+        "metrics_available": true,
+        "reason": ""
+      }
+    },
+    "verdict": "NOT_ACCEPTED_RUNNING; no pending SQLite read, no source/state mutation"
+  },
+  "unverified": "Large publication/integrity/final exit/performance and large Diff/recovery; live external OpenCode disabled; clean offline physical machine; physical32GB; OS DPI/native page zoom and target native1366/1920; current legacy file visual",
+  "low_impact_diagnostic_limit": "D001 Job JSON write_bytes is not used as actual I/O evidence",
+  "test_scope": "Main55 passed; V8 packageGit18 and ARM full/Diff/full retain V8 identity; older1646 and140 original failures are not rewritten as final suite pass"
+}

@@ -1,0 +1,180 @@
+{
+  "status": "PASSED",
+  "started": "2026-11-08T12:15:30.512684+00:00",
+  "root": "H:\\global_static_concurrency_design",
+  "command": [
+    "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "H:\\global_static_concurrency_design\\output\\quality-20261108\\continuation\\regression\\run_main_v8_git_smoke.py",
+    "--child"
+  ],
+  "modules": [
+    "tests.test_readonly_git_admission",
+    "tests.test_input_watch_identity",
+    "tests.test_git_diff.SemanticDiffTests",
+    "tests.test_git_diff.GitIntegrationTests.test_settings_strict_types",
+    "tests.test_git_diff.GitIntegrationTests.test_legacy_settings_require_explicit_migration",
+    "tests.test_git_diff_patch.GitPatchTests.test_staged_unstaged_unicode_binary_empty_and_leading_dash_roundtrip",
+    "tests.test_git_diff_patch.GitPatchTests.test_project_subdirectory_uses_repository_relative_paths",
+    "tests.test_git_diff_patch.GitPatchTests.test_failure_preserves_old_archive_and_removes_pending"
+  ],
+  "expected_engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "preflight": {
+    "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+    "ecra_module": "H:\\global_static_concurrency_design\\ecra\\__init__.py",
+    "workflow_module": "H:\\global_static_concurrency_design\\ecra\\workflow.py",
+    "python": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "python_version": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.19044-SP0",
+    "os_name": "nt",
+    "is_user_admin": true
+  },
+  "source_files": 651,
+  "source_roots": [
+    "ecra",
+    "config",
+    "tests",
+    "scripts",
+    "studio"
+  ],
+  "external_ai_live": false,
+  "observation_budget_seconds": 900,
+  "isolated_temporary": "H:\\ECRA-quality-20261108\\continuation\\main-v8-git-smoke",
+  "scope": "Final bounded main-V8 Git/admission/impact/settings/patch smoke; separate from failed original V6/1646/v4 runs.",
+  "pid": 33036,
+  "exit_code": 0,
+  "finished": "2026-11-08T12:18:08.278780+00:00",
+  "elapsed_seconds": 157.76599999994505,
+  "source_files_after": 651,
+  "changed_sources": [],
+  "sources_unchanged": true,
+  "engine_after": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "resource_peaks_sampled": {
+    "rss_bytes": 82481152,
+    "private_bytes": 51253248,
+    "processes": 6
+  },
+  "summary": {
+    "tests": 55,
+    "seconds": 156.6,
+    "tail": "OK"
+  },
+  "skip_lines": [],
+  "child_result": {
+    "tests_run": 55,
+    "unittest_successful": true,
+    "failures": 0,
+    "errors": 0,
+    "skips": [],
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "successful_method_callbacks": 55,
+    "successful_subtests": 14,
+    "failed_subtests": 0
+  },
+  "discovery": {
+    "test_ids": [
+      "tests.test_readonly_git_admission.ContentNameEvidenceTests.test_binary_and_zero_byte_added_deleted_files_are_retained",
+      "tests.test_readonly_git_admission.ContentNameEvidenceTests.test_incomplete_content_protocol_is_a_failure_not_an_empty_diff",
+      "tests.test_readonly_git_admission.ContentNameEvidenceTests.test_pure_tracked_mode_change_is_retained_even_when_blob_is_equal",
+      "tests.test_readonly_git_admission.ContentNameEvidenceTests.test_unmatched_real_content_record_is_never_silently_dropped",
+      "tests.test_readonly_git_admission.ContentNameEvidenceTests.test_user_textconv_and_external_diff_are_not_executed_or_trusted",
+      "tests.test_readonly_git_admission.ContentNameEvidenceTests.test_zero_line_rename_in_spaced_unicode_repository_is_retained",
+      "tests.test_readonly_git_admission.GuardedAdmissionTests.test_actual_acl_change_and_restore_after_freeze_is_still_rejected",
+      "tests.test_readonly_git_admission.GuardedAdmissionTests.test_actual_head_change_and_restore_after_freeze_is_still_rejected",
+      "tests.test_readonly_git_admission.GuardedAdmissionTests.test_actual_index_change_after_freeze_is_still_rejected",
+      "tests.test_readonly_git_admission.GuardedAdmissionTests.test_fresh_real_clone_admission_reaches_capture_without_false_notification",
+      "tests.test_readonly_git_admission.GuardedAdmissionTests.test_permission_change_between_admission_and_watch_is_checked_again",
+      "tests.test_readonly_git_admission.GuardedAdmissionTests.test_source_byte_change_and_restore_after_freeze_is_still_rejected",
+      "tests.test_readonly_git_admission.ReadonlyGitTests.test_actual_changed_path_selection_is_unchanged_and_index_readonly",
+      "tests.test_readonly_git_admission.ReadonlyGitTests.test_comparison_git_preserves_fresh_stat_index_and_patch",
+      "tests.test_readonly_git_admission.ReadonlyGitTests.test_difference_exit_code_does_not_accept_a_technical_failure",
+      "tests.test_readonly_git_admission.ReadonlyGitTests.test_real_working_capture_preserves_fresh_stat_staging_and_dirty_bytes",
+      "tests.test_readonly_git_admission.ReadonlyGitTests.test_stat_only_isolated_tree_is_clean_but_real_byte_change_is_rejected",
+      "tests.test_readonly_git_admission.ReadonlyGitTests.test_working_snapshot_git_preserves_fresh_stat_index_and_patch",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_ancestor_is_locked_before_target_handle_is_opened",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_create_file_failure_releases_new_handles_but_keeps_existing_watch",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_identity_api_failure_after_registration_closes_real_notification",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_notification_failure_releases_new_handles_but_keeps_existing_watch",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_replacement_junction_before_target_lock_is_rejected",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_root_swap_after_real_notification_registration_is_blocked",
+      "tests.test_input_watch_identity.InputWatchIdentityTests.test_stop_after_registration_rolls_back_only_new_resources",
+      "tests.test_git_diff.SemanticDiffTests.test_T01_T08_write_to_rmw",
+      "tests.test_git_diff.SemanticDiffTests.test_T02_T03_T23_distinct_static_storage",
+      "tests.test_git_diff.SemanticDiffTests.test_T04_deep_downstream",
+      "tests.test_git_diff.SemanticDiffTests.test_T05_T11_T12_return_control_upstream",
+      "tests.test_git_diff.SemanticDiffTests.test_T06_function_pointer_target",
+      "tests.test_git_diff.SemanticDiffTests.test_T07_callback_registration",
+      "tests.test_git_diff.SemanticDiffTests.test_T09_remove_protection",
+      "tests.test_git_diff.SemanticDiffTests.test_T10_T26_nvic_priority",
+      "tests.test_git_diff.SemanticDiffTests.test_T13_shared_data_fixed_point",
+      "tests.test_git_diff.SemanticDiffTests.test_T14_pointer_parameter",
+      "tests.test_git_diff.SemanticDiffTests.test_T15_dynamic_array",
+      "tests.test_git_diff.SemanticDiffTests.test_T16_union_overlap",
+      "tests.test_git_diff.SemanticDiffTests.test_T17_deleted_call_keeps_old_edges",
+      "tests.test_git_diff.SemanticDiffTests.test_T18_rename_is_explicitly_uncertain",
+      "tests.test_git_diff.SemanticDiffTests.test_T19_file_move_static_matching",
+      "tests.test_git_diff.SemanticDiffTests.test_T20_T21_build_change_preserves_uncertainty_without_filling_diff",
+      "tests.test_git_diff.SemanticDiffTests.test_T22_recursive_closure",
+      "tests.test_git_diff.SemanticDiffTests.test_T24_comment_blank_lines_are_not_semantic_changes",
+      "tests.test_git_diff.SemanticDiffTests.test_T24_comments_do_not_replace_automatic_pointer_slots",
+      "tests.test_git_diff.SemanticDiffTests.test_T24_escaped_storage_and_anonymous_type_positions_are_not_impacts",
+      "tests.test_git_diff.SemanticDiffTests.test_T25_T27_ecat_change_keeps_tim4_packet",
+      "tests.test_git_diff.SemanticDiffTests.test_anonymous_layout_change_remains_a_semantic_impact",
+      "tests.test_git_diff.SemanticDiffTests.test_disjoint_struct_fields_do_not_spread_through_ui_container",
+      "tests.test_git_diff.SemanticDiffTests.test_long_initializer_after_extern_uses_complete_definition",
+      "tests.test_git_diff.SemanticDiffTests.test_source_local_macro_change_is_build_semantic_impact",
+      "tests.test_git_diff.GitIntegrationTests.test_settings_strict_types",
+      "tests.test_git_diff.GitIntegrationTests.test_legacy_settings_require_explicit_migration",
+      "tests.test_git_diff_patch.GitPatchTests.test_staged_unstaged_unicode_binary_empty_and_leading_dash_roundtrip",
+      "tests.test_git_diff_patch.GitPatchTests.test_project_subdirectory_uses_repository_relative_paths",
+      "tests.test_git_diff_patch.GitPatchTests.test_failure_preserves_old_archive_and_removes_pending"
+    ],
+    "modules": [
+      {
+        "module": "tests.test_readonly_git_admission",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_readonly_git_admission.py",
+        "tests": 18
+      },
+      {
+        "module": "tests.test_input_watch_identity",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_input_watch_identity.py",
+        "tests": 7
+      },
+      {
+        "module": "tests.test_git_diff.SemanticDiffTests",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_git_diff.py",
+        "tests": 25
+      },
+      {
+        "module": "tests.test_git_diff.GitIntegrationTests.test_settings_strict_types",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_git_diff.py",
+        "tests": 1
+      },
+      {
+        "module": "tests.test_git_diff.GitIntegrationTests.test_legacy_settings_require_explicit_migration",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_git_diff.py",
+        "tests": 1
+      },
+      {
+        "module": "tests.test_git_diff_patch.GitPatchTests.test_staged_unstaged_unicode_binary_empty_and_leading_dash_roundtrip",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_git_diff_patch.py",
+        "tests": 1
+      },
+      {
+        "module": "tests.test_git_diff_patch.GitPatchTests.test_project_subdirectory_uses_repository_relative_paths",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_git_diff_patch.py",
+        "tests": 1
+      },
+      {
+        "module": "tests.test_git_diff_patch.GitPatchTests.test_failure_preserves_old_archive_and_removes_pending",
+        "file": "H:\\global_static_concurrency_design\\tests\\test_git_diff_patch.py",
+        "tests": 1
+      }
+    ],
+    "tests": 55,
+    "loader_errors": []
+  }
+}

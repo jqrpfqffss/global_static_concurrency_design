@@ -90,6 +90,17 @@ class BuildPreflightTests(unittest.TestCase):
         self.assertEqual(plan_page(self.work/'preflight')['items'],[])
         self.assertFalse((self.data/'scans').exists())
 
+    def test_existing_database_relative_toolchain_is_included_in_verified_precheck_inputs(self):
+        if not self.compiler:self.skipTest('requires actual ARM compiler')
+        toolchain=self.root/'cmake/arm.cmake';toolchain.parent.mkdir()
+        toolchain.write_text('# existing CMake toolchain\n','utf-8')
+        (self.build/'CMakeCache.txt').write_text('CMAKE_TOOLCHAIN_FILE:FILEPATH=cmake/arm.cmake\n','utf-8')
+        before=(toolchain.read_bytes(),toolchain.stat().st_mtime_ns)
+        result=self.check();self.assertTrue(result['passed'])
+        snapshot=read_json(self.work/'preflight/diagnostics/source_changes.json')
+        self.assertIn('cmake/arm.cmake',snapshot['inputs_before'])
+        self.assertEqual(before,(toolchain.read_bytes(),toolchain.stat().st_mtime_ns))
+
     def test_missing_expected_macro_is_explicit_and_does_not_become_a_safety_result(self):
         self.cfg['analysis']['expected_defines']=['VARIANT=3'];self.save()
         with self.assertRaisesRegex(ValueError,'expected_defines.*VARIANT=3'):self.check()

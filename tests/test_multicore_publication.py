@@ -17,6 +17,7 @@ from ecra.report_package import export_report,import_report,sha256
 from ecra.scan_store import EvidenceProvider,publish_scan
 from ecra.workspace import WorkspaceResolver
 from tests import test_ecra
+from tests.async_jobs import cleanup_temporary
 
 
 def linked_elf():
@@ -40,7 +41,7 @@ class MulticorePublicationTests(unittest.TestCase):
         cls.facts['translation_units']=[dict(file='a.c',source_file='a.c',parse_status='PARSED')]
 
     def setUp(self):
-        tmp=tempfile.TemporaryDirectory(prefix='ecra multicore publication ');self.addCleanup(tmp.cleanup)
+        tmp=tempfile.TemporaryDirectory(prefix='ecra multicore publication ');self.addCleanup(cleanup_temporary,self,tmp)
         self.base=Path(tmp.name).resolve();self.root=self.base/'firmware';self.root.mkdir();self.data=self.base/'data'
         (self.root/'a.c').write_text('int mailbox,private_value; void main(void){mailbox++;private_value=1;}','utf-8')
         self.inputs=[];self.folders=[]

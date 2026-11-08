@@ -5,3 +5,5 @@ main.workbench-main{display:flex;flex-direction:column;overflow:auto;gap:8px;pad
 .review-toggle{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:2px 0;font-size:12px}.review-toggle button{font-weight:600;min-height:32px}.object-identity{font-size:11px;color:#64748b;margin:2px 0}.object-identity summary{cursor:pointer}.object-identity p{overflow-wrap:anywhere;margin:4px 0}.evidence-section{border-bottom:1px solid #d9e1ed;padding:8px 0}.evidence-section>.muted{font-size:12px;margin:4px 0}.advanced-evidence{margin-top:16px;font-size:13px}.detail-evidence .evidence-section>summary{font-weight:600;cursor:pointer}
 
 .symbol{grid-template-columns:minmax(0,1fr);row-gap:2px}.symbol>div{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;min-width:0}.symbol>div small{white-space:normal;overflow-wrap:anywhere}.symbol .tag{margin:0}
+
+.review-toggle .review-subject{flex:1;min-width:0;text-align:right;overflow-wrap:anywhere}.review-subject>strong,.review-subject>span{display:block}.review-toggle button{flex-shrink:0}

@@ -4,6 +4,8 @@ This does not rewrite a static classification or manufacture a human decision.
 Every consumer uses the same committed AI watermark and variable aggregation.
 """
 
+from ..scan_store import symbol_columns_sql
+
 AI_CTE = """
 ai_snapshot AS (SELECT sequence,payload FROM human.ai_snapshots ORDER BY sequence DESC LIMIT 1),
 ai_current AS (
@@ -26,9 +28,12 @@ ai_verdicts AS (SELECT *,CASE WHEN state='DONE' THEN json_extract(payload,'$.sta
 
 
 def projection(human_heads):
+    # Match decisions.effective_decision: NEED_MORE_CONTEXT is a completed AI
+    # answer, but cannot refute a static conflict. Keep it available in the AI
+    # view while attributing the effective fallback to the static evidence.
     return human_heads.rstrip()+', '+AI_CTE+""",
 symbol_attributes AS (
- SELECT s.*,max(CASE e.key WHEN 'coverage_source' THEN CAST(n.value AS TEXT) END) AS coverage_source,
+ SELECT """+symbol_columns_sql('s',provenance=True)+""",max(CASE e.key WHEN 'coverage_source' THEN CAST(n.value AS TEXT) END) AS coverage_source,
  max(CASE e.key WHEN 'parse_status' THEN CAST(n.value AS TEXT) END) AS parse_status,
  max(CASE e.key WHEN 'audit_status' THEN CAST(n.value AS TEXT) END) AS audit_status
  FROM symbols s LEFT JOIN edges e ON e.parent=s.node AND e.key IN ('coverage_source','parse_status','audit_status')
@@ -43,7 +48,7 @@ finding_labels AS (
  GROUP BY f.symbol_id,id.value),
 finding_results AS (
  SELECT f.*,a.state AS ai_state,a.verdict,
- CASE a.verdict WHEN 'CONFIRMED' THEN 0 WHEN 'LIKELY' THEN 1 WHEN 'NEED_MORE_CONTEXT' THEN 2
+ CASE a.verdict WHEN 'CONFIRMED' THEN 0 WHEN 'LIKELY' THEN 1
  WHEN 'REVIEWED_SAFE' THEN 3 WHEN 'FALSE_POSITIVE' THEN 3 ELSE
  CASE f.static_classification WHEN 'SUSPECT' THEN 1 WHEN 'SAFE_PROVEN' THEN 3
  WHEN 'SHARED_NO_REVIEW' THEN 4 ELSE 2 END END AS result_rank
@@ -53,6 +58,7 @@ symbol_review AS (
  sum(CASE WHEN result_rank=4 THEN 1 ELSE 0 END) AS shared_count,
  sum(CASE WHEN verdict IN ('CONFIRMED','REVIEWED_SAFE','FALSE_POSITIVE') THEN 0 ELSE 1 END) AS supplemental_unresolved,
  sum(CASE WHEN verdict IN ('CONFIRMED','LIKELY','NEED_MORE_CONTEXT','REVIEWED_SAFE','FALSE_POSITIVE') THEN 1 ELSE 0 END) AS ai_answer_count,
+ sum(CASE WHEN verdict IN ('CONFIRMED','LIKELY','REVIEWED_SAFE','FALSE_POSITIVE') THEN 1 ELSE 0 END) AS ai_decision_count,
  sum(CASE WHEN verdict IN ('REVIEWED_SAFE','FALSE_POSITIVE') THEN 1 ELSE 0 END) AS ai_safe_count
  FROM finding_results GROUP BY symbol_id),
 result_base AS (
@@ -65,8 +71,8 @@ result_base AS (
  WHEN s.static_classification='UNKNOWN' OR s.parse_status='FAILED' THEN 'UNKNOWN'
  WHEN s.static_classification='SAFE_PROVEN' OR s.audit_status='STATIC_SAFE_PROVEN' THEN 'SAFE'
  WHEN s.static_classification='SHARED_NO_REVIEW' THEN 'SHARED_NO_REVIEW' ELSE 'INVENTORY' END AS current_result,
- CASE WHEN r.ai_answer_count=0 OR r.ai_answer_count IS NULL THEN 'STATIC'
- WHEN r.ai_answer_count<r.finding_count THEN 'MIXED' ELSE 'OPENCODE' END AS result_source,
+ CASE WHEN r.ai_decision_count=0 OR r.ai_decision_count IS NULL THEN 'STATIC'
+ WHEN r.ai_decision_count<r.finding_count THEN 'MIXED' ELSE 'OPENCODE' END AS result_source,
  CASE WHEN r.ai_safe_count=r.finding_count AND r.finding_count>0 THEN 1 ELSE 0 END AS ai_safe,
  coalesce(h.decision,'PENDING') AS human_record_decision,coalesce(h.handling_status,'TODO') AS handling_status
  FROM symbol_attributes s LEFT JOIN symbol_review r ON r.symbol_id=s.symbol_id LEFT JOIN heads h ON h.symbol_id=s.symbol_id),
@@ -89,14 +95,15 @@ def summary(conn,human_heads):
     # Aggregate the small, bounded set of enum combinations in one pass. Never
     # reconstruct a scan or run the expensive read-only projection per counter.
     counts,human,raw,safe_sources={},{},{},{}
-    pending=0
+    pending=derived_count=0
     rows=conn.execute(projection(human_heads)+'''SELECT current_result,confirmation_state,
-        human_record_decision,result_source,needs_human_confirmation,count(*) FROM current_results
+        human_record_decision,result_source,needs_human_confirmation,count(*),sum(static_classification_derived) FROM current_results
         GROUP BY current_result,confirmation_state,human_record_decision,result_source,needs_human_confirmation''')
-    for result,confirmation,record,source,needs,count in rows:
+    for result,confirmation,record,source,needs,count,derived in rows:
         for mapping,key in ((counts,result),(human,confirmation),(raw,record)):
             mapping[key]=mapping.get(key,0)+count
         pending+=needs*count
+        derived_count+=derived
         if result=='SAFE':safe_sources[source]=safe_sources.get(source,0)+count
     return dict(result_counts=counts,human_counts=human,raw_human_counts=raw,pending_count=pending,
-                safe_sources=safe_sources,result_revision=revision(conn))
+                safe_sources=safe_sources,result_revision=revision(conn),derived_static_classification_count=derived_count)

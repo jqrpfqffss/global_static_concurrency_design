@@ -1,11 +1,20 @@
 ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 
-可选 Git 差异模式：配置 analysis.git_diff 或执行 ecra.cmd --scan-mode diff。
+双击 ECRA.cmd 打开 Studio；首次在“新建工程”配置真实固件与构建，开始扫描后在
+工作台查看结果和覆盖范围。人工确认需显式保存；关闭浏览器后，使用同一数据根再次
+启动即可继续。默认数据根为 %LOCALAPPDATA%/ECRAStudio/data，可用 ECRA_DATA_ROOT
+或 .\ECRA.cmd --data-root D:/ECRAStudioData 指定源码、Git和构建目录以外的独立目录。关闭启动窗口或 Ctrl+C
+停止服务；仅关闭浏览器标签不会停止服务。操作说明见 STUDIO-GUIDE.md。
+
+以下是兼容命令行入口。可选 Git 差异模式：配置 analysis.git_diff 或执行
+.\ECRA.cmd --scan-mode diff run --no-review。
 base_ref/current_ref 指定 project.root 固件仓库中直接比较的两个分支、标签或提交。
 current_ref 默认 HEAD；指定其它引用时自动隔离分析，无需切换分支。离线打包时使用
 build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/git/cmd/git.exe。
 未打包 Git 时全量模式不变，差异模式和差异 doctor 会明确报错。首次比较需独立构建基准；
-结果仍在 index.html，范围之外不代表安全。不要单独删除报告引用的基准 worktree/事实。
+正常 CLI 扫描也发布到 Studio 数据根，使用 Studio 打开；只有显式 --legacy-output
+兼容模式才生成旧 index.html。差异范围之外不代表安全。不要单独删除报告引用的
+基准 worktree/事实。
 
 1. 解压整个 ECRA-Portable 目录；不要只复制 ecra.cmd 或工具 exe。
 2. 备份并编辑 config/semantics.yaml 的 project.root、扫描目录、上下文和复核设置。
@@ -15,18 +24,29 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
    Git 两个版本分别构建，不共用 CMakeCache。需要源码内构建时显式设置
    analysis.cmake.location: project；工具只清理有当前源码所有权的专用构建目录。
    generator、工具链、target 和参数保留，构建失败不会回退或忽略。
-   报告默认在 workspace/projects/<工程身份>/results/index.html。
-   工具目录无写权限时配置 analysis.output.location: custom 及绝对 custom_dir，
-   不会回退写入固件。升级请保留完整 workspace，不要覆盖或删除历史数据。
+   正式结果在独立数据根 scans/<扫描ID>/；中间构建与工作文件位置由实际配置决定。
+   仅兼容 --legacy-output 模式使用 workspace/projects/<工程身份>/results/index.html；
+   可用 analysis.output.location: custom 及绝对 custom_dir 改兼容输出位置。
+   不会回退写入固件。升级请保留完整数据根、旧配置及已有 workspace，不要覆盖或删除历史数据。
    旧固件 .ecra 按身份、文件结构及哈希复制，原件保留；旧收据需重新校验。
    current_ref: HEAD 默认使用固定提交的独立工作树，未提交业务修改未纳入扫描。
-   更多规则见 docs/workspace-migration.md（源码分发中的工作区迁移说明）。
+   更多规则见 docs/workspace-migration.md；当前 Studio 数据合同见
+   docs/rearchitecture/portable-and-user-guide.md。
+   显式启用 analysis.git_diff.include_uncommitted: true 的受控CMake工作字节模式，
+   全量和差异扫描都要固定、重新核对完整SDK。该阶段可能较长，请查看任务阶段与
+   日志；正常停止保留已校验TU缓存，恢复前仍须重新核对输入。
 5. 在 PowerShell 中运行：
    .\ecra.cmd --help
    .\ecra.cmd doctor
    .\ecra.cmd run --no-review
    .\ecra.cmd report
    .\ecra.cmd status
+   使用外置配置时，每条命令均带同一 --config，例如：
+   .\ECRA.cmd --config D:/MyProject/semantics.yaml run --no-review
+   .\ECRA.cmd --config D:/MyProject/semantics.yaml status
+   .\ECRA.cmd --config D:/MyProject/semantics.yaml report
+   report 重新生成只读投影，不会重新验证旧源码。退出码 2 表示仍有待办/覆盖缺口，
+   不是全工程安全；失败和中断查看实际阶段及日志，不删除旧结果以重试。
    GNU Make 4.4.1 的子进程路径接口不支持 CMake 输出的中文 UTF-8 路径。
    ECRA 自动使用同一目录的 8.3 名称；没有短文件名时，在用户 TEMP/ECRA-paths
    创建可重复使用的 ASCII junction。它指向原工具/工程，不复制或替换编译器。

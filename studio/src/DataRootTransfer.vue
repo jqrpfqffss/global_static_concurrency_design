@@ -5,7 +5,7 @@ import DirectoryBrowser from './DirectoryBrowser.vue'
 const props=defineProps<{currentRoot:string,busy:boolean}>()
 const source=ref(props.currentRoot),target=ref(''),restore=ref(false),plan=ref<any>(null),job=ref<any>(null),history=ref<any[]>([]),working=ref(false),error=ref(''),browser=ref<'source'|'target'|null>(null)
 let timer:any=null,alive=true
-const names:Record<string,string>={RUNNING:'准备复制',COPYING:'复制并校验文件',VALIDATING:'校验数据库与人工历史',PUBLISHING:'发布已校验副本',COMPLETE:'复制完成',FAILED:'失败，原数据保留',INTERRUPTED:'已中断，可重新校验后恢复'}
+const names:Record<string,string>={UNREADABLE:'复制记录无法读取',RUNNING:'准备复制',COPYING:'复制并校验文件',VALIDATING:'校验数据库与人工历史',PUBLISHING:'发布已校验副本',COMPLETE:'复制完成',FAILED:'失败，原数据保留',INTERRUPTED:'已中断，可重新校验后恢复'}
 function state(value:string){return names[value]||'未识别状态：'+value}
 function active(value:any){return value&&['RUNNING','COPYING','VALIDATING','PUBLISHING'].includes(value.state)}
 function bytes(value:number){return new Intl.NumberFormat('zh-CN').format(value||0)+' 字节'}

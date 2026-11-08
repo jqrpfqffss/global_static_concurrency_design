@@ -240,8 +240,14 @@ try {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/portable-usage.txt') -Destination (Join-Path $bundle 'CLI-README.txt')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/rearchitecture/portable-preview-readme.txt') -Destination (Join-Path $bundle 'README.txt') -Force
     Copy-DirectoryContents (Join-Path $PSScriptRoot 'docs/rearchitecture') (Join-Path $bundle 'docs/rearchitecture')
+    # Keep the user-guide links usable in a source-free distribution. Copy only
+    # documentation files/assets, excluding workspace QA data and dev tooling.
+    foreach ($manual in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'docs') -File -Filter '*.md') {
+        Copy-Item -LiteralPath $manual.FullName -Destination (Join-Path $bundle ('docs/' + $manual.Name))
+    }
+    Copy-DirectoryContents (Join-Path $PSScriptRoot 'docs/assets') (Join-Path $bundle 'docs/assets')
     [IO.File]::WriteAllText((Join-Path $bundle 'STUDIO-GUIDE.md'),
-        "# ECRA Studio 操作说明`r`n`r`n双击 ECRA.cmd 打开本地工作台。完整操作、数据位置和能力边界见[用户操作说明](docs/rearchitecture/portable-and-user-guide.md)。`r`n`r`n本包仍为开发验收候选，完整重构发布门禁未全部通过。技术证据见[需求追踪](docs/rearchitecture/01-requirements-traceability.md)与[验收记录](docs/rearchitecture/performance-and-acceptance.md)。`r`n", [Text.Encoding]::UTF8)
+        "# ECRA Studio 操作说明`r`n`r`n双击 ECRA.cmd 打开本地工作台。首次使用见[启动、扫描、确认与交接教程](docs/studio-v81-user-tutorial.md)，日常处理见[查看与人工确认](docs/studio-v91-results-guide.md)。数据位置和能力边界见[用户操作说明](docs/rearchitecture/portable-and-user-guide.md)。`r`n`r`n本包仍为开发验收候选，完整重构发布门禁未全部通过。技术证据见[需求追踪](docs/rearchitecture/01-requirements-traceability.md)与[验收记录](docs/rearchitecture/performance-and-acceptance.md)。`r`n", [Text.Encoding]::UTF8)
     $commit = 'unknown (source archive or Git unavailable)'
     $git = Get-Command git.exe -ErrorAction SilentlyContinue
     if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {

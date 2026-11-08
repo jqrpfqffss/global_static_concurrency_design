@@ -1,0 +1,13 @@
+{
+  "python": "H:\\ECRA-quality-20261108-delivery\\解压 终验\\ECRA-Portable\\runtime\\python.exe",
+  "ecra_import": "H:\\ECRA-quality-20261108-delivery\\解压 终验\\ECRA-Portable\\ecra\\__init__.py",
+  "engine_digest": "74c0b1c0f3fa204088534ad90f5bcefaf4bccb5a00ce42bce4cfb878eea509b2",
+  "source_production_unchanged": true,
+  "extracted_production_matches_frozen_source": true,
+  "production_files": 151,
+  "source_differences": [],
+  "extracted_differences": [],
+  "all_release_gates_passed": false,
+  "documentation_scope": "Documents frozen before final validation.md and postflight additions; later external receipts do not rewrite this ZIP",
+  "passed_scoped": true
+}

@@ -4,8 +4,8 @@
 #
 # 日常运行：在本工具根目录执行 `py -3.10 run_ecra.py`。
 # 工具会按本文件完成：定位 project.root → （可选）清理构建目录 → CMake 配置和
-# 构建 → 扫描全局/static 变量 → 在独立用户数据根 projects/<工程身份>/results/ 生成旧 CLI 报告。
-# Studio 预览另用权威 scan.db；完整扫描消费者迁移尚未完成，见 docs/rearchitecture。
+# 构建 → 扫描全局/static 变量 → 在独立用户数据根 scans/<扫描ID>/ 保存 SQLite 结果。
+# 使用 Studio 查看；仅显式 --legacy-output 生成旧 HTML，见 docs/rearchitecture。
 #
 # 扫描新项目时，不创建新的 semantics.yaml：
 #   A. 修改 project.root 为新固件根目录；
@@ -89,7 +89,7 @@ analysis:
   # 自动从真实 Arm GCC 编译命令探测标准头文件目录。STM32 + Arm GCC 通常保持 true。
   auto_system_includes: true
 
-  # 完成后自动在默认浏览器打开本工程 results/index.html；CI 或无 GUI 环境保持 false。
+  # 旧 --legacy-output 模式完成后自动打开 results/index.html；默认 SQLite 使用 Studio 查看。
   open_report: false
 
   # ---------------------------------------------------------------------------
@@ -145,6 +145,9 @@ analysis:
 # kind 可为 MAIN、TASK、ISR、CALLBACK、DMA、CORE。
 # 同一物理 IRQ 内串行执行的多个入口应使用同一个 id；不同 IRQ、不同任务实例必须
 # 使用不同 id，否则会降低并发判断准确性。
+# 手工 ISR 声明依赖正确的硬件身份；自定义函数名不证明可屏蔽。NMI/HardFault 应
+# 明确填写正确 vector（如 slot:2 / slot:3）、IRQn 或不可屏蔽约束。
+# 已恢复的真实 ABI 不能被同名手工 id 覆盖；矛盾配置会明确报错，不会改成安全。
 contexts:
   - id: main
     kind: MAIN

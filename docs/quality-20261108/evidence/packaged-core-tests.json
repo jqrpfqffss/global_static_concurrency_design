@@ -1,0 +1,17 @@
+{
+  "tests": 41,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": true,
+  "ecra_import": "H:\\ECRA-quality-20261108-delivery\\便携 中文\\ECRA-Portable\\ecra\\__init__.py",
+  "python": "H:\\ECRA-quality-20261108-delivery\\便携 中文\\ECRA-Portable\\runtime\\python.exe",
+  "modules": [
+    "test_exception_masks",
+    "test_studio_current_results",
+    "test_profile_forms",
+    "test_cmake_toolchain_snapshot",
+    "test_cli_init_arm_headers"
+  ],
+  "source_tests_not_copied_to_bundle": true
+}

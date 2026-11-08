@@ -31,7 +31,10 @@ def _git_argv(root,*args):
     bundle=bundle_root()
     exe=str(bundle/'tools/git/cmd/git.exe') if bundle else 'git'
     if bundle and not Path(exe).is_file():raise ValueError('隔离输入需要完整离线Git运行时')
-    return [exe,'-c','core.longpaths=true','-c','core.fsmonitor=false','-C',str(root),*args]
+    # Porcelain diff refreshes stat-only index entries even with optional
+    # locks disabled. Input inspection must preserve the caller's real index.
+    return [exe,'-c','core.longpaths=true','-c','core.fsmonitor=false',
+            '-c','diff.autoRefreshIndex=false','-C',str(root),*args]
 
 
 def _environment():

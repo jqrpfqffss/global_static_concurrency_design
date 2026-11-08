@@ -1,5 +1,6 @@
 """Bounded scan diagnostics using only the Portable Python standard library."""
 from contextvars import ContextVar
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import ctypes
 import json
@@ -14,6 +15,33 @@ from .common import write_json
 from .emergency_memory import CommitReserve, python_reserve
 
 ACTIVE = ContextVar('ecra_scan_diagnostics', default=None)
+
+
+@contextmanager
+def interruptible_sqlite(connection):
+    """Bridge an explicit scan stop to SQLite's thread-safe interrupt API.
+
+    Python's pending KeyboardInterrupt alone waits for sqlite3_step to return.
+    A complete integrity check can spend minutes inside that call.
+    """
+    active = ACTIVE.get()
+    if active is None:
+        yield connection
+        return
+    from .scan_stop import check_stop
+    with active.sqlite_lock:
+        active.sqlite_connections.add(connection)
+    try:
+        check_stop()
+        yield connection
+    except Exception as exc:
+        import sqlite3
+        if isinstance(exc, sqlite3.OperationalError) and str(exc) == 'interrupted':
+            check_stop()  # Preserve a requested stop as KeyboardInterrupt/130.
+        raise
+    finally:
+        with active.sqlite_lock:
+            active.sqlite_connections.discard(connection)
 
 
 def memory():
@@ -74,6 +102,8 @@ class ScanDiagnostics:
         self.snapshot_status = 'NOT_CAPTURED'
         self.peaks = {}
         self.stop = threading.Event()
+        self.sqlite_lock = threading.Lock()
+        self.sqlite_connections = set()
         self.reserve = python_reserve()
         self.commit_reserve = CommitReserve()
         self.failed = False
@@ -98,7 +128,13 @@ class ScanDiagnostics:
             request = os.environ.get('ECRA_JOB_STOP_FILE')
             if request and Path(request).is_file():
                 import _thread
-                _thread.interrupt_main()
+                with self.sqlite_lock:
+                    # Queue the Python stop before SQLite can return. Doing
+                    # this afterward could deliver a second interrupt while
+                    # the main thread is already unwinding the SQL exception.
+                    _thread.interrupt_main()
+                    for connection in self.sqlite_connections:
+                        connection.interrupt()
                 return
             try:
                 self.sample()

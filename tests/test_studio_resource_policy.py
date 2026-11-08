@@ -46,7 +46,7 @@ class ResourcePolicyTests(unittest.TestCase):
     def test_other_studio_cannot_mark_owned_running_task_interrupted(self):
         with tempfile.TemporaryDirectory() as folder:
             data=Path(folder);path=data/'work/tasks/a/task.json';path.parent.mkdir(parents=True)
-            write_json(path,dict(id='a',state='RUNNING',started='now'))
+            write_json(path,dict(id='a',scan_id='a',mode='scan',state='RUNNING',started='now'))
             with DataActivity(data,exclusive=True,purpose='scan-budget'):
                 TaskManager(data)
                 self.assertEqual(read_json(path)['state'],'RUNNING')

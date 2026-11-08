@@ -1,0 +1,111 @@
+{
+  "scope": "Actual current extractor on selected real MATEKH743 target translation units; NOT a whole-project scan or safety proof",
+  "engine_digest": "74c0b1c0f3fa204088534ad90f5bcefaf4bccb5a00ce42bce4cfb878eea509b2",
+  "compile_database": "H:\\ECRA-WHOLE-D78-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\builds\\57856eba626d97a887fe356f\\compile_commands.json",
+  "compile_database_total_entries": 162016,
+  "target_entries": 390,
+  "source_root": "H:\\ECRA-WHOLE-D78-SEED0\\projects\\firmware_cd12e44f95be35d9f600\\trees\\current-a040c6bef605f929",
+  "target": "MATEKH743.elf",
+  "extractions": [
+    {
+      "source_file": "src/main/drivers/time.c",
+      "returncode": 0,
+      "seconds": 45.15599999995902,
+      "parse_status": "PARSED",
+      "diagnostics": [
+        {
+          "severity": 2,
+          "message": "warning: optimization flag '-fsingle-precision-constant' is not supported [-Wignored-optimization-argument]",
+          "file": null,
+          "line": 0,
+          "column": 0
+        },
+        {
+          "severity": 2,
+          "message": "warning: unknown warning option '-Wunsafe-loop-optimizations' [-Wunknown-warning-option]",
+          "file": null,
+          "line": 0,
+          "column": 0
+        }
+      ],
+      "counts": {
+        "variables": 29,
+        "functions": 1442,
+        "accesses": 167,
+        "calls": 136,
+        "unknowns": 1231
+      },
+      "source_hash_mtime_unchanged": true,
+      "response": "H:\\ECRA-quality-20261108-delivery\\inav-current-extraction-v3\\0.response.json"
+    },
+    {
+      "source_file": "src/main/fc/fc_core.c",
+      "returncode": 0,
+      "seconds": 83.21799999999348,
+      "parse_status": "PARSED",
+      "diagnostics": [
+        {
+          "severity": 2,
+          "message": "warning: optimization flag '-fsingle-precision-constant' is not supported [-Wignored-optimization-argument]",
+          "file": null,
+          "line": 0,
+          "column": 0
+        },
+        {
+          "severity": 2,
+          "message": "warning: unknown warning option '-Wunsafe-loop-optimizations' [-Wunknown-warning-option]",
+          "file": null,
+          "line": 0,
+          "column": 0
+        },
+        {
+          "severity": 2,
+          "message": "H:/ECRA-WHOLE-D78-SEED0/projects/firmware_cd12e44f95be35d9f600/trees/current-a040c6bef605f929/src/main\\rx/rx.h:169:3: warning: redefinition of typedef 'rxRuntimeConfig_t' is a C11 feature [-Wtypedef-redefinition]",
+          "file": "src/main/rx/rx.h",
+          "line": 169,
+          "column": 3
+        },
+        {
+          "severity": 2,
+          "message": "H:/ECRA-WHOLE-D78-SEED0/projects/firmware_cd12e44f95be35d9f600/trees/current-a040c6bef605f929/src/main\\rx/rx.h:195:20: warning: redefinition of typedef 'rcReadRawDataFnPtr' is a C11 feature [-Wtypedef-redefinition]",
+          "file": "src/main/rx/rx.h",
+          "line": 195,
+          "column": 20
+        },
+        {
+          "severity": 2,
+          "message": "H:/ECRA-WHOLE-D78-SEED0/projects/firmware_cd12e44f95be35d9f600/trees/current-a040c6bef605f929/src/main\\rx/rx.h:196:19: warning: redefinition of typedef 'rcFrameStatusFnPtr' is a C11 feature [-Wtypedef-redefinition]",
+          "file": "src/main/rx/rx.h",
+          "line": 196,
+          "column": 19
+        },
+        {
+          "severity": 2,
+          "message": "H:/ECRA-WHOLE-D78-SEED0/projects/firmware_cd12e44f95be35d9f600/trees/current-a040c6bef605f929/src/main\\rx/rx.h:197:16: warning: redefinition of typedef 'rcProcessFrameFnPtr' is a C11 feature [-Wtypedef-redefinition]",
+          "file": "src/main/rx/rx.h",
+          "line": 197,
+          "column": 16
+        },
+        {
+          "severity": 2,
+          "message": "H:/ECRA-WHOLE-D78-SEED0/projects/firmware_cd12e44f95be35d9f600/trees/current-a040c6bef605f929/src/main\\rx/rx.h:198:20: warning: redefinition of typedef 'rcGetLinkQualityPtr' is a C11 feature [-Wtypedef-redefinition]",
+          "file": "src/main/rx/rx.h",
+          "line": 198,
+          "column": 20
+        }
+      ],
+      "counts": {
+        "variables": 301,
+        "functions": 1626,
+        "accesses": 517,
+        "calls": 379,
+        "unknowns": 1614
+      },
+      "source_hash_mtime_unchanged": true,
+      "response": "H:\\ECRA-quality-20261108-delivery\\inav-current-extraction-v3\\1.response.json"
+    }
+  ],
+  "source_head": "a040c6bef605f929fa017b7089c5b7976a2b2bba",
+  "passed_scoped": true,
+  "whole_project_analysis": "NOT_VERIFIED"
+}

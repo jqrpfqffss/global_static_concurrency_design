@@ -1,0 +1,141 @@
+{
+  "status": "PASSED_SCOPED_INDEPENDENT_REVIEW",
+  "reviewed_utc": "2026-11-08T12:11:30.096071+00:00",
+  "candidate": "H:\\ECRA-quality-20261108\\continuation-diff\\q207-v3-candidate-source",
+  "git_diff_sha256": "216c6aa53dcfd8d5d21aa7d6fc23db12be12c8ed8b95ba8507c72c0a0df9cee0",
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "production_py_files": 127,
+  "checks": {
+    "all_actual_rows_passed": true,
+    "all_final_indexes_unchanged": true,
+    "all_original_two_method_runs_passed": true,
+    "all_actual_invalid_refs_rejected": true,
+    "no_configured_converter_executed": true,
+    "candidate_production_unchanged": true,
+    "final_sha_matches": true
+  },
+  "actual_product_case_rows": 32,
+  "original_causal_rows": 16,
+  "additional_boundary_rows": 16,
+  "unique_original_failed_methods": 2,
+  "original_method_runs": 2,
+  "actual_original_method_executions": 4,
+  "original_method_run_results": [
+    {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skips": [],
+      "passed": true
+    },
+    {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skips": [],
+      "passed": true
+    }
+  ],
+  "actual_technical_rejections": 8,
+  "final_indexes": [
+    {
+      "case": "pure-stat",
+      "expected": "48c3d24cf28df06cbb1e7ae689edcac23233a86c532885721481aa387fa5f2a5",
+      "actual": "48c3d24cf28df06cbb1e7ae689edcac23233a86c532885721481aa387fa5f2a5",
+      "unchanged": true
+    },
+    {
+      "case": "mixed",
+      "expected": "3ad7949b8d7610006d1e8c17d673819a1b11a4fdfba201d834098ee726667204",
+      "actual": "3ad7949b8d7610006d1e8c17d673819a1b11a4fdfba201d834098ee726667204",
+      "unchanged": true
+    },
+    {
+      "case": "rename",
+      "expected": "5064ad4b79a1abc8800224255ee643437c09df507e89e24d4868ba72572c1534",
+      "actual": "5064ad4b79a1abc8800224255ee643437c09df507e89e24d4868ba72572c1534",
+      "unchanged": true
+    },
+    {
+      "case": "delete",
+      "expected": "48c3d24cf28df06cbb1e7ae689edcac23233a86c532885721481aa387fa5f2a5",
+      "actual": "48c3d24cf28df06cbb1e7ae689edcac23233a86c532885721481aa387fa5f2a5",
+      "unchanged": true
+    },
+    {
+      "case": "binary",
+      "expected": "3143da7de23d1ce809369a1ce2d350bcd4a9eb7b349c824cd6c155a0c63bbe4d",
+      "actual": "3143da7de23d1ce809369a1ce2d350bcd4a9eb7b349c824cd6c155a0c63bbe4d",
+      "unchanged": true
+    },
+    {
+      "case": "empty-add",
+      "expected": "eddcb005aa84951486a8c3dbb7619bb5cfffe43752a05483206971aafdb06d4d",
+      "actual": "eddcb005aa84951486a8c3dbb7619bb5cfffe43752a05483206971aafdb06d4d",
+      "unchanged": true
+    },
+    {
+      "case": "empty-delete",
+      "expected": "1a95e55a749be0ff347256fd964319c995978993fca41a9155ea40b153cb61ef",
+      "actual": "1a95e55a749be0ff347256fd964319c995978993fca41a9155ea40b153cb61ef",
+      "unchanged": true
+    },
+    {
+      "case": "mode-only",
+      "expected": "f10d3c802c3a0f8b6172d7843f682822713ed22efbd86c27c87c18bca96fe712",
+      "actual": "f10d3c802c3a0f8b6172d7843f682822713ed22efbd86c27c87c18bca96fe712",
+      "unchanged": true
+    },
+    {
+      "case": "space-path",
+      "expected": "f879fd9b006dc297fe7d21b90db2a4d9d7f97f869d36ef613cd0cb287d6c5871",
+      "actual": "f879fd9b006dc297fe7d21b90db2a4d9d7f97f869d36ef613cd0cb287d6c5871",
+      "unchanged": true
+    },
+    {
+      "case": "unicode-path",
+      "expected": "bb4820d365dd63bc02c395377b5d7aa4cd35d96729e7a3f6d591a002cc0a4dd1",
+      "actual": "bb4820d365dd63bc02c395377b5d7aa4cd35d96729e7a3f6d591a002cc0a4dd1",
+      "unchanged": true
+    },
+    {
+      "case": "textconv",
+      "expected": "5aaf21a848569a579d8d62e98bc104fbebb2045182ccc0b17d4d0900dcb86f0c",
+      "actual": "5aaf21a848569a579d8d62e98bc104fbebb2045182ccc0b17d4d0900dcb86f0c",
+      "unchanged": true
+    },
+    {
+      "case": "external",
+      "expected": "48c3d24cf28df06cbb1e7ae689edcac23233a86c532885721481aa387fa5f2a5",
+      "actual": "48c3d24cf28df06cbb1e7ae689edcac23233a86c532885721481aa387fa5f2a5",
+      "unchanged": true
+    }
+  ],
+  "converter_markers": [
+    {
+      "case": "textconv",
+      "present": false
+    },
+    {
+      "case": "external",
+      "present": false
+    }
+  ],
+  "source_audit": [
+    "Both content and raw queries explicitly disable external diff/textconv; actual configured marker commands were not executed, and real C content change remained M.",
+    "Numstat uses NUL framing and split TAB at most twice; empty third field consumes two rename paths. Numeric zero rows and binary dash rows remain meaningful pairs.",
+    "Raw names are retained by exact(old,new) content pairs; R/C may cover a delete/add pair. All actual content pairs must be covered or the function raises, instead of dropping true changes.",
+    "Isolated current-tree and baseline clean checks use the same content proof. HEAD identity and untracked/ignored generated-file checks remain in place.",
+    "No risk classification or safety rule changes are part of this candidate delta; audit and replay are limited to Git input/identity paths."
+  ],
+  "boundaries": "Actual Windows Git2.37.2 and portable Git2.56.0, four original byte/stat cases under current and no-system/global environments; eight additional cases per Git. This is not a complete real firmware scan or an arbitrary-malformed-output fuzzing proof.",
+  "original_main_smoke": "../main-v6-smoke/receipt.json",
+  "metadata_correction": {
+    "corrected_utc": "2026-11-08T12:11:29.077911+00:00",
+    "reason": "Original controller description had literal 48/32-boundary counts. Actual execution fields and child rows are 12+4+12+4=32 total, with16 original and16 boundary rows. Only narrative metadata corrected; status, commands, results and expectations unchanged.",
+    "original_receipt": "receipt-controller-original.json",
+    "original_receipt_sha256": "a44d22e8e135d324b613a5d4f0099d8111dfc8a8477082a9bc6b865e5dd7f06a",
+    "executed_controller": "controller-executed.py",
+    "executed_controller_sha256": "85f988bc44f59c01ec1e9de1e390b243decda966cea5319d9e3826ec284e2a4e"
+  }
+}

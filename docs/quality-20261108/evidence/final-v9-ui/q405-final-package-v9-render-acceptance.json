@@ -1,0 +1,267 @@
+{
+  "status": "Q405_FINAL_V9_RENDERING_VIEWPORTS_1366_AND_1920_PASSED",
+  "completed_utc": "2026-11-08T14:42:49.478621+00:00",
+  "scope": "Only affected confirmation identity/controls in two rendering viewports, not physical target windows, OS scaling, a new scan or signing test.",
+  "package_root": "H:\\ECRA-quality-20261108-offline-build-v9\\解压 终验\\ECRA-Portable",
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "zip": {
+    "path": "H:\\ECRA-quality-20261108-offline-build-v9\\ECRA-Portable.zip",
+    "bytes": 785692863,
+    "sha256": "7a0e45b0f3dda3ee47d7759f9784ab66ca9f8fa089543157f64c9f9be9a6c03d"
+  },
+  "runtime": "Coordinator actual final extracted V9 ECRA.cmd, Windows-only PATH, PORTABLE",
+  "service_root_pid": 26488,
+  "origin": "http://127.0.0.1:50293",
+  "loaded_js": "/assets/index-hDrZQigI.js",
+  "browser_session": "ecra-quality-package-v4",
+  "profile": "H:/ECRA-quality-20261108-offline-build-v4/ui-browser-profile",
+  "route": "Overview → continue review → real g_cli.command_list[*].name → archived source → open form → ordinary scroll within long content → resize second viewport",
+  "metrics": [
+    {
+      "scope": "RENDERING_VIEWPORT_ONLY",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "geometry": {
+        "innerWidth": 1366,
+        "innerHeight": 768,
+        "outerWidth": 1463,
+        "outerHeight": 783,
+        "dpr": 1.0000000447034836,
+        "visualScale": 1,
+        "documentClientWidth": 1366,
+        "documentScrollWidth": 1366
+      },
+      "subject": {
+        "text": "github_stm32_bare_metal · g_cli.command_list[*].name",
+        "box": {
+          "x": 791.5357666015625,
+          "y": 527.857177734375,
+          "width": 540.1785888671875,
+          "height": 17.392858505249023,
+          "top": 527.857177734375,
+          "right": 1331.71435546875,
+          "bottom": 545.250036239624,
+          "left": 791.5357666015625
+        },
+        "scrollWidth": 540,
+        "clientWidth": 540,
+        "whiteSpace": "normal",
+        "overflowWrap": "anywhere"
+      },
+      "buttons": [
+        {
+          "name": "确认有风险",
+          "box": {
+            "x": 694.3928833007812,
+            "y": 713.4285888671875,
+            "width": 82.14288330078125,
+            "height": 32
+          }
+        },
+        {
+          "name": "确认无风险",
+          "box": {
+            "x": 780.5357666015625,
+            "y": 713.4285888671875,
+            "width": 82.142822265625,
+            "height": 32
+          }
+        },
+        {
+          "name": "暂无法确认",
+          "box": {
+            "x": 866.6785888671875,
+            "y": 713.4285888671875,
+            "width": 82.14288330078125,
+            "height": 32
+          }
+        },
+        {
+          "name": "撤销上次确认",
+          "box": {
+            "x": 952.8214721679688,
+            "y": 713.4285888671875,
+            "width": 95.14288330078125,
+            "height": 32
+          }
+        }
+      ],
+      "scripts": [
+        "/assets/index-hDrZQigI.js"
+      ]
+    },
+    {
+      "scope": "RENDERING_VIEWPORT_ONLY",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "geometry": {
+        "innerWidth": 1920,
+        "innerHeight": 1080,
+        "outerWidth": 1463,
+        "outerHeight": 783,
+        "dpr": 1.0000000447034836,
+        "visualScale": 1,
+        "documentClientWidth": 1920,
+        "documentScrollWidth": 1920
+      },
+      "subject": {
+        "text": "github_stm32_bare_metal · g_cli.command_list[*].name",
+        "box": {
+          "x": 1001.9464721679688,
+          "y": 839.857177734375,
+          "width": 883.482177734375,
+          "height": 17.392858505249023,
+          "top": 839.857177734375,
+          "right": 1885.4286499023438,
+          "bottom": 857.250036239624,
+          "left": 1001.9464721679688
+        },
+        "scrollWidth": 883,
+        "clientWidth": 883,
+        "whiteSpace": "normal",
+        "overflowWrap": "anywhere"
+      },
+      "buttons": [
+        {
+          "name": "确认有风险",
+          "box": {
+            "x": 904.8035888671875,
+            "y": 1025.4285888671875,
+            "width": 82.14288330078125,
+            "height": 32
+          }
+        },
+        {
+          "name": "确认无风险",
+          "box": {
+            "x": 990.9464721679688,
+            "y": 1025.4285888671875,
+            "width": 82.14288330078125,
+            "height": 32
+          }
+        },
+        {
+          "name": "暂无法确认",
+          "box": {
+            "x": 1077.08935546875,
+            "y": 1025.4285888671875,
+            "width": 82.142822265625,
+            "height": 32
+          }
+        },
+        {
+          "name": "撤销上次确认",
+          "box": {
+            "x": 1163.232177734375,
+            "y": 1025.4285888671875,
+            "width": 95.142822265625,
+            "height": 32
+          }
+        }
+      ],
+      "scripts": [
+        "/assets/index-hDrZQigI.js"
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "output/playwright/quality-20261108/final-v9-package-q405-render-01-f411-1366.png",
+      "sha256": "f5060db71d6987c1dbb2ff787a9cef0b49723e90f6f6794c623285816e6d4f17",
+      "pixel_size": [
+        1366,
+        768
+      ],
+      "actually_viewed": true
+    },
+    {
+      "path": "output/playwright/quality-20261108/final-v9-package-q405-render-02-f411-1920.png",
+      "sha256": "ea7d5b2b0caf687b4c7499cd06e2061583bfed28dd533925fa809af2a6a4602e",
+      "pixel_size": [
+        1920,
+        1080
+      ],
+      "actually_viewed": true
+    }
+  ],
+  "cli_commands": 18,
+  "cli_exit_codes_all_zero": true,
+  "observed": "Project/leaf/definition/human pending status complete, with all4 primary buttons inside both rendering viewports; no page horizontal overflow or identity clipping.",
+  "wrapping_scope": "Actual combined project/leaf text fits one line at these widths. Observed white-space:normal and overflow-wrap:anywhere permit wrapping; no extra-long injected name or forced multiline case is claimed.",
+  "native_scope": "Outer browser1463×783 remained unchanged while page viewport/inner became1366×768 and1920×1080; rendering proof only. Earlier native1447×631 pass is independent.",
+  "static_before": [
+    {
+      "scan_id": "31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "bytes": 62476288,
+      "sha256": "b770def0104944ac7a7e43facb56e7b856aa022adc60053a8e188365f18936f3"
+    },
+    {
+      "scan_id": "builtin-stm32-demo-v1",
+      "bytes": 1093632,
+      "sha256": "261ff9b60b1ce40f233704520d93e280804d07ee1bc119cb5430bd9b67bae12e"
+    },
+    {
+      "scan_id": "c27a0641d2b94576a7d1b67359221e54",
+      "bytes": 241664,
+      "sha256": "c80fe1ecac6dc01dbf561a15430c8ac169f6bab083e77b431a373dd461d9fbf5"
+    }
+  ],
+  "static_after": [
+    {
+      "scan_id": "31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "bytes": 62476288,
+      "sha256": "b770def0104944ac7a7e43facb56e7b856aa022adc60053a8e188365f18936f3"
+    },
+    {
+      "scan_id": "builtin-stm32-demo-v1",
+      "bytes": 1093632,
+      "sha256": "261ff9b60b1ce40f233704520d93e280804d07ee1bc119cb5430bd9b67bae12e"
+    },
+    {
+      "scan_id": "c27a0641d2b94576a7d1b67359221e54",
+      "bytes": 241664,
+      "sha256": "c80fe1ecac6dc01dbf561a15430c8ac169f6bab083e77b431a373dd461d9fbf5"
+    }
+  ],
+  "all_three_static_scan_dbs_byte_identical": true,
+  "human_events": [
+    {
+      "scan_id": "31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "event_count": 0,
+      "events": []
+    },
+    {
+      "scan_id": "builtin-stm32-demo-v1",
+      "event_count": 0,
+      "events": []
+    },
+    {
+      "scan_id": "c27a0641d2b94576a7d1b67359221e54",
+      "event_count": 3,
+      "events": [
+        {
+          "event_id": "36489eed-0267-456d-85f4-02b404da3ae2",
+          "payload_sha256": "cb92160b205e7e336314151dd142cc6aa25d25575e0b40b5d0bbfe9f6b0fd2c9"
+        },
+        {
+          "event_id": "6ef4d2b4-af57-4753-9d62-decffeedf961",
+          "payload_sha256": "d21bc55d7143ef7173f6dcef1a43debff55097b5f3c6679032714e548c6e88ee"
+        },
+        {
+          "event_id": "e173ccf6-ef22-4d7a-a3ec-1fa735de6738",
+          "payload_sha256": "38f2a36213f05691b975a3e6c8139c9ea4bda7fb32caa7f3b8c04c12f78b5b21"
+        }
+      ]
+    }
+  ],
+  "all_three_original_human_events_unchanged": true,
+  "no_typing_signing_or_revocation": true,
+  "no_product_or_test_modification": true,
+  "browser_gracefully_closed": true,
+  "service_left_running_for_coordinator": true,
+  "final_close_log": "cli-018-close.log"
+}

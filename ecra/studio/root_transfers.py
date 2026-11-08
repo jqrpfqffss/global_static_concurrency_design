@@ -11,6 +11,7 @@ from ..data_transfer import registry,transfer
 from ..report_package import IDENTITY
 from ..storage_activity import DataActivity,DataBusy
 from ..workspace import no_links,studio_data_root
+from .task_records import display_record
 
 
 class RootTransfers:
@@ -21,8 +22,8 @@ class RootTransfers:
         except DataBusy:return
         try:
             for path in self.folder.glob('job-*.json'):
-                item=json.loads(no_links(path).read_text('utf-8'))
-                if item.get('state') in {'RUNNING','COPYING','VALIDATING'}:
+                item=self.record(path)
+                if item.get('state') in {'RUNNING','COPYING','VALIDATING','PUBLISHING'}:
                     item.update(state='INTERRUPTED',error='上次复制进程已退出，原目录与已校验副本保留。可重新校验后恢复。')
                     write_json(path,item)
         finally:lease.__exit__(None,None,None)
@@ -34,10 +35,18 @@ class RootTransfers:
     def get(self,ident):
         path=self.path(ident)
         if not path.is_file():raise ValueError('整套复制任务不存在')
-        return json.loads(path.read_text('utf-8'))
+        return self.record(path)
+
+    def record(self,path):
+        return display_record(path, lambda p:json.loads(no_links(p).read_text('utf-8')),
+            ident=path.stem.removeprefix('job-'),
+            states={'RUNNING','COPYING','VALIDATING','PUBLISHING','COMPLETE','FAILED','INTERRUPTED'},
+            validate=lambda value:all(isinstance(value.get(key),str) and Path(value[key]).is_absolute()
+                                      for key in ('source','target')),
+            action='请保留此文件供排查；重新检查整套复制计划，不要把未校验目标作为有效副本。')
 
     def history(self):
-        return sorted([json.loads(no_links(p).read_text('utf-8')) for p in self.folder.glob('job-*.json')],
+        return sorted([self.record(p) for p in self.folder.glob('job-*.json')],
             key=lambda item:item['started'],reverse=True)
 
     def start(self,source,target,*,expected=None,resume=None):

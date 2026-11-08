@@ -17,6 +17,37 @@ import uuid
 
 SCHEMA_VERSION = 3
 SUPPORTED_VERSIONS = {1, 2, 3}
+CONTAINER_KINDS = ('STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER')
+
+
+def derived_container_sql(alias='s'):
+    """Read-only legacy display proof; immutable materialization stays exact.
+
+    A historical UNKNOWN default is not an explicit unknown verdict. Only a
+    missing authoritative key and an already recorded container identity allow
+    the derived display. Never normalize an explicit risk or a corrupt index.
+    """
+    if alias not in {'s', 'symbols'}:
+        raise ValueError('Unsupported internal symbol alias')
+    kinds=','.join("'"+kind+"'" for kind in CONTAINER_KINDS)
+    return (f"({alias}.static_classification='UNKNOWN' AND {alias}.resource_kind IN ({kinds}) "
+            f"AND NOT EXISTS(SELECT 1 FROM edges classification_fact WHERE classification_fact.parent={alias}.node "
+            "AND classification_fact.key='static_classification') "
+            "AND EXISTS(SELECT 1 FROM edges kind_fact JOIN nodes kind_value ON kind_value.id=kind_fact.child "
+            f"WHERE kind_fact.parent={alias}.node AND kind_fact.key='resource_kind' AND kind_value.kind='str' "
+            f"AND CAST(kind_value.value AS TEXT)={alias}.resource_kind))")
+
+
+def symbol_columns_sql(alias='s', *, provenance=False):
+    derived=derived_container_sql(alias)
+    columns=[f'{alias}.{name}' for name in ('symbol_id','ordinal','node','name')]
+    columns.append(f"CASE WHEN {derived} THEN 'CONTAINER' ELSE {alias}.static_classification END AS static_classification")
+    columns.extend(f'{alias}.{name}' for name in ('resource_kind','definition_file','definition_line','analysis_coverage'))
+    if provenance:
+        columns.extend((f'{alias}.static_classification AS raw_static_classification',
+                        f'{derived} AS static_classification_derived'))
+    return ','.join(columns)
+
 LEGACY_SCHEMA = """
 CREATE TABLE nodes (
  id INTEGER PRIMARY KEY, hash TEXT UNIQUE, kind TEXT NOT NULL,
@@ -323,7 +354,8 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(path.name + '.' + uuid.uuid4().hex + '.pending')
     try:
-        with closing(sqlite3.connect(temp)) as conn:
+        from .scan_diagnostics import interruptible_sqlite
+        with closing(sqlite3.connect(temp)) as conn, interruptible_sqlite(conn):
             conn.execute('PRAGMA foreign_keys=ON')
             conn.execute('PRAGMA synchronous=FULL')
             # Bounded writer page cache: leave the ordered graph, unique
@@ -448,7 +480,8 @@ class EvidenceProvider:
     def validate(self, *, deep=False, cache_kib=524288):
         if type(cache_kib) is not int or not 1024<=cache_kib<=524288:
             raise ValueError('完整校验页缓存须为1024–524288KiB；它不是整个进程的内存上限')
-        with closing(connect_readonly(self.path)) as conn:
+        from .scan_diagnostics import interruptible_sqlite
+        with closing(connect_readonly(self.path)) as conn, interruptible_sqlite(conn):
             # Session-only, demand-allocated page cache for complete checks.
             # Not a process memory cap or a limit on evidence/relationships.
             # Metadata and ordinary paged reads keep their original budget.
@@ -549,17 +582,17 @@ class EvidenceProvider:
             terms.append("(instr(name,?)>0 OR instr(coalesce(definition_file,''),?)>0 OR instr(symbol_id,?)>0)")
             args.extend([search] * 3)
         if classification:
-            terms.append('static_classification=?')
+            terms.append("CASE WHEN "+derived_container_sql('s')+" THEN 'CONTAINER' ELSE s.static_classification END=?")
             args.append(classification)
         where = ' WHERE ' + ' AND '.join(terms) if terms else ''
         with closing(connect_readonly(self.path)) as conn:
-            total = conn.execute('SELECT count(*) FROM symbols' + where, args).fetchone()[0]
-            rows = [dict(row) for row in conn.execute('SELECT * FROM symbols' + where + ' ORDER BY ordinal LIMIT ? OFFSET ?', [*args, limit, offset])]
+            total = conn.execute('SELECT count(*) FROM symbols s' + where, args).fetchone()[0]
+            rows = [dict(row) for row in conn.execute('SELECT '+symbol_columns_sql('s',provenance=True)+' FROM symbols s' + where + ' ORDER BY ordinal LIMIT ? OFFSET ?', [*args, limit, offset])]
         return dict(total=total, offset=offset, items=rows, next_offset=offset + len(rows) if offset + len(rows) < total else None)
 
     def counts(self):
         with closing(connect_readonly(self.path)) as conn:
-            return {row[0]: row[1] for row in conn.execute('SELECT static_classification,count(*) FROM symbols GROUP BY static_classification')}
+            return {row[0]: row[1] for row in conn.execute('SELECT static_classification,count(*) FROM (SELECT '+symbol_columns_sql('s')+' FROM symbols s) GROUP BY static_classification')}
 
     def records(self, relation, *, dataset='facts', symbol_id=None, function_id=None, source_id=None, target_id=None, offset=0, limit=50):
         self._bounds(offset, limit)

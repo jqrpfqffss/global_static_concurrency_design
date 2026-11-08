@@ -1,0 +1,260 @@
+{
+  "passed_scoped": true,
+  "release_ready": false,
+  "known_severe_issue": "Q205 discovered during run; awaiting final fix/merge. These exact6cede configs do not assert arbitrary manual vector context collision safety.",
+  "engine": "H:\\ECRA-quality-20261108\\continuation-final-engine-v3",
+  "engine_digest": "6cede8359026fd75dd801f6d45ac34ba422a18eee77888078babb8cd862d54f7",
+  "total_C_TUs": 67,
+  "total_PARSED": 65,
+  "total_PARTIAL": 2,
+  "total_FAILED": 0,
+  "inventory_total": 430,
+  "independent_objects_exact_total": 353,
+  "nested_containers_checked": 24,
+  "total_pending": 244,
+  "projects": [
+    {
+      "project": "f411",
+      "seconds": 226.78100000007544,
+      "exit": 2,
+      "peaks": {
+        "working_set_bytes": 215490560,
+        "private_bytes": 177983488,
+        "peak_job_commit_bytes": 187846656,
+        "sampled_output_logical_bytes": 111610377,
+        "sampled_output_allocated_bytes": 76240792
+      },
+      "data_root": "H:\\ECRA-quality-20261108\\continuation-final-projects-v3\\f411-data",
+      "output": "H:\\ECRA-quality-20261108\\continuation-final-projects-v3\\f411-data\\scans\\final-v3-f411",
+      "publication": {
+        "manifest_sha256": "0aaa2756d194d5a3b4b144c4820f2df38a2b0fa1a6174422e9e23ce3ae4349fb",
+        "format": "ECRA_LOCAL_SCAN",
+        "state": "STATIC_VALIDATED",
+        "scan_id": "final-v3-f411"
+      },
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "translation_units_total": 24,
+        "translation_units_parsed": 24,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "variables_total": 171,
+        "static_classification": {
+          "total": 123,
+          "safe_proven": 84,
+          "shared_no_review": 1,
+          "suspect": 34,
+          "unknown": 4
+        }
+      },
+      "static_counts": {
+        "CONTAINER": 41,
+        "NON_STORAGE": 7,
+        "SAFE_PROVEN": 84,
+        "SHARED_NO_REVIEW": 1,
+        "SUSPECT": 34,
+        "UNKNOWN": 4
+      },
+      "current_summary": {
+        "result_counts": {
+          "CONTAINER": 41,
+          "LIKELY": 34,
+          "NON_STORAGE": 7,
+          "SAFE": 84,
+          "SHARED_NO_REVIEW": 1,
+          "UNKNOWN": 4
+        },
+        "human_counts": {
+          "NOT_REQUIRED": 133,
+          "PENDING": 38
+        },
+        "raw_human_counts": {
+          "PENDING": 171
+        },
+        "pending_count": 38,
+        "safe_sources": {
+          "STATIC": 84
+        },
+        "result_revision": "1:0:0",
+        "derived_static_classification_count": 0
+      },
+      "source_unchanged": true,
+      "artifacts_unchanged": {
+        "compile_database": true,
+        "elf": true,
+        "map": true
+      },
+      "static_unchanged": true,
+      "sqlite_integrity": "ok",
+      "status_report_exits": [
+        0,
+        2,
+        0
+      ],
+      "independent_objects_exact": 130,
+      "nested_containers_checked": 4,
+      "audit_sha256": "5e5e2b568bb3856f32145589d84a5e8eac7e9e37c2b471c64bf5c40fd0438246"
+    },
+    {
+      "project": "cdc",
+      "seconds": 1251.875,
+      "exit": 2,
+      "peaks": {
+        "working_set_bytes": 587685888,
+        "private_bytes": 579375104,
+        "peak_job_commit_bytes": 579420160,
+        "sampled_output_logical_bytes": 593565800,
+        "sampled_output_allocated_bytes": 452320496
+      },
+      "data_root": "H:\\ECRA-quality-20261108\\continuation-final-projects-v3\\cdc-data",
+      "output": "H:\\ECRA-quality-20261108\\continuation-final-projects-v3\\cdc-data\\scans\\final-v3-cdc",
+      "publication": {
+        "manifest_sha256": "5aa605da029a8bbbb2f0e9bf2adcaa84266af17e8c8f102952f8a1fe615c3088",
+        "format": "ECRA_LOCAL_SCAN",
+        "state": "STATIC_VALIDATED",
+        "scan_id": "final-v3-cdc"
+      },
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "translation_units_total": 39,
+        "translation_units_parsed": 39,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "variables_total": 244,
+        "static_classification": {
+          "total": 210,
+          "safe_proven": 5,
+          "shared_no_review": 0,
+          "suspect": 135,
+          "unknown": 70
+        }
+      },
+      "static_counts": {
+        "CONTAINER": 34,
+        "SAFE_PROVEN": 5,
+        "SUSPECT": 135,
+        "UNKNOWN": 70
+      },
+      "current_summary": {
+        "result_counts": {
+          "CONTAINER": 34,
+          "LIKELY": 135,
+          "SAFE": 5,
+          "UNKNOWN": 70
+        },
+        "human_counts": {
+          "NOT_REQUIRED": 39,
+          "PENDING": 205
+        },
+        "raw_human_counts": {
+          "PENDING": 244
+        },
+        "pending_count": 205,
+        "safe_sources": {
+          "STATIC": 5
+        },
+        "result_revision": "1:0:0",
+        "derived_static_classification_count": 0
+      },
+      "source_unchanged": true,
+      "artifacts_unchanged": {
+        "compile_database": true,
+        "elf": true,
+        "map": true
+      },
+      "static_unchanged": true,
+      "sqlite_integrity": "ok",
+      "status_report_exits": [
+        0,
+        2,
+        0
+      ],
+      "independent_objects_exact": 210,
+      "nested_containers_checked": 20,
+      "audit_sha256": "c033458864673777c13058785b1038d7ec24c6457ed4d4feb381f43202fff557"
+    },
+    {
+      "project": "f030",
+      "seconds": 55.81200000003446,
+      "exit": 2,
+      "peaks": {
+        "working_set_bytes": 182013952,
+        "private_bytes": 145506304,
+        "peak_job_commit_bytes": 147456000,
+        "sampled_output_logical_bytes": 11927518,
+        "sampled_output_allocated_bytes": 7914112
+      },
+      "data_root": "H:\\ECRA-quality-20261108\\continuation-final-projects-v3\\f030-data",
+      "output": "H:\\ECRA-quality-20261108\\continuation-final-projects-v3\\f030-data\\scans\\final-v3-f030",
+      "publication": {
+        "manifest_sha256": "f797974137d388aadfd7eb0662ce8052c90afd35b0005536f40c29e1ec1eea1c",
+        "format": "ECRA_LOCAL_SCAN",
+        "state": "STATIC_VALIDATED",
+        "scan_id": "final-v3-f030"
+      },
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "translation_units_total": 4,
+        "translation_units_parsed": 2,
+        "translation_units_partial": 2,
+        "translation_units_failed": 0,
+        "variables_total": 15,
+        "static_classification": {
+          "total": 8,
+          "safe_proven": 7,
+          "shared_no_review": 0,
+          "suspect": 1,
+          "unknown": 0
+        }
+      },
+      "static_counts": {
+        "CONTAINER": 2,
+        "NON_STORAGE": 5,
+        "SAFE_PROVEN": 7,
+        "SUSPECT": 1
+      },
+      "current_summary": {
+        "result_counts": {
+          "CONTAINER": 2,
+          "LIKELY": 1,
+          "NON_STORAGE": 5,
+          "SAFE": 7
+        },
+        "human_counts": {
+          "NOT_REQUIRED": 14,
+          "PENDING": 1
+        },
+        "raw_human_counts": {
+          "PENDING": 15
+        },
+        "pending_count": 1,
+        "safe_sources": {
+          "STATIC": 7
+        },
+        "result_revision": "1:0:0",
+        "derived_static_classification_count": 0
+      },
+      "source_unchanged": true,
+      "artifacts_unchanged": {
+        "compile_database": true,
+        "elf": true,
+        "map": true
+      },
+      "static_unchanged": true,
+      "sqlite_integrity": "ok",
+      "status_report_exits": [
+        0,
+        2,
+        0
+      ],
+      "independent_objects_exact": 13,
+      "nested_containers_checked": 0,
+      "audit_sha256": "3a885b9665ee2f745a8449b06524db9cfb03a93a144321572ee61bad8aeceecd"
+    }
+  ],
+  "no_old_tu_cache": true,
+  "no_ai": true,
+  "no_hil": true,
+  "physical_32GB": "NOT_VERIFIED",
+  "scope": "Real native build inputs and full public canonical cold TU scans on exact6cede source candidate; all independent object ordered JSON compared with839. Q109 newfacts fixed and leaf risks retained. Not Q205-final acceptance, not a fresh Portable package build, not an OS-cache-controlled performance improvement test."
+}

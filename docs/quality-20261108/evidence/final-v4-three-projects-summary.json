@@ -1,0 +1,210 @@
+{
+  "passed_scoped": true,
+  "release_ready": false,
+  "engine": "H:\\ECRA-quality-20261108\\continuation-final-engine-v4",
+  "engine_digest": "63a5cff7e9babcf0a4982726f68ca8390ad5f840b92d31d41e511a859d857710",
+  "scope": "Three real independently sourced firmware inputs; earlier actual full native ELF/MAP/CDB builds reused read-only. Every v4 TU freshly extracted, public canonical publication plus status/report/status, static storage/source consistency and exact per-object comparison against v3. No new AI/HIL/physical32GB or whole release-gate claim.",
+  "remaining_release_verification": "Final offline rebuilt/extracted Portable runtime and large native INAV acceptance are coordinated separately; do not infer their status from this scoped receipt.",
+  "projects": [
+    {
+      "project": "f411",
+      "seconds": 319.48400000005495,
+      "exit_code": 2,
+      "analysis_status": "INCOMPLETE",
+      "output": "H:\\ECRA-quality-20261108\\continuation-final-projects-v4\\f411-data\\scans\\final-v4-f411",
+      "publication": {
+        "format": "ECRA_LOCAL_SCAN",
+        "state": "STATIC_VALIDATED",
+        "run_state": "INCOMPLETE",
+        "scan_id": "final-v4-f411",
+        "facts_hash": "482d73cb26ba75ea2e301520bf7fd298e64ab74667f88616ff015f465f59c084",
+        "report_hash": "3e3773553c8decc31c11e058b279ee97db73837542f36d398e8eafc4ccfd72a4"
+      },
+      "coverage": {
+        "translation_units_total": 24,
+        "translation_units_parsed": 24,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "variables_total": 171,
+        "static_classification": {
+          "total": 123,
+          "safe_proven": 84,
+          "shared_no_review": 1,
+          "suspect": 34,
+          "unknown": 4
+        },
+        "assembly_sources": []
+      },
+      "static_counts": {
+        "CONTAINER": 41,
+        "NON_STORAGE": 7,
+        "SAFE_PROVEN": 84,
+        "SHARED_NO_REVIEW": 1,
+        "SUSPECT": 34,
+        "UNKNOWN": 4
+      },
+      "pending": 38,
+      "derived_container_count": 0,
+      "independent_objects_exact": 130,
+      "nested_containers_checked": 4,
+      "command_exits": [
+        0,
+        2,
+        0
+      ],
+      "static_sha256": "469666d206fde4db999dd82e88ce80a742db61dd54bf5e8044cde02f58927dd4",
+      "source_and_build_inputs_unchanged": true,
+      "counting_contract_passed": true,
+      "cache": {
+        "hits": 0,
+        "extracted": 24,
+        "corrupt": 0,
+        "total": 24
+      },
+      "peaks": {
+        "working_set_bytes": 214667264,
+        "private_bytes": 178110464,
+        "peak_job_commit_bytes": 185405440,
+        "sampled_output_logical_bytes": 125495736,
+        "sampled_output_allocated_bytes": 101849384
+      },
+      "audit_file": "final-v4-f411-audit.json"
+    },
+    {
+      "project": "cdc",
+      "seconds": 1441.280999999959,
+      "exit_code": 2,
+      "analysis_status": "INCOMPLETE",
+      "output": "H:\\ECRA-quality-20261108\\continuation-final-projects-v4\\cdc-data\\scans\\final-v4-cdc",
+      "publication": {
+        "format": "ECRA_LOCAL_SCAN",
+        "state": "STATIC_VALIDATED",
+        "run_state": "INCOMPLETE",
+        "scan_id": "final-v4-cdc",
+        "facts_hash": "169568aa0328a2fc8997752a30634c6e04d852606122cb069c2540c35908a4c4",
+        "report_hash": "9bce53801d8affd75a3f9ad1ae06b402d2aba5717b70bccc310da18ab637ff82"
+      },
+      "coverage": {
+        "translation_units_total": 39,
+        "translation_units_parsed": 39,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "variables_total": 244,
+        "static_classification": {
+          "total": 210,
+          "safe_proven": 5,
+          "shared_no_review": 0,
+          "suspect": 135,
+          "unknown": 70
+        },
+        "assembly_sources": [
+          "Application/STM32CubeIDE/Application/Startup/startup_stm32f407ighx.s"
+        ]
+      },
+      "static_counts": {
+        "CONTAINER": 34,
+        "SAFE_PROVEN": 5,
+        "SUSPECT": 135,
+        "UNKNOWN": 70
+      },
+      "pending": 205,
+      "derived_container_count": 0,
+      "independent_objects_exact": 210,
+      "nested_containers_checked": 20,
+      "command_exits": [
+        0,
+        2,
+        0
+      ],
+      "static_sha256": "f14e549836b31a24718b8a1bdc79124f353c13f2f4ace9af56bebcc0cebc0a12",
+      "source_and_build_inputs_unchanged": true,
+      "counting_contract_passed": true,
+      "cache": {
+        "hits": 0,
+        "extracted": 39,
+        "corrupt": 0,
+        "total": 39
+      },
+      "peaks": {
+        "working_set_bytes": 577671168,
+        "private_bytes": 569696256,
+        "peak_job_commit_bytes": 569696256,
+        "sampled_output_logical_bytes": 643441079,
+        "sampled_output_allocated_bytes": 452451552
+      },
+      "audit_file": "final-v4-cdc-audit.json"
+    },
+    {
+      "project": "f030",
+      "seconds": 107.26500000001397,
+      "exit_code": 2,
+      "analysis_status": "INCOMPLETE",
+      "output": "H:\\ECRA-quality-20261108\\continuation-final-projects-v4\\f030-data\\scans\\final-v4-f030",
+      "publication": {
+        "format": "ECRA_LOCAL_SCAN",
+        "state": "STATIC_VALIDATED",
+        "run_state": "INCOMPLETE",
+        "scan_id": "final-v4-f030",
+        "facts_hash": "662fbbe7a8d44d358001b4dfb1ae048d2084e8fd74f0cce0103fd5e0ed614257",
+        "report_hash": "37d0bbfa1ac7b867e160c0f88c321b3cdb328060f7410dabf5bf3d071a32176f"
+      },
+      "coverage": {
+        "translation_units_total": 4,
+        "translation_units_parsed": 2,
+        "translation_units_partial": 2,
+        "translation_units_failed": 0,
+        "variables_total": 15,
+        "static_classification": {
+          "total": 8,
+          "safe_proven": 7,
+          "shared_no_review": 0,
+          "suspect": 1,
+          "unknown": 0
+        },
+        "assembly_sources": []
+      },
+      "static_counts": {
+        "CONTAINER": 2,
+        "NON_STORAGE": 5,
+        "SAFE_PROVEN": 7,
+        "SUSPECT": 1
+      },
+      "pending": 1,
+      "derived_container_count": 0,
+      "independent_objects_exact": 13,
+      "nested_containers_checked": 0,
+      "command_exits": [
+        0,
+        2,
+        0
+      ],
+      "static_sha256": "4eed1fc7f23bc760ca895e3c47169ea0765f7bc13dbffd1e41123f96d69956ec",
+      "source_and_build_inputs_unchanged": true,
+      "counting_contract_passed": true,
+      "cache": {
+        "hits": 0,
+        "extracted": 4,
+        "corrupt": 0,
+        "total": 4
+      },
+      "peaks": {
+        "working_set_bytes": 183091200,
+        "private_bytes": 145833984,
+        "peak_job_commit_bytes": 147664896,
+        "sampled_output_logical_bytes": 11925137,
+        "sampled_output_allocated_bytes": 9799184
+      },
+      "audit_file": "final-v4-f030-audit.json"
+    }
+  ],
+  "total_C_TUs": 67,
+  "total_PARSED": 65,
+  "total_PARTIAL": 2,
+  "total_FAILED": 0,
+  "inventory_total": 430,
+  "independent_objects_exact_total": 353,
+  "nested_containers_checked": 24,
+  "total_pending": 244,
+  "f411_alias_link_evidence": "final-v4-f411-actual-alias-link-check.json",
+  "f411_standard_export": "final-v4-f411-public-export.json"
+}

@@ -22,6 +22,8 @@ def normalize_contexts(contexts, roots, graph, funcs, cfg, facts):
             contexts[cid] = dict(context, vector=funcs[vectors[0]]['name'])
             for fid in vectors[1:]:
                 new_id = cid + ':' + funcs[fid]['name']
+                if new_id in contexts:
+                    raise ValueError(f'上下文标识冲突：拆分后的物理中断 {new_id!r} 已存在；不会覆盖其他执行域，请使用不同配置 id。')
                 contexts[new_id] = dict(context, id=new_id, vector=funcs[fid]['name'])
                 roots[new_id] = {fid}
     foreground_roots = {fid for cid in contexts if contexts[cid]['kind'] in {'MAIN', 'FOREGROUND'}

@@ -1,0 +1,133 @@
+{
+  "status": "ACTUAL_FINAL_V9_PORTABLE_NATIVE_DIFF_READING_PASSED",
+  "checked": "2026-11-08T14:10:25.751342+00:00",
+  "program_root": "H:\\ECRA-quality-20261108-offline-build-v9\\解压 终验\\ECRA-Portable",
+  "mode": "PORTABLE",
+  "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "scan_id": "46cba8a215be4b73ba2e77f0a86f96c8",
+  "data_root": "H:\\ECRA-quality-20261108\\continuation-packaged-diff-v8\\实际 数据根\\diff-data",
+  "summary": {
+    "binding": {
+      "scan_id": "46cba8a215be4b73ba2e77f0a86f96c8",
+      "project_id": "52f1d55138a297e6ba3bd9c2793a94ed7ec436487310130b740f912e9e8b9b64",
+      "profile_id": "default",
+      "state": "STATIC_VALIDATED",
+      "facts_hash": "29355d5f711453bf696472b1e199f37ddd4e82ecad99469e92cb1aa60d71c894",
+      "report_hash": "b84b7e1631be65187e8b8697d7af319a2188b19133b683fc6acb5c4d4d32d681"
+    },
+    "static_counts": {
+      "CONTAINER": 1,
+      "SAFE_PROVEN": 3,
+      "SUSPECT": 1
+    },
+    "total": 5,
+    "result_counts": {
+      "CONTAINER": 1,
+      "LIKELY": 1,
+      "SAFE": 3
+    },
+    "human_counts": {
+      "NOT_REQUIRED": 4,
+      "PENDING": 1
+    },
+    "raw_human_counts": {
+      "PENDING": 5
+    },
+    "pending_count": 1,
+    "safe_sources": {
+      "STATIC": 3
+    },
+    "result_revision": "1:0:0",
+    "derived_static_classification_count": 0,
+    "identity": {
+      "project_name": "中文 空格 Git 工程",
+      "project_name_source": "归档工程根目录名；未记录工程显示名称",
+      "project_root": "H:\\ECRA-quality-20261108\\continuation-packaged-diff-v8\\工作 根\\中文 空格 Git 工程",
+      "project_chip": "ARM Cortex-M4 known-answer smoke",
+      "project_core": "Cortex-M4",
+      "configured_target": null,
+      "build_variant": "Debug",
+      "compile_database": "H:\\ECRA-quality-20261108\\continuation-packaged-diff-v8\\实际 数据根\\diff-data\\projects\\git_52f1d55138a297e6ba3b\\builds\\790af8a26de6d67e12a93124\\compile_commands.json",
+      "config_file": "H:/ECRA-quality-20261108/continuation-packaged-diff-v8/工作 根/current-diff.json",
+      "config_sha256": "48ebe787cc52fe33d52efbbf978bbf47182e927818f7fb4b919fa29a90f57069",
+      "metadata_note": null,
+      "generated_at": "2026-11-08T12:42:03.407365+00:00",
+      "recorded_git_commit": "unknown",
+      "diff": {
+        "base_ref": "43c005eae2705ff79b9b9873016d44ef7f45293d",
+        "current_ref": "HEAD",
+        "base_sha": "43c005eae2705ff79b9b9873016d44ef7f45293d",
+        "head_sha": "54f5da318c1c90424146918135d010391dbc22bb",
+        "include_uncommitted": false
+      },
+      "analysis_status": "INCOMPLETE",
+      "oversized_fields": [],
+      "note": "身份只说明本归档的来源；不表示当前源码已重验、芯片自动识别或全工程安全。"
+    },
+    "counting_basis": "完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。",
+    "mode": "LOCAL_SNAPSHOT",
+    "legacy_warning": null,
+    "evidence_notice": null,
+    "legacy_degraded": false,
+    "can_confirm": true,
+    "diff": {
+      "node": 787,
+      "fallback_level": "L1",
+      "impact_coverage": "CONSERVATIVE",
+      "selection_basis": "VERSION_EVIDENCE_AND_DIRECTED_DEPENDENCIES",
+      "note": "默认清单只列有版本变化或明确依赖关系的变量；未排除的潜在影响保存在覆盖证据，不自动填满差异清单。未列出不代表安全，后台保留完整并发分析。",
+      "pin": {
+        "current_ref": "HEAD",
+        "base_ref": "43c005eae2705ff79b9b9873016d44ef7f45293d",
+        "head_sha": "54f5da318c1c90424146918135d010391dbc22bb",
+        "base_sha": "43c005eae2705ff79b9b9873016d44ef7f45293d",
+        "include_uncommitted": false
+      },
+      "selected_symbol_ids_count": 3,
+      "conservative_symbol_ids_count": 2
+    },
+    "can_review": true,
+    "roots": [
+      {
+        "name": "facts",
+        "id": 1,
+        "hash": "29355d5f711453bf696472b1e199f37ddd4e82ecad99469e92cb1aa60d71c894",
+        "kind": "object",
+        "length": 52
+      },
+      {
+        "name": "provenance",
+        "id": 817,
+        "hash": "887136d9f2e3765a4a66989684b231e48a84f051ed407607bd6eb4d9fdffc1df",
+        "kind": "object",
+        "length": 6
+      },
+      {
+        "name": "report",
+        "id": 644,
+        "hash": "b84b7e1631be65187e8b8697d7af319a2188b19133b683fc6acb5c4d4d32d681",
+        "kind": "object",
+        "length": 11
+      }
+    ]
+  },
+  "static_sha256": "2db113e09143b3ea88939fdb62e3be4252b6d46e233fc2d90f9e6f4a471a6d41",
+  "static_identical_to_actual_v8_same_engine_native_scan": true,
+  "human_events": 0,
+  "observed": "Read actual final package: default affected list3 and separately counted potential2, scope popup/identity fixed refs retained; shared risk has two RMW accesses, current project/shared/main.c3/human pending beside all four buttons; Escape then clear shows all5. No signing.",
+  "production_files_sha_identical": 154,
+  "package_inventory_names_unchanged": 32692,
+  "critical_binaries_sha_unchanged": [
+    "runtime/python.exe",
+    "runtime/Lib/site-packages/clang/native/libclang.dll",
+    "tools/git/cmd/git.exe",
+    "tools/git/ucrt64/bin/git.exe",
+    "tools/arm-gcc/bin/arm-none-eabi-gcc.exe"
+  ],
+  "scope": "Read-only UI and API/SQLite/hash audit; runtime scanning full/Diff/full was performed under identical V8 Python/tool files and remains tagged V8. No full toolchain hash repeated.",
+  "screenshots": [
+    "final-v9-native-diff-subject-final.png",
+    "final-v9-native-diff-confirmation-final.png",
+    "final-v9-native-diff-all-five-final.png"
+  ]
+}

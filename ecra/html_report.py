@@ -1166,8 +1166,24 @@ def _write_html(out, facts, report, reviews):
             detail_body += '<p class="notice">补充声明盘点：来自未编译文件或条件分支变体，不代表当前构建中已分析其并发访问。</p>'
         if is_container:
             members = sorted(members_by_root.get(sid, []), key=lambda member: member.get('field_path', ''))
+            if v.get('resource_kind') == 'STRUCT_MEMBER_CONTAINER':
+                parent_path = v.get('field_path', '')
+                related = [member for member in members_by_root.get(v.get('root_symbol_id'), [])
+                           if member.get('resource_kind') == 'STRUCT_MEMBER' and parent_path
+                           and member.get('field_path', '').startswith((parent_path+'.',parent_path+'['))]
+                allowed = {member['symbol_id'] for member in related}
+                recorded = v.get('member_symbol_ids')
+                if recorded is not None:
+                    if (not isinstance(recorded,list) or any(not isinstance(identity,str) for identity in recorded)
+                            or len(set(recorded))!=len(recorded) or any(identity not in allowed for identity in recorded)):
+                        raise ValueError('嵌套容器成员身份与归档根/字段路径不一致：'+sid)
+                    related = [variables[identity] for identity in recorded]
+                members = sorted(related,key=lambda member:member.get('field_path',''))
             counts = v.get('member_status_counts', {})
-            detail_body += '<h3>成员级结论</h3><p>成员：' + str(v.get('member_count', len(members))) + '；未发现并发风险：' + str(counts.get('safe', 0)) + '；疑似并发风险：' + str(counts.get('suspect', 0)) + '；无法判断：' + str(counts.get('unknown', 0)) + '。</p>'
+            if not counts and v.get('resource_kind') == 'STRUCT_MEMBER_CONTAINER':
+                states = Counter(member.get('static_classification','UNKNOWN') for member in members)
+                counts = dict(safe_proven=states['SAFE_PROVEN'],suspect=states['SUSPECT'],unknown=states['UNKNOWN'])
+            detail_body += '<h3>成员级结论</h3><p>成员：' + str(v.get('member_count', len(members))) + '；未发现并发风险：' + str(counts.get('safe_proven', counts.get('safe', 0))) + '；疑似并发风险：' + str(counts.get('suspect', 0)) + '；无法判断：' + str(counts.get('unknown', 0)) + '。</p>'
             member_rows = []
             for member in members:
                 member_rows.append(row(['<a href="#' + anchor('var-', member['symbol_id']) + '">' + esc(member['qualified_name']) + '</a>',

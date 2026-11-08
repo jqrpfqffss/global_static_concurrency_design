@@ -15,6 +15,14 @@ import uuid
 from .workspace import no_links
 
 
+class _HandleInfo(ctypes.Structure):
+    _fields_ = [('attributes',wintypes.DWORD),('created',wintypes.FILETIME),
+                ('accessed',wintypes.FILETIME),('written',wintypes.FILETIME),
+                ('volume',wintypes.DWORD),('size_high',wintypes.DWORD),
+                ('size_low',wintypes.DWORD),('links',wintypes.DWORD),
+                ('index_high',wintypes.DWORD),('index_low',wintypes.DWORD)]
+
+
 class InputWatch:
     """A sticky kernel signal detects changes even when bytes are restored."""
     def __init__(self):
@@ -27,20 +35,65 @@ class InputWatch:
         self.api.CreateFileW.argtypes = [wintypes.LPCWSTR,wintypes.DWORD,wintypes.DWORD,ctypes.c_void_p,wintypes.DWORD,wintypes.DWORD,wintypes.HANDLE]
         self.api.CreateFileW.restype = wintypes.HANDLE
         self.api.CloseHandle.argtypes = [wintypes.HANDLE]
+        self.api.GetFileInformationByHandle.argtypes = [wintypes.HANDLE,ctypes.POINTER(_HandleInfo)]
+        self.api.GetFileInformationByHandle.restype = wintypes.BOOL
         self.directories, self.files, self.ancestors = {}, {}, {}
+        self.ancestor_ids = {}
+
+    def _directory_identity(self, handle):
+        info = _HandleInfo()
+        if not self.api.GetFileInformationByHandle(handle,ctypes.byref(info)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if not info.attributes & 0x10 or info.attributes & 0x400:
+            raise ValueError('输入目录句柄不是普通目录或出现重解析点')
+        if not (info.index_high or info.index_low):
+            raise ValueError('无法证明输入目录句柄身份')
+        return info.volume,info.index_high,info.index_low
+
+    def _path_identity(self, path):
+        no_links(path)
+        # Open the final component itself, never a replacement junction target.
+        handle = self.api.CreateFileW(str(path),0x80,0x3,None,3,0x02200000,None)
+        if handle in (None,ctypes.c_void_p(-1).value):raise ctypes.WinError(ctypes.get_last_error())
+        try:return self._directory_identity(handle)
+        finally:self.api.CloseHandle(handle)
+
     def directory(self, path):
         path = no_links(path)
         if any(path == other or path.is_relative_to(other) for other in self.directories): return
-        handle = self.api.FindFirstChangeNotificationW(str(path),True,0x1|0x2|0x4|0x8|0x10|0x100)
-        if handle in (None,ctypes.c_void_p(-1).value): raise ctypes.WinError(ctypes.get_last_error())
-        self.directories[path] = handle
-        # Keep every path component from being renamed out and replaced while
-        # the recursive notification remains attached to the old object.
-        for ancestor in (path,*path.parents):
-            if ancestor in self.ancestors:continue
-            locked=self.api.CreateFileW(str(ancestor),0x80000000,0x3,None,3,0x02000000,None)
-            if locked in (None,ctypes.c_void_p(-1).value):raise ctypes.WinError(ctypes.get_last_error())
-            self.ancestors[ancestor]=locked
+        chain = tuple(reversed((path,*path.parents)))
+        acquired = []; notification = None; registered = False
+        try:
+            # Lock stable ancestors down to the target before attaching the
+            # notification. Otherwise a real rename can leave it on the old
+            # object while later locks and byte checks inspect its replacement.
+            for ancestor in chain:
+                if ancestor not in self.ancestors:
+                    locked=self.api.CreateFileW(str(ancestor),0x80000000,0x3,None,3,0x02200000,None)
+                    if locked in (None,ctypes.c_void_p(-1).value):raise ctypes.WinError(ctypes.get_last_error())
+                    try:identity=self._directory_identity(locked)
+                    except BaseException:
+                        self.api.CloseHandle(locked);raise
+                    self.ancestors[ancestor]=locked;self.ancestor_ids[ancestor]=identity
+                    acquired.append(ancestor)
+                if self._path_identity(ancestor)!=self.ancestor_ids[ancestor]:
+                    raise ValueError('输入目录路径与已锁定句柄身份不一致：'+str(ancestor))
+            notification=self.api.FindFirstChangeNotificationW(str(path),True,0x1|0x2|0x4|0x8|0x10|0x100)
+            if notification in (None,ctypes.c_void_p(-1).value):
+                notification=None;raise ctypes.WinError(ctypes.get_last_error())
+            for ancestor in chain:
+                if self._path_identity(ancestor)!=self.ancestor_ids[ancestor]:
+                    raise ValueError('监控注册期间输入目录路径身份已变化：'+str(ancestor))
+            self.directories[path]=notification;registered=True
+            self.check()
+        except BaseException:
+            if registered:self.directories.pop(path,None)
+            if notification is not None:self.api.FindCloseChangeNotification(notification)
+            # A failed new registration must not close ancestors retained by
+            # an existing directory watch. Release only this transaction.
+            for ancestor in reversed(acquired):
+                self.api.CloseHandle(self.ancestors.pop(ancestor));self.ancestor_ids.pop(ancestor,None)
+            raise
     def file(self, path):
         path = no_links(path)
         if path in self.files: return
@@ -57,8 +110,8 @@ class InputWatch:
     def close(self):
         for handle in self.directories.values(): self.api.FindCloseChangeNotification(handle)
         for handle in self.files.values(): self.api.CloseHandle(handle)
-        for handle in self.ancestors.values(): self.api.CloseHandle(handle)
-        self.directories.clear(); self.files.clear(); self.ancestors.clear()
+        for handle in reversed(tuple(self.ancestors.values())): self.api.CloseHandle(handle)
+        self.directories.clear(); self.files.clear(); self.ancestors.clear();self.ancestor_ids.clear()
     def __enter__(self): return self
     def __exit__(self,*exc): self.close()
 
@@ -106,7 +159,9 @@ class BuildExecutor:
         self.audit=no_links(self.namespace.parent/('working-cmake-audit-'+uuid.uuid4().hex));self.audit.mkdir()
         require_protected_source(self.audit)
     def __call__(self, argv, *, cwd=None, env=None, timeout=300, input=None, stdin=None, **options):
-        if options or input is not None or stdin not in (None,subprocess.DEVNULL):
+        binary_output = (set(options) == {'text','encoding','errors'} and options.get('text') is False
+                         and options.get('encoding') is None and options.get('errors') is None)
+        if (options and not binary_output) or input is not None or stdin not in (None,subprocess.DEVNULL):
             raise ValueError('只读CMake执行器不接受未证明的子进程选项')
         from .portable import resolved_executable
         from .studio.write_guard import GuardedProcess
@@ -151,9 +206,18 @@ class BuildExecutor:
                 # Reject unproved generated commands before Ninja can run any
                 # target, rather than discovering them after the build.
                 audit_trace(self,dict(cmake_cache=read_cache(build)),self.source)
+            stderr_file = trace if trace is not None else folder/'stderr.log'
+            if binary_output:
+                import hashlib
+                stdout = (folder/'stdout.log').read_bytes()
+                stderr = stderr_file.read_bytes()
+                row['output_protocol'] = dict(mode='binary',
+                    stdout=dict(bytes=len(stdout),sha256=hashlib.sha256(stdout).hexdigest()),
+                    stderr=dict(bytes=len(stderr),sha256=hashlib.sha256(stderr).hexdigest()))
+                return subprocess.CompletedProcess(original,code,stdout,stderr)
             return subprocess.CompletedProcess(original,code,
                 (folder/'stdout.log').read_text('utf-8',errors='replace'),
-                (trace if trace is not None else folder/'stderr.log').read_text('utf-8',errors='replace'))
+                stderr_file.read_text('utf-8',errors='replace'))
         finally:
             budget.close()
             if process is not None: process.close()

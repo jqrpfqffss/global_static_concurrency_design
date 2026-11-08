@@ -1,0 +1,99 @@
+{
+  "status": "PASSED_SCOPED_BUILD_AND_COMPONENT_AUDIT",
+  "version": "v9",
+  "core_digest": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "source_snapshot_sha256": "274ebf4c54ac8ac39dce8a8038c72b833cbb47360151b55374cf1b3a709c2c3a",
+  "zip": {
+    "path": "H:\\ECRA-quality-20261108-offline-build-v9\\ECRA-Portable.zip",
+    "bytes": 785692863,
+    "sha256": "7a0e45b0f3dda3ee47d7759f9784ab66ca9f8fa089543157f64c9f9be9a6c03d"
+  },
+  "actual_zip_files": 32692,
+  "content_manifest_files": 32691,
+  "zip_names_and_sizes_match_bundle": true,
+  "stages": [
+    {
+      "stage": "uncompressed",
+      "result": "PASS",
+      "commands": 27,
+      "command_exit_counts": {
+        "0": 21,
+        "2": 6
+      },
+      "evidence": "H:\\ECRA-quality-20261108-offline-build-v9\\portable-evidence\\uncompressed\\acceptance.json",
+      "evidence_sha256": "c04566580442874dafcb343589fcd347cced9576eb1ff3ca66e60c91975a4f3c",
+      "bundle_contains_runtime_data": false,
+      "static_saved_commands_unchanged": true
+    },
+    {
+      "stage": "zip-extracted",
+      "result": "PASS",
+      "commands": 27,
+      "command_exit_counts": {
+        "0": 21,
+        "2": 6
+      },
+      "evidence": "H:\\ECRA-quality-20261108-offline-build-v9\\portable-evidence\\zip-extracted\\acceptance.json",
+      "evidence_sha256": "c23abf00966b79ccb05d22bb75c8c36493ff29b52cbcf8997880e81c391b49c7",
+      "bundle_contains_runtime_data": false,
+      "static_saved_commands_unchanged": true
+    }
+  ],
+  "production_files_matching_frozen_engine": 154,
+  "release_ready": false,
+  "python_inheritance": {
+    "compared_version": "v8",
+    "identical_python_files": 127,
+    "compared_archive": "H:/ECRA-quality-20261108-offline-build-v8/ECRA-Portable.zip",
+    "identical_tool_files": 27772,
+    "python_and_libclang_binaries_identical": true,
+    "scope": "V8 actual packaged Git18 and ARM end-to-end proofs keep their V8 labels; only unchanged Python/tool components are inherited. New Q405 GUI must be used separately."
+  },
+  "full_content_sha_gate": "Already executed by official validator for both uncompressed and Chinese-space ZIP-extracted bundle; this audit does not substitute a third full hash run.",
+  "unchanged_tools_files": 27772,
+  "unchanged_runtime_files": 1027,
+  "runtime_differences": [
+    "runtime/Lib/site-packages/bin/fastapi.exe",
+    "runtime/Lib/site-packages/bin/idna.exe",
+    "runtime/Lib/site-packages/bin/uvicorn.exe",
+    "runtime/Lib/site-packages/fastapi-0.136.3.dist-info/RECORD",
+    "runtime/Lib/site-packages/idna-3.18.dist-info/RECORD",
+    "runtime/Lib/site-packages/uvicorn-0.49.0.dist-info/RECORD"
+  ],
+  "pip_launcher_diagnostics": [
+    {
+      "file": "runtime/Lib/site-packages/bin/fastapi.exe",
+      "main_module_bytes_match_v4": true,
+      "current_interpreter_path_embedded": true,
+      "note": "Fresh pip-generated launcher includes this build root and ZIP entry metadata; do not claim whole runtime byte equality."
+    },
+    {
+      "file": "runtime/Lib/site-packages/bin/idna.exe",
+      "main_module_bytes_match_v4": true,
+      "current_interpreter_path_embedded": true,
+      "note": "Fresh pip-generated launcher includes this build root and ZIP entry metadata; do not claim whole runtime byte equality."
+    },
+    {
+      "file": "runtime/Lib/site-packages/bin/uvicorn.exe",
+      "main_module_bytes_match_v4": true,
+      "current_interpreter_path_embedded": true,
+      "note": "Fresh pip-generated launcher includes this build root and ZIP entry metadata; do not claim whole runtime byte equality."
+    }
+  ],
+  "key_components_sha256": {
+    "runtime/python.exe": "53e910971cbb20c3223cc44c696254ccfba9595dc4be8e16f56f6c954fff831f",
+    "runtime/python310.dll": "156cf2b64dd0f4d9bdb346b654a11300d6e9e15a65ef69089923dafc1c71e33d",
+    "runtime/Lib/site-packages/clang/native/libclang.dll": "b13ec96d9a036d6c6c36dd09e00415ead7acc7fcfd40e721bf33ea86b3490f9d",
+    "tools/arm-gcc/bin/arm-none-eabi-gcc.exe": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac",
+    "tools/git/cmd/git.exe": "3b64043b9e4dc225225f43ff9c1173b57493ff72e5b729accfae051eb160cca3",
+    "tools/cmake/bin/cmake.exe": "2f7ab077ad3128c6250c462dc01e8615be4f5d51e62eb7d567fabab2eeeea89b",
+    "tools/ninja/ninja.exe": "e52a7ad9538d9618c67a0bd777964e2eec8a30f68b810a2f6adce1f2daf847b8"
+  },
+  "input_postflight": "H:\\global_static_concurrency_design\\output\\quality-20261108\\continuation\\offline-build-v9\\input-postflight.json",
+  "caveats": [
+    "Actual final GUI operation is a separate acceptance.",
+    "V8 actual packaged Git18/ARM results retain their V8 identity and apply only to the directly SHA-identical Python/tool components; final V9 Q405 GUI is a separate gate.",
+    "V4 real F030 and MinGit fixture results retain their original engine identity; only exact unchanged components are inherited.",
+    "OpenCode provider/review remains external and was not run by offline acceptance."
+  ]
+}

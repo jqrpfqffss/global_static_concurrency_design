@@ -1,0 +1,26 @@
+{
+  "status": "APPLIED_PENDING_MAIN_SMOKE_AND_FINAL_PACKAGE",
+  "finished": "2026-11-08T12:12:55.944219+00:00",
+  "engine": {
+    "engine": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+    "module": "H:\\global_static_concurrency_design\\ecra\\__init__.py"
+  },
+  "production_matching_frozen": 154,
+  "changes": [
+    {
+      "path": "ecra/git_diff.py",
+      "baseline_sha256": "004cbf3de0f275f4dbb188d3e116b69f985248778e70527534b682bdd32cef6b",
+      "candidate_sha256": "216c6aa53dcfd8d5d21aa7d6fc23db12be12c8ed8b95ba8507c72c0a0df9cee0",
+      "bytes": 70997
+    },
+    {
+      "path": "tests/test_readonly_git_admission.py",
+      "baseline_sha256": "aa585d6f5411a5d5a665bef8bbc6dd9a45d145cd29c2279e76c38197d3abc75c",
+      "candidate_sha256": "8b457aaa787a859e766f283dcd8d6da3dc0c891724b38f13ababf6392dcba18a",
+      "bytes": 14945
+    }
+  ],
+  "backup": "H:\\global_static_concurrency_design\\output\\quality-20261108\\continuation\\main-apply-v8-backup",
+  "original_main_v6_failure_preserved": true,
+  "git_branch_and_staging_not_modified_by_apply": true
+}

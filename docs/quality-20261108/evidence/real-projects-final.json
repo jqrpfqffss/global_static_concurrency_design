@@ -1,0 +1,155 @@
+{
+  "scope": "Three independent real project full canonical scans from existing build databases; partial diagnostics and risks retained; no new firmware build/hardware/AI round",
+  "engine_digest": "74c0b1c0f3fa204088534ad90f5bcefaf4bccb5a00ce42bce4cfb878eea509b2",
+  "passed": true,
+  "projects": [
+    {
+      "name": "f030",
+      "engine_digest": "74c0b1c0f3fa204088534ad90f5bcefaf4bccb5a00ce42bce4cfb878eea509b2",
+      "scan_id": "081a4ef8e47942c49f87f92e515b6041",
+      "output": "H:\\ECRA-quality-20261108-delivery\\final-engine-v3\\f030-data\\scans\\081a4ef8e47942c49f87f92e515b6041",
+      "returncode": 2,
+      "seconds": 32.21900000004098,
+      "status_returncode": 0,
+      "report_returncode": 2,
+      "source_inputs_unchanged": true,
+      "source_input_files": 18,
+      "analysis_valid": true,
+      "sqlite_integrity": [
+        "ok"
+      ],
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "translation_units_total": 4,
+        "translation_units_parsed": 2,
+        "translation_units_partial": 2,
+        "translation_units_failed": 0,
+        "variables_total": 15,
+        "static_classification": {
+          "total": 13,
+          "safe_proven": 7,
+          "shared_no_review": 0,
+          "suspect": 1,
+          "unknown": 5
+        }
+      },
+      "review": {
+        "targets": 6,
+        "archived": 6,
+        "done": 0,
+        "failed": 0,
+        "tech_failed": 0,
+        "pending": 6,
+        "stale": 0,
+        "missing": 0,
+        "duplicate": 0,
+        "errors": [],
+        "complete": true,
+        "all_done": false
+      },
+      "resumable": true,
+      "scoped_pass": true,
+      "scan_db_bytes": 8957952,
+      "reviews_db_bytes": 65536
+    },
+    {
+      "name": "f411",
+      "engine_digest": "74c0b1c0f3fa204088534ad90f5bcefaf4bccb5a00ce42bce4cfb878eea509b2",
+      "scan_id": "31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "output": "H:\\ECRA-quality-20261108-delivery\\final-engine-v3\\f411-data\\scans\\31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "returncode": 2,
+      "seconds": 157.10899999993853,
+      "status_returncode": 0,
+      "report_returncode": 2,
+      "source_inputs_unchanged": true,
+      "source_input_files": 225,
+      "analysis_valid": true,
+      "sqlite_integrity": [
+        "ok"
+      ],
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "translation_units_total": 24,
+        "translation_units_parsed": 24,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "variables_total": 171,
+        "static_classification": {
+          "total": 123,
+          "safe_proven": 84,
+          "shared_no_review": 1,
+          "suspect": 34,
+          "unknown": 4
+        }
+      },
+      "review": {
+        "targets": 38,
+        "archived": 38,
+        "done": 0,
+        "failed": 0,
+        "tech_failed": 0,
+        "pending": 38,
+        "stale": 0,
+        "missing": 0,
+        "duplicate": 0,
+        "errors": [],
+        "complete": true,
+        "all_done": false
+      },
+      "resumable": true,
+      "scoped_pass": true,
+      "scan_db_bytes": 62476288,
+      "reviews_db_bytes": 81920
+    },
+    {
+      "name": "cdc",
+      "engine_digest": "74c0b1c0f3fa204088534ad90f5bcefaf4bccb5a00ce42bce4cfb878eea509b2",
+      "scan_id": "de8e72e7359840caa3b81a7ac884a4cd",
+      "output": "H:\\ECRA-quality-20261108-delivery\\final-engine-v3\\cdc-data\\scans\\de8e72e7359840caa3b81a7ac884a4cd",
+      "returncode": 2,
+      "seconds": 407.23499999998603,
+      "status_returncode": 0,
+      "report_returncode": 2,
+      "source_inputs_unchanged": true,
+      "source_input_files": 457,
+      "analysis_valid": true,
+      "sqlite_integrity": [
+        "ok"
+      ],
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "translation_units_total": 39,
+        "translation_units_parsed": 39,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "variables_total": 244,
+        "static_classification": {
+          "total": 210,
+          "safe_proven": 5,
+          "shared_no_review": 0,
+          "suspect": 135,
+          "unknown": 70
+        }
+      },
+      "review": {
+        "targets": 205,
+        "archived": 205,
+        "done": 0,
+        "failed": 0,
+        "tech_failed": 0,
+        "pending": 205,
+        "stale": 0,
+        "missing": 0,
+        "duplicate": 0,
+        "errors": [],
+        "complete": true,
+        "all_done": false
+      },
+      "resumable": true,
+      "scoped_pass": true,
+      "scan_db_bytes": 273031168,
+      "reviews_db_bytes": 159744
+    }
+  ],
+  "memory_scope": "NOT_MEASURED_THIS_ROUND; no new performance or peak-RAM acceptance claim"
+}

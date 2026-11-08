@@ -4,7 +4,6 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
-import time
 import unittest
 
 from fastapi.testclient import TestClient
@@ -16,6 +15,7 @@ from ecra.scan_store import EvidenceProvider, publish_scan
 from ecra.studio.server import create_app
 from tests import test_multicore_pinned_inputs as pinned
 from tests import test_multicore_publication as fixtures
+from tests.async_jobs import wait_task,stop_and_settle_tasks
 
 
 class MulticoreWorkflowTests(unittest.TestCase):
@@ -48,6 +48,7 @@ class MulticoreWorkflowTests(unittest.TestCase):
         self.app=create_app(self.data,token='workflow-test',authority='testserver')
         self.client=TestClient(self.app,headers={'X-ECRA-Session':'workflow-test','Origin':'http://testserver'})
         self.client.__enter__();self.addCleanup(self.client.__exit__,None,None,None)
+        self.addCleanup(stop_and_settle_tasks,self,self.client,self.app.state.task_manager)
         self.regions=[dict(start='0x38000000',size='0x10000')]
 
     def upload(self,payload=None):
@@ -61,14 +62,7 @@ class MulticoreWorkflowTests(unittest.TestCase):
         self.assertEqual(result.status_code,200,result.text);return result.json(),inputs
 
     def wait_task(self,identity):
-        deadline=time.monotonic()+40
-        while True:
-            row=self.client.get('/api/tasks/'+identity).json()
-            if row['state'] not in {'RUNNING','STOP_REQUESTED'}:
-                while self.app.state.task_manager.active is not None and time.monotonic()<deadline:time.sleep(.05)
-                return row
-            if time.monotonic()>deadline:self.fail('owned multicore task did not finish')
-            time.sleep(.1)
+        return wait_task(self.client,self.app.state.task_manager,identity)
 
     def test_archived_configs_survive_live_profile_change_and_real_owned_job_publishes(self):
         before={str(p):sha256(p) for folder in self.source_scans for p in folder.rglob('*') if p.is_file()}

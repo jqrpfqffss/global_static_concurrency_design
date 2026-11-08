@@ -1,0 +1,42 @@
+{
+  "status": "PASSED",
+  "product_build_exit_code": 0,
+  "source": "H:\\ECRA-quality-20261108\\continuation-builder-source-v8",
+  "output": "H:\\ECRA-quality-20261108-offline-build-v8",
+  "source_snapshot_sha256": "969b1f85fb8593e6dd68a766ce628707fd5d189fea1b59922e76c6c601c285d2",
+  "core_digest": "2b9e8750136a6a0bbd48c41ae40d2b3399fe88c8031f628a2713269cea7cbdea",
+  "source_file_count": 4370,
+  "source_files_unchanged": true,
+  "cache_input_files_before": 27921,
+  "cache_input_files_after": 27921,
+  "cache_input_bytes_unchanged": true,
+  "cache_changed_paths": [],
+  "old_archives_unchanged": true,
+  "prior_archives_after": {
+    "H:\\ECRA-quality-20261108-offline-build-v4\\ECRA-Portable.zip": {
+      "bytes": 785690591,
+      "sha256": "f91fa403252d1ff2eb533c83eb5d6558f6f3f2fe55835d977869a80b28003586"
+    },
+    "H:\\ECRA-quality-20261108-delivery\\ECRA-Quality-20261108-local.zip": {
+      "bytes": 787798791,
+      "sha256": "b02a9e30a9270bfa35c558bc3191d3305c7f02624d789ea24a48f8d6399272ab"
+    },
+    "H:\\ECRA-quality-20261108-offline-build-v6\\ECRA-Portable.zip": {
+      "bytes": 785692259,
+      "sha256": "a7cc76fbbf200829db6942092c8630999e8ef9ca4305552f6bdceba4ae886f8e"
+    }
+  },
+  "mutable_cache_diagnostics_after": {
+    "local-tools.json": {
+      "bytes": 13163,
+      "sha256": "712cc1b6f944f546e5227e289c8b88f735af843bf7bd993e37a413840e39d5ed"
+    },
+    "preparation-result.json": {
+      "bytes": 923,
+      "sha256": "a2c2dd34d5a692b464b475044b3fc8b3862de63be3ede7e7464745c2da7999e7"
+    }
+  },
+  "elapsed_seconds": 1370.563,
+  "finished": "2026-11-08T12:36:59.817475+00:00",
+  "note": "Fresh full v8 build; affected packaged Git regressions and final GUI operation remain independent gates."
+}

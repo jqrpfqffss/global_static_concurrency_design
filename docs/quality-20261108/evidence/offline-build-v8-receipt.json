@@ -1,0 +1,56 @@
+{
+  "status": "BUILT_PENDING_PRODUCT_ACCEPTANCE",
+  "source": "H:\\ECRA-quality-20261108\\continuation-builder-source-v8",
+  "output": "H:\\ECRA-quality-20261108-offline-build-v8",
+  "cache": "H:/global_static_concurrency_design/.tools-cache",
+  "optional_bundled_git": "H:/global_static_concurrency_design/.tools-cache/git-diff-runtime/MinGit-2.56.0.3",
+  "started": "2026-11-08T12:14:52.548254+00:00",
+  "snapshot_sha256": "969b1f85fb8593e6dd68a766ce628707fd5d189fea1b59922e76c6c601c285d2",
+  "commands": [
+    {
+      "name": "offline-check",
+      "command": [
+        "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "H:\\ECRA-quality-20261108\\continuation-builder-source-v8\\prepare_portable_cache.ps1",
+        "-CacheDir",
+        "H:/global_static_concurrency_design/.tools-cache",
+        "-OfflineCheck"
+      ],
+      "status": "PASSED",
+      "pid": 25300,
+      "exit_code": 0,
+      "elapsed_seconds": 59.687
+    },
+    {
+      "name": "build",
+      "command": [
+        "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "H:\\ECRA-quality-20261108\\continuation-builder-source-v8\\build_portable.ps1",
+        "-OutputDir",
+        "H:\\ECRA-quality-20261108-offline-build-v8",
+        "-CacheDir",
+        "H:/global_static_concurrency_design/.tools-cache",
+        "-GitSource",
+        "H:/global_static_concurrency_design/.tools-cache/git-diff-runtime/MinGit-2.56.0.3"
+      ],
+      "status": "PASSED",
+      "pid": 40948,
+      "exit_code": 0,
+      "elapsed_seconds": 1190.063
+    }
+  ],
+  "finished": "2026-11-08T12:35:42.308969+00:00",
+  "zip": {
+    "path": "H:\\ECRA-quality-20261108-offline-build-v8\\ECRA-Portable.zip",
+    "bytes": 785692766,
+    "sha256": "b4590047afd32bfe3beb803b7a934ae52c893daf3d12a4fbe2c2ff456880ab1a"
+  }
+}

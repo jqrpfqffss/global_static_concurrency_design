@@ -1,0 +1,37 @@
+{
+  "observed_utc": "2026-11-08T13:57:08.861364+00:00",
+  "data_root": "H:\\ECRA-quality-20261108-offline-build-v4\\界面验收 独立数据",
+  "total_events": 3,
+  "scans": [
+    {
+      "scan_id": "31de51dbc3954dd98f3ccb4b1cd7c6bf",
+      "event_count": 0,
+      "events": []
+    },
+    {
+      "scan_id": "builtin-stm32-demo-v1",
+      "event_count": 0,
+      "events": []
+    },
+    {
+      "scan_id": "c27a0641d2b94576a7d1b67359221e54",
+      "event_count": 3,
+      "events": [
+        {
+          "event_id": "36489eed-0267-456d-85f4-02b404da3ae2",
+          "payload_sha256": "cb92160b205e7e336314151dd142cc6aa25d25575e0b40b5d0bbfe9f6b0fd2c9"
+        },
+        {
+          "event_id": "6ef4d2b4-af57-4753-9d62-decffeedf961",
+          "payload_sha256": "d21bc55d7143ef7173f6dcef1a43debff55097b5f3c6679032714e548c6e88ee"
+        },
+        {
+          "event_id": "e173ccf6-ef22-4d7a-a3ec-1fa735de6738",
+          "payload_sha256": "38f2a36213f05691b975a3e6c8139c9ea4bda7fb32caa7f3b8c04c12f78b5b21"
+        }
+      ]
+    }
+  ],
+  "scope": "SQLite mode=ro only. Event content was not injected, restored, appended or modified.",
+  "event_ids_and_payloads_unchanged": true
+}

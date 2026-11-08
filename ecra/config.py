@@ -59,6 +59,7 @@ analysis:
   build_closure_only: true  # 只分析当前固件；false 额外盘点未编译声明，但不将它们送入并发复核
   max_unknown_fanout_debug: 50
   compile_database: auto  # 或 build/compile_commands.json
+  auto_system_includes: true  # 自动探测真实 Arm GCC 的标准头文件，避免 stdint.h 等缺失
   auto_configure_cmake: false
   cmake_build_dir: build
   # cmake_toolchain_file: cmake/arm-none-eabi.cmake
@@ -72,7 +73,7 @@ analysis:
   exclude_dirs: []
   exclude_files: []  # 混放在业务目录中的第三方 .c/.h 文件；保留调用链依赖
   parse_timeout_seconds: 180
-  # output: {location: tool}  # 默认工具侧 workspace，按工程自动隔离
+  # output: {location: user}  # 默认独立用户数据根，按工程和扫描隔离
   auto_contexts: true
 contexts:
   - id: main
@@ -156,8 +157,8 @@ analysis:
     clean_before_configure: false
     build: true  # 每次先配置并增量构建，再扫描；不会烧录
   auto_system_includes: true  # 自动探测 Arm GCC 标准头文件目录
-  # output: {location: tool}  # 默认工具侧 workspace，按工程自动隔离
-  # open_report: true  # 完成后用默认浏览器打开变量报告
+  # output: {location: user}  # 默认独立用户数据根，按工程和扫描隔离
+  # open_report: true  # 仅旧 --legacy-output 自动打开 HTML；默认结果使用 Studio 查看
 contexts:
   - id: main
     kind: MAIN

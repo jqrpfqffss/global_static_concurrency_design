@@ -12,6 +12,7 @@ from ..scan_identity import query as identity_query
 from ..scan_store import EvidenceProvider
 from ..storage_activity import DataActivity
 from ..workspace import no_links
+from .display_manifest import display_manifest
 
 
 def _date(value):
@@ -85,17 +86,8 @@ def _entries(root, entries):
             except KeyError:
                 degraded = False
             if manifest_path.is_file():
-                # Display manifest is small; no arbitrary-size read on corrupt input.
-                if manifest_path.stat().st_size > 1024*1024:
-                    raise ValueError('归档显示清单过大；请核对原件')
-                manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-                if not isinstance(manifest, dict):
-                    raise ValueError('归档清单格式无效')
+                manifest = display_manifest(manifest_path,binding)
                 if manifest.get('format') == 'ECRA_LOCAL_SCAN':
-                    if any(manifest.get(key) != binding[key] for key in ['scan_id', 'project_id', 'facts_hash', 'report_hash']):
-                        raise ValueError('本机发布清单与静态库身份不一致')
-                    if not isinstance(manifest.get('state'), str):
-                        raise ValueError('本机发布状态无效')
                     item.update(mode='LOCAL_SNAPSHOT', state=manifest['state'],
                                 recorded_at=manifest.get('completed_at'), date_source='本机发布完成时间')
             item.update(can_open=True, can_confirm=not degraded)

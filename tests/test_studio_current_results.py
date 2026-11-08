@@ -43,7 +43,11 @@ class CurrentResultsTests(unittest.TestCase):
             self.assertEqual(rows[sid]['needs_human_confirmation'],0,sid)
         for sid in ['risk','likely','need','unknown','failed','mixed-unknown','mixed-risk','supp-pending']:
             self.assertEqual(rows[sid]['needs_human_confirmation'],1,sid)
-        self.assertEqual(rows['need']['current_result'],'UNKNOWN')
+        # An inconclusive AI answer does not refute the existing static
+        # conflict: use the established decisions.effective_decision contract.
+        self.assertEqual(rows['need']['current_result'],'LIKELY')
+        self.assertEqual(rows['need']['result_source'],'STATIC')
+        self.assertEqual(rows['need']['ai_answer_count'],1)
         self.assertEqual(rows['failed']['current_result'],'LIKELY')
 
     def test_all_findings_must_be_safe_before_variable_is_safe(self):
@@ -91,7 +95,7 @@ class CurrentResultsTests(unittest.TestCase):
     def test_manual_submission_reduces_pending_without_changing_analysis(self):
         self.store.append('need',self.provider.fingerprint('need'),decision='CONFIRMED_SAFE',reviewer='协议夹具',comment='测试事务',expected_heads=[])
         self.assertEqual(self.query.current_summary()['pending_count'],7)
-        self.assertEqual(self.by_id()['need']['current_result'],'UNKNOWN')
+        self.assertEqual(self.by_id()['need']['current_result'],'LIKELY')
         self.assertEqual(self.query.symbols(review_scope='pending',symbol_id='need')['total'],0)
 
     def test_legacy_snapshot_and_v1_references_are_projected_with_same_rules(self):
@@ -113,6 +117,59 @@ class CurrentResultsTests(unittest.TestCase):
         self.assertEqual(self.query.symbols(ai_state='FALSE_POSITIVE')['total'],1)
         for args in [dict(current_result='safe'),dict(review_scope='DELETE'),dict(ai_state='UNKNOWN_FAKE')]:
             with self.assertRaises(ValueError):self.query.symbols(**args)
+
+    def test_projection_matches_established_static_review_decision_matrix(self):
+        from ecra.decisions import variable_decisions
+        outcomes=['OFF','PENDING','RUNNING','TECH_FAILED','STALE','NEED_MORE_CONTEXT',
+                  'CONFIRMED','LIKELY','REVIEWED_SAFE','FALSE_POSITIVE']
+        out=self.out.parent/'decision-matrix';out.mkdir()
+        variables=[];findings=[];reviews=[]
+        for static in ('SUSPECT','UNKNOWN','SAFE_PROVEN'):
+            for outcome in outcomes:
+                sid=static+'-'+outcome
+                variables.append(dict(symbol_id=sid,name=sid,static_classification=static))
+                findings.append(dict(symbol_id=sid,finding_id=sid,static_classification=static))
+                if outcome=='OFF':continue
+                if outcome in {'PENDING','RUNNING','TECH_FAILED','STALE'}:
+                    reviews.append(dict(finding_id=sid,state=outcome,status='REVIEWED_SAFE'))
+                else:
+                    reviews.append(dict(finding_id=sid,state='DONE',status=outcome,
+                                        answer=dict(status=outcome)))
+        facts=dict(variables=variables);report=dict(findings=findings)
+        expected=variable_decisions(facts,report,{r['finding_id']:r for r in reviews})
+        publish_scan(out/'scan.db',facts,report,scan_id='decision-matrix',project_id='p')
+        ReviewStore(out/'reviews.db',EvidenceProvider(out/'scan.db').metadata())
+        append_runtime(out,{},reviews)
+        rows=QueryService(out).symbols(limit=50)['items']
+        groups=dict(confirmed='CONFIRMED',likely='LIKELY',unresolved='UNKNOWN',safe='SAFE')
+        self.assertEqual(len(rows),len(variables))
+        for row in rows:
+            with self.subTest(symbol_id=row['symbol_id']):
+                self.assertEqual(row['current_result'],groups[expected[row['symbol_id']]])
+
+    def test_mixed_findings_keep_unrefuted_static_conflicts_regardless_of_order(self):
+        from ecra.decisions import variable_decisions
+        import itertools
+        outcomes=[('LIKELY','NEED_MORE_CONTEXT'),('CONFIRMED','NEED_MORE_CONTEXT'),
+                  ('REVIEWED_SAFE','NEED_MORE_CONTEXT'),('FALSE_POSITIVE','LIKELY'),
+                  ('REVIEWED_SAFE','FALSE_POSITIVE')]
+        groups=dict(confirmed='CONFIRMED',likely='LIKELY',unresolved='UNKNOWN',safe='SAFE')
+        for number,(left,right) in enumerate(outcomes):
+            findings=[dict(symbol_id='s',finding_id='left',static_classification='SUSPECT'),
+                      dict(symbol_id='s',finding_id='right',static_classification='UNKNOWN')]
+            for ordering,sequence in enumerate(itertools.permutations(findings)):
+                out=self.out.parent/f'mixed-{number}-{ordering}';out.mkdir()
+                facts=dict(variables=[dict(symbol_id='s',name='s',static_classification='SUSPECT')])
+                report=dict(findings=list(sequence))
+                reviews=[dict(finding_id=fid,state='DONE',status=status,answer=dict(status=status))
+                         for fid,status in [('left',left),('right',right)]]
+                expected=variable_decisions(facts,report,{r['finding_id']:r for r in reviews})['s']
+                publish_scan(out/'scan.db',facts,report,scan_id='mixed',project_id='p')
+                ReviewStore(out/'reviews.db',EvidenceProvider(out/'scan.db').metadata())
+                append_runtime(out,{},reviews)
+                query=QueryService(out)
+                self.assertEqual(query.symbols()['items'][0]['current_result'],groups[expected])
+                self.assertEqual(query.current_summary()['result_counts'],{groups[expected]:1})
 
 
 if __name__=='__main__':unittest.main()

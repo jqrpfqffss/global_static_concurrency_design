@@ -3,11 +3,11 @@ import { computed, nextTick, ref } from 'vue'
 import { label } from './api'
 import './scan-identity.css'
 import WorkspaceDialog from './WorkspaceDialog.vue'
-const props=defineProps<{scan:string,binding:any,identity:any,mode:string}>()
+const props=defineProps<{scan:string,binding:any,identity:any,mode:string,unavailable?:boolean}>()
 const opened=ref(false),trigger=ref<HTMLButtonElement|null>(null)
 const project=computed(()=>props.identity?.project_name||'工程名称未记录')
 const build=computed(()=>`${props.identity?.configured_target||'目标未记录'} · ${props.identity?.build_variant||'变体未记录'} · 核心声明 ${props.identity?.project_core||'未记录'}`)
-const status=computed(()=>props.binding?.state?label(props.binding.state):'结果身份读取中')
+const status=computed(()=>props.unavailable?'结果读取失败':props.binding?.state?label(props.binding.state):'结果身份读取中')
 function open(){opened.value=true}
 async function close(){opened.value=false;await nextTick();trigger.value?.focus()}
 </script>

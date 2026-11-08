@@ -51,6 +51,31 @@ def policy(analysis):
         raise ValueError('未提交CMake目前要求compile_database: auto、Windows/Ninja外置构建、build_closure_only且无未绑定的显式ELF/MAP闭包；原输入保留')
 
 
+def _asm_compiler_version_query(query, executable, origin, builtin, compilation, build_roots):
+    """Admit CMake's exact ASM ID query, bound to this private build/tool.
+
+    CMake 3.29 probes the configured assembler with --version and a fixed
+    CompilerIdASM working directory. This does not authorize project process
+    calls, other binaries, extra flags, arbitrary output redirects or paths.
+    """
+    cache=compilation['cmake_cache']
+    if (origin!=builtin/'Modules/CMakeDetermineCompilerId.cmake'
+            or len(query)!=11 or query[0]!='--version'
+            or query[1]!='WORKING_DIRECTORY'
+            or query[3:]!=['OUTPUT_VARIABLE','output','ERROR_VARIABLE','output',
+                          'RESULT_VARIABLE','result','TIMEOUT','10']):
+        return False
+    from .portable import resolved_executable
+    assembler=cache.get('CMAKE_ASM_COMPILER')
+    directory=cache.get('CMAKE_CACHEFILE_DIR')
+    version=[str(cache.get('CMAKE_CACHE_'+key+'_VERSION','')) for key in ('MAJOR','MINOR','PATCH')]
+    if not assembler or not directory or any(not value.isdigit() for value in version):return False
+    if executable!=str(no_links(resolved_executable(assembler,origin.parent))):return False
+    build=input_path(directory)
+    if build not in build_roots:return False
+    return input_path(query[2])==build/'CMakeFiles'/'.'.join(version)/'CompilerIdASM'
+
+
 def audit_trace(executor, compilation, source):
     """Unproved external generators must not acquire a complete capability."""
     from .portable import resolved_executable
@@ -126,6 +151,7 @@ def audit_trace(executor, compilation, source):
                             'OUTPUT_STRIP_TRAILING_WHITESPACE','ERROR_STRIP_TRAILING_WHITESPACE'}))
                     compiler_id=(trusted and origin==builtin/'Modules/CMakeDetermineCompilerId.cmake'
                         and any(Path(arg).name in {'CMakeCCompilerId.c','CMakeCXXCompilerId.cpp','CMakeASMCompilerId.S'} for arg in query))
+                    asm_version=_asm_compiler_version_query(query,executable,origin,builtin,compilation,build_roots)
                     # CMake 3.29's GNU module checks Ninja's depfile support.
                     # Bind the exact built-in site, configured tool and query;
                     # this is not permission for Ninja targets or project code.
@@ -134,7 +160,7 @@ def audit_trace(executor, compilation, source):
                         and compilation['cmake_cache'].get('CMAKE_GENERATOR')=='Ninja' and make
                         and executable==str(no_links(resolved_executable(make,source)))
                         and query==['--version','OUTPUT_VARIABLE','_ninja_version','ERROR_VARIABLE','_ninja_version'])
-                    if args.count('COMMAND')!=1 or not (ninja_version or executable in compiler and (query_only or compiler_id)):
+                    if args.count('COMMAND')!=1 or not (ninja_version or asm_version or executable in compiler and (query_only or compiler_id)):
                         raise ValueError('CMake项目自定义进程尚未固定完整输入，禁止准入：'+str(origin))
     return dict(files=sorted(files),directories=sorted(directories))
 
@@ -160,8 +186,15 @@ def prepare(root, config, cfg, workspace, folder, progress, diagnostics, watch):
     from .cli import dependency_results
     import sys
     policy(cfg['analysis'])
-    watch.directory(workspace.repository_root); watch.file(config)
+    # Initial directory/security reads can surface checkout-time directory
+    # metadata notifications on Windows. No input has been fixed yet.
+    diagnostics.stage('检查原源码权限及目录准入（尚未固定输入）')
     require_protected_source(workspace.repository_root)
+    watch.directory(workspace.repository_root); watch.file(config)
+    # Recheck under the unchanged sticky watch: permission changes during or
+    # after admission must not turn a low-integrity source into a trusted one.
+    require_protected_source(workspace.repository_root)
+    watch.check()
     diagnostics.stage('固定未提交CMake原HEAD、索引、全部工作字节及目录')
     fixed = capture(root,cfg,progress)
     def build(label):
