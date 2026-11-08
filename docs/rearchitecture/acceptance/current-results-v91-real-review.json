@@ -1,0 +1,149 @@
+{
+  "passed": true,
+  "status": "PASS_REAL_FULL_ROUND_WITH_CASE_BODY_READS",
+  "scan_id": "82545abb724041af99d5f8a5be4aba81",
+  "task_id": "fa5442a9f4ad490fb2a52589ab136e16",
+  "target_count": 6,
+  "states": {
+    "DONE": 6
+  },
+  "verdicts": {
+    "CONFIRMED": 1,
+    "FALSE_POSITIVE": 4,
+    "REVIEWED_SAFE": 1
+  },
+  "model": "deepseek/deepseek-flash",
+  "workers": 2,
+  "timeout_seconds": 900,
+  "process_exit_code": 2,
+  "overall_run_status": "INCOMPLETE",
+  "materials": {
+    "concurrency_cases.md": {
+      "path": "concurrency_cases.md",
+      "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v91\\config\\concurrency_cases.md",
+      "bytes": 57792,
+      "sha256": "85b45cdff897edee2ba53db42c26318f6e40f70d271f09bc885cefe5073c2e77",
+      "mode": "config"
+    },
+    "review_context.md": {
+      "path": "review_context.md",
+      "origin": "H:\\ECRAStudio-data\\rearchitecture-20261031\\continuation-h3\\ui-v91\\config\\review_context.md",
+      "bytes": 673,
+      "sha256": "190011876a083bc3de16c031c9ae494ec2218f3f36314038de3c001e384e7892",
+      "mode": "config"
+    }
+  },
+  "background_input_empty": true,
+  "background_file_bytes": 673,
+  "frozen_background_checked_in_every_analyze_prompt": true,
+  "context_marker_in_every_analyze_prompt": null,
+  "firmware_unchanged_files": 42,
+  "static_database_sha256": "4f7385220aa4310442cf28f4372430237dd3bd74694f40d99013b10083b88dc1",
+  "receipts": [
+    {
+      "finding_id": "GS-0facb0f7948b184c",
+      "status": "CONFIRMED",
+      "case_body_reads": [
+        {
+          "offset": 1152,
+          "limit": 190,
+          "output_chars": 5962,
+          "output_sha256": "2072420b0bdb45d7fcc79a3929f99f861f059754355b0dfbf023237a8970d252"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 10,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-06ac808d74e6aad9",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1203,
+          "limit": 60,
+          "output_chars": 2214,
+          "output_sha256": "b0be83aa3a26ccdd2b2ef5a168aae05b65d8813bbc9f245db1d92b219ca20acf"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 7,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-0ed08d01e2fe2e8f",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1256,
+          "limit": 83,
+          "output_chars": 2688,
+          "output_sha256": "6acba7a877bd497df266477da01ca2087047369c0d5d6300263e9eb6a91bdd04"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 4,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-9577e7e94f75b3ca",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1203,
+          "limit": 136,
+          "output_chars": 4304,
+          "output_sha256": "b4ff201175ebe685edf06623036153c82ef5305bb4d944004e3a3d3e5aeda8bc"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 5,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-a1197826cc74dc9e",
+      "status": "REVIEWED_SAFE",
+      "case_body_reads": [
+        {
+          "offset": 1203,
+          "limit": 136,
+          "output_chars": 4304,
+          "output_sha256": "b4ff201175ebe685edf06623036153c82ef5305bb4d944004e3a3d3e5aeda8bc"
+        },
+        {
+          "offset": 1256,
+          "limit": 83,
+          "output_chars": 2688,
+          "output_sha256": "6acba7a877bd497df266477da01ca2087047369c0d5d6300263e9eb6a91bdd04"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 7,
+      "summary_validation": "PASSED"
+    },
+    {
+      "finding_id": "GS-d2e4367f9e48417a",
+      "status": "FALSE_POSITIVE",
+      "case_body_reads": [
+        {
+          "offset": 1256,
+          "limit": 90,
+          "output_chars": 2688,
+          "output_sha256": "6acba7a877bd497df266477da01ca2087047369c0d5d6300263e9eb6a91bdd04"
+        }
+      ],
+      "analyze_calls": 1,
+      "attempt_count": 1,
+      "source_citations": 4,
+      "summary_validation": "PASSED"
+    }
+  ],
+  "limitations": [
+    "Automated real model/software acceptance, not human UAT or hardware execution"
+  ]
+}

@@ -8,6 +8,7 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+import re
 from pathlib import Path
 import sys
 
@@ -44,7 +45,11 @@ def audit(data,scan_id,task_id,context_marker,firmware_before,static_before):
     snapshot=folder/'case-library'/(case_sha+'.md')
     assert sha(snapshot)==case_sha,'Case body differs from configured material'
     background=review_context_section(task_folder/'review_context.md')
-    if not background:assert (task_folder/'review_context.md').read_bytes()==b'', 'Empty-background acceptance expects an empty frozen file'
+    background_raw=(task_folder/'review_context.md').read_text('utf-8-sig')
+    if not background:
+        # The shipped comment-only template is also intentionally empty input.
+        # Check independently that it contains no actual engineering statement.
+        assert not re.sub(r'<!--.*?-->','',background_raw,flags=re.DOTALL).strip(), 'Background text was unexpectedly omitted'
     receipts=[]
     for row in rows:
         verify_receipt(root,folder,row)
@@ -82,7 +87,8 @@ def audit(data,scan_id,task_id,context_marker,firmware_before,static_before):
                 target_count=len(rows),states=dict(Counter(r['state'] for r in rows)),verdicts=dict(Counter(r['status'] for r in rows)),
                 model=cfg['review']['model'],workers=cfg['review']['workers'],timeout_seconds=cfg['review']['timeout_seconds'],
                 process_exit_code=task['exit_code'],overall_run_status=current.get('report',{}).get('run_status'),
-                materials=materials,background_input_empty=not bool(background),frozen_background_checked_in_every_analyze_prompt=True,
+                materials=materials,background_input_empty=not bool(background),background_file_bytes=(task_folder/'review_context.md').stat().st_size,
+                frozen_background_checked_in_every_analyze_prompt=True,
                 context_marker_in_every_analyze_prompt=True if context_marker else None,firmware_unchanged_files=len(after),
                 static_database_sha256=static_before,receipts=receipts,
                 limitations=['Automated real model/software acceptance, not human UAT or hardware execution'])

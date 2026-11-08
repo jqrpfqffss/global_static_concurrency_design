@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref,watch } from 'vue'
 import { api } from './api'
 import WorkspaceDialog from './WorkspaceDialog.vue'
 import ReviewMaterials from './ReviewMaterials.vue'
@@ -8,18 +8,19 @@ import SourceViewer from './SourceViewer.vue'
 const selected=ref<any>(null),configurationOpen=ref(false),artifactBusy=ref(false)
 let artifactRequest=0
 function closeArtifact(){artifactRequest++;artifact.value=null;artifactBusy.value=false}
-const props=defineProps<{scan:string, projectId:string, profileId?:string, canReview:boolean}>()
-const emit=defineEmits<{tasks:[taskId?:string]}>()
+const props=defineProps<{scan:string, projectId:string, profileId?:string, revision?:string,canReview:boolean}>()
+const emit=defineEmits<{tasks:[taskId?:string],updated:[]}>()
 const profiles=ref<any[]>([]), profile=ref(''), page=ref<any>(null), offset=ref(0), busy=ref(false), error=ref(''), artifact=ref<any>(null), artifactName=ref('')
 const outcome=ref(''),search=ref(''),source=ref<any>(null)
 const groups=[['confirmed','确认风险'],['likely','疑似风险'],['safe','确认安全 / 误报'],['unresolved','待复核 / 无法判断']]
 const names:Record<string,string>={PENDING:'等待复核',RUNNING:'正在复核',DONE:'已通过答复与收据校验',TECH_FAILED:'技术失败',STALE:'证据已失效',CONFIRMED:'OpenCode确认存在风险',LIKELY:'OpenCode认为可能有风险',FALSE_POSITIVE:'OpenCode确认静态误报',REVIEWED_SAFE:'OpenCode确认条件下安全',NEED_MORE_CONTEXT:'需要补充证据'}
 let pageRequest=0
-async function refresh(){const mine=++pageRequest;busy.value=true;error.value='';try{const value=await api(`/scans/${props.scan}/ai?`+new URLSearchParams({offset:String(offset.value),outcome:outcome.value,search:search.value}));if(mine!==pageRequest)return;page.value=value;selected.value=page.value.items.find((row:any)=>row.finding_id===selected.value?.finding_id)||null}catch(e:any){if(mine===pageRequest)error.value=e.message}finally{if(mine===pageRequest)busy.value=false}}
+async function refresh(notify=true){const mine=++pageRequest;busy.value=true;error.value='';try{const value=await api(`/scans/${props.scan}/ai?`+new URLSearchParams({offset:String(offset.value),outcome:outcome.value,search:search.value}));if(mine!==pageRequest)return;page.value=value;if(notify)emit('updated');selected.value=page.value.items.find((row:any)=>row.finding_id===selected.value?.finding_id)||null}catch(e:any){if(mine===pageRequest)error.value=e.message}finally{if(mine===pageRequest)busy.value=false}}
 function filter(value:string){outcome.value=value;offset.value=0;selected.value=null;refresh()}
 async function start(mode:string){busy.value=true;error.value='';try{const p=profiles.value.find(p=>p.id===profile.value);if(!p)throw Error('请选择当前工程的复核配置');const task=await api('/tasks','POST',{project_id:p.project_id,profile_id:p.id,revision:p.revision,mode,scan_id:props.scan});emit('tasks',task.id)}catch(e:any){error.value=e.message}finally{busy.value=false}}
 async function readArtifact(name:string, position=0){if(artifactBusy.value)return;const mine=++artifactRequest;artifactBusy.value=true;error.value='';try{const value=await api(`/scans/${props.scan}/ai-artifact?name=${encodeURIComponent(name)}&offset=${position}`);if(mine===artifactRequest){artifactName.value=name;artifact.value=value}}catch(e:any){if(mine===artifactRequest)error.value=e.message}finally{if(mine===artifactRequest)artifactBusy.value=false}}
 function receipts(row:any){const names=new Set<string>();for(const record of [row,...(row.attempts||[])])for(const key of ['packet_file','prompt_file','stdout_file','stderr_file'])if(record[key])names.add(record[key]);return [...names]}
+watch(()=>props.revision,()=>refresh(false))
 onMounted(async()=>{try{profiles.value=(await api('/profiles')).items.filter((p:any)=>p.project_id===props.projectId);profile.value=profiles.value.find(p=>p.id===props.profileId)?.id||profiles.value[0]?.id||'';await refresh()}catch(e:any){error.value=e.message}})
 </script>
 <template>
@@ -27,7 +28,7 @@ onMounted(async()=>{try{profiles.value=(await api('/profiles')).items.filter((p:
   <p v-if="!canReview" class="banner warning">归档模式缺少本机检查点或原源码，不能重新复核；可查看已有答复与收据。</p><section class="ai-controls"><details :open="configurationOpen" @toggle="configurationOpen=($event.target as HTMLDetailsElement).open"><summary>复核配置与执行说明</summary>
     <label>复核配置<select v-model="profile" aria-label="OpenCode复核配置"><option v-for="p in profiles" :value="p.id">{{p.name}} · {{p.project_root}} · {{p.id.slice(0,8)}}</option></select></label>
     <p>使用该配置中的 command、provider/model、Worker、超时和重试设置。发起后先验证原输入闭包；模型或工具不可用会记录“技术失败”。</p>
-    </details><ReviewMaterials/><div class="actions"><button class="primary" :disabled="busy||!canReview||!profile" @click="start('review')">复核全部疑似与未知</button><button :disabled="busy||!canReview||!profile||!page?.states?.TECH_FAILED" @click="start('review-failed')">仅重试技术失败</button><button @click="emit('tasks')">任务日志与安全停止</button><button :disabled="busy" @click="refresh">刷新原始状态</button></div>
+    </details><ReviewMaterials/><div class="actions"><button class="primary" :disabled="busy||!canReview||!profile" @click="start('review')">复核全部疑似与未知</button><button :disabled="busy||!canReview||!profile||!page?.states?.TECH_FAILED" @click="start('review-failed')">仅重试技术失败</button><button @click="emit('tasks')">任务日志与安全停止</button><button :disabled="busy" @click="refresh()">刷新原始状态</button></div>
   </section>
   <template v-if="page"><div class="ai-outcomes" role="group" aria-label="OpenCode结论分类"><button :aria-pressed="!outcome" @click="filter('')">全部 {{page.all_total}}</button><button v-for="[key,title] in groups" :key="key" :aria-pressed="outcome===key" @click="filter(key)">{{title}} {{page.groups[key]||0}}</button></div><form class="ai-search" @submit.prevent="offset=0;refresh()"><label class="sr-only" for="ai-search">查找复核变量或文件</label><input id="ai-search" v-model="search" maxlength="256" placeholder="变量名、文件、存储身份或复核编号"><button :disabled="busy">搜索复核结果</button><button type="button" @click="search='';filter('')">清除筛选</button><details><summary>执行状态与统计说明</summary><p>按原报告规则分类：仅有效 DONE 结论进入风险、安全或误报；疑似风险和证据不足单列。计数为本轮复核对象，独立证据缺口也会明确标识，不等同于全部变量数。</p><span v-for="(count,state) in page.states" class="tag">{{names[String(state)]||state}}：{{count}}</span></details></form><p v-if="!page.all_total">此结果没有独立 AI 账本；可在静态归档索引查看旧格式记录。未复核不能解释为安全。</p>
   <div class="inspector-layout" :class="{'no-inspector':!selected}"><section class="panel inspector-list"><p v-if="page.all_total&&!page.total" role="status">没有符合当前筛选的复核对象。可切换分类或清除筛选。</p><table v-else class="data-table ai-table"><thead><tr><th>变量 / 复核对象</th><th>OpenCode结论</th><th>尝试</th></tr></thead><tbody><tr v-for="row in page.items" :key="row.finding_id" :class="{selected:selected?.finding_id===row.finding_id}"><td><button @click="selected=row">{{row.name||row.finding_id}}</button><small>{{row.definition_file?row.definition_file+':'+row.definition_line:row.symbol_id?'存储对象':'独立证据缺口'}}</small></td><td>{{row.state==='DONE'?(names[row.status]||'无法判断'):(names[row.state]||row.state)}}<span v-if="row.error" class="ai-note" :title="row.error"> · 说明</span></td><td>{{row.attempt_count||0}}</td></tr></tbody></table></section>

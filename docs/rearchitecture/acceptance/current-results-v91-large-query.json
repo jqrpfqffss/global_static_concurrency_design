@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "database_bytes": 12590510080,
+  "total": 16566,
+  "summary_seconds": 0.8129999999655411,
+  "page_seconds": 1.1400000000139698,
+  "pending_count": 4684,
+  "page_total": 4684,
+  "result_counts": {
+    "CONTAINER": 3197,
+    "LIKELY": 1318,
+    "NON_STORAGE": 53,
+    "SAFE": 8632,
+    "UNKNOWN": 3366
+  },
+  "peak_process_commit_bytes": 25956352,
+  "cold_cache": "NOT_CONTROLLED; first pre-optimization observation 49.812s; subsequent measurements with warm OS cache",
+  "scope": "Read-only projection, not full Diff/recovery nor physical 32GB gate"
+}

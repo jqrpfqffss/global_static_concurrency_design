@@ -27,6 +27,7 @@ export async function download(path: string, filename: string) {
   document.body.append(anchor); anchor.click(); anchor.remove()
 }
 const labels: Record<string, string> = {
+  CONFIRMED:'确认并发风险',LIKELY:'疑似并发风险',SAFE:'安全（当前证据）',NOT_REQUIRED:'无需人工确认',INVENTORY:'盘点对象（无人工待办）',RISK:'风险 / 疑似',REVIEWED_SAFE:'OpenCode确认条件下安全',FALSE_POSITIVE:'OpenCode确认静态误报',
   SUSPECT: '静态疑似', UNKNOWN: '无法判断', SAFE_PROVEN: '本构建已证明安全', SHARED_NO_REVIEW: '共享但无需复核',
   CONTAINER: '容器汇总', NON_STORAGE: '非存储对象', OUT_OF_BUILD: '未进入本构建',
   PENDING: '待确认', CONFIRMED_RISK: '人工确认有风险', CONFIRMED_SAFE: '人工确认无风险',

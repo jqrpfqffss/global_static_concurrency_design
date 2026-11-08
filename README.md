@@ -1,3 +1,5 @@
+复核后的当前风险、安全与人工待办已统一；安全项不再进入待人工确认。见 [v91 查看与确认指南](docs/studio-v91-results-guide.md)及 [134 号真实工程验收](docs/rearchitecture/134-current-results-and-human-queue.md)。
+
 案例库和工程背景可随时在上位机编辑 config 原文件，无需先保存工程配置，背景允许为空。见 [v90 填写式编辑指南](docs/studio-v90-review-materials-guide.md)；风险/安全展示和上一轮真实复核见 [132号记录](docs/rearchitecture/132-opencode-results-live-review.md)。
 
 新版配置与开始扫描操作见 [配置与开始扫描指南](docs/studio-v84-configuration-guide.md)。

@@ -1,0 +1,136 @@
+{
+  "passed": true,
+  "status": "PASS_REAL_FULL_REVIEW_LIVE_SYNC",
+  "checks": [
+    "Real native scan launched through GUI",
+    "Six true network OpenCode targets complete; no model stub",
+    "Published results update active manual page automatically",
+    "Engineer draft preserved during live updates",
+    "Overview, pending list, safe list and original AI ledger agree",
+    "No generated human signatures; static DB unchanged"
+  ],
+  "scan_task_id": "82545abb724041af99d5f8a5be4aba81",
+  "scan_id": "82545abb724041af99d5f8a5be4aba81",
+  "static_database_sha256_before_review": "4f7385220aa4310442cf28f4372430237dd3bd74694f40d99013b10083b88dc1",
+  "before_summary": {
+    "result_counts": {
+      "CONTAINER": 2,
+      "LIKELY": 1,
+      "SAFE": 7,
+      "UNKNOWN": 5
+    },
+    "pending_count": 6,
+    "human_counts": {
+      "NOT_REQUIRED": 9,
+      "PENDING": 6
+    },
+    "safe_sources": {
+      "STATIC": 7
+    },
+    "result_revision": "9:0:0"
+  },
+  "review_task_id": "fa5442a9f4ad490fb2a52589ab136e16",
+  "draft_symbol_name": "systicks",
+  "updates_observed": [
+    {
+      "revision": "15:0:0",
+      "pending_count": 3,
+      "result_counts": {
+        "CONTAINER": 2,
+        "LIKELY": 1,
+        "SAFE": 10,
+        "UNKNOWN": 2
+      },
+      "dom": {
+        "manual": "待人工 3\n无需人工 12",
+        "draft": "V91_DRAFT：尚未签署，只验证复核完成时保留输入。"
+      }
+    },
+    {
+      "revision": "17:0:0",
+      "pending_count": 2,
+      "result_counts": {
+        "CONTAINER": 2,
+        "LIKELY": 1,
+        "SAFE": 11,
+        "UNKNOWN": 1
+      },
+      "dom": {
+        "manual": "待人工 2\n无需人工 13",
+        "draft": "V91_DRAFT：尚未签署，只验证复核完成时保留输入。"
+      }
+    },
+    {
+      "revision": "18:0:0",
+      "pending_count": 1,
+      "result_counts": {
+        "CONTAINER": 2,
+        "LIKELY": 1,
+        "SAFE": 12
+      },
+      "dom": {
+        "manual": "待人工 1\n无需人工 14",
+        "draft": "V91_DRAFT：尚未签署，只验证复核完成时保留输入。"
+      }
+    },
+    {
+      "revision": "20:0:0",
+      "pending_count": 1,
+      "result_counts": {
+        "CONFIRMED": 1,
+        "CONTAINER": 2,
+        "SAFE": 12
+      },
+      "dom": {
+        "manual": "待人工 1\n无需人工 14",
+        "draft": "V91_DRAFT：尚未签署，只验证复核完成时保留输入。"
+      }
+    },
+    {
+      "revision": "21:0:0",
+      "pending_count": 1,
+      "result_counts": {
+        "CONFIRMED": 1,
+        "CONTAINER": 2,
+        "SAFE": 12
+      },
+      "dom": {
+        "manual": "待人工 1\n无需人工 14",
+        "draft": "V91_DRAFT：尚未签署，只验证复核完成时保留输入。"
+      }
+    }
+  ],
+  "after_summary": {
+    "result_counts": {
+      "CONFIRMED": 1,
+      "CONTAINER": 2,
+      "SAFE": 12
+    },
+    "pending_count": 1,
+    "human_counts": {
+      "PENDING": 1,
+      "NOT_REQUIRED": 14
+    },
+    "safe_sources": {
+      "OPENCODE": 5,
+      "STATIC": 7
+    },
+    "result_revision": "21:0:0"
+  },
+  "verdict_groups": {
+    "confirmed": 1,
+    "likely": 0,
+    "safe": 5,
+    "unresolved": 0
+  },
+  "task_exit_code": 2,
+  "pending_names": [
+    "systicks"
+  ],
+  "cards": [
+    "风险 / 疑似\n1\n确认 1 · 疑似 0",
+    "无法判断\n0",
+    "安全（静态 / OpenCode）\n12\nOpenCode 5 · 静态 7",
+    "人工待确认\n1"
+  ]
+}

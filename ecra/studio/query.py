@@ -37,15 +37,15 @@ class QueryService:
         conn.create_function('ecra_inherited_handling',1,lambda sid:state(sid)['handling_status'])
 
     def symbols(self, *, search='', classification='', human_decision='', handling_status='',
-                file='',function='',context='',coverage='',ai_state='',diff='',symbol_id='',sort='priority',order='asc',offset=0, limit=50):
+                file='',function='',context='',coverage='',ai_state='',current_result='',review_scope='all',diff='',symbol_id='',sort='priority',order='asc',offset=0, limit=50):
         self.evidence._bounds(offset, limit)
         sorts={
-            'priority':["CASE s.static_classification WHEN 'SUSPECT' THEN 0 WHEN 'UNKNOWN' THEN 1 ELSE 2 END"],
+            'priority':["CASE s.current_result WHEN 'CONFIRMED' THEN 0 WHEN 'LIKELY' THEN 1 WHEN 'UNKNOWN' THEN 2 ELSE 3 END"],
             'name':['s.name COLLATE BINARY'],
             'definition':["coalesce(s.definition_file,'') COLLATE BINARY",'coalesce(s.definition_line,0)'],
-            'review_priority':["CASE coalesce(h.decision,'PENDING') WHEN 'PENDING' THEN 0 WHEN 'RECHECK_REQUIRED' THEN 1 "
+            'review_priority':["CASE WHEN s.requires_human_review=0 THEN 6 ELSE CASE s.human_record_decision WHEN 'PENDING' THEN 0 WHEN 'RECHECK_REQUIRED' THEN 1 "
                 "WHEN 'CONFLICT' THEN 2 WHEN 'NEED_MORE_EVIDENCE' THEN 3 WHEN 'CONFIRMED_RISK' THEN 4 "
-                "WHEN 'CONFIRMED_SAFE' THEN 5 ELSE 6 END"]}
+                "WHEN 'CONFIRMED_SAFE' THEN 5 ELSE 6 END END"]}
         if not isinstance(sort,str) or sort not in sorts or order not in {'asc','desc'}:
             raise ValueError('列表排序只接受风险/名称/定义位置/待办优先级和升序/降序')
         ordering=','.join(field+' '+order.upper() for field in sorts[sort])+',s.ordinal ASC'
@@ -58,9 +58,9 @@ class QueryService:
         if classification:
             terms.append('s.static_classification=?'); args.append(classification)
         if human_decision:
-            terms.append("coalesce(h.decision,'PENDING')=?"); args.append(human_decision)
+            terms.append(('s.confirmation_state' if human_decision=='PENDING' else 's.human_record_decision')+'=?');args.append(human_decision)
         if handling_status:
-            terms.append("coalesce(h.handling_status,'TODO')=?");args.append(handling_status)
+            terms.append("s.handling_status=?");args.append(handling_status)
         if file:
             terms.append("instr(coalesce(s.definition_file,''),?)>0");args.append(file)
         if coverage:
@@ -71,12 +71,21 @@ class QueryService:
         if context:
             terms.append("EXISTS(SELECT 1 FROM records a JOIN edges c ON c.parent=a.node AND c.key='contexts' JOIN edges i ON i.parent=c.child JOIN nodes n ON n.id=i.child WHERE a.dataset='facts' AND a.relation='accesses' AND a.symbol_id=s.symbol_id AND n.kind='str' AND n.value=?)")
             args.append(context.encode('utf-8',errors='surrogatepass'))
+        if current_result:
+            allowed={'CONFIRMED','LIKELY','UNKNOWN','SAFE','SHARED_NO_REVIEW','CONTAINER','OUT_OF_BUILD','NON_STORAGE','INVENTORY','RISK'}
+            if current_result not in allowed:raise ValueError('当前结论筛选无效')
+            if current_result=='RISK':terms.append("s.current_result IN ('CONFIRMED','LIKELY')")
+            else:terms.append('s.current_result=?');args.append(current_result)
+        if review_scope not in {'all','pending','required'}:raise ValueError('人工待办范围无效')
+        if review_scope=='pending':terms.append('s.needs_human_confirmation=1')
+        elif review_scope=='required':terms.append('s.requires_human_review=1')
         if ai_state:
-            if ai_state=='NOT_QUEUED':
-                terms.append("NOT EXISTS(SELECT 1 FROM records f WHERE f.dataset='report' AND f.relation='findings' AND f.symbol_id=s.symbol_id)")
-            else:
-                terms.append("EXISTS(SELECT 1 FROM records f JOIN edges e ON e.parent=f.node AND e.key='finding_id' JOIN nodes n ON n.id=e.child WHERE f.dataset='report' AND f.relation='findings' AND f.symbol_id=s.symbol_id AND coalesce((SELECT a.state FROM human.ai_events a WHERE a.finding_id=CAST(n.value AS TEXT) ORDER BY a.sequence DESC LIMIT 1),'PENDING')=?)")
-                args.append(ai_state)
+            if ai_state=='NOT_QUEUED':terms.append('NOT EXISTS(SELECT 1 FROM finding_results f WHERE f.symbol_id=s.symbol_id)')
+            elif ai_state in {'CONFIRMED','LIKELY','REVIEWED_SAFE','FALSE_POSITIVE','NEED_MORE_CONTEXT'}:
+                terms.append('EXISTS(SELECT 1 FROM finding_results f WHERE f.symbol_id=s.symbol_id AND f.verdict=?)');args.append(ai_state)
+            elif ai_state in {'PENDING','DONE','TECH_FAILED','STALE','RUNNING'}:
+                terms.append("EXISTS(SELECT 1 FROM finding_results f WHERE f.symbol_id=s.symbol_id AND coalesce(f.ai_state,'PENDING')=?)");args.append(ai_state)
+            else:raise ValueError('OpenCode状态筛选无效')
         if diff:
             if diff not in {'selected','conservative','direct'}:raise ValueError('Diff筛选只接受 selected/conservative/direct')
             try:
@@ -94,8 +103,9 @@ class QueryService:
         # No arbitrary file path is accepted from an API request.
         with closing(connect_readonly(self.path/'scan.db')) as conn:
             self._attach_human(conn)
-            cte = HUMAN_HEADS
-            source = ' FROM symbols s LEFT JOIN heads h ON h.symbol_id=s.symbol_id'+where
+            from .current_results import projection
+            cte=projection(HUMAN_HEADS)
+            source=' FROM current_results s'+where
             total = conn.execute(cte+'SELECT count(*)'+source, args).fetchone()[0]
             rows = [dict(row) for row in conn.execute(cte+'SELECT s.*'+source+' ORDER BY '+ordering+' LIMIT ? OFFSET ?',
                 [*args,limit,offset])]
@@ -116,11 +126,33 @@ class QueryService:
             result[key+'_count']=fields[key]['total'] if key in fields else 0
         return result
 
-    def human_counts(self):
+    def current_summary(self):
+        from .current_results import summary
         with closing(connect_readonly(self.path/'scan.db')) as conn:
             self._attach_human(conn)
-            return dict(conn.execute(HUMAN_HEADS+"SELECT coalesce(h.decision,'PENDING'),count(*) "
-                "FROM symbols s LEFT JOIN heads h ON h.symbol_id=s.symbol_id GROUP BY coalesce(h.decision,'PENDING')"))
+            return summary(conn,HUMAN_HEADS)
+
+    def human_counts(self):return self.current_summary()['human_counts']
+
+    def result_revision(self):
+        from .current_results import revision
+        with closing(connect_readonly(self.path/'scan.db')) as conn:
+            self._attach_human(conn)
+            return dict(result_revision=revision(conn))
+
+    def symbol_ai(self,symbol_id,*,offset=0,limit=20):
+        import json
+        from .current_results import AI_CTE
+        self.evidence._bounds(offset,limit)
+        with closing(connect_readonly(self.path/'scan.db')) as conn:
+            self._attach_human(conn)
+            cte='WITH '+AI_CTE+", labels AS (SELECT CAST(n.value AS TEXT) AS finding_id,f.ordinal FROM records f JOIN edges e ON e.parent=f.node AND e.key='finding_id' JOIN nodes n ON n.id=e.child WHERE f.dataset='report' AND f.relation IN ('findings','review_safe_samples') AND f.symbol_id=? GROUP BY n.value) "
+            source=' FROM labels l LEFT JOIN ai_verdicts a ON a.finding_id=l.finding_id'
+            total=conn.execute(cte+'SELECT count(*)'+source,[symbol_id]).fetchone()[0]
+            rows=[]
+            for fid,payload in conn.execute(cte+'SELECT l.finding_id,a.payload'+source+' ORDER BY l.ordinal LIMIT ? OFFSET ?',[symbol_id,limit,offset]):
+                rows.append(json.loads(payload) if payload else dict(finding_id=fid,state='PENDING',status=None))
+            return dict(items=rows,total=total,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
     def symbol_functions(self, symbol_id, *, offset=0, limit=50):
         self.evidence._bounds(offset,limit)

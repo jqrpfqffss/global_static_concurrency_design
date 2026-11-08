@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "tests": 28,
+  "scope": "Latest source API/current result/sort regression; raw tool output retained in session; broader 180 separately passed",
+  "modules": [
+    "test_studio_current_results",
+    "test_studio_filters",
+    "test_studio_api"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "scope": "Actual F103 scan clone; Playwright clicks/fills; no production data modified",
+  "checks": [
+    "Safe card drills down to 52 rows with working pagination; safe rows do not say pending",
+    "Safe variable opens latest genuine OpenCode answer, with original static classification and no fabricated human signature",
+    "Switching from SAFE list to human workbench resets filters; only four actual unknown variables remain",
+    "OpenCode original ledger still shows 23 safe answers, distinct from 52 total safe variables",
+    "Overview and priority queue agree: risk 0, unknown 4, safe 52, manual 4"
+  ],
+  "cards": [
+    "风险 / 疑似\n0\n确认 0 · 疑似 0",
+    "无法判断\n4",
+    "安全（静态 / OpenCode）\n52\nOpenCode 23 · 静态 29",
+    "人工待确认\n4"
+  ],
+  "remaining_manual": [
+    "DebugCliStats.last_cmd",
+    "huart2.Init",
+    "cli.line_buffer",
+    "cli.rx_queue"
+  ],
+  "status": "PASS_REAL_F103_BROWSER_REGRESSION"
+}

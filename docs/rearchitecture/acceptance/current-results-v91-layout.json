@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "measurements": [
+    {
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "columns": "410.696px",
+      "evidenceHeight": 585.5267944335938,
+      "buttonOverflow": false
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "overflow": false,
+      "columns": "382.679px",
+      "evidenceHeight": 453.52679443359375,
+      "buttonOverflow": false
+    }
+  ],
+  "checks": [
+    "Repeated OpenCode-to-human transitions finish reading and show four pending objects"
+  ],
+  "scope": "Final packaged UI; actual F103 clone; browser clicks only; not native DPI or blind human UAT",
+  "status": "PASS_FINAL_REFRESH_AND_LAYOUT"
+}

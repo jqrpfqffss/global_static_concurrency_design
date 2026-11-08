@@ -19,3 +19,5 @@ main.records-main,main.task-main{display:flex;flex-direction:column;gap:8px;over
 @media(max-width:950px),(max-height:650px){.task-log-panel .task-log{min-height:280px;max-height:65dvh}.task-columns>.task-log-panel{overflow:visible}}
 
 .ai-table th:first-child{width:54%}.ai-table th:nth-child(2){width:34%}.ai-table th:last-child{width:12%}.ai-table td{padding:6px 8px}.ai-note{font-size:12px;color:#596d87}.ai-center>p{margin:0;font-size:13px}.ai-table td:first-child button{font-size:13px}
+
+.tag.SAFE,.tag.NOT_REQUIRED{color:#21785d;background:#f0faf5}.tag.CONFIRMED,.tag.LIKELY{color:#a45e11;background:#fff6e9}.conclusion small{display:block;color:#63758d;font-size:12px}.cards small{display:block;font-size:12px;color:#63758d;margin-top:4px}

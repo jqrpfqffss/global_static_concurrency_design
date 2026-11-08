@@ -13,6 +13,32 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_current_results_and_revision_follow_committed_ai_without_forging_human_record(self):
+        from ecra.scan_persistence import append_runtime
+        path=self.data/'scans/projection';path.mkdir()
+        publish_scan(path/'scan.db',dict(variables=[dict(symbol_id='s',name='变量',static_classification='SUSPECT')]),
+                     dict(findings=[dict(symbol_id='s',finding_id='finding')]),scan_id='projection',project_id='p')
+        ReviewStore(path/'reviews.db',EvidenceProvider(path/'scan.db').metadata())
+        base='/api/scans/projection'
+        revision=self.client.get(base+'/result-revision').json()['result_revision']
+        self.assertEqual(self.client.get(base+'/summary').json()['pending_count'],1)
+        append_runtime(path,{},[dict(finding_id='finding',state='DONE',status='FALSE_POSITIVE')])
+        self.assertNotEqual(self.client.get(base+'/result-revision').json()['result_revision'],revision)
+        summary=self.client.get(base+'/summary').json()
+        self.assertEqual(summary['result_counts'],dict(SAFE=1))
+        self.assertEqual(summary['pending_count'],0)
+        self.assertEqual(summary['static_counts'],dict(SUSPECT=1))
+        self.assertEqual(self.client.get(base+'/symbols?review_scope=pending').json()['total'],0)
+        row=self.client.get(base+'/symbols?current_result=SAFE').json()['items'][0]
+        self.assertEqual(row['confirmation_state'],'NOT_REQUIRED')
+        self.assertEqual(row['human']['decision'],'PENDING')
+        self.assertEqual(self.client.get(base+'/symbol-ai?symbol_id=s').json()['items'][0]['status'],'FALSE_POSITIVE')
+        self.assertEqual(self.client.get(base+'/human?symbol_id=s').json()['heads'],[])
+        for path in ['/result-revision','/symbol-ai?symbol_id=s']:
+            self.assertEqual(self.client.get(base+path,headers={'x-ecra-session':'bad'}).status_code,401)
+        self.assertEqual(self.client.get(base+'/symbols?current_result=bogus').status_code,400)
+        self.assertEqual(self.client.get(base+'/symbol-ai?symbol_id=s&limit=99999').status_code,400)
+
     def test_global_review_documents_need_no_profile_and_reject_external_sources(self):
         from ecra.studio.review_document_forms import context_text
         root=Path(self.tmp.name)/'tool-config';root.mkdir()

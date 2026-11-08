@@ -261,7 +261,7 @@ def _create_app(data_root, *, token, authority, startup):
         provider, reviews = stores(scan_id)
         counts = provider.counts()
         from .query import QueryService
-        grouped=QueryService(scan_path(scan_id)).human_counts()
+        current=QueryService(scan_path(scan_id)).current_summary()
         total = sum(counts.values())
         binding = provider.metadata()
         mode = 'OFFLINE_ARCHIVE'
@@ -280,7 +280,7 @@ def _create_app(data_root, *, token, authority, startup):
             evidence_notice = None
         degraded = degraded_legacy(provider)
         from ..scan_identity import query as scan_identity
-        return dict(binding=binding, static_counts=counts, human_counts=grouped, total=total,
+        return dict(binding=binding, static_counts=counts, total=total,**current,
                     identity=scan_identity(provider),
                     counting_basis='完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。',
                     mode=mode,legacy_warning=legacy_warning,evidence_notice=evidence_notice,legacy_degraded=degraded,can_confirm=not degraded,
@@ -341,15 +341,25 @@ def _create_app(data_root, *, token, authority, startup):
     @app.get('/api/scans/{scan_id}/symbols')
     def symbols(scan_id: str, search: str='', classification: str='', human_decision: str='',
                 handling_status: str='',file: str='',function: str='',context: str='',coverage: str='',ai_state: str='',
-                diff: str='',symbol_id: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
+                current_result: str='',review_scope: str='all',diff: str='',symbol_id: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
         from .query import QueryService
         provider, reviews = stores(scan_id)
         page = QueryService(scan_path(scan_id)).symbols(search=search, classification=classification,
             human_decision=human_decision,handling_status=handling_status,file=file,function=function,context=context,
-            coverage=coverage,ai_state=ai_state,diff=diff,symbol_id=symbol_id,sort=sort,order=order,offset=offset,limit=limit)
+            coverage=coverage,ai_state=ai_state,current_result=current_result,review_scope=review_scope,diff=diff,symbol_id=symbol_id,sort=sort,order=order,offset=offset,limit=limit)
         for item in page['items']:
             item['human'] = reviews.current(item['symbol_id'], provider.fingerprint(item['symbol_id']))
         return page
+
+    @app.get('/api/scans/{scan_id}/result-revision')
+    def result_revision(scan_id: str):
+        from .query import QueryService
+        return QueryService(scan_path(scan_id)).result_revision()
+
+    @app.get('/api/scans/{scan_id}/symbol-ai')
+    def symbol_ai(scan_id: str,symbol_id: str,offset: int=0,limit: int=20):
+        from .query import QueryService
+        return QueryService(scan_path(scan_id)).symbol_ai(symbol_id,offset=offset,limit=limit)
 
     @app.get('/api/scans/{scan_id}/symbol')
     def exact_symbol(scan_id: str, symbol_id: str):

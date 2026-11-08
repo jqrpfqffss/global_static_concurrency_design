@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import WorkspaceDialog from './WorkspaceDialog.vue'
 import { api } from './api'
 import BuildPreflight from './BuildPreflight.vue'
-const emit=defineEmits<{open:[scanId:string],focus:[taskId:string]}>()
+const emit=defineEmits<{open:[scanId:string],focus:[taskId:string],resultsChanged:[scanId:string]}>()
 const resourcesOpen=ref(false)
 const props=defineProps<{focusTask?:string}>()
 const profiles=ref<any[]>([]), tasks=ref<any[]>([]), selected=ref(''), profile=ref(''), detail=ref<any>(null)
@@ -23,7 +23,8 @@ async function poll(){
   if(polling)return
   polling=true
   try{
-    tasks.value=(await api('/tasks')).items
+    const previous=new Map(tasks.value.map(task=>[task.id,task.state]));tasks.value=(await api('/tasks')).items
+    for(const task of tasks.value)if(previous.has(task.id)&&['RUNNING','STOP_REQUESTED'].includes(previous.get(task.id))&&!['RUNNING','STOP_REQUESTED'].includes(task.state))emit('resultsChanged',task.scan_id)
     if(!selected.value&&tasks.value.length)selected.value=tasks.value[0].id
     if(selected.value)detail.value=await api(`/tasks/${selected.value}?offset=${logOffset.value}`)
     pollError.value=''

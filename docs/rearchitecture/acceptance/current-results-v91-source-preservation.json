@@ -1,0 +1,9 @@
+{
+  "source": "C:\\Users\\Administrator\\AppData\\Local\\ECRAStudio\\data\\scans\\103a67b0ad544d0f8aa5b2e66efd248e",
+  "scan_id": "103a67b0ad544d0f8aa5b2e66efd248e",
+  "static_sha256": "f50df04dded9e6b6a6b670d1bfd5b6eef575e01a03173dd570422f056153b445",
+  "source_read_only": true,
+  "review_copy": "SQLite mode=ro backup",
+  "scope": "isolated actual F103 archive, no live scan_state",
+  "source_static_hash_rechecked_after_ui": true
+}

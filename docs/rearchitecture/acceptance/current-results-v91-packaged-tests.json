@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "status": "PASS_STAGED_PACKAGED_TESTS_AWAIT_FINAL_LIVE_AUDIT_AND_SEAL",
+  "all_gates_passed": false,
+  "copied_runtime_tool_files": 28830,
+  "source_snapshot_sha256": "756c5af7d627a92cac14fa25ded23f7cd80f36bc194e9fb248918bfbcbaff3b3",
+  "packaged_tests": 163,
+  "packaged_test_exit_code": 0,
+  "modules": [
+    "test_review_document_forms",
+    "test_effective_decisions",
+    "test_deep_review",
+    "test_native_review_workflow",
+    "test_review_integrity",
+    "test_review_language",
+    "test_review_sources",
+    "test_review_summary",
+    "test_review_contract",
+    "test_case_library",
+    "test_studio_ai_results",
+    "test_studio_review_materials",
+    "test_review_presentation",
+    "test_review_packet_projection",
+    "test_native_review_packet",
+    "test_evidence_mcp",
+    "test_review_risk",
+    "test_studio_current_results",
+    "test_review_inheritance"
+  ],
+  "seconds": 225.875
+}

@@ -26,7 +26,8 @@ class StudioFilterTests(unittest.TestCase):
             self.assertEqual(ids(sort='name'),['3','0','2','1'])
             self.assertEqual(ids(sort='name',order='desc'),['1','0','2','3'])
             self.assertEqual(ids(sort='definition'),['2','3','1','0'])
-            self.assertEqual(ids(sort='review_priority'),['0','1','3','2'])
+            # No-signature static-safe variables are not human todos.
+            self.assertEqual(ids(sort='review_priority'),['1','3','2','0'])
             first=query.symbols(sort='name',limit=2);second=query.symbols(sort='name',limit=2,offset=first['next_offset'])
             self.assertEqual([row['symbol_id'] for row in first['items']+second['items']],['3','0','2','1'])
             self.assertEqual(first['total'],second['total']);self.assertIsNone(second['next_offset'])

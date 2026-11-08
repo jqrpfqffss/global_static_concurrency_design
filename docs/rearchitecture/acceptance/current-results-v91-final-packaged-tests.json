@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "tests": 11,
+  "exit_code": 0,
+  "seconds": 2.547000000020489,
+  "scope": "Latest query priority fix; full staged suite 163 separately passed"
+}
