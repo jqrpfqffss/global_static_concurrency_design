@@ -87,3 +87,16 @@ Portable 自带 Python 3.10.9 相关套件 163 项，161 通过、2 项跳过（
 真实收据可用仓库 `scripts/audit_studio_live_review.py`，按收据所记录数据根、scan/task ID、固件清单和静态哈希重新运行。不得把原始模型响应、源码或会话凭据发布到远程。
 
 本轮只完成上述缺陷和对应交付。其它 G2 工程、32GB 真机、干净离线电脑、原生 DPI、人工盲测 UAT、大型整轮 Diff/恢复门禁按原记录待验；跨环境严格对照 FAIL 保留，未修改比较规则，未宣称整体重构全部完成。
+
+
+## 封包后的最终收据（补充）
+
+发行程序绑定实现提交 `154f302077ce378dda8e098d8027b2ce3255e772`，4409 文件源码快照 SHA-256 为 `165238db1607a8adb0721e98bb34f0556e5934166fe3d823936c047f56c1179e`。本补充及两份最终收据在封包后登记，不回写已封存程序或压缩包。
+
+- 启动入口：`H:/ECRAStudio-build-20261108-studio-v91/ECRA-Portable/ECRA.cmd`。
+- ZIP：相邻 `ECRA-Portable.zip`，786,460,448 字节，SHA-256 `1b156238dce2e2d8ced37f3bdc110eab76377dcfa3d8c177a44fcee782cf7198`。
+- 完整清单 32,973 文件，ZIP CRC 通过，中文路径解压后逐文件哈希相同；98 个静态/模型生产者模块与 v90 原字节相同。历史 54 项工具运行时检查仅按逐文件哈希继承，不声称本轮重跑。
+- 封包后使用真实 ECRA.cmd、仅 Windows 系统 PATH 再次启动，概览安全 52 / 待人工 4、OpenCode 安全 23、往返人工页加载均通过；关闭后全部 32,973 文件不变，无新增程序文件，两份 config 原文不变。
+- [完整封包收据](acceptance/current-results-v91-package.json)、[最终启动及逐文件后验](acceptance/current-results-v91-postflight.json)。包外 `portable-evidence` 同时保存这两份收据。
+
+仍不将本轮修复计为 H1–H6 / U01–U24 / G1–G8 全部通过；未验证项按正文保留。

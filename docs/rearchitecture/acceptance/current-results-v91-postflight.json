@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "all_gates_passed": false,
+  "status": "PASS_SEALED_CMD_RESULTS_QUEUE_AND_POSTFLIGHT",
+  "windows_only_PATH": true,
+  "program_files_unchanged": 32973,
+  "source_head": "154f302077ce378dda8e098d8027b2ce3255e772",
+  "cards": [
+    "\u98ce\u9669 / \u7591\u4f3c\n0\n\u786e\u8ba4 0 \u00b7 \u7591\u4f3c 0",
+    "\u65e0\u6cd5\u5224\u65ad\n4",
+    "\u5b89\u5168\uff08\u9759\u6001 / OpenCode\uff09\n52\nOpenCode 23 \u00b7 \u9759\u6001 29",
+    "\u4eba\u5de5\u5f85\u786e\u8ba4\n4"
+  ],
+  "manual_pending": 4,
+  "ai_safe": 23,
+  "config_originals_unchanged": true,
+  "source_snapshot_sha256": "165238db1607a8adb0721e98bb34f0556e5934166fe3d823936c047f56c1179e",
+  "physical32GB": "NOT_VERIFIED",
+  "clean_offline_pc": "NOT_VERIFIED",
+  "native_DPI": "NOT_VERIFIED",
+  "human_UAT": "NOT_VERIFIED",
+  "large_whole_diff_recovery": "NOT_VERIFIED"
+}
