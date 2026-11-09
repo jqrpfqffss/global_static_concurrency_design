@@ -36,6 +36,7 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         diagnostics.stage('预检查：配置与独立数据边界')
         consumed = {}; root = configured_project_root(config)
         cfg, config = load_config(root, config, consumed_inputs=consumed)
+        result['target'] = cfg['analysis'].get('cmake', {}).get('target')
         if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
             raise ValueError('未提交输入预检查缺少固定输入描述；请从Studio任务入口重新固定并检查，不能改用实时工作区')
         analysis = dict(cfg['analysis'])
@@ -157,7 +158,7 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         result.update(passed=True, state='PRECHECK_READY', project_id=ws.project_id,
             project_root=str(original_root), analysis_root=str(root), data_root=str(data),
             build_root=str(Path(compilation['compile_database']).parent) if cmake else None,
-            compile_database=compilation['compile_database'], target=cmake.get('target'),
+            compile_database=compilation['compile_database'],
             variant=cmake.get('build_type'), cmake_steps=compilation.get('cmake_steps', []),
             git=fixed, engine_digest=engine, translation_units=len(units),
             input_files=len(snapshot.before), snapshot_status=snapshot.status,

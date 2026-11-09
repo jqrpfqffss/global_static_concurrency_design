@@ -104,7 +104,7 @@ analysis:
 
     # 必须与该固件真实构建方式一致；常见值为 Ninja、Unix Makefiles、MinGW Makefiles。
     generator: Ninja
-    # 多硬件目标共用一个数据库时可指定实际目标。仅支持带 compdb-targets 的 Ninja；
+    # 多硬件目标共用一个数据库时可指定实际目标。支持 Ninja 和 MinGW Makefiles。
     # 从完整构建依赖图选择所有相关 TU，不按文件名或目录猜测目标。
     # target: firmware.elf
 

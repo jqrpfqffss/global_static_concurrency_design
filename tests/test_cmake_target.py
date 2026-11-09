@@ -106,7 +106,7 @@ class CMakeTargetTests(unittest.TestCase):
         path = self.root/'semantics.yaml'
         for target, generator, args in [(False, 'Ninja', []), ('', 'Ninja', []),
                 ('--help', 'Ninja', []), ('bad\nname', 'Ninja', []),
-                ('firmware', 'MinGW Makefiles', []), ('firmware', 'Ninja', ['--target', 'other']),
+                ('firmware', 'Unix Makefiles', []), ('firmware', 'Ninja', ['--target', 'other']),
                 ('firmware', 'Ninja', ['--', 'other'])]:
             self.settings['cmake'].update(target=target, generator=generator, build_args=args)
             path.write_text(json.dumps(cfg), encoding='utf-8')

@@ -61,6 +61,13 @@ class ManagedBuildClosureTests(unittest.TestCase):
 @unittest.skipUnless(os.name=='nt' and all(shutil.which(p) for p in ('cmake','ninja','arm-none-eabi-gcc')),'actual ARM CMake required')
 class ManagedBuildClosureNativeTests(unittest.TestCase):
     def test_real_arm_linked_artifacts_bind_both_git_sides_and_uncached_full_verification(self):
+        self.check_real_git_diff('Ninja')
+
+    @unittest.skipUnless(shutil.which('mingw32-make'), 'actual MinGW Make required')
+    def test_real_mingw_target_binds_separate_git_builds_and_matches_uncached_full(self):
+        self.check_real_git_diff('MinGW Makefiles')
+
+    def check_real_git_diff(self,generator):
         from tests import test_native_diff_summary_cache as fixture
         case=fixture.NativeDiffSummaryCacheTests();case.setUp();self.addCleanup(case.doCleanups)
         root=case.root
@@ -73,7 +80,7 @@ class ManagedBuildClosureNativeTests(unittest.TestCase):
         (root/'main.c').write_text('int shared;void Task(void){shared=2;}void ISR(void){shared++;}\n','utf-8')
         case.git('commit','-am','actual current write');before=case.source_files()
         cfg=read_json(case.config);cfg['analysis'].update(compile_database='auto',
-            cmake=dict(build_dir='build/ecra',generator='Ninja',target='firmware',build=True,
+            cmake=dict(build_dir='build/ecra',generator=generator,target='firmware',build=True,
                 args=['-DCMAKE_SYSTEM_NAME=Generic','-DCMAKE_C_COMPILER=arm-none-eabi-gcc','-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']),
             build_closure=dict(elf='build/ecra/firmware.elf',map='build/ecra/firmware.map'))
         cfg['analysis']['git_diff'].update(base_ref=base,verify_against_full=True);write_json(case.config,cfg)

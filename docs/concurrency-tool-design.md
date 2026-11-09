@@ -258,7 +258,7 @@ CubeIDE/Make 工程已有 GCC 兼容数据库时可以直接接入。Keil/IAR �
 
 ## 大型多目标工程的构建与差异摘要
 
-可选 `analysis.cmake.target` 使用 Ninja 实际依赖图建立目标编译数据库，包含对象库及生成源码；不按源文件名筛选硬件变体。所选目标的 CMake File API 配置输入进入现有 InputSnapshot，构建前后目标闭包不一致时阻止发布。未指定目标时沿用原全量流程。
+可选 `analysis.cmake.target` 使用 Ninja 或 MinGW Makefiles 的实际依赖图建立目标编译数据库，包含对象库及生成源码。MinGW Makefiles 同时核对 CMake File API 的目标源码与对象输出。CMake 配置输入进入现有 `InputSnapshot`，构建前后目标闭包发生变化会阻止发布。留空时沿用默认全量流程。
 
 差异规范化摘要 Schema 4 将完整调用子图存入内容寻址的 `graphs`，变量用 `graph_id` 引用；新增 `evidence_summary` 提供紧凑的新旧布局、访问类型计数、上下文、屏蔽观测、覆盖、冲突条目及分类展示。选择仍使用完整规范化维度和语义影响闭包，展示摘要不参与影响选择或安全证明。调用子图索引仅消除重复表示，保留全部调用边、入口及上下文边；静态事实、归账、影响选择、页面和复核队列仍分离。缓存键与清单同步绑定 Schema 4、引擎、完整事实和静态报告摘要；旧摘要必须重新建立，不能只修改版本号来认可旧缓存。实际固件验证与未完成边界见 [INAV STM32H743 验收](inav-h743-git-diff-validation.md)。
 

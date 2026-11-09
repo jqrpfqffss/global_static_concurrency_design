@@ -209,11 +209,20 @@ class BuildExecutor:
             stderr_file = trace if trace is not None else folder/'stderr.log'
             if binary_output:
                 import hashlib
-                stdout = (folder/'stdout.log').read_bytes()
+                stdout_file = folder/'stdout.log'
+                stdout = stdout_file.read_bytes()
                 stderr = stderr_file.read_bytes()
-                row['output_protocol'] = dict(mode='binary',
+                raw_output = dict(mode='binary',
                     stdout=dict(bytes=len(stdout),sha256=hashlib.sha256(stdout).hexdigest()),
                     stderr=dict(bytes=len(stderr),sha256=hashlib.sha256(stderr).hexdigest()))
+                if executable.stem.lower() == 'cmake':
+                    # Configure stderr is the protected trace, separate from
+                    # the command's empty stderr.log and the header probe protocol.
+                    raw_output['stdout']['path'] = str(stdout_file)
+                    raw_output['stderr']['path'] = str(stderr_file)
+                    row['cmake_output'] = raw_output
+                else:
+                    row['output_protocol'] = raw_output
                 return subprocess.CompletedProcess(original,code,stdout,stderr)
             return subprocess.CompletedProcess(original,code,
                 (folder/'stdout.log').read_text('utf-8',errors='replace'),

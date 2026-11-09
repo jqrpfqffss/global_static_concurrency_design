@@ -459,7 +459,7 @@ review:
 
 ## 多目标 CMake 工程
 
-如果一个数据库同时包含多种板型或 MCU，可在现有 `analysis.cmake` 配置可选的 `target: firmware.elf`。当前需要支持 `compdb-targets` 的 Ninja。ECRA 从实际构建图选择目标及其完整依赖，构建前后核对闭包，并将实际 CMake 配置输入纳入内容快照。不设置目标时保留原流程；不能在 `build_args` 再覆盖目标。目标不存在或工具不支持会明确失败，不能混用其他变体。
+如果一个数据库同时包含多种板型或 MCU，可在 `analysis.cmake` 中配置实际目标，例如 `target: app_elf`。支持带 `compdb-targets` 的 Ninja，以及可导出对象输出字段的 MinGW Makefiles。ECRA 从实际构建图选择目标及其完整依赖，构建前后核对闭包，并将实际 CMake 配置输入纳入快照。留空时沿用默认构建。`build_args` 只影响构建命令，已填 `target` 时应移除其中的目标选项。[MinGW 配置示例](fixes/stm32f4-cmake-build-target-fix.md)
 
 真实的 388 TU STM32H743 飞控接入、构建依赖和验收状态见 [INAV H743 实测](inav-h743-git-diff-validation.md)。该验证配置关闭复核和证据包，每轮使用 `--no-review`。
 

@@ -148,7 +148,7 @@ analysis:
     build_dir: build/ecra  # 保留旧配置标签；默认实际构建位于工程 workspace/builds
     # location: project  # 特殊工程显式启用源码内兼容构建
     generator: Ninja
-    # 多目标工程可指定实际固件目标；仅支持带 compdb-targets 的 Ninja。
+    # 多目标工程可指定实际固件目标，并限制为该目标的真实编译闭包。
     # target: firmware.elf
     build_type: Debug
     # toolchain_file: cmake/arm-none-eabi.cmake
@@ -342,8 +342,11 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
             if (not isinstance(c['target'], str) or not c['target'].strip()
                     or c['target'].startswith('-') or any(ch in c['target'] for ch in '\r\n\x00')):
                 raise ValueError('analysis.cmake.target 必须是有效的非空目标名称')
-            if c.get('generator', 'Ninja') != 'Ninja':
-                raise ValueError('analysis.cmake.target 当前需要 Ninja Generator')
+            generator = c.get('generator', 'Ninja')
+            if generator not in {'Ninja', 'MinGW Makefiles'}:
+                raise ValueError('analysis.cmake.target 需要 Ninja 或 MinGW Makefiles')
+            if generator == 'MinGW Makefiles' and a['git_diff']['include_uncommitted']:
+                raise ValueError('analysis.cmake.target 的未提交 CMake 扫描要求受保护的 Windows/Ninja 外置构建')
             if any(arg in {'--target', '-t', '--'} or arg.startswith('--target=') for arg in c.get('build_args', [])):
                 raise ValueError('指定 cmake.target 后不可在 build_args 中覆盖构建目标或原生工具参数')
         if 'build' in c and type(c['build']) is not bool:

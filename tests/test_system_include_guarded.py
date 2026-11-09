@@ -40,8 +40,18 @@ class ActualGuardedHeaderTests(unittest.TestCase):
         # JSON serialisation and the complete saved preparation must stay valid.
         json.dumps(prepared,ensure_ascii=False)
         namespace=Path(guard['directory']).parent.parent;records=[]
+        cmake_stderr_paths=[]
         for directory in namespace.glob('command-*'):
             row=read_json(directory/'execution.json')
+            if 'cmake_output' in row:
+                self.assertNotIn('output_protocol',row)
+                cmake_output=row['cmake_output']
+                for stream in ('stdout','stderr'):
+                    entry=cmake_output[stream]
+                    raw=Path(entry['path']).read_bytes()
+                    self.assertEqual(entry['sha256'],hashlib.sha256(raw).hexdigest())
+                    self.assertEqual(entry['bytes'],len(raw))
+                cmake_stderr_paths.append(Path(cmake_output['stderr']['path']))
             if row.get('output_protocol',{}).get('mode')!='binary':continue
             raw=(directory/'stderr.log').read_bytes()
             self.assertEqual(row['output_protocol']['stderr']['sha256'],hashlib.sha256(raw).hexdigest())
@@ -51,6 +61,8 @@ class ActualGuardedHeaderTests(unittest.TestCase):
             self.assertIn('#include <...> search starts here:',readable)
             records.append(dict(command=row['command'],protocol=row['output_protocol'],readable_stderr=readable))
         self.assertTrue(records,'At least one actual guarded raw header probe is required')
+        self.assertTrue(any(path.name.startswith('trace-') for path in cmake_stderr_paths))
+        self.assertTrue(any(path.name=='stderr.log' for path in cmake_stderr_paths))
         unit=next(x for x in prepared['units'] if x['source_file']=='main.c')
         cfg,_=load_config(self.root,self.case.config);old=Path.cwd()
         try:facts=Extractor(dict(root=str(self.root),unit=unit,config=cfg)).run()
