@@ -129,6 +129,46 @@ class StudioAPITests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/tasks').json()['items'],[])
         self.assertEqual(sha256(self.provider.path),before);self.assertEqual(list(fw.iterdir()),[])
 
+    def test_scan_submission_binds_request_and_freezes_exact_saved_revision(self):
+        import time
+        from ecra.report_package import sha256
+        manager=self.client.app.state.task_manager
+        def wait_for_worker():
+            deadline=time.monotonic()+30
+            while manager.active is not None and time.monotonic()<deadline:
+                time.sleep(.05)
+            self.assertIsNone(manager.active)
+        self.addCleanup(wait_for_worker)
+        fw=Path(self.tmp.name)/'firmware';fw.mkdir()
+        raw=json.dumps(dict(version=1,project=dict(root=str(fw)),analysis=dict(
+            compile_database='missing-commands.json',output=dict(location='user'))))
+        saved=self.client.post('/api/profiles',json=dict(yaml=raw)).json()
+        request_id='9'*32
+        spec=dict(project_id=saved['project_id'],profile_id=saved['id'],revision=saved['revision'],
+                  mode='scan',request_id=request_id,resources=dict(preset='manual',peak_gib=3,workers=2))
+        self.assertEqual(self.client.post('/api/tasks',json={**spec,'request_id':'invalid'}).status_code,400)
+        self.assertEqual(self.client.post('/api/tasks',json={**spec,'revision':'stale'}).status_code,409)
+        self.assertEqual(self.client.get('/api/tasks').json()['items'],[])
+        accepted=self.client.post('/api/tasks',json=spec)
+        self.assertEqual(accepted.status_code,200,accepted.text)
+        task=accepted.json()
+        updated=self.client.post('/api/profiles',json=dict(yaml=raw+'\n# changed',id=saved['id'],revision=saved['revision']))
+        self.assertEqual(updated.status_code,200,updated.text)
+        self.assertEqual(self.client.post('/api/tasks',json=spec).status_code,409)
+        records=self.client.get('/api/tasks').json()['items']
+        self.assertEqual([record['id'] for record in records],[task['id']])
+        frozen=self.data/'work/tasks'/task['id']/'semantics.yaml'
+        self.assertEqual(frozen.read_bytes(),raw.encode())
+        self.assertEqual(records[0]['profile_revision'],sha256(frozen))
+        self.assertEqual(records[0]['request_id'],request_id)
+        self.assertEqual(records[0]['mode'],'scan')
+        self.assertEqual(records[0]['resource_policy']['peak_bytes'],3*1024**3)
+        self.assertEqual(records[0]['resource_policy']['workers'],2)
+        wait_for_worker()
+        terminal=self.client.get('/api/tasks/'+task['id']).json()
+        self.assertEqual((terminal['state'],terminal['published']),('FAILED',False))
+        self.assertIn('missing-commands.json',terminal['error'])
+
     def test_profile_form_roundtrip_backup_survives_reopen_and_bad_edits_preserve_source(self):
         import hashlib
         fw=Path(self.tmp.name)/'firmware';fw.mkdir()

@@ -1,8 +1,10 @@
 """Persistent real scan tasks. One process tree owns the shared scan budget."""
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import threading
@@ -72,11 +74,19 @@ class TaskManager:
             raise ValueError('任务不存在')
         return folder
 
-    def start(self, profile_path, *, profile_id, mode='scan', scan_id=None,resources=None,multicore=None,retry_from=None):
+    def start(self, profile_path, *, profile_id, mode='scan', scan_id=None, resources=None,
+              multicore=None, retry_from=None, expected_revision=None, request_id=None):
         from ..config import load_config, configured_project_root
         from ..workspace import formal_workspace
         from ..data_transfer import relocated_task_config
-        execution_config,relocation=relocated_task_config(self.data,profile_path,Path(profile_path).read_bytes())
+        raw = Path(profile_path).read_bytes()
+        if expected_revision is not None and hashlib.sha256(raw).hexdigest() != expected_revision:
+            from ..human_reviews import ReviewConflict
+            raise ReviewConflict('配置已变化；请重新选择后扫描')
+        if request_id is not None and (mode not in {'scan','precheck'} or not isinstance(request_id,str)
+                                       or not re.fullmatch(r'[0-9a-f]{32}',request_id)):
+            raise ValueError('任务请求编号无效')
+        execution_config,relocation=relocated_task_config(self.data,profile_path,raw)
         root = configured_project_root(profile_path)
         cfg, _ = load_config(root, profile_path)
         if relocation:cfg['analysis']['output']=dict(location='user')
@@ -158,6 +168,7 @@ class TaskManager:
                              previous_scan_available=any((self.data/'scans').glob('*/manifest.json')),
                              checkpoint_mode='INPUT_VERIFIED_TU_CACHE',storage_policy=fixed_storage, samples=[], resources={})
                 if relocation:value['data_relocation']=relocation
+                if request_id is not None:value['request_id']=request_id
                 value['review_materials']=materials
                 if retry_from is not None:value['retry_from']=retry_from
                 write_json(folder/'task.json', value)
@@ -283,6 +294,8 @@ class TaskManager:
             except (OSError,ValueError,TypeError) as exc:
                 value['state']='INTERRUPTED' if process.returncode==130 else 'FAILED'
                 value['error']='任务已退出，但完成状态未能校验：'+str(exc)+'。原收据、日志与已发布结果保留；请查看本任务日志并重新核对输入后重试。'
+            if value['state']=='INTERRUPTED' and not value.get('error') and (folder/'stop').is_file():
+                value['error']='任务已响应安全停止请求。'
             value['published'] = published
             write_json(folder/'task.json',value)
         finally:
@@ -334,16 +347,26 @@ class TaskManager:
             value['progress_kind']='WORKING_INPUT_INVENTORY'
         if value['mode']=='multicore':diagnostics=folder/'multicore-diagnostics'
         preflight = folder/'preflight/preflight.json'
+        preflight_diagnostics = preflight.parent/'diagnostics'
+        fixed_diagnostics = folder/'fixed-inputs/diagnostics'
         if value['mode'] in {'scan','precheck'} and preflight.is_file():
             check=diagnostic(preflight)
             if check is not None:value['preflight']=check
             if value['mode']=='precheck' or value['progress_kind']=='WORKING_INPUT_INVENTORY' or not diagnostics.exists():
-                diagnostics=folder/'preflight/diagnostics'
+                diagnostics=preflight_diagnostics
                 value['progress_kind']='COMPILE_INPUT_PRECHECK'
-        for key, name in [('stages','scan_stages.json'),('failure','exception.json'),('memory','memory_profile.json'),('tu_cache','tu_cache.json'),('progress','scan_progress.json')]:
+        stage_folders = [diagnostics]
+        if value['mode'] in {'scan','precheck'}:
+            stage_folders = list(dict.fromkeys([fixed_diagnostics, preflight_diagnostics, diagnostics]))
+        for stage_folder in stage_folders:
+            path = stage_folder/'scan_stages.json'
+            if path.is_file():
+                stages = diagnostic(path,list)
+                if stages is not None:value.setdefault('stages',[]).extend(stages)
+        for key, name in [('failure','exception.json'),('memory','memory_profile.json'),('tu_cache','tu_cache.json'),('progress','scan_progress.json')]:
             path = diagnostics/name
             if path.is_file():
-                result=diagnostic(path,list if key=='stages' else dict)
+                result=diagnostic(path)
                 if result is not None:value[key]=result
         return value
 

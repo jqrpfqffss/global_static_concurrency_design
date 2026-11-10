@@ -3,13 +3,16 @@ if (fragment.get('session')) {
   sessionStorage.setItem('ecra-session', fragment.get('session')!)
   history.replaceState(null, '', location.pathname + location.search)
 }
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) { super(message) }
+}
 export async function api(path: string, method = 'GET', data?: unknown): Promise<any> {
   const response = await fetch('/api' + path, {
     method, headers: { 'X-ECRA-Session': sessionStorage.getItem('ecra-session') || '', 'Content-Type': 'application/json' },
     body: data === undefined ? undefined : JSON.stringify(data)
   })
   const result = await response.json()
-  if (!response.ok) throw new Error(result.error || `请求失败 (${response.status})`)
+  if (!response.ok) throw new ApiError(result.error || `请求失败 (${response.status})`, response.status)
   return result
 }
 export async function upload(path: string, file: File): Promise<any> {

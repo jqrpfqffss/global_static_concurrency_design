@@ -796,12 +796,26 @@ def _create_app(data_root, *, token, authority, startup):
         from .review_materials import save
         return save(data,payload)
 
+    def profile_transaction(function):
+        from functools import wraps
+        @wraps(function)
+        def serialized(payload: dict):
+            with closing(sqlite3.connect(no_links(settings/'profiles.db'),timeout=10)) as conn, conn:
+                conn.execute('CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY,value TEXT)')
+                conn.execute('BEGIN IMMEDIATE')
+                return function(payload)
+        return serialized
+
     @app.post('/api/tasks')
+    @profile_transaction
     def start_task(payload: dict):
         path = profile_path(payload['project_id'], payload['profile_id'])
-        if hashlib.sha256(path.read_bytes()).hexdigest() != payload.get('revision'):
+        revision = payload.get('revision')
+        if not isinstance(revision, str):
             raise ReviewConflict('配置已变化；请重新选择后扫描')
-        return tasks.start(path, profile_id=payload['profile_id'],mode=payload.get('mode','scan'),scan_id=payload.get('scan_id'),resources=payload.get('resources'))
+        return tasks.start(path, profile_id=payload['profile_id'], mode=payload.get('mode','scan'),
+                           scan_id=payload.get('scan_id'), resources=payload.get('resources'),
+                           expected_revision=revision, request_id=payload.get('request_id'))
 
     @app.get('/api/tasks/{task_id}')
     def task_detail(task_id: str, offset: int=0, limit: int=65536):
@@ -864,16 +878,6 @@ def _create_app(data_root, *, token, authority, startup):
             return dict(project_id=ws.project_id, project_root=str(root), data_root=ws.workspace_root,
                         checks=checks, ready_for_scan=False,
                         note='配置与工具路径检查；启动扫描后才执行真实构建、Clang、输入闭包及持久化校验。')
-
-    def profile_transaction(function):
-        from functools import wraps
-        @wraps(function)
-        def serialized(payload: dict):
-            with closing(sqlite3.connect(no_links(settings/'profiles.db'),timeout=10)) as conn, conn:
-                conn.execute('CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY,value TEXT)')
-                conn.execute('BEGIN IMMEDIATE')
-                return function(payload)
-        return serialized
 
     @app.post('/api/profiles')
     @profile_transaction

@@ -114,13 +114,63 @@ class BuildPreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'analysis.cmake.*工具不可运行'):self.check()
         self.assertEqual(list(self.root.iterdir()),[self.source]);self.assertFalse((self.data/'scans').exists())
 
+    def worker_args(self, mode='scan'):
+        gate=self.work/'gate';gate.write_text('owned','ascii')
+        return SimpleNamespace(gate=gate,config=self.config,data_root=self.data,stop=self.work/'stop',
+                               result=self.work/'worker-result.json',mode=mode,scan_id='id',profile_id='profile')
+
     def test_failure_in_required_worker_precheck_cannot_reach_native_scan(self):
         from ecra.studio.task_worker import execute
-        gate=self.work/'gate';gate.write_text('owned','ascii')
-        args=SimpleNamespace(gate=gate,config=self.config,data_root=self.data,stop=self.work/'stop',
-                             result=self.work/'worker-result.json',mode='scan',scan_id='id',profile_id='profile')
+        args=self.worker_args()
         with patch.dict(os.environ,{},clear=False),patch('ecra.studio.preflight.run_preflight',side_effect=ValueError('bad input')),patch('ecra.scan_persistence.run_canonical') as native:
             with self.assertRaisesRegex(ValueError,'bad input'):execute(args)
+            native.assert_not_called()
+
+    def test_only_scan_continues_after_successful_preflight(self):
+        from ecra.studio.task_worker import execute
+        args=self.worker_args()
+        (self.work/'storage-policy.json').write_text('{}','utf-8')
+        events=[]
+        def preflight(*_,**__):
+            events.append('precheck')
+            return dict(passed=True)
+        def native(*_,**kwargs):
+            self.assertEqual(kwargs['scan_id'],args.scan_id)
+            self.assertEqual(kwargs['profile_id'],args.profile_id)
+            self.assertTrue(kwargs['_budget_owned'])
+            events.append('scan')
+            return 2
+        with patch.dict(os.environ), patch('ecra.studio.preflight.run_preflight',side_effect=preflight), \
+                patch('ecra.scan_persistence.run_canonical',side_effect=native):
+            args.mode='precheck'
+            self.assertEqual(execute(args),0)
+            self.assertEqual(events,['precheck'])
+            events.clear();args.mode='scan'
+            self.assertEqual(execute(args),2)
+            self.assertEqual(events,['precheck','scan'])
+
+    def test_worker_records_stop_at_successful_preflight_handoff_and_initialization_error(self):
+        from ecra.studio.task_worker import main
+        args=self.worker_args()
+        argv=['task_worker','--config',str(args.config),'--data-root',str(args.data_root),'--scan-id',args.scan_id,
+              '--profile-id',args.profile_id,'--gate',str(args.gate),'--stop',str(args.stop),'--result',str(args.result)]
+        def stopped_preflight(*_,**__):
+            args.stop.touch()
+            return dict(passed=True)
+        with patch.dict(os.environ), patch('sys.argv',argv), patch('ecra.scan_persistence.run_canonical') as native, \
+                patch('ecra.studio.preflight.run_preflight',side_effect=stopped_preflight) as preflight:
+            self.assertEqual(main(),130)
+            self.assertEqual(read_json(args.result)['exit_code'],130)
+            self.assertFalse(read_json(args.result)['operation_completed'])
+            native.assert_not_called()
+            args.stop.unlink();preflight.side_effect=None
+            # Failure after preflight succeeds and before run_canonical is called.
+            with patch('traceback.print_exc') as trace:
+                self.assertEqual(main(),3)
+                trace.assert_called_once()
+            result=read_json(args.result)
+            self.assertFalse(result['operation_completed'])
+            self.assertIn('storage-policy.json',result['error'])
             native.assert_not_called()
 
     def test_generated_owned_native_worker_compiles_including_classification_observation(self):

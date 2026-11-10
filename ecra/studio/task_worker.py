@@ -42,6 +42,8 @@ def execute(args):
             finished.set();diagnostics.close()
     compiler_view=None
     if args.mode in {'scan', 'precheck'}:
+        from ..scan_stop import check_stop
+        check_stop()
         from ..working_checkpoint import retry_inputs
         reused=retry_inputs(args.data_root,args.result.parent,args.config,args.mode,lambda text:print(text,flush=True))
         if reused is not None:args.config,compiler_view=reused
@@ -55,6 +57,7 @@ def execute(args):
         fixed={} if compiler_view is None else dict(_compiler_view=compiler_view)
         run_preflight(args.config, args.data_root, args.result.parent/'preflight',
                       progress=lambda text: print(text, flush=True),**fixed)
+        check_stop()
         if args.mode == 'precheck': return 0
     else:
         from ..scan_diagnostics import ScanDiagnostics
@@ -74,7 +77,9 @@ def execute(args):
     from ..scan_persistence import run_canonical
     import json
     fixed_storage=json.loads((args.result.parent/'storage-policy.json').read_text('utf-8'))
-    return run_canonical(configured_project_root(args.config), args.config, scan_id=args.scan_id, profile_id=args.profile_id,
+    root=configured_project_root(args.config)
+    check_stop()
+    return run_canonical(root, args.config, scan_id=args.scan_id, profile_id=args.profile_id,
                          _budget_owned=True,_storage_policy=fixed_storage,_compiler_view=compiler_view)
 
 

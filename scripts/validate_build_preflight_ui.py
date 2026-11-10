@@ -83,9 +83,14 @@ def main():
             print('PASS '+name,flush=True)
         def shot(name):
             path=output/(name+'.png');page.screenshot(path=str(path),full_page=True);receipt['screenshots'].append(str(path))
+        def show_editor():
+            closed=page.locator('.advanced-yaml:not([open]) > summary')
+            if closed.count():closed.click()
         def save(value):
+            show_editor()
             editor.fill(value);button('检查配置与工具路径').click();expect(button('保存独立配置')).to_be_enabled()
             button('保存独立配置').click();expect(page.locator('.activity')).to_have_count(0)
+            page.locator('.advanced-yaml > summary').click()
         def check():
             panel=page.get_by_role('region',name='真实构建预检查')
             # Reopening a saved revision asynchronously restores historical
@@ -105,10 +110,10 @@ def main():
         button('上一步').click();expect(page.get_by_label('编译数据库路径',exact=True)).to_have_value(str(database))
         button('下一步').click();button('下一步').click()
         editor=page.get_by_label('高级完整 YAML',exact=True);start=button('开始此配置扫描')
-        expect(start).to_be_disabled();save(raw);expect(start).to_be_disabled()
-        passed('four_steps_preserve_database_and_saved_configuration_alone_cannot_enable_scan')
-        panel=check();expect(start).to_be_disabled();expect(start).to_be_enabled(timeout=180000)
-        expect(panel).to_contain_text('真实构建与编译输入检查通过')
+        expect(start).to_be_enabled();save(raw);expect(start).to_be_enabled()
+        passed('four_steps_preserve_database_and_offer_direct_scan')
+        panel=check()
+        expect(panel).to_contain_text('真实构建与编译输入检查通过，尚未开始扫描',timeout=180000)
         tasks=get('/tasks')['items'];good=next(t for t in tasks if t['mode']=='precheck' and t['state']=='COMPLETE')
         plan=get('/tasks/'+good['id']+'/plan?limit=1');rows=json.loads(database.read_text('utf-8'))
         assert plan['check']['passed'] and plan['total']==len(rows)
@@ -128,9 +133,11 @@ def main():
             shot('01-build-plan-'+str(width))
         passed('checked_plan_and_wizard_scan_action_fit_1366_and_1600')
         page.set_viewport_size(dict(width=1600,height=900))
-        saved=editor.input_value();editor.fill(saved+'\n# changed after check\n');expect(start).to_be_disabled()
-        editor.fill(saved);expect(start).to_be_disabled()
-        passed('any_unsaved_yaml_change_revokes_wizard_start_even_when_text_is_restored')
+        show_editor();saved=editor.input_value();editor.fill(saved+'\n# changed after check\n')
+        expect(start).to_be_enabled();expect(panel).to_contain_text('保存当前独立配置后即可检查')
+        editor.fill(saved)
+        expect(panel).to_contain_text('保存当前独立配置后即可检查')
+        passed('unsaved_yaml_requires_saving_for_independent_precheck_but_can_start_via_wizard')
         contract=work/'input-contract';contract.mkdir()
         bad_db=contract/'compile_commands.json';bad_rows=json.loads(database.read_text('utf-8'))
         from ecra.compilation import split_command
@@ -141,14 +148,20 @@ def main():
         bad['analysis']['compile_database']=str(bad_db);bad['analysis']['auto_system_includes']=False
         save(json.dumps(bad,ensure_ascii=False));panel=check()
         expect(panel.get_by_role('alert').filter(has_text='检查未通过')).to_be_visible(timeout=90000)
-        expect(panel).to_contain_text('missing-arm-none-eabi-gcc.exe');expect(start).to_be_disabled()
+        expect(panel).to_contain_text('missing-arm-none-eabi-gcc.exe');expect(start).to_be_enabled()
         assert not [t for t in get('/tasks')['items'] if t['mode']=='scan']
+        start.click();expect(page.locator('.task-detail > h3')).to_contain_text('完整扫描 · 失败',timeout=90000)
+        expect(page.locator('.task-detail')).to_contain_text('missing-arm-none-eabi-gcc.exe')
+        rejected,=[t for t in get('/tasks')['items'] if t['mode']=='scan']
+        assert not rejected['published'] and not (work/'data/scans'/rejected['scan_id']/'diagnostics').exists()
         assert sha256(sample/'scan.db')==sample_sha
         shot('02-missing-compiler-blocked');passed('actual_missing_compiler_blocks_gate_with_path_and_repair_and_preserves_previous_archive')
-        save(raw);panel=check();expect(start).to_be_enabled(timeout=180000)
+        page.get_by_role('link',name='工程配置',exact=True).click();save(raw)
+        before_scan={t['id'] for t in get('/tasks')['items']}
         start.click();expect(page.get_by_role('heading',name='扫描任务中心',exact=True)).to_be_visible()
         expect(button('打开扫描结果')).to_be_visible(timeout=240000)
-        completed=next(t for t in get('/tasks')['items'] if t['mode']=='scan' and t['state']=='COMPLETE')
+        completed,=[t for t in get('/tasks')['items'] if t['id'] not in before_scan]
+        assert completed['mode']=='scan' and completed['state']=='COMPLETE' and completed['published']
         taskdir=work/'data/work/tasks'/completed['id']
         assert read_json(taskdir/'preflight/preflight.json')['passed']
         native=work/'data/scans'/completed['scan_id']
@@ -225,7 +238,7 @@ def main():
             changed=json.loads(profile['yaml']);changed['project']['name']='当前已保存配置已改名，不能覆盖旧批次'
             save(json.dumps(changed,ensure_ascii=False))
             page.get_by_role('link',name='历史与对比',exact=True).click()
-            page.locator('.history-row').filter(has_text=completed['scan_id']).get_by_role('button',name='打开结果',exact=True).click()
+            page.get_by_role('row',name='归档 '+completed['scan_id'],exact=True).get_by_role('button',name='打开结果',exact=True).click()
             expect(button('查看当前工程与构建身份')).to_contain_text(expected_name)
             assert get('/scans/'+completed['scan_id']+'/summary')['identity']==binding['identity']
             assert sha256(native/'scan.db')==receipt['native_scan']['sha256']
@@ -252,17 +265,19 @@ def main():
             button('下一步').click();button('下一步').click();editor=page.get_by_label('高级完整 YAML',exact=True);start=button('开始此配置扫描')
             save(editor.input_value());panel=check()
             expect(panel.get_by_role('alert').filter(has_text='检查未通过')).to_be_visible(timeout=90000)
-            expect(panel).to_contain_text('missing-toolchain.cmake');expect(start).to_be_disabled()
+            expect(panel).to_contain_text('missing-toolchain.cmake');expect(start).to_be_enabled()
             shot('04-cmake-toolchain-blocked');passed('actual_cmake_missing_toolchain_is_visible_and_blocks_wizard_scan')
             button('上一步').click();button('上一步').click()
             expect(page.get_by_label('目标名称',exact=True)).to_have_value('demo')
             expect(page.get_by_label('构建变体',exact=True)).to_have_value('Release')
             page.get_by_label('Toolchain 文件',exact=True).fill(str(toolchain))
             button('下一步').click();button('下一步').click();save(editor.input_value());panel=check()
-            expect(start).to_be_enabled(timeout=180000)
-            expect(panel).to_contain_text('demo');expect(panel).to_contain_text('Release')
+            expect(panel).to_contain_text('尚未开始扫描',timeout=180000)
             candidates=[t for t in get('/tasks')['items'] if t['mode']=='precheck' and t['project_root']==str(demo) and t['state']=='COMPLETE']
             cmake_plan=get('/tasks/'+candidates[0]['id']+'/plan');build=Path(cmake_plan['check']['build_root'])
+            button('查看完整构建计划与逐 TU 参数').click()
+            expect(page.get_by_role('dialog',name='真实构建计划与完整编译参数')).to_contain_text('目标：demo · 变体：Release')
+            page.keyboard.press('Escape')
             assert build.is_relative_to(work/'data') and cmake_plan['total']==2
             objects=list(build.rglob('*.obj'));assert len(objects)==2
             for obj in objects:
@@ -307,7 +322,7 @@ def main():
                         raw=profile['yaml']
                         if variant:
                             changed=yaml.safe_load(raw);changed['analysis']['cmake']['build_type']=variant;raw=json.dumps(changed,ensure_ascii=False)
-                        save(raw);check();expect(start).to_be_enabled(timeout=180000);start.click()
+                        save(raw);start.click()
                         expect(button('打开扫描结果')).to_be_visible(timeout=240000)
                         task=next(t for t in get('/tasks')['items'] if t['id'] not in existing and t['mode']=='scan' and t['state']=='COMPLETE')
                         button('打开扫描结果').click()

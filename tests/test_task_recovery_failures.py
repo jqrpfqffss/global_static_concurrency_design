@@ -128,6 +128,18 @@ class TaskRecoveryFailureTests(unittest.TestCase):
             self.assertIn('任务日志无法读取',detail['log']['error'])
             self.assertEqual(detail['log']['text'],'')
 
+    def test_interrupted_worker_reports_existing_stop_request_without_erasing_resource_reason(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            data=Path(temporary);manager=TaskManager(data);task=manager.work/'worker';task.mkdir()
+            (task/'stop').touch()
+            write_json(task/'worker-result.json',dict(exit_code=130,operation_completed=False,error=None))
+            process=SimpleNamespace(returncode=130,poll=lambda:130)
+            for original,expected in [(None,'任务已响应安全停止请求。'),('接近资源硬阈值','接近资源硬阈值')]:
+                value=dict(id='worker',scan_id='scan',mode='scan',state='STOP_REQUESTED',started='now',error=original)
+                manager.monitor(task,value,process,None,None,ExitStack())
+                saved=read_json(task/'task.json')
+                self.assertEqual((saved['state'],saved['published'],saved['error']),('INTERRUPTED',False,expected))
+
     def test_malformed_precheck_receipt_is_a_terminal_failure(self):
         with tempfile.TemporaryDirectory() as temporary:
             data=Path(temporary);manager=TaskManager(data);task=manager.work/'worker';task.mkdir()
@@ -154,6 +166,12 @@ class TaskRecoveryFailureTests(unittest.TestCase):
             self.assertEqual(detail['failure']['message'],'actual failure')
             self.assertIn('scan_stages.json',detail['diagnostic_errors'][0])
             self.assertNotIn('stages',detail)
+            preflight=task/'preflight/diagnostics';preflight.mkdir(parents=True)
+            checked=[dict(stage='预检查：全部TU真实编译输入',status='COMPLETE')]
+            write_json(preflight/'scan_stages.json',checked)
+            detail=manager.detail('worker')
+            self.assertEqual(detail['stages'],checked)
+            self.assertIn('scan_stages.json',detail['diagnostic_errors'][0])
             self.assertEqual((diagnostics/'scan_stages.json').read_bytes(),raw)
 
 
