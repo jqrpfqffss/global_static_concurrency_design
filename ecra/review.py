@@ -6,8 +6,10 @@ import re
 import shutil
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from .common import execute, read_json, write_json
 from .review_hash import digest
@@ -469,12 +471,17 @@ def _review_env(paths, *, format_only=False, reference_paths=(), evidence_databa
                 readable[relative]=readable[Path(relative).as_posix()]='allow'
             if not archived_sources_only:readable['*' + path.name] = 'allow'
         permissions['read'] = readable
-        if reference_paths:
+        external_paths = [*reference_paths, *(paths if archived_sources_only else [])]
+        if external_paths:
             permissions['external_directory'] = {'*': 'deny'}
-            for path in reference_paths:
+            for path in external_paths:
                 for pattern in (str(path.parent / '*'), path.parent.as_posix() + '/*'):
                     permissions['external_directory'][pattern] = 'allow'
     env = os.environ.copy()
+    if archived_sources_only:
+        # OpenCode initializes dependencies in discovered .opencode directories
+        # before agent permissions take effect. Studio has its own review config.
+        env['OPENCODE_DISABLE_PROJECT_CONFIG'] = '1'
     env['OPENCODE_PERMISSION'] = json.dumps(permissions)
     configuration = dict(permission=permissions, share='disabled',
         agent={'ecra-review': dict(description='Read-only variable concurrency reviewer',
@@ -759,14 +766,19 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                 result['execution'] = record
                 write_json(cache, result)
                 try:
-                    proc = execute(argv, cwd=root, timeout=float(settings.get('timeout_seconds', 300)),
-                        **({'input': stdin_text} if stdin_text is not None else {}),
-                        env=_review_env([packet_path, shared_path, facts_path, report_path,
-                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
-                              if (packet.get('git_diff_impact') or {}).get(key)]],
-                                        format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'}, reference_paths=library_paths,
-                                        evidence_database=out/'scan.db' if is_canonical(out) else None,
-                                        archived_sources_only=archived_sources is not None,root=root))
+                    # Canonical reviews read archived sources through MCP. Give
+                    # each OpenCode process a scratch cwd outside the source tree.
+                    scratch = (TemporaryDirectory(prefix='ecra-review-', ignore_cleanup_errors=True)
+                               if native_database is not None else nullcontext(root))
+                    with scratch as cwd:
+                        proc = execute(argv, cwd=cwd, timeout=float(settings.get('timeout_seconds', 300)),
+                            **({'input': stdin_text} if stdin_text is not None else {}),
+                            env=_review_env([packet_path, shared_path, facts_path, report_path,
+                                *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
+                                  if (packet.get('git_diff_impact') or {}).get(key)]],
+                                            format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'},
+                                            reference_paths=library_paths, evidence_database=native_database,
+                                            archived_sources_only=archived_sources is not None, root=cwd))
                     for stream in ('stdout', 'stderr'):
                         (folder / record[stream + '_file']).write_text(getattr(proc, stream) or '', encoding='utf-8')
                     record['exit_code'] = proc.returncode

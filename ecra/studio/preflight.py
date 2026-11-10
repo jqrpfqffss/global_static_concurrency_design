@@ -83,7 +83,9 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         if cfg['analysis']['git_diff']['enabled']:
             named_tool('git', root, 'analysis.git_diff / Git')
             from ..git_diff import pin, prepare_current
+            from .opencode_recovery import recover_review_tree
             fixed = pin(root, cfg)
+            recover_review_tree(ws, fixed, progress)
             root, cfg = prepare_current(root, folder, cfg, fixed, progress)
         if 'cmake' in cfg['analysis']:
             named_tool('cmake', root, 'analysis.cmake / CMake')

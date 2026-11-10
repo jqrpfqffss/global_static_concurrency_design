@@ -62,7 +62,24 @@ class NativeReviewWorkflowTests(unittest.TestCase):
 
     def test_interrupt_and_rereview_keep_history_and_original_authority(self):
         raw=read_json(self.case.config);raw['review']['workers']=1;write_json(self.case.config,raw)
-        self.assertEqual(self.review(lambda *args,**kwargs:(_ for unused in ()).throw(KeyboardInterrupt())),130)
+        interrupted_dirs = []
+        def interrupt(argv, *, cwd, env, **kwargs):
+            cwd = Path(cwd)
+            self.assertFalse(cwd.resolve().is_relative_to(self.case.root))
+            self.assertEqual(env['OPENCODE_DISABLE_PROJECT_CONFIG'], '1')
+            packet = Path(argv[argv.index('--file')+1])
+            permissions = json.loads(env['OPENCODE_PERMISSION'])
+            self.assertEqual(permissions['read'][packet.as_posix()], 'allow')
+            self.assertEqual(permissions['external_directory'][packet.parent.as_posix()+'/*'], 'allow')
+            self.assertNotIn('*.c', permissions['read'])
+            (cwd/'.opencode').mkdir()
+            (cwd/'.opencode/.gitignore').write_text('generated during startup', encoding='utf-8')
+            interrupted_dirs.append(cwd)
+            raise KeyboardInterrupt()
+        self.assertEqual(self.review(interrupt),130)
+        self.assertEqual(len(interrupted_dirs), 1)
+        self.assertFalse(interrupted_dirs[0].exists())
+        self.assertFalse((self.case.root/'.opencode').exists())
         self.assertEqual(runtime(self.out)['report']['run_status'],'INTERRUPTED')
         self.assertEqual(sha256(self.out/'scan.db'),self.before)
         self.assertIn(self.review(),(0,1,2))

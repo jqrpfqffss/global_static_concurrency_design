@@ -655,7 +655,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             raise ValueError(f'旧版数据目录存在: {Path(root)/".ecra"}；请先运行 run 验证归属、复制迁移并刷新结果，再执行 report/review')
         raise ValueError('还没有扫描结果；请先运行 run')
     from .workspace import context, lock_path
-    context(root, cfg['analysis']).initialize()
+    workspace = context(root, cfg['analysis']).initialize()
     lock = lock_path(root, cfg['analysis'])
     source_reader=None;source_scope=None;source_token=None;source_entered=False
     from .scan_persistence import is_canonical
@@ -676,6 +676,11 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     os.close(fd)
     try:
         try:
+            if runtime_only and not render_only and (out/'scan_state.json').is_file():
+                from .studio.opencode_recovery import recover_review_tree
+                state = read_json(out/'scan_state.json')
+                if isinstance(state, dict):
+                    recover_review_tree(workspace, state.get('git_diff_pin'))
             facts, report, state = checked_scan(root,out,cfg,config_file,with_facts=not runtime_only,
                 _report_projection=runtime_only)
             if runtime_only:

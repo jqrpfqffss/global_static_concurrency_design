@@ -128,12 +128,14 @@ class CanonicalScanTests(unittest.TestCase):
         imported=import_report(package,self.base/'other')
         self.assertEqual(runtime(self.base/'other/scans'/imported['scan_id'])['reviews'],rows)
 
-    def test_real_pinned_git_diff_uses_sqlite_baseline_and_saved_recovery(self):
+    def pinned_diff_project(self):
         import subprocess
         def git(*args):
             return subprocess.check_output(['git','-C',str(self.root),*args],stderr=subprocess.STDOUT).decode().strip()
         database=json.loads((self.native_build/'compile_commands.json').read_text(encoding='utf-8'))
         (self.root/'compile_commands.json').write_text(json.dumps(database),encoding='utf-8')
+        (self.root/'.opencode/agent').mkdir(parents=True)
+        (self.root/'.opencode/agent/project.md').write_text('tracked project agent', encoding='utf-8')
         git('init');git('config','user.name','ECRA acceptance');git('config','user.email','ecra@example.invalid')
         git('add','.');git('commit','-m','base');git('branch','base')
         source=(self.root/'main.c').read_text(encoding='utf-8')
@@ -146,6 +148,10 @@ class CanonicalScanTests(unittest.TestCase):
         cfg['analysis']['compile_database']='compile_commands.json'
         cfg['analysis']['git_diff']=dict(enabled=True,base_ref='base',current_ref='HEAD',include_uncommitted=False)
         self.config.write_text(json.dumps(cfg),encoding='utf-8')
+        return git, before
+
+    def test_real_pinned_git_diff_uses_sqlite_baseline_and_saved_recovery(self):
+        git, before = self.pinned_diff_project()
         out,cfg=self.run_scan()
         _,report,_=checked_scan(self.root,out,cfg,self.config)
         self.assertIn('c:@shared',report['git_diff']['selected_symbol_ids'])
@@ -156,6 +162,66 @@ class CanonicalScanTests(unittest.TestCase):
         self.assertEqual(git('status','--porcelain'),before)
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(saved_run(self.root,self.config,render_only=True),(0,1,2))
+
+    def test_legacy_opencode_files_recovered_for_rescan_and_rereview(self):
+        from subprocess import CompletedProcess
+        from ecra.scan_persistence import runtime
+        from ecra.studio.preflight import run_preflight
+        from tests.test_review_contract import answer_for
+
+        git, before = self.pinned_diff_project()
+        out, cfg = self.run_scan()
+        source = Path(read_json(out/'scan_state.json')['git_diff_pin']['current_source_root'])
+        config = source/'.opencode'
+        agent = config/'agent/project.md'
+        agent_bytes = agent.read_bytes()
+        authority = sha256(out/'scan.db')
+        payload = config/'node_modules/@opencode-ai/plugin/package.json'
+
+        def install_leftovers():
+            (config/'.gitignore').write_bytes(b'node_modules\npackage.json\npackage-lock.json\nbun.lock\n.gitignore')
+            (config/'package.json').write_text('{"dependencies":{"@opencode-ai/plugin":"1.18.35"}}', encoding='utf-8')
+            (config/'package-lock.json').write_text('{}', encoding='utf-8')
+            payload.parent.mkdir(parents=True)
+            payload.write_text('generated dependency', encoding='utf-8')
+
+        install_leftovers()
+        with self.assertRaisesRegex(ValueError, r'\.opencode.*\.gitignore'):
+            checked_scan(self.root, out, cfg, self.config)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertTrue(run_preflight(self.config, self.data, self.data/'work/preflight')['passed'])
+        self.assertFalse(payload.exists())
+        checked_scan(self.root, out, cfg, self.config)
+
+        install_leftovers()
+        unknown = config/'unknown.c'
+        unknown.write_text('int unexpected;', encoding='utf-8')
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(ValueError, 'unknown.c'):
+                saved_run(self.root, self.config, _out=out)
+        self.assertTrue(unknown.is_file())
+        unknown.unlink()
+        install_leftovers()
+
+        def answer(argv, **kwargs):
+            self.assertEqual(kwargs['env']['OPENCODE_DISABLE_PROJECT_CONFIG'], '1')
+            packet = read_json(Path(argv[argv.index('--file') + 1]))
+            value = answer_for(fid=packet['finding_id'], variable='shared')
+            value['evidence'] = [dict(file='main.c', line=1, claim='协议测试使用归档源码。')]
+            return CompletedProcess(argv, 0, json.dumps(value), '')
+
+        with (patch('ecra.review.resolve_command', return_value=['test-review']),
+              patch('ecra.review.execute', side_effect=answer) as execute,
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertIn(saved_run(self.root, self.config, _out=out), (0, 1, 2))
+        execute.assert_called_once()
+        self.assertTrue(all(row['state'] == 'DONE' for row in runtime(out)['reviews']))
+        self.assertFalse((config/'.gitignore').exists())
+        self.assertEqual(agent.read_bytes(), agent_bytes)
+        self.assertEqual(sha256(out/'scan.db'), authority)
+        self.assertEqual(git('status', '--porcelain'), before)
+        saved = list(self.data.glob('projects/*/opencode-recovery/*/startup-*/node_modules/@opencode-ai/plugin/package.json'))
+        self.assertEqual([path.read_text(encoding='utf-8') for path in saved], ['generated dependency'] * 3)
 
     def test_changed_evidence_requires_new_confirmation_and_preserves_prior_history_in_package(self):
         from ecra.human_reviews import ReviewStore
