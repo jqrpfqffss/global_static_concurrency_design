@@ -39,7 +39,7 @@ analysis:
   git_diff:
     enabled: true
     base_ref: ecra/diff-baseline-20261030
-    current_ref: HEAD
+    current_ref: main
     # 可选：仅 current_ref 为 HEAD 时可包含未提交修改，默认 false。
     # include_uncommitted: true
 

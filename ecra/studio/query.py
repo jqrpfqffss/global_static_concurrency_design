@@ -4,6 +4,11 @@ from pathlib import Path
 
 from ..scan_store import EvidenceProvider, connect_readonly
 
+DIFF_CHANGE_LISTS = {
+    'files': (['pin', 'files'], {'status', 'old_path', 'new_path', 'comment_only'}),
+    'deleted': (['deleted_variables'], {'symbol_id', 'name'}),
+}
+
 HUMAN_HEADS = """WITH current_heads AS (
  SELECT e.symbol_id,CASE WHEN count(*)>1 THEN 'CONFLICT'
  ELSE min(json_extract(e.payload,'$.decision')) END AS decision,
@@ -120,11 +125,32 @@ class QueryService:
         for key in ('fallback_level','impact_coverage','selection_basis','note'):
             if key in fields and 'value' in fields[key]:result[key]=fields[key]['value']
         if 'pin' in fields:
-            result['pin']={row['key']:row['value'] for row in self.evidence.node(fields['pin']['id'],limit=200)['items']
-                if row['key'] in {'base_ref','current_ref','head_sha','base_sha','include_uncommitted'} and 'value' in row}
+            pin = {row['key']: row for row in self.evidence.node(fields['pin']['id'], limit=200)['items']}
+            result['pin'] = {key: pin[key]['value'] for key in ('base_ref', 'current_ref', 'head_sha', 'base_sha', 'include_uncommitted')
+                             if key in pin and 'value' in pin[key]}
+            if pin.get('files', {}).get('kind') == 'list':
+                result['file_count'] = pin['files']['total']
+        if fields.get('deleted_variables', {}).get('kind') == 'list':
+            result['deleted_variable_count'] = fields['deleted_variables']['total']
+        if fields.get('fallback_reasons', {}).get('kind') == 'list':
+            result['fallback_reasons'] = [row['value'] for row in self.evidence.node(fields['fallback_reasons']['id'], limit=20)['items']
+                                          if row.get('value')]
         for key in ('selected_symbol_ids','conservative_symbol_ids'):
             result[key+'_count']=fields[key]['total'] if key in fields else 0
         return result
+
+    def diff_changes(self, kind, *, offset=0, limit=25):
+        if kind not in DIFF_CHANGE_LISTS:
+            raise ValueError('Git 差异明细仅支持变更文件和已删除变量')
+        path, keys = DIFF_CHANGE_LISTS[kind]
+        node = self.evidence.resolve('report', ['git_diff', *path])
+        page = self.evidence.node(node, offset=offset, limit=limit)
+        items = []
+        for item in page['items']:
+            fields = self.evidence.node(item['id'], limit=20)['items']
+            values = {row['key']: row.get('display_json', row.get('value')) for row in fields if row['key'] in keys}
+            items.append(dict(values, node=item['id'], ordinal=item['ordinal']))
+        return dict(items=items, total=page['total'], offset=offset, next_offset=page['next_offset'])
 
     def current_summary(self):
         from .current_results import summary

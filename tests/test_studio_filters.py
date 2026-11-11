@@ -59,4 +59,37 @@ class StudioFilterTests(unittest.TestCase):
             self.assertEqual(query.symbols(ai_state='TECH_FAILED')['total'],0)
             self.assertEqual(query.symbols(ai_state='DONE')['total'],2)
             self.assertEqual(query.symbols(context="irq' OR 1=1 --")['total'],0)
-            self.assertEqual(query.diff_summary()['conservative_symbol_ids_count'],1)
+            summary = query.diff_summary()
+            self.assertEqual(summary['conservative_symbol_ids_count'], 1)
+            self.assertNotIn('file_count', summary)
+            self.assertNotIn('deleted_variable_count', summary)
+
+    def test_diff_summary_and_pages_include_base_only_changes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            files = [dict(status='R100', old_path='old.c', new_path='new.c'),
+                     dict(status='D', old_path='gone.c', new_path='gone.c')]
+            diff = dict(pin=dict(base_ref='base', current_ref='feature', files=files),
+                        selected_symbol_ids=[], conservative_symbol_ids=[],
+                        deleted_variables=[dict(symbol_id='gone', name='deleted_variable', impact={})],
+                        fallback_reasons=['构建输入变化'])
+            publish_scan(out/'scan.db', dict(variables=[]), dict(findings=[], git_diff=diff),
+                         scan_id='diff', project_id='p')
+            query = QueryService(out)
+            summary = query.diff_summary()
+            self.assertEqual(summary['pin'], dict(base_ref='base', current_ref='feature'))
+            self.assertEqual(summary['file_count'], 2)
+            self.assertEqual(summary['deleted_variable_count'], 1)
+            self.assertEqual(summary['selected_symbol_ids_count'], 0)
+            self.assertEqual(summary['fallback_reasons'], ['构建输入变化'])
+            first = query.diff_changes('files', limit=1)
+            second = query.diff_changes('files', offset=first['next_offset'], limit=1)
+            self.assertEqual(first['items'][0]['old_path'], 'old.c')
+            self.assertEqual(first['items'][0]['new_path'], 'new.c')
+            self.assertEqual(second['items'][0]['status'], 'D')
+            self.assertIsNone(second['next_offset'])
+            deleted = query.diff_changes('deleted')['items'][0]
+            self.assertEqual(deleted['name'], 'deleted_variable')
+            self.assertEqual(deleted['node'], query.evidence.resolve('report', ['git_diff', 'deleted_variables', 0]))
+            with self.assertRaises(ValueError):
+                query.diff_changes('unsupported')

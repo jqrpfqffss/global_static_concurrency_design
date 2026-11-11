@@ -316,6 +316,11 @@ def _create_app(data_root, *, token, authority, startup):
                     diff=QueryService(scan_path(scan_id)).diff_summary(),
                     can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
+    @app.get('/api/scans/{scan_id}/diff-changes')
+    def diff_changes(scan_id: str, kind: str, offset: int=0, limit: int=25):
+        from .query import QueryService
+        return QueryService(scan_path(scan_id)).diff_changes(kind, offset=offset, limit=limit)
+
     @app.get('/api/scans/{scan_id}/ai')
     def ai_records(scan_id: str, offset: int=0, limit: int=50, outcome: str='', search: str=''):
         from ..scan_persistence import ai_page
