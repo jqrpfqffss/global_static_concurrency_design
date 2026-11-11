@@ -4,6 +4,7 @@ Static facts are never filtered here. Summaries are persisted between the two
 sequential analyses, so two complete fact graphs need not coexist in memory.
 """
 from collections import Counter, defaultdict, deque
+from contextlib import closing
 from pathlib import Path
 import copy
 import os
@@ -1170,14 +1171,16 @@ def full_reference_summary(root, out, cfg, units, coverage, worker_dir, env, too
     check_dir = worker_dir/'full-verification'
     check_dir.mkdir(exist_ok=True)
     fixed = {} if compiler_view is None else dict(compiler_view=compiler_view)
-    for unit, response, metadata in extraction_responses(root, units, cfg, check_dir, env, tool_root, out, **fixed):
-        meta = read_json(metadata)
-        if meta.get('parse_status') != 'PARSED':
-            raise ValueError('全量对照提取不完整，禁止报告验证通过')
-        snapshot.observe(unit, meta['input_snapshot'], signature=meta.get('preprocessor_signature'))
-        parts.append_metadata(response, meta)
-        verification_units.append(dict(unit, semantic_macros_digest=meta.get('semantic_macros_digest'),
-                                       includes=meta.get('includes', []), parse_status=meta['parse_status']))
+    responses = extraction_responses(root, units, cfg, check_dir, env, tool_root, out, **fixed)
+    with closing(responses):
+        for unit, response, metadata in responses:
+            meta = read_json(metadata)
+            if meta.get('parse_status') != 'PARSED':
+                raise ValueError('全量对照提取不完整，禁止报告验证通过')
+            snapshot.observe(unit, meta['input_snapshot'], signature=meta.get('preprocessor_signature'))
+            parts.append_metadata(response, meta)
+            verification_units.append(dict(unit, semantic_macros_digest=meta.get('semantic_macros_digest'),
+                                           includes=meta.get('includes', []), parse_status=meta['parse_status']))
     snapshot.assert_valid()
     full_facts = merge(parts)
     parts.clear()

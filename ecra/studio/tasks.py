@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -12,6 +13,8 @@ import time
 import uuid
 
 from ..common import write_json, read_json
+from ..resource_control import EVENT_LOG, PRESSURE_FILE, PRESSURE_NAME
+from ..scan_diagnostics import diagnostic_log
 from ..workspace import no_links
 from ..report_package import IDENTITY
 from .process_budget import ProcessBudget
@@ -32,6 +35,42 @@ def read_task_json(path):
             if attempt == 4:
                 raise
             time.sleep(.02 * (attempt + 1))
+
+
+def supervisor_log(folder, message):
+    try:
+        with (folder/'supervisor.log').open('a', encoding='utf-8') as output:
+            output.write(f'{now()} {message}\n')
+    except OSError as exc:
+        diagnostic_log(f'{folder}：{message}\n监督器日志写入失败：{exc}')
+
+
+def terminate_owned(process, budget):
+    if os.name == 'nt':
+        budget.close()  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    elif process.poll() is None:
+        process.terminate()
+
+
+def resource_sample(budget, data):
+    from ..scan_diagnostics import memory
+    sample = dict(timestamp=now())
+    errors = {}
+    try:
+        sample.update(budget.sample())
+    except (OSError, ValueError) as exc:
+        errors['job'] = str(exc)
+    try:
+        sample.update({key: value for key, value in memory().items() if key.startswith('system_')})
+    except (OSError, ValueError) as exc:
+        errors['host'] = str(exc)
+    try:
+        sample['disk_free_bytes'] = shutil.disk_usage(data).free
+    except (OSError, ValueError) as exc:
+        errors['disk'] = str(exc)
+    if errors:
+        sample['sample_errors'] = errors
+    return sample
 
 
 class TaskManager:
@@ -178,83 +217,140 @@ class TaskManager:
                 elif mode in {'review','review-failed'}:
                     value['checkpoint_mode']='REVALIDATE_INPUTS_AND_RETRY_REVIEW_MODE'
                     write_json(folder/'task.json',value)
-                budget = ProcessBudget(value['budget_bytes'])
-                ownership.callback(budget.close)
-                stream = (folder/'console.log').open('wb')
-                if materials['status']=='FROZEN':
-                    for name,record in materials['documents'].items():
-                        stream.write(('复核资料已冻结：'+name+' · '+str(record['bytes'])+' 字节 · SHA-256 '+record['sha256']+'\n').encode('utf-8'))
-                    stream.flush()
-                ownership.callback(stream.close)
-                from .resource_policy import temporary_environment
-                env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'
-                if not env.get('PYTHONHASHSEED'):
-                    env['PYTHONHASHSEED']='0'
-                env['ECRA_DATA_ROOT']=str(self.data)
-                env['ECRA_RESOURCE_PRESSURE_FILE']=str(folder/'resource-pressure.json')
-                env['ECRA_EXTRACTION_WORKERS']=str(limits['workers'])
-                tool = Path(__file__).resolve().parents[2]
-                env['PYTHONPATH']=str(tool)+os.pathsep+env.get('PYTHONPATH','')
-                args = [sys.executable,'-B','-m','ecra.studio.task_worker', '--config',str(folder/'semantics.yaml'),
-                    '--data-root',str(self.data),'--scan-id',value['scan_id'],'--profile-id',profile_id,'--mode',mode,
-                    '--gate',str(folder/'start'), '--stop',str(folder/'stop'), '--result',str(folder/'worker-result.json')]
-                process = None
                 try:
+                    pressure_file = folder/PRESSURE_NAME
+                    try:
+                        # Start conservatively until the first process-tree and disk sample.
+                        write_json(pressure_file, dict(parallel_limit=1))
+                    except OSError as exc:
+                        raise ValueError(f'资源调度信息初始化失败，扫描未启动。{pressure_file}：{exc}') from exc
+                    budget = ProcessBudget(value['budget_bytes'])
+                    ownership.callback(budget.close)
+                    stream = ownership.enter_context((folder/'console.log').open('wb'))
+                    if materials['status']=='FROZEN':
+                        for name,record in materials['documents'].items():
+                            stream.write(('复核资料已冻结：'+name+' · '+str(record['bytes'])+' 字节 · SHA-256 '+record['sha256']+'\n').encode('utf-8'))
+                        stream.flush()
+                    from .resource_policy import temporary_environment
+                    env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'
+                    if not env.get('PYTHONHASHSEED'):
+                        env['PYTHONHASHSEED']='0'
+                    env['ECRA_DATA_ROOT']=str(self.data)
+                    env[PRESSURE_FILE]=str(pressure_file)
+                    env['ECRA_EXTRACTION_WORKERS']=str(limits['workers'])
+                    tool = Path(__file__).resolve().parents[2]
+                    env['PYTHONPATH']=str(tool)+os.pathsep+env.get('PYTHONPATH','')
+                    args = [sys.executable,'-B','-m','ecra.studio.task_worker', '--config',str(folder/'semantics.yaml'),
+                        '--data-root',str(self.data),'--scan-id',value['scan_id'],'--profile-id',profile_id,'--mode',mode,
+                        '--gate',str(folder/'start'), '--stop',str(folder/'stop'), '--result',str(folder/'worker-result.json')]
+                    assigned = False
+
+                    def release_process():
+                        try:
+                            if process.poll() is None:
+                                if assigned:
+                                    terminate_owned(process, budget)
+                                else:
+                                    process.terminate()
+                                process.wait(timeout=10)
+                        finally:
+                            if hasattr(process, 'close'):
+                                process.close()
+
                     if os.name=='nt':
                         from .write_guard import OwnedProcess
                         process=OwnedProcess(args,cwd=tool,env=env,log=stream)
-                        budget.assign(process);process.resume()
-                        def release_process():
-                            if process.poll() is None:
-                                budget.close();process.wait(timeout=10)
-                            process.close()
-                        ownership.callback(release_process)
                     else:
                         process=subprocess.Popen(args,cwd=tool,env=env,stdout=stream,stderr=subprocess.STDOUT)
-                        budget.assign(process)
+                    ownership.callback(release_process)
+                    budget.assign(process)
+                    assigned = True
+                    if os.name=='nt':
+                        process.resume()
                     (folder/'start').write_text('OWNED',encoding='ascii')
+                    self.active = (ident,process,budget)
+                    threading.Thread(target=self.monitor,args=(folder,value,process,budget,stream,ownership),daemon=True).start()
                 except BaseException as exc:
-                    if process is not None:
-                        process.terminate(); process.wait()
-                        if hasattr(process,'close'):process.close()
-                    stream.close(); budget.close()
-                    value.update(state='FAILED',error=str(exc),finished=now()); write_json(folder/'task.json',value)
+                    value.update(state='FAILED',error=str(exc),finished=now(),published=False)
+                    supervisor_log(folder, f'任务启动失败：{exc!r}；原始原因：{exc.__cause__!r}')
+                    try:
+                        write_json(folder/'task.json',value)
+                    except OSError as error:
+                        supervisor_log(folder, f'无法保存失败任务状态：{error}')
                     raise
-                self.active = (ident,process,budget)
-                threading.Thread(target=self.monitor,args=(folder,value,process,budget,stream,ownership),daemon=True).start()
                 return value
             except BaseException:
-                ownership.close()
-                self.active=None
+                try:
+                    ownership.close()
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    diagnostic_log(f'任务启动资源回收失败：{error}')
+                finally:
+                    self.active=None
                 raise
 
     def monitor(self, folder, value, process, budget, stream,ownership):
+        from .resource_policy import host_pressure
+        stop_file = folder/'stop'
         try:
             samples=0
             while process.poll() is None:
+                sample = resource_sample(budget, self.data)
+                pressure = sample['host_pressure'] = host_pressure(sample)
+                value['resources'] = {key: item for key, item in sample.items() if key != 'timestamp'}
+                soft = sample.get('private_bytes', 0) >= value['resource_policy']['soft_bytes'] or pressure['soft']
+                reasons = []
+                if sample.get('private_bytes', 0) >= value['budget_bytes']*.9:
+                    reasons.append('任务进程树接近提交预算硬阈值')
+                if pressure['stop']:
+                    reasons.append(pressure['reason'])
+                if sample.get('disk_free_bytes', float('inf')) < 512*1024**2:
+                    reasons.append('工作盘可用空间低于 512 MiB')
+                stop_failed = False
+                if reasons and value['state'] != 'STOP_REQUESTED':
+                    reason = '；'.join(reasons)
+                    try:
+                        requested = not stop_file.is_file()
+                        if requested:
+                            stop_file.write_text(now(), encoding='ascii')
+                    except OSError as exc:
+                        stop_failed = True
+                        sample['stop_write_error'] = str(exc)
+                        value['error'] = f'{reason}。停止信号写入失败，监督器将结束所属任务进程。{exc}'
+                        supervisor_log(folder, value['error'])
+                        try:
+                            with self.lock:
+                                terminate_owned(process, budget)
+                        except OSError as error:
+                            supervisor_log(folder, f'结束所属任务进程失败：{error}')
+                    else:
+                        value['state'] = 'STOP_REQUESTED'
+                        if requested:
+                            value['error'] = reason+'。已请求安全停止，已保存的数据和上一份有效扫描保留。'
+                            supervisor_log(folder, value['error'])
+
                 try:
-                    value['resources'] = budget.sample()
-                    sample = dict(timestamp=now(), **value['resources'])
-                    import shutil
-                    from ..scan_diagnostics import memory
-                    system=memory()
-                    sample.update({key:system[key] for key in ('system_commit_bytes','system_commit_limit_bytes',
-                        'system_physical_total_bytes','system_physical_available_bytes') if key in system})
-                    sample['disk_free_bytes']=shutil.disk_usage(self.data).free
-                    value['resources'].update({key:sample[key] for key in sample if key.startswith(('system_','disk_'))})
-                    from .resource_policy import host_pressure
-                    pressure=host_pressure(sample);sample['host_pressure']=pressure;value['resources']['host_pressure']=pressure
-                    soft=sample.get('private_bytes',0)>=value['resource_policy']['soft_bytes'] or pressure['soft']
-                    write_json(folder/'resource-pressure.json',dict(parallel_limit=1 if soft else value['resource_policy']['workers']))
-                    if soft:value['resource_notice']=(pressure['reason']+'；' if pressure['reason'] else '达到软阈值；')+'后续TU降至单并行，保留全部事实。'
-                    else:value.pop('resource_notice',None)
-                    if sample.get('private_bytes',0)>=value['budget_bytes']*.9 or pressure['stop'] or sample['disk_free_bytes']<512*1024**2:
-                        (folder/'stop').write_text(now(),encoding='ascii')
-                        value['error']=(pressure['reason']+'；' if pressure['stop'] else '接近资源硬阈值；')+'已请求安全停止，保存已验证TU，上一有效快照保留。资源恢复后重试。'
+                    write_json(folder/PRESSURE_NAME, dict(parallel_limit=1 if soft or 'sample_errors' in sample else value['resource_policy']['workers']))
+                except OSError as exc:
+                    message = f'资源调度信息发布失败。{folder/PRESSURE_NAME}：{exc}'
+                    if value.get('pressure_publish_error') != message:
+                        supervisor_log(folder, message)
+                    value['pressure_publish_error'] = sample['pressure_publish_error'] = message
+                    value.pop('resource_notice', None)
+                else:
+                    value.pop('pressure_publish_error', None)
+                    if soft:
+                        value['resource_notice'] = (pressure['reason'] or '达到软阈值')+'；后续 TU 降至单并行。'
+                    else:
+                        value.pop('resource_notice', None)
+
+                try:
                     # Display history is bounded; the full measurements append
                     # to a durable JSONL receipt, never into an evidence cap.
                     with (folder/'resources.jsonl').open('a',encoding='utf-8') as output:
                         output.write(json.dumps(sample)+'\n')
+                except OSError as exc:
+                    supervisor_log(folder, f'资源采样写入失败：{exc}')
+                try:
                     value['samples'] = [*value['samples'][-119:], sample]
                     samples+=1
                     if samples % 6 == 0:
@@ -267,11 +363,12 @@ class TaskManager:
                             except FileNotFoundError:
                                 pass
                         value['task_disk_bytes'] = size
-                    if (folder/'stop').is_file():
+                    if not stop_failed and stop_file.is_file():
                         value['state'] = 'STOP_REQUESTED'
                     write_json(folder/'task.json',value)
                 except (OSError, ValueError) as exc:
                     value['monitor_error'] = str(exc)
+                    supervisor_log(folder, f'任务资源状态写入失败：{exc}')
                 threading.Event().wait(.5)
             value.update(exit_code=process.returncode, finished=now())
             published = (self.data/'scans'/value['scan_id']/'manifest.json').is_file()
@@ -293,15 +390,23 @@ class TaskManager:
                     'INTERRUPTED' if process.returncode==130 else 'FAILED')
             except (OSError,ValueError,TypeError) as exc:
                 value['state']='INTERRUPTED' if process.returncode==130 else 'FAILED'
-                value['error']='任务已退出，但完成状态未能校验：'+str(exc)+'。原收据、日志与已发布结果保留；请查看本任务日志并重新核对输入后重试。'
+                receipt_error='任务已退出，但完成状态未能校验：'+str(exc)+'。原收据、日志与已发布结果保留；请查看本任务日志。'
+                value['error']=' '.join(filter(None, (value.get('error'), receipt_error)))
             if value['state']=='INTERRUPTED' and not value.get('error') and (folder/'stop').is_file():
                 value['error']='任务已响应安全停止请求。'
             value['published'] = published
-            write_json(folder/'task.json',value)
+            try:
+                write_json(folder/'task.json',value)
+            except OSError as exc:
+                supervisor_log(folder, f'任务最终状态写入失败：{exc}。实际退出状态：{value}')
         finally:
-            ownership.close()
             with self.lock:
-                self.active = None
+                try:
+                    ownership.close()
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    supervisor_log(folder, f'任务资源回收失败：{exc}')
+                finally:
+                    self.active = None
 
     def detail(self, ident, *, offset=0, limit=65536):
         if type(offset) is not int or offset<0 or not 1<=limit<=65536:
@@ -368,25 +473,55 @@ class TaskManager:
             if path.is_file():
                 result=diagnostic(path)
                 if result is not None:value[key]=result
+        if value['mode'] == 'scan' and (diagnostics/EVENT_LOG).is_file():
+            try:
+                with (diagnostics/EVENT_LOG).open('rb') as stream:
+                    offset = max(0, stream.seek(0, os.SEEK_END) - 65536)
+                    stream.seek(offset)
+                    if offset:
+                        stream.readline()  # discard a possibly partial first record
+                    complete = stream.read().rpartition(b'\n')[0]
+                if complete:
+                    control = json.loads(complete.rsplit(b'\n', 1)[-1])
+                    if not isinstance(control, dict):
+                        raise ValueError('资源调度诊断字段结构无效')
+                    value['resource_control'] = control
+            except (OSError, ValueError) as exc:
+                value.setdefault('diagnostic_errors', []).append(f'无法读取资源调度诊断：{exc}。请查看任务日志。')
+        if (value.get('failure') or {}).get('resource_control'):
+            value['resource_control'] = value['failure']['resource_control']
         return value
 
     def stop(self, ident):
         with self.lock:
             if self.active is None or self.active[0] != ident:
                 raise ValueError('任务已停止或不属于本监督器')
-            (self.directory(ident)/'stop').write_text(now(),encoding='ascii')
+            folder = self.directory(ident)
+            try:
+                (folder/'stop').write_text(now(), encoding='ascii')
+            except OSError as exc:
+                message = f'用户请求停止，停止信号写入失败。{exc}'
+                supervisor_log(folder, message)
+                _, process, budget = self.active
+                try:
+                    terminate_owned(process, budget)
+                except OSError as error:
+                    supervisor_log(folder, f'结束所属任务进程失败：{error}')
+                raise ValueError(message+' 请查看任务状态与日志。') from exc
         return dict(state='STOP_REQUESTED')
 
     def close(self):
         with self.lock:
-            if self.active:
-                ident, process, budget = self.active
-                (self.directory(ident)/'stop').write_text(now(),encoding='ascii')
-        # Server shutdown must not leave compilation/AI subprocesses behind.
-        if self.active:
+            if not self.active:
+                return
+            ident, process, budget = self.active
+            folder = self.directory(ident)
+            try:
+                (folder/'stop').write_text(now(), encoding='ascii')
+            except OSError as exc:
+                supervisor_log(folder, f'监督器退出时停止信号写入失败：{exc}')
+            # Hold the process handle until shutdown has stopped the task.
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                budget.close()
-                if os.name != 'nt':
-                    process.terminate()
+                terminate_owned(process, budget)

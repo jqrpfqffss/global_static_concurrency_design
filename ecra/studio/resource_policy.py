@@ -10,7 +10,9 @@ def host_pressure(sample):
     physical=available if type(available) is int and available>=0 else None
     soft=(headroom is not None and headroom<4*1024**3) or (physical is not None and physical<2*1024**3)
     stop=(headroom is not None and headroom<2*1024**3) or (physical is not None and physical<512*1024**2)
-    if headroom is not None and headroom<4*1024**3:
+    if physical is not None and physical<512*1024**2 and (headroom is None or headroom>=2*1024**3):
+        reason=f'整机可用物理内存仅余 {physical/1024**3:.2f} GiB'
+    elif headroom is not None and headroom<4*1024**3:
         reason=f'整机提交额度仅余 {headroom/1024**3:.2f} GiB；这与空闲物理内存及本任务预算不同'
     elif physical is not None and physical<2*1024**3:reason=f'整机可用物理内存仅余 {physical/1024**3:.2f} GiB'
     else:reason=''

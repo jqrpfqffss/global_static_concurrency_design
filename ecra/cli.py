@@ -1,5 +1,5 @@
 import argparse
-from contextlib import closing
+from contextlib import closing, nullcontext
 from datetime import datetime, timezone
 import json
 import os
@@ -112,12 +112,17 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
     and evidence order remain identical to a sequential scan.
     """
     from collections import deque
-    from concurrent.futures import ThreadPoolExecutor
+    from concurrent.futures import ThreadPoolExecutor, wait
+    from threading import Event
+    from .resource_control import PRESSURE_FILE, STOP_POLL_SECONDS, check_extraction_stop, read_limit
+    from .scan_diagnostics import ACTIVE, record_resource_control
     # Library-argument facts include complete set-derived inventories. Keep
     # their emission repeatable while respecting an explicitly selected seed.
     env = dict(env)
     if not env.get('PYTHONHASHSEED'):
         env['PYTHONHASHSEED'] = '0'
+    cancel = Event()
+
     def job(unit):
         request = worker_dir / (unit['tu_id'] + '.request.json')
         response = worker_dir / (unit['tu_id'] + '.response.json')
@@ -133,7 +138,8 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
             return unit, response, metadata
         try:
             proc = execute([sys.executable, '-B', '-m', 'ecra.extract', str(request), str(response)],
-                           cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)))
+                           cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)),
+                           cancel_event=cancel)
         except MemoryError:
             raise
         except Exception as exc:
@@ -152,30 +158,41 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
     if requested:
         count=int(requested)
         if not 1<=count<=8:raise ValueError('TU并行预算必须为1–8')
-    pool = ThreadPoolExecutor(max_workers=count)
+    pressure = os.environ.get(PRESSURE_FILE)
     todo, pending = iter(units), deque()
-    def submit():
-        unit = next(todo, None)
-        if unit is not None:
-            pending.append(pool.submit(job, unit))
+    next_unit = next(todo, None)
+    completed = 0
+    pool = ThreadPoolExecutor(max_workers=count)
+
     def replenish():
-        limit=count
-        pressure=os.environ.get('ECRA_RESOURCE_PRESSURE_FILE')
-        if pressure and Path(pressure).is_file():
-            limit=max(1,min(count,int(read_json(pressure)['parallel_limit'])))
-        while len(pending)<limit:
-            before=len(pending);submit()
-            if len(pending)==before:break
-    try:
-        replenish()
-        while pending:
-            # Do not submit the next TU until the consumer resumes after
-            # processing/committing this response. Preserve database order,
-            # including weak/strong selection and order-sensitive evidence.
-            yield pending.popleft().result()
+        nonlocal next_unit
+        check_extraction_stop()
+        if next_unit is None or len(pending) >= count:
+            return
+        limit = count if pressure is None else read_limit(
+            pressure, count, completed=completed, total=len(units), on_event=record_resource_control)
+        while next_unit is not None and len(pending) < limit:
+            check_extraction_stop()
+            pending.append(pool.submit(job, next_unit))
+            next_unit = next(todo, None)
+
+    active = ACTIVE.get()
+    with active.cooperative_extraction_stop() if active else nullcontext():
+        try:
             replenish()
-    finally:
-        pool.shutdown(wait=True, cancel_futures=True)
+            while pending:
+                # Wait for the first submitted TU even if later workers finish
+                # first. Replenish only after the consumer commits the result.
+                future = pending.popleft()
+                while not wait((future,), timeout=STOP_POLL_SECONDS).done:
+                    check_extraction_stop()
+                check_extraction_stop()
+                yield future.result()
+                completed += 1
+                replenish()
+        finally:
+            cancel.set()
+            pool.shutdown(wait=True, cancel_futures=True)
 
 
 def add_build_unknowns(facts, cfg, units, compilation):
@@ -288,7 +305,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             stream.write(datetime.now(timezone.utc).isoformat() + ' ' + message + '\n')
         log_started = True
 
-    from .scan_diagnostics import ScanDiagnostics
+    from .scan_diagnostics import ScanDiagnostics, diagnostic_log
     diagnostics = ScanDiagnostics(out / ('diagnostics/doctor' if doctor_only else 'diagnostics'), progress)
     report_can_replace = True
     source_token = None
@@ -517,59 +534,61 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 tu_cache.key(unit)
         diagnostics.snapshot_status = snapshot_inputs.status
         diagnostics.stage('Clang 翻译单元提取')
-        for i, (unit, response, metadata_file) in enumerate(extraction_responses(
-                root, units, cfg, worker_dir, env, tool_root, out, cache=tu_cache, **dependency_args)):
-            role = ' [依赖]' if scope.active and unit.get('audit_role') == 'dependency' else ''
-            progress(f"Clang {i + 1}/{len(units)}{role}: {unit['source_file']}")
-            try:
-                metadata_only = metadata_file.is_file()
-                part = read_json(metadata_file if metadata_only else response)
-            except Exception as exc:
-                if isinstance(exc, MemoryError):
-                    raise
-                part = dict(parse_status="FAILED", diagnostics=[dict(severity=4, message=str(exc))])
-                write_json(response, part)
-                metadata_only = False
-            if part.get('worker_exception'):
-                raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']}: "
-                                   f"{part['worker_exception']}；详见 diagnostics/workers")
-            if unit["missing_defines"]:
-                if metadata_only:
-                    part = read_json(response)
+        responses = extraction_responses(root, units, cfg, worker_dir, env, tool_root, out,
+                                         cache=tu_cache, **dependency_args)
+        with closing(responses):
+            for i, (unit, response, metadata_file) in enumerate(responses):
+                role = ' [依赖]' if scope.active and unit.get('audit_role') == 'dependency' else ''
+                progress(f"Clang {i + 1}/{len(units)}{role}: {unit['source_file']}")
+                try:
+                    metadata_only = metadata_file.is_file()
+                    part = read_json(metadata_file if metadata_only else response)
+                except Exception as exc:
+                    if isinstance(exc, MemoryError):
+                        raise
+                    part = dict(parse_status="FAILED", diagnostics=[dict(severity=4, message=str(exc))])
+                    write_json(response, part)
                     metadata_only = False
-                part["parse_status"] = "FAILED"
-                part.setdefault("diagnostics", []).append(dict(severity=4, message="缺少预期宏: " + ", ".join(unit["missing_defines"])))
-                write_json(response, part)
-            unit["parse_status"] = part["parse_status"]
-            unit["diagnostics"] = part.get("diagnostics", [])
-            unit["includes"] = part.get("includes", [])
-            unit['semantic_macros_digest'] = part.get('semantic_macros_digest')
-            unit['dynamic_predefined_inputs'] = part.get('dynamic_predefined_inputs', [])
-            for variable in part.get("variables", []):
-                variable["parse_status"] = part["parse_status"]
-            all_includes.update(part.get("includes", []))
-            if isinstance(part.get('input_snapshot'), dict):
-                if _compiler_view is not None:
-                    from .working_compiler_view import verify_consumed
-                    verify_consumed(_compiler_view, root, cfg, part['input_snapshot'])
-                snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
-                if tu_cache is not None:
-                    tu_cache.store(unit, response, part)
-                    if storage is not None and part.get('parse_status')=='PARSED':
-                        storage.compress(tu_cache.folder/(tu_cache.key(unit)+'.facts'),'cache')
-            else:
-                # A timed-out/failed extraction supplies no safe facts. Keep
-                # the parse gap; final discovery still verifies its inputs.
-                unit['input_verification'] = 'NO_EXTRACTION_BUFFER_PARSE_FAILED'
-            if metadata_only:
-                parts.append_metadata(response, part)
-            else:
-                parts.append(response, part)
-            if storage is not None:
-                storage.compress(response,'worker')
-            diagnostics.completed_units = i+1
-            diagnostics.fact_counts = parts.counts
-            del part
+                if part.get('worker_exception'):
+                    raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']}: "
+                                       f"{part['worker_exception']}；详见 diagnostics/workers")
+                if unit["missing_defines"]:
+                    if metadata_only:
+                        part = read_json(response)
+                        metadata_only = False
+                    part["parse_status"] = "FAILED"
+                    part.setdefault("diagnostics", []).append(dict(severity=4, message="缺少预期宏: " + ", ".join(unit["missing_defines"])))
+                    write_json(response, part)
+                unit["parse_status"] = part["parse_status"]
+                unit["diagnostics"] = part.get("diagnostics", [])
+                unit["includes"] = part.get("includes", [])
+                unit['semantic_macros_digest'] = part.get('semantic_macros_digest')
+                unit['dynamic_predefined_inputs'] = part.get('dynamic_predefined_inputs', [])
+                for variable in part.get("variables", []):
+                    variable["parse_status"] = part["parse_status"]
+                all_includes.update(part.get("includes", []))
+                if isinstance(part.get('input_snapshot'), dict):
+                    if _compiler_view is not None:
+                        from .working_compiler_view import verify_consumed
+                        verify_consumed(_compiler_view, root, cfg, part['input_snapshot'])
+                    snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
+                    if tu_cache is not None:
+                        tu_cache.store(unit, response, part)
+                        if storage is not None and part.get('parse_status')=='PARSED':
+                            storage.compress(tu_cache.folder/(tu_cache.key(unit)+'.facts'),'cache')
+                else:
+                    # A timed-out/failed extraction supplies no safe facts. Keep
+                    # the parse gap; final discovery still verifies its inputs.
+                    unit['input_verification'] = 'NO_EXTRACTION_BUFFER_PARSE_FAILED'
+                if metadata_only:
+                    parts.append_metadata(response, part)
+                else:
+                    parts.append(response, part)
+                if storage is not None:
+                    storage.compress(response,'worker')
+                diagnostics.completed_units = i+1
+                diagnostics.fact_counts = parts.counts
+                del part
         diagnostics.stage('输入一致性验证')
         for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args):
             snapshot_inputs.observe(unit, inputs, phase='FINAL_DISCOVERY', signature=signature)
@@ -874,7 +893,12 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             frozen_files.close()
         diagnostics.close()
         if tu_cache is not None:
-            write_json(out/'diagnostics/tu_cache.json', tu_cache.stats())
+            try:
+                write_json(out/'diagnostics/tu_cache.json', tu_cache.stats())
+            except (OSError, MemoryError) as exc:
+                if not diagnostics.failed:
+                    raise
+                diagnostic_log(f'TU 缓存诊断写入失败：{exc}')
         run_info["finished"] = datetime.now(timezone.utc).isoformat()
         if not doctor_only:
             write_json(out / "run.json", run_info)

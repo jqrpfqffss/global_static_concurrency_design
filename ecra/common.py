@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -92,7 +93,7 @@ def relative(path, root):
         return p.as_posix()
 
 
-def execute(argv, *, input=None, **kwargs):
+def execute(argv, *, input=None, cancel_event=None, **kwargs):
     """No shell evaluation; kill the process tree on a timeout."""
     options = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                    encoding="utf-8", errors="replace")
@@ -104,19 +105,50 @@ def execute(argv, *, input=None, **kwargs):
         options["creationflags"] = subprocess.CREATE_NO_WINDOW
     else:
         options["start_new_session"] = True
+    def check_cancel():
+        if cancel_event is not None and cancel_event.is_set():
+            raise KeyboardInterrupt('已停止所属的翻译单元提取进程')
+
+    check_cancel()
     proc = subprocess.Popen(argv, **options)
     try:
-        out, err = proc.communicate(input=input, timeout=timeout)
-    except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
-        if os.name == "nt":
-            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
-                           capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        if cancel_event is None:
+            out, err = proc.communicate(input=input, timeout=timeout)
         else:
-            import signal
-            os.killpg(proc.pid, signal.SIGKILL)
-        # Windows reader threads often supply output only after the process is
-        # terminated. Preserve it so failed real reviews retain their evidence.
-        out, err = proc.communicate()
-        exc.output, exc.stderr = out, err
+            deadline = time.monotonic() + timeout
+            while True:
+                check_cancel()
+                remaining = deadline - time.monotonic()
+                try:
+                    out, err = proc.communicate(input=input, timeout=max(0, min(remaining, .05)))
+                    break
+                except subprocess.TimeoutExpired as exc:
+                    if time.monotonic() >= deadline:
+                        exc.timeout = timeout
+                        raise
+                    input = None  # communicate retains the original input across retries
+    except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
+        try:
+            if os.name == "nt":
+                try:
+                    if proc.poll() is None:
+                        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], timeout=3,
+                                       capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                finally:
+                    if proc.poll() is None:
+                        proc.kill()
+            else:
+                import signal
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            # Windows pipe readers may supply output only after termination.
+            exc.output, exc.stderr = proc.communicate(timeout=2)
+        except (OSError, subprocess.TimeoutExpired) as cleanup_error:
+            try:
+                print(f'进程 {proc.pid} 清理失败：{cleanup_error}', file=sys.stderr, flush=True)
+            except (OSError, ValueError):
+                pass
         raise
     return subprocess.CompletedProcess(argv, proc.returncode, out, err)

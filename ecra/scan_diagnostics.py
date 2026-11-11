@@ -6,6 +6,7 @@ import ctypes
 import json
 import os
 from pathlib import Path
+import sys
 import threading
 import time
 import traceback
@@ -15,6 +16,31 @@ from .common import write_json
 from .emergency_memory import CommitReserve, python_reserve
 
 ACTIVE = ContextVar('ecra_scan_diagnostics', default=None)
+
+
+def diagnostic_log(message):
+    try:
+        print(message, file=sys.stderr, flush=True)
+    except (OSError, ValueError):
+        pass
+
+
+def record_resource_control(record):
+    from .resource_control import EVENT_LOG
+    active = ACTIVE.get()
+    if active is not None:
+        if active.current is not None:
+            record['stage'] = active.current['stage']
+        active.resource_control = record
+        try:
+            with (active.folder / EVENT_LOG).open('a', encoding='utf-8') as stream:
+                stream.write(json.dumps(record, ensure_ascii=False) + '\n')
+        except (OSError, MemoryError) as exc:
+            diagnostic_log(f'资源调度诊断写入失败：{exc}\n{record}')
+    try:
+        (active.progress if active is not None else print)(record['message'])
+    except (OSError, ValueError) as exc:
+        diagnostic_log(f'资源调度日志写入失败：{exc}\n{record}')
 
 
 @contextmanager
@@ -104,6 +130,8 @@ class ScanDiagnostics:
         self.stop = threading.Event()
         self.sqlite_lock = threading.Lock()
         self.sqlite_connections = set()
+        self.extraction_polls_stop = False
+        self.resource_control = None
         self.reserve = python_reserve()
         self.commit_reserve = CommitReserve()
         self.failed = False
@@ -113,6 +141,21 @@ class ScanDiagnostics:
             tracemalloc.start(1)
         self.thread = threading.Thread(target=self.sample_loop, daemon=True)
         self.thread.start()
+
+    @contextmanager
+    def cooperative_extraction_stop(self):
+        # Extraction polls while waiting for admission and worker results.
+        # Avoid a second asynchronous interrupt while it reaps its workers.
+        with self.sqlite_lock:
+            self.extraction_polls_stop = True
+        try:
+            yield
+        except BaseException:
+            self.stop.set()
+            raise
+        finally:
+            with self.sqlite_lock:
+                self.extraction_polls_stop = False
 
     def sample(self):
         result = memory()
@@ -129,6 +172,8 @@ class ScanDiagnostics:
             if request and Path(request).is_file():
                 import _thread
                 with self.sqlite_lock:
+                    if self.extraction_polls_stop or self.stop.is_set():
+                        continue
                     # Queue the Python stop before SQLite can return. Doing
                     # this afterward could deliver a second interrupt while
                     # the main thread is already unwinding the SQL exception.
@@ -169,17 +214,38 @@ class ScanDiagnostics:
         self.stop.set()
         if self.fact_source is not None:
             self.fact_counts = {key: len(value) for key, value in self.fact_source.items() if isinstance(value, list)}
+        try:
+            measured = self.sample()
+        except (OSError, MemoryError) as error:
+            diagnostic_log(f'失败时的资源采样不可用：{error}')
+            measured = {}
         info = dict(origin=origin, pid=os.getpid(), exception_type=type(exc).__name__, message=str(exc),
                     stage=self.current, completed_units=self.completed_units, total_units=self.total_units,
                     pending_units=self.total_units-self.completed_units, fact_counts=self.fact_counts,
                     fact_counts_scope=self.fact_counts_scope,
-                    memory=self.sample(), peak_memory=self.peaks, snapshot_status=self.snapshot_status,
+                    memory=measured, peak_memory=self.peaks, snapshot_status=self.snapshot_status,
                     analysis_valid=False)
-        with (self.folder / 'exception.log').open('w', encoding='utf-8') as stream:
-            stream.write(json.dumps(info, ensure_ascii=False, indent=2)+'\n')
-            traceback.print_exception(type(exc), exc, exc.__traceback__, file=stream)
-        write_json(self.folder / 'exception.json', info)
-        self.finish_stage('INTERRUPTED' if isinstance(exc, KeyboardInterrupt) else 'FAILED')
+        control = getattr(exc, 'resource_control', None)
+        if isinstance(exc, KeyboardInterrupt) and (self.resource_control or {}).get('status') == 'CANCELLED':
+            control = self.resource_control
+        if control is not None:
+            info['resource_control'] = control
+        try:
+            with (self.folder / 'exception.log').open('w', encoding='utf-8') as stream:
+                stream.write(json.dumps(info, ensure_ascii=False, indent=2)+'\n')
+                traceback.print_exception(type(exc), exc, exc.__traceback__, file=stream)
+        except (OSError, MemoryError) as error:
+            diagnostic_log(f'异常堆栈写入失败：{error}\n' +
+                           ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
+        try:
+            write_json(self.folder / 'exception.json', info)
+        except (OSError, MemoryError) as error:
+            diagnostic_log(f'异常诊断写入失败：{error}\n{info}')
+        try:
+            self.finish_stage('INTERRUPTED' if isinstance(exc, KeyboardInterrupt) else 'FAILED')
+        except (OSError, MemoryError) as error:
+            self.current = None
+            diagnostic_log(f'失败阶段诊断写入失败：{error}')
 
     def close(self):
         self.reserve = None
@@ -189,11 +255,11 @@ class ScanDiagnostics:
         self.finish_stage()
         if self.fact_source is not None:
             self.fact_counts = {key: len(value) for key, value in self.fact_source.items() if isinstance(value, list)}
-        write_json(self.folder / 'memory_profile.json', dict(pid=os.getpid(), current=self.sample(), peaks=self.peaks,
-                   fact_counts=self.fact_counts, fact_counts_scope=self.fact_counts_scope,
-                   completed_units=self.completed_units, total_units=self.total_units))
-        if self.trace_owned:
-            try:
+        try:
+            write_json(self.folder / 'memory_profile.json', dict(pid=os.getpid(), current=self.sample(), peaks=self.peaks,
+                       fact_counts=self.fact_counts, fact_counts_scope=self.fact_counts_scope,
+                       completed_units=self.completed_units, total_units=self.total_units))
+            if self.trace_owned:
                 if self.failed:
                     write_json(self.folder / 'python_allocations.json', dict(
                         full_snapshot=False, reason='Failed scan: avoid copying all allocation traces during exception cleanup',
@@ -202,7 +268,12 @@ class ScanDiagnostics:
                     snapshot = tracemalloc.take_snapshot()
                     write_json(self.folder / 'python_allocations.json', [dict(trace=str(stat.traceback), bytes=stat.size,
                                count=stat.count) for stat in snapshot.statistics('lineno')[:50]])
-            finally:
+        except (OSError, MemoryError) as error:
+            if not self.failed:
+                raise
+            diagnostic_log(f'扫描诊断收尾失败：{error}')
+        finally:
+            if self.trace_owned:
                 tracemalloc.stop()
-        ACTIVE.reset(self.token)
-        self.fact_source = None
+            ACTIVE.reset(self.token)
+            self.fact_source = None
