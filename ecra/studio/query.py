@@ -3,6 +3,7 @@ from contextlib import closing
 from pathlib import Path
 
 from ..scan_store import EvidenceProvider, connect_readonly
+from ..diff_review import DELETED_IDS, DELETED_REVIEW_PREFIX, DiffReviewEvidence
 
 DIFF_CHANGE_LISTS = {
     'files': (['pin', 'files'], {'status', 'old_path', 'new_path', 'comment_only'}),
@@ -22,11 +23,24 @@ HUMAN_HEADS = """WITH current_heads AS (
  WHERE NOT EXISTS(SELECT 1 FROM current_heads c WHERE c.symbol_id=p.symbol_id))
 """
 
+BASELINE_HEADS = f"""WITH nodes AS NOT MATERIALIZED (SELECT * FROM baseline.nodes),
+ edges AS NOT MATERIALIZED (SELECT * FROM baseline.edges), records AS NOT MATERIALIZED (SELECT * FROM baseline.records),
+ symbols AS (SELECT * FROM baseline.symbols WHERE symbol_id IN ({DELETED_IDS})),
+ heads AS (
+ SELECT substr(e.symbol_id,{len(DELETED_REVIEW_PREFIX)+1}) AS symbol_id,
+ CASE WHEN count(*)>1 THEN 'CONFLICT' ELSE min(json_extract(e.payload,'$.decision')) END AS decision,
+ CASE WHEN count(*)>1 THEN 'CONFLICT' ELSE min(json_extract(e.payload,'$.handling_status')) END AS handling_status
+ FROM human.events e WHERE e.symbol_id GLOB '{DELETED_REVIEW_PREFIX}*'
+ AND NOT EXISTS(SELECT 1 FROM human.predecessors p WHERE p.parent_id=e.event_id) GROUP BY e.symbol_id)
+"""
+
 
 class QueryService:
-    def __init__(self, scan_path):
+    def __init__(self, scan_path, *, baseline=False):
         self.path = Path(scan_path)
-        self.evidence = EvidenceProvider(self.path/'scan.db')
+        self.diff_review = DiffReviewEvidence(self.path)
+        self.is_baseline = baseline
+        self.evidence = self.diff_review.require_baseline() if baseline else self.diff_review.current
 
     def _attach_human(self, conn):
         from ..review_inheritance import inherited_state
@@ -91,31 +105,48 @@ class QueryService:
             elif ai_state in {'PENDING','DONE','TECH_FAILED','STALE','RUNNING'}:
                 terms.append("EXISTS(SELECT 1 FROM finding_results f WHERE f.symbol_id=s.symbol_id AND coalesce(f.ai_state,'PENDING')=?)");args.append(ai_state)
             else:raise ValueError('OpenCode状态筛选无效')
-        if diff:
-            if diff not in {'selected','conservative','direct'}:raise ValueError('Diff筛选只接受 selected/conservative/direct')
-            try:
-                selected=self.evidence.resolve('report',['git_diff','selected_symbol_ids'])
-                conservative=self.evidence.resolve('report',['git_diff','conservative_symbol_ids'])
-            except KeyError as exc:raise ValueError('此扫描没有Git差异选择证据，不能使用Diff筛选') from exc
-            root=conservative if diff=='conservative' else selected
-            terms.append("s.symbol_id IN (SELECT CAST(n.value AS TEXT) FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=?)")
-            args.append(root)
-            if diff=='direct':
-                terms.append("s.symbol_id NOT IN (SELECT CAST(n.value AS TEXT) FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=?)")
-                args.append(conservative)
-        where = ' WHERE '+' AND '.join(terms) if terms else ''
-        # Only a service-owned, schema-validated reviews path can be attached.
-        # No arbitrary file path is accepted from an API request.
         with closing(connect_readonly(self.path/'scan.db')) as conn:
             self._attach_human(conn)
-            from .current_results import projection
-            cte=projection(HUMAN_HEADS)
-            source=' FROM current_results s'+where
-            total = conn.execute(cte+'SELECT count(*)'+source, args).fetchone()[0]
-            rows = [dict(row) for row in conn.execute(cte+'SELECT s.*'+source+' ORDER BY '+ordering+' LIMIT ? OFFSET ?',
-                [*args,limit,offset])]
+            source, values = self._result_rows(conn, terms, args, diff)
+            total = conn.execute('SELECT count(*) FROM ('+source+')', values).fetchone()[0]
+            rows = [dict(row) for row in conn.execute('SELECT s.* FROM ('+source+') s ORDER BY '+ordering+',s.evidence_side LIMIT ? OFFSET ?',
+                [*values,limit,offset])]
         return dict(total=total,items=rows,offset=offset,sort=sort,order=order,
             next_offset=offset+len(rows) if offset+len(rows)<total else None)
+
+    def _result_rows(self, conn, terms, args, diff):
+        from .current_results import projection
+        if diff not in {'', 'selected', 'direct', 'conservative', 'changes', 'deleted'}:
+            raise ValueError('Git 差异筛选范围无效')
+        def rows(cte, side, filters):
+            where = ' WHERE '+' AND '.join(filters) if filters else ''
+            return f"SELECT * FROM ({cte} SELECT s.*, '{side}' AS evidence_side FROM current_results s{where})"
+
+        sources, values = [], []
+        if diff != 'deleted':
+            filters, current_args = list(terms), list(args)
+            if diff:
+                try:
+                    key = 'conservative_symbol_ids' if diff=='conservative' else 'selected_symbol_ids'
+                    root = self.evidence.resolve('report',['git_diff',key])
+                    filters.append("s.symbol_id IN (SELECT CAST(n.value AS TEXT) FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=?)")
+                    current_args.append(root)
+                    if diff=='direct':
+                        conservative = self.evidence.resolve('report',['git_diff','conservative_symbol_ids'])
+                        filters.append("s.symbol_id NOT IN (SELECT CAST(n.value AS TEXT) FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=?)")
+                        current_args.append(conservative)
+                except KeyError as exc:
+                    raise ValueError('此扫描没有 Git 差异选择证据') from exc
+            sources.append(rows(projection(HUMAN_HEADS), 'current', filters))
+            values.extend(current_args)
+        if diff in {'changes', 'deleted'}:
+            baseline = self.diff_review.require_baseline() if diff=='deleted' else self.diff_review.baseline()
+            if baseline is not None:
+                conn.execute('ATTACH DATABASE ? AS baseline', (baseline.path.as_uri()+'?mode=ro',))
+                sources.append(rows(projection(BASELINE_HEADS, include_ai=False), 'baseline', terms))
+                values.extend([self.diff_review.deleted_node(), *args])
+        return ' UNION ALL '.join(sources), values
+
 
     def diff_summary(self):
         try:node=self.evidence.resolve('report',['git_diff'])
@@ -132,6 +163,8 @@ class QueryService:
                 result['file_count'] = pin['files']['total']
         if fields.get('deleted_variables', {}).get('kind') == 'list':
             result['deleted_variable_count'] = fields['deleted_variables']['total']
+            if result['deleted_variable_count']:
+                result['deleted_evidence_available'] = self.diff_review.baseline() is not None
         if fields.get('fallback_reasons', {}).get('kind') == 'list':
             result['fallback_reasons'] = [row['value'] for row in self.evidence.node(fields['fallback_reasons']['id'], limit=20)['items']
                                           if row.get('value')]
@@ -152,11 +185,12 @@ class QueryService:
             items.append(dict(values, node=item['id'], ordinal=item['ordinal']))
         return dict(items=items, total=page['total'], offset=offset, next_offset=page['next_offset'])
 
-    def current_summary(self):
+    def current_summary(self, *, diff=''):
         from .current_results import summary
         with closing(connect_readonly(self.path/'scan.db')) as conn:
             self._attach_human(conn)
-            return summary(conn,HUMAN_HEADS)
+            source, args = self._result_rows(conn, [], [], diff)
+            return summary(conn, source, args, include_static=bool(diff))
 
     def human_counts(self):return self.current_summary()['human_counts']
 
@@ -168,11 +202,11 @@ class QueryService:
 
     def symbol_ai(self,symbol_id,*,offset=0,limit=20):
         import json
-        from .current_results import AI_CTE
+        from .current_results import AI_CTE, EMPTY_AI
         self.evidence._bounds(offset,limit)
-        with closing(connect_readonly(self.path/'scan.db')) as conn:
+        with closing(connect_readonly(self.evidence.path)) as conn:
             self._attach_human(conn)
-            cte='WITH '+AI_CTE+", labels AS (SELECT CAST(n.value AS TEXT) AS finding_id,f.ordinal FROM records f JOIN edges e ON e.parent=f.node AND e.key='finding_id' JOIN nodes n ON n.id=e.child WHERE f.dataset='report' AND f.relation IN ('findings','review_safe_samples') AND f.symbol_id=? GROUP BY n.value) "
+            cte='WITH '+(EMPTY_AI if self.is_baseline else AI_CTE)+", labels AS (SELECT CAST(n.value AS TEXT) AS finding_id,f.ordinal FROM records f JOIN edges e ON e.parent=f.node AND e.key='finding_id' JOIN nodes n ON n.id=e.child WHERE f.dataset='report' AND f.relation IN ('findings','review_safe_samples') AND f.symbol_id=? GROUP BY n.value) "
             source=' FROM labels l LEFT JOIN ai_verdicts a ON a.finding_id=l.finding_id'
             total=conn.execute(cte+'SELECT count(*)'+source,[symbol_id]).fetchone()[0]
             rows=[]
@@ -182,7 +216,7 @@ class QueryService:
 
     def symbol_functions(self, symbol_id, *, offset=0, limit=50):
         self.evidence._bounds(offset,limit)
-        with closing(connect_readonly(self.path/'scan.db')) as conn:
+        with closing(connect_readonly(self.evidence.path)) as conn:
             where="dataset='facts' AND relation='accesses' AND symbol_id=? AND function_id IS NOT NULL"
             total=conn.execute('SELECT count(DISTINCT function_id) FROM records WHERE '+where,(symbol_id,)).fetchone()[0]
             functions=[row[0] for row in conn.execute('SELECT function_id FROM records WHERE '+where+

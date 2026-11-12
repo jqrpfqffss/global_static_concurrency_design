@@ -149,6 +149,7 @@ class _Inputs:
         facts = dict(
             functions=self.rows('facts', 'functions', required=True, fields=(
                 'function_id', 'translation_unit', 'semantic_digest', 'consumed_macros_digest',
+                'non_call_digest', 'standalone_calls',
                 'return_type_kind', 'name', 'file', 'line')),
             calls=self.rows('facts', 'calls', required=True, fields=(
                 'caller_function_id', 'callee_function_id', 'callee_name', 'result_used')),

@@ -142,12 +142,15 @@ class ReviewStore:
     def inherit_from(self, previous, old_provider, new_provider):
         """Keep original events; derive inheritance only from complete evidence."""
         import hashlib
+        from .diff_review import DELETED_REVIEW_PREFIX
         from .review_inheritance import input_witness, verify_witness, validate_prior, validate_lineage
         if previous.binding['project_id']!=self.binding['project_id']:
             raise ValueError('不能关联其他工程的人工历史')
         old={}
         with previous.connection() as conn:
             for (symbol,) in conn.execute('SELECT DISTINCT symbol_id FROM events ORDER BY symbol_id'):
+                if symbol.startswith(DELETED_REVIEW_PREFIX):
+                    continue  # The decision applies to the deletion in its original comparison.
                 fingerprint=old_provider.fingerprint(symbol)
                 heads=previous._heads(conn,symbol,fingerprint)
                 has_prior=conn.execute('SELECT 1 FROM prior_decisions WHERE symbol_id=?',(symbol,)).fetchone()

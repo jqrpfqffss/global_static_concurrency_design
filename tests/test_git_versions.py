@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from ecra.git_diff import pin, settings
 from ecra.studio.git_versions import inspect_versions
 from ecra.studio.server import create_app
 
@@ -52,6 +53,20 @@ class GitVersionTests(unittest.TestCase):
         before=self.files();value=self.read(base_ref='HEAD^')
         self.assertEqual(value['dirty'],dict(staged=1,unstaged=1,untracked=1,conflicted=0))
         self.assertFalse(value['include_uncommitted']);self.assertEqual(self.files(),before)
+
+    def test_short_branch_matches_unique_local_leaf_and_exact_branch_wins(self):
+        self.git('branch', 'ecra/team/diff-baseline', self.base)
+        cfg = dict(analysis=dict(git_diff=settings(dict(enabled=True, base_ref='diff-baseline'))))
+        self.assertEqual(pin(self.repo, cfg)['base_sha'], self.base)
+        self.assertEqual(self.read(base_ref='diff-baseline')['base_sha'], self.base)
+        self.git('branch', 'other/diff-baseline', self.head)
+        with self.assertRaisesRegex(ValueError, '多个匹配'):
+            self.read(base_ref='diff-baseline')
+        with self.assertRaisesRegex(ValueError, '多个匹配'):
+            pin(self.repo, cfg)
+        self.assertEqual(self.read(base_ref='ecra/team/diff-baseline')['base_sha'], self.base)
+        self.git('branch', 'diff-baseline', self.head)
+        self.assertEqual(pin(self.repo, cfg)['base_sha'], self.head)
 
     def test_bad_ref_arguments_no_git_and_source_overlap_fail_without_source_write(self):
         before=self.files()

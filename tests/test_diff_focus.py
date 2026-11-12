@@ -34,6 +34,18 @@ class DiffFocusTests(unittest.TestCase):
         self.assertEqual(self.selected(facts, report), {'changed'})
         self.assertEqual(len(facts['variables']), 2)
 
+    def test_removed_probe_calls_do_not_include_unchanged_sibling_accesses(self):
+        source = '''int kept; void Keep(int *out){*out=1;}
+            int main(void){Keep(&kept);return 0;}'''
+        before = source.replace('return 0;', 'Probe();return 0;')
+        before = '''static int deleted;
+            void Probe(void){deleted++;}
+            void USART2_IRQHandler(void){Probe();}
+            ''' + before
+        facts, report = self.delta({'a.c': before}, {'a.c': source})
+        self.assertEqual(self.selected(facts, report), set())
+        self.assertEqual([row['name'] for row in report['git_diff']['deleted_variables']], ['deleted'])
+
     def test_unrelated_unknown_does_not_turn_all_variables_into_differences(self):
         source = '''int changed,unrelated;void Opaque(void);
             void Update(void){changed=1;}void Other(void){Opaque();unrelated++;}

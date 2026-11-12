@@ -27,11 +27,14 @@ ai_verdicts AS (SELECT *,CASE WHEN state='DONE' THEN json_extract(payload,'$.sta
 """
 
 
-def projection(human_heads):
+EMPTY_AI = "ai_verdicts AS (SELECT NULL AS finding_id,NULL AS state,NULL AS payload,NULL AS verdict WHERE 0)"
+
+
+def projection(human_heads, *, include_ai=True):
     # Match decisions.effective_decision: NEED_MORE_CONTEXT is a completed AI
     # answer, but cannot refute a static conflict. Keep it available in the AI
     # view while attributing the effective fallback to the static evidence.
-    return human_heads.rstrip()+', '+AI_CTE+""",
+    return human_heads.rstrip()+', '+(AI_CTE if include_ai else EMPTY_AI)+""",
 symbol_attributes AS (
  SELECT """+symbol_columns_sql('s',provenance=True)+""",max(CASE e.key WHEN 'coverage_source' THEN CAST(n.value AS TEXT) END) AS coverage_source,
  max(CASE e.key WHEN 'parse_status' THEN CAST(n.value AS TEXT) END) AS parse_status,
@@ -91,19 +94,24 @@ def revision(conn):
     return ':'.join(map(str,row))
 
 
-def summary(conn,human_heads):
+def summary(conn, source, args, *, include_static=False):
     # Aggregate the small, bounded set of enum combinations in one pass. Never
     # reconstruct a scan or run the expensive read-only projection per counter.
-    counts,human,raw,safe_sources={},{},{},{}
+    counts,human,raw,safe_sources,static={},{},{},{},{}
     pending=derived_count=0
-    rows=conn.execute(projection(human_heads)+'''SELECT current_result,confirmation_state,
-        human_record_decision,result_source,needs_human_confirmation,count(*),sum(static_classification_derived) FROM current_results
-        GROUP BY current_result,confirmation_state,human_record_decision,result_source,needs_human_confirmation''')
-    for result,confirmation,record,source,needs,count,derived in rows:
+    rows=conn.execute('''SELECT current_result,confirmation_state,human_record_decision,result_source,
+        needs_human_confirmation,count(*),sum(static_classification_derived),static_classification
+        FROM ('''+source+''') GROUP BY current_result,confirmation_state,human_record_decision,result_source,
+        needs_human_confirmation,static_classification''', args)
+    for result,confirmation,record,origin,needs,count,derived,classification in rows:
         for mapping,key in ((counts,result),(human,confirmation),(raw,record)):
             mapping[key]=mapping.get(key,0)+count
         pending+=needs*count
         derived_count+=derived
-        if result=='SAFE':safe_sources[source]=safe_sources.get(source,0)+count
-    return dict(result_counts=counts,human_counts=human,raw_human_counts=raw,pending_count=pending,
+        if result=='SAFE':safe_sources[origin]=safe_sources.get(origin,0)+count
+        static[classification]=static.get(classification,0)+count
+    result=dict(result_counts=counts,human_counts=human,raw_human_counts=raw,pending_count=pending,
                 safe_sources=safe_sources,result_revision=revision(conn),derived_static_classification_count=derived_count)
+    if include_static:
+        result.update(static_counts=static,total=sum(static.values()))
+    return result

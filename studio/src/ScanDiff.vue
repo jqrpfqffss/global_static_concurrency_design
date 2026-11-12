@@ -9,6 +9,7 @@ type Diff = {
   pin?: {base_ref?: string, base_sha?: string, current_ref?: string, head_sha?: string, include_uncommitted?: boolean}
   file_count?: number
   deleted_variable_count?: number
+  deleted_evidence_available?: boolean
   selected_symbol_ids_count: number
   conservative_symbol_ids_count: number
   impact_coverage?: string
@@ -18,7 +19,7 @@ type Change = {
   ordinal: number, node: number, status?: string, old_path?: string, new_path?: string,
   comment_only?: boolean, name?: string, symbol_id?: string
 }
-const props = defineProps<{scan: string, diff: Diff, total: number, compact?: boolean, busy: boolean}>()
+const props = defineProps<{scan: string, diff: Diff, compact?: boolean, busy: boolean}>()
 const emit = defineEmits<{impacts: []}>()
 const open = ref(false), kind = ref<'files' | 'deleted'>('files'), offset = ref(0)
 const page = ref<{items: Change[], total: number, next_offset: number | null} | null>(null)
@@ -31,15 +32,20 @@ const direction = computed(() => {
 })
 const counts = computed(() => [
   `变更文件 ${props.diff.file_count ?? '未记录'}`,
-  `受影响变量 ${props.diff.selected_symbol_ids_count} / ${props.total}`,
+  `当前差异变量 ${props.diff.selected_symbol_ids_count}`,
   `已删除变量 ${props.diff.deleted_variable_count ?? '未记录'}`,
   `保守潜在影响 ${props.diff.conservative_symbol_ids_count}`,
 ].join(' · '))
 const changeCount = computed(() => kind.value === 'files' ? props.diff.file_count : props.diff.deleted_variable_count)
+const hasReviewableChanges = computed(() => Boolean(props.diff.selected_symbol_ids_count || props.diff.deleted_evidence_available))
 const statuses: Record<string, string> = {A: '新增', M: '修改', D: '删除', R: '重命名', C: '复制', T: '类型变更', '?': '未跟踪'}
 function choose(value: typeof kind.value) {
   kind.value = value
   offset.value = 0
+}
+function openDetails(value: typeof kind.value = props.diff.selected_symbol_ids_count === 0 && props.diff.deleted_variable_count ? 'deleted' : 'files') {
+  choose(value)
+  open.value = true
 }
 watch([open, kind, offset, retry], async (_, __, onCleanup) => {
   page.value = null
@@ -67,23 +73,24 @@ function showImpacts() {
 <template>
   <div v-if="compact" class="diff-strip">
     <span :title="`${direction} · ${counts}`">Git 差异 · {{ direction }} · {{ counts }}</span>
-    <button @click="open=true">查看差异结果</button>
+    <button @click="openDetails()">查看差异结果</button>
   </div>
   <section v-else class="panel" aria-label="Git 差异扫描">
     <h2>Git 差异扫描</h2>
     <p class="identity">{{ direction }}</p>
     <p>{{ counts }}</p>
     <div class="actions">
-      <button @click="open=true">查看差异结果</button>
-      <button :disabled="busy" @click="showImpacts">查看受影响变量</button>
+      <button @click="openDetails()">查看差异结果</button>
+      <button v-if="hasReviewableChanges" :disabled="busy" @click="showImpacts">查看差异变量</button>
     </div>
   </section>
   <WorkspaceDialog v-if="open" title="Git 差异结果" :error="error" @close="open=false">
     <p class="identity" :title="`${diff.pin?.base_sha ?? ''} → ${diff.pin?.head_sha ?? ''}`">{{ direction }}</p>
     <p v-if="diff.pin?.include_uncommitted">当前版本包含扫描时固定的未提交输入。</p>
     <p>{{ counts }}</p>
+    <p v-if="diff.deleted_variable_count && !diff.deleted_evidence_available">此归档缺少基准数据库。重新扫描后可在工作台查看删除变量的完整证据并人工确认。</p>
     <template v-if="diff.fallback_reasons?.length">
-      <h3>扩大分析范围的原因</h3>
+      <h3>差异覆盖限制</h3>
       <ul><li v-for="reason in diff.fallback_reasons" :key="reason">{{ reason }}</li></ul>
     </template>
     <div class="section-tabs" aria-label="差异明细">
@@ -114,7 +121,7 @@ function showImpacts() {
     <EvidenceNode :scan="scan" :node="diff.node" title="完整 Git 差异证据"/>
     <template #footer>
       <span>{{ diff.impact_coverage === 'COMPLETE' ? '影响闭包记录完整' : '存在未排除的潜在影响' }}</span>
-      <button :disabled="busy" @click="showImpacts">查看受影响变量</button>
+      <button v-if="hasReviewableChanges" :disabled="busy" @click="showImpacts">查看差异变量</button>
     </template>
   </WorkspaceDialog>
 </template>

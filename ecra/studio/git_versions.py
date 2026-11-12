@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import os
 
-from ..git_diff import git
+from ..git_diff import git, resolve_revision
 from ..workspace import no_links
 
 
@@ -43,16 +43,7 @@ def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', inc
     def text(*args, codes=(0,)):
         return git(root, *args, _returncodes=codes).decode('utf-8', 'strict').strip()
     def resolve(value):
-        if not isinstance(value, str) or len(value) > 4096 or '\0' in value:
-            raise ValueError('Git 引用格式无效')
-        if not value:
-            return None
-        if value != value.strip() or value.startswith('-'):
-            raise ValueError('Git 引用不能含首尾空白或以减号开头')
-        result = text('rev-parse', '--verify', '--quiet', '--end-of-options', value+'^{commit}', codes=(0, 1))
-        if not result:
-            raise ValueError('Git 引用不能解析为提交：'+value+'；请检查本地分支、标签或完整 SHA，不自动联网获取。')
-        return result
+        return None if value == '' else resolve_revision(root, value)
     items = []; total = 0
     with tempfile.TemporaryFile(dir=work) as output:
         git(root, 'for-each-ref', '--format=%(refname)%00%(objectname)%00%(objecttype)%00%(symref)',

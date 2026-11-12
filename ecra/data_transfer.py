@@ -17,6 +17,7 @@ import sqlite3
 import uuid
 
 from .common import write_json
+from .diff_review import DiffReviewEvidence
 from .storage_activity import DataActivity
 from .workspace import no_links, studio_data_root
 
@@ -221,7 +222,7 @@ def _validate_copy(stage):
             check=Path(folder)/'reviews.db';store=ReviewStore(check,binding)
             copy_prior_decisions(path.parent/'reviews.db',check,provider)
             copy_ai_receipts(path.parent/'reviews.db',check)
-            store.merge(events,fingerprint_for=provider.fingerprint)
+            store.merge(events,fingerprint_for=DiffReviewEvidence(path.parent, provider).fingerprint)
 
 
 def _rebind(stage,source,target):

@@ -185,6 +185,22 @@ def _create_app(data_root, *, token, authority, startup):
         binding = provider.metadata()
         return provider, ReviewStore(path/'reviews.db', binding, device=device)
 
+    def evidence_query(scan_id):
+        from .query import QueryService
+        baseline = scan_id.endswith('~base')
+        return QueryService(scan_path(scan_id.removesuffix('~base')), baseline=baseline)
+
+    def review_subject(scan_id, symbol):
+        from ..diff_review import DELETED_REVIEW_PREFIX
+        query = evidence_query(scan_id)
+        _, reviews = stores(scan_id.removesuffix('~base'))
+        if query.is_baseline:
+            query.diff_review.require_deleted(symbol)
+            symbol_key = DELETED_REVIEW_PREFIX+symbol
+        else:
+            symbol_key = symbol
+        return query.evidence, reviews, symbol_key, query.evidence.fingerprint(symbol)
+
     def degraded_legacy(provider):
         try:
             return provider.node(provider.resolve('provenance', ['legacy_degraded'])).get('value') is True
@@ -290,7 +306,9 @@ def _create_app(data_root, *, token, authority, startup):
         provider, reviews = stores(scan_id)
         counts = provider.counts()
         from .query import QueryService
-        current=QueryService(scan_path(scan_id)).current_summary()
+        query=QueryService(scan_path(scan_id))
+        current=query.current_summary()
+        diff=query.diff_summary()
         total = sum(counts.values())
         binding = provider.metadata()
         mode = 'OFFLINE_ARCHIVE'
@@ -313,7 +331,7 @@ def _create_app(data_root, *, token, authority, startup):
                     identity=scan_identity(provider),
                     counting_basis='完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。',
                     mode=mode,legacy_warning=legacy_warning,evidence_notice=evidence_notice,legacy_degraded=degraded,can_confirm=not degraded,
-                    diff=QueryService(scan_path(scan_id)).diff_summary(),
+                    diff=diff,diff_results=query.current_summary(diff='changes') if diff is not None else None,
                     can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
     @app.get('/api/scans/{scan_id}/diff-changes')
@@ -377,12 +395,20 @@ def _create_app(data_root, *, token, authority, startup):
                 handling_status: str='',file: str='',function: str='',context: str='',coverage: str='',ai_state: str='',
                 current_result: str='',review_scope: str='all',diff: str='',symbol_id: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
         from .query import QueryService
+        from ..diff_review import DELETED_REVIEW_PREFIX
         provider, reviews = stores(scan_id)
-        page = QueryService(scan_path(scan_id)).symbols(search=search, classification=classification,
+        query = QueryService(scan_path(scan_id))
+        page = query.symbols(search=search, classification=classification,
             human_decision=human_decision,handling_status=handling_status,file=file,function=function,context=context,
             coverage=coverage,ai_state=ai_state,current_result=current_result,review_scope=review_scope,diff=diff,symbol_id=symbol_id,sort=sort,order=order,offset=offset,limit=limit)
+        baseline = None
         for item in page['items']:
-            item['human'] = reviews.current(item['symbol_id'], provider.fingerprint(item['symbol_id']))
+            symbol = item['symbol_id']
+            if item['evidence_side']=='baseline':
+                baseline = baseline or query.diff_review.require_baseline()
+                item['human'] = reviews.current(DELETED_REVIEW_PREFIX+symbol, baseline.fingerprint(symbol))
+            else:
+                item['human'] = reviews.current(symbol, provider.fingerprint(symbol))
         return page
 
     @app.get('/api/scans/{scan_id}/result-revision')
@@ -392,17 +418,18 @@ def _create_app(data_root, *, token, authority, startup):
 
     @app.get('/api/scans/{scan_id}/symbol-ai')
     def symbol_ai(scan_id: str,symbol_id: str,offset: int=0,limit: int=20):
-        from .query import QueryService
-        return QueryService(scan_path(scan_id)).symbol_ai(symbol_id,offset=offset,limit=limit)
+        return evidence_query(scan_id).symbol_ai(symbol_id,offset=offset,limit=limit)
 
     @app.get('/api/scans/{scan_id}/symbol')
     def exact_symbol(scan_id: str, symbol_id: str):
         from .query import QueryService
-        provider,reviews=stores(scan_id)
-        page=QueryService(scan_path(scan_id)).symbols(symbol_id=symbol_id,limit=1)
-        if not symbol_id or not page['items']:raise ValueError('当前归档未记录该规范身份；不能据此解释为无影响')
+        if not symbol_id:raise ValueError('对象身份不能为空')
+        baseline = scan_id.endswith('~base')
+        page=QueryService(scan_path(scan_id.removesuffix('~base'))).symbols(symbol_id=symbol_id,limit=1,diff='deleted' if baseline else '')
+        if not page['items']:raise ValueError('当前归档未记录该规范身份；不能据此解释为无影响')
+        _, reviews, symbol_key, fingerprint = review_subject(scan_id, symbol_id)
         item=page['items'][0]
-        item['human']=reviews.current(symbol_id,provider.fingerprint(symbol_id))
+        item['human']=reviews.current(symbol_key,fingerprint)
         return item
 
     def coverage_service(scan_id):
@@ -446,31 +473,29 @@ def _create_app(data_root, *, token, authority, startup):
     @app.get('/api/scans/{scan_id}/records/{relation}')
     def records(scan_id: str, relation: str, dataset: str='facts', symbol_id: str|None=None,
                 function_id: str|None=None, source_id: str|None=None, target_id: str|None=None, offset: int=0, limit: int=50):
-        provider = EvidenceProvider(scan_path(scan_id)/'scan.db')
+        provider = evidence_query(scan_id).evidence
         return provider.records(relation, dataset=dataset, symbol_id=symbol_id, function_id=function_id,
                                 source_id=source_id, target_id=target_id, offset=offset, limit=limit)
 
     @app.get('/api/scans/{scan_id}/symbol-functions')
     def symbol_functions(scan_id: str, symbol_id: str, offset: int=0, limit: int=50):
-        from .query import QueryService
-        return QueryService(scan_path(scan_id)).symbol_functions(symbol_id,offset=offset,limit=limit)
+        return evidence_query(scan_id).symbol_functions(symbol_id,offset=offset,limit=limit)
 
     @app.get('/api/scans/{scan_id}/call-neighbors')
     def call_neighbors(scan_id: str, function_id: str, direction: str='upstream', offset: int=0, limit: int=50):
-        from .query import QueryService
-        return QueryService(scan_path(scan_id)).call_neighbors(function_id,direction=direction,offset=offset,limit=limit)
+        return evidence_query(scan_id).call_neighbors(function_id,direction=direction,offset=offset,limit=limit)
 
     @app.get('/api/scans/{scan_id}/nodes/{node_id}')
     def node(scan_id: str, node_id: int, offset: int=0, limit: int=50):
-        return EvidenceProvider(scan_path(scan_id)/'scan.db').node(node_id, offset=offset, limit=limit)
+        return evidence_query(scan_id).evidence.node(node_id, offset=offset, limit=limit)
 
     @app.get('/api/scans/{scan_id}/text/{node_id}')
     def text(scan_id: str, node_id: int, offset: int=0, limit: int=8192):
-        return EvidenceProvider(scan_path(scan_id)/'scan.db').text(node_id, offset=offset, limit=limit)
+        return evidence_query(scan_id).evidence.text(node_id, offset=offset, limit=limit)
 
     @app.get('/api/scans/{scan_id}/source')
     def source(scan_id: str, file: str):
-        return EvidenceProvider(scan_path(scan_id)/'scan.db').archived_source(file)
+        return evidence_query(scan_id).evidence.archived_source(file)
 
     @app.get('/api/scans/{scan_id}/legacy-files')
     def legacy_files_page(scan_id: str, offset: int=0, limit: int=50):
@@ -522,22 +547,19 @@ def _create_app(data_root, *, token, authority, startup):
     @app.get('/api/scans/{scan_id}/source-window')
     def source_lines(scan_id: str,file: str,line: int=1,before: int=10,after: int=30):
         from .source_view import source_window
-        return source_window(EvidenceProvider(scan_path(scan_id)/'scan.db'),file,line=line,before=before,after=after)
+        return source_window(evidence_query(scan_id).evidence,file,line=line,before=before,after=after)
 
     @app.get('/api/scans/{scan_id}/human')
     def human(scan_id: str, symbol_id: str):
-        provider, reviews = stores(scan_id)
-        fingerprint = provider.fingerprint(symbol_id)
-        return dict(fingerprint=fingerprint, **reviews.current(symbol_id, fingerprint), history=reviews.history(symbol_id),
-                    prior_reviews=reviews.prior(symbol_id,fingerprint))
+        _, reviews, symbol, fingerprint = review_subject(scan_id, symbol_id)
+        return dict(fingerprint=fingerprint, **reviews.current(symbol, fingerprint), history=reviews.history(symbol),
+                    prior_reviews=reviews.prior(symbol,fingerprint))
 
     @app.post('/api/scans/{scan_id}/human')
     def save_human(scan_id: str, payload: dict):
-        provider, reviews = stores(scan_id)
+        provider, reviews, symbol, fingerprint = review_subject(scan_id, payload['symbol_id'])
         if degraded_legacy(provider):
             raise ValueError('未验证原件归档没有可信变量证据，不能保存当前人工结论；请查看原文件或导入完整结果')
-        symbol = payload['symbol_id']
-        fingerprint = provider.fingerprint(symbol)
         if payload.get('fingerprint') != fingerprint:
             raise ValueError('确认依据不是当前完整证据，请重新打开变量')
         arguments = dict(reviewer=payload['reviewer'], comment=payload.get('comment', ''), expected_heads=payload.get('expected_heads', []))

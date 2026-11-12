@@ -33,6 +33,7 @@ async function read(at=0){
     </template>
     <label>Diff 基准 ref（空表示全量）<input :value="baseRef" :disabled="loading" @input="choose($event,'baseRef')"></label>
     <label>当前 ref<input :value="currentRef" :disabled="loading" @input="choose($event,'currentRef')"></label>
+    <p class="muted">填写分支名即可，例如 <code>main</code>。带前缀的本地分支可以填写唯一的末段名称。</p>
     <label class="dirty-input-option"><input type="checkbox" :checked="includeUncommitted" :disabled="loading" @change="emit('update:includeUncommitted',($event.target as HTMLInputElement).checked)">纳入当前工作区未提交输入</label>
     <p v-if="includeUncommitted&&!baseRef" role="alert">当前未启用Diff，将固定当前工作区进行全量扫描。{{ buildMode==='cmake' ? 'CMake要求Windows/Ninja外置构建；实际生成输入和SDK须通过完整固定检查。' : '实际编译输入以数据库为准。' }}</p>
     <p v-if="includeUncommitted&&currentRef!=='HEAD'&&!error" role="alert">纳入未提交输入仅适用于当前 ref 为 HEAD；请改为 HEAD，或取消此选项进行固定提交比较。</p>

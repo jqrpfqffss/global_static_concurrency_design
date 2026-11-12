@@ -12,6 +12,7 @@ import tempfile
 import zipfile
 
 from .human_reviews import ReviewStore
+from .diff_review import DiffReviewEvidence
 from .scan_store import EvidenceProvider, connect_readonly, schema_for_version, SUPPORTED_VERSIONS
 from .workspace import no_links
 from .storage_activity import guarded_operation, scan_data_root
@@ -256,7 +257,7 @@ def export_report(scan_directory, destination, *, compression='compact'):
         # Validate all original immutable events in a fresh trusted schema.
         check = ReviewStore(stage/'check.db', binding)
         copy_prior_decisions(stage/'reviews.db',stage/'check.db',provider)
-        check.merge(events, fingerprint_for=provider.fingerprint)
+        check.merge(events, fingerprint_for=DiffReviewEvidence(source, provider).fingerprint)
         copy_ai_receipts(stage/'reviews.db', stage/'check.db')
         files = {'scan.db': stage/'scan.db', 'reviews.db': stage/'reviews.db'}
         evidence = source/'evidence'
@@ -268,6 +269,9 @@ def export_report(scan_directory, destination, *, compression='compact'):
                 if not item.is_file() or sha256(item) != item.name:
                     raise ValueError('归档证据对象损坏')
                 files[name] = item
+        baseline = DiffReviewEvidence(source, provider).baseline()
+        if baseline is not None and baseline.path.name == 'scan.db':
+            files['evidence/'+baseline.path.parent.name] = baseline.path
         manifest = dict(format='ECRA_REPORT', version=1, schema_version=schema_version,
             scan_id=binding['scan_id'], project_id=binding['project_id'], facts_hash=binding['facts_hash'],
             report_hash=binding['report_hash'], capabilities=['archived_evidence', 'human_decisions'],
@@ -377,7 +381,7 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
         # a writable connection. Imported SQL/triggers are never executed.
         clean = ReviewStore(stage/'clean-reviews.db', binding)
         copy_prior_decisions(stage/'reviews.db',stage/'clean-reviews.db',provider)
-        clean.merge(events, fingerprint_for=provider.fingerprint)
+        clean.merge(events, fingerprint_for=DiffReviewEvidence(stage, provider).fingerprint)
         copy_ai_receipts(stage/'reviews.db', stage/'clean-reviews.db')
         (stage/'reviews.db').unlink()
         (stage/'clean-reviews.db').replace(stage/'reviews.db')
@@ -407,7 +411,7 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
                 with store.connection() as conn:
                     copy_ai_receipts(stage/'reviews.db',destination/'reviews.db',_connection=conn)
                     copy_prior_decisions(stage/'reviews.db',destination/'reviews.db',provider,_connection=conn)
-                    imported=store.merge(events,fingerprint_for=provider.fingerprint,_connection=conn)
+                    imported=store.merge(events,fingerprint_for=DiffReviewEvidence(destination).fingerprint,_connection=conn)
                     from .common import write_json
                     write_json(manifest_path,local)
             except BaseException:
@@ -441,7 +445,7 @@ def export_delta(scan_directory, destination):
         check=ReviewStore(Path(folder)/'reviews.db',binding)
         with check.connection() as conn:
             copy_prior_rows(payload.get('prior_decisions',[]),conn,provider)
-            check.merge(events,fingerprint_for=provider.fingerprint,_connection=conn)
+            check.merge(events,fingerprint_for=DiffReviewEvidence(source, provider).fingerprint,_connection=conn)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ecra delta ', dir=destination.parent) as folder:
         temp = Path(folder)/'delta.pending'
@@ -465,5 +469,5 @@ def import_delta(package, scan_directory, *, max_bytes=256*1024**2):
     store=ReviewStore(Path(scan_directory)/'reviews.db', binding)
     with store.connection() as conn:
         copy_prior_rows(payload.get('prior_decisions',[]),conn,provider)
-        imported=store.merge(payload['events'],fingerprint_for=provider.fingerprint,_connection=conn)
+        imported=store.merge(payload['events'],fingerprint_for=DiffReviewEvidence(scan_directory, provider).fingerprint,_connection=conn)
     return dict(imported_events=imported, scan_id=binding['scan_id'])

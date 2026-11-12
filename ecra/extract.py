@@ -633,6 +633,8 @@ class Extractor:
     def function_body(self, fn):
         fid = self.fid(fn)
         snapshots = {}
+        standalone_calls = {}
+        function_file = str(fn.extent.start.file)
         all_nodes = list(walk(fn))
         # A deliberately small value-flow model: unchanged scalar parameters
         # may be forwarded to another call or stored. Never infer this from
@@ -766,6 +768,10 @@ class Extractor:
                 if not direct:
                     self.issue("INDIRECT_CALL", c, fid)
                 args = list(c.get_arguments())
+                if (direct and not args and c.type.get_canonical().kind.name == 'VOID'
+                        and ancestors and ancestors[-1][0].kind.name == 'COMPOUND_STMT'
+                        and str(c.extent.start.file) == function_file):
+                    standalone_calls[c.extent.start.offset] = (name, callee)
                 values = [dict(argument_index=i, **source) for i, arg in enumerate(args)
                           if (source := value_source(arg)) is not None]
                 if direct and values:
@@ -874,10 +880,31 @@ class Extractor:
             for i, ch in enumerate(c.get_children()):
                 visit(ch, ancestors + [(c, i)])
         visit(fn, [])
+        if standalone_calls:
+            self.record_standalone_calls(fn, fid, standalone_calls)
         from .controlflow import build_cfg
         self.control_flow.append(build_cfg(self, fn))
         from .nvic_extract import program
         self.nvic_programs.append(program(self, fn))
+
+    def record_standalone_calls(self, fn, fid, sites):
+        # Keep the surrounding tokens as a proof that the other statements,
+        # including branch guards, are identical. Only elide literal calls
+        # matching their AST target and complete statement extent.
+        stream = [(t.location.offset, t.spelling) for t in fn.get_tokens() if t.kind.name != 'COMMENT']
+        remaining, calls = [], []
+        index = 0
+        while index < len(stream):
+            offset, spelling = stream[index]
+            site = sites.get(offset)
+            if site and [token for _, token in stream[index:index+4]] == [site[0], '(', ')', ';']:
+                calls.append([len(remaining), site[1]])
+                index += 4
+            else:
+                remaining.append(spelling)
+                index += 1
+        if calls:
+            self.functions[fid].update(non_call_digest=digest(remaining), standalone_calls=calls)
 
     def run(self):
         from .scan_diagnostics import start_stage

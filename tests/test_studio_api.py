@@ -13,6 +13,66 @@ from ecra.studio.server import create_app
 
 
 class StudioAPITests(unittest.TestCase):
+    def test_diff_workbench_combines_both_sides_and_preserves_deleted_reviews_in_packages(self):
+        from ecra.report_package import export_delta, import_delta, import_report, sha256
+        out = self.data/'scans/diff-review'
+        evidence = out/'evidence'
+        evidence.mkdir(parents=True)
+        baseline = evidence/'baseline.db'
+        base_sha = 'a'*40
+        publish_scan(baseline, dict(variables=[dict(symbol_id='same', name='removed', static_classification='SUSPECT'),
+                                               dict(symbol_id='untouched', name='untouched', static_classification='SUSPECT')]),
+                     dict(findings=[]), scan_id='base-'+base_sha, project_id='p')
+        hashed = sha256(baseline)
+        baseline.rename(evidence/hashed)
+        diff = dict(pin=dict(base_sha=base_sha, base_facts_sha256=hashed, base_facts_path='Z:/unused/scan.db'),
+                    selected_symbol_ids=['same'], deleted_variables=[dict(symbol_id='same', name='removed')])
+        publish_scan(out/'scan.db', dict(variables=[dict(symbol_id='same', name='current', static_classification='SUSPECT'),
+                                                  dict(symbol_id='outside', name='outside', static_classification='SUSPECT')]),
+                     dict(findings=[], git_diff=diff), scan_id=out.name, project_id='p')
+        ReviewStore(out/'reviews.db', EvidenceProvider(out/'scan.db').metadata())
+        api = '/api/scans/'+out.name
+        def get(path):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, response.text)
+            return response.json()
+
+        summary = get(api+'/summary')
+        self.assertEqual(summary['diff_results']['pending_count'], 2)
+        self.assertEqual(summary['diff_results']['total'], 2)
+        first = get(api+'/symbols?diff=changes&sort=name&limit=1')
+        second = get(api+'/symbols?diff=changes&sort=name&offset=1&limit=1')
+        self.assertEqual([(p['items'][0]['name'], p['items'][0]['evidence_side']) for p in (first,second)],
+                         [('current','current'), ('removed','baseline')])
+        self.assertIsNone(second['next_offset'])
+        self.assertEqual(get(api+'/symbols?diff=changes&search=outside')['total'], 0)
+        self.assertEqual(get(api+'/symbols?diff=changes&search=removed')['total'], 1)
+        base_api = api+'~base'
+        deleted = get(base_api+'/symbol?symbol_id=same')
+        fields = get(base_api+'/nodes/'+str(deleted['node']))['items']
+        self.assertEqual(next(row['value'] for row in fields if row['key']=='name'), 'removed')
+        self.assertEqual(self.client.get(base_api+'/human?symbol_id=untouched').status_code, 400)
+        proof = get(base_api+'/human?symbol_id=same')['fingerprint']
+        draft = dict(symbol_id='same', fingerprint=proof, reviewer='test', decision='CONFIRMED_RISK', expected_heads=[])
+        self.assertEqual(self.client.post(api+'/human', json=draft).status_code, 400)
+
+        package = self.data/'diff.ecra-report'
+        export_report(out, package)
+        replica = Path(self.tmp.name)/'diff-replica'
+        import_report(package, replica)
+        response = self.client.post(base_api+'/human', json=draft)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(get(api+'/human?symbol_id=same')['heads'], [])
+        self.assertEqual(get(api+'/summary')['diff_results']['pending_count'], 1)
+        self.assertEqual(get(api+'/symbols?diff=changes&review_scope=pending')['total'], 1)
+        delta = self.data/'diff.ecra-review-delta'
+        export_delta(out, delta)
+        self.assertEqual(import_delta(delta, replica/'scans'/out.name)['imported_events'], 1)
+
+        reviewed_package = self.data/'diff-reviewed.ecra-report'
+        export_report(out, reviewed_package)
+        self.assertEqual(import_report(reviewed_package, Path(self.tmp.name)/'reviewed-replica')['imported_events'], 1)
+
     def test_current_results_and_revision_follow_committed_ai_without_forging_human_record(self):
         from ecra.scan_persistence import append_runtime
         path=self.data/'scans/projection';path.mkdir()

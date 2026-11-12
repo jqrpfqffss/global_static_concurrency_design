@@ -13,7 +13,7 @@ import subprocess
 
 from .common import digest, read_json, write_json
 
-SUMMARY_SCHEMA = 7
+SUMMARY_SCHEMA = 8
 
 DEFAULTS = dict(enabled=False, base_ref='origin/master', current_ref='HEAD',
                 include_uncommitted=False, cache_enabled=True, verify_against_full=False)
@@ -104,6 +104,30 @@ def text(root, *args):
     return git(root, *args).decode('utf-8', 'strict').strip()
 
 
+def resolve_revision(root, ref):
+    """Resolve Git syntax first, then a unique leaf of a local branch name."""
+    if not isinstance(ref, str) or not ref or len(ref) > 4096 or '\0' in ref or ref != ref.strip() or ref.startswith('-'):
+        raise ValueError('Git 引用格式无效')
+    def commit(name):
+        return git(root, 'rev-parse', '--verify', '--quiet', '--end-of-options', name + '^{commit}',
+                   _returncodes=(0, 1)).decode('ascii').strip()
+
+    resolved = commit(ref)
+    if resolved:
+        return resolved
+    if '/' not in ref and ref != 'HEAD':
+        matches = [name for name in text(root, 'for-each-ref', '--format=%(refname)', 'refs/heads').splitlines()
+                   if name.removeprefix('refs/heads/').endswith('/' + ref)]
+        if len(matches) == 1:
+            resolved = commit(matches[0])
+            if resolved:
+                return resolved
+        if len(matches) > 1:
+            names = ', '.join(name.removeprefix('refs/heads/') for name in matches[:10])
+            raise ValueError(f'Git 短分支名 {ref} 有多个匹配，请填写完整分支名：{names}')
+    raise ValueError(f'Git 引用不能解析为提交：{ref}；请检查本地分支、标签或提交 SHA')
+
+
 def _content_changes(root, base, current=None):
     """Content-aware paths, including zero-line/binary/rename changes.
 
@@ -159,8 +183,8 @@ def pin(root, cfg):
     from .workspace import context, canonical
     if canonical(repo) != canonical(context(root, cfg['analysis']).repository_root):
         raise ValueError('Git 实际仓库根目录与项目身份边界不一致；请检查 .git/core.worktree 配置后重新扫描')
-    head = text(root, 'rev-parse', '--verify', options['current_ref'] + '^{commit}')
-    base = text(root, 'rev-parse', '--verify', options['base_ref'] + '^{commit}')
+    head = resolve_revision(root, options['current_ref'])
+    base = resolve_revision(root, options['base_ref'])
     workspace_mode = options['include_uncommitted']
     from .workspace import generated_untracked
     generated = generated_untracked(root, cfg) if workspace_mode else set()
@@ -392,6 +416,8 @@ def summarize(facts, report, renames=None):
             renames['CFG-' + digest([source, fid])[:20]] = 'CFG-' + digest(canonical)[:20]
     cid = lambda value: canonical_id(value, renames)
     functions = {cid(f['function_id']): dict(digest=digest([f.get('semantic_digest'), f.get('consumed_macros_digest')]),
+                  non_call_digest=digest([f.get('non_call_digest', f.get('semantic_digest')), f.get('consumed_macros_digest')]),
+                  standalone_calls=[[offset, cid(target)] for offset, target in f.get('standalone_calls', [])],
                   return_type_kind=f.get('return_type_kind'), name=f['name'],
                   file=cid(f.get('file')), line=f.get('line')) for f in facts['functions']}
     edges = sorted({(cid(c['caller_function_id']), cid(c.get('callee_function_id') or 'unresolved:' + c.get('callee_name', '')))
@@ -424,8 +450,8 @@ def summarize(facts, report, renames=None):
                         pending.append(parent)
             graph = dict(functions=sorted(related), edges=[list(e) for e in edges if e[1] in related],
                 roots=sorted({cid(f) for entries in context_graph.get('roots', {}).values() for f in entries if cid(f) in related}),
-                context_edges={context: sorted([cid(a), cid(b)] for a, b in graph if cid(b) in related)
-                               for context, graph in context_graph.get('edges', {}).items()})
+                       context_edges={context: paths for context, graph in context_graph.get('edges', {}).items()
+                                      if (paths := sorted([cid(a), cid(b)] for a, b in graph if cid(b) in related))})
             graph_id = digest(graph)
             graphs.setdefault(graph_id, graph)
             slices[key] = graph_id
@@ -541,6 +567,19 @@ def risk_comparison(old, new):
     return 'COMPARABLE', None
 
 
+def changed_standalone_calls(old, new):
+    """Localize pure edits to standalone no-argument calls with stable surrounding code."""
+    if not old or not new or not old.get('non_call_digest') or old['non_call_digest'] != new.get('non_call_digest'):
+        return set()
+    before = [tuple(site) for site in old['standalone_calls']]
+    after = [tuple(site) for site in new['standalone_calls']]
+    removed, added = Counter(before), Counter(after)
+    targets = {target for _, target in (removed - added).keys() | (added - removed).keys()}
+    if [site for site in before if site[1] not in targets] != [site for site in after if site[1] not in targets]:
+        return set()
+    return targets
+
+
 def compare(base, head, pinned):
     bv, hv = base['variables'], head['variables']
     reasons = defaultdict(set)
@@ -579,7 +618,13 @@ def compare(base, head, pinned):
                 function_vars[f].add(sid)
             readers[sid].update(v['reads'])
             root_vars[v['root']].add(sid)
-    pending = deque(('effect', f) for f in modified)
+    pending = deque()
+    for f in modified:
+        targets = changed_standalone_calls(base['functions'].get(f), head['functions'].get(f))
+        if targets:
+            pending.extend(('callee', target) for target in targets)
+        else:
+            pending.append(('effect', f))
     pending.extend(('variable', sid) for sid in list(reasons))
     seen = set()
     while pending:
