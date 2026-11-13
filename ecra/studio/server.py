@@ -54,6 +54,23 @@ def _uploaded_manifest_shape(path):
                 return _manifest_object(raw,'结果包导入阶段')
 
 
+def _import_preflight(upload, data):
+    incoming = _uploaded_manifest_shape(upload)
+    if incoming is not None:
+        ident = incoming.get('scan_id')
+        if isinstance(ident, str) and IDENTITY.fullmatch(ident):
+            existing = no_links(data/'scans'/ident)
+            if (existing/'manifest.json').is_file() and (existing/'scan.db').is_file():
+                # A malformed target must not be queried as an ordinary mapping.
+                # The importer still independently validates all incoming data.
+                try:
+                    binding = EvidenceProvider(existing/'scan.db').metadata()
+                    _display_manifest(existing/'manifest.json', binding)
+                except ValueError as exc:
+                    raise ValueError('结果包导入阶段：已有扫描清单无法校验，本次未合并；已有证据与人工记录保留。'
+                                     '请在新的独立数据目录导入完整备份，或重新扫描。技术信息：'+str(exc)) from exc
+
+
 def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     from ..studio_preferences import startup_selection
     selection = startup_selection(data_root)
@@ -85,16 +102,24 @@ def _create_app(data_root, *, token, authority, startup):
     migrations = MigrationJobs(data)
     from .root_transfers import RootTransfers
     transfers=RootTransfers(data)
+    from .export_jobs import ExportJobs
+    export_jobs=ExportJobs(data)
+    from .import_jobs import ImportJobs
+    import_jobs=ImportJobs(data, preflight=lambda path: _import_preflight(path, data))
     @asynccontextmanager
     async def lifespan(app):
         try:
             yield
         finally:
+            await run_in_threadpool(import_jobs.close)
+            await run_in_threadpool(export_jobs.close)
             await run_in_threadpool(tasks.close)
     session = token or secrets.token_urlsafe(32)
     app = FastAPI(title='ECRA Studio', docs_url=None, redoc_url=None, openapi_url=None,
         default_response_class=JSONResponse, lifespan=lifespan)
     app.state.task_manager = tasks
+    app.state.export_jobs = export_jobs
+    app.state.import_jobs = import_jobs
     app.state.session_token = session
     app.state.data_root = data
     app.state.preference_warning = startup['warning']
@@ -593,26 +618,56 @@ def _create_app(data_root, *, token, authority, startup):
                         raise ValueError('上传包超过128GiB预算')
                     stream.write(block)
             try:
-                incoming = await run_in_threadpool(_uploaded_manifest_shape, upload)
-                if incoming is not None:
-                    ident = incoming.get('scan_id')
-                    if isinstance(ident,str) and IDENTITY.fullmatch(ident):
-                        existing = no_links(data/'scans'/ident)
-                        if (existing/'manifest.json').is_file() and (existing/'scan.db').is_file():
-                            # Merging also reads the existing manifest. A bad
-                            # target must not become another internal .get error.
-                            try:
-                                binding = await run_in_threadpool(lambda: EvidenceProvider(existing/'scan.db').metadata())
-                                await run_in_threadpool(_display_manifest,existing/'manifest.json',binding)
-                            except ValueError as exc:
-                                raise ValueError('结果包导入阶段：已有扫描清单无法校验，本次未合并；已有证据与人工记录保留。'
-                                                 '请在新的独立数据目录导入完整备份，或重新扫描。技术信息：'+str(exc)) from exc
+                await run_in_threadpool(_import_preflight, upload, data)
                 return await run_in_threadpool(import_report, upload, data)
             except (zipfile.BadZipFile, EOFError) as exc:
                 return JSONResponse(dict(code='INVALID_REPORT_ARCHIVE',detail=str(exc),
                     error='结果包导入阶段失败：文件不是完整有效的 ZIP 结果包，或包内容已损坏。'
                           '本次未发布结果，已有扫描与人工记录保留；原上传文件未修改。'
                           '请重新获取完整的 .ecra-report 备份，在“数据与共享”重新导入。技术信息：'+str(exc)),status_code=400)
+
+    @app.post('/api/import-jobs', status_code=202)
+    async def start_import(request: Request):
+        import os
+        from urllib.parse import unquote
+        from starlette.requests import ClientDisconnect
+        from ..operation_progress import OperationCancelled
+        raw_length = request.headers.get('content-length')
+        try:
+            total = None if raw_length is None else int(raw_length)
+        except ValueError as exc:
+            raise ValueError('上传包长度无效') from exc
+        filename = unquote(request.headers.get('x-filename', '导入结果包.ecra-report'), errors='strict')
+        upload = import_jobs.begin_upload(filename, total, ident=request.headers.get('x-upload-id'))
+        try:
+            received = 0
+            with upload.path.open('xb') as stream:
+                async for block in request.stream():
+                    received += len(block)
+                    import_jobs.upload_progress(upload, received)
+                    stream.write(block)
+                stream.flush()
+                await run_in_threadpool(os.fsync, stream.fileno())
+            return import_jobs.finish_upload(upload, received)
+        except BaseException as exc:
+            if isinstance(exc, ClientDisconnect):
+                exc = OperationCancelled('上传连接已断开，请重新选择完整结果包')
+            import_jobs.abort_upload(upload, exc)
+            if isinstance(exc, OperationCancelled):
+                return JSONResponse(dict(error=str(exc)), status_code=400)
+            raise
+
+    @app.get('/api/import-jobs')
+    def import_history():
+        return import_jobs.history()
+
+    @app.get('/api/import-jobs/{ident}')
+    def import_status(ident: str):
+        return import_jobs.get(ident)
+
+    @app.post('/api/import-jobs/{ident}/cancel')
+    def cancel_import(ident: str):
+        return import_jobs.cancel(ident)
 
     @app.post('/api/migrations/preview')
     def migration_preview(payload: dict):
@@ -678,6 +733,23 @@ def _create_app(data_root, *, token, authority, startup):
         with tempfile.TemporaryDirectory(prefix='delta-', dir=work) as folder:
             path = Path(folder)/'delta'; path.write_bytes(raw)
             return await run_in_threadpool(import_delta, path, scan_path(scan_id))
+
+    @app.post('/api/scans/{scan_id}/export-jobs', status_code=202)
+    def start_export(scan_id: str, payload: dict):
+        return export_jobs.start(scan_path(scan_id), kind=payload.get('kind','full'),
+                                 compression=payload.get('compression','deflate'))
+
+    @app.get('/api/export-jobs')
+    def export_history():
+        return export_jobs.history()
+
+    @app.get('/api/export-jobs/{ident}')
+    def export_status(ident: str):
+        return export_jobs.get(ident)
+
+    @app.post('/api/export-jobs/{ident}/cancel')
+    def cancel_export(ident: str):
+        return export_jobs.cancel(ident)
 
     @app.post('/api/scans/{scan_id}/export')
     def export(scan_id: str, payload: dict):

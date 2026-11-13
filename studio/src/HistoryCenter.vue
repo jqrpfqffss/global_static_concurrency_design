@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { api, download, label } from './api'
+import { api, label } from './api'
+import { startExport } from './exportJobs'
 import './history.css'
 import HistoryComparison from './HistoryComparison.vue'
 import WorkspaceDialog from './WorkspaceDialog.vue'
@@ -34,8 +35,7 @@ async function exportRow(id:string,kind:string){
  if(disabled.value)return
  working.value=true;error.value='';notice.value=''
  try{
-  const result=await api('/scans/'+encodeURIComponent(id)+'/export','POST',{kind})
-  await download(result.download,result.filename);notice.value='已导出批次 '+id+' 的'+(kind==='full'?'标准完整包':'人工确认增量')+'。'
+  await startExport(id,kind);notice.value='已启动批次 '+id+' 的后台导出，请前往“数据与共享”查看进度和下载结果。'
  }catch(e:any){error.value=e.message}finally{working.value=false}
 }
 function mode(value:string){return value==='FULL'?'全量':value==='DIFF'?'Git Diff':'模式未记录'}
@@ -72,7 +72,7 @@ onMounted(async()=>{
   </form>
   <p v-if="working" role="status">正在读取或导出真实归档，请稍候…</p>
   <p v-if="error" role="alert" class="banner error">历史操作未完成：{{error}}。原归档仍保留；请核对后重试。</p>
-  <p v-if="notice" role="status" class="banner">{{notice}}</p>
+  <p v-if="notice" role="status" class="banner">{{notice}} <a v-if="notice.includes('后台导出')" href="#/sharing">前往数据与共享</a></p>
   <template v-if="page">
    <div class="history-pagination"><p class="history-count" role="status">匹配 {{page.total}} 个归档；显示 {{page.total?page.offset+1:0}}–{{Math.min(page.offset+page.limit,page.total)}}。最新日期在前，未记录日期在末。</p><nav class="page-controls" aria-label="历史分页"><button :disabled="disabled||page.offset===0" @click="move(-1)">上一页</button><button :disabled="disabled||page.next_offset===null" @click="move(1)">下一页</button></nav></div>
    <section class="panel history-records" aria-label="历史归档列表" tabindex="0">
@@ -80,7 +80,7 @@ onMounted(async()=>{
     <p v-if="!page.total">没有匹配归档。可清空筛选；尚未扫描时请接入工程，或从数据与共享导入结果包。</p>
    </section>
   </template>
-  <WorkspaceDialog v-if="selectedRow" :error="error" title="归档身份与操作" @close="selectedRow=null"><p v-if="notice" class="banner" role="status">{{notice}}</p><h2>{{selectedRow.identity.project_name||selectedRow.project_id}}</h2><p class="identity">批次 {{selectedRow.scan_id}}</p><p>配置 {{selectedRow.profile_id||'未记录'}} · 目标 {{selectedRow.identity.configured_target||'未记录'}} · 变体 {{selectedRow.identity.build_variant||'未记录'}} · 核心声明 {{selectedRow.identity.project_core||'未记录'}}</p><p>{{mode(selectedRow.scan_mode)}} · {{selectedRow.mode==='LOCAL_SNAPSHOT'?'本机扫描快照':'归档证据模式'}} · {{label(selectedRow.state)}}</p><p class="history-git">{{git(selectedRow)}}</p><p>{{selectedRow.date_source||'扫描时间'}}：{{selectedRow.recorded_at_utc||'未记录可用UTC日期'}}</p><p v-if="selectedRow.error" class="banner error">读取失败：{{selectedRow.error}}</p><p v-if="selectedRow.can_open&&!selectedRow.can_confirm" class="banner warning">缺证据旧原件模式；可查看原件，不生成可信人工确认。</p><div class="actions"><button :disabled="disabled||!selectedRow.can_confirm" @click="setBaseline(selectedRow.scan_id);selectedRow=null">设为对比基准</button><button :disabled="disabled||!selectedRow.can_confirm||!baseline||baseline===selectedRow.scan_id" @click="compare(selectedRow.scan_id);selectedRow=null">与基准对比</button><button :disabled="disabled||!selectedRow.can_confirm" @click="emit('continue',selectedRow.scan_id)">继续人工确认</button><button :disabled="disabled||!selectedRow.can_open" @click="exportRow(selectedRow.scan_id,'full')">导出标准完整包</button><button :disabled="disabled||!selectedRow.can_confirm" @click="exportRow(selectedRow.scan_id,'delta')">导出人工确认增量</button></div></WorkspaceDialog>
+  <WorkspaceDialog v-if="selectedRow" :error="error" title="归档身份与操作" @close="selectedRow=null"><p v-if="notice" class="banner" role="status">{{notice}} <a v-if="notice.includes('后台导出')" href="#/sharing">前往数据与共享</a></p><h2>{{selectedRow.identity.project_name||selectedRow.project_id}}</h2><p class="identity">批次 {{selectedRow.scan_id}}</p><p>配置 {{selectedRow.profile_id||'未记录'}} · 目标 {{selectedRow.identity.configured_target||'未记录'}} · 变体 {{selectedRow.identity.build_variant||'未记录'}} · 核心声明 {{selectedRow.identity.project_core||'未记录'}}</p><p>{{mode(selectedRow.scan_mode)}} · {{selectedRow.mode==='LOCAL_SNAPSHOT'?'本机扫描快照':'归档证据模式'}} · {{label(selectedRow.state)}}</p><p class="history-git">{{git(selectedRow)}}</p><p>{{selectedRow.date_source||'扫描时间'}}：{{selectedRow.recorded_at_utc||'未记录可用UTC日期'}}</p><p v-if="selectedRow.error" class="banner error">读取失败：{{selectedRow.error}}</p><p v-if="selectedRow.can_open&&!selectedRow.can_confirm" class="banner warning">缺证据旧原件模式；可查看原件，不生成可信人工确认。</p><div class="actions"><button :disabled="disabled||!selectedRow.can_confirm" @click="setBaseline(selectedRow.scan_id);selectedRow=null">设为对比基准</button><button :disabled="disabled||!selectedRow.can_confirm||!baseline||baseline===selectedRow.scan_id" @click="compare(selectedRow.scan_id);selectedRow=null">与基准对比</button><button :disabled="disabled||!selectedRow.can_confirm" @click="emit('continue',selectedRow.scan_id)">继续人工确认</button><button :disabled="disabled||!selectedRow.can_open" @click="exportRow(selectedRow.scan_id,'full')">导出标准完整包</button><button :disabled="disabled||!selectedRow.can_confirm" @click="exportRow(selectedRow.scan_id,'delta')">导出人工确认增量</button></div></WorkspaceDialog>
   <p class="muted">历史对象对比按归档canonical身份和完整事实/报告指纹保守关联；不替代重新扫描和源码核对。导出包可能包含敏感源码与备注，请按团队规则分享。</p>
   </template>
  </section>

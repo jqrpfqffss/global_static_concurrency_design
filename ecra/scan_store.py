@@ -313,6 +313,121 @@ def _project(connection, dataset, root, *, source=None):
                      values.get('definition_file'), values.get('definition_line'), values.get('analysis_coverage')))
 
 
+_PROJECTION_KEYS = (
+    'symbol_id', 'function_id', 'caller_function_id', 'caller', 'caller_id',
+    'callee_function_id', 'callee', 'callee_id',
+)
+_SYMBOL_KEYS = (
+    'qualified_name', 'name', 'static_classification', 'resource_kind',
+    'definition_file', 'definition_line', 'analysis_coverage',
+)
+
+
+def _projection_rows(graph, array, *, symbols=False):
+    """Stream one relation without per-record queries or unused large values.
+
+    Only the outer edge order is material to the projection. LEFT JOIN keeps
+    objects with no index fields, including explicit nulls.
+    """
+    keys = _PROJECTION_KEYS + (_SYMBOL_KEYS if symbols else ())
+    placeholders = ','.join('?' for _ in keys)
+    cursor = graph.execute(
+        'SELECT item.ordinal,item.child,property.key,scalar.kind,scalar.value '
+        "FROM edges item JOIN nodes object ON object.id=item.child AND object.kind='object' "
+        'LEFT JOIN edges property ON property.parent=item.child '
+        f'AND property.key IN ({placeholders}) '
+        'LEFT JOIN nodes scalar ON scalar.id=property.child '
+        "AND scalar.kind NOT IN ('object','list') "
+        'WHERE item.parent=? ORDER BY item.ordinal', (*keys, array))
+    cursor.row_factory = None
+    ordinal = node = None
+    values = {}
+    for current, child, key, kind, payload in cursor:
+        if current != ordinal:
+            if ordinal is not None:
+                yield ordinal, node, values
+            ordinal, node, values = current, child, {}
+        if kind is not None:
+            values[key] = _decode(kind, payload)
+    if ordinal is not None:
+        yield ordinal, node, values
+
+
+def _validate_projections(conn, progress=None):
+    """Compare every index row with authoritative graph edges in order.
+
+    The old verifier rebuilt millions of rows and secondary indexes. The only
+    writable database here is a tiny disposable SQLite affinity adapter. This
+    retains exact binding, TEXT/INTEGER conversion and constraints for unusual
+    typed index values. Normal string/null record IDs need no adapter query.
+    """
+    import tempfile
+    version = conn.execute('PRAGMA user_version').fetchone()[0]
+    notify = progress or (lambda _: None)
+    total = conn.execute('SELECT count(*) FROM records').fetchone()[0]
+    processed = 0
+    actual_symbols = conn.execute('SELECT * FROM symbols ORDER BY ordinal')
+    actual_symbols.row_factory = None
+    with tempfile.TemporaryDirectory(prefix='ecra projection validation ') as folder:
+        with closing(sqlite3.connect(Path(folder)/'projection.db')) as adapter:
+            adapter.executescript('''
+                CREATE TABLE record_values (
+                    symbol_id TEXT, function_id TEXT, source_id TEXT, target_id TEXT);
+                CREATE TABLE symbols (
+                    symbol_id TEXT PRIMARY KEY, ordinal INTEGER NOT NULL UNIQUE,
+                    node INTEGER NOT NULL, name TEXT NOT NULL,
+                    static_classification TEXT NOT NULL, resource_kind TEXT NOT NULL,
+                    definition_file TEXT, definition_line INTEGER, analysis_coverage TEXT);
+            ''')
+            adapter.execute('PRAGMA cache_size=-1024')
+            for dataset in ('facts', 'report'):
+                root = conn.execute('SELECT node FROM roots WHERE name=?', (dataset,)).fetchone()[0]
+                relations = conn.execute(
+                    'SELECT e.key,e.child FROM edges e JOIN nodes n ON n.id=e.child '
+                    "WHERE e.parent=? AND n.kind='list' ORDER BY e.ordinal", (root,))
+                for relation, array in relations:
+                    actual = conn.execute(
+                        'SELECT * FROM records WHERE dataset=? AND relation=? ORDER BY ordinal',
+                        (dataset, relation))
+                    actual.row_factory = None
+                    symbols = dataset == 'facts' and relation == 'variables'
+                    for ordinal, node, values in _projection_rows(conn, array, symbols=symbols):
+                        if not isinstance(relation, str):
+                            raise ValueError('静态库查询投影关系身份无效')
+                        identities = (values.get('symbol_id'), values.get('function_id'),
+                            (values.get('caller_function_id') if version >= 2 else None)
+                                or values.get('caller') or values.get('caller_id'),
+                            (values.get('callee_function_id') if version >= 2 else None)
+                                or values.get('callee') or values.get('callee_id'))
+                        if any(value is not None and not isinstance(value, str) for value in identities):
+                            adapter.execute('DELETE FROM record_values')
+                            adapter.execute('INSERT INTO record_values VALUES (?,?,?,?)', identities)
+                            identities = adapter.execute('SELECT * FROM record_values').fetchone()
+                        rebuilt = (dataset, relation, ordinal, node, *identities)
+                        if next(actual, None) != rebuilt:
+                            raise ValueError('静态库查询投影与权威证据不一致: records')
+                        if symbols:
+                            adapter.execute('DELETE FROM symbols')
+                            adapter.execute('INSERT INTO symbols VALUES (?,?,?,?,?,?,?,?,?)',
+                                (values['symbol_id'], ordinal, node,
+                                 values.get('qualified_name') or values.get('name') or values['symbol_id'],
+                                 values.get('static_classification', 'UNKNOWN'), values.get('resource_kind', ''),
+                                 values.get('definition_file'), values.get('definition_line'),
+                                 values.get('analysis_coverage')))
+                            if next(actual_symbols, None) != adapter.execute('SELECT * FROM symbols').fetchone():
+                                raise ValueError('静态库查询投影与权威证据不一致: symbols')
+                        processed += 1
+                        if processed % 16384 == 0:
+                            notify(dict(completed=processed, total=total, unit='records'))
+                    if next(actual, None) is not None:
+                        raise ValueError('静态库查询投影与权威证据不一致: records')
+            if processed != total:
+                raise ValueError('静态库查询投影与权威证据不一致: records')
+            if next(actual_symbols, None) is not None:
+                raise ValueError('静态库查询投影与权威证据不一致: symbols')
+    notify(dict(completed=processed, total=total, unit='records'))
+
+
 def publish_scan(path, facts, report, *, scan_id, project_id, profile_id='default', provenance=None,
                  validation_state='UNVERIFIED',compact=None):
     """Publish once, never overwrite a valid archive, including on failure."""
@@ -399,41 +514,57 @@ def _publish(path, build_roots, *, scan_id, project_id, profile_id, validation_s
     return roots
 
 
-def _validate_nodes(conn):
+def _validate_nodes(conn, *, node_range=None, progress=None):
     """Hash every node/edge in two ordered streams on the caller's snapshot.
 
     The key set is acceleration only: larger objects use the complete original
     SQL duplicate check. Large strings never enter the metadata row payload.
     """
-    edges=iter(conn.execute('SELECT e.parent,e.ordinal,e.key,n.hash FROM edges e '
-                            'LEFT JOIN nodes n ON n.id=e.child ORDER BY e.parent,e.ordinal'))
+    from functools import lru_cache
+    @lru_cache(maxsize=8192)
+    def encoded_edge(key, child_hash):
+        raw = key.encode('utf-8', errors='surrogatepass') if key is not None else b''
+        return struct.pack('>Q', len(raw)) + raw + bytes.fromhex(child_hash)
+    # Tuples avoid four named Row lookups for every edge (hundreds of millions
+    # in large scans). The bounded cache only reuses the exact encoded bytes;
+    # every edge, including repeated references, still contributes to its hash.
+    edge_cursor=conn.cursor();edge_cursor.row_factory=None
+    parameters=() if node_range is None else node_range
+    edge_where='' if node_range is None else ' WHERE e.parent BETWEEN ? AND ?'
+    node_where='' if node_range is None else ' WHERE id BETWEEN ? AND ?'
+    edges=iter(edge_cursor.execute('SELECT e.parent,e.ordinal,e.key,n.hash FROM edges e '
+                            'LEFT JOIN nodes n ON n.id=e.child'+edge_where+' ORDER BY e.parent,e.ordinal',parameters))
     edge=next(edges,None)
     nodes=conn.execute('SELECT id,hash,kind,length,typeof(value) AS payload_type,'
         'length(value) AS payload_bytes,CASE WHEN typeof(value)=\'blob\' '
         'AND typeof(length)=\'integer\' AND length BETWEEN 0 AND 4096 '
-        'AND length(value)<=4096 THEN value ELSE NULL END AS small_payload FROM nodes ORDER BY id')
+        'AND length(value)<=4096 THEN value ELSE NULL END AS small_payload FROM nodes'+node_where+' ORDER BY id',parameters)
+    completed=0
     for node in nodes:
         kind=node['kind'];length=node['length'];ident=node['id']
         if kind not in {'object','list','null','bool','int','float','str'}:
             raise ValueError('未知证据编码类型')
         if type(length) is not int or length<0:
             raise ValueError('证据长度类型损坏')
-        if edge is not None and edge['parent']<ident:
+        if edge is not None and edge[0]<ident:
             raise ValueError('证据边的父节点缺失')
         hasher=_hash_start(kind,length)
         if kind in {'object','list'}:
             if node['payload_type']!='null':
                 raise ValueError('容器证据包含未编码的标量数据')
             count=0;keys=set() if kind=='object' else None;sql_keys=False
-            while edge is not None and edge['parent']==ident:
-                if edge['ordinal']!=count:
+            while edge is not None and edge[0]==ident:
+                if edge[1]!=count:
                     raise ValueError('证据数组顺序/完整性损坏')
-                key=edge['key']
+                key=edge[2]
                 if (kind=='list')!=(key is None) or (kind=='object' and not isinstance(key,str)):
                     raise ValueError('证据容器键类型损坏')
-                if edge['hash'] is None:raise ValueError('证据边的子节点缺失')
-                if not isinstance(edge['hash'],str):raise ValueError('证据边的哈希编码类型损坏')
-                _hash_edge(hasher,key,edge['hash'])
+                if edge[3] is None:raise ValueError('证据边的子节点缺失')
+                if not isinstance(edge[3],str):raise ValueError('证据边的哈希编码类型损坏')
+                if (key is None or len(key)<=1024) and len(edge[3])<=128:
+                    hasher.update(encoded_edge(key,edge[3]))
+                else:
+                    _hash_edge(hasher,key,edge[3])
                 if keys is not None:
                     if key in keys:raise ValueError('证据映射键重复')
                     if len(keys)<4096:keys.add(key)
@@ -445,7 +576,7 @@ def _validate_nodes(conn):
         else:
             if node['payload_type']!='blob' or node['payload_bytes']!=length:
                 raise ValueError('证据标量字节长度/编码类型损坏，拒绝不完整哈希范围')
-            if edge is not None and edge['parent']==ident:
+            if edge is not None and edge[0]==ident:
                 raise ValueError('标量证据包含非法容器边')
             if kind!='str' or length<=4096:
                 payload=node['small_payload'] if length<=4096 else conn.execute('SELECT value FROM nodes WHERE id=?',(ident,)).fetchone()[0]
@@ -461,7 +592,32 @@ def _validate_nodes(conn):
                     if len(part)!=min(1024**2,length-offset):raise ValueError('证据标量字节长度损坏')
                     hasher.update(part);decoder.decode(part,final=offset+len(part)==length)
         if hasher.hexdigest()!=node['hash']:raise ValueError('证据哈希校验失败')
+        completed+=1
+        if progress is not None and completed%8192==0:
+            progress(dict(completed=completed))
     if edge is not None:raise ValueError('证据边的父节点缺失')
+    if progress is not None:progress(dict(completed=completed))
+
+
+def _validate_integrity(conn):
+    if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+        raise ValueError('静态库损坏或证据引用缺失')
+
+
+def _validate_foreign_keys(conn):
+    if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:
+        raise ValueError('静态库损坏或证据引用缺失')
+
+
+def _validate_identity(conn):
+    scan = conn.execute('SELECT * FROM scans').fetchone()
+    if scan is None or conn.execute('SELECT count(*) FROM scans').fetchone()[0] != 1:
+        raise ValueError('静态库扫描身份缺失/不唯一')
+    for name in ('facts', 'report'):
+        root = conn.execute('SELECT n.hash FROM roots r JOIN nodes n ON r.node=n.id WHERE r.name=?', (name,)).fetchone()
+        if root is None or root[0] != scan[name + '_hash']:
+            raise ValueError('静态库权威根与扫描摘要不一致')
+    return dict(scan)
 
 
 class EvidenceProvider:
@@ -477,45 +633,28 @@ class EvidenceProvider:
                 raise ValueError('静态库扫描身份缺失/不唯一')
             return dict(rows[0])
 
-    def validate(self, *, deep=False, cache_kib=524288):
+    def validate(self, *, deep=False, cache_kib=524288, progress=None):
         if type(cache_kib) is not int or not 1024<=cache_kib<=524288:
             raise ValueError('完整校验页缓存须为1024–524288KiB；它不是整个进程的内存上限')
         from .scan_diagnostics import interruptible_sqlite
-        with closing(connect_readonly(self.path)) as conn, interruptible_sqlite(conn):
+        from .operation_progress import sqlite_progress
+        notify = progress or (lambda _: None)
+        with closing(connect_readonly(self.path)) as conn, interruptible_sqlite(conn), sqlite_progress(conn, progress):
             # Session-only, demand-allocated page cache for complete checks.
             # Not a process memory cap or a limit on evidence/relationships.
             # Metadata and ordinary paged reads keep their original budget.
             conn.execute(f'PRAGMA cache_size=-{cache_kib}')
             # Keep graph hashes and rebuilt query projections on one read view.
             conn.execute('BEGIN')
-            if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or list(conn.execute('PRAGMA foreign_key_check')):
-                raise ValueError('静态库损坏或证据引用缺失')
-            scan = conn.execute('SELECT * FROM scans').fetchone()
-            if scan is None or conn.execute('SELECT count(*) FROM scans').fetchone()[0] != 1:
-                raise ValueError('静态库扫描身份缺失/不唯一')
-            for name in ('facts', 'report'):
-                root = conn.execute('SELECT n.hash FROM roots r JOIN nodes n ON r.node=n.id WHERE r.name=?', (name,)).fetchone()
-                if root is None or root[0] != scan[name + '_hash']:
-                    raise ValueError('静态库权威根与扫描摘要不一致')
+            notify(dict(stage='VERIFY_DATABASE', message='校验数据库完整性与证据引用', completed=None, total=None, unit=None))
+            _validate_integrity(conn)
+            _validate_foreign_keys(conn)
+            scan = _validate_identity(conn)
             if deep:
+                notify(dict(stage='VERIFY_GRAPH', message='逐项校验完整证据哈希', completed=None, total=None, unit=None))
                 _validate_nodes(conn)
-                # Rebuild only projections in a file-backed disposable index,
-                # comparing every row against this same immutable read view.
-                import tempfile
-                with tempfile.TemporaryDirectory(prefix='ecra projection validation ') as folder:
-                    with closing(sqlite3.connect(Path(folder)/'projection.db')) as expected:
-                        expected.executescript(SCHEMA)
-                        expected.execute('PRAGMA foreign_keys=OFF')
-                        expected.execute('PRAGMA cache_size=-8192')
-                        expected.execute('PRAGMA temp_store=FILE')
-                        for name in ('facts', 'report'):
-                            root = conn.execute('SELECT node FROM roots WHERE name=?', (name,)).fetchone()[0]
-                            _project(expected, name, root, source=conn)
-                        for table, order in [('symbols', 'ordinal'), ('records', 'dataset,relation,ordinal')]:
-                            actual = (tuple(row) for row in conn.execute('SELECT * FROM ' + table + ' ORDER BY ' + order))
-                            rebuilt = expected.execute('SELECT * FROM ' + table + ' ORDER BY ' + order)
-                            if any(a != b for a, b in itertools.zip_longest(actual, rebuilt)):
-                                raise ValueError('静态库查询投影与权威证据不一致: ' + table)
+                notify(dict(stage='VERIFY_PROJECTIONS', message='逐项核对变量与证据索引', completed=None, total=None, unit=None))
+                _validate_projections(conn, progress=progress)
             return dict(scan)
 
     def load(self, name, path=()):

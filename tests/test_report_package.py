@@ -12,6 +12,14 @@ from ecra.scan_store import publish_scan, EvidenceProvider
 
 
 class ReportPackageTests(unittest.TestCase):
+    def test_legacy_and_background_imports_share_publication_barrier(self):
+        from ecra.storage_activity import DataActivity, DataBusy
+        target=self.base/'locked-receiver'
+        with DataActivity(target,exclusive=True,purpose='report-import'):
+            with self.assertRaises(DataBusy): import_report(self.package,target)
+        self.assertFalse((target/'scans').exists())
+        self.assertTrue(import_report(self.package,target)['integrity_verified'])
+
     def test_rehashed_zip_cannot_add_unhashed_scalar_tail_or_change_existing_human_history(self):
         valid = self.base/'existing-valid'
         import_report(self.package, valid)

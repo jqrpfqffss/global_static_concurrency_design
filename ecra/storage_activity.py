@@ -11,7 +11,7 @@ class DataBusy(ValueError):
 
 class DataActivity:
     def __init__(self, data_root, *, exclusive=False,purpose='storage'):
-        if purpose not in {'storage','scan-budget','cleanup-job','legacy-import','storage-policy','api','root-transfer'}:raise ValueError('未知数据活动锁')
+        if purpose not in {'storage','scan-budget','cleanup-job','legacy-import','storage-policy','api','root-transfer','export-job','import-job','report-import'}:raise ValueError('未知数据活动锁')
         self.root=no_links(data_root)
         self.exclusive=exclusive
         self.purpose=purpose

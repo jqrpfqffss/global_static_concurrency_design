@@ -15,11 +15,39 @@ export async function api(path: string, method = 'GET', data?: unknown): Promise
   if (!response.ok) throw new ApiError(result.error || `请求失败 (${response.status})`, response.status)
   return result
 }
-export async function upload(path: string, file: File): Promise<any> {
-  const response = await fetch('/api' + path, { method: 'POST', headers: { 'X-ECRA-Session': sessionStorage.getItem('ecra-session') || '' }, body: file })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.error || '导入未完成')
-  return result
+type UploadOptions = {
+  signal?: AbortSignal
+  id?: string
+  onProgress?: (completed: number, total: number) => void
+  onUploaded?: () => void
+}
+export function upload(path: string, file: File, options: UploadOptions = {}): Promise<any> {
+  // Send the File directly: multi-GB archives must never be copied into an
+  // ArrayBuffer or Blob just to display upload progress.
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    const abort = () => request.abort()
+    const cleanup = () => options.signal?.removeEventListener('abort', abort)
+    request.open('POST', '/api' + path)
+    request.setRequestHeader('X-ECRA-Session', sessionStorage.getItem('ecra-session') || '')
+    request.setRequestHeader('X-Filename', encodeURIComponent(file.name))
+    if (options.id) request.setRequestHeader('X-Upload-Id', options.id)
+    request.upload.onprogress = event => options.onProgress?.(event.loaded, event.lengthComputable ? event.total : file.size)
+    request.upload.onload = () => options.onUploaded?.()
+    request.onload = () => {
+      cleanup()
+      try {
+        const result = JSON.parse(request.responseText)
+        if (request.status < 200 || request.status >= 300) reject(new ApiError(result.error || `导入未完成 (${request.status})`, request.status))
+        else resolve(result)
+      } catch { reject(new Error('导入服务返回了无法读取的响应，请重新查询导入记录。')) }
+    }
+    request.onerror = () => { cleanup(); reject(new Error('连接中断，请重新查询导入记录。')) }
+    request.onabort = () => { cleanup(); reject(new DOMException('已取消上传', 'AbortError')) }
+    if (options.signal?.aborted) { reject(new DOMException('已取消上传', 'AbortError')); return }
+    options.signal?.addEventListener('abort', abort, { once: true })
+    request.send(file)
+  })
 }
 export async function download(path: string, filename: string) {
   if (!/^\/api\/download\/[a-f0-9]{32}\.ecra-(?:report|review-delta)$/.test(path)) throw new Error('导出文件地址无效，请重新导出')

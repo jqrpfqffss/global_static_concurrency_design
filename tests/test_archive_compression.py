@@ -77,12 +77,12 @@ class ArchiveCompressionTests(unittest.TestCase):
 
     def test_encoder_disk_failure_keeps_source_and_previous_complete_archive(self):
         old=self.base/'old.ecra-report';export_report(self.scan,old);old_sha=sha256(old)
-        source={name:sha256(self.scan/name) for name in ['scan.db','reviews.db']};actual_write=zipfile.ZipFile.write
-        def failed(zipped,filename,arcname=None,*args,**kwargs):
-            if arcname=='scan.db':raise OSError(errno.ENOSPC,'injected encoder disk full')
-            return actual_write(zipped,filename,arcname,*args,**kwargs)
+        source={name:sha256(self.scan/name) for name in ['scan.db','reviews.db']};actual_write=zipfile._ZipWriteFile.write
+        def failed(writer,data):
+            if writer._zinfo.filename=='scan.db':raise OSError(errno.ENOSPC,'injected encoder disk full')
+            return actual_write(writer,data)
         new=self.base/'failed.ecra-report'
-        with patch.object(zipfile.ZipFile,'write',failed),self.assertRaises(OSError):export_report(self.scan,new)
+        with patch.object(zipfile._ZipWriteFile,'write',failed),self.assertRaises(OSError):export_report(self.scan,new)
         self.assertFalse(new.exists());self.assertEqual(sha256(old),old_sha)
         self.assertEqual(source,{name:sha256(self.scan/name) for name in source})
 

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, provide, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { api, upload, download, label, field } from './api'
+import { api, label, field } from './api'
+import ExportProgress from './ExportProgress.vue'
+import { startExport } from './exportJobs'
+import ImportProgress from './ImportProgress.vue'
+import { startImport, importPending } from './importJobs'
 import EvidenceNode from './EvidenceNode.vue'
 import CallTree from './CallTree.vue'
 import CleanupCenter from './CleanupCenter.vue'
@@ -35,7 +39,7 @@ const bootstrap = ref<any>(null), scans = ref<any[]>([]), scan = ref(localStorag
 const error = ref(''), notice = ref(''), busy = ref(false), loading = ref(false)
 const summaryError = ref('')
 provide('workspace-error',error)
-const archiveCompression=ref('compact')
+const archiveCompression=ref('deflate')
 const multicoreRef=ref<InstanceType<typeof MulticoreCenter>|null>(null)
 const items = ref<any[]>([]), total = ref(0), offset = ref(0), search = ref(''), classification = ref(''), humanFilter = ref(''), selected = ref<any>(null)
 const defaultFilters=():Record<string,string>=>({handling_status:'',file:'',function:'',context:'',coverage:'',ai_state:'',current_result:'',diff:'',symbol_id:'',sort:'priority',order:'asc'})
@@ -284,17 +288,17 @@ async function page(delta: number) { offset.value = Math.max(0, offset.value + d
 async function importFile(event: Event, delta = false) {
   const input = event.target as HTMLInputElement, file = input.files?.[0]
   if (!file) return
-  await run(async () => {
-    notice.value = '正在校验归档结构、完整证据与人工历史…'
-    let result
-    try { result=await upload(delta ? apiScan.value + '/delta/import' : '/import', file) }
-    catch(e:any){throw Error((delta?'确认增量':'完整结果包')+'导入未完成。请核对'+(delta?'增量与当前归档的归属、':'')+'文件是否传输完整及数据盘可用空间，再重新选择文件重试；仍失败时请提供下方诊断信息。\n'+e.message)}
-    scan.value=result.scan_id;notice.value=`导入已提交：${result.scan_id}；新增人工事件 ${result.imported_events}`;await refresh()
-  })
+  await startImport(file, delta ? scan.value : undefined)
   input.value = ''
 }
+async function imported(result: any) {
+  await readPage(async () => {
+    scans.value = (await api('/scans')).items
+    if (result?.scan_id === scan.value) await syncProjection(true)
+  })
+}
 async function exportFile(kind: string) {
-  await run(async () => { const result = await api(apiScan.value + '/export', 'POST', { kind, ...(kind==='full'?{compression:archiveCompression.value}:{}) }); await download(result.download, result.filename); notice.value = result.compression_fallback?'已生成完整包并开始下载；为保证能正常导入，已使用快速压缩。':'已生成一致快照包并开始下载。' })
+  await run(async () => { await startExport(scan.value, kind, archiveCompression.value); notice.value = '已启动后台导出，可在导出进度中查看阶段和下载结果。' })
 }
 function buildYaml() {
   const q = (s: string) => JSON.stringify(s)
@@ -472,10 +476,14 @@ onUnmounted(() => { if(projectionTimer)clearInterval(projectionTimer);window.rem
         </template>
         <template v-else-if="route==='coverage'"><CoverageCenter v-if="scan&&summary" :key="scan" :scan="scan" :roots="summary.roots" @symbol="openCoverageSymbol"/><p v-else>{{scan?'正在读取当前归档；若读取失败，请查看上方诊断。':'尚无可查看的归档。'}}</p></template>
         <template v-else-if="route==='history'"><HistoryCenter v-if="bootstrap" :data-root="bootstrap.data_root" :busy="busy" @open="openScan" @continue="continueReview" @symbol="openHistorySymbol" /></template>
-        <template v-else-if="route==='sharing'"><div class="page-heading"><div><h1>数据与共享</h1><p>完整包可在无原固件的电脑查看归档并继续确认。导出可能含敏感代码与备注，请按团队规则分享。</p></div><button :disabled="busy" @click="sharingTab='multicore';multicoreRef?.open()">合并已有多核结果</button></div><div class="section-tabs" role="tablist" aria-label="数据与共享分组"><button v-for="[id,title] in [['exchange','结果交接'],['migration','旧结果迁移'],['storage','空间与清理'],['multicore','多核合并']]" role="tab" :aria-selected="sharingTab===id" @click="sharingTab=id;if(id==='multicore')multicoreRef?.open()">{{title}}</button></div><div v-show="sharingTab==='exchange'" class="overview-columns"><section class="panel"><h2>导入完整结果</h2><p>校验ZIP路径、数据库结构、全部证据哈希与人工历史后原子发布；失败保留已有数据。</p><label>选择 .ecra-report<input type="file" accept=".ecra-report" :disabled="busy" @change="importFile($event)"></label><template v-if="scan"><h3>合并人工确认增量</h3><label>选择 .ecra-review-delta<input type="file" accept=".ecra-review-delta" :disabled="busy" @change="importFile($event,true)"></label><p>重复导入去重；并行决定保留双方事件，进入显式冲突。</p></template></section><section class="panel"><h2>导出当前归档</h2><p>{{ scan || '尚未选择归档' }}</p><template v-if="scan"><label>完整包压缩<select aria-label="完整包压缩" v-model="archiveCompression" :disabled="busy"><option value="compact">省空间（压缩较慢）</option><option value="deflate">快速（文件较大）</option></select></label><p class="muted">两种方式均包含相同的完整证据和人工记录；人工确认增量不受此选项影响。</p></template><div v-if="scan" class="actions"><button :disabled="busy" @click="exportFile('full')">导出标准完整包</button><button :disabled="busy" @click="exportFile('delta')">导出人工确认增量</button></div></section></div><div v-show="sharingTab==='multicore'"><MulticoreCenter ref="multicoreRef" :scans="scans" :busy="busy" @tasks="openTasks"/></div><div v-show="sharingTab==='migration'"><MigrationCenter @completed="readPage(async()=>{storage=await api('/storage');scans=(await api('/scans')).items})" @open="openScan" /><LegacyArchive v-if="summary?.legacy_warning" :key="scan" :scan="scan" :degraded="summary.legacy_degraded" @evidence="go('coverage')" /></div><div v-show="sharingTab==='storage'"><section class="panel"><h3>真实数据占用</h3><p class="muted">采样时间 {{storage?.sampled_at || '尚未读取'}}</p><button :disabled="busy" @click="run(async()=>{storage=await api('/storage')})">更新空间占用</button><StorageUsage :storage="storage"/></section><CleanupCenter /></div></template>
+        <template v-else-if="route==='sharing'"><div class="page-heading"><div><h1>数据与共享</h1><p>完整包可在无原固件的电脑查看归档并继续确认。导出可能含敏感代码与备注，请按团队规则分享。</p></div><button :disabled="busy" @click="sharingTab='multicore';multicoreRef?.open()">合并已有多核结果</button></div><div class="section-tabs" role="tablist" aria-label="数据与共享分组"><button v-for="[id,title] in [['exchange','结果交接'],['migration','旧结果迁移'],['storage','空间与清理'],['multicore','多核合并']]" role="tab" :aria-selected="sharingTab===id" @click="sharingTab=id;if(id==='multicore')multicoreRef?.open()">{{title}}</button></div><div v-show="sharingTab==='exchange'" class="overview-columns"><section class="panel"><h2>导入完整结果</h2><p>校验ZIP路径、数据库结构、全部证据哈希与人工历史后原子发布；失败保留已有数据。</p><label>选择 .ecra-report<input type="file" accept=".ecra-report" :disabled="busy||importPending" @change="importFile($event)"></label><template v-if="scan"><h3>合并人工确认增量</h3><label>选择 .ecra-review-delta<input type="file" accept=".ecra-review-delta" :disabled="busy||importPending" @change="importFile($event,true)"></label><p>重复导入去重；并行决定保留双方事件，进入显式冲突。</p></template></section><section class="panel"><h2>导出当前归档</h2><p>{{ scan || '尚未选择归档' }}</p><template v-if="scan"><label>完整包压缩<select aria-label="完整包压缩" v-model="archiveCompression" :disabled="busy"><option value="compact">省空间（压缩较慢）</option><option value="deflate">快速（文件较大）</option></select></label><p class="muted">两种方式均包含相同的完整证据和人工记录；人工确认增量不受此选项影响。</p></template><div v-if="scan" class="actions"><button :disabled="busy" @click="exportFile('full')">导出标准完整包</button><button :disabled="busy" @click="exportFile('delta')">导出人工确认增量</button></div></section></div><div v-show="sharingTab==='multicore'"><MulticoreCenter ref="multicoreRef" :scans="scans" :busy="busy" @tasks="openTasks"/></div><div v-show="sharingTab==='migration'"><MigrationCenter @completed="readPage(async()=>{storage=await api('/storage');scans=(await api('/scans')).items})" @open="openScan" /><LegacyArchive v-if="summary?.legacy_warning" :key="scan" :scan="scan" :degraded="summary.legacy_degraded" @evidence="go('coverage')" /></div><div v-show="sharingTab==='storage'"><section class="panel"><h3>真实数据占用</h3><p class="muted">采样时间 {{storage?.sampled_at || '尚未读取'}}</p><button :disabled="busy" @click="run(async()=>{storage=await api('/storage')})">更新空间占用</button><StorageUsage :storage="storage"/></section><CleanupCenter /></div></template>
         <template v-else-if="route==='tasks'"><TaskCenter :focus-task="requestedTask" :last-task="taskFocus" :launch-disabled="busy" @focus="rememberTask" @open="openScan" @results-changed="resultChanged" /></template>
         <template v-else-if="route==='opencode'"><ReviewCenter v-if="scan&&summary" :key="scan" :scan="scan" :project-id="summary.binding.project_id" :profile-id="summary.binding.profile_id" :can-review="summary.can_review" :revision="summary.result_revision" @tasks="openTasks" @updated="resultChanged()"/><section v-else class="panel"><h1>OpenCode 复核</h1><p>先打开已保存的真实扫描或结果包。案例库与工程背景可以提前编辑。</p><ReviewMaterials/></section></template>
         <template v-else><h1>设置与验收状态</h1><p v-if="bootstrap?.preference_warning" role="alert" class="banner warning">{{bootstrap.preference_warning}}</p><DataRootSettings :busy="busy"/><section class="panel"><h2>明确的能力边界</h2><p v-for="item in bootstrap?.limits">{{ item }}</p><p>大型整轮 Diff/恢复、32GB 真机、干净离线电脑和人工 UAT 仍待验；其他 G2 工程按获准范围待验，不宣称完整发布。</p></section></template>
+        <div v-show="route==='sharing'" class="sharing-progress">
+          <ImportProgress :busy="busy" @completed="imported" @open="openScan" @continue="continueReview" />
+          <ExportProgress />
+        </div>
       </main>
     </div>
     <DirectoryBrowser v-if="directoryMode" :multiple="directoryMode==='exclude-file'" :kind="directoryMode==='exclude-file'?'project_file':directoryMode==='database'?'compile_database':directoryMode==='toolchain'?'toolchain':undefined" :title="directoryMode==='exclude-file'?'选择要排除变量的文件':directoryMode==='database'?'选择编译数据库文件':directoryMode==='toolchain'?'选择 Toolchain 文件':directoryMode==='project'?'选择固件目录':directoryMode==='include'?'选择变量纳入目录':'选择变量排除目录'" :start="projectRoot" :root="['include','exclude','exclude-file'].includes(directoryMode)?projectRoot:undefined" @selected="directorySelected" @selected-files="excludedFilesSelected" @close="directoryMode=''"/>

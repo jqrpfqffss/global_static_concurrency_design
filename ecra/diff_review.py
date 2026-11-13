@@ -19,23 +19,24 @@ def _stamp(path):
 
 
 @lru_cache(maxsize=24)
-def _verified(path, expected, stamp):
+def _verified(path, expected, stamp, progress=None):
     from .report_package import sha256, validate_schema
-    if sha256(path) != expected:
+    if sha256(path, progress=progress) != expected:
         raise ValueError('Git 基准证据的内容校验失败')
     with closing(connect_readonly(path)) as conn:
         version = conn.execute('PRAGMA user_version').fetchone()[0]
-    validate_schema(path, schema_for_version(version), version)
-    binding = EvidenceProvider(path).validate(deep=True)
+    validate_schema(path, schema_for_version(version), version, check_integrity=False)
+    binding = EvidenceProvider(path).validate(deep=True, progress=progress)
     if _stamp(path) != stamp:
         raise ValueError('Git 基准证据在校验期间发生变化')
     return binding
 
 
 class DiffReviewEvidence:
-    def __init__(self, directory, current=None):
+    def __init__(self, directory, current=None, *, progress=None):
         self.directory = Path(directory)
         self.current = current or EvidenceProvider(self.directory/'scan.db')
+        self.progress = progress
 
     def deleted_node(self):
         return self.current.resolve('report', ['git_diff', 'deleted_variables'])
@@ -64,7 +65,7 @@ class DiffReviewEvidence:
             with path.open('rb') as stream:
                 if stream.read(16) != b'SQLite format 3\0':
                     continue  # Legacy JSON-only baseline
-            binding = _verified(path, expected, _stamp(path))
+            binding = _verified(path, expected, _stamp(path), self.progress)
             if binding['scan_id'] != 'base-'+str(base_sha) or binding['project_id'] != self.current.metadata()['project_id']:
                 raise ValueError('Git 基准证据与此扫描的固定版本或工程不匹配')
             return EvidenceProvider(path)
