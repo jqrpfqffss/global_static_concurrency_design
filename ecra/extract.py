@@ -171,6 +171,8 @@ def function_alias_target(cursor):
 
 class Extractor:
     def __init__(self, request):
+        from .compilation import source_language
+
         self.root = Path(request["root"]).resolve()
         self.unit = request["unit"]
         self.cfg = request["config"]
@@ -188,6 +190,7 @@ class Extractor:
         self.coverage_source = request.get("coverage_source", "compile_database")
         self.source_overrides = request.get("source_overrides", {})
         self.declaration_only = request.get("declaration_only", False)
+        self.language = source_language(self.unit['source'], self.unit['arguments'])
         self.request_snapshot = request.get('verify_inputs', False)
         self.dependencies_only = request.get('dependencies_only', False)
         self.compiler_view = request.get('compiler_view')
@@ -295,7 +298,7 @@ class Extractor:
                 defining = c.is_definition() or (c.storage_class.name != "EXTERN" and (
                     local and c.storage_class.name == "STATIC" or
                     not local and c.semantic_parent.kind.name == "TRANSLATION_UNIT"
-                    and Path(self.unit["source"]).suffix.lower() == ".c"))
+                    and self.language == 'c'))
                 record = self.variables.get(sid)
                 if record is None:
                     size, align = typ.get_size(), typ.get_align()

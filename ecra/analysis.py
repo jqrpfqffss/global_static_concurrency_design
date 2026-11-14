@@ -168,6 +168,8 @@ def _add_auto_context(contexts, roots, cid, context, fid, configured, funcs):
 
 
 def context_graph(facts, cfg):
+    from .async_semantics import TASK_CREATION_APIS
+
     funcs = {f["function_id"]: f for f in facts["functions"]}
     graph = defaultdict(set)
     for call in facts["calls"]:
@@ -230,6 +232,23 @@ def context_graph(facts, cfg):
                 _add_auto_context(contexts, roots, cid, dict(id=cid, kind=kind, discovery="name_convention"),
                                   fid, configured, funcs)
                 roots[cid].add(fid)
+        # Only a single configured task with a single entry can be attached
+        # to a recovered creation without guessing which manual task it is.
+        task_labels = defaultdict(set)
+        single_entry_tasks = set()
+        for cid, context in contexts.items():
+            if context['kind'] != 'TASK' or context.get('discovery') != 'configured':
+                continue
+            if len(roots[cid]) == 1:
+                single_entry_tasks.add(cid)
+            for fid in roots[cid]:
+                task_labels[fid].add(cid)
+        task_configurations = defaultdict(list)
+        for reg in facts['registrations']:
+            if reg.get('configured') and reg.get('kind') == 'TASK' and reg.get('api') in TASK_CREATION_APIS:
+                task_configurations[(reg['function_id'], reg['file'], reg['offset'])].append(reg)
+        used_task_labels = set()
+        timer_daemon_id = 'auto:freertos:timer_daemon'
         seen_registrations = set()
         for reg in facts["registrations"]:
             fid = reg["function_id"]
@@ -237,9 +256,14 @@ def context_graph(facts, cfg):
                 issues.append(dict(kind="TASK_ENTRY_WITHOUT_DEFINITION", target_function_id=fid,
                                    file=reg["file"], line=reg["line"]))
                 continue
-            key = (fid, reg["file"], reg["offset"], reg.get('kind'), reg.get('context_id'),
-                   reg.get('may_repeat') if reg.get('configured') else None)
-            if (fid in matched and not reg.get('configured')) or fid in disabled or key in seen_registrations:
+            task_creation = reg.get('kind') == 'TASK' and reg.get('api') in TASK_CREATION_APIS
+            # Clang and configured points-to recovery may both report the
+            # same call. Its physical identity comes from the source site.
+            key = (fid, reg["file"], reg["offset"], reg.get('kind'))
+            if not task_creation:
+                key += (reg.get('context_id'), reg.get('may_repeat') if reg.get('configured') else None)
+            if ((fid in matched and not reg.get('configured') and not task_creation)
+                    or fid in disabled or key in seen_registrations):
                 continue
             seen_registrations.add(key)
             # FreeRTOS software timers and pended functions run serially in
@@ -250,7 +274,7 @@ def context_graph(facts, cfg):
                 and funcs.get(reg.get('registered_by'), {}).get('name') == 'xTimerCreateTimerTask'
                 and reg.get('api') in {'xTaskCreate', 'xTaskCreateStatic'})
             if reg.get('kind') in {'TIMER', 'DEFERRED'} or kernel_timer_task:
-                cid = 'auto:freertos:timer_daemon'
+                cid = timer_daemon_id
                 if cid in contexts and contexts[cid].get('discovery') != 'freertos_timer_daemon':
                     daemon_roots = {row['function_id'] for row in facts['registrations']
                         if row.get('kind') in {'TIMER', 'DEFERRED'} or (
@@ -270,13 +294,20 @@ def context_graph(facts, cfg):
                     reentrant=False, registrations=[], execution_note='FreeRTOS 定时器回调与延后执行函数共享同一个串行守护任务'))
                 contexts[cid]['registrations'].append(reg)
                 roots[cid].add(fid)
+                if kernel_timer_task:
+                    labels = task_labels.get(fid, set())
+                    if (len(labels) == 1 and (label := next(iter(labels))) != cid and label in single_entry_tasks
+                            and label not in used_task_labels and contexts[label].get('discovery') == 'configured'):
+                        contexts[cid].setdefault('configuration_evidence', []).append(dict(configured[label]))
+                        del contexts[label]
+                        single_entry_tasks.remove(label)
                 continue
             kind = reg.get('kind', 'TASK')
             # A custom registration can explicitly group callbacks served by
             # one physical interrupt.  This prevents serial callback dispatch
             # from being incorrectly modeled as separate concurrent ISRs.
             cid = reg.get('context_id')
-            if cid:
+            if cid and not task_creation:
                 existing = contexts.setdefault(cid, dict(id=cid, kind=kind, discovery='registered_entry',
                     reentrant=reg.get('may_repeat', kind == 'TASK'), registrations=[]))
                 if existing['kind'] != kind:
@@ -287,8 +318,34 @@ def context_graph(facts, cfg):
             else:
                 ordinal = sum(key[0] == fid and key[1] == reg['file'] for key in seen_registrations)
                 cid = "auto:" + kind.lower() + ":" + funcs[fid]["name"] + ":" + digest([fid, reg["file"], ordinal])[:12]
-                _add_auto_context(contexts, roots, cid, dict(id=cid, kind=kind, discovery="task_registration", registration=reg,
-                                     reentrant=reg.get("may_repeat", kind == 'TASK')), fid, configured, funcs)
+                context = dict(id=cid, kind=kind, discovery="task_registration", registration=reg,
+                               reentrant=reg.get("may_repeat", kind == 'TASK'))
+                labels = task_labels.get(fid, set()) if task_creation else set()
+                registration_rules = task_configurations.get(key[:3], ()) if task_creation else ()
+                if registration_rules:
+                    context['reentrant'] |= any(rule.get('may_repeat') for rule in registration_rules)
+                    context['registrations'] = list(registration_rules)
+                explicit_labels = {rule['context_id'] for rule in registration_rules if rule.get('context_id')}
+                candidates = explicit_labels or labels
+                label = next(iter(candidates)) if len(candidates) == 1 else None
+                configured_task = (label in labels and label in single_entry_tasks
+                                   and contexts[label].get('discovery') == 'configured')
+                new_label = label in explicit_labels and label not in contexts and label not in configured
+                if label != timer_daemon_id and label not in used_task_labels and (configured_task or new_label):
+                    # Keep the configured identifier for an existing task.
+                    # Each additional creation still gets a separate root.
+                    cid = label
+                    used_task_labels.add(label)
+                    context['id'] = cid
+                    if cid in configured:
+                        context['reentrant'] |= contexts[cid]['reentrant']
+                        context['configuration_evidence'] = [dict(configured[cid])]
+                    contexts[cid] = context
+                else:
+                    _add_auto_context(contexts, roots, cid, context, fid, configured, funcs)
+                    if labels:
+                        contexts[cid].setdefault('configuration_evidence', []).extend(
+                            dict(configured[label]) for label in sorted(labels))
             roots[cid].add(fid)
     from .physical import normalize_contexts
     contexts, roots = normalize_contexts(contexts, roots, graph, funcs, cfg, facts)

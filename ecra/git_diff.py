@@ -675,10 +675,11 @@ def compare(base, head, pinned):
         fallback.append('存在未解析依赖，无法证明局部影响边界')
     dependencies = set(base.get('dependencies', [])) | set(head.get('dependencies', []))
     prefix = pinned.get('project_subdir', '.')
+    from .compilation import source_language
     build_changed = base.get('build') != head.get('build') or base.get('macros') != head.get('macros') or any(
         Path(f['new_path']).suffix.lower() in ('.h', '.hh', '.hpp', '.hxx', '.inc', '.cmake', '.ld', '.lds', '.s', '.a', '.o', '.obj', '.mk', '.sct', '.icf')
         or Path(f['new_path']).name in ('CMakeLists.txt', 'CMakePresets.json', 'CMakeUserPresets.json', 'compile_commands.json', 'Makefile')
-        or (Path(f['new_path']).suffix.lower() not in ('.c', '.cc', '.cpp', '.cxx')
+        or (source_language(f['new_path']) not in {'c', 'c++'}
             and Path(os.path.relpath(f['new_path'], prefix)).as_posix() in dependencies) for f in pinned['files'] if not f.get('comment_only'))
     if build_changed:
         fallback.append('头文件或构建输入变化，重新评估完整构建范围')

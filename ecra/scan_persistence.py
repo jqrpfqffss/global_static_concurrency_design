@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import sqlite3
+import traceback
 import uuid
 
 from .common import read_json, write_json
@@ -401,6 +402,18 @@ def previous_finding_ids(out,workspace):
         return {row[0].decode('utf-8') for row in conn.execute("SELECT n.value FROM records r JOIN edges e ON e.parent=r.node AND e.key='finding_id' JOIN nodes n ON n.id=e.child WHERE r.dataset='report' AND r.relation='findings' ORDER BY r.ordinal")}
 
 
+def _publication_failed(out, exc):
+    interrupted = isinstance(exc, KeyboardInterrupt)
+    state, code = ('INTERRUPTED', 130) if interrupted else ('FAILED', 3)
+    error = f'{type(exc).__name__}: {exc}'
+    write_json(out/'result_validity.json', dict(analysis_valid=False, state=state, error=error))
+    run = read_json(out/'run.json')
+    run.update(state=state, exit_code=code, error=error, failed_stage='publication')
+    write_json(out/'run.json', run)
+    with (out/'diagnostics/exception.log').open('a', encoding='utf-8') as log:
+        traceback.print_exception(type(exc), exc, exc.__traceback__, file=log)
+
+
 def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
                   review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None,_storage_policy=None,
                   _compiler_view=None):
@@ -442,40 +455,40 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
         validity = json.loads((out/'result_validity.json').read_text(encoding='utf-8'))
         if code not in {0, 1, 2} or not validity.get('analysis_valid'):
             return code
-        provider = EvidenceProvider(out/'scan.db')
-        binding = provider.validate(deep=True)
-        from .human_reviews import ReviewStore
         profile_pointer=Path(workspace.project_workspace)/('latest-scan-'+profile_id+'.json')
-        previous_pointer=profile_pointer if profile_pointer.is_file() else Path(workspace.project_workspace)/'latest-scan.json'
-        if previous_pointer.is_file():
-            previous=json.loads(previous_pointer.read_text(encoding='utf-8'))
-            if not IDENTITY.fullmatch(previous.get('scan_id','')) or previous.get('project_id')!=workspace.project_id:
-                raise ValueError('历史扫描指针身份不符，拒绝自动关联')
-            previous_out=no_links(Path(workspace.workspace_root)/'scans'/previous['scan_id'])
-            old_provider=EvidenceProvider(previous_out/'scan.db')
-            old=old_provider.metadata()
-            if old['profile_id']==profile_id:
-                ReviewStore(out/'reviews.db',binding).inherit_from(
-                    ReviewStore(previous_out/'reviews.db',old),old_provider,provider)
-        audit = archive_audit(out)
-        if _compiler_view is not None:
-            # Auditing a complete authority can take hours. The final pointer
-            # must not rely on a check performed before that read completed.
-            try:
+        try:
+            provider = EvidenceProvider(out/'scan.db')
+            binding = provider.validate(deep=True)
+            from .human_reviews import ReviewStore
+            previous_pointer=profile_pointer if profile_pointer.is_file() else Path(workspace.project_workspace)/'latest-scan.json'
+            if previous_pointer.is_file():
+                previous=json.loads(previous_pointer.read_text(encoding='utf-8'))
+                if not IDENTITY.fullmatch(previous.get('scan_id','')) or previous.get('project_id')!=workspace.project_id:
+                    raise ValueError('历史扫描指针身份不符，拒绝自动关联')
+                previous_out=no_links(Path(workspace.workspace_root)/'scans'/previous['scan_id'])
+                old_provider=EvidenceProvider(previous_out/'scan.db')
+                old=old_provider.metadata()
+                if old['profile_id']==profile_id:
+                    ReviewStore(out/'reviews.db',binding).inherit_from(
+                        ReviewStore(previous_out/'reviews.db',old),old_provider,provider)
+            audit = archive_audit(out)
+            scan_sha256 = sha256(out/'scan.db')
+            if _compiler_view is not None:
+                # A completed graph/audit can take hours. Verify the frozen
+                # producer again after the potentially long database read.
                 from .working_compiler_view import validate
                 from .workflow import engine_digest
                 validate(_compiler_view, root, cfg, reverify_original=True)
                 if engine_digest() != read_json(out/'scan_state.json')['engine_digest']:
                     raise ValueError('归档审计期间分析实现已变化；冻结扫描不能发布')
-            except Exception as exc:
-                write_json(out/'result_validity.json',dict(analysis_valid=False,state='FAILED',
-                           error=f'{type(exc).__name__}: {exc}'))
-                raise
-        manifest = dict(binding, format='ECRA_LOCAL_SCAN', version=1, **audit,
-                        state='STATIC_VALIDATED', run_state=json.loads((out/'run.json').read_text(encoding='utf-8'))['state'],
-                        scan_sha256=sha256(out/'scan.db'), source_reverification=True,
-                        completed_at=datetime.now(timezone.utc).isoformat())
-        write_json(out/'manifest.json', manifest)
+            manifest = dict(binding, format='ECRA_LOCAL_SCAN', version=1, **audit,
+                            state='STATIC_VALIDATED', run_state=read_json(out/'run.json')['state'],
+                            scan_sha256=scan_sha256, source_reverification=True,
+                            completed_at=datetime.now(timezone.utc).isoformat())
+            write_json(out/'manifest.json', manifest)
+        except (Exception, KeyboardInterrupt) as exc:
+            _publication_failed(out, exc)
+            raise
         write_json(Path(workspace.project_workspace)/'latest-scan.json',
                    dict(project_id=workspace.project_id, scan_id=ident))
         write_json(profile_pointer,dict(project_id=workspace.project_id,scan_id=ident))

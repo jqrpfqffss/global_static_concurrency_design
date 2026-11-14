@@ -7,9 +7,10 @@ from collections import defaultdict
 from pathlib import Path
 
 from .common import digest, execute, read_json, relative, write_json
+from .compilation import C_SOURCE_SUFFIXES, CXX_SOURCE_SUFFIXES
 
-SOURCE_EXTENSIONS = {'.c', '.cc', '.cpp', '.cxx', '.h', '.hh', '.hpp', '.hxx', '.inc'}
-CPP_EXTENSIONS = {'.cc', '.cpp', '.cxx', '.hh', '.hpp', '.hxx'}
+SOURCE_EXTENSIONS = C_SOURCE_SUFFIXES | {'.h', '.hh', '.hpp', '.hxx', '.inc'}
+CPP_EXTENSIONS = CXX_SOURCE_SUFFIXES | {'.hh', '.hpp', '.hxx'}
 
 
 def selected_files(root, scope, output):

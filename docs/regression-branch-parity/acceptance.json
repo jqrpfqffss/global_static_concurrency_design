@@ -1,0 +1,3591 @@
+{
+  "impact_verification": {
+    "evidence_root": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z",
+    "engine_sha256": "fec352a1031ee42966126fe6e3275231bd50d8fb52cba1ff5cf59abf7cc49268",
+    "baseline_unchanged": {
+      "A": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+      "B": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0"
+    },
+    "reproductions": {
+      "rtos_before": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\reproduce-rtos.log",
+        "sha256": "034a93143b6c8fd2dbf38e005d1cfd2e8dc29883e33d587dc5eb9a7e986d8ede"
+      },
+      "rtos_after": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\rtos-final-core.log",
+        "sha256": "d6a386e41d278b5da8a80ac5946ea2cd7a4852a225ed55a042345fa8511df7af"
+      },
+      "owner_level_before": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\task-precise-C.log",
+        "sha256": "25571c1cc0765efbeae7c1a2781f6a8ed9042a11c16aa55934e241d3e80d3f17"
+      },
+      "owner_level_baseline": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\task-precise-B.log",
+        "sha256": "46cb472e947c75c306697a28e967c87c81ed1859d4be320ed71c8112fb931283"
+      },
+      "owner_level_after": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\task-precise-fixed.log",
+        "sha256": "a8a564e63e392cb67a568bfebc5bacc42a820a9b6032bc6d7ce74f35923a063d"
+      },
+      "mingw_before": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\mingw-sequence-C-child.json",
+        "sha256": "df717f907a1507ea493d2affe17280f4bffee7d83a869745b5640e03fabaf7d1"
+      },
+      "mingw_after": {
+        "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\mingw-final-order-child.json",
+        "sha256": "87e13b2266c2dbc11b644c6e56b15bd245805278e82b65c361419a2945b13876"
+      }
+    },
+    "targeted_tests": {
+      "verified-analysis": {
+        "status": "PASS",
+        "cases": 130,
+        "exit_code": 0,
+        "log": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\verified-analysis.log"
+      },
+      "verified-build": {
+        "status": "PASS",
+        "cases": 16,
+        "exit_code": 0,
+        "log": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\verified-build.log"
+      },
+      "verified-diff": {
+        "status": "PASS",
+        "cases": 49,
+        "exit_code": 0,
+        "log": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\verified-diff.log"
+      },
+      "verified-studio": {
+        "status": "PASS",
+        "cases": 62,
+        "exit_code": 0,
+        "log": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\verified-studio.log"
+      },
+      "frontend-node": {
+        "status": "PASS",
+        "cases": 32,
+        "exit_code": 0,
+        "log": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\frontend-node.log"
+      }
+    },
+    "complete_suite": {
+      "receipt": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\complete-suite.json",
+      "status": "RUNNING",
+      "exit_code": null,
+      "log": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\complete-suite.stderr.log"
+    },
+    "real_scans": {
+      "serial-warm": {
+        "engine_sha256": "fec352a1031ee42966126fe6e3275231bd50d8fb52cba1ff5cf59abf7cc49268",
+        "database": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\serial-data\\scans\\4e6b8b6887904d5da6b63339012c4a5f\\scan.db",
+        "scan_sha256": "ac0a77d0eed3780c6f396d6eec440746b4acf2e0d292791c86aee3464af66a0d",
+        "facts_hash": "350d5b1fb5c7486d1bfc59f4dfc3cdb2597241538caad082fc9fc3ded31b7d6f",
+        "static_counts": {
+          "CONTAINER": 9,
+          "SAFE_PROVEN": 26,
+          "SUSPECT": 23
+        },
+        "cache_hits": 20,
+        "extracted_tus": 0,
+        "scan_state": "INCOMPLETE",
+        "focus": {}
+      },
+      "serial-8-workers": {
+        "engine_sha256": "fec352a1031ee42966126fe6e3275231bd50d8fb52cba1ff5cf59abf7cc49268",
+        "database": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\serial-data\\scans\\6fd3ee1db312442eaec1346c0bada754\\scan.db",
+        "scan_sha256": "fea36749fec95eec0977f88a41d3843948c1a06601ae399a03d877f38725b810",
+        "facts_hash": "350d5b1fb5c7486d1bfc59f4dfc3cdb2597241538caad082fc9fc3ded31b7d6f",
+        "static_counts": {
+          "CONTAINER": 9,
+          "SAFE_PROVEN": 26,
+          "SUSPECT": 23
+        },
+        "cache_hits": 0,
+        "extracted_tus": 20,
+        "scan_state": "INCOMPLETE",
+        "focus": {}
+      },
+      "serial-4-workers": {
+        "engine_sha256": "fec352a1031ee42966126fe6e3275231bd50d8fb52cba1ff5cf59abf7cc49268",
+        "database": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\serial-second-data\\scans\\1b8de2a3ad70460393fa49d30f2095af\\scan.db",
+        "scan_sha256": "14c05466595e3b512a41964c78ae1daa9c6036f68815eeac08c1514165828975",
+        "facts_hash": "350d5b1fb5c7486d1bfc59f4dfc3cdb2597241538caad082fc9fc3ded31b7d6f",
+        "static_counts": {
+          "CONTAINER": 9,
+          "SAFE_PROVEN": 26,
+          "SUSPECT": 23
+        },
+        "cache_hits": 0,
+        "extracted_tus": 20,
+        "scan_state": "INCOMPLETE",
+        "focus": {}
+      },
+      "cases": {
+        "engine_sha256": "fec352a1031ee42966126fe6e3275231bd50d8fb52cba1ff5cf59abf7cc49268",
+        "database": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\cases-data\\scans\\d9a197864d814a49bc4f8103c4399b3e\\scan.db",
+        "scan_sha256": "3fab7953c530f3ac42de7e3e8f4ba4e72a0c2ef9a931051043cb356a7b33fc7f",
+        "facts_hash": "6ee60478ab969ad4f54d4d421c830b396a9c79f2dadd5a5a39be2d8a1308a817",
+        "static_counts": {
+          "CONTAINER": 4,
+          "SAFE_PROVEN": 20,
+          "SUSPECT": 7,
+          "UNKNOWN": 1
+        },
+        "cache_hits": 0,
+        "extracted_tus": 4,
+        "scan_state": "INCOMPLETE",
+        "focus": {
+          "tu::main.c::c:main.c@parallel_task_state": "SUSPECT"
+        }
+      }
+    },
+    "serial_repeatable": true,
+    "studio": {
+      "serial": {
+        "status": "PASS",
+        "receipt": {
+          "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\serial-studio\\receipt.json",
+          "sha256": "d19f5248b800d8efa80bd75447a13910bfef1f16b487e585356e4b228f4715a5"
+        },
+        "matches_database": true,
+        "restarted": true,
+        "browser_errors": []
+      },
+      "cases": {
+        "status": "PASS",
+        "receipt": {
+          "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\cases-studio\\receipt.json",
+          "sha256": "594e80c0311c83ee02e7a97ac3e2d6966f8b955980ffb43d8e7ee8e4e492c596"
+        },
+        "matches_database": true,
+        "restarted": true,
+        "browser_errors": []
+      },
+      "previous_serial_B": {
+        "status": "PASS",
+        "receipt": {
+          "path": "I:\\ecra-parity-20261114\\impact-2026-11-14T15-16-13-940Z\\previous-scan-studio\\receipt.json",
+          "sha256": "13933d9bd81543832a489ca85d7f3eb057d03263249aef6550544fd5b8313155"
+        },
+        "matches_database": true,
+        "restarted": true,
+        "browser_errors": []
+      }
+    },
+    "external_opencode_provider": "NOT_RUN. Review storage, packet, decision and toggle paths used test responses.",
+    "inav": {
+      "status": "BLOCKED_PENDING_PUBLICATION_AND_COLD_REPEAT",
+      "latest_engine_receipt": "I:\\ecra-parity-20261114\\inav-C1-run4\\engine.json",
+      "continuation": "I:\\ecra-parity-20261114\\final-continuation.json",
+      "repeatability": "I:\\ecra-parity-20261114\\inav-impact-repeatability.json",
+      "rejected_earlier_run": {
+        "path": "I:\\ecra-parity-20261114\\inav-C1-run3\\execution.json",
+        "sha256": "5abbab22e4e402857903ccc2ed9abf70c29a69641a06218acff27b0fee9680e2"
+      }
+    }
+  },
+  "status": "BLOCKED",
+  "reason": "INAV A/B/C full publication, complete decision evidence and C repeatability have not been verified.",
+  "updated": "2026-11-14T14:37:09.543246+00:00",
+  "branch": "optimize_ccc",
+  "A": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+  "B": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+  "C": {
+    "base": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+    "engine_patch_sha256": "692d62012a0766644e036635e7f28cc2070817a65a10afc6873eeb47f368642f",
+    "engine_patch": "I:\\ecra-parity-20261114\\C-static-engine.patch",
+    "application_patch_sha256": "4868cc2c9f758a8785d8ec8b0b70854eaeec17051d1464941b89e1669e3a8120",
+    "application_patch": "I:\\ecra-parity-20261114\\C-application.patch",
+    "static_engine_digest": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1"
+  },
+  "resource_measurement": "Windows Job process-tree commit peak plus sampled working set/private consumption. Concurrent same-input runs are not a performance benchmark.",
+  "environment": {
+    "python": "3.10.9",
+    "libclang": "18.1.1",
+    "arm_gcc": "10.3.1 20210824 (release)",
+    "cmake": "3.29.6",
+    "ninja": "1.13.2",
+    "ruby": "2.7.8p225 x64-mingw32",
+    "file_hashes": {
+      "inav": "3533 ad1bb2d19d156ce3e8bb0977defc800693ebd58bcc130e4001517dfb96984256",
+      "serial": "117 80e465f23d875a25c1e6001451a092ad016f8c534ea640310794094d405aca7a",
+      "cases": "6 f0dbf5135bfb810c4a420f539161738f421cbd021e37a42131ec1a69f232fd68",
+      "python": "53e910971cbb20c3223cc44c696254ccfba9595dc4be8e16f56f6c954fff831f",
+      "libclang": "b13ec96d9a036d6c6c36dd09e00415ead7acc7fcfd40e721bf33ea86b3490f9d",
+      "arm_gcc": "76aef3a90269c5dd0b2940f5cdf9b387e8ba114a3213c335ff4535665d4b29ac",
+      "cmake": "2f7ab077ad3128c6250c462dc01e8615be4f5d51e62eb7d567fabab2eeeea89b",
+      "ninja": "e52a7ad9538d9618c67a0bd777964e2eec8a30f68b810a2f6adce1f2daf847b8",
+      "ruby": "9c63bf53cf1b9b4ce324932a01ae7665d5e2d14bb9fbf7393ec06af3c85b4831"
+    }
+  },
+  "evidence_root": "I:\\ecra-parity-20261114",
+  "verification_artifacts": {
+    "inav-clang-consumed-files-sha256.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-clang-consumed-files-sha256.json",
+      "sha256": "80e6f33b8e97e0870df8575aa1c0c0f36cba5328d9e302e690f061f7011b22aa"
+    },
+    "inav-ninja-closure.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-ninja-closure.json",
+      "sha256": "22ff8461fc4d380806019224d642ad1de2b412db683c2c05c1001aaced11f0da"
+    },
+    "inav-semantic-config.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-semantic-config.json",
+      "sha256": "d5fa1600287cdea1303c14d7b425cbe7894fe97d231486ad33bd5a1bf7faf4d6"
+    },
+    "effective-semantic-proof.log": {
+      "path": "I:\\ecra-parity-20261114\\effective-semantic-proof.log",
+      "sha256": "af9bbb9b624805beb9f5e7aa6bca1c9cc4ec3d4cfcbb243c42998f951cf69f89"
+    },
+    "inav-argv-provenance.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-argv-provenance.json",
+      "sha256": "30ecd1bf8996a09b25173638f38d632f6d5d31b2b39cf00c99fd414b5acafc7d"
+    },
+    "inav-final-C-exact-argv.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-final-C-exact-argv.json",
+      "sha256": "391cfdf7d07e4645b130327fcfae5b5fc0d0ce8ca3b93c7fdd884199980dbfc8"
+    },
+    "inav-verified-clang-units.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-verified-clang-units.json",
+      "sha256": "71b0af37ba1877a9cc98afbd5d72bbbc00c3a645d435576c798caab062972a6b"
+    },
+    "serial-history-comparison.json": {
+      "path": "I:\\ecra-parity-20261114\\serial-history-comparison.json",
+      "sha256": "e7b596352647c48be812a8974850ae8f60397627e48acfa9f6c999e3aaa462d9"
+    },
+    "additional-history-candidates.json": {
+      "path": "I:\\ecra-parity-20261114\\additional-history-candidates.json",
+      "sha256": "408f27017ae20811350606162e6b37ed64bb62b49599748162fb8a4ace17431e"
+    },
+    "additional-history-with-authority.json": {
+      "path": "I:\\ecra-parity-20261114\\additional-history-with-authority.json",
+      "sha256": "e6ffa71853181bbdf6e11455c78be10f7a2f8dd36751cb6ef194012e6edaed41"
+    },
+    "historic-serial-diff-selection.json": {
+      "path": "I:\\ecra-parity-20261114\\historic-serial-diff-selection.json",
+      "sha256": "a539e4db97796b2b4d26449c447e2e5adae599a7a231d29a77fc59478ce05760"
+    },
+    "historic-large-report-inventory.json": {
+      "path": "I:\\ecra-parity-20261114\\historic-large-report-inventory.json",
+      "sha256": "8016e7466e9ef945ba3b1e61e60a6cffca611d22bc5c784272d1f123cccd591b"
+    },
+    "inav-B-C1-worker-complete-sha256.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-B-C1-worker-complete-sha256.json",
+      "sha256": "8606911e42d18eabdcc4cae5ec579ca33942649db709dad15685be7a5a558ecf"
+    },
+    "inav-C1-nonstorage-independent-link.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-C1-nonstorage-independent-link.json",
+      "sha256": "afdd0e0e93602c75bcacafbb2df4c3512c99cbe49683b60dd4052c56113aa5ef"
+    },
+    "C-system-mingw-module-real-cli.json": {
+      "path": "I:\\ecra-parity-20261114\\C-system-mingw-module-real-cli.json",
+      "sha256": "8758100bbf61ce89e6134e1da26a57e35547097cfcd81882963924d210ae94e9"
+    },
+    "cases-known-answers.json": {
+      "path": "I:\\ecra-parity-20261114\\cases-known-answers.json",
+      "sha256": "e23e056c373fe71a9b33824f4df8282e40ae6952bc4d5238aa6e6d7f9aa5ba29"
+    },
+    "confirmed-defects-after.log": {
+      "path": "I:\\ecra-parity-20261114\\confirmed-defects-after.log",
+      "sha256": "bf1cb861ab194f05b6481f3de3f5247c02450e0886eb6c5ab7da47922eaa30ad"
+    },
+    "confirmed-defects-before.log": {
+      "path": "I:\\ecra-parity-20261114\\confirmed-defects-before.log",
+      "sha256": "7cf92eb41bcf0ca001366149c8903e4eb06fcd38fcdcad37dd16220b2456e754"
+    },
+    "cpp-before.log": {
+      "path": "I:\\ecra-parity-20261114\\cpp-before.log",
+      "sha256": "66abf37600ffcf747d77cf094d204b8e44cbaade851730ff2f1b56764ee480f0"
+    },
+    "inav-independent-ast-initial.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-independent-ast-initial.json",
+      "sha256": "aaf7d18e2bd92a78bf05118b156b8cd32bbd4ce24ce95fff57e37d84e3a10b44"
+    },
+    "inav-independent-ast-rechecked.log": {
+      "path": "I:\\ecra-parity-20261114\\inav-independent-ast-rechecked.log",
+      "sha256": "aae889f0467d9677eed2b0136eb1c402b6bd28d566be3cbe8adc364ee68f3702"
+    },
+    "probes/TU-00305-B-replay.json": {
+      "path": "I:\\ecra-parity-20261114\\probes\\TU-00305-B-replay.json",
+      "sha256": "ee5317699fb412a3ba5ff7257f80955f7094bbbd6d59e5438c18964bfedd49eb"
+    },
+    "inav-B-run2/independent-worker-inventory.json": {
+      "path": "I:\\ecra-parity-20261114\\inav-B-run2\\independent-worker-inventory.json",
+      "sha256": "80dc1b37eac76813aac954b141dc6cf4956ae89b03ee69d87171be8d2440d812"
+    },
+    "inav-B-run2/timeouts_missing_definition_sites.csv": {
+      "path": "I:\\ecra-parity-20261114\\inav-B-run2\\timeouts_missing_definition_sites.csv",
+      "sha256": "bc5aa29a9ebb4c82daafab8c49400f3cf122d14a63fc6e48106bdd99e6fcda1b"
+    }
+  },
+  "continuation": "I:\\ecra-parity-20261114\\final-continuation.json",
+  "live_acceptance_snapshot": "I:\\ecra-parity-20261114\\acceptance-current.json",
+  "inav_repeatability_receipt": "I:\\ecra-parity-20261114\\inav-complete-repeatability.json",
+  "inav": {
+    "upstream": "ed7fb3bb3216f8215150b42b52cb7b724e1dfae8",
+    "sha": "0cfc018d3d465cc5d165acf710c88ecf381d3181",
+    "status": "",
+    "target": "MATEKH743.elf",
+    "project": "I:\\ecra-parity-20261114\\inav",
+    "build": "I:\\ecra-parity-20261114\\inav\\build\\ecra",
+    "scan_database": "I:\\ecra-parity-20261114\\inav\\build\\ecra\\target-compile_commands.json",
+    "scan_database_sha256": "8ad07c2c3979dab792308e1f4fcb54d147fd6e9907976ca4d404dc79f90aee7f",
+    "raw_database_sha256": "3e014875b1f627d94d8a94c2f39ad6112de927eea8315c4455e2593b8f8eddd2",
+    "raw_database_entries": 162016,
+    "graph_sha256": "22ff8461fc4d380806019224d642ad1de2b412db683c2c05c1001aaced11f0da",
+    "graph_compiler_rows": 390,
+    "map_link_objects_matched": 390,
+    "compile_suffix_counts": {
+      ".s": 1,
+      ".c": 388,
+      ".S": 1
+    },
+    "whether_exact_command_text_matches": 0,
+    "elf": "I:\\ecra-parity-20261114\\inav\\build\\ecra\\bin\\MATEKH743.elf",
+    "elf_sha256": "ade69f800578b0af5e1bf4996eddd85a49f1b7960e6ef314ccf96739774e625a",
+    "map": "I:\\ecra-parity-20261114\\inav\\build\\ecra\\bin\\MATEKH743.elf.map",
+    "map_sha256": "b39eb42ecc02fd8c86f6faff18c2cd6de36c44de56e61f64cd0c1b313074e7d1",
+    "upstream_url": "https://github.com/iNavFlight/inav",
+    "build_preparation_receipt": "I:\\ecra-parity-20261114\\inav-preparation\\preparation.json",
+    "joined_inputs_receipt": "I:\\ecra-parity-20261114\\inav-argv-provenance.json",
+    "exact_usable_argv_A_B_C1": true,
+    "normalized_semantics_sha256": "02fe3fe7c560bab0fa1683228eb68d55f2f9017c6228fb8459b81902976089bb",
+    "independent_static_roots": 4044,
+    "independent_definition_sites": 4047,
+    "compiler_target_tus": 388,
+    "linked_assembly_tus": 2
+  },
+  "serial": {
+    "upstream": null,
+    "sha": "00b16f75d8edeeb2cbc02b600b2719eb686a314c",
+    "status": "",
+    "target": "serial.elf",
+    "project": "I:\\ecra-parity-20261114\\serial",
+    "build": "I:\\ecra-parity-20261114\\serial-build",
+    "scan_database": "I:\\ecra-parity-20261114\\serial-build\\target-compile_commands.json",
+    "scan_database_sha256": "edb569cbd0169a39824ab207450e856750ab096664c7cac2c822f0825e24304e",
+    "raw_database_sha256": "d3029592bcfa541e54aa2e2f7ed3084e159101f2470455cfa2a1fd50a376a99a",
+    "raw_database_entries": 21,
+    "graph_sha256": "6c3606d3868e998c4108e9f0bc377ea87a682b370243b52275bb9923a23322ec",
+    "graph_compiler_rows": 21,
+    "map_link_objects_matched": 21,
+    "compile_suffix_counts": {
+      ".c": 20,
+      ".s": 1
+    },
+    "whether_exact_command_text_matches": 0,
+    "elf": "I:\\ecra-parity-20261114\\serial-build\\serial.elf",
+    "elf_sha256": "b5874175909026c179080cee7c528daf85504c3b5f90919069adb5c462f41151",
+    "map": "I:\\ecra-parity-20261114\\serial-build\\serial.map",
+    "map_sha256": "123756d4f5c1603d03eee7054381e8ea60403e7d402ca1405ede6ce37345ca81"
+  },
+  "case_fixture": {
+    "sha": "566c031bde1c04192f85702fdd14d6906db4d954",
+    "compile_database_sha256": "a9be8ef8a75f61b49d602f1f21e187c91acab3ad3e6fe58b74838874e780c146",
+    "target": "parity.elf",
+    "elf_sha256": "5a64747b3a71fd1848012f2818dffd9fdd06726a180d32b0b4c34efef42f35cc",
+    "target_compile_commands": 4
+  },
+  "runs": {
+    "inav-A-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\inav-A.yaml",
+        "I:\\ecra-parity-20261114\\inav-A-run1",
+        "I:\\ecra-parity-20261114\\inav-A-run1\\gate",
+        "A"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-A.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T07:30:27.699988+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 458854400,
+        "working_set_bytes": 497291264,
+        "private_bytes": 458854400,
+        "processes": 4
+      },
+      "pid": 33948,
+      "seconds": 427.969000000041,
+      "exit_code": 15,
+      "finished": "2026-11-14T07:37:35.676158+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-A-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-A-run1\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\A",
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "revision": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-A.yaml",
+        "config_sha256": "d36d48414c3f488d1b733b8b6d09d979be25e57a5a7d88e69ebaa2903ec264c3",
+        "analysis_config_digest": "d300fd82a4a3eb40d0595c9cc084bea2995f00ac2e89e424b205e882d94978e4"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "81e46bd34f5a42b11ac7a11b29a12e956bc8f8a4aedaaa7289ec7cd77ab378a3",
+      "admitted_tu_count": 388,
+      "gate": "STOPPED_CONTROLLED",
+      "stop_receipt": "I:\\ecra-parity-20261114\\inav-A-run1\\operator-stop.json",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav\\.ecra-parity-A\\run.json",
+          "bytes": 189
+        }
+      }
+    },
+    "inav-A-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\inav-A.yaml",
+        "I:\\ecra-parity-20261114\\inav-A-run2",
+        "I:\\ecra-parity-20261114\\inav-A-run2\\gate",
+        "A"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-A.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T07:37:45.379069+00:00",
+      "state": "OBSERVER_FAILED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 14690775040,
+        "working_set_bytes": 14688587776,
+        "private_bytes": 14687621120,
+        "processes": 5
+      },
+      "pid": 47812,
+      "seconds": 15233.28199999989,
+      "error": "Traceback (most recent call last):\n  File \"I:\\ecra-parity-20261114\\run_parity.py\", line 74, in main\n    resources.write(json.dumps(dict(seconds=elapsed,**mem))+\"\\n\")\n  File \"I:\\ecra-parity-20261114\\run_parity.py\", line 50, in save\n    tmp.write_text(json.dumps(receipt,ensure_ascii=False,indent=2),encoding=\"utf-8\")\n  File \"pathlib.py\", line 1247, in replace\nPermissionError: [WinError 5] 拒绝访问。: 'I:\\\\ecra-parity-20261114\\\\inav-A-run2\\\\execution.tmp' -> 'I:\\\\ecra-parity-20261114\\\\inav-A-run2\\\\execution.json'\n",
+      "finished": "2026-11-14T11:51:38.866896+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-A-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-A-run2\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\A",
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "revision": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-A.yaml",
+        "config_sha256": "8d42c38d77c27e9f339ffde15f9e4211b4341368310e730d556c3df25c1e031c",
+        "analysis_config_digest": "45acb8b97b836d2b68f41a1e4502fa711ac261d64811bd04d855ba60844f77d0"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "gate": "OBSERVER_FAILED",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav\\.ecra-parity-A-adapted\\run.json",
+          "bytes": 189
+        }
+      }
+    },
+    "inav-A-run3": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_native_a.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\inav-A-retry.yaml",
+        "I:\\ecra-parity-20261114\\inav-A-run3",
+        "I:\\ecra-parity-20261114\\inav-A-run3\\gate",
+        "A"
+      ],
+      "observer_sha256": "e60b2d96466f5a47de350f816703fac0e340efda020341ea853f5d50eb731908",
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-A-retry.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T11:58:18.309556+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 53688147968,
+        "working_set_bytes": 49340678144,
+        "private_bytes": 53616545792,
+        "processes": 11
+      },
+      "pid": 34844,
+      "seconds": 9147.156000000192,
+      "exit_code": 3,
+      "finished": "2026-11-14T14:30:45.514088+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-A-run3\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-A-run3\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\A",
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "revision": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-A-retry.yaml",
+        "config_sha256": "22684142b1db9778931740ab595c29a96441f30c85475fb253d443a18362a72f",
+        "analysis_config_digest": "8c179033f2d8f01171dc6a845ee3b4449880d96be25533f8119001bf486dabb9"
+      },
+      "native_worker_schedule": "I:\\ecra-parity-20261114\\inav-A-run3\\worker-scheduler.jsonl",
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "gate": "SCAN_RETURNED_3",
+      "engine_close": {
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav\\.ecra-parity-A-native-retry\\run.json",
+          "bytes": 287
+        }
+      }
+    },
+    "inav-B-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\B",
+        "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "I:\\ecra-parity-20261114\\inav-B-run1",
+        "I:\\ecra-parity-20261114\\inav-B-run1\\gate",
+        "B"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\B\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T07:30:34.858190+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 1503494144,
+        "working_set_bytes": 1610174464,
+        "private_bytes": 1481420800,
+        "processes": 19
+      },
+      "pid": 5940,
+      "seconds": 419.89100000006147,
+      "exit_code": 15,
+      "finished": "2026-11-14T07:37:34.748778+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-B-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-B-run1\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\B",
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "config_sha256": "42261274865a49143315604fe287516aaa101198de2a76b6e82101a0a546e468",
+        "analysis_config_digest": "420b9a1a7a0fec659e2cc156a618c922aac2e9df2631f2db65ff1004e16d0f10"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "cc93bb2846444eb7b68ae842a5de4a08b49f506ad26854889acbc7b05035769c",
+      "admitted_tu_count": 388,
+      "gate": "STOPPED_CONTROLLED",
+      "stop_receipt": "I:\\ecra-parity-20261114\\inav-B-run1\\operator-stop.json",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-data\\scans\\72ad46a15d7347b3af2e96c581e4a8dc\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-data\\scans\\72ad46a15d7347b3af2e96c581e4a8dc\\result_validity.json",
+          "bytes": 104
+        }
+      }
+    },
+    "inav-B-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\B",
+        "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "I:\\ecra-parity-20261114\\inav-B-run2",
+        "I:\\ecra-parity-20261114\\inav-B-run2\\gate",
+        "B"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\B\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T07:37:45.382061+00:00",
+      "state": "RUNNING",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 1949736960,
+        "working_set_bytes": 2071994368,
+        "private_bytes": 1943437312,
+        "processes": 21
+      },
+      "pid": 14660,
+      "seconds": 5343.5470000000205,
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-B-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-B-run2\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\B",
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "config_sha256": "5a68c22c3a735c076f507e80304d8695d4283e10c57756fbf494c7e2bdafb09d",
+        "analysis_config_digest": "9c66f0adb87a6742537e253fddc979bc7c128205e17fe6bbb4832b84fe1928b2"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "gate": "STOPPED_CONTROLLED",
+      "stop_receipt": "I:\\ecra-parity-20261114\\inav-B-run2\\operator-stop.json",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-adapted-data\\scans\\afa2b415457f414f986e61e7186fb605\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-adapted-data\\scans\\afa2b415457f414f986e61e7186fb605\\result_validity.json",
+          "bytes": 104
+        }
+      }
+    },
+    "inav-B-run3": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\B",
+        "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "I:\\ecra-parity-20261114\\inav-B-run3",
+        "I:\\ecra-parity-20261114\\inav-B-run3\\gate",
+        "B"
+      ],
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\B\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T09:29:04.251147+00:00",
+      "state": "RUNNING",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 9772507136,
+        "working_set_bytes": 9754243072,
+        "private_bytes": 9755484160,
+        "processes": 11
+      },
+      "pid": 47304,
+      "seconds": 18479.25,
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-B-run3\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-B-run3\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\B",
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-B.yaml",
+        "config_sha256": "353e716aa75e5550f7acc43dfcbf037f803f1d6539eb6ea85c5c569a5bb5a98f",
+        "analysis_config_digest": "a7068fae6725f92bb5f41bd22bcba464400f028d086a3b61fb64c0981aede3ad"
+      },
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "static_classification": {
+        "total": 12172,
+        "safe_proven": 8632,
+        "shared_no_review": 0,
+        "suspect": 1318,
+        "unknown": 2222
+      },
+      "variables": 16566,
+      "gate": "RUNNING",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-clean-data\\scans\\020529a8792d4fb3a24c3b52caaaedae\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-clean-data\\scans\\020529a8792d4fb3a24c3b52caaaedae\\result_validity.json",
+          "bytes": 104
+        },
+        "scan.db.3ff0b535d1a34d34b6e25610cb6bba0f.pending": {
+          "path": "I:\\ecra-parity-20261114\\inav-B-clean-data\\scans\\020529a8792d4fb3a24c3b52caaaedae\\scan.db.3ff0b535d1a34d34b6e25610cb6bba0f.pending",
+          "bytes": 5057720320
+        }
+      },
+      "last_extraction_progress": {
+        "scheduled_or_logged": 388,
+        "total": 388
+      }
+    },
+    "inav-C1-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\inav-C1.yaml",
+        "I:\\ecra-parity-20261114\\inav-C1-run1",
+        "I:\\ecra-parity-20261114\\inav-C1-run1\\gate",
+        "C1"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-C1.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T07:50:50.005039+00:00",
+      "state": "RUNNING",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 1768603648,
+        "working_set_bytes": 1911328768,
+        "private_bytes": 1766510592,
+        "processes": 22
+      },
+      "pid": 47316,
+      "seconds": 3514.0470000000205,
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-C1-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-C1-run1\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-C1.yaml",
+        "config_sha256": "0a83cca2b2cc26533cfa51374b016868ba59f2c90d67076887e0b4143813a46a",
+        "analysis_config_digest": "9c66f0adb87a6742537e253fddc979bc7c128205e17fe6bbb4832b84fe1928b2"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "gate": "STOPPED_CONTROLLED",
+      "stop_receipt": "I:\\ecra-parity-20261114\\inav-C1-run1\\operator-stop.json",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-data\\scans\\fb3e87b2a41444f093ce42349158ee50\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-data\\scans\\fb3e87b2a41444f093ce42349158ee50\\result_validity.json",
+          "bytes": 104
+        }
+      }
+    },
+    "inav-C1-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\inav-C1.yaml",
+        "I:\\ecra-parity-20261114\\inav-C1-run2",
+        "I:\\ecra-parity-20261114\\inav-C1-run2\\gate",
+        "C1"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-C1.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:49:45.602476+00:00",
+      "state": "OBSERVER_FAILED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 10050863104,
+        "working_set_bytes": 10064740352,
+        "private_bytes": 10027839488,
+        "processes": 22
+      },
+      "pid": 42608,
+      "seconds": 13480.04700000002,
+      "error": "Traceback (most recent call last):\n  File \"I:\\ecra-parity-20261114\\run_parity.py\", line 74, in main\n    save()\n  File \"I:\\ecra-parity-20261114\\run_parity.py\", line 50, in save\n    observer = HERE/('observe_native_a.py' if opt.parallel_native_a else 'observe_ecra.py')\n  File \"pathlib.py\", line 1247, in replace\nPermissionError: [WinError 5] 拒绝访问。: 'I:\\\\ecra-parity-20261114\\\\inav-C1-run2\\\\execution.tmp' -> 'I:\\\\ecra-parity-20261114\\\\inav-C1-run2\\\\execution.json'\n",
+      "finished": "2026-11-14T12:34:26.498394+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-C1-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-C1-run2\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-C1.yaml",
+        "config_sha256": "d5c7f03e5976d508ee7c7a9d38d910e157dbbc3a286c81a704f8ebbc021f84c9",
+        "analysis_config_digest": "9c66f0adb87a6742537e253fddc979bc7c128205e17fe6bbb4832b84fe1928b2"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "static_classification": {
+        "total": 12172,
+        "safe_proven": 8632,
+        "shared_no_review": 0,
+        "suspect": 1318,
+        "unknown": 2222
+      },
+      "variables": 16566,
+      "gate": "OBSERVER_FAILED",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-final-data\\scans\\d096c0fbb0e348028bc811aea397672a\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-final-data\\scans\\d096c0fbb0e348028bc811aea397672a\\result_validity.json",
+          "bytes": 104
+        },
+        "scan.db.c927f8a8e1e0471998d8c540d57b696f.pending": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-final-data\\scans\\d096c0fbb0e348028bc811aea397672a\\scan.db.c927f8a8e1e0471998d8c540d57b696f.pending",
+          "bytes": 5715083264
+        }
+      }
+    },
+    "inav-C1-run3": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\inav-C1-retry.yaml",
+        "I:\\ecra-parity-20261114\\inav-C1-run3",
+        "I:\\ecra-parity-20261114\\inav-C1-run3\\gate",
+        "C1"
+      ],
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-C1-retry.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T14:31:05.582854+00:00",
+      "state": "RUNNING",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 1401376768,
+        "working_set_bytes": 1529659392,
+        "private_bytes": 1395228672,
+        "processes": 19
+      },
+      "pid": 45092,
+      "seconds": 358.3430000001099,
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-C1-run3\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-C1-run3\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-C1-retry.yaml",
+        "config_sha256": "c26ac212b060829233539708cf088a4b0c010ff09d508011c7b4149b97b9fef5",
+        "analysis_config_digest": "9c66f0adb87a6742537e253fddc979bc7c128205e17fe6bbb4832b84fe1928b2"
+      },
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "gate": "RUNNING",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-retry-data\\scans\\6b8a0962f2c542b1a25c4774cee758ee\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C1-retry-data\\scans\\6b8a0962f2c542b1a25c4774cee758ee\\result_validity.json",
+          "bytes": 104
+        }
+      },
+      "last_extraction_progress": {
+        "scheduled_or_logged": 25,
+        "total": 388
+      }
+    },
+    "inav-C2-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\inav-C2.yaml",
+        "I:\\ecra-parity-20261114\\inav-C2-run1",
+        "I:\\ecra-parity-20261114\\inav-C2-run1\\gate",
+        "C2"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\inav-C2.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:06:42.574259+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 287338496,
+        "working_set_bytes": 310726656,
+        "private_bytes": 255070208,
+        "processes": 12
+      },
+      "pid": 44676,
+      "seconds": 355.375,
+      "exit_code": 15,
+      "finished": "2026-11-14T08:12:37.959246+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\inav-C2-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\inav-C2-run1\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\inav-C2.yaml",
+        "config_sha256": "707c761e0520654a884f9dae077a4f0da98fcf22b3fa2a1c547d93e014bd6451",
+        "analysis_config_digest": "a7068fae6725f92bb5f41bd22bcba464400f028d086a3b61fb64c0981aede3ad"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "f89647a8a524463de4fbe25f0d239132d2a5d0c85f30aae260def63c202a9986",
+      "admitted_tu_count": 388,
+      "gate": "STOPPED_CONTROLLED",
+      "stop_receipt": "I:\\ecra-parity-20261114\\inav-C2-run1\\pause-receipt.json",
+      "authority_artifacts": {
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C2-data\\scans\\8a5ba2a4049b4c9b82b5b3c7f2b704f5\\run.json",
+          "bytes": 189
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\inav-C2-data\\scans\\8a5ba2a4049b4c9b82b5b3c7f2b704f5\\result_validity.json",
+          "bytes": 104
+        }
+      }
+    },
+    "serial-A-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\serial-A.yaml",
+        "I:\\ecra-parity-20261114\\serial-A-run1",
+        "I:\\ecra-parity-20261114\\serial-A-run1\\gate",
+        "A"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-A.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T07:27:13.568010+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 205991936,
+        "working_set_bytes": 195276800,
+        "private_bytes": 157548544,
+        "processes": 5
+      },
+      "pid": 47976,
+      "seconds": 90.42200000002049,
+      "exit_code": 2,
+      "finished": "2026-11-14T07:28:43.991763+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-A-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-A-run1\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\A",
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "revision": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-A.yaml",
+        "config_sha256": "720b2b8c73130fa3cc29f15d8548f6afa6948c3978a44c859f622460677adc88",
+        "analysis_config_digest": "1611633ba555c7793bafcd8ff4bd7d41fda16698497aa03ef4ad0d75ee083ce6"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "facts.db": {
+          "path": "I:\\ecra-parity-20261114\\serial\\.ecra-parity-A\\facts.db",
+          "bytes": 29523968
+        },
+        "scan_state.json": {
+          "path": "I:\\ecra-parity-20261114\\serial\\.ecra-parity-A\\scan_state.json",
+          "bytes": 692
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial\\.ecra-parity-A\\run.json",
+          "bytes": 1132
+        }
+      }
+    },
+    "serial-A-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_native_a.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "I:\\ecra-parity-20261114\\serial-A-run2",
+        "I:\\ecra-parity-20261114\\serial-A-run2\\gate",
+        "A"
+      ],
+      "observer_sha256": "8ea027d8560c2a3e47b98dadc3a076b61a8d237893c2c2beeaf5568be7b4c1cd",
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T11:55:56.921182+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 22417408,
+        "working_set_bytes": 1970176,
+        "private_bytes": 425984,
+        "processes": 1
+      },
+      "pid": 52360,
+      "seconds": 2.0149999998975545,
+      "exit_code": 1,
+      "finished": "2026-11-14T11:55:59.159037+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-A-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-A-run2\\console.log",
+      "engine": null,
+      "gate": "SCAN_RETURNED_1"
+    },
+    "serial-A-run3": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_native_a.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "I:\\ecra-parity-20261114\\serial-A-run3",
+        "I:\\ecra-parity-20261114\\serial-A-run3\\gate",
+        "A"
+      ],
+      "observer_sha256": "b7476529fb45c3e96d4e14a9bc2beb94e592b67cdb0fb48f5a7a9b106b15519b",
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T11:56:24.403476+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 22941696,
+        "working_set_bytes": 1970176,
+        "private_bytes": 421888,
+        "processes": 1
+      },
+      "pid": 53112,
+      "seconds": 2.0160000000614673,
+      "exit_code": 1,
+      "finished": "2026-11-14T11:56:26.429668+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-A-run3\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-A-run3\\console.log",
+      "engine": null,
+      "gate": "SCAN_RETURNED_1"
+    },
+    "serial-A-run4": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_native_a.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "I:\\ecra-parity-20261114\\serial-A-run4",
+        "I:\\ecra-parity-20261114\\serial-A-run4\\gate",
+        "A"
+      ],
+      "observer_sha256": "e60b2d96466f5a47de350f816703fac0e340efda020341ea853f5d50eb731908",
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T11:56:52.577512+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 278114304,
+        "working_set_bytes": 378580992,
+        "private_bytes": 271040512,
+        "processes": 10
+      },
+      "pid": 39180,
+      "seconds": 66.31200000015087,
+      "exit_code": 2,
+      "finished": "2026-11-14T11:57:58.900917+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-A-run4\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-A-run4\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\A",
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "revision": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-A-scheduler.yaml",
+        "config_sha256": "59a928b45ee29a8c96adb87e21a257282ef12585d1c642e3485e2ee8a8c69960",
+        "analysis_config_digest": "99266bd78ed962f2e92bb3bea63b05deff8b4736f76ca0998e5bd7d4b554d985"
+      },
+      "native_worker_schedule": "I:\\ecra-parity-20261114\\serial-A-run4\\worker-scheduler.jsonl",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "facts.db": {
+          "path": "I:\\ecra-parity-20261114\\serial\\.ecra-parity-A-scheduler-check\\facts.db",
+          "bytes": 29523968
+        },
+        "scan_state.json": {
+          "path": "I:\\ecra-parity-20261114\\serial\\.ecra-parity-A-scheduler-check\\scan_state.json",
+          "bytes": 702
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial\\.ecra-parity-A-scheduler-check\\run.json",
+          "bytes": 1164
+        }
+      }
+    },
+    "serial-B-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\B",
+        "I:\\ecra-parity-20261114\\serial-B.yaml",
+        "I:\\ecra-parity-20261114\\serial-B-run1",
+        "I:\\ecra-parity-20261114\\serial-B-run1\\gate",
+        "B"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\B\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-B.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T07:28:44.100093+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 623755264,
+        "working_set_bytes": 734576640,
+        "private_bytes": 602734592,
+        "processes": 18
+      },
+      "pid": 8796,
+      "seconds": 88.375,
+      "exit_code": 2,
+      "finished": "2026-11-14T07:30:12.479972+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-B-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-B-run1\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\B",
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-B.yaml",
+        "config_sha256": "c86372b1babc1ee89dbb486be750b72c2b3205550374e413ab097ee0bf702e6a",
+        "analysis_config_digest": "385b8b1ebe532cc432e6b277a5e2f9d3d92a6ee141e2ed726dba1c78ae204c51"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-B-data\\scans\\17fb53f43832403ca5cf7eb3c90c92a9\\manifest.json",
+          "bytes": 732
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-B-data\\scans\\17fb53f43832403ca5cf7eb3c90c92a9\\scan.db",
+          "bytes": 51982336
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-B-data\\scans\\17fb53f43832403ca5cf7eb3c90c92a9\\run.json",
+          "bytes": 1183
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-B-data\\scans\\17fb53f43832403ca5cf7eb3c90c92a9\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 20,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "serial-C1-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\serial-C1.yaml",
+        "I:\\ecra-parity-20261114\\serial-C1-run1",
+        "I:\\ecra-parity-20261114\\serial-C1-run1\\gate",
+        "C1"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-C1.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T07:50:49.994068+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 658669568,
+        "working_set_bytes": 798523392,
+        "private_bytes": 653676544,
+        "processes": 19
+      },
+      "pid": 47664,
+      "seconds": 186.875,
+      "exit_code": 2,
+      "finished": "2026-11-14T07:53:56.884261+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-C1-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-C1-run1\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-C1.yaml",
+        "config_sha256": "d7b664315c459b11303c27bd89af78c2ce52624580c5a34b183443102229240c",
+        "analysis_config_digest": "385b8b1ebe532cc432e6b277a5e2f9d3d92a6ee141e2ed726dba1c78ae204c51"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\056eff52f2e84ed9881e0f6edec0aeca\\manifest.json",
+          "bytes": 732
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\056eff52f2e84ed9881e0f6edec0aeca\\scan.db",
+          "bytes": 51986432
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\056eff52f2e84ed9881e0f6edec0aeca\\run.json",
+          "bytes": 1185
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\056eff52f2e84ed9881e0f6edec0aeca\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 20,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "serial-C2-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\serial-C2.yaml",
+        "I:\\ecra-parity-20261114\\serial-C2-run1",
+        "I:\\ecra-parity-20261114\\serial-C2-run1\\gate",
+        "C2"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-C2.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T07:53:57.086675+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 369217536,
+        "working_set_bytes": 432652288,
+        "private_bytes": 361717760,
+        "processes": 12
+      },
+      "pid": 30876,
+      "seconds": 374.76600000006147,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:00:11.878097+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-C2-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-C2-run1\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-C2.yaml",
+        "config_sha256": "2e2c7c4e0b09e14cb9ec8857d57f60e85396b39bc0b2683f0972c6abc8fd9d30",
+        "analysis_config_digest": "f6ed1bf82ceb7583c75e10014bf5225d9fe1eb595cd3c0889a3e1d79ae341425"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-data\\scans\\cf84c74c66ad41a1aaa7171c1d8b10d5\\manifest.json",
+          "bytes": 732
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-data\\scans\\cf84c74c66ad41a1aaa7171c1d8b10d5\\scan.db",
+          "bytes": 51986432
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-data\\scans\\cf84c74c66ad41a1aaa7171c1d8b10d5\\run.json",
+          "bytes": 1185
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-data\\scans\\cf84c74c66ad41a1aaa7171c1d8b10d5\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 20,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "serial-Cwarm-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\serial-Cwarm.yaml",
+        "I:\\ecra-parity-20261114\\serial-Cwarm-run1",
+        "I:\\ecra-parity-20261114\\serial-Cwarm-run1\\gate",
+        "Cwarm"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-Cwarm.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:00:12.880742+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 384262144,
+        "working_set_bytes": 490852352,
+        "private_bytes": 373059584,
+        "processes": 25
+      },
+      "pid": 43916,
+      "seconds": 510.405999999959,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:08:43.293203+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-Cwarm-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-Cwarm-run1\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-Cwarm.yaml",
+        "config_sha256": "d7b664315c459b11303c27bd89af78c2ce52624580c5a34b183443102229240c",
+        "analysis_config_digest": "385b8b1ebe532cc432e6b277a5e2f9d3d92a6ee141e2ed726dba1c78ae204c51"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\18da1e7941144ccd8a5d01da8de1bf23\\manifest.json",
+          "bytes": 731
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\18da1e7941144ccd8a5d01da8de1bf23\\scan.db",
+          "bytes": 51982336
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\18da1e7941144ccd8a5d01da8de1bf23\\run.json",
+          "bytes": 1185
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-data\\scans\\18da1e7941144ccd8a5d01da8de1bf23\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 20,
+        "extracted": 0,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "serial-C1-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\serial-C1.yaml",
+        "I:\\ecra-parity-20261114\\serial-C1-run2",
+        "I:\\ecra-parity-20261114\\serial-C1-run2\\gate",
+        "C1"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-C1.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:49:45.621145+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 640872448,
+        "working_set_bytes": 768172032,
+        "private_bytes": 631894016,
+        "processes": 20
+      },
+      "pid": 45528,
+      "seconds": 150.2180000001099,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:52:15.846944+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-C1-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-C1-run2\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-C1.yaml",
+        "config_sha256": "f61f2cff4994d9892cbc40d14a22ec0f3c5cb9b359cc810f6aa2aabf08f61e21",
+        "analysis_config_digest": "385b8b1ebe532cc432e6b277a5e2f9d3d92a6ee141e2ed726dba1c78ae204c51"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\39b771b6a82b40d8bce087e36873a20f\\manifest.json",
+          "bytes": 732
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\39b771b6a82b40d8bce087e36873a20f\\scan.db",
+          "bytes": 51986432
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\39b771b6a82b40d8bce087e36873a20f\\run.json",
+          "bytes": 1197
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\39b771b6a82b40d8bce087e36873a20f\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 20,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "serial-C2-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\serial-C2.yaml",
+        "I:\\ecra-parity-20261114\\serial-C2-run2",
+        "I:\\ecra-parity-20261114\\serial-C2-run2\\gate",
+        "C2"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-C2.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:52:30.033424+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 364421120,
+        "working_set_bytes": 429785088,
+        "private_bytes": 357273600,
+        "processes": 12
+      },
+      "pid": 48564,
+      "seconds": 189.89099999982864,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:55:39.929572+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-C2-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-C2-run2\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-C2.yaml",
+        "config_sha256": "3ec3eb5a95ff19eff11a1798fc8a60beecc6e4e8ec0c6feca4afeed40edcf0a2",
+        "analysis_config_digest": "f6ed1bf82ceb7583c75e10014bf5225d9fe1eb595cd3c0889a3e1d79ae341425"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-final-data\\scans\\fc25015db2dc47d5af3416f8eadc6800\\manifest.json",
+          "bytes": 732
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-final-data\\scans\\fc25015db2dc47d5af3416f8eadc6800\\scan.db",
+          "bytes": 51978240
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-final-data\\scans\\fc25015db2dc47d5af3416f8eadc6800\\run.json",
+          "bytes": 1197
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C2-final-data\\scans\\fc25015db2dc47d5af3416f8eadc6800\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 20,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "serial-Cwarm-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\serial-Cwarm.yaml",
+        "I:\\ecra-parity-20261114\\serial-Cwarm-run2",
+        "I:\\ecra-parity-20261114\\serial-Cwarm-run2\\gate",
+        "Cwarm"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\serial-Cwarm.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:55:50.738239+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 436535296,
+        "working_set_bytes": 517488640,
+        "private_bytes": 434302976,
+        "processes": 22
+      },
+      "pid": 32032,
+      "seconds": 123.32799999997951,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:57:54.074312+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\serial-Cwarm-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\serial-Cwarm-run2\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\serial-Cwarm.yaml",
+        "config_sha256": "f61f2cff4994d9892cbc40d14a22ec0f3c5cb9b359cc810f6aa2aabf08f61e21",
+        "analysis_config_digest": "385b8b1ebe532cc432e6b277a5e2f9d3d92a6ee141e2ed726dba1c78ae204c51"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3494be40d4c456887c86d4c83937b6e5a7df60b0e7e301da1353f9edc303002b",
+      "admitted_tu_count": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "static_classification": {
+        "total": 49,
+        "safe_proven": 26,
+        "shared_no_review": 0,
+        "suspect": 23,
+        "unknown": 0
+      },
+      "variables": 58,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\3e16da670fab47ae962d8b58c2e4e70b\\manifest.json",
+          "bytes": 731
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\3e16da670fab47ae962d8b58c2e4e70b\\scan.db",
+          "bytes": 51986432
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\3e16da670fab47ae962d8b58c2e4e70b\\run.json",
+          "bytes": 1197
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\serial-C1-final-data\\scans\\3e16da670fab47ae962d8b58c2e4e70b\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 20,
+        "extracted": 0,
+        "corrupt": 0,
+        "total": 20
+      }
+    },
+    "cases-A-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\A",
+        "I:\\ecra-parity-20261114\\cases-A.yaml",
+        "I:\\ecra-parity-20261114\\cases-A-run1",
+        "I:\\ecra-parity-20261114\\cases-A-run1\\gate",
+        "A"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\A\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\cases-A.yaml",
+        "--no-review"
+      ],
+      "started": "2026-11-14T08:09:17.192767+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 52375552,
+        "working_set_bytes": 83472384,
+        "private_bytes": 45486080,
+        "processes": 5
+      },
+      "pid": 48240,
+      "seconds": 53.04699999978766,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:10:10.251334+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\cases-A-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\cases-A-run1\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\A",
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "revision": "ac96abc39ffc66de53e57df82ca0ee791907bce6",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\cases-A.yaml",
+        "config_sha256": "f7ae24bc2a493e29bbe69f55600daec677139494f485931101be0c18943b973e",
+        "analysis_config_digest": "72e888e5616434e6f7c22cfbe1390d8d4bcfe4b45c3cf031dbf47c417124ea1d"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3fcf8aaa7b67a10b83d8faebca3e883a89a36ba156c0575f477efc155a316654",
+      "admitted_tu_count": 2,
+      "parse_counts": {
+        "PARSED": 2
+      },
+      "static_classification": {
+        "total": 25,
+        "safe_proven": 18,
+        "shared_no_review": 0,
+        "suspect": 6,
+        "unknown": 1
+      },
+      "variables": 29,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "630a589cd3aa5b5a9d2db5601f644a1d920526047eef0cdef8f5b0a014ec3d92",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "facts.db": {
+          "path": "I:\\ecra-parity-20261114\\cases\\.ecra-parity-A\\facts.db",
+          "bytes": 544768
+        },
+        "scan_state.json": {
+          "path": "I:\\ecra-parity-20261114\\cases\\.ecra-parity-A\\scan_state.json",
+          "bytes": 690
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\cases\\.ecra-parity-A\\run.json",
+          "bytes": 1122
+        }
+      }
+    },
+    "cases-B-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "I:\\ecra-parity-20261114\\B",
+        "I:\\ecra-parity-20261114\\cases-B.yaml",
+        "I:\\ecra-parity-20261114\\cases-B-run1",
+        "I:\\ecra-parity-20261114\\cases-B-run1\\gate",
+        "B"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\B\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\cases-B.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:10:11.084618+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 114954240,
+        "working_set_bytes": 145276928,
+        "private_bytes": 110243840,
+        "processes": 8
+      },
+      "pid": 43740,
+      "seconds": 219.90599999995902,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:13:51.006704+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\cases-B-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\cases-B-run1\\console.log",
+      "engine": {
+        "engine": "I:\\ecra-parity-20261114\\B",
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\cases-B.yaml",
+        "config_sha256": "b125fb6a194b30e30f29db90c9bd6c84fff6099f0db68864f4cacc0a2fe98b1a",
+        "analysis_config_digest": "25fbe971f67ee3a58b47b3e669ccb506e1098ba7eacbb725463bddddfd6ec0a0"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "3fcf8aaa7b67a10b83d8faebca3e883a89a36ba156c0575f477efc155a316654",
+      "admitted_tu_count": 2,
+      "parse_counts": {
+        "PARSED": 2
+      },
+      "static_classification": {
+        "total": 25,
+        "safe_proven": 18,
+        "shared_no_review": 0,
+        "suspect": 6,
+        "unknown": 1
+      },
+      "variables": 29,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "7fc2bac3e967c2ee23b68580c61bf5770df2608c8a8597ec79425d20c578fea5",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-B-data\\scans\\aca6ac47fdd04b99b176762bdb829c58\\manifest.json",
+          "bytes": 731
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\cases-B-data\\scans\\aca6ac47fdd04b99b176762bdb829c58\\scan.db",
+          "bytes": 1085440
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-B-data\\scans\\aca6ac47fdd04b99b176762bdb829c58\\run.json",
+          "bytes": 1173
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-B-data\\scans\\aca6ac47fdd04b99b176762bdb829c58\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 2,
+        "corrupt": 0,
+        "total": 2
+      }
+    },
+    "cases-C1-run1": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\cases-C1.yaml",
+        "I:\\ecra-parity-20261114\\cases-C1-run1",
+        "I:\\ecra-parity-20261114\\cases-C1-run1\\gate",
+        "C1"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\cases-C1.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:13:51.535332+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 120504320,
+        "working_set_bytes": 150654976,
+        "private_bytes": 119181312,
+        "processes": 7
+      },
+      "pid": 48980,
+      "seconds": 160.40600000019185,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:16:31.947917+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\cases-C1-run1\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\cases-C1-run1\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\cases-C1.yaml",
+        "config_sha256": "2a2712a81bb52b251066ec1f602bb9bdbd0265107cb82843a4c2c287d9c6cc2c",
+        "analysis_config_digest": "25fbe971f67ee3a58b47b3e669ccb506e1098ba7eacbb725463bddddfd6ec0a0"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "e65fea73da4df5ae23e8e48d13436294c73d80331c244fd021344f00919cd496",
+      "admitted_tu_count": 4,
+      "parse_counts": {
+        "PARSED": 4
+      },
+      "static_classification": {
+        "total": 28,
+        "safe_proven": 20,
+        "shared_no_review": 0,
+        "suspect": 7,
+        "unknown": 1
+      },
+      "variables": 32,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c7287c21cd8bdf0ae8479851a461a45ea4ed90c076e7fa5ac9f6adda8c848256",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-data\\scans\\0b51297e227a4f74b726203ef71ef6f5\\manifest.json",
+          "bytes": 731
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-data\\scans\\0b51297e227a4f74b726203ef71ef6f5\\scan.db",
+          "bytes": 1179648
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-data\\scans\\0b51297e227a4f74b726203ef71ef6f5\\run.json",
+          "bytes": 1175
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-data\\scans\\0b51297e227a4f74b726203ef71ef6f5\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 4,
+        "corrupt": 0,
+        "total": 4
+      }
+    },
+    "cases-C1-run2": {
+      "command": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "I:\\ecra-parity-20261114\\observe_ecra.py",
+        "H:\\global_static_concurrency_design",
+        "I:\\ecra-parity-20261114\\cases-C1.yaml",
+        "I:\\ecra-parity-20261114\\cases-C1-run2",
+        "I:\\ecra-parity-20261114\\cases-C1-run2\\gate",
+        "C1"
+      ],
+      "cli": [
+        "I:\\ecra-parity-20261114\\python\\python.exe",
+        "-B",
+        "H:\\global_static_concurrency_design\\run_ecra.py",
+        "run",
+        "--config",
+        "I:\\ecra-parity-20261114\\cases-C1.yaml",
+        "--no-review",
+        "--scan-mode",
+        "full"
+      ],
+      "started": "2026-11-14T08:49:45.662554+00:00",
+      "state": "EXITED",
+      "resource_method": "Full Windows Job commit high-water mark plus sampled private bytes and working set",
+      "peaks": {
+        "peak_job_commit_bytes": 120668160,
+        "working_set_bytes": 147509248,
+        "private_bytes": 93986816,
+        "processes": 6
+      },
+      "pid": 44784,
+      "seconds": 37.125,
+      "exit_code": 2,
+      "finished": "2026-11-14T08:50:22.784905+00:00",
+      "commands_receipt": "I:\\ecra-parity-20261114\\cases-C1-run2\\execution.json",
+      "log": "I:\\ecra-parity-20261114\\cases-C1-run2\\console.log",
+      "engine": {
+        "engine": "H:\\global_static_concurrency_design",
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "revision": "f7a4f32a7d2257dff955bfcab3e613c52586ebc0",
+        "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+        "python_executable": "I:\\ecra-parity-20261114\\python\\python.exe",
+        "libclang_package": "18.1.1",
+        "libclang_library": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages\\clang\\native/libclang.dll",
+        "config": "I:\\ecra-parity-20261114\\cases-C1.yaml",
+        "config_sha256": "d8f7c02e983ed83ac9b1972066ff4627817fdd8cd07017e58b2eb3c6cab9d4a4",
+        "analysis_config_digest": "25fbe971f67ee3a58b47b3e669ccb506e1098ba7eacbb725463bddddfd6ec0a0"
+      },
+      "observer_sha256": "23b89d3adb9c592f58ac1d1760a49a050b501c52ba0f22c5fa7807bbab747b6c",
+      "ordered_effective_arguments_sha256": "e65fea73da4df5ae23e8e48d13436294c73d80331c244fd021344f00919cd496",
+      "admitted_tu_count": 4,
+      "parse_counts": {
+        "PARSED": 4
+      },
+      "static_classification": {
+        "total": 28,
+        "safe_proven": 20,
+        "shared_no_review": 0,
+        "suspect": 7,
+        "unknown": 1
+      },
+      "variables": 32,
+      "gate": "SCAN_RETURNED_2",
+      "engine_close": {
+        "engine_sha256": "c665e0be73f0a7c54787d3008099d00d0bf39df524eb8b7d276dc28e1708fae1",
+        "unchanged": true
+      },
+      "authority_artifacts": {
+        "manifest.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-final-data\\scans\\72089b40ca994c10b89a84c067736418\\manifest.json",
+          "bytes": 731
+        },
+        "scan.db": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-final-data\\scans\\72089b40ca994c10b89a84c067736418\\scan.db",
+          "bytes": 1183744
+        },
+        "run.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-final-data\\scans\\72089b40ca994c10b89a84c067736418\\run.json",
+          "bytes": 1187
+        },
+        "result_validity.json": {
+          "path": "I:\\ecra-parity-20261114\\cases-C1-final-data\\scans\\72089b40ca994c10b89a84c067736418\\result_validity.json",
+          "bytes": 183
+        }
+      },
+      "tu_cache": {
+        "hits": 0,
+        "extracted": 4,
+        "corrupt": 0,
+        "total": 4
+      }
+    }
+  },
+  "tests": {
+    "full-regression": {
+      "log": "I:\\ecra-parity-20261114\\full-regression.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 1820,
+      "passed_tests": 1799,
+      "seconds": 13440.895,
+      "failures": 13,
+      "errors": 5,
+      "skipped": 3,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "ab27df89e0274da0d9550b9c44dc2a21faf8f4e236fcf6aaf022d9878c9bcc3e",
+      "observed_failures": [
+        "test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (test_canonical_scan.CanonicalScanTests) ... ERROR",
+        "test_real_process_termination_releases_lease_and_resumes_verified_files (test_data_transfer.DataTransferTests) ... FAIL",
+        "test_saved_render_reads_fixed_source_during_live_byte_aba (test_dirty_inputs.DirtyInputPlanningTests) ... FAIL",
+        "test_real_stdio_session_pages_complete_evidence_with_no_shell_or_network (test_evidence_mcp.EvidenceMCPTests) ... FAIL",
+        "test_stdio_preserves_surrogates_large_integers_and_negative_zero (test_evidence_mcp.EvidenceMCPTests) ... FAIL",
+        "test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (test_frozen_scan_pipeline.FrozenScanPipelineTests) ... FAIL",
+        "test_actual_process_exit_between_move_and_journal_commit_can_restore (test_garbage_collection.GarbageCollectionTests) ... FAIL",
+        "test_cross_process_shared_activity_blocks_exclusive_cleanup (test_garbage_collection.GarbageCollectionTests) ... FAIL",
+        "test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests) ... FAIL",
+        "test_real_process_exit_lock_recovery_preserves_receipt_and_live_lock (test_lock_owner.LockOwnerTests) ... FAIL",
+        "test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests) ... ERROR",
+        "test_real_cli_pins_both_scans_and_rejects_duplicate_variant_flags (test_multicore_pinned_inputs.PinnedMulticoreInputTests) ... FAIL",
+        "test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests) ... FAIL",
+        "test_file_gate_does_not_retroactively_own_a_venv_child_created_before_job_assignment (test_owned_process.OwnedProcessTests) ... ERROR",
+        "test_suspended_venv_and_actual_descendant_are_owned_before_any_allocator_runs (test_owned_process.OwnedProcessTests) ... ERROR",
+        "test_real_stdio_source_pages_use_archive_even_with_different_live_bytes (test_review_sources.ArchivedReviewSourceTests) ... FAIL",
+        "ERROR: test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (test_canonical_scan.CanonicalScanTests)\r",
+        "ERROR: test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (test_canonical_scan.CanonicalScanTests)\r",
+        "ERROR: test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests)\r",
+        "ERROR: test_file_gate_does_not_retroactively_own_a_venv_child_created_before_job_assignment (test_owned_process.OwnedProcessTests)\r",
+        "ERROR: test_suspended_venv_and_actual_descendant_are_owned_before_any_allocator_runs (test_owned_process.OwnedProcessTests)\r",
+        "FAIL: test_real_process_termination_releases_lease_and_resumes_verified_files (test_data_transfer.DataTransferTests)\r",
+        "FAIL: test_saved_render_reads_fixed_source_during_live_byte_aba (test_dirty_inputs.DirtyInputPlanningTests)\r",
+        "FAIL: test_real_stdio_session_pages_complete_evidence_with_no_shell_or_network (test_evidence_mcp.EvidenceMCPTests)\r",
+        "FAIL: test_stdio_preserves_surrogates_large_integers_and_negative_zero (test_evidence_mcp.EvidenceMCPTests)\r",
+        "FAIL: test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (test_frozen_scan_pipeline.FrozenScanPipelineTests)\r",
+        "FAIL: test_actual_process_exit_between_move_and_journal_commit_can_restore (test_garbage_collection.GarbageCollectionTests)\r",
+        "FAIL: test_cross_process_shared_activity_blocks_exclusive_cleanup (test_garbage_collection.GarbageCollectionTests)\r",
+        "FAIL: test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests)\r",
+        "FAIL: test_real_process_exit_lock_recovery_preserves_receipt_and_live_lock (test_lock_owner.LockOwnerTests)\r",
+        "FAIL: test_real_cli_pins_both_scans_and_rejects_duplicate_variant_flags (test_multicore_pinned_inputs.PinnedMulticoreInputTests)\r",
+        "FAIL: test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests)\r",
+        "FAIL: test_real_stdio_source_pages_use_archive_even_with_different_live_bytes (test_review_sources.ArchivedReviewSourceTests)\r",
+        "FAIL: test_actual_full_and_degraded_legacy_publishers_list_detail_history_and_package_roundtrip (test_studio_manifest_errors.StudioManifestErrorTests) (degraded=True)\r"
+      ]
+    },
+    "focused-regression": {
+      "log": "I:\\ecra-parity-20261114\\focused-regression.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 240,
+      "passed_tests": 237,
+      "seconds": 2656.813,
+      "failures": 2,
+      "errors": 1,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "1ec838131b5fb2f7c017e13f4b8dd08506b2108932446c11fe84d4677598b09e",
+      "observed_failures": [
+        "test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests) ... FAIL",
+        "test_T30_cache_hits_corruption_and_full_equivalence (tests.test_git_diff.GitIntegrationTests) ... FAIL",
+        "test_scan_stability (unittest.loader._FailedTest) ... ERROR",
+        "ERROR: test_scan_stability (unittest.loader._FailedTest)\r",
+        "FAIL: test_original_change_during_complete_archive_audit_cannot_publish_a_new_pointer (tests.test_frozen_scan_pipeline.FrozenScanPipelineTests)\r",
+        "FAIL: test_T30_cache_hits_corruption_and_full_equivalence (tests.test_git_diff.GitIntegrationTests)\r"
+      ]
+    },
+    "full-final": {
+      "log": "I:\\ecra-parity-20261114\\full-final.stderr.log",
+      "status": "FAIL",
+      "stdout": "I:\\ecra-parity-20261114\\full-final.stdout.log",
+      "summary_ok": false,
+      "tests": 1820,
+      "passed_tests": 1802,
+      "seconds": 10575.742,
+      "failures": 12,
+      "errors": 3,
+      "skipped": 3,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "328d0af2a4e1f49caeb1f1f02db4ba5ff18a775fd670b693d3ca4d393d9200e7",
+      "observed_failures": [
+        "test_real_process_termination_releases_lease_and_resumes_verified_files (test_data_transfer.DataTransferTests) ... FAIL",
+        "test_real_stdio_session_pages_complete_evidence_with_no_shell_or_network (test_evidence_mcp.EvidenceMCPTests) ... FAIL",
+        "test_stdio_preserves_surrogates_large_integers_and_negative_zero (test_evidence_mcp.EvidenceMCPTests) ... FAIL",
+        "test_actual_process_exit_between_move_and_journal_commit_can_restore (test_garbage_collection.GarbageCollectionTests) ... FAIL",
+        "test_cross_process_shared_activity_blocks_exclusive_cleanup (test_garbage_collection.GarbageCollectionTests) ... FAIL",
+        "test_baseline_summary_reuse_and_corruption_rebuild (test_git_diff.GitIntegrationTests) ... FAIL",
+        "test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests) ... FAIL",
+        "test_real_process_exit_lock_recovery_preserves_receipt_and_live_lock (test_lock_owner.LockOwnerTests) ... FAIL",
+        "test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests) ... ERROR",
+        "test_real_cli_pins_both_scans_and_rejects_duplicate_variant_flags (test_multicore_pinned_inputs.PinnedMulticoreInputTests) ... FAIL",
+        "test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests) ... FAIL",
+        "test_file_gate_does_not_retroactively_own_a_venv_child_created_before_job_assignment (test_owned_process.OwnedProcessTests) ... ERROR",
+        "test_suspended_venv_and_actual_descendant_are_owned_before_any_allocator_runs (test_owned_process.OwnedProcessTests) ... ERROR",
+        "test_real_stdio_source_pages_use_archive_even_with_different_live_bytes (test_review_sources.ArchivedReviewSourceTests) ... FAIL",
+        "ERROR: test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests)\r",
+        "ERROR: test_file_gate_does_not_retroactively_own_a_venv_child_created_before_job_assignment (test_owned_process.OwnedProcessTests)\r",
+        "ERROR: test_suspended_venv_and_actual_descendant_are_owned_before_any_allocator_runs (test_owned_process.OwnedProcessTests)\r",
+        "FAIL: test_real_process_termination_releases_lease_and_resumes_verified_files (test_data_transfer.DataTransferTests)\r",
+        "FAIL: test_real_stdio_session_pages_complete_evidence_with_no_shell_or_network (test_evidence_mcp.EvidenceMCPTests)\r",
+        "FAIL: test_stdio_preserves_surrogates_large_integers_and_negative_zero (test_evidence_mcp.EvidenceMCPTests)\r",
+        "FAIL: test_actual_process_exit_between_move_and_journal_commit_can_restore (test_garbage_collection.GarbageCollectionTests)\r",
+        "FAIL: test_cross_process_shared_activity_blocks_exclusive_cleanup (test_garbage_collection.GarbageCollectionTests)\r",
+        "FAIL: test_baseline_summary_reuse_and_corruption_rebuild (test_git_diff.GitIntegrationTests)\r",
+        "FAIL: test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests)\r",
+        "FAIL: test_real_process_exit_lock_recovery_preserves_receipt_and_live_lock (test_lock_owner.LockOwnerTests)\r",
+        "FAIL: test_real_cli_pins_both_scans_and_rejects_duplicate_variant_flags (test_multicore_pinned_inputs.PinnedMulticoreInputTests)\r",
+        "FAIL: test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests)\r",
+        "FAIL: test_real_stdio_source_pages_use_archive_even_with_different_live_bytes (test_review_sources.ArchivedReviewSourceTests)\r",
+        "FAIL: test_actual_full_and_degraded_legacy_publishers_list_detail_history_and_package_roundtrip (test_studio_manifest_errors.StudioManifestErrorTests) (degraded=True)\r"
+      ]
+    },
+    "full-final-pinned": {
+      "log": "I:\\ecra-parity-20261114\\full-final-pinned.stderr.log",
+      "status": "FAIL",
+      "stdout": "I:\\ecra-parity-20261114\\full-final-pinned.stdout.log",
+      "execution_receipt": "I:\\ecra-parity-20261114\\full-final-pinned.json",
+      "summary_ok": false,
+      "tests": 1821,
+      "passed_tests": 1812,
+      "seconds": 9922.186,
+      "failures": 3,
+      "errors": 3,
+      "skipped": 3,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "42da0755befd3666e51bb17b5a1b70dfe78dd4c282788d5a782c5f1f93b386ff",
+      "observed_failures": [
+        "test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests) ... FAIL",
+        "test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests) ... ERROR",
+        "test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests) ... FAIL",
+        "test_file_gate_does_not_retroactively_own_a_venv_child_created_before_job_assignment (test_owned_process.OwnedProcessTests) ... ERROR",
+        "test_suspended_venv_and_actual_descendant_are_owned_before_any_allocator_runs (test_owned_process.OwnedProcessTests) ... ERROR",
+        "ERROR: test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests)\r",
+        "ERROR: test_file_gate_does_not_retroactively_own_a_venv_child_created_before_job_assignment (test_owned_process.OwnedProcessTests)\r",
+        "ERROR: test_suspended_venv_and_actual_descendant_are_owned_before_any_allocator_runs (test_owned_process.OwnedProcessTests)\r",
+        "FAIL: test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests)\r",
+        "FAIL: test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests)\r",
+        "FAIL: test_actual_full_and_degraded_legacy_publishers_list_detail_history_and_package_roundtrip (test_studio_manifest_errors.StudioManifestErrorTests) (degraded=True)\r"
+      ]
+    },
+    "full-final-system": {
+      "log": "I:\\ecra-parity-20261114\\full-final-system.stderr.log",
+      "status": "FAIL",
+      "stdout": "I:\\ecra-parity-20261114\\full-final-system.stdout.log",
+      "execution_receipt": "I:\\ecra-parity-20261114\\full-final-system.json",
+      "summary_ok": false,
+      "tests": 1821,
+      "passed_tests": 1817,
+      "seconds": 7312.738,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 3,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "4efb8784f621589c65da0fd59901ae8fac2403e31f8c5732cbe864a81bb3ce10",
+      "observed_failures": [
+        "test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests) ... ERROR",
+        "ERROR: test_real_preflight_and_cli_scan_same_target_and_ast_evidence (test_mingw_cmake_target.MinGWTargetTests)\r"
+      ]
+    },
+    "C-system-mingw-retry": {
+      "log": "I:\\ecra-parity-20261114\\C-system-mingw-retry.stderr.log",
+      "status": "PASS",
+      "stdout": "I:\\ecra-parity-20261114\\C-system-mingw-retry.stdout.log",
+      "summary_ok": true,
+      "tests": 1,
+      "passed_tests": 1,
+      "seconds": 33.03,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "05d9984e970ae3fe74734c3a16885fa0d33f134cf53632555ef421cc92019b17"
+    },
+    "C-system-mingw-module": {
+      "log": "I:\\ecra-parity-20261114\\C-system-mingw-module.stderr.log",
+      "status": "PASS",
+      "stdout": "I:\\ecra-parity-20261114\\C-system-mingw-module.stdout.log",
+      "summary_ok": true,
+      "tests": 8,
+      "passed_tests": 8,
+      "seconds": 72.226,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "b2fa31402152ec28f4145880ed3f31aaf592ba426ab821853ede8c7e83e31620"
+    },
+    "studio-tests": {
+      "log": "I:\\ecra-parity-20261114\\studio-tests.log",
+      "status": "PASS",
+      "tests": 32,
+      "exit_code": 0,
+      "log_sha256": "3177c0e43b330983bf741a6dc70d975a4b2896cdc32969a561ab64ef6281e1ab"
+    },
+    "C-final-targeted": {
+      "log": "I:\\ecra-parity-20261114\\C-final-targeted.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 67,
+      "passed_tests": 67,
+      "seconds": 387.694,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "dbc98b72a9a25b45392f08b06ce64ac03618a9385e60e28ddfb57b1503ef1ff7"
+    },
+    "C-native-corrected": {
+      "log": "I:\\ecra-parity-20261114\\C-native-corrected.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 3,
+      "passed_tests": 3,
+      "seconds": 47.122,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "ce35a80d49f0be0548af2554954fdc452915df004ad346ba9d8ccb50f0b57634"
+    },
+    "B-native-benchmark-regression": {
+      "log": "I:\\ecra-parity-20261114\\B-native-benchmark-regression.log",
+      "status": "FAIL",
+      "summary_error": "Unittest terminal counts exceed run count; cannot derive successful cases",
+      "exit_code": 1,
+      "log_sha256": "e1f637e791384e0e4a7bcabaa9c3cfa55d2ef5b6a73a14a3fa824d287d75b0dc",
+      "observed_failures": [
+        "test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (tests.test_canonical_scan.CanonicalScanTests) ... ERROR",
+        "ERROR: test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (tests.test_canonical_scan.CanonicalScanTests)\r",
+        "ERROR: test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html (tests.test_canonical_scan.CanonicalScanTests)\r"
+      ]
+    },
+    "C-git-cache-recheck": {
+      "log": "I:\\ecra-parity-20261114\\C-git-cache-recheck.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 1,
+      "passed_tests": 1,
+      "seconds": 220.383,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "113ae3bdd65bb382c468d0f3009baa1db7b22b4385950a8d06d0a47599f398c5"
+    },
+    "B-git-cache-recheck": {
+      "log": "I:\\ecra-parity-20261114\\B-git-cache-recheck.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 1,
+      "passed_tests": 1,
+      "seconds": 230.085,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "8825e882442409e6dc9086529ac95951e12a2b4f2010466071c1b28b8c97066b"
+    },
+    "C-evidence-protocol": {
+      "log": "I:\\ecra-parity-20261114\\C-evidence-protocol.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 2,
+      "passed_tests": 2,
+      "seconds": 4.056,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "92901127c67c667918843ae255b6cae99044c5e088b23b1fa474ef125187562d"
+    },
+    "C-independent-ast-test": {
+      "log": "I:\\ecra-parity-20261114\\C-independent-ast-test.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 1,
+      "passed_tests": 1,
+      "seconds": 0.337,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "2f1f7dfc6e989a514dded357ebe7ec8d31b4765c501bdf20bf9aaa7ad956313e"
+    },
+    "C-multicore": {
+      "log": "I:\\ecra-parity-20261114\\C-multicore.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 23,
+      "passed_tests": 22,
+      "seconds": 52.622,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "b4b8c7128110fa5abe191721acaa782f37d2fc8f65e5f9c87a282dd0acde10c4",
+      "observed_failures": [
+        "test_real_cli_pins_both_scans_and_rejects_duplicate_variant_flags (test_multicore_pinned_inputs.PinnedMulticoreInputTests) ... FAIL",
+        "FAIL: test_real_cli_pins_both_scans_and_rejects_duplicate_variant_flags (test_multicore_pinned_inputs.PinnedMulticoreInputTests)\r"
+      ]
+    },
+    "C-multicore-corrected": {
+      "log": "I:\\ecra-parity-20261114\\C-multicore-corrected.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 23,
+      "passed_tests": 23,
+      "seconds": 72.547,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "62082a8509980f6883384366f45ade17c363b9c6659fa03a4f648baabac1cec8"
+    },
+    "C-host-regressions-recheck": {
+      "log": "I:\\ecra-parity-20261114\\C-host-regressions-recheck.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 4,
+      "passed_tests": 4,
+      "seconds": 78.23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "7a512de76fd4d3627b38b9f35849ebb4e7e8f41296cb02cf6dc8a88fbd75141b"
+    },
+    "B-transfer-resume": {
+      "log": "I:\\ecra-parity-20261114\\B-transfer-resume.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 1,
+      "passed_tests": 1,
+      "seconds": 2.377,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "03ebbd895458909f48e74bb869a1ccafcb495f6e0af51ba2478506135347f536"
+    },
+    "C-final-inventory-and-Studio": {
+      "log": "I:\\ecra-parity-20261114\\C-final-inventory-and-Studio.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 19,
+      "passed_tests": 19,
+      "seconds": 7.267,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "7daaa21534d06db1ed8560bfde8716c4cae362249b4be4964d5741684b709233"
+    },
+    "C-physical-contexts": {
+      "log": "I:\\ecra-parity-20261114\\C-physical-contexts.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 54,
+      "passed_tests": 54,
+      "seconds": 90.236,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "4a5be1a69c7ca2786d014d4d2e019303d8499dfd9cd36b6ea2d368e6e57ebcb9"
+    },
+    "C-legacy-import-recheck": {
+      "log": "I:\\ecra-parity-20261114\\C-legacy-import-recheck.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 1,
+      "passed_tests": 0,
+      "seconds": 2.756,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "ced5b3a7ec510691f5ed210b95adcbed0c20b790837440c356f9592c562789a3",
+      "observed_failures": [
+        "test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests) ... FAIL",
+        "FAIL: test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests)\r"
+      ]
+    },
+    "B-legacy-import-recheck": {
+      "log": "I:\\ecra-parity-20261114\\B-legacy-import-recheck.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 1,
+      "passed_tests": 0,
+      "seconds": 3.448,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "ab386ab2c08781407f237a1c82956543f8cc91165fb9c3ab5dce98a3a8ffbe95",
+      "observed_failures": [
+        "test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests) ... FAIL",
+        "FAIL: test_degraded_api_requires_opt_in_exposes_missing_evidence_and_rejects_current_human_conclusions (test_legacy_import.LegacyImportTests)\r"
+      ]
+    },
+    "C-legacy-authorization-after": {
+      "log": "I:\\ecra-parity-20261114\\C-legacy-authorization-after.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 34,
+      "passed_tests": 34,
+      "seconds": 41.519,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "30bdaf83e7b551c74074ac7bb37c2073c78be355b74cca5de639ee0f45726cc9"
+    },
+    "C-mingw-native-digest-recheck": {
+      "log": "I:\\ecra-parity-20261114\\C-mingw-native-digest-recheck.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 2,
+      "passed_tests": 1,
+      "seconds": 66.569,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "9874d6c46bb5f37165b013beab950aee19a85daf21812548da97d6b047009a9a",
+      "observed_failures": [
+        "test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests) ... FAIL",
+        "FAIL: test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests)\r"
+      ]
+    },
+    "B-mingw-native-digest-recheck": {
+      "log": "I:\\ecra-parity-20261114\\B-mingw-native-digest-recheck.log",
+      "status": "FAIL",
+      "summary_ok": false,
+      "tests": 2,
+      "passed_tests": 1,
+      "seconds": 64.0,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 1,
+      "log_sha256": "abc32539bb7b29397997c8300b0fd7746d34d926fa46d36708aa5f1ad9c9cb04",
+      "observed_failures": [
+        "test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests) ... FAIL",
+        "FAIL: test_complete_large_shared_report_digest_in_actual_192mib_child (test_native_consumers.NativeConsumerTests)\r"
+      ]
+    },
+    "C-native-192mb-system-python": {
+      "log": "I:\\ecra-parity-20261114\\C-native-192mb-system-python.log",
+      "status": "PASS",
+      "summary_ok": true,
+      "tests": 1,
+      "passed_tests": 1,
+      "seconds": 6.157,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected_successes": 0,
+      "exit_code": 0,
+      "log_sha256": "9d6bd738fd8c7b06b89245c0e4166efe3cc4ee8edd0c97d2049229904033de8a"
+    }
+  },
+  "studio": {
+    "serial-studio-r4": {
+      "passed": true,
+      "restarted": true,
+      "static_counts": {
+        "CONTAINER": 9,
+        "SAFE_PROVEN": 26,
+        "SUSPECT": 23
+      },
+      "pagination": null,
+      "receipt": "I:\\ecra-parity-20261114\\serial-studio-r4\\receipt.json",
+      "receipt_sha256": "15010e4bf39befe9af2a8c364b28c665428841fdf0ba29aa6323b0c021e4153c"
+    },
+    "serial-studio-final": {
+      "passed": true,
+      "restarted": true,
+      "static_counts": {
+        "CONTAINER": 9,
+        "SAFE_PROVEN": 26,
+        "SUSPECT": 23
+      },
+      "pagination": {
+        "total": 58,
+        "second_page": 8
+      },
+      "receipt": "I:\\ecra-parity-20261114\\serial-studio-final\\receipt.json",
+      "receipt_sha256": "3aa371d777a476cfe3ba1057df5d694eaea68bde8e8ad3d0f3a1c090977b5671"
+    },
+    "cases-studio": {
+      "passed": true,
+      "restarted": true,
+      "static_counts": {
+        "CONTAINER": 4,
+        "SAFE_PROVEN": 20,
+        "SUSPECT": 7,
+        "UNKNOWN": 1
+      },
+      "pagination": null,
+      "receipt": "I:\\ecra-parity-20261114\\cases-studio\\receipt.json",
+      "receipt_sha256": "1c2761f615253e9cc3fd58896d4c25a34c2fb6404e20e9b3041b28f0faecb8d5"
+    },
+    "cases-studio-final-r4": {
+      "passed": true,
+      "restarted": true,
+      "static_counts": {
+        "CONTAINER": 4,
+        "SAFE_PROVEN": 20,
+        "SUSPECT": 7,
+        "UNKNOWN": 1
+      },
+      "pagination": null,
+      "receipt": "I:\\ecra-parity-20261114\\cases-studio-final-r4\\receipt.json",
+      "receipt_sha256": "11f692dc463f06cbe9be28d7b5f972cff0cace2e2dbca56d11291bf9bd607271"
+    }
+  },
+  "independent": {
+    "serial-independent-vs-C1-final": {
+      "receipt": "I:\\ecra-parity-20261114\\serial-independent-vs-C1-final.json",
+      "sha256": "363574029dce0dbc9aff9b3cf732db214bc9d9fe70f4915b027633cab4656afe",
+      "translation_units": 20,
+      "parse_counts": {
+        "PARSED": 20
+      },
+      "expected_roots": 4,
+      "actual_defined_roots": 4,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "cases-independent-vs-C1-final": {
+      "receipt": "I:\\ecra-parity-20261114\\cases-independent-vs-C1-final.json",
+      "sha256": "40ba4831d79d4cdab9465cabd2fe064a823b284d0f86930401c049c8224fcf59",
+      "translation_units": 4,
+      "parse_counts": {
+        "PARSED": 4
+      },
+      "expected_roots": 26,
+      "actual_defined_roots": 26,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-independent-ast": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-independent-ast.json",
+      "sha256": "d5d51bde7658cc7e9e9b16387b15f55cc6e7c0b374656415dc98c9c20b1e9c9b",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      }
+    },
+    "inav-A-L3-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-A-L3-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-A-L4-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-A-L4-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-B-L3-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-B-L3-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-B-L4-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-B-L4-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-B-L7-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-B-L7-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-C1-L3-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-C1-L3-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-C1-L4-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-C1-L4-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    },
+    "inav-C1-L7-independent": {
+      "receipt": "I:\\ecra-parity-20261114\\inav-C1-L7-independent.json",
+      "sha256": "1e9857bb296f44fd93f8a4e83d8d0fd8dc5ae62ba28451fd0c9f05d88f9d3524",
+      "translation_units": 388,
+      "parse_counts": {
+        "PARSED": 388
+      },
+      "expected_roots": 4044,
+      "actual_defined_roots": 4044,
+      "coalesced_distinct_roots": {},
+      "missing": 0,
+      "extra": 0,
+      "ambiguous": 0
+    }
+  },
+  "classifications": {
+    "csv_scope": "Completed serial and ARM fixture scopes only. INAV rows are pending full scan evidence.",
+    "folders": {
+      "serial-release-AB-effective": "I:\\ecra-parity-20261114\\serial-release-AB-effective",
+      "serial-release-repeat": "I:\\ecra-parity-20261114\\serial-release-repeat",
+      "serial-release-warm": "I:\\ecra-parity-20261114\\serial-release-warm",
+      "serial-A-native-scheduler-proof": "I:\\ecra-parity-20261114\\serial-A-native-scheduler-proof",
+      "serial-release-AB-proof-r2": "I:\\ecra-parity-20261114\\serial-release-AB-proof-r2",
+      "cases-release-AB-effective": "I:\\ecra-parity-20261114\\cases-release-AB-effective",
+      "cases-release-BC-effective": "I:\\ecra-parity-20261114\\cases-release-BC-effective",
+      "cases-release-BC-proof-final": "I:\\ecra-parity-20261114\\cases-release-BC-proof-final",
+      "inav-BC-stages": "I:\\ecra-parity-20261114\\inav-BC-stages"
+    }
+  },
+  "original_user_scans": "UNIDENTIFIED. Discovered serial history uses different firmware/TUs and scan modes. Other large historical archives could not be bound to both requested engines and equivalent inputs.",
+  "missing_variables_scope": "3 source definitions proved absent in both A/B on the ARM fixture and recovered by C; serial A/B missing 0.",
+  "inav_candidate_1": "Attempt 2 completed static analysis but the old Windows receipt writer interrupted SQLite publication. Cold attempt 3 is queued behind the baseline classification stages with the corrected observer.",
+  "inav_candidate_2": "First attempt stopped before extraction during host contention. The independent retry follows C1 attempt 3 and uses its own output/cache.",
+  "inav_baseline_B": "Attempt 2 encountered eight recorded 600 s deadlines and was stopped. The isolated retry uses four workers and the same timeout and inputs.",
+  "inav_baseline_A": "Attempt 2 was stopped by the Windows receipt writer. Cold attempt 3 verified all 388 native requests and roots, then exited 3 (MemoryError) while running legacy multi-field coherence at a measured 50 GiB Job peak. Attempt 4 is queued without the wrapper cap after the other large scans exit.",
+  "separately_verified": {
+    "studio_frontend_tests": 32,
+    "final_directed_recovery_tests": 67,
+    "multicore_workflow_optional_suite": 23
+  },
+  "checks": {
+    "inav_target_built": "PASS",
+    "inav_compile_and_link_input_equivalence_A_B_C1": "PASS",
+    "serial_identical_static_inventory_and_classification_A_B_C": "PASS",
+    "serial_actual_studio_and_restart": "PASS",
+    "serial_real_export": "PASS",
+    "serial_cold_warm_independence_and_repeatability": "PASS",
+    "firmware_fixture_inventory_and_concurrency_rules": "PASS",
+    "inav_full_native_scans": "BLOCKED_PENDING_COMPLETION",
+    "inav_identity_classification_evidence_and_studio": "BLOCKED_PENDING_PUBLISHED_SCANS",
+    "inav_repeated_C_scans": "BLOCKED_PENDING_PUBLISHED_SCANS",
+    "serial_real_pagination": "PASS",
+    "full_python_suite_final_engine": "FAIL",
+    "user_original_report_explanation": "BLOCKED_EXACT_PROJECT_NOT_IDENTIFIED",
+    "inav_A_complete_raw_extraction": "PASS",
+    "inav_B_complete_raw_extraction": "PASS",
+    "inav_C1_complete_raw_extraction": "PASS",
+    "inav_B_C1_full_worker_evidence_same_bytes": "PASS",
+    "inav_A_linked_storage_identity": "PASS",
+    "inav_A_scope_selected_storage_identity": "PASS",
+    "inav_B_linked_storage_identity": "PASS",
+    "inav_B_scope_selected_storage_identity": "PASS",
+    "inav_B_classified_storage_identity": "PASS",
+    "inav_C1_linked_storage_identity": "PASS",
+    "inav_C1_scope_selected_storage_identity": "PASS",
+    "inav_C1_classified_storage_identity": "PASS",
+    "inav_B_C1_per_symbol_static_classification_same_bytes": "PASS",
+    "inav_A3_B3_C1_ordered_effective_input_equality": "PASS"
+  },
+  "inav_snapshot_of_completed_worker_inventories": {
+    "complete_target": true,
+    "common_observed_tus": 388,
+    "common_tu_ids": [
+      "TU-00001",
+      "TU-00002",
+      "TU-00003",
+      "TU-00004",
+      "TU-00005",
+      "TU-00006",
+      "TU-00007",
+      "TU-00008",
+      "TU-00009",
+      "TU-00010",
+      "TU-00011",
+      "TU-00012",
+      "TU-00013",
+      "TU-00014",
+      "TU-00015",
+      "TU-00016",
+      "TU-00017",
+      "TU-00018",
+      "TU-00019",
+      "TU-00020",
+      "TU-00021",
+      "TU-00022",
+      "TU-00023",
+      "TU-00024",
+      "TU-00025",
+      "TU-00026",
+      "TU-00027",
+      "TU-00028",
+      "TU-00029",
+      "TU-00030",
+      "TU-00031",
+      "TU-00032",
+      "TU-00033",
+      "TU-00034",
+      "TU-00035",
+      "TU-00036",
+      "TU-00037",
+      "TU-00038",
+      "TU-00039",
+      "TU-00040",
+      "TU-00041",
+      "TU-00042",
+      "TU-00043",
+      "TU-00044",
+      "TU-00045",
+      "TU-00046",
+      "TU-00047",
+      "TU-00048",
+      "TU-00049",
+      "TU-00050",
+      "TU-00051",
+      "TU-00052",
+      "TU-00053",
+      "TU-00054",
+      "TU-00055",
+      "TU-00056",
+      "TU-00057",
+      "TU-00058",
+      "TU-00059",
+      "TU-00060",
+      "TU-00061",
+      "TU-00062",
+      "TU-00063",
+      "TU-00064",
+      "TU-00065",
+      "TU-00066",
+      "TU-00067",
+      "TU-00068",
+      "TU-00069",
+      "TU-00070",
+      "TU-00071",
+      "TU-00072",
+      "TU-00073",
+      "TU-00074",
+      "TU-00075",
+      "TU-00076",
+      "TU-00077",
+      "TU-00078",
+      "TU-00079",
+      "TU-00080",
+      "TU-00081",
+      "TU-00082",
+      "TU-00083",
+      "TU-00084",
+      "TU-00085",
+      "TU-00086",
+      "TU-00087",
+      "TU-00088",
+      "TU-00089",
+      "TU-00090",
+      "TU-00091",
+      "TU-00092",
+      "TU-00093",
+      "TU-00094",
+      "TU-00095",
+      "TU-00097",
+      "TU-00098",
+      "TU-00099",
+      "TU-00100",
+      "TU-00101",
+      "TU-00102",
+      "TU-00103",
+      "TU-00104",
+      "TU-00105",
+      "TU-00106",
+      "TU-00107",
+      "TU-00108",
+      "TU-00109",
+      "TU-00110",
+      "TU-00111",
+      "TU-00112",
+      "TU-00113",
+      "TU-00114",
+      "TU-00115",
+      "TU-00116",
+      "TU-00117",
+      "TU-00118",
+      "TU-00119",
+      "TU-00120",
+      "TU-00121",
+      "TU-00122",
+      "TU-00123",
+      "TU-00124",
+      "TU-00125",
+      "TU-00126",
+      "TU-00127",
+      "TU-00128",
+      "TU-00129",
+      "TU-00130",
+      "TU-00131",
+      "TU-00132",
+      "TU-00133",
+      "TU-00134",
+      "TU-00135",
+      "TU-00136",
+      "TU-00137",
+      "TU-00138",
+      "TU-00139",
+      "TU-00140",
+      "TU-00141",
+      "TU-00142",
+      "TU-00143",
+      "TU-00144",
+      "TU-00145",
+      "TU-00146",
+      "TU-00147",
+      "TU-00148",
+      "TU-00149",
+      "TU-00150",
+      "TU-00151",
+      "TU-00152",
+      "TU-00153",
+      "TU-00154",
+      "TU-00155",
+      "TU-00156",
+      "TU-00157",
+      "TU-00158",
+      "TU-00159",
+      "TU-00160",
+      "TU-00161",
+      "TU-00162",
+      "TU-00163",
+      "TU-00164",
+      "TU-00165",
+      "TU-00166",
+      "TU-00167",
+      "TU-00168",
+      "TU-00169",
+      "TU-00170",
+      "TU-00171",
+      "TU-00172",
+      "TU-00173",
+      "TU-00174",
+      "TU-00175",
+      "TU-00176",
+      "TU-00177",
+      "TU-00178",
+      "TU-00179",
+      "TU-00180",
+      "TU-00181",
+      "TU-00182",
+      "TU-00183",
+      "TU-00184",
+      "TU-00185",
+      "TU-00186",
+      "TU-00187",
+      "TU-00188",
+      "TU-00189",
+      "TU-00190",
+      "TU-00191",
+      "TU-00192",
+      "TU-00193",
+      "TU-00194",
+      "TU-00195",
+      "TU-00196",
+      "TU-00197",
+      "TU-00198",
+      "TU-00199",
+      "TU-00200",
+      "TU-00201",
+      "TU-00202",
+      "TU-00203",
+      "TU-00204",
+      "TU-00205",
+      "TU-00206",
+      "TU-00207",
+      "TU-00208",
+      "TU-00209",
+      "TU-00210",
+      "TU-00211",
+      "TU-00212",
+      "TU-00213",
+      "TU-00214",
+      "TU-00215",
+      "TU-00216",
+      "TU-00217",
+      "TU-00218",
+      "TU-00219",
+      "TU-00220",
+      "TU-00221",
+      "TU-00222",
+      "TU-00223",
+      "TU-00224",
+      "TU-00225",
+      "TU-00226",
+      "TU-00227",
+      "TU-00228",
+      "TU-00229",
+      "TU-00230",
+      "TU-00231",
+      "TU-00232",
+      "TU-00233",
+      "TU-00234",
+      "TU-00235",
+      "TU-00236",
+      "TU-00237",
+      "TU-00238",
+      "TU-00239",
+      "TU-00240",
+      "TU-00241",
+      "TU-00242",
+      "TU-00243",
+      "TU-00244",
+      "TU-00245",
+      "TU-00246",
+      "TU-00247",
+      "TU-00248",
+      "TU-00249",
+      "TU-00250",
+      "TU-00251",
+      "TU-00252",
+      "TU-00253",
+      "TU-00254",
+      "TU-00255",
+      "TU-00256",
+      "TU-00257",
+      "TU-00258",
+      "TU-00259",
+      "TU-00260",
+      "TU-00261",
+      "TU-00262",
+      "TU-00263",
+      "TU-00264",
+      "TU-00265",
+      "TU-00266",
+      "TU-00267",
+      "TU-00268",
+      "TU-00269",
+      "TU-00270",
+      "TU-00271",
+      "TU-00272",
+      "TU-00273",
+      "TU-00274",
+      "TU-00275",
+      "TU-00276",
+      "TU-00277",
+      "TU-00278",
+      "TU-00279",
+      "TU-00280",
+      "TU-00281",
+      "TU-00282",
+      "TU-00283",
+      "TU-00284",
+      "TU-00285",
+      "TU-00286",
+      "TU-00287",
+      "TU-00288",
+      "TU-00289",
+      "TU-00290",
+      "TU-00291",
+      "TU-00292",
+      "TU-00293",
+      "TU-00294",
+      "TU-00295",
+      "TU-00296",
+      "TU-00297",
+      "TU-00298",
+      "TU-00299",
+      "TU-00300",
+      "TU-00301",
+      "TU-00302",
+      "TU-00303",
+      "TU-00304",
+      "TU-00305",
+      "TU-00306",
+      "TU-00307",
+      "TU-00308",
+      "TU-00309",
+      "TU-00310",
+      "TU-00311",
+      "TU-00312",
+      "TU-00313",
+      "TU-00314",
+      "TU-00315",
+      "TU-00316",
+      "TU-00317",
+      "TU-00318",
+      "TU-00319",
+      "TU-00320",
+      "TU-00321",
+      "TU-00322",
+      "TU-00323",
+      "TU-00324",
+      "TU-00325",
+      "TU-00326",
+      "TU-00327",
+      "TU-00328",
+      "TU-00329",
+      "TU-00330",
+      "TU-00331",
+      "TU-00332",
+      "TU-00333",
+      "TU-00334",
+      "TU-00335",
+      "TU-00336",
+      "TU-00337",
+      "TU-00338",
+      "TU-00339",
+      "TU-00340",
+      "TU-00341",
+      "TU-00342",
+      "TU-00343",
+      "TU-00344",
+      "TU-00345",
+      "TU-00346",
+      "TU-00347",
+      "TU-00348",
+      "TU-00349",
+      "TU-00350",
+      "TU-00351",
+      "TU-00352",
+      "TU-00353",
+      "TU-00354",
+      "TU-00355",
+      "TU-00356",
+      "TU-00357",
+      "TU-00358",
+      "TU-00359",
+      "TU-00360",
+      "TU-00361",
+      "TU-00362",
+      "TU-00363",
+      "TU-00364",
+      "TU-00365",
+      "TU-00366",
+      "TU-00367",
+      "TU-00368",
+      "TU-00369",
+      "TU-00370",
+      "TU-00371",
+      "TU-00372",
+      "TU-00373",
+      "TU-00374",
+      "TU-00375",
+      "TU-00376",
+      "TU-00377",
+      "TU-00378",
+      "TU-00379",
+      "TU-00380",
+      "TU-00381",
+      "TU-00382",
+      "TU-00383",
+      "TU-00384",
+      "TU-00385",
+      "TU-00386",
+      "TU-00387",
+      "TU-00388",
+      "TU-00389"
+    ],
+    "per_engine": {
+      "A": {
+        "available_TUs": 388,
+        "observed_status": {
+          "PARSED": 388
+        },
+        "shared_variable_rows": 26107,
+        "shared_definition_rows": 4044,
+        "all_observed_variable_rows": 26107,
+        "all_observed_definition_rows": 4044,
+        "missing_on_parsed_tus": 0,
+        "missing_on_failed_tus": 0,
+        "missing_on_observed_tus": 0,
+        "extra_on_observed_tus": 0,
+        "ambiguous_on_observed_tus": 0,
+        "failed_unit_ids": []
+      },
+      "B": {
+        "available_TUs": 388,
+        "observed_status": {
+          "PARSED": 388
+        },
+        "shared_variable_rows": 26107,
+        "shared_definition_rows": 4044,
+        "all_observed_variable_rows": 26107,
+        "all_observed_definition_rows": 4044,
+        "missing_on_parsed_tus": 0,
+        "missing_on_failed_tus": 0,
+        "missing_on_observed_tus": 0,
+        "extra_on_observed_tus": 0,
+        "ambiguous_on_observed_tus": 0,
+        "failed_unit_ids": []
+      },
+      "C1": {
+        "available_TUs": 388,
+        "observed_status": {
+          "PARSED": 388
+        },
+        "shared_variable_rows": 26107,
+        "shared_definition_rows": 4044,
+        "all_observed_variable_rows": 26107,
+        "all_observed_definition_rows": 4044,
+        "missing_on_parsed_tus": 0,
+        "missing_on_failed_tus": 0,
+        "missing_on_observed_tus": 0,
+        "extra_on_observed_tus": 0,
+        "ambiguous_on_observed_tus": 0,
+        "failed_unit_ids": []
+      }
+    },
+    "run_attempts": {
+      "A": 3,
+      "B": 3,
+      "C1": 2
+    }
+  },
+  "inav_B_C1_stage_hashes": {
+    "linked": {
+      "B": "e1a890892267ba51c22bde72a026a5bfd89275d7441ec3a8f3c5e1e5cc4528c6",
+      "C1": "e1a890892267ba51c22bde72a026a5bfd89275d7441ec3a8f3c5e1e5cc4528c6",
+      "exact": true
+    },
+    "projection": {
+      "B": "52c6c21c3d96e3359e032c412e7b86cb9efb854e2e3505f96856ecaf9ad8df18",
+      "C1": "52c6c21c3d96e3359e032c412e7b86cb9efb854e2e3505f96856ecaf9ad8df18",
+      "exact": true
+    },
+    "scope": {
+      "B": "52c6c21c3d96e3359e032c412e7b86cb9efb854e2e3505f96856ecaf9ad8df18",
+      "C1": "52c6c21c3d96e3359e032c412e7b86cb9efb854e2e3505f96856ecaf9ad8df18",
+      "exact": true
+    },
+    "static_classification": {
+      "B": "f4f3ff8603debbc296fc1634958c691ef11dd88ce581232ca78bc6c235181c0e",
+      "C1": "f4f3ff8603debbc296fc1634958c691ef11dd88ce581232ca78bc6c235181c0e",
+      "exact": true
+    },
+    "candidate_summaries": {
+      "B": "5153c973a30149761f78522fb8a876602f4a1bee645d18733dfa55637f551a2c",
+      "C1": "5153c973a30149761f78522fb8a876602f4a1bee645d18733dfa55637f551a2c",
+      "exact": true
+    }
+  },
+  "inav_running_stage_stack_samples": [
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-215416.log",
+      "sha256": "b9ef3208a514299ef0dc912e16a8f77a5d6b4249cf9ea716d53ee602df733cf1"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-215541.log",
+      "sha256": "b9ef3208a514299ef0dc912e16a8f77a5d6b4249cf9ea716d53ee602df733cf1"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-222719.log",
+      "sha256": "c680134f109df6ec99c9b4c092967bd8eca59759f798b08c851480147543e905"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-local-220132.log",
+      "sha256": "cba4c300ded975a0e5add29d7a3a9367953345aa32a012d55fd27e5ad6355422"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-local-220428.log",
+      "sha256": "7047a8577b94a3a53dc4ad4ef8b8e1833ca499e55dcd846bf6ba7639b20653a8"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-local-221339.log",
+      "sha256": "1054ffdbbe205f47f66a90e83bb4753e4bc6976a65b2c89b77227126bdd11a54"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-A-run3\\stack-local-222058.log",
+      "sha256": "f291d6487d530a9e5c3c4afc505476a8ccceb46eb3f0aecb9f78010daf65e1f4"
+    },
+    {
+      "path": "I:\\ecra-parity-20261114\\inav-B-run3\\stack-publication.log",
+      "sha256": "6599b1ed54e291e9e69b3b26c231dedd33099e98cd02ca8b710434218c68f849"
+    }
+  ]
+}

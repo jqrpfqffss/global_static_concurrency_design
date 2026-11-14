@@ -1,5 +1,6 @@
 """Use the real build graph, not a name heuristic, to isolate hardware variants."""
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -80,6 +81,28 @@ class CMakeTargetTests(unittest.TestCase):
         self.assertEqual(len(units), 2)
         shared = next(u for u in units if u['source_file'] == 'shared.c')
         self.assertIn('-DVARIANT=1', shared['original_arguments'])
+
+    def test_real_target_keeps_cxx_suffix_and_explicit_language(self):
+        self.fixture()
+        self.addCleanup(os.chdir, Path.cwd())
+        with (self.root/'CMakeLists.txt').open('a', encoding='utf-8') as stream:
+            compiler = Path(shutil.which('arm-none-eabi-g++')).as_posix()
+            stream.write(f'set(CMAKE_CXX_COMPILER "{compiler}")\n'
+                         'enable_language(CXX)\n'
+                         'set_source_files_properties(explicit.unit PROPERTIES LANGUAGE CXX)\n'
+                         'set_property(SOURCE explicit.unit APPEND PROPERTY COMPILE_OPTIONS -x c++)\n'
+                         'target_sources(firmware PRIVATE state.c++ explicit.unit)\n')
+        (self.root/'state.c++').write_text('namespace { int state; }\n', encoding='utf-8')
+        (self.root/'explicit.unit').write_text('struct S { static int value; }; int S::value;\n', encoding='utf-8')
+        units, coverage = prepare(self.root, dict(analysis=self.settings))
+        self.assertEqual({u['source_file'] for u in units}, {'main.c', 'shared.c', 'state.c++', 'explicit.unit'})
+        self.assertEqual(set(coverage['build_closure']['translation_units']), {u['source_file'] for u in units})
+        from ecra.extract import Extractor
+        parts = [Extractor(dict(root=str(self.root), unit=u, config=dict(analysis={}))).run()
+                 for u in units if u['source_file'] in {'state.c++', 'explicit.unit'}]
+        self.assertEqual([part['parse_status'] for part in parts], ['PARSED', 'PARSED'])
+        self.assertEqual({row['name'] for part in parts for row in part['variables'] if row['definitions']},
+                         {'state', 'value'})
 
     def test_missing_target_fails_and_does_not_use_stale_database(self):
         self.fixture()

@@ -11,7 +11,7 @@ import time
 from . import __version__
 from .analysis import analyze, merge
 from .common import digest, execute, read_json, relative, write_json
-from .compilation import cmake_build_directory, excluded, prepare
+from .compilation import cmake_build_directory, excluded, prepare, source_language
 from .config import (TEMPLATE, CMAKE_TEMPLATE, TOOL_ROOT, SEMANTICS_FILE,
                      configured_project_root, load_config, resolve_config_path,
                      discover_arm_toolchains)
@@ -34,7 +34,8 @@ def file_hashes(root, out, extra=(), audit_roots=(), *, exact=False):
             # inputs. Hashing them made every review stale and read gigabytes of
             # unrelated vendor assets. Explicit config/database/include inputs
             # above remain included regardless of extension.
-            if (Path(name).suffix.lower() in {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx", ".s", ".inc", ".ld", '.cmake'}
+            if (source_language(name) is not None
+                    or Path(name).suffix.lower() in {'.h', '.hh', '.hpp', '.hxx', '.inc', '.ld', '.cmake'}
                     or name in {'CMakeLists.txt', 'CMakePresets.json', 'CMakeUserPresets.json'}):
                 paths.add((Path(base) / name).resolve())
     result = {}

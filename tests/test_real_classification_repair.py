@@ -134,6 +134,88 @@ class RealClassificationRepairTests(TestCase):
         self.assertTrue(any(next(c for c in facts['contexts'] if c['id'] == b['context_id'])['physical_kind'] == 'IRQ'
                             for b in bindings))
 
+    def test_manually_named_rtos_entry_retains_each_created_task(self):
+        # FreeRTOS creates independent task instances at the two sites. One
+        # manual label for the entry's C function cannot serialize them.
+        for api in ('xTaskCreate', 'osThreadNew'):
+            with self.subTest(api=api):
+                if api == 'xTaskCreate':
+                    declaration = 'int xTaskCreate(void (*)(void *), const char *, unsigned, void *, unsigned, void *);'
+                    create = 'xTaskCreate(worker, "first", 64, 0, 1, 0); xTaskCreate(worker, "second", 64, 0, 2, 0);'
+                else:
+                    declaration = 'void *osThreadNew(void (*)(void *), void *, const void *);'
+                    create = 'osThreadNew(worker, 0, 0); osThreadNew(worker, 0, 0);'
+                cfg = self.project({'a.c': declaration + '''
+                    static unsigned target_state;
+                    static void worker(void *arg) { (void)arg; target_state++; }
+                    int main(void) { ''' + create + ''' return 0; }
+                '''}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                                dict(id='worker', kind='TASK', functions=['worker'])])
+                facts, report = self.extract(cfg)
+                state = next(row for row in facts['variables'] if row['name'] == 'target_state')
+                self.assertEqual(state['static_classification'], 'SUSPECT')
+                task_contexts = [row for row in facts['contexts'] if row['kind'] == 'TASK']
+                self.assertEqual(len(task_contexts), 2)
+                self.assertEqual(len({row['physical_id'] for row in task_contexts}), 2)
+                self.assertEqual(set(state['writers']), {row['id'] for row in task_contexts})
+                self.assertTrue(any(row['symbol_id'] == state['symbol_id'] for row in report['findings']))
+
+    def test_single_created_task_retains_its_configured_owner_and_relationships(self):
+        cfg = self.project({'a.c': '''
+            int xTaskCreate(void (*)(void *), const char *, unsigned, void *, unsigned, void *);
+            static unsigned shared;
+            static void worker(void *arg) { (void)arg; shared = 1; }
+            unsigned TIM4_IRQHandler(void) { return shared; }
+            int main(void) { xTaskCreate(worker, "one", 64, 0, 1, 0); return 0; }
+        '''}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                        dict(id='owner', kind='TASK', functions=['worker']),
+                        dict(id='timer_irq', kind='ISR', functions=['TIM4_IRQHandler'])])
+        cfg['resources'] = [dict(name='shared', owner_context='owner')]
+        cfg['concurrency'] = [dict(contexts=['owner', 'timer_irq'])]
+        cfg['preemption'] = [dict(higher='timer_irq', lower='owner')]
+        facts, report = self.extract(cfg)
+        shared = next(row for row in facts['variables'] if row['name'] == 'shared')
+        finding = next(row for row in report['findings'] if row['symbol_id'] == shared['symbol_id'])
+        self.assertEqual(shared['writers'], ['owner'])
+        self.assertEqual(shared['static_classification'], 'SUSPECT')
+        self.assertEqual(finding['risk_level'], 'MEDIUM')
+        self.assertNotIn('GS-OWNER-VIOLATION', finding['rules'])
+        self.assertEqual(finding['configured_concurrency'], cfg['concurrency'])
+        self.assertEqual(finding['configured_preemption'], cfg['preemption'])
+
+    def test_task_declared_by_configuration_survives_partial_creation_recovery(self):
+        cfg = self.project({'a.c': '''
+            int xTaskCreate(void (*)(void *), const char *, unsigned, void *, unsigned, void *);
+            static unsigned shared;
+            static void worker(void *arg) { (void)arg; shared++; }
+            int main(void) { xTaskCreate(worker, "one", 64, 0, 1, 0); return 0; }
+        '''}, contexts=[dict(id='main', kind='MAIN', functions=['main']),
+                        dict(id='first', kind='TASK', functions=['worker']),
+                        dict(id='second', kind='TASK', functions=['worker'])])
+        facts, _ = self.extract(cfg)
+        shared = next(row for row in facts['variables'] if row['name'] == 'shared')
+        contexts = {row['id']: row for row in facts['contexts'] if row['kind'] == 'TASK'}
+        self.assertIn('first', shared['writers'])
+        self.assertIn('second', shared['writers'])
+        self.assertNotEqual(contexts['first']['physical_id'], contexts['second']['physical_id'])
+        self.assertEqual(shared['static_classification'], 'SUSPECT')
+
+    def test_task_source_and_configured_registration_at_same_call_are_one_instance(self):
+        cfg = self.project({'a.c': '''
+            int xTaskCreate(void (*)(void *), const char *, unsigned, void *, unsigned, void *);
+            static unsigned shared;
+            static void worker(void *arg) { (void)arg; shared++; }
+            int main(void) { xTaskCreate(worker, "one", 64, 0, 1, 0); return 0; }
+        '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
+        cfg['entry_registrations'] = [dict(api='xTaskCreate', callback_arg=0, kind='TASK', context_id='owner')]
+        for may_repeat, expected in ((False, 'SAFE_PROVEN'), (True, 'SUSPECT')):
+            with self.subTest(may_repeat=may_repeat):
+                cfg['entry_registrations'][0]['may_repeat'] = may_repeat
+                facts, _ = self.extract(cfg)
+                shared = next(row for row in facts['variables'] if row['name'] == 'shared')
+                self.assertEqual([row['id'] for row in facts['contexts'] if row['kind'] == 'TASK'], ['owner'])
+                self.assertEqual(shared['static_classification'], expected)
+
     def test_reset_vector_allows_multilevel_init_without_explicit_disable(self):
         cfg = self.project({'a.c': '''enum { TIM4_IRQn = 30 }; void NVIC_EnableIRQ(int);
             static int config; static void C(void) { config = 4; }

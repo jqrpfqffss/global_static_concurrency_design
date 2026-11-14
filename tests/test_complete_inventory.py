@@ -123,6 +123,25 @@ int main(void){
         self.assertEqual(len([v for v in vs if v['name']=='hs']),1)
         self.assertTrue({'extra','extra_hidden','named'} <= {v['name'] for v in vs})
 
+    def test_independent_audit_keeps_each_block_static_declarator(self):
+        from scripts.audit_github_stm32_inventory import enumerate_units, expected_key
+
+        source = self.root/'main.c'
+        source.write_text('''int next(void) {
+    static unsigned first=1, second=2;
+    { static unsigned second=3; first+=second; }
+    return first+second;
+}
+''', encoding='utf-8')
+        units = [dict(tu_id='one', source_file='main.c', source=str(source),
+                      directory=str(self.root), arguments=['-x','c','-std=c11'])]
+        rows, coverage = enumerate_units(self.root, units)
+        self.assertEqual(coverage[0]['status'],'PARSED')
+        self.assertEqual([(row['name'],row['site']['line']) for row in rows],
+                         [('first',2),('second',2),('second',3)])
+        self.assertTrue(all(row['definition'] and row['linkage']=='NO_LINKAGE' for row in rows))
+        self.assertEqual(len({expected_key(row) for row in rows}),3)
+
     def test_external_empty_file_custom_output_and_build_source(self):
         with tempfile.TemporaryDirectory(prefix='ecra external ') as external:
             path=Path(external)/'empty.h';path.write_text('/* empty */')

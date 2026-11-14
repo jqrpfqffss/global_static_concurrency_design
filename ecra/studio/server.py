@@ -215,9 +215,11 @@ def _create_app(data_root, *, token, authority, startup):
         baseline = scan_id.endswith('~base')
         return QueryService(scan_path(scan_id.removesuffix('~base')), baseline=baseline)
 
-    def review_subject(scan_id, symbol):
+    def review_subject(scan_id, symbol, *, require_writable=False):
         from ..diff_review import DELETED_REVIEW_PREFIX
         query = evidence_query(scan_id)
+        if require_writable and degraded_legacy(query.evidence):
+            raise ValueError('未验证原件归档没有可信变量证据，不能保存当前人工结论；请查看原文件或导入完整结果')
         _, reviews = stores(scan_id.removesuffix('~base'))
         if query.is_baseline:
             query.diff_review.require_deleted(symbol)
@@ -582,9 +584,7 @@ def _create_app(data_root, *, token, authority, startup):
 
     @app.post('/api/scans/{scan_id}/human')
     def save_human(scan_id: str, payload: dict):
-        provider, reviews, symbol, fingerprint = review_subject(scan_id, payload['symbol_id'])
-        if degraded_legacy(provider):
-            raise ValueError('未验证原件归档没有可信变量证据，不能保存当前人工结论；请查看原文件或导入完整结果')
+        _, reviews, symbol, fingerprint = review_subject(scan_id, payload['symbol_id'], require_writable=True)
         if payload.get('fingerprint') != fingerprint:
             raise ValueError('确认依据不是当前完整证据，请重新打开变量')
         arguments = dict(reviewer=payload['reviewer'], comment=payload.get('comment', ''), expected_heads=payload.get('expected_heads', []))

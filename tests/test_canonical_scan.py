@@ -84,6 +84,22 @@ class CanonicalScanTests(unittest.TestCase):
         self.assertFalse((failures[0]/'manifest.json').exists())
         self.assertTrue((failures[0]/'diagnostics/exception.log').is_file())
 
+    def test_publication_audit_failure_records_failed_result_and_keeps_last_scan(self):
+        out, cfg = self.run_scan()
+        original = sha256(out/'scan.db')
+        with patch('ecra.scan_persistence.archive_audit', side_effect=OSError('audit write failed')):
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaisesRegex(OSError, 'audit write failed'):
+                    run_canonical(self.root, self.config, no_review=True, scan_id='failed-audit')
+        failed = self.data/'scans/failed-audit'
+        self.assertEqual(output_path(self.root, cfg), out)
+        self.assertEqual(sha256(out/'scan.db'), original)
+        self.assertTrue((failed/'scan.db').is_file())
+        self.assertFalse((failed/'manifest.json').exists())
+        self.assertFalse(read_json(failed/'result_validity.json')['analysis_valid'])
+        self.assertEqual(read_json(failed/'run.json')['state'], 'FAILED')
+        self.assertIn('audit write failed', (failed/'diagnostics/exception.log').read_text(encoding='utf-8'))
+
     def test_repeated_scan_preserves_finding_baseline_and_lock_covers_publication(self):
         from ecra.workspace import lock_path
         out,cfg=self.run_scan()

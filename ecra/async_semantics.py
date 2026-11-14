@@ -2,6 +2,9 @@
 import fnmatch
 
 
+TASK_CREATION_APIS = frozenset({'xTaskCreate', 'xTaskCreateStatic', 'xTaskCreatePinnedToCore', 'osThreadNew'})
+
+
 ASYNC_ENABLE_APIS = {
     'HAL_NVIC_EnableIRQ', 'NVIC_EnableIRQ',
     'HAL_TIM_Base_Start_IT', 'HAL_TIM_OC_Start_IT', 'HAL_TIM_PWM_Start_IT',

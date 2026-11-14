@@ -16,6 +16,37 @@ from .portable import (bundle_root, tool_path, tool_environment, check_cache, re
                        audit_executable, probe_tool, build_path)
 
 
+CXX_SOURCE_SUFFIXES = frozenset({'.cc', '.cpp', '.cxx', '.c++', '.mpp'})
+C_SOURCE_SUFFIXES = CXX_SOURCE_SUFFIXES | {'.c'}
+
+
+def source_language(source, arguments=()):
+    """Return the C, C++ or assembly language of an actual compiler input."""
+    language = None
+    options = iter(arguments)
+    for arg in options:
+        if arg == '-x':
+            language = next(options, None)
+        elif arg.startswith('-x'):
+            language = arg[2:]
+    if language and language != 'none':
+        if language in {'c', 'c-header', 'cpp-output', 'c-cpp-output'}:
+            return 'c'
+        if language in {'c++', 'c++-header', 'c++-cpp-output'}:
+            return 'c++'
+        if language in {'assembler', 'assembler-with-cpp'}:
+            return 'asm'
+        return None
+    path = Path(source)
+    if path.suffix == '.C' or path.suffix.lower() in CXX_SOURCE_SUFFIXES | {'.ii'}:
+        return 'c++'
+    if path.suffix.lower() in {'.c', '.i'}:
+        return 'c'
+    if path.suffix.lower() in {'.s', '.asm'}:
+        return 'asm'
+    return None
+
+
 def _is_link(path):
     return path.is_symlink() or (path.exists() and
         bool(getattr(path.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT))
@@ -296,8 +327,18 @@ def configure_cmake(root, analysis, progress, build_firmware):
                 if not isinstance(rows, list) or any(not isinstance(row, dict) or not row.get('file')
                                                      or not row.get('command') or not row.get('output') for row in rows):
                     raise ValueError('无效目标编译数据库')
-                # Exclude link/settings-generator commands, retain all C/C++/ASM.
-                rows = [row for row in rows if Path(row['file']).suffix.lower() in {'.c', '.cc', '.cpp', '.cxx', '.s'}]
+                # Compile rules carry -c. Link and code-generator rules may
+                # also have a source-looking input, so classify compiler rows
+                # using the real language option as well as the suffix.
+                compiler_rows = []
+                for row in rows:
+                    arguments = split_command(row['command'])
+                    if '-c' not in arguments:
+                        continue
+                    if source_language(row['file'], arguments) is None:
+                        raise ValueError('目标闭包含无法识别的编译语言: ' + row['file'])
+                    compiler_rows.append(row)
+                rows = compiler_rows
                 if not rows:
                     raise ValueError('目标没有可解析编译单元')
                 return rows
@@ -436,15 +477,7 @@ def system_includes(unit):
 
 
 def system_include_language(unit):
-    language = None
-    for index, arg in enumerate(unit['arguments']):
-        if arg == '-x' and index+1 < len(unit['arguments']):
-            language = unit['arguments'][index+1]
-        elif arg.startswith('-x') and len(arg) > 2:
-            language = arg[2:]
-    if language and language != 'none':
-        return 'c++' if '++' in language else 'c'
-    return 'c++' if Path(unit.get('source', '')).suffix.lower() in {'.cc','.cpp','.cxx','.c++'} else 'c'
+    return 'c++' if source_language(unit.get('source', ''), unit['arguments']) == 'c++' else 'c'
 
 
 def system_include_args(paths):
@@ -713,10 +746,14 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
                 or (object_filter is not None and (not obj or absolute(obj, object_dir) not in object_filter))):
             ignored.append(unit['source_file'])
             continue
-        if Path(unit['source']).suffix.lower() == '.s' and not excluded(unit['source_file'], a.get('exclude', [])):
+        language = source_language(unit['source'], unit['arguments'])
+        excluded_unit = excluded(unit['source_file'], a.get('exclude', []))
+        if language == 'asm' and not excluded_unit:
             assembly_sources.append(unit['source_file'])
-        if excluded(unit["source_file"], a.get("exclude", [])) or Path(unit['source']).suffix.lower() not in {'.c', '.cc', '.cpp', '.cxx'}:
+        if excluded_unit or language not in {'c', 'c++'}:
             ignored.append(unit["source_file"])
+            if not excluded_unit and language is None and '-c' in unit['removed_arguments']:
+                raise ValueError('编译数据库包含无法识别的编译语言: ' + unit['source_file'])
         else:
             if a.get('auto_system_includes', 'cmake' in a):
                 # Keep sysroot and working-directory differences in the key.
@@ -746,7 +783,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
                    and (Path(base) / d).resolve() != output]
         for name in files:
             p = Path(base) / name
-            if p.suffix.lower() in {".c", ".cc", ".cpp", ".cxx"}:
+            if source_language(p) in {'c', 'c++'}:
                 rel = relative(p, root)
                 # Unbuilt/out-of-scope vendor files are not missing user code.
                 (excluded_sources if excluded(rel, a.get("exclude", [])) or not scope.contains(p) else sources).append(rel)
