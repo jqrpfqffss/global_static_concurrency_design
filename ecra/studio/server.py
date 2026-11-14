@@ -367,18 +367,23 @@ def _create_app(data_root, *, token, authority, startup):
         return QueryService(scan_path(scan_id)).diff_changes(kind, offset=offset, limit=limit)
 
     @app.get('/api/scans/{scan_id}/ai')
-    def ai_records(scan_id: str, offset: int=0, limit: int=50, outcome: str='', search: str=''):
+    def ai_records(scan_id: str, offset: int=0, limit: int=50, outcome: str='', search: str='',
+                   revision: int | None=None, finding_id: str=''):
         from ..scan_persistence import ai_page
-        return ai_page(scan_path(scan_id),offset,limit,outcome=outcome,search=search)
+        return ai_page(scan_path(scan_id),offset,limit,outcome=outcome,search=search,revision=revision,finding_id=finding_id,
+                       include_progress=not finding_id)
 
     @app.get('/api/scans/{scan_id}/ai-artifact')
-    def ai_artifact(scan_id: str, name: str, offset: int=0, limit: int=16384):
+    def ai_artifact(scan_id: str, name: str, offset: int=0, limit: int=16384, finding_id: str=''):
         from ..report_package import sha256
         out=scan_path(scan_id)
         if (Path(name).name!=name or '/' in name or '\\' in name or ':' in name
-                or not name.endswith(('.json','.txt')) or offset<0 or not 1<=limit<=16384):
+                or not name.endswith(('.json','.jsonl','.txt')) or offset<0 or not 1<=limit<=16384):
             raise ValueError('复核收据名称/游标无效')
         file=no_links(out/'review'/name)
+        if finding_id and (not file.is_file() or name == finding_id+'.result.json'):
+            from ..review_archive import archived_file
+            file = archived_file(out, name, finding_id) or file
         if not file.is_file():
             manifest=json.loads((out/'manifest.json').read_text(encoding='utf-8'))
             indices=set(manifest.get('audit_indices',[]))
@@ -932,12 +937,12 @@ def _create_app(data_root, *, token, authority, startup):
     @app.post('/api/tasks/{task_id}/retry')
     def retry_task(task_id: str):
         folder = tasks.directory(task_id)
-        saved = json.loads((folder/'task.json').read_text(encoding='utf-8'))
+        saved = tasks.record(folder/'task.json')
         if saved['state'] not in {'FAILED', 'INTERRUPTED'}:
             raise ValueError('只有失败/已停止任务可恢复；完成任务请从配置发起新扫描')
         return tasks.start(folder/'semantics.yaml', profile_id=saved['profile_id'],
                            retry_from=task_id,
-                           mode=saved.get('mode','scan'),scan_id=saved['scan_id'],resources=dict(
+                           mode=tasks.retry_mode(saved),scan_id=saved['scan_id'],resources=dict(
                                preset='manual',peak_gib=saved['budget_bytes']/1024**3,
                                workers=saved.get('resource_policy',{}).get('workers',1)),
                            multicore=json.loads((folder/'multicore.json').read_text('utf-8')) if saved.get('mode')=='multicore' else None)

@@ -125,7 +125,7 @@ def create_private_directory(path,*,source_root):
 
 class GuardedProcess:
     """Starts suspended. Caller assigns its Job before explicitly resuming."""
-    def __init__(self,argv,*,cwd,env,log,_low_integrity=True,stderr_log=None):
+    def __init__(self,argv,*,cwd,env,log,_low_integrity=True,stderr_log=None,stdin_log=None):
         import msvcrt
         self.api=api=Windows();self.args=list(map(str,argv));self._handle=None;self._thread=None;self.returncode=None
         executable=Path(self.args[0])
@@ -135,8 +135,11 @@ class GuardedProcess:
             def duplicate(raw):
                 handle=w.HANDLE();api.check(api.kernel.DuplicateHandle(api.kernel.GetCurrentProcess(),raw,api.kernel.GetCurrentProcess(),ctypes.byref(handle),0,True,2))
                 duplicates.append(handle.value);return handle.value
-            with open(os.devnull,'rb') as null:
-                stdin=duplicate(msvcrt.get_osfhandle(null.fileno()))
+            if stdin_log is None:
+                with open(os.devnull,'rb') as null:
+                    stdin=duplicate(msvcrt.get_osfhandle(null.fileno()))
+            else:
+                stdin=duplicate(msvcrt.get_osfhandle(stdin_log.fileno()))
             stdout=duplicate(msvcrt.get_osfhandle(log.fileno()))
             stderr=stdout if stderr_log is None else duplicate(msvcrt.get_osfhandle(stderr_log.fileno()))
             size=ctypes.c_size_t();api.kernel.InitializeProcThreadAttributeList(None,1,0,ctypes.byref(size))
@@ -190,5 +193,5 @@ class OwnedProcess(GuardedProcess):
     Caller must assign its Job then resume. This provides ownership only;
     it never labels private directories or establishes source write protection.
     """
-    def __init__(self,argv,*,cwd,env,log):
-        super().__init__(argv,cwd=cwd,env=env,log=log,_low_integrity=False)
+    def __init__(self,argv,*,cwd,env,log,stderr_log=None,stdin_log=None):
+        super().__init__(argv,cwd=cwd,env=env,log=log,_low_integrity=False,stderr_log=stderr_log,stdin_log=stdin_log)

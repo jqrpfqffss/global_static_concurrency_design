@@ -135,6 +135,13 @@ def _references(data):
                     for table,column in [('events','payload'),('ai_events','payload'),('ai_snapshots','payload'),('prior_decisions','payload'),('positions','value')]:
                         if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(table,)).fetchone():
                             _tokens(conn,table,column,refs,proof)
+                    if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ai_events'").fetchone():
+                        for (hashed,) in conn.execute("SELECT hash FROM ai_events WHERE json_type(payload,'$.archived_files')='object'"):
+                            refs.add(hashed)  # The event's digest is also the immutable .result.json object name.
+            for path in (folder/'diagnostics'/'review-recovery').glob('*.json'):
+                raw = no_links(path).read_bytes()
+                proof.update(raw)
+                refs.update(value.decode().lower() for value in TOKENS.findall(raw))
     return refs,proof.hexdigest()
 
 

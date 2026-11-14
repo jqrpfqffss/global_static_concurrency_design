@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -19,6 +20,9 @@ from ..workspace import no_links
 from ..report_package import IDENTITY
 from .process_budget import ProcessBudget
 from .task_records import display_record
+
+REVIEW_MODES = {'review', 'review-resume', 'review-failed'}
+TASK_MODES = REVIEW_MODES | {'scan', 'precheck', 'multicore'}
 
 
 def now():
@@ -73,6 +77,30 @@ def resource_sample(budget, data):
     return sample
 
 
+def scan_size(folder):
+    """Measure scan files in the resource monitor without resolving each leaf."""
+    total = 0
+    pending = [no_links(folder)]
+    while pending:
+        path = pending.pop()
+        try:
+            with os.scandir(path) as entries:
+                for entry in entries:
+                    try:
+                        info = entry.stat(follow_symlinks=False)
+                    except FileNotFoundError:
+                        continue
+                    if entry.is_symlink() or getattr(info, 'st_file_attributes', 0) & 0x400:
+                        continue  # Reparse points are outside the owned scan data.
+                    if entry.is_dir(follow_symlinks=False):
+                        pending.append(entry.path)
+                    elif entry.is_file(follow_symlinks=False):
+                        total += info.st_size
+        except FileNotFoundError:
+            continue  # The scan folder and temporary files may come and go.
+    return total
+
+
 class TaskManager:
     def __init__(self, data):
         self.data = Path(data)
@@ -89,7 +117,7 @@ class TaskManager:
                 for path in self.work.glob('*/task.json'):
                     value = self.record(path)
                     if value['state'] in {'RUNNING', 'STOP_REQUESTED'}:
-                        value.update(state='INTERRUPTED', finished=now(), error='上次监督器退出；保留完整 TU 缓存与诊断，可重新校验输入后恢复。')
+                        value.update(state='INTERRUPTED', finished=now(), error='上次监督器退出；已提交的结果与诊断保留，可校验输入后继续。')
                         write_json(path, value)
             finally:lease.__exit__(None,None,None)
 
@@ -98,12 +126,25 @@ class TaskManager:
                       key=lambda item:item['started'], reverse=True)
 
     def record(self, path):
-        return display_record(path, read_task_json, ident=path.parent.name,
+        value = display_record(path, read_task_json, ident=path.parent.name,
             states={'RUNNING','STOP_REQUESTED','COMPLETE','FAILED','INTERRUPTED'},
             validate=lambda value:isinstance(value.get('mode'),str)
-                and value['mode'] in {'scan','precheck','review','review-failed','multicore'}
+                and value['mode'] in TASK_MODES
                 and isinstance(value.get('scan_id'),str) and IDENTITY.fullmatch(value['scan_id']),
             action='请保留此文件供排查；从已保存工程配置重新发起任务，或打开历史中的有效扫描。')
+        if not value.get('metadata_error') and (value['mode'] in REVIEW_MODES or value['mode'] == 'scan'):
+            out = no_links(self.data/'scans'/value['scan_id'])
+            value['published'] = (out/'manifest.json').is_file()
+            value['review_resumable'] = value['published'] and (out/'scan_state.json').is_file() and (
+                value['mode'] in REVIEW_MODES or (path.parent/'review-materials.json').is_file())
+        return value
+
+    @staticmethod
+    def retry_mode(task):
+        mode = task['mode']
+        if mode == 'review' or (mode == 'scan' and task.get('review_resumable')):
+            return 'review-resume'
+        return mode
 
     def directory(self, ident):
         if not IDENTITY.fullmatch(ident):
@@ -135,13 +176,17 @@ class TaskManager:
         from ..scan_diagnostics import memory
         pressure=host_pressure(memory())
         if pressure['stop']:raise ValueError(pressure['reason']+'；暂不启动扫描，请待提交额度/内存恢复后重试。')
-        if mode not in {'scan','precheck','review','review-failed','multicore'}:
+        if mode not in TASK_MODES:
             raise ValueError('未知任务模式')
+        resume_scope = None
         if retry_from is not None:
-            previous=self.directory(retry_from);previous_task=read_task_json(previous/'task.json')
+            previous=self.directory(retry_from);previous_task=self.record(previous/'task.json')
             if (no_links(profile_path)!=previous/'semantics.yaml' or previous_task.get('state') not in {'FAILED','INTERRUPTED'}
-                    or previous_task.get('mode')!=mode or previous_task.get('profile_id')!=profile_id):
+                    or self.retry_mode(previous_task)!=mode or previous_task.get('profile_id')!=profile_id
+                    or previous_task.get('scan_id')!=scan_id):
                 raise ValueError('恢复配置、模式或状态与原任务不符')
+            if mode == 'review-resume':
+                resume_scope = 'review' if previous_task['mode'] == 'review' else previous_task.get('resume_scope')
         if mode=='multicore':
             if (not isinstance(multicore,dict) or multicore.get('format')!='ECRA_MULTICORE_PLAN_V1'
                     or not isinstance(multicore.get('id'),str) or not IDENTITY.fullmatch(multicore['id'])
@@ -173,9 +218,10 @@ class TaskManager:
             if not isinstance(scan_id,str) or not IDENTITY.fullmatch(scan_id):
                 raise ValueError('复核扫描身份无效')
             out=no_links(self.data/'scans'/scan_id)
-            if not (out/'scan_state.json').is_file() or not root.is_dir():
+            if not (out/'scan_state.json').is_file() or not (out/'manifest.json').is_file() or not root.is_dir():
                 raise ValueError('归档缺少本机恢复检查点或原源码；可浏览证据，不能重新证明。')
-            if EvidenceProvider(out/'scan.db').metadata()['project_id']!=ws.project_id:
+            binding = EvidenceProvider(out/'scan.db').metadata()
+            if binding['project_id'] != ws.project_id or binding['scan_id'] != scan_id:
                 raise ValueError('复核配置与扫描工程身份不符')
         with self.lock:
             if self.active is not None:
@@ -210,11 +256,12 @@ class TaskManager:
                 if request_id is not None:value['request_id']=request_id
                 value['review_materials']=materials
                 if retry_from is not None:value['retry_from']=retry_from
+                if resume_scope is not None:value['resume_scope']=resume_scope
                 write_json(folder/'task.json', value)
                 if mode=='multicore':
                     value['checkpoint_mode']='RETRY_DERIVATION_FROM_FIXED_INPUTS'
                     write_json(folder/'task.json',value)
-                elif mode in {'review','review-failed'}:
+                elif mode in REVIEW_MODES:
                     value['checkpoint_mode']='REVALIDATE_INPUTS_AND_RETRY_REVIEW_MODE'
                     write_json(folder/'task.json',value)
                 try:
@@ -243,6 +290,8 @@ class TaskManager:
                     args = [sys.executable,'-B','-m','ecra.studio.task_worker', '--config',str(folder/'semantics.yaml'),
                         '--data-root',str(self.data),'--scan-id',value['scan_id'],'--profile-id',profile_id,'--mode',mode,
                         '--gate',str(folder/'start'), '--stop',str(folder/'stop'), '--result',str(folder/'worker-result.json')]
+                    if resume_scope is not None:
+                        args.extend(['--resume-scope', resume_scope])
                     assigned = False
 
                     def release_process():
@@ -353,16 +402,9 @@ class TaskManager:
                 try:
                     value['samples'] = [*value['samples'][-119:], sample]
                     samples+=1
-                    if samples % 6 == 0:
+                    if samples % 60 == 0:
                         scan_folder = self.data/'scans'/value['scan_id']
-                        size = 0
-                        for file in scan_folder.rglob('*'):
-                            try:
-                                if no_links(file).is_file():
-                                    size += file.stat().st_size
-                            except FileNotFoundError:
-                                pass
-                        value['task_disk_bytes'] = size
+                        value['task_disk_bytes'] = scan_size(scan_folder)
                     if not stop_failed and stop_file.is_file():
                         value['state'] = 'STOP_REQUESTED'
                     write_json(folder/'task.json',value)
@@ -444,9 +486,17 @@ class TaskManager:
                 error='任务日志无法读取：'+str(log)+'。'+str(exc)+'；任务状态与原文件保留。')
         diagnostics = self.data/'scans'/value['scan_id']/'diagnostics'
         value['progress_kind']='TU_EXTRACTION'
-        if value['mode'] in {'review','review-failed'}:
+        if value['mode'] in REVIEW_MODES:
             diagnostics=folder/'review-diagnostics'
             value['progress_kind']='AI_REVIEW'
+        elif value['mode'] == 'scan' and value['review_resumable']:
+            value['progress_kind']='AI_REVIEW'
+        if value['progress_kind'] == 'AI_REVIEW' and value['published']:
+            from ..scan_persistence import ai_progress
+            try:
+                value['review_progress'] = ai_progress(self.data/'scans'/value['scan_id'])
+            except (OSError, ValueError, sqlite3.Error) as exc:
+                value.setdefault('diagnostic_errors', []).append(f'无法读取已提交复核进度：{exc}')
         if value['mode'] in {'scan','precheck'} and not diagnostics.exists() and (folder/'fixed-inputs/diagnostics').is_dir():
             diagnostics=folder/'fixed-inputs/diagnostics'
             value['progress_kind']='WORKING_INPUT_INVENTORY'

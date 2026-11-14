@@ -5,16 +5,15 @@ import json
 from collections import OrderedDict
 from functools import lru_cache
 import os
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .common import digest, read_json, relative, write_json
 from .config import load_config
-from .html_report import REVIEW_PAGE, category, review_records, write_html
+from .html_report import REVIEW_PAGE, category, review_records
 from .report import generate
-from .review import review_all, verify_receipt
-from .review_integrity import normalize_review_record, set_review_state
+from .review import review_all
+from .review_integrity import set_review_state
 
 
 def file_digest(path):
@@ -37,13 +36,69 @@ REVIEW_REPORT_MODULES = frozenset({
     'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
     'native_consumers.py', 'review_inheritance.py', 'review_sources.py', 'native_review_packet.py', 'review_hash.py', 'review_packet.py',
+    'review_archive.py', 'review_process.py',
 })
 
 
-def engine_digest():
+def _engine_files():
     package = Path(__file__).parent
-    return digest({path.name: file_digest(path) for path in sorted(package.glob('*.py'))
-                   if path.name not in REVIEW_REPORT_MODULES})
+    return {path.name: file_digest(path) for path in sorted(package.glob('*.py'))
+            if path.name not in REVIEW_REPORT_MODULES}
+
+
+_REVIEW_PUBLICATION_UPGRADE = {
+    'cli.py': ('c9eda82f34af059f6f39861504f5b9caf3c551c23d747a61fa808d0e394e15fb',
+               '2c66dd1233ad53670e1e16f485a7a518e7adc511c0b3ea51e24d265feb052721'),
+    'scan_persistence.py': ('9945ba5d6bcefaca57508577e7240b4a1e1da1499a1a72e3d22d1cbf3af263a5',
+                            'a4677b8ecad386c7e1154ecc26569441d3c48dd82399b0765f88eb0f54e55446'),
+    'report_package.py': ('5c1137b1d54ae086ecdbd2951a6ae2e16e1bd7e7cf5ba3765c8f117c9c52a53b',
+                          '028e7b9bf2d94c4a412b33a14781d3b13963677730655b020071d4925d04bd84'),
+    'garbage_collection.py': ('2959f70ea45b3c0c9e40618580be203557663c9d952706070953fff9b6596b7e',
+                              '5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265'),
+}
+
+
+def engine_digest():
+    files = _engine_files()
+    # Each pair proves this review-only upgrade from 585df98. Future edits to
+    # these files use their own byte digest, as do all other static modules.
+    package = Path(__file__).parent
+    for name, (after, before) in _REVIEW_PUBLICATION_UPGRADE.items():
+        if name in files and hashlib.sha256((package/name).read_bytes().replace(b'\r\n', b'\n')).hexdigest() == after:
+            files[name] = before
+    return digest(files)
+
+
+def matches_static_engine(expected, current=None):
+    if expected == (current if current is not None else engine_digest()):
+        return True
+    # Legacy checkouts also hashed CRLF working copies of these four files.
+    from itertools import product
+    previous = {
+        'cli.py': ('2c66dd1233ad53670e1e16f485a7a518e7adc511c0b3ea51e24d265feb052721',
+                   '06405dc61d90a81dcd48989a5aff1d7a9d7fd4e91d3c530f42cf4e30d6d81d1b'),
+        'scan_persistence.py': ('a4677b8ecad386c7e1154ecc26569441d3c48dd82399b0765f88eb0f54e55446',
+                                'dc0bb6767c5e450994aa7dbcadba1bbf72d9dfcd7ba328b255cd69973c08071d'),
+        'report_package.py': ('028e7b9bf2d94c4a412b33a14781d3b13963677730655b020071d4925d04bd84',
+                              '0f80028592321fa90a20bede8ba9c18ff3c159eae30f10c4b0dfb50ba33a3ed9'),
+        'garbage_collection.py': ('5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265',
+                                  'ab1d558b0847b6dd2e8777bc00be774a453ee257ae3a659207defdf25e9b7122'),
+    }
+    package = Path(__file__).parent
+    if any(hashlib.sha256((package/name).read_bytes().replace(b'\r\n', b'\n')).hexdigest() != hashed
+           for name, (hashed, _) in _REVIEW_PUBLICATION_UPGRADE.items()):
+        return False
+    files = _engine_files()
+    lf, crlf = {}, {}
+    for name in files:
+        raw = (package/name).read_bytes().replace(b'\r\n', b'\n')
+        lf[name] = hashlib.sha256(raw).hexdigest()
+        crlf[name] = hashlib.sha256(raw.replace(b'\n', b'\r\n')).hexdigest()
+    for hashes in product(*previous.values()):
+        prior = dict(zip(previous, hashes))
+        if any(expected == digest({**variant, **prior}) for variant in (files, lf, crlf)):
+            return True
+    return False
 
 
 def analysis_config(cfg):
@@ -221,6 +276,7 @@ def clean_report(report):
 
 def save_scan(root, out, cfg, config_file, report, *, initialize_queue=True):
     from .review_integrity import review_targets, assert_review_integrity
+    from .review_archive import write_receipt
     queue = [set_review_state(dict(finding_id=f['finding_id'],
         static_classification=f.get('static_classification')), 'PENDING') for f in review_targets(report)]
     assert_review_integrity(report, queue)
@@ -228,17 +284,14 @@ def save_scan(root, out, cfg, config_file, report, *, initialize_queue=True):
         write_json(out/'review/queue.json', queue)
     else:
         assert_review_integrity(report, read_queue(out))
-    write_json(out/'scan_state.json', dict(schema=1, project_root=str(root),
+    write_receipt(out/'scan_state.json', dict(schema=1, project_root=str(root),
         config_file=relative(config_file, root), config_digest=digest(analysis_config(cfg)),
         engine_scope=ENGINE_SCOPE, engine_digest=engine_digest(), facts_sha256=file_digest(out/'facts.json'),
         manifest_sha256=file_digest(out/'input_manifest.json'),
         input_closure_sha256=file_digest(out/'input_closure.json') if (out/'input_closure.json').is_file() else None,
         report_digest=saved_report_digest(clean_report(report), encoding='ECRA_MERKLE_V1'),
-        report_digest_encoding='ECRA_MERKLE_V1', fingerprint=report['fingerprint']))
-    state = read_json(out/'scan_state.json')
-    state['scan_mode'] = 'diff' if report.get('git_diff') else 'full'
-    state['git_diff_pin'] = report.get('git_diff', {}).get('pin')
-    write_json(out/'scan_state.json', state)
+        report_digest_encoding='ECRA_MERKLE_V1', fingerprint=report['fingerprint'],
+        scan_mode='diff' if report.get('git_diff') else 'full', git_diff_pin=(report.get('git_diff') or {}).get('pin')))
 
 
 def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
@@ -349,7 +402,7 @@ def _verify_saved_closure(root,out,cfg,state,manifest,config_file,capsule,*,file
         changes.append(dict(file=relative(config_file, root), reason='ANALYSIS_CONFIGURATION_CHANGED',
                             before=state['config_digest'], after=live_digest))
     current_engine = engine_digest()
-    if current_engine != state['engine_digest']:
+    if not matches_static_engine(state['engine_digest'], current_engine):
         changes.append(dict(file=str(tool_root/'ecra'), reason='STATIC_ENGINE_CHANGED',
                             before=state['engine_digest'], after=current_engine))
     write_json(out/'diagnostics/resume_source_changes.json', dict(schema=1,
@@ -379,7 +432,9 @@ def verify_saved_publication(root, out, cfg, state, config_file):
             # Legacy broad manifests retain their existing validation policy.
             live_cfg, _ = load_config(root, config_file)
             checked_scan(root, out, live_cfg, config_file, with_facts=False, _report_projection=True)
-    except BaseException as exc:
+    except KeyboardInterrupt:
+        raise
+    except Exception as exc:
         reserve = None
         trace = traceback.format_exc()
         (out/'scan_state.json').unlink(missing_ok=True)
@@ -436,7 +491,7 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True, _report_projec
         # The old aggregate digest cannot establish which modules changed.
         # Refresh once rather than bless unknown old facts by replacing a hash.
         raise ValueError('旧扫描检查点使用全程序指纹，需一次性更新为静态分析指纹；' + rescan)
-    if state['engine_digest'] != engine_digest():
+    if not matches_static_engine(state['engine_digest']):
         raise ValueError('静态分析实现已变化，不能复用旧调用链；' + rescan)
     if (state['facts_sha256'] != file_digest(out/'facts.json') or
             state['manifest_sha256'] != file_digest(out/'input_manifest.json')):
@@ -451,6 +506,16 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True, _report_projec
         report = read_saved_json(out/'reports/global_static_concurrency.json')
     if not isinstance(report,dict) or not isinstance(report.get('findings'),list):
         raise ValueError('静态报告格式损坏；请重新运行 run')
+    if bounded:
+        from .scan_store import EvidenceProvider
+        from .scan_persistence import validate_review_binding
+        provider = EvidenceProvider(out/'scan.db')
+        validate_review_binding(out, provider)
+        fingerprint = provider.node(provider.resolve('report', ['fingerprint'])).get('value')
+    else:
+        fingerprint = report.get('fingerprint')
+    if state['fingerprint'] != fingerprint:
+        raise ValueError('检查点与静态报告的扫描指纹不一致；请重新运行 run')
     if state.get('report_digest_encoding') != 'ECRA_MERKLE_V1':
         raise ValueError('旧扫描缺少完整共享证据摘要版本，请重新运行 run')
     actual_digest=(clean_report_digest(out/'scan.db',work=out/'diagnostics') if bounded else
@@ -492,27 +557,6 @@ def output_path(root, cfg):
     return Path(workspace.results_root)
 
 
-def checked_reviews(root, out, reviews, fingerprint):
-    import json
-    verified=[]
-    for original in reviews:
-        r=normalize_review_record(copy.deepcopy(original))
-        if r.get('state')=='DONE':
-            try:
-                cached=read_json(out/'review'/(r['finding_id']+'.result.json'))
-                if (r.get('scan_fingerprint')!=fingerprint or cached.get('cache_key')!=r.get('cache_key')
-                        or cached.get('answer')!=r.get('answer')):
-                    raise ValueError('复核收据与当前扫描/缓存不匹配')
-                answer=verify_receipt(root, out/'review', r)
-                if answer['status']!=r.get('status'):
-                    raise ValueError('复核状态与答案不一致')
-            except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
-                from .review_integrity import mark_review_stale
-                mark_review_stale(out/'review', r, exc)
-        verified.append(r)
-    return verified
-
-
 def read_queue(out):
     from .scan_persistence import runtime
     saved = runtime(out)
@@ -524,6 +568,8 @@ def read_queue(out):
             return []
         return [r for r in rows if isinstance(r,dict) and isinstance(r.get('finding_id'),str)]
     except (OSError,ValueError):
+        if (out/'scan.db').is_file():
+            raise
         # Per-item caches can still be recovered by review_all. A broken queue
         # never means that the corresponding findings have been reviewed.
         return []
@@ -580,19 +626,24 @@ def status(root, config_path=None):
             info.update(resumable=False, next_action='存在运行锁：等待扫描/复核结束；若进程已退出，确认后移除过期 scan.lock。当前数量来自已保存的结果。')
             return info
         try:
-            checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
+            _, _, state = checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
             from .git_diff import current_context
-            root, cfg = current_context(root, cfg, read_json(out/'scan_state.json').get('git_diff_pin'))
+            root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
             # A DONE label in queue.json is not enough to claim completion.
             # Check the immutable prompt, transcript, answer and cited source
             # before reporting a review as finished, without changing files.
             receipt_errors = []
             verified_queue = copy.deepcopy(queue)
+            from .review_archive import verify_committed_review
+            from .review_integrity import review_targets
+            expected = {f['finding_id']: f for f in review_targets(report)}
             for row in verified_queue:
                 if row.get('state') != 'DONE':
                     continue
                 try:
-                    verify_receipt(root, out/'review', row)
+                    fid = row['finding_id']
+                    receipt = read_json(out/'review'/(fid+'.result.json'))
+                    verify_committed_review(root, out/'review', row, expected[fid], state['fingerprint'], receipt)
                 except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
                     receipt_errors.append(dict(finding_id=row['finding_id'], error=str(exc)))
                     set_review_state(row, 'TECH_FAILED')
@@ -606,7 +657,7 @@ def status(root, config_path=None):
                             review_receipt_errors=receipt_errors)
             disabled = not cfg.get('review', {}).get('enabled', True)
             if receipt_errors:
-                action = f"{len(receipt_errors)} 项复核收据未通过校验；运行 review 重建对应结果。"
+                action = f"{len(receipt_errors)} 项复核收据未通过校验；运行 review-resume 重试对应结果。"
             elif integrity['all_done']:
                 if info['unresolved']:
                     action = f"全部模型复核已有答复，但 {info['unresolved']} 项仍缺证据；查看逐项复核并补充上下文。"
@@ -619,7 +670,7 @@ def status(root, config_path=None):
                           if is_canonical(out) else
                           '当前未启用模型：可按 HTML 人工排查；运行原命令重新扫描；运行 report 仅刷新结果。')
             else:
-                action = '运行 review 重新复核全部疑似/未知；review-failed 只重跑技术失败；report 仅刷新结果'
+                action = '运行 review-resume 继续剩余项；review 重跑全部疑似/未知；review-failed 只重跑技术失败'
             info.update(resumable=True, review_enabled=not disabled,
                         next_action=action)
         except (OSError, ValueError, KeyError) as exc:
@@ -627,21 +678,64 @@ def status(root, config_path=None):
     return info
 
 
-def saved_run(root, config_path=None, render_only=False, failed_only=False, *, _out=None,_budget_owned=False):
+def pause_saved_review(out, facts, report, state):
+    from .scan_persistence import append_runtime, is_canonical
+    report['run_status'] = state
+    if is_canonical(out):
+        append_runtime(out, dict(run_status=state), [])
+    else:
+        generate(out, facts, report, read_queue(out))
+    manifest_path = out/'manifest.json'
+    if manifest_path.is_file():
+        manifest = read_json(manifest_path)
+        manifest['run_state'] = state
+        write_json(manifest_path, manifest)
+    write_json(out/'resume.json', dict(command='review-resume', state=state,
+                                     exit_code=130 if state=='INTERRUPTED' else 3,
+                                     finished=datetime.now(timezone.utc).isoformat()))
+
+
+def invalidate_saved_reviews(out, report, fingerprint, reason):
+    from .review_integrity import mark_review_stale, review_targets
+    from .scan_persistence import is_canonical, append_runtime
+    rows = {row['finding_id']: row for row in read_queue(out)}
+    reviews = []
+    for finding in review_targets(report):
+        fid = finding['finding_id']
+        row = rows.get(fid, dict(finding_id=fid, scan_fingerprint=fingerprint,
+                                static_classification=finding.get('static_classification')))
+        reviews.append(mark_review_stale(out/'review', row, reason))
+    report.update(run_status='INCOMPLETE', stale_reason=str(reason))
+    if is_canonical(out):
+        append_runtime(out, dict(run_status=report['run_status'], stale_reason=str(reason)), reviews)
+    else:
+        write_json(out/'review/queue.json', reviews)
+    return reviews
+
+
+def saved_run(root, config_path=None, render_only=False, failed_only=False, *, resume=False, resume_scope=None,
+              _out=None,_budget_owned=False):
     from contextlib import ExitStack
     from .scan_persistence import is_canonical
     from .storage_activity import DataActivity,review_data_root
     cfg,_=load_config(root,config_path)
     out=_out if _out is not None else output_path(root,cfg)
-    data=review_data_root(Path(out)/'reviews.db') if is_canonical(out) else None
+    from .workspace import context, formal_workspace
+    native = is_canonical(out)
+    if native:
+        formal_workspace(root, cfg['analysis'])
+    data=review_data_root(Path(out)/'reviews.db') if native else None
     with ExitStack() as activities:
         if data:
             activities.enter_context(DataActivity(data))
             if not _budget_owned:activities.enter_context(DataActivity(data,exclusive=True,purpose='scan-budget'))
-        return _saved_run(root,config_path,render_only,failed_only,_out=_out)
+        from .scan_persistence import project_scan_lock
+        context(root, cfg['analysis']).initialize()
+        with project_scan_lock(root, cfg['analysis']):
+            return _saved_run(root, config_path, render_only, failed_only, resume=resume, resume_scope=resume_scope, _out=out)
 
 
-def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, _out=None):
+def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, resume=False, resume_scope=None, _out=None):
     from .git_diff import selected_findings
     cfg, config_file = load_config(root, config_path)
     out = output_path(root, cfg)
@@ -654,9 +748,8 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         if (Path(root)/'.ecra').is_dir() and Path(root)/'.ecra' != out:
             raise ValueError(f'旧版数据目录存在: {Path(root)/".ecra"}；请先运行 run 验证归属、复制迁移并刷新结果，再执行 report/review')
         raise ValueError('还没有扫描结果；请先运行 run')
-    from .workspace import context, lock_path
+    from .workspace import context
     workspace = context(root, cfg['analysis']).initialize()
-    lock = lock_path(root, cfg['analysis'])
     source_reader=None;source_scope=None;source_token=None;source_entered=False
     from .scan_persistence import is_canonical
     runtime_only=is_canonical(out)
@@ -668,12 +761,6 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     def refresh(facts,report,reviews):
         if runtime_only:return generate(out,facts,report,reviews,_runtime_only=True)
         return generate(out,facts,report,reviews)
-    try:
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
-        raise ValueError(f'已有扫描锁 {lock}；请先确认当前运行状态') from exc
-    os.write(fd, str(os.getpid()).encode())
-    os.close(fd)
     try:
         try:
             if runtime_only and not render_only and (out/'scan_state.json').is_file():
@@ -699,25 +786,14 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         except ValueError as exc:
             if '源码/头文件/编译数据库已变化' not in str(exc):
                 raise
-            # The old scan cannot be reviewed against changed source. Keep every
-            # ID visible as STALE until a fresh run creates a new fingerprint.
+            # Retain history while invalidating verdicts bound to changed source.
             if runtime_only:
                 from .native_consumers import runtime_inputs
                 facts,report=runtime_inputs(out)
             else:
                 facts = read_saved_json(out/'facts.json', canonical_accesses=True)
                 report = clean_report(read_saved_json(out/'reports/global_static_concurrency.json'))
-            from .review_integrity import review_targets, mark_review_stale
-            saved = {r['finding_id']:r for r in read_queue(out)}
-            reviews = [saved.get(f['finding_id'], dict(finding_id=f['finding_id'], state='PENDING'))
-                       for f in review_targets(report)]
-            for row in reviews:
-                mark_review_stale(out/'review', row, exc)
-                row['error_type'] = 'SourceChanged'
-                row['failure_stage'] = 'source_validation'
-                write_json(out/'review'/(row['finding_id']+'.result.json'), row)
-            report['run_status'] = 'INCOMPLETE'
-            report['stale_reason'] = str(exc)
+            reviews = invalidate_saved_reviews(out, report, read_json(out/'scan_state.json')['fingerprint'], exc)
             refresh(facts,report,reviews)
             write_json(out/'review/queue.json', reviews)
             write_json(out/'resume.json', dict(command='run', state='INCOMPLETE', exit_code=2,
@@ -725,41 +801,36 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             return 2
         queue_file = out/'review/queue.json'
         review_stage('核对历史复核收据与队列（剩余量未知）')
-        reviews = read_queue(out)
-        reviews = checked_reviews(root, out, reviews, state['fingerprint'])
-        write_json(queue_file, reviews)
-        if not render_only:
+        mode = 'report' if render_only else 'review-failed' if failed_only else 'review-resume' if resume else 'review'
+        if render_only:
+            from .review_archive import reconcile_reviews
+            from .review_integrity import review_targets
+            reviews = reconcile_reviews(root, out, review_targets(report), read_queue(out), state['fingerprint'])
+        else:
             cfg['review']['enabled'] = True
-            last = time.monotonic()
-
-            def checkpoint(current):
-                nonlocal last
-                if time.monotonic()-last >= 30:
-                    report['run_status']='REVIEW_RUNNING'
-                    if runtime_only:refresh(facts,report,current)
-                    else:write_html(out,facts,report,current)
-                    last=time.monotonic()
-
             try:
-                reviews = review_all(root, out, cfg, facts, report, state['fingerprint'], on_result=checkpoint,
-                                     review_context_path=config_file.parent/'review_context.md',
-                                     case_library_path=config_file.parent/'concurrency_cases.md',
-                                     mode='review-failed' if failed_only else 'review')
+                from contextlib import nullcontext
+                with review_diagnostics.cooperative_extraction_stop() if review_diagnostics else nullcontext():
+                    reviews = review_all(root, out, cfg, facts, report, state['fingerprint'],
+                                         review_context_path=config_file.parent/'review_context.md',
+                                         case_library_path=config_file.parent/'concurrency_cases.md', mode=mode, resume_scope=resume_scope)
             except KeyboardInterrupt:
-                reviews = read_queue(out)
-                report['run_status']='INTERRUPTED'
-                refresh(facts,report,reviews)
-                print('复核已中断，队列已保留；review 重跑全部疑似/未知，review-failed 只重跑技术失败。', flush=True)
+                pause_saved_review(out, facts, report, 'INTERRUPTED')
+                print('复核已中断；使用 review-resume 继续剩余项。', flush=True)
                 return 130
+            except Exception:
+                pause_saved_review(out, facts, report, 'FAILED')
+                raise
         inputs_current = True
         review_stage('复核后完整输入重验与结果保存（剩余量未知）')
         try:
             checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
+        except KeyboardInterrupt:
+            pause_saved_review(out, facts, report, 'INTERRUPTED')
+            raise
         except (OSError, ValueError, KeyError):
             inputs_current = False
-            from .review_integrity import mark_review_stale
-            for r in reviews:
-                mark_review_stale(out/'review', r, '恢复期间输入发生变化；请重新扫描。')
+            reviews = invalidate_saved_reviews(out, report, state['fingerprint'], '恢复期间输入发生变化；请重新扫描。')
             report['analysis_status']='INCOMPLETE'
             report['limitations'].append('恢复期间输入发生变化；请重新扫描。')
         records = review_records(dict(findings=selected_findings(report)), reviews)
@@ -778,9 +849,16 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         refresh(facts,report,reviews)
         write_json(queue_file, reviews)
         if inputs_current:
-            verify_saved_publication(root, out, cfg, state, config_file)
+            try:
+                verify_saved_publication(root, out, cfg, state, config_file)
+            except KeyboardInterrupt:
+                pause_saved_review(out, facts, report, 'INTERRUPTED')
+                raise
+            except (OSError, ValueError, KeyError) as exc:
+                invalidate_saved_reviews(out, report, state['fingerprint'], exc)
+                raise
         code=2 if report['run_status']=='INCOMPLETE' else (1 if selected_findings(report) else 0)
-        write_json(out/'resume.json', dict(command='report' if render_only else ('review-failed' if failed_only else 'review'), state=report['run_status'],
+        write_json(out/'resume.json', dict(command=mode, state=report['run_status'],
                                          finished=datetime.now(timezone.utc).isoformat(), exit_code=code,
                                          review_integrity=integrity))
         from .scan_persistence import is_canonical, archive_audit
@@ -795,11 +873,9 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
             print(f"{report['run_status']}：{out/'index.html'}\nOpenCode：{out/REVIEW_PAGE}", flush=True)
         return code
     finally:
-        try:
-            if source_token is not None:
-                from .input_snapshot import SOURCE_READS
-                SOURCE_READS.reset(source_token)
-            if source_entered:
-                import sys
-                source_scope.__exit__(*sys.exc_info())
-        finally:lock.unlink(missing_ok=True)
+        if source_token is not None:
+            from .input_snapshot import SOURCE_READS
+            SOURCE_READS.reset(source_token)
+        if source_entered:
+            import sys
+            source_scope.__exit__(*sys.exc_info())

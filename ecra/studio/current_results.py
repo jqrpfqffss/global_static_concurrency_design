@@ -23,7 +23,9 @@ ai_current AS (
  SELECT json_extract(ref.value,'$.finding_id'),json_extract(ref.value,'$.state'),ref.value
  FROM ai_snapshot snap,json_each(snap.payload,'$.reviews') ref
  WHERE json_extract(snap.payload,'$.ai_events_version') IS NULL),
-ai_verdicts AS (SELECT *,CASE WHEN state='DONE' THEN json_extract(payload,'$.status') END AS verdict FROM ai_current)
+ai_verdicts AS (SELECT *,CASE WHEN state='DONE' AND json_valid(payload)
+    THEN CASE WHEN json_extract(payload,'$.finding_id')=finding_id AND json_extract(payload,'$.state')='DONE'
+              THEN json_extract(payload,'$.status') END END AS verdict FROM ai_current)
 """
 
 

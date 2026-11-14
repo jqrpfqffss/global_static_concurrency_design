@@ -211,7 +211,13 @@ class QueryService:
             total=conn.execute(cte+'SELECT count(*)'+source,[symbol_id]).fetchone()[0]
             rows=[]
             for fid,payload in conn.execute(cte+'SELECT l.finding_id,a.payload'+source+' ORDER BY l.ordinal LIMIT ? OFFSET ?',[symbol_id,limit,offset]):
-                rows.append(json.loads(payload) if payload else dict(finding_id=fid,state='PENDING',status=None))
+                try:
+                    row = json.loads(payload) if payload else dict(finding_id=fid,state='PENDING',status=None)
+                    if not isinstance(row,dict) or row.get('finding_id') != fid:
+                        raise ValueError('AI 事件身份不一致')
+                except ValueError as exc:
+                    row = dict(finding_id=fid,state='TECH_FAILED',error=f'复核收据损坏：{exc}')
+                rows.append(row)
             return dict(items=rows,total=total,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
     def symbol_functions(self, symbol_id, *, offset=0, limit=50):

@@ -255,7 +255,8 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 |---|---|
 | `python H:/global_static_concurrency_design/run_ecra.py` | 重新盘点源码并执行完整复核流程 |
 | `py -3.10 run_ecra.py review` | 重新复核当前全部静态 SUSPECT/UNKNOWN，包含已有 DONE |
-| `py -3.10 run_ecra.py review-failed` | 仅重试 TECH_FAILED，DONE（包括证据不足）不重复调用 |
+| `py -3.10 run_ecra.py review-resume` | 校验静态检查点和已归档收据，继续待复核项及技术失败项 |
+| `py -3.10 run_ecra.py review-failed` | 仅重试技术失败项，已归档项直接跳过 |
 | `python H:/global_static_concurrency_design/run_ecra.py report` | 校验已有扫描并刷新同种存储格式的报告，不调用模型；默认 SQLite 不生成旧 HTML |
 | `python H:/global_static_concurrency_design/run_ecra.py status` | 显示已保存进度、未完成数量、能否恢复及下一步建议；加 `--json` 输出结构化信息 |
 | `python H:/global_static_concurrency_design/run_ecra.py doctor` | 检查源码分析环境与 OpenCode 命令可用性，保留上轮运行记录和报告 |
@@ -403,7 +404,7 @@ ORDER BY v.symbol_id, a.file, a.line;
 
 ## OpenCode 复核与持续使用
 
-每个变量的相关风险合并为一个复核包；无法归属于变量的覆盖盲区仍独立保留，不减少候选。日常完整运行：`py -3.10 run_ecra.py`；全部重评：`py -3.10 run_ecra.py review`；仅技术失败重试：`py -3.10 run_ecra.py review-failed`。后两者使用经一致性检查的静态扫描，不重新运行 Clang。
+每个变量的相关风险合并为一个复核包，独立覆盖盲区也保留。Studio 的「OpenCode 复核」页自动显示已经提交的答复、源码依据和执行收据。任务运行时可以在「扫描任务」点「安全停止」。重新打开后，可点「继续复核剩余项」；已有有效答复的变量直接跳过，包括结论为「需要补充证据」的变量。CLI 可使用 `review-resume`。主动重评使用 `review`，只重试执行失败使用 `review-failed`。
 
 修改复核提示词、`concurrency_cases.md`、案例库读取逻辑或报告页面后，可直接执行 `review`，无需重扫。固件源码、编译数据库、静态提取/分类实现或分析配置变化时，须先执行 `py -3.10 run_ecra.py --no-review` 刷新静态事实，再执行 `review`。升级前的旧检查点使用全程序指纹，也需要这样刷新一次；旧报告与模型记录会归档到 `results/snapshots/`，不通过替换指纹强行复用旧事实。
 

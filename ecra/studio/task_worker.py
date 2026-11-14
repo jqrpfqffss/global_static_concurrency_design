@@ -67,7 +67,9 @@ def execute(args):
             from ..workflow import saved_run
             diagnostics.stage('复核输入与完整权威校验（剩余量未知）')
             code=saved_run(configured_project_root(args.config),args.config,
-                failed_only=args.mode=='review-failed',_out=args.data_root/'scans'/args.scan_id,_budget_owned=True)
+                failed_only=args.mode=='review-failed', resume=args.mode=='review-resume',
+                resume_scope=getattr(args, 'resume_scope', None),
+                _out=args.data_root/'scans'/args.scan_id,_budget_owned=True)
             if code==130:diagnostics.failure(KeyboardInterrupt('复核停止，已保留队列与原静态结果'))
             return code
         except BaseException as exc:
@@ -84,6 +86,7 @@ def execute(args):
 
 
 def main():
+    from .tasks import TASK_MODES
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--data-root', type=Path, required=True)
@@ -91,7 +94,8 @@ def main():
     parser.add_argument('--profile-id', required=True)
     parser.add_argument('--gate', type=Path, required=True)
     parser.add_argument('--stop', type=Path, required=True)
-    parser.add_argument('--mode', choices=['scan','precheck','review','review-failed','multicore'], default='scan')
+    parser.add_argument('--mode', choices=sorted(TASK_MODES), default='scan')
+    parser.add_argument('--resume-scope', choices=['review'])
     parser.add_argument('--result', type=Path, required=True)
     args = parser.parse_args()
     error=None

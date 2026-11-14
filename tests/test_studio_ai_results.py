@@ -90,8 +90,9 @@ class StudioAIResultsTests(unittest.TestCase):
         self.assertEqual(page['items'][0]['symbol_id'],'safe-symbol')
 
     def test_legacy_snapshot_uses_identical_outcome_names_and_search(self):
+        payload=json.dumps(dict(reviews=self.rows))
         with closing(sqlite3.connect(self.out/'reviews.db')) as conn,conn:
-            conn.execute('INSERT INTO ai_snapshots(hash,payload) VALUES (?,?)',('legacy',json.dumps(dict(reviews=self.rows))))
+            conn.execute('INSERT INTO ai_snapshots(hash,payload) VALUES (?,?)',(hashlib.sha256(payload.encode()).hexdigest(),payload))
         page=ai_page(self.out,search='变量2',outcome='safe')
         self.assertEqual(page['groups']['safe'],2);self.assertEqual(page['total'],1)
         self.assertEqual(page['items'][0]['name'],'变量2')

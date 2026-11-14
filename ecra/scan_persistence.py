@@ -4,11 +4,11 @@ No solver/classification code lives here. Small input/recovery receipts remain
 files; complete facts and static reports have exactly one authoritative graph.
 """
 from contextlib import closing,contextmanager
+from functools import lru_cache
 import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import sqlite3
 import traceback
 import uuid
@@ -46,6 +46,17 @@ def exists(path):
     return Path(path).is_file() or artifact(path) is not None
 
 
+def snapshot_head(conn):
+    row = conn.execute('SELECT sequence,hash,payload FROM ai_snapshots ORDER BY sequence DESC LIMIT 1').fetchone()
+    if not row:
+        return {}
+    if hashlib.sha256(row[2].encode()).hexdigest() != row[1]:
+        raise ValueError('AI 快照摘要损坏')
+    value = json.loads(row[2])
+    value['revision'] = row[0]
+    return value
+
+
 def runtime(out, *, with_reviews=True):
     path = Path(out)/'reviews.db'
     if not path.is_file():
@@ -54,18 +65,17 @@ def runtime(out, *, with_reviews=True):
         conn.execute('PRAGMA trusted_schema=OFF')
         if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ai_snapshots'").fetchone():
             return {}
-        row = conn.execute('SELECT payload FROM ai_snapshots ORDER BY sequence DESC LIMIT 1').fetchone()
-        if not row:
+        value = snapshot_head(conn)
+        if not value:
             return {}
-        value = json.loads(row[0])
         if not with_reviews:
             value.pop('reviews',None)
             return value
         if value.get('ai_events_version') == 2:
-            value['reviews']=[json.loads(row[0]) for row in conn.execute(
-                'SELECT a.payload FROM ai_events a WHERE a.sequence<=? AND NOT EXISTS('
+            value['reviews']=[_read_event(*row) for row in conn.execute(
+                'SELECT a.finding_id,a.state,a.hash,a.payload FROM ai_events a WHERE a.sequence<=? AND NOT EXISTS('
                 'SELECT 1 FROM ai_events newer WHERE newer.finding_id=a.finding_id AND newer.sequence>a.sequence '
-                'AND newer.sequence<=?) ORDER BY a.ordinal', [value['watermark']]*2)]
+                'AND newer.sequence<=?) ORDER BY a.ordinal,a.finding_id', [value['watermark']]*2)]
         elif value.get('ai_events_version') == 1:
             rows=[]
             for reference in value['reviews']:
@@ -88,19 +98,81 @@ def read(path):
     return result
 
 
-def append_runtime(out, report, reviews):
-    with closing(sqlite3.connect(Path(out)/'reviews.db', timeout=20)) as conn, conn:
+def _read_event(finding_id, state, hashed, payload):
+    try:
+        row = json.loads(payload)
+        if (hashlib.sha256(payload.encode()).hexdigest() != hashed
+                or row.get('finding_id') != finding_id or row.get('state') != state):
+            raise ValueError('AI 事件摘要或身份不一致')
+        return row
+    except (ValueError, AttributeError) as exc:
+        return dict(finding_id=finding_id, state='TECH_FAILED', error=str(exc), error_type='InvalidReviewEvent')
+
+
+def _encode(value):
+    raw = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+    return hashlib.sha256(raw.encode()).hexdigest(), raw
+
+
+def _insert_event(conn, ordinal, row, hashed, raw):
+    return conn.execute('INSERT INTO ai_events(ordinal,finding_id,state,hash,payload) VALUES (?,?,?,?,?)',
+                        (ordinal, row['finding_id'], row['state'], hashed, raw)).lastrowid
+
+
+def _append_snapshot(conn, report, watermark):
+    hashed, raw = _encode(dict(report=report,reviews=[],ai_events_version=2,watermark=watermark))
+    previous = conn.execute('SELECT hash FROM ai_snapshots ORDER BY sequence DESC LIMIT 1').fetchone()
+    if not previous or previous[0] != hashed:
+        conn.execute('INSERT INTO ai_snapshots(hash,payload) VALUES (?,?)', (hashed, raw))
+
+
+def _review_connection(out):
+    conn = sqlite3.connect(Path(out)/'reviews.db', timeout=20)
+    try:
+        conn.execute('PRAGMA trusted_schema=OFF')
         conn.execute('PRAGMA synchronous=FULL')
+    except BaseException:
+        conn.close()
+        raise
+    return conn
+
+
+def enable_review_wal(conn):
+    import time
+    deadline = time.monotonic() + 20
+    while True:
+        try:
+            if conn.execute('PRAGMA journal_mode=WAL').fetchone()[0] != 'wal':
+                raise ValueError('无法启用复核账本 WAL；原记录保留')
+            return
+        except sqlite3.OperationalError as exc:
+            if str(exc).lower() != 'database is locked' or time.monotonic() >= deadline:
+                raise
+            time.sleep(.05)
+
+
+def append_runtime(out, report, reviews):
+    with closing(_review_connection(out)) as conn, conn:
         conn.executescript(AI_SCHEMA)
+        enable_review_wal(conn)
+        conn.execute('BEGIN IMMEDIATE')
+        snapshot = snapshot_head(conn)
+        maximum = conn.execute('SELECT coalesce(max(sequence),0) FROM ai_events').fetchone()[0]
+        watermark = snapshot.get('watermark', maximum)
+        unpublished = (maximum != watermark)
+        ids = set()
         for ordinal,row in enumerate(reviews):
-            raw=json.dumps(row,ensure_ascii=False,separators=(',',':'))
-            hashed=hashlib.sha256(raw.encode()).hexdigest()
-            previous=conn.execute('SELECT sequence,hash FROM ai_events WHERE finding_id=? ORDER BY sequence DESC LIMIT 1', (row['finding_id'],)).fetchone()
+            ids.add(row['finding_id'])
+            hashed, raw = _encode(row)
+            previous=review_head(conn, row['finding_id'], watermark)
+            if unpublished and conn.execute('SELECT 1 FROM ai_events WHERE finding_id=? AND sequence>? AND sequence<=?',
+                                            (row['finding_id'], watermark, maximum)).fetchone():
+                previous = None  # Explicitly supersede this uncommitted row.
             if previous is None or previous[1]!=hashed:
-                sequence=conn.execute('INSERT INTO ai_events(ordinal,finding_id,state,hash,payload) VALUES (?,?,?,?,?)',
-                    (ordinal,row['finding_id'],row['state'],hashed,raw)).lastrowid
-            else:
-                sequence=previous[0]
+                _insert_event(conn, ordinal, row, hashed, raw)
+        if unpublished and any(fid not in ids for (fid,) in conn.execute(
+                'SELECT DISTINCT finding_id FROM ai_events WHERE sequence>? AND sequence<=?', (watermark, maximum))):
+            raise ValueError('AI 账本发现水位外事件，拒绝发布')
         summary={key:report[key] for key in RUNTIME_KEYS if key in report and key!='review_records'}
         if 'risk_summary' in summary:
             # Per-symbol decisions are a query projection of immutable facts
@@ -110,11 +182,61 @@ def append_runtime(out, report, reviews):
             summary['final_conclusion']={key:value for key,value in summary['final_conclusion'].items()
                                          if key not in {'confirmed_findings','unresolved_findings'}}
         watermark=conn.execute('SELECT coalesce(max(sequence),0) FROM ai_events').fetchone()[0]
-        payload=json.dumps(dict(report=summary,reviews=[],ai_events_version=2,watermark=watermark),ensure_ascii=False,separators=(',',':'))
-        hashed=hashlib.sha256(payload.encode()).hexdigest()
-        previous = conn.execute('SELECT hash FROM ai_snapshots ORDER BY sequence DESC LIMIT 1').fetchone()
-        if not previous or previous[0] != hashed:
-            conn.execute('INSERT INTO ai_snapshots(hash,payload) VALUES (?,?)', (hashed, payload))
+        _append_snapshot(conn, summary, watermark)
+
+
+def review_head(conn, finding_id, watermark):
+    return conn.execute('SELECT sequence,hash,state FROM ai_events WHERE finding_id=? AND sequence<=? '
+                        'ORDER BY sequence DESC LIMIT 1', (finding_id, watermark)).fetchone()
+
+
+def review_request(conn, finding_id, sequence):
+    return conn.execute("SELECT json_extract(payload,'$.review_request') FROM ai_events WHERE finding_id=? AND sequence=?",
+                        (finding_id, sequence)).fetchone()[0]
+
+
+def validate_review_binding(out, provider):
+    path = out/'reviews.db'
+    with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+        conn.execute('PRAGMA trusted_schema=OFF')
+        row = conn.execute('SELECT scan_id,project_id,facts_hash,report_hash FROM binding WHERE singleton=1').fetchone()
+    binding = provider.metadata()
+    expected = tuple(binding[key] for key in ('scan_id','project_id','facts_hash','report_hash'))
+    if row != expected or (out.parent.name == 'scans' and binding['scan_id'] != out.name):
+        raise ValueError('复核账本与当前扫描的工程、身份或静态证据摘要不一致')
+
+
+@contextmanager
+def review_writer(out):
+    with closing(_review_connection(out)) as conn:
+        if not conn.execute('SELECT 1 FROM ai_snapshots LIMIT 1').fetchone():
+            raise ValueError('扫描尚未初始化 AI 复核账本')
+        enable_review_wal(conn)
+        yield conn
+
+
+def commit_review_result(conn, ordinal, row):
+    """Publish one verified receipt, conditional on the head it was issued for."""
+    hashed, raw = _encode(row)
+    with conn:
+        conn.execute('BEGIN IMMEDIATE')
+        snapshot = snapshot_head(conn)
+        if snapshot.get('ai_events_version') != 2:
+            raise ValueError('扫描尚未初始化 AI 复核账本')
+        watermark = snapshot['watermark']
+        head = review_head(conn, row['finding_id'], watermark)
+        if head is None:
+            raise ValueError('变量不在已初始化的 AI 复核队列中：'+row['finding_id'])
+        if conn.execute('SELECT coalesce(max(sequence),0) FROM ai_events').fetchone()[0] != watermark:
+            raise ValueError('AI 账本发现水位外事件，拒绝发布')
+        if head[1] == hashed:
+            return
+        if head[0] != row['review_base_sequence'] or head[2] not in {'PENDING', 'TECH_FAILED'}:
+            raise ValueError('复核期间当前事件已变化，拒绝覆盖：'+row['finding_id'])
+        if row.get('review_request') != review_request(conn, row['finding_id'], head[0]):
+            raise ValueError('复核收据与本次分发身份不一致：'+row['finding_id'])
+        sequence = _insert_event(conn, ordinal, row, hashed, raw)
+        _append_snapshot(conn, snapshot['report'], sequence)
 
 
 def queue_directory(path):
@@ -129,21 +251,92 @@ def _ai_labels(alias='main'):
     # reconstructing facts/report or copying names into mutable AI receipts.
     return (f"SELECT CAST(n.value AS TEXT) AS finding_id,f.symbol_id,s.name,"
             f"s.definition_file,s.definition_line FROM {alias}.records f "
-            f"JOIN {alias}.edges e ON e.parent=f.node AND e.key='finding_id' "
-            f"JOIN {alias}.nodes n ON n.id=e.child LEFT JOIN {alias}.symbols s ON s.symbol_id=f.symbol_id "
+            f"CROSS JOIN {alias}.edges e ON e.parent=f.node AND e.key='finding_id' "
+            f"CROSS JOIN {alias}.nodes n ON n.id=e.child LEFT JOIN {alias}.symbols s ON s.symbol_id=f.symbol_id "
             "WHERE f.dataset='report' AND f.relation IN ('findings','review_safe_samples') GROUP BY n.value")
 
 
-def ai_page(out, offset=0, limit=50, *, outcome='', search=''):
+def _ai_label_page(conn, finding_ids):
+    from .scan_store import _hash_start, _scalar
+    labels = {}
+    relations = dict(conn.execute("SELECT e.child,e.key FROM evidence.roots root JOIN evidence.edges e ON e.parent=root.node "
+                                  "WHERE root.name='report' AND e.key IN ('findings','review_safe_samples')"))
+    if not relations:
+        return labels
+    keys = [value for item in relations.items() for value in item]
+    parents = ','.join('?' for _ in relations)
+    for first in range(0, len(finding_ids), 100):
+        ids = finding_ids[first:first+100]
+        placeholders = ','.join('?' for _ in ids)
+        hashes = []
+        for fid in ids:
+            kind, raw = _scalar(fid)
+            hashed = _hash_start(kind, len(raw))
+            hashed.update(raw)
+            hashes.append(hashed.hexdigest())
+        # Resolve interned scalars by hash before traversing child edges.
+        sql = ("SELECT CAST(n.value AS TEXT),f.symbol_id,s.name,s.definition_file,s.definition_line "
+               "FROM evidence.nodes n CROSS JOIN evidence.edges e ON e.child=n.id AND e.key='finding_id' "
+               "CROSS JOIN evidence.edges member ON member.child=e.parent "
+               "CROSS JOIN evidence.records f ON f.dataset='report' AND f.relation=CASE member.parent "
+               + ' '.join('WHEN ? THEN ?' for _ in relations) + ' END AND f.ordinal=member.ordinal '
+               "LEFT JOIN evidence.symbols s ON s.symbol_id=f.symbol_id "
+               f"WHERE n.hash IN ({placeholders}) AND member.parent IN ({parents})")
+        for fid, symbol, name, file, line in conn.execute(sql, [*keys, *hashes, *relations]):
+            labels[fid] = (symbol, name, file, line)
+    return labels
+
+
+@lru_cache(maxsize=4)
+def _ai_search_labels(database, identity):
+    # Labels come from sealed facts. Reuse the small label projection across
+    # successive revisions while a search filter is active.
+    with closing(sqlite3.connect(database.as_uri()+'?mode=ro', uri=True)) as conn:
+        conn.execute('PRAGMA trusted_schema=OFF')
+        return tuple(conn.execute(_ai_labels()))
+
+
+def review_progress(states):
+    done, failed = states.get('DONE', 0), states.get('TECH_FAILED', 0)
+    total = sum(states.values())
+    return dict(total=total, done=done, tech_failed=failed, pending=total-done-failed)
+
+
+def _ai_progress(conn, meta):
+    if meta.get('ai_events_version') == 2:
+        return dict(conn.execute('SELECT a.state,count(*) FROM ai_events a WHERE a.sequence<=? AND NOT EXISTS('
+            'SELECT 1 FROM ai_events n WHERE n.finding_id=a.finding_id AND n.sequence>a.sequence AND n.sequence<=?) '
+            'GROUP BY a.state', [meta['watermark']]*2))
+    if meta.get('ai_events_version') == 1:
+        return dict(conn.execute("SELECT a.state,count(*) FROM json_each(?,'$.reviews') r JOIN ai_events a "
+            "ON a.sequence=json_extract(r.value,'$.sequence') AND a.hash=json_extract(r.value,'$.hash') GROUP BY a.state",
+            [json.dumps(meta)]))
+    from collections import Counter
+    return Counter(row.get('state', 'PENDING') for row in meta.get('reviews', []))
+
+
+def ai_progress(out):
+    with closing(sqlite3.connect((Path(out)/'reviews.db').resolve().as_uri()+'?mode=ro', uri=True)) as conn:
+        conn.execute('PRAGMA trusted_schema=OFF')
+        return review_progress(_ai_progress(conn, snapshot_head(conn)))
+
+
+def ai_page(out, offset=0, limit=50, *, outcome='', search='', revision=None, finding_id='', include_progress=True):
     from .decisions import review_category
+    import re
     EvidenceProvider._bounds(offset,limit)
     groups={key:0 for key in ('confirmed','likely','safe','unresolved')}
     if outcome and outcome not in groups:
         raise ValueError('OpenCode 结论筛选无效')
     if not isinstance(search,str) or len(search)>256:
         raise ValueError('复核搜索最多 256 字符')
+    if finding_id and (not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}', finding_id) or '..' in finding_id):
+        raise ValueError('复核对象身份无效')
     search=search.strip()
     meta=runtime(out,with_reviews=False)
+    current_revision=meta.get('revision', 0)
+    if revision is not None and revision == current_revision:
+        return dict(unchanged=True, revision=current_revision)
     if meta.get('ai_events_version')!=2:
         rows=runtime(out).get('reviews',[])
         states={}
@@ -158,39 +351,61 @@ def ai_page(out, offset=0, limit=50, *, outcome='', search=''):
             row['outcome']=review_category(row)
             groups[row['outcome']]+=1
         all_total=len(rows)
-        rows=[row for row in rows if (not outcome or row['outcome']==outcome) and
+        rows=[row for row in rows if (not finding_id or row['finding_id']==finding_id) and (not outcome or row['outcome']==outcome) and
               (not search or any(search in str(row.get(k) or '') for k in ('finding_id','name','symbol_id','definition_file')))]
         return dict(items=rows[offset:offset+limit],total=len(rows),all_total=all_total,states=states,groups=groups,offset=offset,
+                    revision=current_revision, progress=review_progress(states),
                     next_offset=offset+limit if offset+limit<len(rows) else None)
     with closing(sqlite3.connect((Path(out)/'reviews.db').resolve().as_uri()+'?mode=ro',uri=True)) as conn:
         conn.execute('PRAGMA trusted_schema=OFF')
-        conn.execute('ATTACH DATABASE ? AS evidence', ((Path(out)/'scan.db').resolve().as_uri()+'?mode=ro',))
+        database = (Path(out)/'scan.db').resolve()
+        conn.execute('ATTACH DATABASE ? AS evidence', (database.as_uri()+'?mode=ro',))
+        if search:
+            info = database.stat()
+            labels = _ai_search_labels(database, (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns))
+            conn.execute('CREATE TEMP TABLE ai_matches(finding_id TEXT PRIMARY KEY) WITHOUT ROWID')
+            conn.executemany('INSERT INTO ai_matches VALUES (?)', (
+                (fid,) for fid, sid, name, file, _ in labels if any(search in (value or '') for value in (fid, sid, name, file))))
         # Same raw-outcome rule as decisions.review_category and the original
         # review page. DONE alone never implies safety; stale/failed answers
         # remain unresolved even when their historical payload says "safe".
-        verdict="CASE WHEN a.state='DONE' THEN json_extract(a.payload,'$.status') END"
+        verdict="CASE WHEN a.state='DONE' AND json_valid(a.payload) THEN json_extract(a.payload,'$.status') END"
         category=(f"CASE {verdict} WHEN 'CONFIRMED' THEN 'confirmed' WHEN 'LIKELY' THEN 'likely' "
                   "WHEN 'REVIEWED_SAFE' THEN 'safe' WHEN 'FALSE_POSITIVE' THEN 'safe' ELSE 'unresolved' END")
-        cte=("WITH latest AS (SELECT a.*,"+category+" AS outcome FROM ai_events a WHERE a.sequence<=? "
+        cte=("WITH latest AS (SELECT a.sequence,a.finding_id,a.state,a.ordinal,"+category+" AS outcome FROM ai_events a WHERE a.sequence<=? "
              "AND NOT EXISTS(SELECT 1 FROM ai_events n WHERE n.finding_id=a.finding_id "
-             "AND n.sequence>a.sequence AND n.sequence<=?)), labels AS ("+_ai_labels('evidence')+") ")
+             "AND n.sequence>a.sequence AND n.sequence<=?)) ")
         args=[meta['watermark']]*2
-        states=dict(conn.execute(cte+'SELECT state,count(*) FROM latest GROUP BY state',args))
-        groups.update(dict(conn.execute(cte+'SELECT outcome,count(*) FROM latest GROUP BY outcome',args)))
+        states={}
+        if include_progress or not finding_id:
+            for state,group,count in conn.execute(cte+'SELECT state,outcome,count(*) FROM latest GROUP BY state,outcome',args):
+                states[state]=states.get(state,0)+count
+                groups[group]+=count
         where=[];filters=[]
+        if finding_id:where.append('a.finding_id=?');filters.append(finding_id)
         if outcome:where.append('a.outcome=?');filters.append(outcome)
         if search:
-            where.append("(instr(a.finding_id,?)>0 OR instr(coalesce(l.name,''),?)>0 OR "
-                         "instr(coalesce(l.symbol_id,''),?)>0 OR instr(coalesce(l.definition_file,''),?)>0)")
-            filters.extend([search]*4)
-        source=' FROM latest a LEFT JOIN labels l ON l.finding_id=a.finding_id'+(' WHERE '+' AND '.join(where) if where else '')
-        total=conn.execute(cte+'SELECT count(*)'+source,[*args,*filters]).fetchone()[0]
+            where.append('(instr(a.finding_id,?)>0 OR a.finding_id IN (SELECT finding_id FROM ai_matches))')
+            filters.append(search)
+        source=' FROM latest a'
+        if where:
+            source += ' WHERE '+' AND '.join(where)
+        total=(conn.execute(cte+'SELECT count(*)'+source,[*args,*filters]).fetchone()[0] if search or finding_id
+               else groups[outcome] if outcome else sum(states.values()))
         rows=[]
-        for payload,sid,name,file,line,group in conn.execute(cte+'SELECT a.payload,l.symbol_id,l.name,l.definition_file,l.definition_line,a.outcome'+source+' ORDER BY a.ordinal LIMIT ? OFFSET ?', [*args,*filters,limit,offset]):
-            row=json.loads(payload)
+        page_sql = cte + ', page AS (SELECT a.*'+source+' ORDER BY a.ordinal,a.finding_id LIMIT ? OFFSET ?) '
+        page_sql += ('SELECT p.finding_id,p.state,e.hash,e.payload,p.outcome '
+                     'FROM page p JOIN ai_events e ON e.sequence=p.sequence ORDER BY p.ordinal,p.finding_id')
+        page_rows = conn.execute(page_sql, [*args,*filters,limit,offset]).fetchall()
+        labels = _ai_label_page(conn, [item[0] for item in page_rows])
+        for fid,state,hashed,payload,group in page_rows:
+            row=_read_event(fid,state,hashed,payload)
+            sid,name,file,line = labels.get(fid, (None, None, None, None))
             row.update(symbol_id=sid,name=name,definition_file=file,definition_line=line,outcome=group)
             rows.append(row)
-        return dict(items=rows,total=total,all_total=sum(states.values()),states=states,groups=groups,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
+        return dict(items=rows,total=total,all_total=sum(states.values()),states=states,groups=groups,offset=offset,
+                    revision=current_revision, progress=review_progress(states),
+                    next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
 
 def persist(out, facts, report, reviews, *, _existing_only=False):
@@ -262,6 +477,7 @@ def persist(out, facts, report, reviews, *, _existing_only=False):
 
 def archive_audit(out):
     """Content-address every required receipt, preserving relative provenance."""
+    from .review_archive import archive_object
     out = Path(out)
     objects = out/'evidence'; objects.mkdir(exist_ok=True)
     records = {}
@@ -272,40 +488,12 @@ def archive_audit(out):
         for source in sorted(base.rglob('*')):
             if not source.is_file():
                 continue
-            hashed = hashlib.sha256()
-            with source.open('rb') as stream:
-                for block in iter(lambda: stream.read(1024*1024), b''):
-                    hashed.update(block)
-            sha = hashed.hexdigest()
-            target = objects/sha
-            if not target.exists():
-                # A stable convenience name or diagnostic can be rewritten by
-                # a later review. Never hard-link writable files into the CAS.
-                pending=objects/(sha+'.'+uuid.uuid4().hex+'.pending')
-                try:
-                    shutil.copyfile(source,pending)
-                    from .report_package import sha256
-                    if sha256(pending)!=sha:
-                        raise ValueError('收据在归档期间变化，请等待当前任务结束后重试')
-                    try:
-                        os.link(pending,target)
-                    except FileExistsError:
-                        pass
-                finally:
-                    pending.unlink(missing_ok=True)
-            from .report_package import sha256
-            if sha256(target) != sha:
-                raise ValueError('内容寻址审计对象冲突/损坏: '+str(target))
-            records[source.relative_to(out).as_posix()] = dict(sha256=sha, size=source.stat().st_size)
+            records[source.relative_to(out).as_posix()] = archive_object(out, source)
     for name in ('scan_state.json', 'input_manifest.json', 'input_closure.json', 'run.json',
                  'doctor.json', 'run.log', 'result_validity.json', MARKER):
         source = out/name
         if source.is_file():
-            raw = source.read_bytes(); sha = hashlib.sha256(raw).hexdigest()
-            target = objects/sha
-            if not target.exists():
-                target.write_bytes(raw)
-            records[name] = dict(sha256=sha, size=len(raw))
+            records[name] = archive_object(out, source)
     index = json.dumps(dict(version=1, files=records), ensure_ascii=False, sort_keys=True).encode()
     sha = hashlib.sha256(index).hexdigest()
     target=objects/sha
@@ -313,8 +501,19 @@ def archive_audit(out):
         if target.read_bytes()!=index:
             raise ValueError('审计索引对象损坏，拒绝覆盖')
     else:
-        with target.open('xb') as stream:
-            stream.write(index)
+        from .review_archive import durable_replace
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile(dir=out, suffix='.pending', delete=False) as stream:
+            pending = Path(stream.name)
+            try:
+                stream.write(index)
+                stream.flush()
+                os.fsync(stream.fileno())
+                stream.close()
+                durable_replace(pending, target)
+            finally:
+                stream.close()
+                pending.unlink(missing_ok=True)
     return dict(audit_index=sha, audit_files=len(records))
 
 
@@ -354,7 +553,8 @@ def project_scan_lock(root,analysis):
     except FileExistsError as exc:
         original=path.read_bytes()
         try:stale=abandoned(json.loads(original))
-        except (ValueError,TypeError,AttributeError):stale=False
+        except (ValueError,TypeError,AttributeError):
+            stale=original.isdigit() and abandoned({'pid':int(original)})
         if not stale:raise ValueError('已有扫描锁 '+str(path)+'；等待当前任务结束；无法证明过期时保留锁') from exc
         # The caller owns the data-root scan budget; other canonical runs
         # cannot race this recovery. Live legacy owners are never removed.
@@ -414,6 +614,54 @@ def _publication_failed(out, exc):
         traceback.print_exception(type(exc), exc, exc.__traceback__, file=log)
 
 
+def _publish_checkpoint(out, root, cfg, workspace, profile_id, *, compiler_view, run_state, verify_inputs=None):
+    from datetime import datetime, timezone
+    from .human_reviews import ReviewStore
+    from .report_package import IDENTITY, sha256
+    from .workspace import no_links
+    from .review_archive import write_receipt
+
+    profile_pointer = Path(workspace.project_workspace)/('latest-scan-'+profile_id+'.json')
+    latest = Path(workspace.project_workspace)/'latest-scan.json'
+    provider = EvidenceProvider(out/'scan.db')
+    binding = provider.validate(deep=True)
+    previous_pointer = profile_pointer if profile_pointer.is_file() else latest
+    if previous_pointer.is_file():
+        previous = read_json(previous_pointer)
+        if not IDENTITY.fullmatch(previous.get('scan_id', '')) or previous.get('project_id') != workspace.project_id:
+            raise ValueError('历史扫描指针身份不符，拒绝自动关联')
+        previous_out = no_links(Path(workspace.workspace_root)/'scans'/previous['scan_id'])
+        old_provider = EvidenceProvider(previous_out/'scan.db')
+        old = old_provider.metadata()
+        if old['profile_id'] == profile_id:
+            ReviewStore(out/'reviews.db',binding).inherit_from(
+                ReviewStore(previous_out/'reviews.db',old),old_provider,provider)
+    audit = archive_audit(out)
+    scan_sha256 = sha256(out/'scan.db')
+    if verify_inputs is not None:
+        verify_inputs()
+    if compiler_view is not None:
+        from .workflow import engine_digest
+        from .working_compiler_view import validate
+        validate(compiler_view, root, cfg, reverify_original=True)
+        if engine_digest() != read_json(out/'scan_state.json')['engine_digest']:
+            raise ValueError('归档审计期间分析实现已变化；冻结扫描不能发布')
+    if verify_inputs is not None:
+        from .scan_stop import check_stop
+        check_stop()
+        fingerprint = read_json(out/'scan_state.json')['fingerprint']
+        write_receipt(out/'result_validity.json', dict(analysis_valid=True, state='STATIC_SCAN_SAVED',
+                      snapshot_status='VERIFIED', fingerprint=fingerprint))
+    manifest = dict(binding, format='ECRA_LOCAL_SCAN', version=1, **audit,
+                    state='STATIC_VALIDATED', run_state=run_state,
+        scan_sha256=scan_sha256, source_reverification=True,
+                    completed_at=datetime.now(timezone.utc).isoformat())
+    write_receipt(out/'manifest.json', manifest)
+    pointer = dict(project_id=workspace.project_id, scan_id=binding['scan_id'])
+    write_receipt(latest, pointer)
+    write_receipt(profile_pointer, pointer)
+
+
 def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
                   review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None,_storage_policy=None,
                   _compiler_view=None):
@@ -423,12 +671,11 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
     checks pass. Failed tasks and previous valid scans remain separately visible.
     """
     from dataclasses import replace
-    from datetime import datetime, timezone
     from .cli import run
     from .config import load_config
     from .workspace import no_links
     from .frozen_scan import execution_workspace
-    from .report_package import IDENTITY, sha256
+    from .report_package import IDENTITY
     cfg, config_file = load_config(root, config_path)
     if scan_mode is not None:
         cfg['analysis']['git_diff']['enabled'] = scan_mode == 'diff'
@@ -449,47 +696,46 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
                             snapshots_root=str(out/'snapshots'))
         write_json(out/MARKER, dict(version=1, scan_id=ident, project_id=workspace.project_id,
                                    profile_id=profile_id, config_file=str(config_file),storage_policy=fixed_policy))
+        previous_pointers = {}
+        def publish_static(verify_inputs):
+            for name in ('latest-scan.json', 'latest-scan-'+profile_id+'.json'):
+                pointer = Path(workspace.project_workspace)/name
+                if pointer.is_file():
+                    previous_pointers[name] = read_json(pointer)
+            _publish_checkpoint(out, root, cfg, workspace, profile_id,
+                                compiler_view=_compiler_view, run_state='REVIEW_RUNNING', verify_inputs=verify_inputs)
+
         internal = {} if _compiler_view is None else dict(_compiler_view=_compiler_view)
         code = run(root, config_path, no_review, doctor_only, review_safe_sample, review_shared_sample,
-                   scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True, **internal)
+                   scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True,
+                   _publish_static=publish_static, **internal)
         validity = json.loads((out/'result_validity.json').read_text(encoding='utf-8'))
+        if (out/'manifest.json').is_file():
+            manifest = read_json(out/'manifest.json')
+            if code == 3 and not validity['analysis_valid']:
+                # This scan's final input check failed. Keep its evidence and
+                # expose the prior valid scan as the current project result.
+                for name in ('latest-scan.json', 'latest-scan-'+profile_id+'.json'):
+                    pointer = Path(workspace.project_workspace)/name
+                    if pointer.is_file() and read_json(pointer).get('scan_id') == ident:
+                        if name in previous_pointers:
+                            write_json(pointer, previous_pointers[name])
+                        else:
+                            pointer.unlink()
+            elif code in {0, 1, 2}:
+                # The checkpoint's index predates the final scan diagnostics.
+                # Individual AI receipts already have their own immutable refs.
+                manifest.update(archive_audit(out))
+            manifest.update(run_state=read_json(out/'run.json')['state'],
+                            source_reverification=validity['analysis_valid'])
+            write_json(out/'manifest.json', manifest)
+            return code
         if code not in {0, 1, 2} or not validity.get('analysis_valid'):
             return code
-        profile_pointer=Path(workspace.project_workspace)/('latest-scan-'+profile_id+'.json')
         try:
-            provider = EvidenceProvider(out/'scan.db')
-            binding = provider.validate(deep=True)
-            from .human_reviews import ReviewStore
-            previous_pointer=profile_pointer if profile_pointer.is_file() else Path(workspace.project_workspace)/'latest-scan.json'
-            if previous_pointer.is_file():
-                previous=json.loads(previous_pointer.read_text(encoding='utf-8'))
-                if not IDENTITY.fullmatch(previous.get('scan_id','')) or previous.get('project_id')!=workspace.project_id:
-                    raise ValueError('历史扫描指针身份不符，拒绝自动关联')
-                previous_out=no_links(Path(workspace.workspace_root)/'scans'/previous['scan_id'])
-                old_provider=EvidenceProvider(previous_out/'scan.db')
-                old=old_provider.metadata()
-                if old['profile_id']==profile_id:
-                    ReviewStore(out/'reviews.db',binding).inherit_from(
-                        ReviewStore(previous_out/'reviews.db',old),old_provider,provider)
-            audit = archive_audit(out)
-            scan_sha256 = sha256(out/'scan.db')
-            if _compiler_view is not None:
-                # A completed graph/audit can take hours. Verify the frozen
-                # producer again after the potentially long database read.
-                from .working_compiler_view import validate
-                from .workflow import engine_digest
-                validate(_compiler_view, root, cfg, reverify_original=True)
-                if engine_digest() != read_json(out/'scan_state.json')['engine_digest']:
-                    raise ValueError('归档审计期间分析实现已变化；冻结扫描不能发布')
-            manifest = dict(binding, format='ECRA_LOCAL_SCAN', version=1, **audit,
-                            state='STATIC_VALIDATED', run_state=read_json(out/'run.json')['state'],
-                            scan_sha256=scan_sha256, source_reverification=True,
-                            completed_at=datetime.now(timezone.utc).isoformat())
-            write_json(out/'manifest.json', manifest)
+            _publish_checkpoint(out, root, cfg, workspace, profile_id,
+                                compiler_view=_compiler_view, run_state=read_json(out/'run.json')['state'])
         except (Exception, KeyboardInterrupt) as exc:
             _publication_failed(out, exc)
             raise
-        write_json(Path(workspace.project_workspace)/'latest-scan.json',
-                   dict(project_id=workspace.project_id, scan_id=ident))
-        write_json(profile_pointer,dict(project_id=workspace.project_id,scan_id=ident))
         return code

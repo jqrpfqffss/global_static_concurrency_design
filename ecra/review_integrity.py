@@ -175,5 +175,9 @@ def mark_review_stale(folder, row, reason):
     row.update(error=str(reason), last_error=dict(type='StaleReview', message=str(reason)),
                error_type='StaleReview', failure_stage='source_or_receipt_validation')
     row.pop('answer', None)
+    # The immutable terminal event retains its archive. A stale row doesn't
+    # claim ownership of the old terminal receipt or its recovery base.
+    row.pop('archived_files', None)
+    row.pop('review_base_sequence', None)
     write_json(folder/(row['finding_id']+'.result.json'), row)
     return row

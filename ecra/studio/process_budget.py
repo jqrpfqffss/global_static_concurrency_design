@@ -32,8 +32,10 @@ class ProcessBudget:
         if not self.handle:
             raise ctypes.WinError(ctypes.get_last_error())
         info = Extended()
-        info.basic.flags = 0x2000 | 0x200  # KILL_ON_JOB_CLOSE | JOB_MEMORY
-        info.job_limit = limit_bytes
+        info.basic.flags = 0x2000  # KILL_ON_JOB_CLOSE
+        if limit_bytes is not None:
+            info.basic.flags |= 0x200  # JOB_MEMORY
+            info.job_limit = limit_bytes
         if not self.kernel.SetInformationJobObject(self.handle, 9, ctypes.byref(info), ctypes.sizeof(info)):
             self.close()
             raise ctypes.WinError(ctypes.get_last_error())

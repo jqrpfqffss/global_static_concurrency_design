@@ -59,7 +59,9 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
    doctor 执行真实配置，但不执行构建/扫描；各验收状态分别报告。
 7. OpenCode 不随包分发。需要复核时，在目标电脑独立安装 OpenCode、配置模型和认证，
    将其加入 PATH 或在 review.command 填写绝对路径，然后启用 review.enabled 并运行：
-   .\ecra.cmd review
+   .\ecra.cmd review-resume
+   续跑会跳过已归档且通过校验的项目。用 review 重新复核全部疑似与未知，
+   用 review-failed 仅重试技术失败项。
    doctor 找到命令不代表模型连接或真实复核已通过测试。
 8. 构建子进程只使用内置工具及 Windows 系统目录；OpenCode 保留宿主 PATH。
    若工程明确需要外部工具链，设置 analysis.cmake.allow_external_toolchain: true。

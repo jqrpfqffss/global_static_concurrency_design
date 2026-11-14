@@ -353,6 +353,8 @@ def export_report(scan_directory, destination, *, compression='compact', progres
             if local.get('audit_indices'):
                 manifest['audit_indices']=local['audit_indices']
         validate_objects(source, manifest, progress=progress, database=static)
+        from .review_archive import validate_event_archives
+        validate_event_archives(source, stage/'reviews.db', progress=progress, package_files=files)
         archive = stage/'result.pending'
         def encode(compact):
             total=sum(path.stat().st_size for path in files.values()); completed=0
@@ -484,6 +486,8 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
             raise ValueError('结果包身份/证据摘要与数据库不一致')
         notify(dict(stage='REVIEWS', message='核对并保留完整人工历史与分析记录', completed=None, total=None, unit=None))
         events = _review_events(stage/'reviews.db', binding)
+        from .review_archive import validate_event_archives
+        validate_event_archives(stage, stage/'reviews.db', progress=progress)
         # Rebuild untrusted reviews into our schema before any write/query with
         # a writable connection. Imported SQL/triggers are never executed.
         clean = ReviewStore(stage/'clean-reviews.db', binding)

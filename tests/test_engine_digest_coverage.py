@@ -13,6 +13,22 @@ from ecra.workflow import engine_digest, REVIEW_REPORT_MODULES
 
 
 class EngineDigestCoverageTests(unittest.TestCase):
+    def test_review_publication_upgrade_accepts_only_matching_static_bytes(self):
+        # Exact checkout before the review-ledger upgrade (mixed original
+        # Windows line endings). Test fallback with a same-EOL baseline too.
+        from ecra.common import digest
+        files = workflow._engine_files()
+        files.update({
+            'cli.py': '2c66dd1233ad53670e1e16f485a7a518e7adc511c0b3ea51e24d265feb052721',
+            'scan_persistence.py': 'a4677b8ecad386c7e1154ecc26569441d3c48dd82399b0765f88eb0f54e55446',
+            'report_package.py': '028e7b9bf2d94c4a412b33a14781d3b13963677730655b020071d4925d04bd84',
+            'garbage_collection.py': '5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265',
+        })
+        before = digest(files)
+        self.assertTrue(workflow.matches_static_engine(before))
+        files['analysis.py'] = 'different-static-engine'
+        self.assertFalse(workflow.matches_static_engine(digest(files)))
+
     def test_digest_includes_classification_and_phase_modules(self):
         seen = []
 

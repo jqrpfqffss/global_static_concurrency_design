@@ -16,7 +16,7 @@ from .config import (TEMPLATE, CMAKE_TEMPLATE, TOOL_ROOT, SEMANTICS_FILE,
                      configured_project_root, load_config, resolve_config_path,
                      discover_arm_toolchains)
 from .report import generate
-from .html_report import QUALITY_PAGE, REVIEW_PAGE, write_failure, write_html, review_records, category
+from .html_report import QUALITY_PAGE, REVIEW_PAGE, write_failure
 from .review import review_all, resolve_command
 
 
@@ -247,7 +247,7 @@ def safe_review_samples(facts, count, shared_count=0):
 
 def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
         review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None,_lock_owned=False,
-        _compiler_view=None):
+        _compiler_view=None, _publish_static=None):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     consumed_config = {}
@@ -314,6 +314,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     diff_pin = base_summary_file = None
     tu_cache = None
     storage = None
+    static_saved = review_phase = False
     try:
         if _compiler_view is not None:
             from .frozen_scan import ScanFiles
@@ -754,33 +755,36 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             diagnostics.stage('报告生成与存储')
             generate(out, facts, report, [])
             save_scan(root, out, cfg, config_file, report)
+            if _publish_static is not None:
+                from .workflow import checked_scan
+                diagnostics.stage('封存并复验静态结果，随后开始逐项复核')
+                _publish_static(lambda: checked_scan(Path(workspace.project_root), out, cfg, config_file,
+                                                      with_facts=False, _report_projection=True))
+            else:
+                snapshot_inputs.verify_disk()
+                snapshot_inputs.assert_valid()
+                if diff_pin:
+                    from .git_diff import assert_pin
+                    assert_pin(root, cfg, diff_pin)
+                write_json(out/'result_validity.json', dict(analysis_valid=True, state='STATIC_SCAN_SAVED',
+                           snapshot_status=snapshot_inputs.status, fingerprint=fingerprint))
+            static_saved = True
+            review_phase = True
         else:
             progress('未启用自动复核及证据包；完成最终输入校验后单次发布完整报告。')
         progress(f"已盘点 {len(facts['variables'])} 个变量，生成 {len(report['findings'])} 个候选/盲区复核项。")
-        last_checkpoint = time.monotonic()
-
-        def checkpoint(current):
-            nonlocal last_checkpoint
-            if time.monotonic() - last_checkpoint < 30:
-                return
-            records = review_records(report, current)
-            report['review_summary'] = dict(total=len(records), unresolved=sum(category(r) == 'unresolved' for r in records))
-            report['run_status'] = 'REVIEW_RUNNING'
-            write_html(out, facts, report, current)
-            last_checkpoint = time.monotonic()
-
         diagnostics.stage('可选 OpenCode 复核')
-        reviews = review_all(root, out, cfg, facts, report, fingerprint, progress, on_result=checkpoint,
-                             review_context_path=config_file.parent/'review_context.md',
-                             case_library_path=config_file.parent/'concurrency_cases.md')
+        with diagnostics.cooperative_extraction_stop():
+            reviews = review_all(root, out, cfg, facts, report, fingerprint, progress,
+                                 review_context_path=config_file.parent/'review_context.md',
+                                 case_library_path=config_file.parent/'concurrency_cases.md')
+        review_phase = False
         end_hashes = file_hashes(root, out, [root / p for p in after], exact=True)
         if end_hashes != after:
             report["analysis_status"] = "INCOMPLETE"
             report["limitations"].append("复核期间源码或输入发生变化；本轮证据需重新生成。")
-            from .review_integrity import mark_review_stale
-            for r in reviews:
-                mark_review_stale(out/'review', r, '复核期间源码或输入发生变化；本轮证据需重新生成。')
-            write_json(out/'review/queue.json', reviews)
+            from .workflow import invalidate_saved_reviews
+            reviews = invalidate_saved_reviews(out, report, fingerprint, '复核期间源码或输入发生变化；本轮证据需重新生成。')
         if cfg['review'].get('enabled', True):
             for unit, inputs, signature in dependency_results(root, units, cfg, worker_dir, env, tool_root, **dependency_args):
                 snapshot_inputs.observe(unit, inputs, phase='POST_REVIEW', signature=signature)
@@ -854,15 +858,15 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         diagnostics.reserve = None
         diagnostics.failure(exc)
         run_info.update(state='INTERRUPTED', exit_code=130)
-        if not doctor_only and (out/'scan_state.json').exists():
-            queue=read_json(out/'review/queue.json')
-            report['run_status']='INTERRUPTED'
-            generate(out, facts, report, queue)
-        progress('已中断；完成静态扫描后可用 review 继续复核，否则重新运行 run。')
-        if not doctor_only:
+        if static_saved:
+            from .workflow import pause_saved_review
+            pause_saved_review(out, facts, report, 'INTERRUPTED')
+            progress('复核已中断；静态检查点与已归档结果保留。使用 review-resume 继续剩余项。')
+        elif not doctor_only:
             write_failure(out, state='INTERRUPTED', write_report=report_can_replace)
             (out / 'scan_state.json').unlink(missing_ok=True)
             write_json(out / 'result_validity.json', dict(analysis_valid=False, state='INTERRUPTED'))
+            progress('静态扫描已中断；可重新运行 run。')
         return 130
     except Exception as exc:
         if source_token is not None:
@@ -882,9 +886,16 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                           actual_cxx_compiler=cache.get('CMAKE_CXX_COMPILER'))
         write_json(out / "doctor.json", doctor)
         if not doctor_only:
-            write_failure(out, write_report=report_can_replace)
-            (out / 'scan_state.json').unlink(missing_ok=True)
-            write_json(out / 'result_validity.json', dict(analysis_valid=False, state='FAILED', error=run_info['error']))
+            if review_phase:
+                from .workflow import pause_saved_review
+                pause_saved_review(out, facts, report, 'FAILED')
+            else:
+                if static_saved:
+                    from .workflow import invalidate_saved_reviews
+                    invalidate_saved_reviews(out, report, fingerprint, exc)
+                write_failure(out, write_report=report_can_replace)
+                (out / 'scan_state.json').unlink(missing_ok=True)
+                write_json(out / 'result_validity.json', dict(analysis_valid=False, state='FAILED', error=run_info['error']))
         progress("失败：" + run_info["error"])
         return 3
     finally:
@@ -916,8 +927,8 @@ def main(argv=None):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="STM32 全局/static 清单、读写调用链与 OpenCode 并发复核")
-    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "review-failed", "report", "status"], default="run",
-                        help='run 全流程；review 重跑全部疑似/未知；review-failed 仅重跑技术失败；report 刷新报告；status 查看进度；doctor 环境检查')
+    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "review-resume", "review-failed", "report", "status"], default="run",
+                        help='run 全流程；review-resume 继续未完成项；review 重跑全部疑似/未知；review-failed 仅重跑技术失败；report 刷新报告；status 查看进度；doctor 环境检查')
     parser.add_argument("--project", type=Path, help="临时覆盖 semantics.yaml 中的 project.root")
     parser.add_argument("--config", help="显式配置文件路径；正常使用唯一的 config/semantics.yaml")
     parser.add_argument("--compile-database", help="init 时写入真实编译数据库路径（相对工程根目录）")
@@ -950,7 +961,7 @@ def main(argv=None):
             root = args.project.resolve() if args.project else configured_project_root(config_path)
             if not root.is_dir():
                 raise ValueError(f"工程目录不存在: {root}")
-        if args.command in {'review', 'review-failed', 'report', 'status'}:
+        if args.command in {'review', 'review-resume', 'review-failed', 'report', 'status'}:
             from .workflow import saved_run, status
             if args.no_review:
                 raise ValueError('--no-review 仅用于 run；仅刷新报告请使用 report')
@@ -967,7 +978,7 @@ def main(argv=None):
                         print('变量报告：'+info['inventory_html']+'\n复核报告：'+info['review_html'])
                 return 0
             return saved_run(root, str(config_path), render_only=args.command=='report',
-                             failed_only=args.command=='review-failed')
+                             failed_only=args.command=='review-failed', resume=args.command=='review-resume')
         if args.command == "init":
             import yaml
             if not args.project:

@@ -11,7 +11,7 @@ const profiles=ref<any[]>([]), tasks=ref<any[]>([]), selected=ref(''), profile=r
 const resourcePreset=ref('auto'),peakGib=ref(16),workers=ref(4)
 const error=ref(''), pollError=ref(''), notice=ref(''), busy=ref(false), logOffset=ref(0), search=ref('')
 const states:Record<string,string>={RUNNING:'执行中',STOP_REQUESTED:'停止请求已发送',COMPLETE:'已结束',FAILED:'失败',INTERRUPTED:'已停止 / 上次中断'}
-const taskModes:Record<string,string>={scan:'扫描分析',precheck:'仅预检查',multicore:'多核派生合并',review:'复核','review-failed':'仅重试技术失败复核'}
+const taskModes:Record<string,string>={scan:'扫描分析',precheck:'仅预检查',multicore:'多核派生合并',review:'重新复核','review-resume':'继续复核','review-failed':'仅重试技术失败复核'}
 function taskName(task:any){
   if(task.metadata_error)return '任务记录无法读取'
   let state=states[task.state]||task.state
@@ -25,17 +25,19 @@ function taskName(task:any){
 const running=(task:any)=>['RUNNING','STOP_REQUESTED'].includes(task.state)
 function preflightNotice(task:any){
   if(task.mode!=='scan'||!task.preflight?.passed||!running(task))return ''
-  return task.progress_kind==='TU_EXTRACTION'?'预检查通过，已进入正式扫描。':'预检查通过，正在等待正式扫描初始化。'
+  return task.progress_kind==='AI_REVIEW'?'静态扫描已发布，可打开结果并查看逐项归档。':
+    task.progress_kind==='TU_EXTRACTION'?'预检查通过，已进入正式扫描。':'预检查通过，正在等待正式扫描初始化。'
 }
 const active=computed(()=>tasks.value.some(running))
 const currentProfile=computed(()=>profiles.value.find(x=>x.id===profile.value))
 const chartMax=computed(()=>Math.max(1,...(detail.value?.samples||[]).map((s:any)=>s.working_set_bytes||0)))
 const lines=computed(()=>(detail.value?.log?.text||'').split('\n').filter((x:string)=>!search.value||x.includes(search.value)))
 const size=(bytes:number|undefined)=>bytes===undefined?'尚未采样':`${(bytes/1024/1024).toFixed(1)} MiB`
-const reviewTask=computed(()=>['review','review-failed'].includes(detail.value?.mode))
+const reviewTask=computed(()=>['review','review-resume','review-failed'].includes(detail.value?.mode)||
+  (detail.value?.mode==='scan'&&detail.value?.review_resumable))
 const control=computed(()=>detail.value?.resource_control)
 const controlFailed=computed(()=>['FAILED','INVALID'].includes(control.value?.status))
-const counterName=computed(()=>({WORKING_INPUT_INVENTORY:'编译输入盘点',COMPILE_INPUT_PRECHECK:'编译输入检查',AI_REVIEW:'复核项目已处理（含技术失败）'} as Record<string,string>)[detail.value?.progress_kind]||'TU 已处理（含解析失败，成功范围见覆盖诊断）')
+const counterName=computed(()=>({WORKING_INPUT_INVENTORY:'编译输入盘点',COMPILE_INPUT_PRECHECK:'编译输入检查',AI_REVIEW:'复核任务处理数'} as Record<string,string>)[detail.value?.progress_kind]||'TU 已处理（含解析失败，成功范围见覆盖诊断）')
 let timer:ReturnType<typeof setInterval>|undefined, polling=false, mounted=false
 async function poll(){
   if(polling)return
@@ -68,8 +70,8 @@ async function start(){
     }
   })
 }
-async function stop(){await action(async()=>{await api(`/tasks/${selected.value}/stop`,'POST',{});notice.value=reviewTask.value?'复核停止请求已提交。已写入的队列和收据保留，原静态结果仍可打开。':'停止请求已提交。已保存的数据和上一次有效扫描保留。'})}
-async function retry(){await action(async()=>{const task=await api(`/tasks/${selected.value}/retry`,'POST',{});selected.value=task.id;logOffset.value=0;notice.value=reviewTask.value?'已提交完整输入重验与复核重试；全部复核与仅技术失败复核仍按原任务模式执行。':detail.value?.mode==='multicore'?'已提交固定输入的重新校验与派生重试。':'重新验证真实构建与完整输入闭包；只复用内容身份完全匹配的 TU 缓存。'})}
+async function stop(){await action(async()=>{await api(`/tasks/${selected.value}/stop`,'POST',{});notice.value=reviewTask.value?'复核停止请求已提交。已归档结果与静态检查点保留。':'停止请求已提交。已保存的数据和上一次有效扫描保留。'})}
+async function retry(){await action(async()=>{const task=await api(`/tasks/${selected.value}/retry`,'POST',{});selected.value=task.id;logOffset.value=0;notice.value=task.mode==='review-failed'?'已提交技术失败项重试。':task.mode==='review-resume'?'已提交续跑，输入与收据校验后继续剩余项。':task.mode==='multicore'?'已提交固定输入的重新校验与派生重试。':'重新验证真实构建与完整输入闭包；只复用内容身份完全匹配的 TU 缓存。'})}
 function showTask(id:string){selected.value=id;logOffset.value=0;void poll()}
 watch(selected,(id)=>{detail.value=null;pollError.value='';if(id)emit('focus',id)},{flush:'sync'})
 watch(()=>props.focusTask,(id)=>{if(id&&id!==selected.value)showTask(id)})
@@ -99,16 +101,16 @@ onUnmounted(()=>{mounted=false;if(timer)clearInterval(timer)})
     <template v-if="detail"><h3>{{taskName(detail)}}</h3><p class="identity">{{detail.id}} · {{detail.profile_id}}</p><p>{{detail.project_root}}</p>
       <p v-if="preflightNotice(detail)" role="status">{{preflightNotice(detail)}}</p>
       <ol class="task-stages"><li v-for="stage in detail.stages" :key="stage.started+stage.stage"><strong>{{stage.stage}}</strong> · {{stage.status==='RUNNING'?'进行中，剩余量未知':stage.status==='COMPLETE'?'阶段结束':stage.status}}<span v-if="stage.seconds"> · {{stage.seconds.toFixed(1)}} s</span></li></ol>
-      <p v-if="detail.mode==='multicore'">本任务使用已归档输入，记录实际校验和派生阶段。</p><p v-else-if="detail.memory?.total_units">{{counterName}} {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>
+      <p v-if="detail.mode==='multicore'">本任务使用已归档输入，记录实际校验和派生阶段。</p><p v-else-if="detail.review_progress" role="status">OpenCode 复核进度 {{detail.review_progress.total?(100*detail.review_progress.done/detail.review_progress.total).toFixed(1):'0.0'}}% · 总复核对象 {{detail.review_progress.total}} · 已完成 {{detail.review_progress.done}} · 技术失败 {{detail.review_progress.tech_failed}} · 待复核 {{detail.review_progress.pending}}</p><p v-else-if="detail.memory?.total_units">{{counterName}} {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>
       <p v-else-if="detail.progress?.total_units">{{counterName}} {{detail.progress.completed_units}} / {{detail.progress.total_units}}（实时计数）</p>
       <p v-if="detail.tu_cache">内容校验后的 TU 缓存：命中 {{detail.tu_cache.hits}}，重新提取 {{detail.tu_cache.extracted}}，损坏 {{detail.tu_cache.corrupt}}</p>
       <div v-if="control" :class="['banner',controlFailed?'error':control.status==='RETRYING'?'warning':'']" :role="controlFailed?'alert':'status'"><strong>{{control.stage || 'Clang 翻译单元提取'}}</strong><p>{{control.message}}</p><p>故障发生时已处理 {{control.completed_units}} / {{control.total_units}} 个 TU。</p></div>
       <div v-if="detail.failure&&!controlFailed&&control?.status!=='CANCELLED'" class="banner error"><strong>{{detail.failure.stage?.stage}}：{{detail.failure.exception_type}}</strong><p>{{detail.failure.message}}</p><p>请查看诊断及下方任务日志。</p></div>
       <p v-if="detail.pressure_publish_error" class="banner warning">{{detail.pressure_publish_error}}</p>
       <p v-if="detail.error" class="banner warning">{{detail.error}}</p><p v-for="message in detail.diagnostic_errors" class="banner warning" role="alert">{{message}}</p>
-      <div class="task-actions"><button :disabled="busy||detail.state!=='RUNNING'" @click="stop">安全停止</button><button :disabled="busy||active||!['FAILED','INTERRUPTED'].includes(detail.state)" @click="retry">{{reviewTask?'重新核对输入并重试复核':detail.mode==='multicore'?'重新校验固定输入并重试合并':detail.mode==='precheck'?'重新检查真实构建':'校验输入并重试扫描'}}</button><button v-if="detail.published" :disabled="busy" class="primary" @click="emit('open',detail.scan_id)">打开扫描结果</button></div>
+      <div class="task-actions"><button :disabled="busy||detail.state!=='RUNNING'" @click="stop">安全停止</button><button :disabled="busy||active||!['FAILED','INTERRUPTED'].includes(detail.state)" @click="retry">{{reviewTask?(detail.mode==='review-failed'?'仅重试技术失败':'继续复核剩余项'):detail.mode==='multicore'?'重新校验固定输入并重试合并':detail.mode==='precheck'?'重新检查真实构建':'校验输入并重试扫描'}}</button><button v-if="detail.published" :disabled="busy" class="primary" @click="emit('open',detail.scan_id)">打开扫描结果</button></div>
       <p v-if="detail.reused_working_inputs">已完整复验并复用原任务 {{detail.reused_working_inputs.source_task}} 的CMake构建、生成输入及SDK。</p>
-      <p v-if="reviewTask">重试先完整核对源码、编译器、宏与依赖，再按原任务模式执行：全部疑似/未知重新复核，或仅重跑技术失败。历史收据保留；技术失败不代表安全。</p><p v-else-if="detail.mode==='multicore'">重试将完整核对固定扫描、归档配置和ELF后重新执行派生合并。原有效结果与人工记录保留。</p><p v-else-if="detail.mode==='scan'&&detail.build_mode==='cmake'">恢复先完整复验已固定的源码、编译器、生成输入与SDK，通过后复用构建及匹配的TU。已完成的固定输入若已变化会拒绝恢复，请从工程配置发起新扫描。</p><p v-else-if="detail.mode==='scan'">恢复会重新检查源码、编译器、宏与依赖。缓存损坏或输入变化时重新提取；不会复用旧安全结论。</p>
+      <p v-if="reviewTask">重试先核对源码、编译输入和已归档收据。{{detail.mode==='review-failed'?'本任务仅重试技术失败项。':'已通过校验的归档项直接跳过。'}}</p><p v-else-if="detail.mode==='multicore'">重试将完整核对固定扫描、归档配置和ELF后重新执行派生合并。原有效结果与人工记录保留。</p><p v-else-if="detail.mode==='scan'&&detail.build_mode==='cmake'">恢复先完整复验已固定的源码、编译器、生成输入与SDK，通过后复用构建及匹配的TU。已完成的固定输入若已变化会拒绝恢复，请从工程配置发起新扫描。</p><p v-else-if="detail.mode==='scan'">恢复会重新检查源码、编译器、宏与依赖。缓存损坏或输入变化时重新提取；不会复用旧安全结论。</p>
     </template>
   </section><section class="panel task-log-panel"><h2>真实资源与日志</h2><template v-if="detail"><p class="resource-summary">工作集 {{size(detail.resources?.working_set_bytes)}} · 峰值提交 {{size(detail.resources?.peak_job_commit_bytes)}} · 可用磁盘 {{size(detail.resources?.disk_free_bytes)}}</p><button class="resource-details-button" @click="resourcesOpen=true">完整资源采样与趋势</button><WorkspaceDialog :error="pollError" v-if="resourcesOpen" title="真实资源采样与趋势" @close="resourcesOpen=false"><p>进程树工作集：{{size(detail.resources?.working_set_bytes)}}</p><p>进程树私有提交：{{size(detail.resources?.private_bytes)}}</p><p>进程树峰值提交：{{size(detail.resources?.peak_job_commit_bytes)}}</p><p>系统可用物理内存：{{size(detail.resources?.system_physical_available_bytes)}}</p><p>系统提交：{{size(detail.resources?.system_commit_bytes)}} / {{size(detail.resources?.system_commit_limit_bytes)}}</p><p>工作盘可用空间：{{size(detail.resources?.disk_free_bytes)}}</p><p v-if="detail.resource_notice" class="banner warning">{{detail.resource_notice}}</p><p>本任务目录逻辑占用：{{size(detail.task_disk_bytes)}}</p><p>进程数 {{detail.resources?.processes ?? '尚未采样'}} · 内存预算 {{size(detail.budget_bytes)}}</p>
     <p>工作集趋势纵轴：0–{{size(chartMax)}}</p><svg v-if="detail.samples?.length" class="resource-chart" viewBox="0 0 480 100" role="img" aria-label="进程树真实工作集趋势"><polyline fill="none" stroke="#2563eb" stroke-width="2" :points="detail.samples.map((s:any,i:number)=>`${i*480/Math.max(1,detail.samples.length-1)},${100-100*(s.working_set_bytes||0)/chartMax}`).join(' ')" /></svg>

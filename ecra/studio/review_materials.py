@@ -175,7 +175,8 @@ def _stage(profile,folder,*,retry=False):
 
 
 def stage_for_task(profile,folder,mode,cfg,*,retry=False):
+    from .tasks import REVIEW_MODES
     review=cfg.get('review',{})
-    if mode in {'review','review-failed'} or (mode=='scan' and (review.get('enabled',False) or review.get('prepare_packets',False))):
+    if mode in REVIEW_MODES or (mode=='scan' and (review.get('enabled',False) or review.get('prepare_packets',False))):
         return stage(profile,folder,retry=retry)
     return dict(status='NOT_REQUIRED')
