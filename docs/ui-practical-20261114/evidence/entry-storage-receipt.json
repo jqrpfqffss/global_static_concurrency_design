@@ -1,0 +1,73 @@
+{
+  "captured_utc": "2026-11-14T00:37:54.135736+00:00",
+  "read_only": true,
+  "ui_operation_source": "主代理 CUA IAB 实操交接：导入demo-a、保存、真实构建、启动、安全停止、重试；恢复完成画面待主代理核对。",
+  "tasks": [
+    {
+      "id": "6992593290404c5bb5d0936fa05b280b",
+      "scan_id": "6992593290404c5bb5d0936fa05b280b",
+      "mode": "precheck",
+      "state": "COMPLETE",
+      "retry_from": null,
+      "published": false,
+      "exit_code": 0,
+      "checkpoint_mode": "INPUT_VERIFIED_TU_CACHE",
+      "project_id": "a60d0576ef37346ab3aae60068869198c8bd529f0d030f4d89dd075ca8dd198e",
+      "profile_id": "6e0148d954114c1987e28ec7feac149c",
+      "started": "2026-11-14T00:35:03.000928+00:00",
+      "finished": "2026-11-14T00:35:08.743600+00:00",
+      "error": null,
+      "path": "H:\\ECRA-ui-practical-20261114\\data\\work\\tasks\\6992593290404c5bb5d0936fa05b280b\\task.json",
+      "sha256": "e1466719c1a6095017df63c7bcfd53026bfa4dbd73f603bdf6db204bd1a9047d"
+    },
+    {
+      "id": "a019dbec06c14c22ad671c299793e3b3",
+      "scan_id": "a019dbec06c14c22ad671c299793e3b3",
+      "mode": "scan",
+      "state": "INTERRUPTED",
+      "retry_from": null,
+      "published": false,
+      "exit_code": 130,
+      "checkpoint_mode": "INPUT_VERIFIED_TU_CACHE",
+      "project_id": "a60d0576ef37346ab3aae60068869198c8bd529f0d030f4d89dd075ca8dd198e",
+      "profile_id": "6e0148d954114c1987e28ec7feac149c",
+      "started": "2026-11-14T00:35:19.792122+00:00",
+      "finished": "2026-11-14T00:35:30.782873+00:00",
+      "error": "任务已响应安全停止请求。",
+      "path": "H:\\ECRA-ui-practical-20261114\\data\\work\\tasks\\a019dbec06c14c22ad671c299793e3b3\\task.json",
+      "sha256": "a525d9bbda2f66b2bc7dc69f5beae4d87f8468e290e5ac2a04ab5619eb01b20e"
+    },
+    {
+      "id": "dc5e3796ca6a40c98a827a7125c52955",
+      "scan_id": "dc5e3796ca6a40c98a827a7125c52955",
+      "mode": "scan",
+      "state": "COMPLETE",
+      "retry_from": "a019dbec06c14c22ad671c299793e3b3",
+      "published": true,
+      "exit_code": 2,
+      "checkpoint_mode": "INPUT_VERIFIED_TU_CACHE",
+      "project_id": "a60d0576ef37346ab3aae60068869198c8bd529f0d030f4d89dd075ca8dd198e",
+      "profile_id": "6e0148d954114c1987e28ec7feac149c",
+      "started": "2026-11-14T00:35:38.714712+00:00",
+      "finished": "2026-11-14T00:36:02.151775+00:00",
+      "error": null,
+      "path": "H:\\ECRA-ui-practical-20261114\\data\\work\\tasks\\dc5e3796ca6a40c98a827a7125c52955\\task.json",
+      "sha256": "2063f3ca3e181b67dae74718d76e101fa567a96d13b708c58dc53de89b3de698"
+    }
+  ],
+  "profiles": [
+    {
+      "path": "H:\\ECRA-ui-practical-20261114\\data\\projects\\a60d0576ef37346ab3aae60068869198c8bd529f0d030f4d89dd075ca8dd198e\\profiles\\6e0148d954114c1987e28ec7feac149c.yaml",
+      "sha256": "cd36e0bf5179b295e7f76948f0a8afd9ac90bb483ee8987311ef7a1a05681272"
+    }
+  ],
+  "scans": [
+    {
+      "path": "H:\\ECRA-ui-practical-20261114\\data\\scans\\dc5e3796ca6a40c98a827a7125c52955\\manifest.json",
+      "scan_id": "dc5e3796ca6a40c98a827a7125c52955",
+      "project_id": "a60d0576ef37346ab3aae60068869198c8bd529f0d030f4d89dd075ca8dd198e",
+      "state": "STATIC_VALIDATED",
+      "source_reverification": true
+    }
+  ]
+}

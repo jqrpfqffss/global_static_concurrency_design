@@ -104,7 +104,7 @@ def _create_app(data_root, *, token, authority, startup):
     transfers=RootTransfers(data)
     from .export_jobs import ExportJobs
     export_jobs=ExportJobs(data)
-    from .import_jobs import ImportJobs
+    from .import_jobs import ImportJobs, UploadDisconnected
     import_jobs=ImportJobs(data, preflight=lambda path: _import_preflight(path, data))
     @asynccontextmanager
     async def lifespan(app):
@@ -651,9 +651,9 @@ def _create_app(data_root, *, token, authority, startup):
             return import_jobs.finish_upload(upload, received)
         except BaseException as exc:
             if isinstance(exc, ClientDisconnect):
-                exc = OperationCancelled('上传连接已断开，请重新选择完整结果包')
+                exc = UploadDisconnected('上传连接已断开，请重新选择完整结果包')
             import_jobs.abort_upload(upload, exc)
-            if isinstance(exc, OperationCancelled):
+            if isinstance(exc, (OperationCancelled, UploadDisconnected)):
                 return JSONResponse(dict(error=str(exc)), status_code=400)
             raise
 

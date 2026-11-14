@@ -56,7 +56,7 @@ onUnmounted(() => { disposed = true; clearTimeout(timer) })
         <button :disabled="job.state === 'CANCELLING'" @click="cancel(job)">取消导出</button>
       </template>
       <template v-if="job.state === 'COMPLETE'">
-        <div class="progress-label"><span>完整结果包已就绪</span><strong>100%</strong></div>
+        <div class="progress-label"><span>{{ job.kind === 'delta' ? '人工确认增量已就绪' : '完整结果包已就绪' }}</span><strong>100%</strong></div>
         <progress :max="100" :value="100" aria-label="导出进度" />
         <p v-if="job.result.compression_fallback">为保证正常导入，已使用快速压缩。</p>
         <button :disabled="downloading === job.id" @click="save(job)">下载结果包（{{ size(job.result.bytes) }}）</button>

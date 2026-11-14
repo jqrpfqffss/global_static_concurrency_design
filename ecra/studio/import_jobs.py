@@ -22,6 +22,10 @@ ACTIVE = {'UPLOADING', 'RUNNING', 'CANCELLING'}
 MAX_UPLOAD_BYTES = 128 * 1024**3
 
 
+class UploadDisconnected(ValueError):
+    """The HTTP upload ended before the browser sent the complete body."""
+
+
 def _identity(value):
     if not isinstance(value, str) or re.fullmatch('[a-f0-9]{32}', value) is None:
         raise ValueError('导入任务身份无效')
@@ -183,10 +187,21 @@ class ImportJobs:
         if upload.handed_off:
             return
         try:
-            upload.item.update(state='CANCELLED' if isinstance(exc, OperationCancelled) else 'FAILED',
-                               error='导入上传未完成：'+str(exc)+'；本次未发布结果，已有扫描与人工记录保留。',
-                               elapsed_seconds=round(time.monotonic()-upload.started, 1))
             with self.connect() as conn:
+                conn.execute('BEGIN IMMEDIATE')
+                current = conn.execute('SELECT state FROM jobs WHERE id=?', (upload.item['id'],)).fetchone()
+                if current and current[0] not in ACTIVE:
+                    return  # A late/repeated disconnect cannot rewrite a terminal result.
+                # The browser first requests cancellation, then aborts its upload
+                # connection. A resulting disconnect must not replace that intent.
+                requested = isinstance(exc, UploadDisconnected) and bool(current and current[0] == 'CANCELLING')
+                cancelled = isinstance(exc, OperationCancelled) or requested
+                error = ('已取消导入上传；本次未发布结果，已有扫描与人工记录保留。' if requested else
+                         str(exc) if isinstance(exc, OperationCancelled) else
+                         '导入上传未完成：'+str(exc)+'；本次未发布结果，已有扫描与人工记录保留。')
+                upload.item.update(state='CANCELLED' if cancelled else 'FAILED',
+                                   error=error,
+                                   elapsed_seconds=round(time.monotonic()-upload.started, 1))
                 self.save(conn, upload.item)
         finally:
             try:

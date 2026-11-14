@@ -1,0 +1,2506 @@
+{
+  "schema": "ECRA_UI_PRACTICAL_CHECKLIST_V1",
+  "date": "2026-11-14",
+  "scope": "本表记录2026-11-14当前分支ECRA的本轮真实界面实操：已发现入口全部入表，13个已确认问题均已原路径修复复验；受阻功能及未形成的附加异常边界明确保留，不宣称上位机完整验收通过。",
+  "items": [
+    {
+      "id": "H01",
+      "entry": "主页 → 新建工程",
+      "purpose": "从首次使用进入工程配置",
+      "conditions": "空工作台或需要新工程",
+      "expected": "入口可找到并进入配置；README 首次使用约定",
+      "operations": "首轮01截图前从主页点击新建工程",
+      "actual": "正常进入四步配置向导；不是仅观察入口",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/01-first-use-1366.jpg"
+      ]
+    },
+    {
+      "id": "H02",
+      "entry": "主页 → 导入历史结果",
+      "purpose": "打开已有结果包继续工作",
+      "conditions": "独立有效结果包",
+      "expected": "导入后报告和人工记录对应包内身份；README",
+      "operations": "独立空根首次首页点击导入历史结果；选择sample-compact.ecra-report，完成后点击打开导入归档",
+      "actual": "进入数据与共享并真实导入16对象/6待确认样例；归档scan.db与包中字节相同",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "first-use-supplement.md",
+        "../../output/ui-practical-20261114/first-use-data-proof.json",
+        "../../output/playwright/ui-practical-20261114/firstuse-03-empty-import-entry.png"
+      ]
+    },
+    {
+      "id": "H03",
+      "entry": "主页 → 打开示例",
+      "purpose": "了解完整证据查看流程",
+      "conditions": "内置示例可用",
+      "expected": "导入真实教学归档，明确非用户工程；README",
+      "operations": "导入教学样例后回未选结果概览，真实点击打开示例",
+      "actual": "进入ECRA-DEMO-S4，明确非用户工程/未链接固件/无硬件验证；通过范围是已有教学归档分支，未安装时首次复制分支未额外验证",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "first-use-supplement.md",
+        "../../output/playwright/ui-practical-20261114/firstuse-07-open-sample-button.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-08-sample-opened.png"
+      ]
+    },
+    {
+      "id": "C01",
+      "entry": "工程配置 → 第1步",
+      "purpose": "确认固件目录和工程身份",
+      "conditions": "独立固件目录",
+      "expected": "可填写工程路径与名称并识别无效路径；v84 配置指南",
+      "operations": "独立空根手填首次手填demo-b；目录树打开demo-b并使用此目录，完成向导保存后刷新重开",
+      "actual": "名称、工程根持久化正确；重新读取UI YAML与profile文件逐字节相同",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "first-use-supplement.md",
+        "../../output/ui-practical-20261114/first-use-data-proof.json",
+        "../../output/playwright/ui-practical-20261114/firstuse-19-manual-build-step2.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-51-reopened-yaml-visible.png",
+        "recovery-startup-supplement.md"
+      ]
+    },
+    {
+      "id": "C02",
+      "entry": "工程配置 → 第2步",
+      "purpose": "选择真实构建方式",
+      "conditions": "有效工程及真实工具链",
+      "expected": "构建目标、工具链、变体等设置可保存；v84 配置指南",
+      "operations": "输入Cortex-M7/demo/Release；toolchain选择取消再确认；切database并取消再选真实compile_commands.json；切回CMake重新填demo，检查保存刷新重开",
+      "actual": "选择器取消不改值、确认填正确文件；模式字段不混用；检查工具3/3；保存CMake的CPU/target/Release/toolchain正确读回。早期只保存回读；后续RS02以此手填配置从配置页发起ca4真实扫描并成功发布16对象",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "first-use-supplement.md",
+        "../../output/ui-practical-20261114/first-use-data-proof.json",
+        "../../output/playwright/ui-practical-20261114/firstuse-26-toolchain-chooser-ready.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-35-database-file-visible.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-55-reopened-build-fields.png",
+        "recovery-startup-supplement.md"
+      ]
+    },
+    {
+      "id": "C03",
+      "entry": "工程配置 → 第3步",
+      "purpose": "定义分析范围、入口和版本等选项",
+      "conditions": "有效构建配置",
+      "expected": "配置按明确字段生效，不丢失高级字段；v84 配置指南",
+      "operations": "目录树纳入根.；文件选择other.c后清空；新增ISR/USART1_IRQHandler后移除；解析超时180→-1检查拒绝→181保存重开；展开扩展语义/API和OpenCode参数组",
+      "actual": "范围和入口草稿按指定操作更新/恢复；非法超时阻止下一步；181持久化且其它原配置保留，随后以原完整YAML恢复。参数组可查看不代表引擎复核成功。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C04",
+      "entry": "工程配置 → 第4步",
+      "purpose": "核对将保存和执行的全部配置",
+      "conditions": "前序配置有效",
+      "expected": "核对完整内容并提示缺失前提；v84 配置指南",
+      "operations": "进入完整配置核对与高级YAML，保存181超时并重开检查，随后恢复原完整YAML",
+      "actual": "高级原文证实parse_timeout_seconds=181及其它已有配置保留；恢复原YAML后可启动真实扫描。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C05",
+      "entry": "工程配置 → 从现有 YAML 导入",
+      "purpose": "复用已有独立配置",
+      "conditions": "demo-a.yaml",
+      "expected": "导入建立独立编辑配置，不覆盖原文件；v84 配置指南",
+      "operations": "通过界面导入 demo-a.yaml 的配置内容",
+      "actual": "界面进入导入后的配置；随后保存到独立 profiles 目录",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话（相关画面/收据见所列证据）",
+        "evidence/entry-storage-receipt.json",
+        "../../output/playwright/ui-practical-20261114/01-first-use-1366.jpg"
+      ]
+    },
+    {
+      "id": "C06",
+      "entry": "工程配置 → 检查路径",
+      "purpose": "确认目录输入可用",
+      "conditions": "工程路径已输入",
+      "expected": "对有效和无效目录给出明确结果；用户请求、v84 配置指南",
+      "operations": "在配置输入不存在的工程目录并检查，再重新打开原配置",
+      "actual": "不存在路径被明确拒绝；原保存配置未被改写。此前有效demo-a路径通过并真实构建。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "evidence/entry-storage-receipt.json"
+      ]
+    },
+    {
+      "id": "C07",
+      "entry": "工程配置 → 保存",
+      "purpose": "持久化工程配置",
+      "conditions": "已导入有效 demo-a.yaml",
+      "expected": "保存独立 YAML，项目身份与实际固件对应；v84 配置指南",
+      "operations": "通过界面保存导入的 demo-a 配置",
+      "actual": "独立 profiles/6e0148d954114c1987e28ec7feac149c.yaml 已落盘；任务使用同一 project_id/profile_id",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话（相关画面/收据见所列证据）",
+        "evidence/entry-storage-receipt.json",
+        "first-use-supplement.md",
+        "../../output/playwright/ui-practical-20261114/firstuse-48-manual-saved-ready.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-51-reopened-yaml-visible.png"
+      ]
+    },
+    {
+      "id": "C08",
+      "entry": "工程配置 → 真实构建预检查",
+      "purpose": "扫描前验证真实构建",
+      "conditions": "demo-a CMake/Ninja/ARM GCC 配置",
+      "expected": "执行真实构建并报告结果，不把预检查当作扫描结论；v84 配置指南",
+      "operations": "通过界面发起真实构建预检查",
+      "actual": "6992593290404c5bb5d0936fa05b280b COMPLETE，exit_code=0；未发布扫描报告",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话（相关画面/收据见所列证据）",
+        "evidence/entry-storage-receipt.json",
+        "../../output/playwright/ui-practical-20261114/02-build-checked.jpg"
+      ]
+    },
+    {
+      "id": "C09",
+      "entry": "工程配置 → 查看日志",
+      "purpose": "诊断预检查或扫描反馈",
+      "conditions": "已存在任务",
+      "expected": "打开对应任务日志并保持任务身份；用户请求",
+      "operations": "配置预检查后点击查看检查日志并打开资源",
+      "actual": "检查日志与资源可见，任务对应demo-a；资源窗口可关闭",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/02-build-checked.jpg",
+        "../../output/playwright/ui-practical-20261114/04-resource-maximized.txt"
+      ]
+    },
+    {
+      "id": "T01",
+      "entry": "任务中心 → 选择配置",
+      "purpose": "选择当前执行的工程配置",
+      "conditions": "至少一份已保存配置",
+      "expected": "显示所选工程和配置；不能串项目；用户请求",
+      "operations": "选择demo-a、stress、demo-b并发起相应任务；I11修复后在新Covwq14P资源上从故障恢复demo-b切到demo-a，核对下拉与摘要",
+      "actual": "配置名称/工程路径/id前缀均清楚；切换后摘要和实际任务profile对应。原同路径候选缺名称已消除",
+      "issues": "I11已修复并通过",
+      "status": "已修复并通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "evidence/entry-storage-receipt.json",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.txt",
+        "../../output/playwright/ui-practical-20261114/27-budget-invalid-and-opaque-profile.jpg",
+        "../../output/playwright/ui-practical-20261114/27-budget-invalid-and-opaque-profile.txt",
+        "../../output/playwright/ui-practical-20261114/30-profile-names-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/30-profile-names-fixed.txt",
+        "../../output/ui-practical-20261114/i11-build-sync.json",
+        "recovery-supplement.md"
+      ]
+    },
+    {
+      "id": "T02",
+      "entry": "任务中心 → 配置资源",
+      "purpose": "设置本次资源限制",
+      "conditions": "已选择配置",
+      "expected": "资源设置在实际任务生效，默认与覆盖关系清楚；v84 配置指南",
+      "operations": "任务中心手动设内存预算1GiB后启动，看到校验拒绝；改2GiB、1worker后启动真实故障任务7057485f…；随后demo-a证据变化任务6919…明确manual2GiB/1worker并成功完成",
+      "actual": "1GiB未启动任务且说明校验；2GiB/1worker通过资源校验进入真实CMake任务。该任务因刻意无效target失败，非资源设置失败；6919完整成功路径也实际采用该手动预算。纠正target的9dd0为auto，分别记录。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/27-budget-invalid-and-opaque-profile.jpg",
+        "../../output/playwright/ui-practical-20261114/27-budget-invalid-and-opaque-profile.txt",
+        "recovery-supplement.md",
+        "../../output/ui-practical-20261114/tasks-after-root-failure-and-source-change.json",
+        "../../output/ui-practical-20261114/audit-completion-20261114.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json"
+      ]
+    },
+    {
+      "id": "T03",
+      "entry": "任务中心 → 启动扫描",
+      "purpose": "执行真实静态分析",
+      "conditions": "保存且通过构建检查的 demo-a",
+      "expected": "建立真实任务并显示执行阶段；README",
+      "operations": "通过界面启动 demo-a 扫描",
+      "actual": "生成扫描任务 a019dbec06c14c22ad671c299793e3b3；与预检查相同 project_id/profile_id；另在界面启动真实stress扫描c11a3535eff94f158f6e786c14b4b7e3，发布155项对象。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话（相关画面/收据见所列证据）",
+        "evidence/entry-storage-receipt.json",
+        "../../output/playwright/ui-practical-20261114/12-stress-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/12-stress-overview-1366.txt"
+      ]
+    },
+    {
+      "id": "T04",
+      "entry": "任务中心 → 阶段及进度",
+      "purpose": "理解任务正在做什么",
+      "conditions": "扫描正在执行或已结束",
+      "expected": "页面阶段、状态、结果与任务文件一致；用户请求",
+      "operations": "Dz版任务中心展开历史并选demo-b已结束Diff9961任务",
+      "actual": "终态为扫描分析·扫描已发布，不再出现预检查后已进入正式扫描的进行态提示；历史阶段仍保留",
+      "issues": "I06已修复并经真实1366视口终态复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "evidence/entry-storage-receipt.json",
+        "../../output/playwright/ui-practical-20261114/03-stopped.txt",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.txt",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.txt",
+        "../../output/playwright/ui-practical-20261114/25-diff-task-terminal-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/25-diff-task-terminal-fixed.txt"
+      ]
+    },
+    {
+      "id": "T05",
+      "entry": "任务中心 → 安全停止",
+      "purpose": "中断运行并保留可恢复工作",
+      "conditions": "demo-a 扫描运行中",
+      "expected": "响应停止，保留任务记录；不显示扫描成功；README",
+      "operations": "通过界面点击安全停止",
+      "actual": "原任务 INTERRUPTED/exit_code=130/published=false，记录保留",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话（相关画面/收据见所列证据）",
+        "evidence/entry-storage-receipt.json",
+        "../../output/playwright/ui-practical-20261114/03-stopped.jpg",
+        "../../output/playwright/ui-practical-20261114/03-stopped.txt"
+      ]
+    },
+    {
+      "id": "T06",
+      "entry": "任务中心 → 重试/恢复",
+      "purpose": "中断后继续扫描",
+      "conditions": "原任务安全停止",
+      "expected": "重新校验输入后恢复，保留来源任务且最终结果真实；README",
+      "operations": "通过界面重试原任务",
+      "actual": "恢复任务 dc5e3796ca6a40c98a827a7125c52955 发布 STATIC_VALIDATED；界面可打开16项结果。后台命中2个已校验TU缓存、无重新提取；原任务保留。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.txt",
+        "../../output/ui-practical-20261114/recovery-data-evidence.json"
+      ]
+    },
+    {
+      "id": "T07",
+      "entry": "任务中心 → 任务历史",
+      "purpose": "查找旧任务并核对来源",
+      "conditions": "存在多个任务",
+      "expected": "历史保留真实状态，选择后详情对应任务；用户请求",
+      "operations": "展开任务历史，选择不同工程任务",
+      "actual": "选中任务的工程根、状态和日志对应正确；Diff9961可重新找到",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/25-diff-task-terminal-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/25-diff-task-terminal-fixed.txt",
+        "主代理任务历史实操会话"
+      ]
+    },
+    {
+      "id": "T08",
+      "entry": "任务中心 → 日志检索",
+      "purpose": "定位执行反馈与错误",
+      "conditions": "有可读任务日志",
+      "expected": "检索、清空及选择对应实际日志内容；用户请求",
+      "operations": "打开任务日志并输入 Clang 过滤",
+      "actual": "日志按 Clang 检索展示对应内容；原日志保留",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/03-stopped.txt"
+      ]
+    },
+    {
+      "id": "T09",
+      "entry": "任务中心 → 完整资源",
+      "purpose": "检查实际资源使用和限制",
+      "conditions": "任务已有资源采样",
+      "expected": "展示真实采样和限制，单位/含义清楚；用户请求",
+      "operations": "打开完整资源趋势，最大化窗口后关闭",
+      "actual": "资源趋势弹窗正常展示，最大化与关闭有效",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/04-resource-maximized.jpg",
+        "../../output/playwright/ui-practical-20261114/04-resource-maximized.txt"
+      ]
+    },
+    {
+      "id": "O01",
+      "entry": "项目概览 → 打开本次扫描结果",
+      "purpose": "阅读当前已发布扫描",
+      "conditions": "恢复任务已发布",
+      "expected": "打开正确扫描及项目，不误用旧报告；用户请求",
+      "operations": "从已完成的恢复任务打开结果",
+      "actual": "打开 dc5e3796… 的16项变量结果，工程 demo-a/批次来源可见",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.txt"
+      ]
+    },
+    {
+      "id": "O02",
+      "entry": "项目概览 → 当前分类统计",
+      "purpose": "理解当前结果数量与来源",
+      "conditions": "已打开 demo-a 真实扫描",
+      "expected": "静态、AI和人工来源可分辨，数量与数据一致；v91 指南",
+      "operations": "查看风险、安全、容器和总数",
+      "actual": "16对象；风险6、安全8、容器2，与只读归档核对一致；stress真实扫描155对象=150疑似+5安全，UI与实际结果对应。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.txt",
+        "../../output/ui-practical-20261114/recovery-data-evidence.json",
+        "../../output/playwright/ui-practical-20261114/12-stress-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/12-stress-overview-1366.txt",
+        "../../output/ui-practical-20261114/audit-after-stress-paging.json"
+      ]
+    },
+    {
+      "id": "O03",
+      "entry": "项目概览 → 无法判断卡片",
+      "purpose": "进入指定分类范围",
+      "conditions": "当前无法判断数量为0",
+      "expected": "空结果明确且能继续调整；用户请求",
+      "operations": "点击“无法判断 0”",
+      "actual": "出现明确空结果；清空后恢复列表",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.txt"
+      ]
+    },
+    {
+      "id": "R01",
+      "entry": "变量与风险 → 搜索",
+      "purpose": "按名称查找变量",
+      "conditions": "demo-a 16项结果",
+      "expected": "名称命中正确对象，数量与列表一致；用户请求",
+      "operations": "输入 state 并点击搜索",
+      "actual": "匹配6项，含不同作用域/编译单元对象",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/06-filter-file-stale-before.txt"
+      ]
+    },
+    {
+      "id": "R02",
+      "entry": "变量与风险 → 清空",
+      "purpose": "退出空结果或限定搜索",
+      "conditions": "已有分类或搜索条件",
+      "expected": "清除条件后恢复完整当前范围；用户请求",
+      "operations": "在无法判断0空列表后点击清空",
+      "actual": "恢复本次扫描结果",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/05-native-overview-1366.txt"
+      ]
+    },
+    {
+      "id": "R03",
+      "entry": "变量与风险 → 筛选文本条件",
+      "purpose": "按定义文件等文本限制结果",
+      "conditions": "已有 state 搜索",
+      "expected": "条件改变并提交后实际列表与摘要一致；用户请求",
+      "operations": "原路径：state搜索→定义位置/降序→筛选other.c→立即查看；再验证不存在函数+关闭、不存在上下文+Esc",
+      "actual": "新版index-Cn6c7cff.js下other.c立即正确1项；不存在函数/上下文均正确0项，无需额外主搜索。",
+      "issues": "I01已修复：文本条件变更统一触发筛选，关闭/查看/Esc路径已复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/06-filter-file-stale-before.jpg",
+        "../../output/playwright/ui-practical-20261114/06-filter-file-stale-before.txt",
+        "../../output/playwright/ui-practical-20261114/10-filter-file-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/10-filter-file-fixed.txt",
+        "主代理新版CUA原路径复验会话"
+      ]
+    },
+    {
+      "id": "R04",
+      "entry": "变量与风险 → 列表排序/方向",
+      "purpose": "调整处理次序",
+      "conditions": "有多项结果",
+      "expected": "按选定键排序，操作仍绑定规范身份；用户请求",
+      "operations": "将stress搜索结果按名称降序排列，再选择one.c:8的nested_state确认",
+      "actual": "名称降序列表正确，操作仍绑定one.c:8的独立规范身份；另已操作定义位置/降序",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/22-scope-binding-after-sort.jpg",
+        "../../output/playwright/ui-practical-20261114/22-scope-binding-after-sort.txt"
+      ]
+    },
+    {
+      "id": "R05",
+      "entry": "变量与风险 → 上一页/下一页",
+      "purpose": "浏览超过单页的结果",
+      "conditions": "stress真实结果有150项人工待办",
+      "expected": "按页展示且不串对象；小结果禁用合理；用户请求",
+      "operations": "在人工待办列表点击下一页，进入第2页后选择对象",
+      "actual": "正确显示第2页51–100；完成2项签署后显示148项待办。详情“下一项”另发现I04，不混入分页通过范围。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/13-next-item-before.jpg",
+        "../../output/playwright/ui-practical-20261114/13-next-item-before.txt",
+        "../../output/playwright/ui-practical-20261114/14-next-item-wrong.jpg",
+        "../../output/playwright/ui-practical-20261114/14-next-item-wrong.txt",
+        "../../output/ui-practical-20261114/audit-after-stress-paging.json"
+      ]
+    },
+    {
+      "id": "D01",
+      "entry": "变量详情 → 定义位置与完整身份",
+      "purpose": "识别同名对象",
+      "conditions": "main.c/other.c 同名 state",
+      "expected": "文件、作用域和规范身份清楚且对应详情；用户请求",
+      "operations": "选择 other.c:2 的 state 并展开身份",
+      "actual": "显示 tu::other.c::c:other.c@state；源码与other.c一致",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "D02",
+      "entry": "变量详情 → 复制全名",
+      "purpose": "准确复制当前对象名称",
+      "conditions": "已选择 other.c state",
+      "expected": "复制当前对象完整名称并有反馈；用户请求",
+      "operations": "点击复制全名并读取剪贴板",
+      "actual": "剪贴板为 state",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "D03",
+      "entry": "变量详情 → 时序与访问",
+      "purpose": "阅读访问证据",
+      "conditions": "选择 g_counter",
+      "expected": "列出当前变量访问与证据来源；用户请求",
+      "operations": "打开g_counter时序与访问并查看访问项；stress长变量查看全部40处访问",
+      "actual": "共7项访问，当前变量身份保持可见；长变量40条访问完整可读，最后访问可定位源码。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.jpg",
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.txt",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.txt",
+        "../../output/playwright/ui-practical-20261114/17-long-source-1920.jpg",
+        "../../output/playwright/ui-practical-20261114/17-long-source-1920.txt"
+      ]
+    },
+    {
+      "id": "D04",
+      "entry": "变量详情 → 调用查询方向与展开",
+      "purpose": "追溯访问函数的上下游",
+      "conditions": "g_counter的访问函数Work",
+      "expected": "方向切换与调用边数量/源码对应；用户请求",
+      "operations": "展开Work上游后切换下游并展开；对stress长变量逐层展开DeepLevel12至DeepLevel01、DeepEntry及main/TIM4入口",
+      "actual": "上游3条，下游2条；下游ParseByte/HeaderUpdate及行号可见；12层调用链逐层可到达完整入口，未丢失深层关系。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.jpg",
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.txt",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.txt",
+        "../../output/playwright/ui-practical-20261114/16-deep-chain-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/16-deep-chain-1366.txt"
+      ]
+    },
+    {
+      "id": "D05",
+      "entry": "变量详情 → 完整保护窗口",
+      "purpose": "核对保护是否覆盖访问",
+      "conditions": "g_counter已有保护证据",
+      "expected": "完整证据可展开且计数一致；用户请求",
+      "operations": "展开完整保护窗口",
+      "actual": "展示6项及证据引用、摘要",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.jpg",
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.txt"
+      ]
+    },
+    {
+      "id": "D06",
+      "entry": "变量详情 → 专注阅读/恢复双栏",
+      "purpose": "放大证据阅读区域",
+      "conditions": "已选择 g_counter",
+      "expected": "能进入专注阅读并返回双栏，不丢当前对象；用户请求",
+      "operations": "进入专注阅读后点击恢复双栏",
+      "actual": "恢复双栏正常，当前对象和证据保持",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "D07",
+      "entry": "变量详情 → 上一项/下一项",
+      "purpose": "连续处理多个对象",
+      "conditions": "stress人工待办第2页，已签署050和052",
+      "expected": "连续切换后证据与人工目标始终一致；用户请求",
+      "operations": "新版stress第2页确认054后点击下一项；再确认页末100后点击下一项",
+      "actual": "054→055正确；页末100→101正确。确认后列表变化不再跳回048，跨页连续处理保持顺序。",
+      "issues": "I04已修复并经页中及页末两条原路径复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/13-next-item-before.jpg",
+        "../../output/playwright/ui-practical-20261114/13-next-item-before.txt",
+        "../../output/playwright/ui-practical-20261114/14-next-item-wrong.jpg",
+        "../../output/playwright/ui-practical-20261114/14-next-item-wrong.txt",
+        "../../output/playwright/ui-practical-20261114/18-next-item-fixed-1920.jpg",
+        "../../output/playwright/ui-practical-20261114/18-next-item-fixed-1920.txt",
+        "../../output/ui-practical-20261114/audit-before-package-import.json"
+      ]
+    },
+    {
+      "id": "D08",
+      "entry": "变量工作区 → 调整列表与证据宽度",
+      "purpose": "调整阅读空间",
+      "conditions": "双栏模式",
+      "expected": "拖动或键盘调整后可读且操作不受遮挡；用户请求",
+      "operations": "聚焦列表与证据分隔条，按ArrowRight",
+      "actual": "宽度实际变为39%；键盘调整生效。未将未操作的鼠标拖拽计通过。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "D09",
+      "entry": "变量详情 → OpenCode结论标签",
+      "purpose": "区分AI结论与静态证据",
+      "conditions": "当前对象存在或缺少复核结果",
+      "expected": "有结果显示来源；缺少结果解释清楚；v91 指南",
+      "operations": "打开OpenCode结论标签，等待读取稳定",
+      "actual": "明确尚未复核且自动复核关闭；未把无AI结论显示为安全",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "S01",
+      "entry": "变量详情 → 归档源码",
+      "purpose": "核对已扫描源文件",
+      "conditions": "other.c state",
+      "expected": "源码、行号和对象一致；用户请求",
+      "operations": "打开归档源码",
+      "actual": "显示other.c:2定义及后续访问代码",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "S02",
+      "entry": "归档源码 → 字号调整",
+      "purpose": "改善代码可读性",
+      "conditions": "源码已打开",
+      "expected": "调整后内容可读且控制按钮保留；用户请求",
+      "operations": "点击放大源码字号",
+      "actual": "字号调整有效",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "S03",
+      "entry": "归档源码 → 自动换行",
+      "purpose": "阅读长代码行",
+      "conditions": "源码已打开",
+      "expected": "切换显示方式，不修改原始归档字节；界面说明/用户请求",
+      "operations": "点击自动换行",
+      "actual": "按钮为选中状态，源码正常显示",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "S04",
+      "entry": "归档源码 → 跳转行",
+      "purpose": "定位证据所在行",
+      "conditions": "源码有有效行号",
+      "expected": "定位到输入行，当前文件明确；用户请求",
+      "operations": "输入7并点击跳转行",
+      "actual": "定位other.c第7行g_counter++",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "S05",
+      "entry": "归档源码 → 放大阅读与关闭",
+      "purpose": "扩大阅读后返回工作区",
+      "conditions": "归档源码已显示",
+      "expected": "弹窗可放大和关闭，返回仍是同一对象；用户请求",
+      "operations": "打开源码阅读弹窗、最大化后关闭",
+      "actual": "最大化和关闭正常，other.c state上下文保留",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/07-source-popup.jpg",
+        "../../output/playwright/ui-practical-20261114/07-source-popup.txt"
+      ]
+    },
+    {
+      "id": "S06",
+      "entry": "归档源码 → 在本机 VS Code 打开",
+      "purpose": "在编辑器查看已校验文件",
+      "conditions": "本机文件与归档一致且有VSCode协议处理器",
+      "expected": "打开正确文件和行；失配时不得冒充归档一致；用户请求",
+      "operations": "点击vscode://file/.../one.c:8外部编辑器入口",
+      "actual": "Browser安全策略拒绝外部协议跳转，未打开编辑器；没有绕过或换浏览器重试",
+      "issues": "B02：工具安全策略阻断外部协议；非已确认产品缺陷",
+      "status": "受阻未验证",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "issues.md"
+      ]
+    },
+    {
+      "id": "S07",
+      "entry": "归档源码 → 前一段/后一段代码",
+      "purpose": "阅读超长源码",
+      "conditions": "stress bulk.c真实归档283行",
+      "expected": "分页可连续阅读；短文件禁用合理；用户请求",
+      "operations": "选择pending_item_000源码，点击后一段，再点击前一段",
+      "actual": "后一段从23行开始，前一段回1行；窗口连续且控制边界正确。40访问未混算源码分页。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "S08",
+      "entry": "归档源码 → 完整归档文本与证据引用",
+      "purpose": "查看原始归档引用",
+      "conditions": "源码已打开",
+      "expected": "完整内容与摘要可追溯；用户请求",
+      "operations": "展开完整归档文本与证据引用并加载",
+      "actual": "one.c完整9行文本、SHA a033…5e9e、node13321正确可读",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "M01",
+      "entry": "人工确认 → 确认有风险",
+      "purpose": "签署人工风险结论",
+      "conditions": "main.c:5 state，测试确认者",
+      "expected": "规范身份绑定；人工状态与静态来源独立持久化；v91 指南",
+      "operations": "对main.c state确认有风险，处理状态选待验证",
+      "actual": "保存CONFIRMED_RISK+TO_VERIFY；“待验证”为业务处理状态；独立记录核对通过",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/ui-practical-20261114/audit-same-name-confirmations.json"
+      ]
+    },
+    {
+      "id": "M02",
+      "entry": "人工记录 → 确认无风险",
+      "purpose": "记录有依据的人工判断",
+      "conditions": "other.c:2 state，独立测试记录",
+      "expected": "依据必填；只作用当前对象；v91 指南",
+      "operations": "为other.c state填写依据并确认无风险",
+      "actual": "保存CONFIRMED_SAFE+TODO；没有覆盖main.c同名记录",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/ui-practical-20261114/audit-same-name-confirmations.json"
+      ]
+    },
+    {
+      "id": "M03",
+      "entry": "人工确认 → 同名对象连续切换",
+      "purpose": "避免将判断写给其它对象",
+      "conditions": "main.c与other.c同名state",
+      "expected": "按项目/规范身份及证据指纹绑定，不能只按名称；用户请求",
+      "operations": "在两个state之间切换并分别签署",
+      "actual": "tu::main.c::c:main.c@state与tu::other.c::c:other.c@state记录独立；深度审计0绑定问题",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/ui-practical-20261114/audit-same-name-confirmations.json"
+      ]
+    },
+    {
+      "id": "M04",
+      "entry": "人工确认 → 长依据/暂无法确认",
+      "purpose": "保留待补证事项",
+      "conditions": "g_counter，长文字依据",
+      "expected": "完整保存长依据，仍留人工待办；v91 指南",
+      "operations": "输入长依据并点击暂无法确认",
+      "actual": "NEED_MORE_EVIDENCE/TODO，依据实际1486字符，保存后继续待办；随后在M09更正为有风险，旧事件保留。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/ui-practical-20261114/audit-after-lock-release.json"
+      ]
+    },
+    {
+      "id": "M05",
+      "entry": "变量详情 → 人工历史",
+      "purpose": "回看签署与来源",
+      "conditions": "已有两条同名对象签署",
+      "expected": "各自历史完整，不相互覆盖；v91 指南",
+      "operations": "查看main.c和other.c两个state人工历史",
+      "actual": "两个对象历史分别对应自己的结论与依据",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/ui-practical-20261114/audit-same-name-confirmations.json"
+      ]
+    },
+    {
+      "id": "M06",
+      "entry": "人工确认 → 待办/无需人工统计",
+      "purpose": "掌握剩余处理进度",
+      "conditions": "已确认部分变量",
+      "expected": "已签署移出待办，需补证继续保留，静态分类不改写；v91 指南",
+      "operations": "签署后进入人工确认，保存g_counter需补证后核对",
+      "actual": "首次同名签署后待办5；长备注需补证仍为5；g_counter更正有风险后待办4。静态仍6疑似8安全2容器。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.jpg",
+        "../../output/playwright/ui-practical-20261114/08-call-tree-focus.txt",
+        "../../output/ui-practical-20261114/audit-after-lock-release.json",
+        "../../output/ui-practical-20261114/audit-after-save-retry.json"
+      ]
+    },
+    {
+      "id": "M07",
+      "entry": "人工确认 → 继续上次位置",
+      "purpose": "恢复上次处理对象",
+      "conditions": "已有浏览或确认位置",
+      "expected": "重开后恢复合理工作位置和范围；README/v91 指南",
+      "operations": "正常关闭主线标签页，从正式session入口重新打开，再点击继续上次位置",
+      "actual": "index-Dz_fcmH4.js下重开显示stress当时待办144/风险5（6事件时），继续位置回到pending_item_000；此前页面刷新回长变量也通过。没有手工注入状态。；最终保留最新demo-a人工页，继续上次位置g_counter可用，原+3源码与当前证据对应，主标签与服务留给用户继续。；I12构建后再次实际刷新index-CdM0AXW-.js，继续6919的g_counter/6待人工仍正确（35号）。；I13后端同步后通过正式launch-isolated.ps1在同54917重启，主服务新进程31456；新会话重载再继续位置与旧人工历史保持（36号）。；最终38号重新进入并等加载完成后旧历史可读、6待人工无错误，主server31456/launcher33144保留。37号为关系读取中的中间态，不作完成证据。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.txt",
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/23-header-tu-disambiguation-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/23-header-tu-disambiguation-fixed.txt",
+        "../../output/playwright/ui-practical-20261114/34-final-resumable-human-review.jpg",
+        "../../output/playwright/ui-practical-20261114/34-final-resumable-human-review.txt",
+        "../../output/playwright/ui-practical-20261114/35-final-current-build-review.jpg",
+        "../../output/playwright/ui-practical-20261114/35-final-current-build-review.txt",
+        "../../output/ui-practical-20261114/i13-server-restart.json",
+        "../../output/playwright/ui-practical-20261114/36-server-restarted-review-persisted.jpg",
+        "../../output/playwright/ui-practical-20261114/36-server-restarted-review-persisted.txt",
+        "../../output/playwright/ui-practical-20261114/38-final-ready-history.jpg",
+        "../../output/playwright/ui-practical-20261114/38-final-ready-history.txt"
+      ]
+    },
+    {
+      "id": "N01",
+      "entry": "页头 → 查看当前工程与构建身份",
+      "purpose": "核对项目与构建来源",
+      "conditions": "已进入真实工作台",
+      "expected": "入口可达，当前来源明确，操作按各自约定生效；用户请求",
+      "operations": "打开当前工程与构建身份弹窗，核对stress工程，再关闭",
+      "actual": "工程root、configSHA、实际编译数据库等对应stress；关闭正常",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "N02",
+      "entry": "主导航 → 覆盖与诊断",
+      "purpose": "定位覆盖缺口",
+      "conditions": "已进入真实工作台",
+      "expected": "入口可达，当前来源明确，操作按各自约定生效；用户请求",
+      "operations": "点击覆盖与诊断，依次进入阻断、缺口、编译单元、构建范围、归档索引",
+      "actual": "页面可达，当前demo-a归档身份保持；分项详见V01–V06",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.jpg",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.txt"
+      ]
+    },
+    {
+      "id": "N03",
+      "entry": "主导航 → OpenCode复核",
+      "purpose": "处理独立AI复核",
+      "conditions": "已进入真实工作台",
+      "expected": "入口可达，当前来源明确，操作按各自约定生效；用户请求",
+      "operations": "进入OpenCode复核并查看当前6个待复核对象",
+      "actual": "页面可达；搜索和详情见A01/A02，资料编辑见A03–A06",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "N04",
+      "entry": "历史与对比 → 文本/模式筛选及清空",
+      "purpose": "检索已有扫描记录",
+      "conditions": "demo-a与stress各有一个已发布扫描",
+      "expected": "检索范围清楚，空结果可解释，清空恢复；用户请求",
+      "operations": "在历史按demo-a文本筛选，再选GitDiff模式，最后清空",
+      "actual": "demo-a文本匹配1项；GitDiff匹配0且空状态明确；清空恢复2项",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "N05",
+      "entry": "数据与共享 → 空间占用/更新",
+      "purpose": "核对当前数据范围与实际磁盘占用",
+      "conditions": "隔离数据根已有扫描和工作文件",
+      "expected": "显示统计口径和分类占用；刷新反映实际变化；用户请求",
+      "operations": "查看6类占用及口径，点击更新空间占用",
+      "actual": "统计时间及工作目录占用更新；不是全目录不变断言",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-19-cleanup-entry.txt",
+        "../../output/playwright/ui-practical-20261114/aux-19-cleanup-entry.png",
+        "../../output/playwright/ui-practical-20261114/aux-20-space-refresh.txt",
+        "../../output/playwright/ui-practical-20261114/aux-20-space-refresh.png",
+        "../../output/playwright/ui-practical-20261114/aux-22-cleanup-preview-ready.txt",
+        "../../output/playwright/ui-practical-20261114/aux-22-cleanup-preview-ready.png"
+      ]
+    },
+    {
+      "id": "N06",
+      "entry": "设置与验收状态 → 数据位置与目录检查",
+      "purpose": "核对当前数据根和下次启动目录",
+      "conditions": "本次使用启动参数指定隔离数据根",
+      "expected": "展示当前根、来源和优先级；检查识别有效Studio根；README/用户请求",
+      "operations": "进入设置，读取数据位置并点击检查数据目录",
+      "actual": "实际根/来源可见，已有Studio根检查通过并显示保存步骤；未保存偏好",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-03-settings-ready.txt",
+        "../../output/playwright/ui-practical-20261114/aux-03-settings-ready.png",
+        "../../output/playwright/ui-practical-20261114/aux-05-checked-current-data-root.txt",
+        "../../output/playwright/ui-practical-20261114/aux-05-checked-current-data-root.png"
+      ]
+    },
+    {
+      "id": "M08",
+      "entry": "人工确认 → 保存失败与重试",
+      "purpose": "写入失败时保留已填写工作",
+      "conditions": "仅对本轮reviews.db施加可释放独占锁",
+      "expected": "失败不能提示成功；原记录不变，草稿保留，解除故障后可重试；用户请求",
+      "operations": "对g_counter保存时锁库，看到错误；释放锁后以同一草稿重试",
+      "actual": "界面明确database is locked，草稿保留；锁期间未改写事件；释放后重试成功。",
+      "issues": "未发现产品缺陷；真实可恢复写入故障验证",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/09-save-failed-draft-kept.jpg",
+        "../../output/playwright/ui-practical-20261114/09-save-failed-draft-kept.txt",
+        "../../output/ui-practical-20261114/audit-before-save-failure.json",
+        "../../output/ui-practical-20261114/audit-after-lock-release.json",
+        "../../output/ui-practical-20261114/save-failure-lock-01/released.json",
+        "主代理失败与成功重试CUA会话",
+        "../../output/ui-practical-20261114/audit-after-save-retry.json"
+      ]
+    },
+    {
+      "id": "M09",
+      "entry": "人工确认 → 修改既有结论并刷新",
+      "purpose": "更正人工判断并继续工作",
+      "conditions": "g_counter已有需更多证据事件",
+      "expected": "新增更正事件，保留旧历史；页面刷新后仍保留，待办正确；v91指南/用户请求",
+      "operations": "将g_counter从暂无法确认改为有风险，保存后刷新页面",
+      "actual": "g_counter新增rev2 CONFIRMED_RISK并以parents指向rev1；相同symbol/fingerprint，rev2唯一head，旧1486字符依据仍保留，0绑定问题；刷新后持久化，待办5→4。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理保存重试成功及刷新CUA会话",
+        "../../output/ui-practical-20261114/audit-after-save-retry.json"
+      ]
+    },
+    {
+      "id": "V01",
+      "entry": "覆盖与诊断 → 阻断类型说明",
+      "purpose": "准确理解已知覆盖缺口",
+      "conditions": "demo-a出现DMA_SHARED_REVIEW",
+      "expected": "已知缺口应有准确说明，不误标未识别；产品诊断定位/用户请求",
+      "operations": "在index-BjcqUQke.js版本从历史切回demo-a，查看DMA过滤的2项记录并展开完整证据",
+      "actual": "两项DMA记录显示准确中文与raw code；完整说明包含生命周期、CPU时机、缓存和交接，并明确不能单独证明错误。",
+      "issues": "I02已修复并经新版真实页面复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.jpg",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.txt",
+        "../../output/playwright/ui-practical-20261114/19-coverage-labels-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/19-coverage-labels-fixed.txt"
+      ]
+    },
+    {
+      "id": "V02",
+      "entry": "覆盖阻断 → 完整证据/关联变量",
+      "purpose": "从诊断定位受影响对象",
+      "conditions": "1条阻断关联rx_buffer[*]",
+      "expected": "依据实际symbol关联正确导航，不能只按名称推断；界面说明/用户请求",
+      "operations": "打开阻断完整证据，再点击关联rx_buffer[*]",
+      "actual": "正确进入对应rx_buffer[*]变量证据",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.jpg",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.txt"
+      ]
+    },
+    {
+      "id": "V03",
+      "entry": "覆盖与诊断 → 缺口记录及过滤",
+      "purpose": "查找指定类型的覆盖问题",
+      "conditions": "demo-a有5条缺口",
+      "expected": "筛选数量与真实记录一致；用户请求",
+      "operations": "查看解析/别名/硬件记录，输入DMA过滤",
+      "actual": "5条总记录，DMA匹配2条",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.jpg",
+        "../../output/playwright/ui-practical-20261114/11-coverage-unknown-label.txt"
+      ]
+    },
+    {
+      "id": "V04",
+      "entry": "覆盖与诊断 → 编译单元及原始参数",
+      "purpose": "核实哪些源码被真实编译分析",
+      "conditions": "demo-a有2个TU",
+      "expected": "文件筛选和参数详情对应同一编译单元；用户请求",
+      "operations": "切到编译单元，筛other.c并展开详情/原始编译参数",
+      "actual": "2个TU中匹配1个other.c；参数可展开读取",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "V05",
+      "entry": "覆盖与诊断 → 构建与范围",
+      "purpose": "理解实际分析范围",
+      "conditions": "已有构建归档",
+      "expected": "范围项目可读并保留来源说明；用户请求",
+      "operations": "查看构建与范围13条记录并展开说明",
+      "actual": "13项说明可正常展开",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "V06",
+      "entry": "覆盖与诊断 → 全部归档索引/继续加载",
+      "purpose": "检查完整归档字段",
+      "conditions": "stress完整facts索引52字段，demo-a索引54字段",
+      "expected": "可逐段加载全部字段且计数正确；用户请求",
+      "operations": "打开stress完整facts，先看前50字段，再点击继续加载",
+      "actual": "继续加载正确显示51–52字段；mask_windows 301、多字段一致性0，边界按钮正确。demo-a初看54项索引另有记录。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "A01",
+      "entry": "OpenCode复核 → 待复核列表搜索",
+      "purpose": "查找当前待复核对象",
+      "conditions": "demo-a待复核6项",
+      "expected": "搜索命中正确规范对象，数量清楚；用户请求",
+      "operations": "输入g_counter搜索",
+      "actual": "待复核6项中正确匹配1项",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "A02",
+      "entry": "OpenCode复核 → 对象详情/无复核结果",
+      "purpose": "区分未复核与已有AI结论",
+      "conditions": "g_counter暂无AI回答",
+      "expected": "明确未复核，不把缺少AI结果当作安全或已完成；v91指南",
+      "operations": "打开g_counter复核详情",
+      "actual": "明确无AI结果，没有误显示复核完成或安全",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "A03",
+      "entry": "复核资料 → 新建案例/保存/查找",
+      "purpose": "维护可复用并发案例",
+      "conditions": "隔离runtime/config案例库",
+      "expected": "保存中文案例并能重新找到；v90资料指南",
+      "operations": "新建CASE-0027，填中文，保存后查找",
+      "actual": "案例保存可查询，独立文件存在CASE-0027",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "evidence/review-materials-readonly.json"
+      ]
+    },
+    {
+      "id": "A04",
+      "entry": "复核资料 → 工程背景编辑/保存/重读",
+      "purpose": "保存当前工程说明",
+      "conditions": "隔离runtime/config背景文件",
+      "expected": "填写后写入原配置位置并能读回；v90资料指南",
+      "operations": "编辑工程背景、保存并重新打开",
+      "actual": "保存内容重读成功；随后清空的操作另见A06",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "evidence/review-materials-readonly.json"
+      ]
+    },
+    {
+      "id": "A05",
+      "entry": "复核资料 → 未保存关闭/继续编辑",
+      "purpose": "避免意外丢失资料草稿",
+      "conditions": "资料存在未保存修改",
+      "expected": "关闭应警告，可继续编辑并保留草稿；用户请求",
+      "operations": "修改后尝试关闭，在警告中选择继续编辑",
+      "actual": "返回编辑器且未保存内容仍在",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "A06",
+      "entry": "复核资料 → 清空工程背景并保存",
+      "purpose": "明确不提供额外工程背景",
+      "conditions": "隔离背景文件可写",
+      "expected": "允许空背景，不制造必填阻断；v90资料指南",
+      "operations": "清空工程背景并保存",
+      "actual": "保存成功；独立review_context.md为0字节",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "evidence/review-materials-readonly.json"
+      ]
+    },
+    {
+      "id": "M10",
+      "entry": "人工确认 → 分页后签署正确对象",
+      "purpose": "避免页码/行号导致串写",
+      "conditions": "stress150待办，当前第2页",
+      "expected": "确认绑定规范变量，分页和其它签署不改变目标；用户请求",
+      "operations": "在第2页分别签署pending_item_050、pending_item_052",
+      "actual": "独立只读审计恰好2事件：c:@pending_item_050→bulk.c:52、c:@pending_item_052→bulk.c:54，均CONFIRMED_RISK/TODO/rev1/唯一head；项目/扫描/证据指纹全部匹配，0绑定问题；待办148。I04仅影响后续下一项导航。；后续054→bulk.c:56、100→bulk.c:102也正确写入，4事件时待办146，独立审计无异常。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话",
+        "../../output/playwright/ui-practical-20261114/13-next-item-before.jpg",
+        "../../output/playwright/ui-practical-20261114/13-next-item-before.txt",
+        "../../output/playwright/ui-practical-20261114/14-next-item-wrong.jpg",
+        "../../output/playwright/ui-practical-20261114/14-next-item-wrong.txt",
+        "../../output/ui-practical-20261114/audit-after-stress-paging.json",
+        "../../output/ui-practical-20261114/audit-before-package-import.json"
+      ]
+    },
+    {
+      "id": "L01",
+      "entry": "项目概览/变量信息 → 长名称与长路径",
+      "purpose": "在常用笔记本视口识别对象",
+      "conditions": "stress真实长名称/深层路径；1366宽与1920宽实际视口",
+      "expected": "名称与路径合理换行，不遮挡主操作；用户要求",
+      "operations": "在1366视口查看长变量名称和深层文件路径；切换1920视口查看长源码与连续确认；结束前reset临时视口后查看宿主默认1280×720 CSS视口，devicePixelRatio1.75",
+      "actual": "1366视口长名称/路径可换行，12层链可阅读；1920视口长源码及确认区可用。浏览器缩放和Windows显示缩放尚未据此验证。最终1280×720下6待人工列表、g_counter需重确认和旧历史可读无遮挡；devicePixelRatio不单独说明Windows显示缩放或浏览器缩放比例。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/12-stress-overview-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/12-stress-overview-1366.txt",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.txt",
+        "../../output/playwright/ui-practical-20261114/16-deep-chain-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/16-deep-chain-1366.txt",
+        "../../output/playwright/ui-practical-20261114/17-long-source-1920.jpg",
+        "../../output/playwright/ui-practical-20261114/17-long-source-1920.txt",
+        "../../output/playwright/ui-practical-20261114/18-next-item-fixed-1920.jpg",
+        "../../output/playwright/ui-practical-20261114/18-next-item-fixed-1920.txt",
+        "../../output/playwright/ui-practical-20261114/34-final-resumable-human-review.jpg",
+        "../../output/playwright/ui-practical-20261114/34-final-resumable-human-review.txt",
+        "../../output/playwright/ui-practical-20261114/35-final-current-build-review.jpg",
+        "../../output/playwright/ui-practical-20261114/35-final-current-build-review.txt",
+        "../../output/playwright/ui-practical-20261114/36-server-restarted-review-persisted.jpg",
+        "../../output/playwright/ui-practical-20261114/36-server-restarted-review-persisted.txt",
+        "../../output/playwright/ui-practical-20261114/38-final-ready-history.jpg",
+        "../../output/playwright/ui-practical-20261114/38-final-ready-history.txt"
+      ]
+    },
+    {
+      "id": "Q01",
+      "entry": "设置数据位置 → 浏览/取消选择",
+      "purpose": "选择目录并可放弃",
+      "conditions": "已打开目录选择器",
+      "expected": "取消不得保存或更改当前偏好；用户请求",
+      "operations": "打开浏览数据目录，看到4个真实子目录后取消选择",
+      "actual": "回到原目录值，未保存启动偏好",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-06-data-directory-picker.txt",
+        "../../output/playwright/ui-practical-20261114/aux-06-data-directory-picker.png",
+        "../../output/playwright/ui-practical-20261114/aux-07-data-picker-ready.txt",
+        "../../output/playwright/ui-practical-20261114/aux-07-data-picker-ready.png",
+        "../../output/playwright/ui-practical-20261114/aux-08-data-picker-cancel.txt",
+        "../../output/playwright/ui-practical-20261114/aux-08-data-picker-cancel.png"
+      ]
+    },
+    {
+      "id": "Q02",
+      "entry": "整套备份与恢复 → 检查整套复制计划",
+      "purpose": "校验完整备份/恢复的来源目标",
+      "conditions": "独立来源和目标空目录",
+      "expected": "应支持有效计划，并拒绝覆盖当前/已有根；用户请求",
+      "operations": "先验证重叠/现有目标拒绝；再输入全新backup-ui并检查1415文件计划，确认复制直至完成",
+      "actual": "复制1415文件全部SHA一致、源10数据库未变；随后正式ECRA.cmd以backup-ui独立启动，实际历史5归档、dc5人工历史3条及源码可读，设置根正确。启动前后5个scan.db SHA和14人工事件内容哈希均不变；恢复方式为直接启动验证过的备份根",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-09-backup-restore-settings.txt",
+        "../../output/playwright/ui-practical-20261114/aux-09-backup-restore-settings.png",
+        "../../output/playwright/ui-practical-20261114/aux-10-restore-source-fields.txt",
+        "../../output/playwright/ui-practical-20261114/aux-10-restore-source-fields.png",
+        "../../output/playwright/ui-practical-20261114/aux-11-backup-overlap-input.txt",
+        "../../output/playwright/ui-practical-20261114/aux-11-backup-overlap-input.png",
+        "../../output/playwright/ui-practical-20261114/aux-12-backup-overlap-precheck.txt",
+        "../../output/playwright/ui-practical-20261114/aux-12-backup-overlap-precheck.png",
+        "../../output/playwright/ui-practical-20261114/aux-13-backup-overlap-rejected.txt",
+        "../../output/playwright/ui-practical-20261114/aux-13-backup-overlap-rejected.png",
+        "maintenance-review.md",
+        "../../output/ui-practical-20261114/backup-ui-integrity.json",
+        "../../output/ui-practical-20261114/audit-backup-ui.json",
+        "../../output/playwright/ui-practical-20261114/package-105-backup-copy-progress-5.png",
+        "../../output/playwright/ui-practical-20261114/package-108-backup-validation-outcome.png",
+        "recovery-startup-supplement.md",
+        "../../output/ui-practical-20261114/backup-launch-before.json",
+        "../../output/ui-practical-20261114/backup-launch-after.json",
+        "../../output/playwright/ui-practical-20261114/backupverify-10-backup-human-history.png",
+        "../../output/playwright/ui-practical-20261114/backupverify-12-backup-source-loaded.png",
+        "../../output/playwright/ui-practical-20261114/backupverify-14-backup-current-root-ready.png"
+      ]
+    },
+    {
+      "id": "Q03",
+      "entry": "存储策略 → 选择草稿/重新读取",
+      "purpose": "查看持久策略并丢弃未保存选择",
+      "conditions": "当前自动节省存储空间",
+      "expected": "未保存草稿不影响真实策略；重新读取恢复保存值；用户请求",
+      "operations": "键盘选择保持普通文件，再点击重新读取空间策略",
+      "actual": "恢复自动策略；未保存新策略",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-14-storage-policy.txt",
+        "../../output/playwright/ui-practical-20261114/aux-14-storage-policy.png",
+        "../../output/playwright/ui-practical-20261114/aux-15-storage-unsaved-option.txt",
+        "../../output/playwright/ui-practical-20261114/aux-15-storage-unsaved-option.png",
+        "../../output/playwright/ui-practical-20261114/aux-16-storage-reload.txt",
+        "../../output/playwright/ui-practical-20261114/aux-16-storage-reload.png",
+        "../../output/playwright/ui-practical-20261114/aux-17-storage-reloaded.txt",
+        "../../output/playwright/ui-practical-20261114/aux-17-storage-reloaded.png"
+      ]
+    },
+    {
+      "id": "Q04",
+      "entry": "存储策略 → 保存空间策略",
+      "purpose": "更改后续扫描的存储方式",
+      "conditions": "隔离数据根，准备有效策略",
+      "expected": "保存、重读并在后续任务生效；用户请求",
+      "operations": "选择off保存，刷新并重开设置；再选择auto保存与重读",
+      "actual": "主测试根off保存回读再恢复auto通过；first-use独立根UI设off后，通过配置页启动ca4ed67…真实2TU发布16对象，89文件无NTFS Compressed标志，5条压缩诊断为SKIPPED_POLICY_OFF。UI恢复auto后当前设置auto、既有ca4扫描仍off",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-14-storage-policy.txt",
+        "../../output/playwright/ui-practical-20261114/aux-14-storage-policy.png",
+        "../../output/playwright/ui-practical-20261114/aux-17-storage-reloaded.txt",
+        "../../output/playwright/ui-practical-20261114/aux-17-storage-reloaded.png",
+        "maintenance-review.md",
+        "../../output/ui-practical-20261114/storage-policy-after-ui-save.json",
+        "../../output/playwright/ui-practical-20261114/package-123-storage-persisted.png",
+        "recovery-startup-supplement.md",
+        "../../output/ui-practical-20261114/first-use-off-storage-proof.json",
+        "../../output/ui-practical-20261114/first-use-output-recovery-proof.json",
+        "../../output/playwright/ui-practical-20261114/firstuse-74-off-scan-final-state.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-76-off-scan-overview-ready.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-88-storage-auto-restored.png"
+      ]
+    },
+    {
+      "id": "Q05",
+      "entry": "空间与清理 → 生成回收预览",
+      "purpose": "先核对可清理候选",
+      "conditions": "独立测试数据根",
+      "expected": "预览不能移动或删除文件；路径/范围明确；用户请求",
+      "operations": "生成预览，等待候选显示，未勾确认并切页离开",
+      "actual": "显示10个候选及SHA/路径；预览完成但尚未移动；10候选仍SOURCE、无非预览清理任务",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-21-cleanup-preview-start.txt",
+        "../../output/playwright/ui-practical-20261114/aux-21-cleanup-preview-start.png",
+        "../../output/playwright/ui-practical-20261114/aux-22-cleanup-preview-ready.txt",
+        "../../output/playwright/ui-practical-20261114/aux-22-cleanup-preview-ready.png",
+        "../../output/playwright/ui-practical-20261114/aux-23-cleanup-preview-visible.txt",
+        "../../output/playwright/ui-practical-20261114/aux-23-cleanup-preview-visible.png",
+        "../../output/ui-practical-20261114/aux-data-postcheck.json"
+      ]
+    },
+    {
+      "id": "Q06",
+      "entry": "空间与清理 → 确认隔离暂存",
+      "purpose": "可恢复地隔离已核对候选",
+      "conditions": "已核对全部候选并确认",
+      "expected": "明确确认后才隔离；后续可恢复且不误清正式记录；用户请求",
+      "operations": "已有整套备份后预览18候选，核对路径/SHA，勾确认并暂存；完成后点击恢复原路径",
+      "actual": "10个可重建TU缓存+8个未引用对象实际进入QUARANTINE；恢复后18项回到原路径/原SHA、无冲突；16个scan/reviews数据库在隔离期间及恢复后SHA不变。永久释放另列Q16",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-23-cleanup-preview-visible.txt",
+        "../../output/playwright/ui-practical-20261114/aux-23-cleanup-preview-visible.png",
+        "../../output/playwright/ui-practical-20261114/aux-24-cleanup-history-open.txt",
+        "../../output/playwright/ui-practical-20261114/aux-24-cleanup-history-open.png",
+        "../../output/playwright/ui-practical-20261114/aux-25-cleanup-plan-history.txt",
+        "../../output/playwright/ui-practical-20261114/aux-25-cleanup-plan-history.png",
+        "../../output/ui-practical-20261114/aux-data-postcheck.json",
+        "maintenance-review.md",
+        "../../output/ui-practical-20261114/maintenance-before-quarantine.json",
+        "../../output/ui-practical-20261114/maintenance-quarantined.json",
+        "../../output/ui-practical-20261114/maintenance-after-restore.json",
+        "../../output/ui-practical-20261114/maintenance-preservation-summary.json",
+        "../../output/playwright/ui-practical-20261114/package-162-cleanup-quarantined.png",
+        "../../output/playwright/ui-practical-20261114/package-166-cleanup-restored-visible.png"
+      ]
+    },
+    {
+      "id": "Q07",
+      "entry": "空间与清理 → 整理历史/查看计划",
+      "purpose": "追溯整理操作",
+      "conditions": "已有回收预览账本",
+      "expected": "历史对应真实任务，重新打开同一计划；用户请求",
+      "operations": "展开历史，点击查看计划与恢复",
+      "actual": "显示预览操作结束，重新打开仍为未移动的同一预览",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-24-cleanup-history-open.txt",
+        "../../output/playwright/ui-practical-20261114/aux-24-cleanup-history-open.png",
+        "../../output/playwright/ui-practical-20261114/aux-25-cleanup-plan-history.txt",
+        "../../output/playwright/ui-practical-20261114/aux-25-cleanup-plan-history.png",
+        "../../output/ui-practical-20261114/aux-data-postcheck.json"
+      ]
+    },
+    {
+      "id": "Q08",
+      "entry": "旧结果迁移 → 检查旧目录与归属",
+      "purpose": "导入可核验的旧结果",
+      "conditions": "有效旧目录与原工程绝对路径",
+      "expected": "正常旧结果可检查；相对/缺失目录明确拒绝；用户请求",
+      "operations": "先检查相对/不存在目录被拒绝；再填写明确兼容fixture的5文件旧.ecra与所属root→检查→只读迁移→打开；随后重复相同迁移",
+      "actual": "发布1个LEGACY_READ_ONLY归档，1对象UNKNOWN/1待办/0当前人工确认；重复提示相同来源已导入，始终仅1归档；原5文件SHA及已有数据库未改。兼容样例不冒称本轮native扫描",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-26-legacy-migration-entry.txt",
+        "../../output/playwright/ui-practical-20261114/aux-26-legacy-migration-entry.png",
+        "../../output/playwright/ui-practical-20261114/aux-27-legacy-invalid-path.txt",
+        "../../output/playwright/ui-practical-20261114/aux-27-legacy-invalid-path.png",
+        "../../output/playwright/ui-practical-20261114/aux-28-legacy-project-input.txt",
+        "../../output/playwright/ui-practical-20261114/aux-28-legacy-project-input.png",
+        "../../output/playwright/ui-practical-20261114/aux-29-legacy-invalid-precheck.txt",
+        "../../output/playwright/ui-practical-20261114/aux-29-legacy-invalid-precheck.png",
+        "../../output/playwright/ui-practical-20261114/aux-30-legacy-missing-absolute.txt",
+        "../../output/playwright/ui-practical-20261114/aux-30-legacy-missing-absolute.png",
+        "../../output/playwright/ui-practical-20261114/aux-31-legacy-missing-precheck.txt",
+        "../../output/playwright/ui-practical-20261114/aux-31-legacy-missing-precheck.png",
+        "../../output/playwright/ui-practical-20261114/aux-32-legacy-missing-rejected.txt",
+        "../../output/playwright/ui-practical-20261114/aux-32-legacy-missing-rejected.png",
+        "maintenance-review.md",
+        "../../output/ui-practical-20261114/legacy-fixture-receipt.json",
+        "../../output/ui-practical-20261114/maintenance-after-legacy.json",
+        "../../output/ui-practical-20261114/maintenance-after-legacy-repeat.json",
+        "../../output/ui-practical-20261114/maintenance-preservation-summary.json",
+        "../../output/playwright/ui-practical-20261114/package-132-legacy-valid-plan.png",
+        "../../output/playwright/ui-practical-20261114/package-137-legacy-overview.png",
+        "../../output/playwright/ui-practical-20261114/package-155-legacy-repeat-complete.png"
+      ]
+    },
+    {
+      "id": "Q09",
+      "entry": "旧结果迁移 → 历史刷新",
+      "purpose": "检查迁移状态",
+      "conditions": "当前无执行迁移",
+      "expected": "空历史明确且不显示假成功；用户请求",
+      "operations": "展开并刷新迁移历史",
+      "actual": "0记录，前后页禁用；切页离开表单",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-33-migration-history-open.txt",
+        "../../output/playwright/ui-practical-20261114/aux-33-migration-history-open.png",
+        "../../output/playwright/ui-practical-20261114/aux-34-migration-history-refresh.txt",
+        "../../output/playwright/ui-practical-20261114/aux-34-migration-history-refresh.png"
+      ]
+    },
+    {
+      "id": "Q10",
+      "entry": "多核合并 → 扫描选择/下一步共享区域",
+      "purpose": "准备真实多核合并输入",
+      "conditions": "每核需有效扫描和链接ELF及共享区域",
+      "expected": "缺前提应禁用并说明；满足时可继续；用户请求",
+      "operations": "进入多核输入并观察缺ELF下一步禁用；后将同一6919扫描分别选到两个输入",
+      "actual": "缺前提时下一步合理禁用；相同扫描明确提示重复事实根不能作为真实多核证明。当前只有普通对象库/同固件别名，没有有效独立各核链接ELF和共享RAM绑定，真实后续步骤未验证",
+      "issues": "B03：缺真实独立多核输入，非已确认产品缺陷",
+      "status": "受阻未验证",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-35-multicore-tab.txt",
+        "../../output/playwright/ui-practical-20261114/aux-35-multicore-tab.png",
+        "../../output/playwright/ui-practical-20261114/aux-36-multicore-inputs-ready.txt",
+        "../../output/playwright/ui-practical-20261114/aux-36-multicore-inputs-ready.png",
+        "../../output/playwright/ui-practical-20261114/aux-37-multicore-scan-without-elf.txt",
+        "../../output/playwright/ui-practical-20261114/aux-37-multicore-scan-without-elf.png",
+        "../../output/playwright/ui-practical-20261114/32-invalid-elf-and-multicore-prerequisites.jpg",
+        "../../output/playwright/ui-practical-20261114/32-invalid-elf-and-multicore-prerequisites.txt",
+        "../../output/playwright/ui-practical-20261114/33-invalid-elf-visible-error.jpg",
+        "../../output/playwright/ui-practical-20261114/33-invalid-elf-visible-error.txt"
+      ]
+    },
+    {
+      "id": "Q11",
+      "entry": "多核合并 → 添加核心输入",
+      "purpose": "为额外核心增加独立输入",
+      "conditions": "多核输入表单展开",
+      "expected": "新增输入保留已有草稿且可区分核心；用户请求",
+      "operations": "点击添加核心输入",
+      "actual": "出现第三个输入及逐核移除按钮，已有草稿保留",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-38-multicore-add-input.txt",
+        "../../output/playwright/ui-practical-20261114/aux-38-multicore-add-input.png"
+      ]
+    },
+    {
+      "id": "Q12",
+      "entry": "多核合并 → 移除此核心输入",
+      "purpose": "撤销多余核心输入",
+      "conditions": "至少三个输入",
+      "expected": "只移除指定草稿行，不改扫描数据；用户请求",
+      "operations": "先添加第3个核心输入，再点击该组移除",
+      "actual": "只移除第3组，剩余2组；已有扫描对象未改动",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-38-multicore-add-input.txt",
+        "../../output/playwright/ui-practical-20261114/aux-38-multicore-add-input.png",
+        "../../output/playwright/ui-practical-20261114/32-invalid-elf-and-multicore-prerequisites.jpg",
+        "../../output/playwright/ui-practical-20261114/32-invalid-elf-and-multicore-prerequisites.txt",
+        "../../output/playwright/ui-practical-20261114/33-invalid-elf-visible-error.jpg",
+        "../../output/playwright/ui-practical-20261114/33-invalid-elf-visible-error.txt"
+      ]
+    },
+    {
+      "id": "Q13",
+      "entry": "多核合并 → 上传各核ELF",
+      "purpose": "将扫描关联到真实链接映像",
+      "conditions": "已准备属于对应核心的ELF",
+      "expected": "验证ELF身份与范围，错误输入可解释；用户请求",
+      "operations": "通过真实文件选择器上传not-an-elf.elf（明确ASCII负向夹具），滚动查看完整错误",
+      "actual": "明确要求真实ARM小端ELF32链接文件；负向文件未成为可用输入，下一步保持禁用。合法各核链接ELF上传及共享RAM/合并流程仍缺前提",
+      "issues": "B03：缺真实独立多核输入，负向拒绝已过不替代有效路径",
+      "status": "受阻未验证",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-37-multicore-scan-without-elf.txt",
+        "../../output/playwright/ui-practical-20261114/aux-37-multicore-scan-without-elf.png",
+        "../../output/playwright/ui-practical-20261114/aux-38-multicore-add-input.txt",
+        "../../output/playwright/ui-practical-20261114/aux-38-multicore-add-input.png",
+        "../../output/playwright/ui-practical-20261114/32-invalid-elf-and-multicore-prerequisites.jpg",
+        "../../output/playwright/ui-practical-20261114/32-invalid-elf-and-multicore-prerequisites.txt",
+        "../../output/playwright/ui-practical-20261114/33-invalid-elf-visible-error.jpg",
+        "../../output/playwright/ui-practical-20261114/33-invalid-elf-visible-error.txt"
+      ]
+    },
+    {
+      "id": "Q14",
+      "entry": "多核合并 → 收起/顶部重新展开",
+      "purpose": "暂离后继续填写",
+      "conditions": "已有多核输入草稿",
+      "expected": "收起再展开保留草稿，不切错当前扫描；用户请求",
+      "operations": "收起后点击顶部合并已有多核结果，再收起返回结果交接",
+      "actual": "草稿保留；当前demo-a对象未切换；最终弹窗关闭且区域收起",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-39-multicore-collapsed.txt",
+        "../../output/playwright/ui-practical-20261114/aux-39-multicore-collapsed.png",
+        "../../output/playwright/ui-practical-20261114/aux-40-multicore-toolbar-reopen.txt",
+        "../../output/playwright/ui-practical-20261114/aux-40-multicore-toolbar-reopen.png",
+        "../../output/playwright/ui-practical-20261114/aux-41-multicore-restored-collapsed.txt",
+        "../../output/playwright/ui-practical-20261114/aux-41-multicore-restored-collapsed.png",
+        "../../output/playwright/ui-practical-20261114/aux-42-sharing-restored.txt",
+        "../../output/playwright/ui-practical-20261114/aux-42-sharing-restored.png"
+      ]
+    },
+    {
+      "id": "Q15",
+      "entry": "数据位置 → 保存为下次启动目录",
+      "purpose": "持久化后续启动的数据根",
+      "conditions": "目录已成功检查",
+      "expected": "保存偏好后按正常启动使用新根，并明确参数优先级；用户请求",
+      "operations": "检查已完成backup-ui根并保存为默认，刷新；再经UI检查并保存回当前data",
+      "actual": "主根GUI保存与CLI优先级通过；first-use私有根UI保存默认后正常退出，正式ECRA.cmd无--data-root且移除子进程ECRA_DATA_ROOT重启，页面来源明确GUI保存的默认目录，配置和样例仍在。其私有偏好保留便于重现，主/正式偏好未改",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "aux-review.md",
+        "../../output/playwright/ui-practical-20261114/aux-05-checked-current-data-root.txt",
+        "../../output/playwright/ui-practical-20261114/aux-05-checked-current-data-root.png",
+        "maintenance-review.md",
+        "../../output/ui-practical-20261114/preferences-after-ui-save.json",
+        "../../output/ui-practical-20261114/preferences-after-ui-restore.json",
+        "../../output/playwright/ui-practical-20261114/package-115-preference-persisted.png",
+        "recovery-startup-supplement.md",
+        "../../output/ui-practical-20261114/first-use-default-saved.json",
+        "../../output/playwright/ui-practical-20261114/firstuse-64-default-gui-source-confirmed.png"
+      ]
+    },
+    {
+      "id": "D10",
+      "entry": "变量详情 → 证据标签切换与保持",
+      "purpose": "在异步读取/保存时保持用户阅读位置",
+      "conditions": "stress054证据正在读取以及已选择调用标签",
+      "expected": "用户点击标签后不被后到数据或保存刷新覆盖；用户请求",
+      "operations": "054证据未读完立即点击调用，等读取结束；保存后检查标签；055重开检查",
+      "actual": "调用标签最终保持；保存后仍为调用，055重开也保持。新版I03回归通过。",
+      "issues": "I03修复后UI复验；原缺陷根因由主代理问题台账统一记录",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/18-next-item-fixed-1920.jpg",
+        "../../output/playwright/ui-practical-20261114/18-next-item-fixed-1920.txt",
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "D11",
+      "entry": "访问证据 → 定位此访问代码",
+      "purpose": "从实际访问证据定位归档源码",
+      "conditions": "stress长变量有40处访问",
+      "expected": "定位同一文件的正确行，保持变量上下文；用户请求",
+      "operations": "点击第40处访问的代码定位",
+      "actual": "正确打开目标C文件第43行",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.jpg",
+        "../../output/playwright/ui-practical-20261114/15-long-object-call-1366.txt",
+        "../../output/playwright/ui-practical-20261114/17-long-source-1920.jpg",
+        "../../output/playwright/ui-practical-20261114/17-long-source-1920.txt"
+      ]
+    },
+    {
+      "id": "D12",
+      "entry": "调用树 → 放大/缩小",
+      "purpose": "调整调用树阅读密度",
+      "conditions": "调用树已展开",
+      "expected": "缩放保持完整层级和当前对象，操作仍可达；用户请求",
+      "operations": "展开长调用树后点击放大调用树",
+      "actual": "树放大有效，当前对象及已展开调用关系保持；未把放大点击算新函数入口。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/16-deep-chain-1366.txt"
+      ]
+    },
+    {
+      "id": "HS01",
+      "entry": "历史与对比 → 跨工程比较边界",
+      "purpose": "避免不同工程被误当同一版本",
+      "conditions": "选择demo-a为基准，stress为对比对象",
+      "expected": "不同project_id必须明确拒绝；用户请求",
+      "operations": "将demo-a设为基准后尝试与stress比较",
+      "actual": "明确以工程身份不同拒绝；这是跨工程边界通过，不代表正常同工程对比通过",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮 CUA IAB 实操会话"
+      ]
+    },
+    {
+      "id": "HS02",
+      "entry": "历史与对比 → 同工程正常比较",
+      "purpose": "查看同工程多次运行的真实变化",
+      "conditions": "需同工程两份可比归档",
+      "expected": "正常比较显示匹配对象与变化，来源清楚；用户请求",
+      "operations": "设demo-a旧dc5为基准，对同工程新4198比较；搜索g_counter并查看当前证据",
+      "actual": "成功比较16共同对象；facts相同而report/provenance不同，依文案保守16项需核对；搜索g_counter为1并正确打开当前证据",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/20-history-coverage-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/20-history-coverage-label-before.txt"
+      ]
+    },
+    {
+      "id": "HS03",
+      "entry": "历史 → 打开归档/切换当前结果",
+      "purpose": "在项目历史之间切换",
+      "conditions": "demo-a与stress真实归档都存在",
+      "expected": "打开目标后标题、批次及内容对应目标；用户请求",
+      "operations": "从stress历史切回demo-a并进入覆盖页",
+      "actual": "demo-a标题及dc5e3796…批次正确，DMA诊断来自demo-a",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/19-coverage-labels-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/19-coverage-labels-fixed.txt"
+      ]
+    },
+    {
+      "id": "C10",
+      "entry": "工程配置 → 已保存配置重开/高级YAML校验",
+      "purpose": "安全编辑完整配置",
+      "conditions": "demo-a已保存完整配置",
+      "expected": "错误原文不得覆盖已保存配置；有效修改必须持久化并保留未知/原有字段；v84指南",
+      "operations": "读取保存的完整YAML；输入损坏YAML检查；重开原配置",
+      "actual": "报语法错误、不可保存；原配置未被损坏内容覆盖，重开可读",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C11",
+      "entry": "范围配置 → 目录树纳入/文件选择",
+      "purpose": "明确纳入与排除对象",
+      "conditions": "demo-a真实工程",
+      "expected": "选择真实文件并正确添加/移除，不误改源码；v84指南",
+      "operations": "目录树纳入根.；从工程选择other.c加入排除文件，然后清空",
+      "actual": "other.c准确加入，清空恢复；源码未据此改写",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C12",
+      "entry": "执行入口 → 新增/移除",
+      "purpose": "编辑真实执行域入口",
+      "conditions": "原配置1个入口",
+      "expected": "新增/移除仅作用所选入口，恢复后不重复；v84指南",
+      "operations": "新增ISR并填USART1_IRQHandler，再移除",
+      "actual": "恢复原1个入口",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C13",
+      "entry": "解析选项 → 数值校验/保存",
+      "purpose": "设置有效解析超时",
+      "conditions": "有效demo-a配置",
+      "expected": "非法超时应拒绝；合法值可保存重载且不丢其它配置；v84指南",
+      "operations": "默认设置180，改-1后下一步；改181保存并重开高级YAML",
+      "actual": "-1阻止继续；181保存并重读确认，随后原完整YAML恢复",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C14",
+      "entry": "扩展语义/API模式 → 展开查看",
+      "purpose": "核对高级配置未丢失",
+      "conditions": "demo-a有三条原API列表",
+      "expected": "高级字段保留，可读取而不被表单误覆盖；v84指南",
+      "operations": "展开扩展语义和API模式",
+      "actual": "三条原有列表正确保留",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C15",
+      "entry": "OpenCode配置参数组 → 展开查看",
+      "purpose": "找到复核依赖与选项",
+      "conditions": "配置页面可用",
+      "expected": "参数入口清楚，未启动时不显示实际复核成功；v84指南",
+      "operations": "展开OpenCode参数组",
+      "actual": "参数可查看；实际引擎/模型成功仍未据此验证",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话"
+      ]
+    },
+    {
+      "id": "C16",
+      "entry": "工程配置 → 开始此配置扫描",
+      "purpose": "从保存配置直接进入扫描",
+      "conditions": "恢复后的有效demo-a完整YAML",
+      "expected": "依次校验/保存/构建并启动真实任务，错误不能绕过；v84指南",
+      "operations": "点击开始扫描按钮",
+      "actual": "demo-a第二次全量41986655eb5c492aa549feb5b7e701bb已发布16对象；人工待办4，风险人工记录2；当前结果可打开；后续首次手填demo-b的ca4配置页真实扫描也成功。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/20-history-coverage-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/20-history-coverage-label-before.txt",
+        "../../output/ui-practical-20261114/audit-package-flow.json",
+        "recovery-startup-supplement.md"
+      ]
+    },
+    {
+      "id": "M11",
+      "entry": "人工确认 → 同函数嵌套同名/排序后签署",
+      "purpose": "防止仅以显示名称绑定",
+      "conditions": "stress one.c:7与one.c:8的FileOneStep::nested_state",
+      "expected": "不同词法作用域按canonical身份签署；排序不串写；用户请求",
+      "operations": "one.c:7签风险，名称降序后选择one.c:8签无风险",
+      "actual": "两对象分别canonical后缀0/1；one.c:8为local::c:@F@FileOneStep::nested_state::1，列表和详情明确各自结论；最终stress8事件审计确认所有规范绑定正确。",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/22-scope-binding-after-sort.jpg",
+        "../../output/playwright/ui-practical-20261114/22-scope-binding-after-sort.txt",
+        "../../output/ui-practical-20261114/audit-after-root-failure-and-source-change.json",
+        "../../output/ui-practical-20261114/audit-completion-20261114.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json"
+      ]
+    },
+    {
+      "id": "M12",
+      "entry": "重新扫描后 → 人工结论继承及来源历史",
+      "purpose": "在证据未变时继续既有判断",
+      "conditions": "demo-a旧dc5与新4198，固定输入与事实已核对",
+      "expected": "按现有继承约定保留符合条件的原事件，并明确来源而非伪造本轮事件；用户请求",
+      "operations": "重扫后打开g_counter人工历史与沿用来源",
+      "actual": "新4198显示本轮0事件、旧dc5的2事件沿用；3个有人工记录对象的prior原事件完整审计通过；待办4",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/ui-practical-20261114/audit-package-flow.json",
+        "../../output/ui-practical-20261114/audit-completion-20261114.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json"
+      ]
+    },
+    {
+      "id": "HS04",
+      "entry": "历史对比 → 双方构建身份与覆盖状态",
+      "purpose": "准确理解两份归档覆盖",
+      "conditions": "demo-a同工程两份归档",
+      "expected": "已知INCOMPLETE应准确显示部分覆盖；用户请求",
+      "operations": "Dz版沿旧dc5→新4198比较原路径，打开完整根摘要",
+      "actual": "双方覆盖均正确为部分覆盖（INCOMPLETE）；根摘要和比较对象内容保持",
+      "issues": "I07已修复并经正常同工程比较详情复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/20-history-coverage-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/20-history-coverage-label-before.txt",
+        "../../output/playwright/ui-practical-20261114/26-history-coverage-label-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/26-history-coverage-label-fixed.txt"
+      ]
+    },
+    {
+      "id": "G01",
+      "entry": "版本对比配置 → Git差异扫描",
+      "purpose": "比较明确两份版本的变量变化",
+      "conditions": "demo-b独立Git准备的真实基准和当前版本",
+      "expected": "引用/变更范围实际生效；差异证据与源码一致；用户请求",
+      "operations": "保存demo-b差异配置并启动9961ee33b67c4b40afe7df6e267008ab，打开结果",
+      "actual": "完成13差异=6疑似6安全1容器，3潜在影响，1变更文件main.c，0删除；任务标题误称全量另记T10",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.txt",
+        "../../output/ui-practical-20261114/demo-b-diff-preparation.json"
+      ]
+    },
+    {
+      "id": "G02",
+      "entry": "差异结果 → 变更文件/删除项/证据详情",
+      "purpose": "核对差异来自真实版本变化",
+      "conditions": "demo-b差异结果已完成",
+      "expected": "展示实际变更，0删除有明确空状态，变量访问变化与准备一致；用户请求",
+      "operations": "展开变更main.c及删除项；查看g_counter差异访问",
+      "actual": "main.c正确；删除项空状态明确；g_counter访问7→6，第25行变为仅写与准备对应",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/ui-practical-20261114/demo-b-diff-preparation.json"
+      ]
+    },
+    {
+      "id": "T10",
+      "entry": "任务详情 → 扫描范围标题",
+      "purpose": "分辨任务是否全量或差异",
+      "conditions": "demo-b真实GitDiff任务",
+      "expected": "共用任务类型不应把Diff误说成全量；用户请求",
+      "operations": "Dz版从任务历史选择真实demo-b Diff9961任务",
+      "actual": "标题准确为扫描分析·扫描已发布，不再误称完整扫描；真实Diff归档范围保持",
+      "issues": "I08已修复并经真实Diff任务详情复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.jpg",
+        "../../output/playwright/ui-practical-20261114/21-diff-task-label-before.txt",
+        "../../output/playwright/ui-practical-20261114/25-diff-task-terminal-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/25-diff-task-terminal-fixed.txt"
+      ]
+    },
+    {
+      "id": "D13",
+      "entry": "结果列表/确认对象 → 同名头文件static辨别",
+      "purpose": "区分同文件同位置的不同TU实例",
+      "conditions": "stress的5个header_state共享shared.h:9",
+      "expected": "无需逐项打开猜测即可分辨规范TU；确认对象清楚；用户请求",
+      "operations": "Dz版搜索header_state，查看5个TU提示；对one.c签风险并下一项到two.c，对two.c签安全",
+      "actual": "5个同名同位置对象可按TU区分；one.c→two.c连续目标准确，两项保存后该待办筛选归0、前后按钮禁用，当前总待办142。最终只读核对stress共8事件（风险6/安全2）、142待办，绑定及深审计0错误。",
+      "issues": "I09已修复并经真实1366视口与连续签署复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/playwright/ui-practical-20261114/22-scope-binding-after-sort.jpg",
+        "../../output/playwright/ui-practical-20261114/22-scope-binding-after-sort.txt",
+        "../../output/playwright/ui-practical-20261114/23-header-tu-disambiguation-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/23-header-tu-disambiguation-fixed.txt",
+        "../../output/playwright/ui-practical-20261114/24-five-tu-instances-fixed.jpg",
+        "../../output/playwright/ui-practical-20261114/24-five-tu-instances-fixed.txt",
+        "../../output/ui-practical-20261114/audit-after-root-failure-and-source-change.json",
+        "../../output/ui-practical-20261114/audit-completion-20261114.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json"
+      ]
+    },
+    {
+      "id": "PK02",
+      "entry": "导出人工确认增量 → 完成反馈与下载",
+      "purpose": "导出正确范围的人工记录",
+      "conditions": "demo-a已有人工事件",
+      "expected": "实际增量内容和成功提示一致，不能误称完整证据包；用户请求",
+      "operations": "从历史导出人工确认增量并下载，独立核对包",
+      "actual": "实际delta JSON含6个完整事件及父链，与原库一致；index-Dz_fcmH4.js已真实复验，增量显示人工确认增量已就绪，完整包仍显示完整结果包已就绪。",
+      "issues": "I05已修复并经新版导出完成页面复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "../../output/ui-practical-20261114/audit-export-delta.json",
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-07-delta-download.txt",
+        "../../output/playwright/ui-practical-20261114/package-07-delta-download.png",
+        "../../output/playwright/ui-practical-20261114/package-08-sharing-from-export.txt",
+        "../../output/playwright/ui-practical-20261114/package-08-sharing-from-export.png",
+        "../../output/playwright/ui-practical-20261114/package-09-export-history.txt",
+        "../../output/playwright/ui-practical-20261114/package-09-export-history.png",
+        "../../output/playwright/ui-practical-20261114/package-84-i05-delta-complete-visible.png",
+        "../../output/playwright/ui-practical-20261114/package-84-i05-delta-complete-visible.txt"
+      ]
+    },
+    {
+      "id": "PK01",
+      "entry": "历史详情 → 导出标准完整包/下载",
+      "purpose": "交接完整证据与人工历史",
+      "conditions": "demo-a dc5有效归档",
+      "expected": "下载真实完整包，内容/身份与当前归档一致；用户请求",
+      "operations": "历史详情导出，前往数据共享展开记录并下载",
+      "actual": "736986字节ZIP，105成员尺寸/哈希正确；16对象、6人工事件及绑定与原库一致",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-04-demo-details.txt",
+        "../../output/playwright/ui-practical-20261114/package-04-demo-details.png",
+        "../../output/playwright/ui-practical-20261114/package-05-full-export-request.txt",
+        "../../output/playwright/ui-practical-20261114/package-05-full-export-request.png",
+        "../../output/playwright/ui-practical-20261114/package-06-full-export-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-06-full-export-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-08-sharing-from-export.txt",
+        "../../output/playwright/ui-practical-20261114/package-08-sharing-from-export.png",
+        "../../output/playwright/ui-practical-20261114/package-09-export-history.txt",
+        "../../output/playwright/ui-practical-20261114/package-09-export-history.png",
+        "../../output/playwright/ui-practical-20261114/package-10-full-download.txt",
+        "../../output/playwright/ui-practical-20261114/package-10-full-download.png",
+        "../../output/ui-practical-20261114/audit-export-full.json"
+      ]
+    },
+    {
+      "id": "PK03",
+      "entry": "结果交接 → 导入已有完整归档",
+      "purpose": "恢复/合并同一归档",
+      "conditions": "刚导出的dc5完整包",
+      "expected": "校验后合并且重复不复制事件；用户请求",
+      "operations": "选择dc5完整包并等待",
+      "actual": "完整性成功，新增事件0，合并现有归档；前后静态/事件/绑定逐项一致",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-11-duplicate-full-upload.txt",
+        "../../output/playwright/ui-practical-20261114/package-11-duplicate-full-upload.png",
+        "../../output/playwright/ui-practical-20261114/package-12-duplicate-full-result.txt",
+        "../../output/playwright/ui-practical-20261114/package-12-duplicate-full-result.png",
+        "../../output/ui-practical-20261114/idempotent-import-comparison.json"
+      ]
+    },
+    {
+      "id": "PK04",
+      "entry": "结果交接 → 人工增量合并/重复导入",
+      "purpose": "合并人工判断而不重复",
+      "conditions": "当前dc5与同证据增量",
+      "expected": "按事件身份去重，项目与证据绑定一致；用户请求",
+      "operations": "连续两次选择已导出人工增量",
+      "actual": "两次均成功且新增0；dc5仍6事件/待办4，stress仍4事件/待办146，未串项目",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-13-delta-preflight-request.txt",
+        "../../output/playwright/ui-practical-20261114/package-13-delta-preflight-request.png",
+        "../../output/playwright/ui-practical-20261114/package-14-delta-preflight-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-14-delta-preflight-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-15-delta-repeat.txt",
+        "../../output/playwright/ui-practical-20261114/package-15-delta-repeat.png",
+        "../../output/playwright/ui-practical-20261114/package-16-delta-repeat-complete.txt",
+        "../../output/playwright/ui-practical-20261114/package-16-delta-repeat-complete.png",
+        "../../output/ui-practical-20261114/audit-after-idempotent-imports.json"
+      ]
+    },
+    {
+      "id": "PK05",
+      "entry": "完整包导入 → 损坏包失败后恢复",
+      "purpose": "输入错误时保留已有工作",
+      "conditions": "52字节非ZIP隔离测试文件",
+      "expected": "拒绝无效包，不发布/损坏旧数据，允许后续有效输入；用户请求",
+      "operations": "选择invalid-package后查看错误，再选择真实内置包",
+      "actual": "明确ZIP无效、旧数据保留及获取完整备份；后续真实包正常导入",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-17-invalid-full-upload.txt",
+        "../../output/playwright/ui-practical-20261114/package-17-invalid-full-upload.png",
+        "../../output/playwright/ui-practical-20261114/package-18-invalid-full-rejected.txt",
+        "../../output/playwright/ui-practical-20261114/package-18-invalid-full-rejected.png",
+        "../../output/playwright/ui-practical-20261114/package-19-sample-full-upload.txt",
+        "../../output/playwright/ui-practical-20261114/package-19-sample-full-upload.png",
+        "../../output/playwright/ui-practical-20261114/package-20-sample-import-complete.txt",
+        "../../output/playwright/ui-practical-20261114/package-20-sample-import-complete.png",
+        "../../output/ui-practical-20261114/audit-package-flow.json"
+      ]
+    },
+    {
+      "id": "PK06",
+      "entry": "完整包导入 → 新归档/打开证据",
+      "purpose": "在本机打开已有真实归档",
+      "conditions": "原库无builtin-stm32-demo-v1",
+      "expected": "发布新归档且标明来源限制，证据与人工状态真实；用户请求",
+      "operations": "选择内置ecra-report，打开新归档g_counter和源码；关独立浏览器后同profile重开",
+      "actual": "16对象/6待办/0人工，明确教学示例、归档证据、来源尚未验证；31关系/7访问及源码可读，重开后仍在",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-19-sample-full-upload.txt",
+        "../../output/playwright/ui-practical-20261114/package-19-sample-full-upload.png",
+        "../../output/playwright/ui-practical-20261114/package-20-sample-import-complete.txt",
+        "../../output/playwright/ui-practical-20261114/package-20-sample-import-complete.png",
+        "../../output/playwright/ui-practical-20261114/package-21-open-imported-sample.txt",
+        "../../output/playwright/ui-practical-20261114/package-21-open-imported-sample.png",
+        "../../output/playwright/ui-practical-20261114/package-22-imported-sample-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-22-imported-sample-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-23-imported-evidence.txt",
+        "../../output/playwright/ui-practical-20261114/package-23-imported-evidence.png",
+        "../../output/playwright/ui-practical-20261114/package-24-imported-evidence-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-24-imported-evidence-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-25-imported-source.txt",
+        "../../output/playwright/ui-practical-20261114/package-25-imported-source.png",
+        "../../output/playwright/ui-practical-20261114/package-41-initial.txt",
+        "../../output/playwright/ui-practical-20261114/package-41-initial.png",
+        "../../output/ui-practical-20261114/audit-imported-sample-package.json",
+        "../../output/ui-practical-20261114/audit-after-sample-import.json"
+      ]
+    },
+    {
+      "id": "PK07",
+      "entry": "人工增量导入 → 跨项目拒绝",
+      "purpose": "防止人工记录串项目",
+      "conditions": "当前内置样例，输入demo-a增量",
+      "expected": "不同扫描/证据必须拒绝；用户请求",
+      "operations": "在样例选择demo-a人工增量",
+      "actual": "明确不属于当前扫描/证据版本，样例仍0人工事件",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-27-wrong-project-delta.txt",
+        "../../output/playwright/ui-practical-20261114/package-27-wrong-project-delta.png",
+        "../../output/playwright/ui-practical-20261114/package-28-wrong-project-delta-rejected.txt",
+        "../../output/playwright/ui-practical-20261114/package-28-wrong-project-delta-rejected.png",
+        "../../output/ui-practical-20261114/audit-package-flow.json"
+      ]
+    },
+    {
+      "id": "PK08",
+      "entry": "完整包导出 → 压缩选项",
+      "purpose": "控制包体积并保持完整证据",
+      "conditions": "当前为有效样例归档",
+      "expected": "不同压缩均保存完整内容，选择实际生效；用户请求",
+      "operations": "选择省空间并导出下载；对照前次快速完整包",
+      "actual": "compact442731字节、34成员正确、scan.db采用BZIP2(12)；前次快速为DEFLATE(8)",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-29-compact-selection.txt",
+        "../../output/playwright/ui-practical-20261114/package-29-compact-selection.png",
+        "../../output/playwright/ui-practical-20261114/package-30-sample-compact-download.txt",
+        "../../output/playwright/ui-practical-20261114/package-30-sample-compact-download.png",
+        "../../output/ui-practical-20261114/audit-export-compact.json",
+        "../../output/ui-practical-20261114/audit-export-full.json"
+      ]
+    },
+    {
+      "id": "PK09",
+      "entry": "导入/导出记录 → 查看/刷新/隐藏",
+      "purpose": "找到完成与失败记录",
+      "conditions": "存在本轮成功和失败任务",
+      "expected": "状态真实且刷新/隐藏不删除实际数据；用户请求",
+      "operations": "两区查看记录、更新进度、隐藏再显示、收起",
+      "actual": "记录和失败信息保留，控件无报错；增量仅当页反馈，不据此声称持久化增量历史",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/playwright/ui-practical-20261114/package-09-export-history.txt",
+        "../../output/playwright/ui-practical-20261114/package-09-export-history.png",
+        "../../output/playwright/ui-practical-20261114/package-31-import-history.txt",
+        "../../output/playwright/ui-practical-20261114/package-31-import-history.png",
+        "../../output/playwright/ui-practical-20261114/package-32-refresh-import.txt",
+        "../../output/playwright/ui-practical-20261114/package-32-refresh-import.png",
+        "../../output/playwright/ui-practical-20261114/package-33-hide-import.txt",
+        "../../output/playwright/ui-practical-20261114/package-33-hide-import.png",
+        "../../output/playwright/ui-practical-20261114/package-34-show-import.txt",
+        "../../output/playwright/ui-practical-20261114/package-34-show-import.png",
+        "../../output/playwright/ui-practical-20261114/package-35-refresh-export.txt",
+        "../../output/playwright/ui-practical-20261114/package-35-refresh-export.png",
+        "../../output/playwright/ui-practical-20261114/package-36-hide-export.txt",
+        "../../output/playwright/ui-practical-20261114/package-36-hide-export.png",
+        "../../output/playwright/ui-practical-20261114/package-37-show-export.txt",
+        "../../output/playwright/ui-practical-20261114/package-37-show-export.png"
+      ]
+    },
+    {
+      "id": "PK10",
+      "entry": "运行中传输 → 取消后台导入",
+      "purpose": "安全中断数据传输",
+      "conditions": "需要可稳定操作的运行中任务",
+      "expected": "实际取消应终止后续发布并解释保留范围；用户请求",
+      "operations": "独立浏览器打开当前Covwq14P页面，UI选择sample-compact包后点击动态取消导入",
+      "actual": "dc723cb2…为CANCELLED/VERIFY_DATABASE、result null；页面明确已有扫描和人工保留，该次16库SHA全同。此为后台导入取消，不包含上传阶段",
+      "issues": "无产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/ui-practical-20261114/import-cancel-preservation.json",
+        "../../output/ui-practical-20261114/maintenance-after-import-cancel.json",
+        "../../output/playwright/ui-practical-20261114/package-185-cancel-import-visible.png",
+        "../../output/playwright/ui-practical-20261114/package-185-cancel-import-visible.txt"
+      ]
+    },
+    {
+      "id": "A07",
+      "entry": "OpenCode复核 → 全部疑似与未知/缺工具失败",
+      "purpose": "可解释地处理不可用复核依赖",
+      "conditions": "demo-a配置只在UI将命令指向实际不存在的exe，自动复核仍关闭",
+      "expected": "核对输入后如实记技术失败，不能假安全/假成功；用户请求",
+      "operations": "保存缺工具命令数组，发起全部复核任务0cde4ec3392a4280aee207f21824f34c",
+      "actual": "处理6/6，成功0、技术失败6，归档INCOMPLETE；这是失败路径通过，不代表模型成功",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "ai-failure-review.md",
+        "../../output/playwright/ui-practical-20261114/package-57-ai-review-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-57-ai-review-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-58-ai-review-config.txt",
+        "../../output/playwright/ui-practical-20261114/package-58-ai-review-config.png",
+        "../../output/playwright/ui-practical-20261114/package-59-start-ai-with-missing-tool.txt",
+        "../../output/playwright/ui-practical-20261114/package-59-start-ai-with-missing-tool.png",
+        "../../output/playwright/ui-practical-20261114/package-60-ai-missing-tool-outcome.txt",
+        "../../output/playwright/ui-practical-20261114/package-60-ai-missing-tool-outcome.png",
+        "../../output/ui-practical-20261114/tasks-after-ai-unavailable.json",
+        "../../output/ui-practical-20261114/audit-after-ai-unavailable.json"
+      ]
+    },
+    {
+      "id": "A08",
+      "entry": "OpenCode复核 → 技术失败详情/原始收据",
+      "purpose": "定位失败阶段与下一步",
+      "conditions": "有6条真实技术失败",
+      "expected": "失败不误当安全，原始错误可读；用户请求",
+      "operations": "搜索g_counter，开详情、身份/收据、stderr原件后关闭",
+      "actual": "明确launch找不到命令、无当前有效结论；77字节中文原因与缺失路径一致",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "ai-failure-review.md",
+        "../../output/playwright/ui-practical-20261114/package-62-ai-failures-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-62-ai-failures-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-63-ai-failed-item-detail.txt",
+        "../../output/playwright/ui-practical-20261114/package-63-ai-failed-item-detail.png",
+        "../../output/playwright/ui-practical-20261114/package-64-failed-ai-receipt.txt",
+        "../../output/playwright/ui-practical-20261114/package-64-failed-ai-receipt.png",
+        "../../output/playwright/ui-practical-20261114/package-65-ai-stderr-open.txt",
+        "../../output/playwright/ui-practical-20261114/package-65-ai-stderr-open.png",
+        "../../output/playwright/ui-practical-20261114/package-66-ai-stderr-ready.txt",
+        "../../output/playwright/ui-practical-20261114/package-66-ai-stderr-ready.png",
+        "../../output/playwright/ui-practical-20261114/package-67-close-ai-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-67-close-ai-original.png"
+      ]
+    },
+    {
+      "id": "A09",
+      "entry": "OpenCode复核 → 仅重试技术失败",
+      "purpose": "只重试失败项且保留历史",
+      "conditions": "6项失败，工具仍不可用",
+      "expected": "重试形成新尝试并保持旧历史，无伪成功；用户请求",
+      "operations": "点击仅重试技术失败，任务0315191be41a421c8470285613c4dfad后回AI页",
+      "actual": "仍6技术失败/0成功，每项尝试数1→2；静态分类、人工新事件和3历史引用不变，待办4",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "ai-failure-review.md",
+        "../../output/playwright/ui-practical-20261114/package-68-retry-missing-tool-failures.txt",
+        "../../output/playwright/ui-practical-20261114/package-68-retry-missing-tool-failures.png",
+        "../../output/playwright/ui-practical-20261114/package-69-ai-retry-outcome.txt",
+        "../../output/playwright/ui-practical-20261114/package-69-ai-retry-outcome.png",
+        "../../output/playwright/ui-practical-20261114/package-70-ai-after-retry.txt",
+        "../../output/playwright/ui-practical-20261114/package-70-ai-after-retry.png",
+        "../../output/playwright/ui-practical-20261114/package-71-ai-attempts-two.txt",
+        "../../output/playwright/ui-practical-20261114/package-71-ai-attempts-two.png",
+        "../../output/ui-practical-20261114/tasks-after-ai-retry.json",
+        "../../output/ui-practical-20261114/ai-failure-preservation.json",
+        "../../output/ui-practical-20261114/audit-after-ai-retry.json"
+      ]
+    },
+    {
+      "id": "A10",
+      "entry": "复核故障测试后 → 原配置恢复/回读",
+      "purpose": "退出故障后继续正常工作",
+      "conditions": "原完整YAML已通过UI只读备份",
+      "expected": "恢复原文本且保留已有结果，不遗留故障注入；用户请求",
+      "operations": "在UI填回备份、检查、保存并只读核验",
+      "actual": "profile与原备份逐字节相同，SHA 8aa03fee…29b5；review仅enabled false",
+      "issues": "尚未确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "ai-failure-review.md",
+        "../../output/playwright/ui-practical-20261114/package-72-restore-config-page.txt",
+        "../../output/playwright/ui-practical-20261114/package-72-restore-config-page.png",
+        "../../output/playwright/ui-practical-20261114/package-73-restore-demo-profile.txt",
+        "../../output/playwright/ui-practical-20261114/package-73-restore-demo-profile.png",
+        "../../output/playwright/ui-practical-20261114/package-74-restore-expand-yaml.txt",
+        "../../output/playwright/ui-practical-20261114/package-74-restore-expand-yaml.png",
+        "../../output/playwright/ui-practical-20261114/package-75-restore-original-yaml.txt",
+        "../../output/playwright/ui-practical-20261114/package-75-restore-original-yaml.png",
+        "../../output/playwright/ui-practical-20261114/package-76-check-restored-yaml.txt",
+        "../../output/playwright/ui-practical-20261114/package-76-check-restored-yaml.png",
+        "../../output/playwright/ui-practical-20261114/package-77-save-restored-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-77-save-restored-original.png",
+        "../../output/playwright/ui-practical-20261114/package-78-restored-save-feedback.txt",
+        "../../output/playwright/ui-practical-20261114/package-78-restored-save-feedback.png",
+        "../../output/playwright/ui-practical-20261114/package-91-i10-restore-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-91-i10-restore-original.png",
+        "../../output/playwright/ui-practical-20261114/package-92-i10-check-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-92-i10-check-original.png",
+        "../../output/playwright/ui-practical-20261114/package-93-i10-save-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-93-i10-save-original.png",
+        "../../output/ui-practical-20261114/ai-profile-restoration.json"
+      ]
+    },
+    {
+      "id": "A11",
+      "entry": "OpenCode复核 → 真实模型完成/失败后成功恢复",
+      "purpose": "获得真实有效的AI判断",
+      "conditions": "需要明确的产品真实模型调用授权范围及可用服务",
+      "expected": "有效结果/状态/来源正确且成功恢复保留历史；用户请求",
+      "operations": "真实模型尚未调用；主代理已异步询问本轮产品AI调用范围，等待用户答复。负向测试人为将命令设置为不存在文件，随后恢复原配置",
+      "actual": "机器存在npm/opencode.ps1，不能称机器未安装OpenCode；缺工具是明确负向夹具。尚无真实模型成功/恢复证据；编码代理委托禁令与产品AI测试范围需分开，授权范围尚待澄清",
+      "issues": "B04：真实模型成功调用授权范围待澄清，不以失败路径替代成功",
+      "status": "受阻未验证",
+      "evidence": [
+        "ai-failure-review.md"
+      ]
+    },
+    {
+      "id": "C17",
+      "entry": "工程配置 → 长YAML提交错误可见性",
+      "purpose": "立即找到失败原因",
+      "conditions": "第4步长YAML已滚动到底，错误review.command为scalar",
+      "expected": "拒绝错误同时在当前视口显示原因，不仅禁用保存；用户请求",
+      "operations": "在长YAML末尾制造错误并点检查，Dz版沿同路径复验后UI恢复原配置",
+      "actual": "修复前main顶部错误在视口外；新版错误自动进入1366×768视口且聚焦，保存仍禁用，原YAML恢复后字节相同",
+      "issues": "I10：长YAML提交失败反馈在视口外，已修复并实际复验",
+      "status": "已修复并通过",
+      "evidence": [
+        "ai-failure-review.md",
+        "../../output/playwright/ui-practical-20261114/package-48-missing-command-check-result.txt",
+        "../../output/playwright/ui-practical-20261114/package-48-missing-command-check-result.png",
+        "../../output/playwright/ui-practical-20261114/package-90-i10-visible-error.txt",
+        "../../output/playwright/ui-practical-20261114/package-90-i10-visible-error.png",
+        "../../output/playwright/ui-practical-20261114/package-91-i10-restore-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-91-i10-restore-original.png",
+        "../../output/playwright/ui-practical-20261114/package-92-i10-check-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-92-i10-check-original.png",
+        "../../output/playwright/ui-practical-20261114/package-93-i10-save-original.txt",
+        "../../output/playwright/ui-practical-20261114/package-93-i10-save-original.png",
+        "../../output/ui-practical-20261114/ai-profile-restoration.json"
+      ]
+    },
+    {
+      "id": "T11",
+      "entry": "任务中心 → 构建失败及纠正后恢复",
+      "purpose": "错误构建目标失败后保留已有结果并按正确配置继续",
+      "conditions": "独立demo-b配置8972e03b…的target刻意无效",
+      "expected": "真实构建失败应有阶段/日志，不误报完成；修正后能正常再次运行，已有归档不丢失；用户失败恢复要求",
+      "operations": "UI以无效no-such-ecra-target启动7057485f…失败；纠正后再从实际任务入口发起9dd0…直至发布",
+      "actual": "7057明确FAILED且阶段/日志可查；纠正后的9dd0成功发布16对象。恢复任务资源预设为auto，不将前一失败任务manual预算沿用描述",
+      "issues": "未新增已确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/27-budget-invalid-and-opaque-profile.jpg",
+        "../../output/playwright/ui-practical-20261114/27-budget-invalid-and-opaque-profile.txt",
+        "../../output/playwright/ui-practical-20261114/28-build-target-failed.jpg",
+        "../../output/playwright/ui-practical-20261114/28-build-target-failed.txt",
+        "../../output/playwright/ui-practical-20261114/29-build-recovery-completed.jpg",
+        "../../output/playwright/ui-practical-20261114/29-build-recovery-completed.txt",
+        "recovery-supplement.md",
+        "../../output/ui-practical-20261114/tasks-after-root-failure-and-source-change.json",
+        "../../output/ui-practical-20261114/audit-completion-20261114.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json"
+      ]
+    },
+    {
+      "id": "M13",
+      "entry": "同工程证据变化重扫 → 人工历史及当前状态",
+      "purpose": "源证据变化时保留历史并要求重新核对",
+      "conditions": "demo-a已有人工记录；保留源码副本后修改g_counter相关事实再重扫",
+      "expected": "按产品证据继承约定保留旧事件历史，不能把不匹配证据判断直接当当前有效结论；用户要求",
+      "operations": "保留原main.c副本，独立demo-a main.c25由+1改+3；同原profile6e01…通过UI以manual2GiB/1worker启动6919db5fc0cb409a9dd096c68cb88962；完成后查看g_counter访问与人工历史",
+      "actual": "成功发布16对象；2个TU中缓存命中1/重提取1。访问证据main.c25为+3；当前待人工6/无需10，g_counter需重新确认。历史明确本轮0事件、旧dc5的2原事件保留，并说明旧确认仅为历史、当前证据需重确认。独立审计：raw RECHECK_REQUIRED3、新事件0；按当前有效范围为RECHECK2+PENDING4=待办6、NOT_REQUIRED10，绑定及深审计0错误。最终比较确认旧dc5的6事件逐字段完全不变，3个历史事件组payload哈希正确且原事件完全保留",
+      "issues": "未新增已确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "主代理本轮CUA IAB实操会话",
+        "../../output/playwright/ui-practical-20261114/31-changed-source-recheck-history.jpg",
+        "../../output/playwright/ui-practical-20261114/31-changed-source-recheck-history.txt",
+        "recovery-supplement.md",
+        "../../output/ui-practical-20261114/audit-after-root-failure-and-source-change.json",
+        "../../output/ui-practical-20261114/tasks-after-root-failure-and-source-change.json",
+        "../../output/ui-practical-20261114/audit-completion-20261114.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json"
+      ]
+    },
+    {
+      "id": "Q16",
+      "entry": "空间与清理 → 永久释放",
+      "purpose": "彻底释放隔离区占用",
+      "conditions": "候选已隔离且用户完成永久删除操作时确认",
+      "expected": "明确不可恢复性质与对象范围，确认后真实释放且不影响受引用数据；用户边界与工具确认要求",
+      "operations": "隔离完成后实际观察永久释放复选框和禁用按钮；未勾选、未执行，转而恢复原路径",
+      "actual": "该动态入口已纳入清单；Computer Use工具对永久删除有操作时确认要求，产品执行后不再提供原路径恢复。本轮未执行永久清空，已授权且完成的可恢复清理不受影响",
+      "issues": "B05：Computer Use工具永久删除操作时确认规则；用户已授权普通可恢复清理，永久释放结果尚未验",
+      "status": "受阻未验证",
+      "evidence": [
+        "maintenance-review.md",
+        "../../output/playwright/ui-practical-20261114/package-162-cleanup-quarantined.png",
+        "../../output/playwright/ui-practical-20261114/package-162-cleanup-quarantined.txt"
+      ]
+    },
+    {
+      "id": "Q17",
+      "entry": "旧归档 → 原文件与复核历史/完整事实",
+      "purpose": "阅读迁移保留的原始材料并辨明可信范围",
+      "conditions": "已有LEGACY_READ_ONLY归档",
+      "expected": "原件可读且明确不作为当前安全证明，完整事实可展开；用户历史与证据要求",
+      "operations": "查看旧文件与复核历史→review/answer.txt；关闭后完整权威证据→覆盖页全部索引→展开完整事实",
+      "actual": "原70字节UTF-8文本与归档片段正确，明确非安全证明；继续打开事实索引看到对象/访问/order结构，未把仅跳页面当读过证据",
+      "issues": "无已确认产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "maintenance-review.md",
+        "../../output/ui-practical-20261114/maintenance-after-legacy.json",
+        "../../output/playwright/ui-practical-20261114/package-141-legacy-answer-visible.png",
+        "../../output/playwright/ui-practical-20261114/package-148-legacy-facts-visible.png"
+      ]
+    },
+    {
+      "id": "PK12",
+      "entry": "运行中传输 → 取消导出",
+      "purpose": "停止不再需要的结果打包且保留原结果",
+      "conditions": "stress真实155对象、省空间导出进行中",
+      "expected": "取消后没有发布下载包、状态为已取消、原数据保留；用户任务中断要求",
+      "operations": "第一次7.3秒自然完成未赶上取消；重新发起第二次并立即通过真实按钮取消",
+      "actual": "bf82eb28…为CANCELLED，页面说明原记录保留，无下载按钮/发布包；目标stress的扫描/人工库字节未变，共15库字节未变。并行查看的6919仅reviews.db字节变，但审计业务字段、人工事件、prior内容、规范绑定和静态均未变；与同期位置UPSERT路径相符，因缺原positions整表快照不作确定归因，不声称16库字节全同",
+      "issues": "无已确认产品缺陷；原all16哈希false保留，并补充准确范围解释",
+      "status": "已通过",
+      "evidence": [
+        "package-review.md",
+        "../../output/ui-practical-20261114/tasks-and-exports-final.json",
+        "../../output/ui-practical-20261114/audit-completion-checks-20261114.json",
+        "../../output/playwright/ui-practical-20261114/package-179-cancel-result-visible.png",
+        "../../output/ui-practical-20261114/export-cancel-hash-investigation.json"
+      ]
+    },
+    {
+      "id": "PK11",
+      "entry": "完整包导出 → 输出目录失败/恢复重试",
+      "purpose": "输出写入失败时准确反馈并可重新导出",
+      "conditions": "独立first-use根以可恢复普通文件占用exports目录位；准备与UI验证分开",
+      "expected": "失败无可下载成功包，原结果保留；恢复目标后可正常输出且内容完整；用户失败恢复要求",
+      "operations": "通过UI完整导出，查看FAILED；核对并移除本轮marker后UI重试完整导出并下载",
+      "actual": "47bca9d9…明确WinError183及exports路径，无假成功；恢复后291cc822…COMPLETE/100%，下载506856字节。49ZIP成员、manifest48项SHA/大小正确、scan.db逐字节匹配，失败记录保留。此为目录位被文件占用，不声称ACL拒写/磁盘满",
+      "issues": "无产品缺陷",
+      "status": "已通过",
+      "evidence": [
+        "recovery-startup-supplement.md",
+        "../../output/ui-practical-20261114/first-use-output-failure-preparation.json",
+        "../../output/ui-practical-20261114/first-use-output-failure-restored.json",
+        "../../output/ui-practical-20261114/first-use-output-recovery-proof.json",
+        "../../output/playwright/ui-practical-20261114/firstuse-80-output-path-failure-detail.png",
+        "../../output/playwright/ui-practical-20261114/firstuse-83-output-retry-download.png"
+      ]
+    },
+    {
+      "id": "PK13",
+      "entry": "人工确认增量 → 导入真实新增事件",
+      "purpose": "将独立副本的新判断合并到原工程",
+      "conditions": "backup-ui与主根相同原扫描；通过各自UI产生新的事件分支",
+      "expected": "新增事件真正入库且原6事件保留；不能用重复导入0新增替代正常合并；用户数据一致性要求",
+      "operations": "同设备完整备份副本g_msgSP签风险，主根同对象签安全；副本UI导出9362字节/7事件delta，主根真实文件选择导入；解决后重复同delta",
+      "actual": "首次明确新增事件1并形成并行冲突；原双方同canonical/fingerprint；解决后再导入新增0且冲突不复活。最终dc5原6事件payload全部保留，新增2分支+1解决，共9；其它7归档业务不变",
+      "issues": "新增合并与重复去重通过；冲突体验修复另列M14/I12",
+      "status": "已通过",
+      "evidence": [
+        "conflict-review.md",
+        "../../output/ui-practical-20261114/conflict-two-branches.json",
+        "../../output/ui-practical-20261114/audit-conflict-delta-package.json",
+        "../../output/ui-practical-20261114/audit-post-conflict-checks-20261114.json",
+        "../../output/playwright/ui-practical-20261114/package-222-conflict-repeat-no-new-events.png"
+      ]
+    },
+    {
+      "id": "M14",
+      "entry": "人工确认 → 并行冲突/显式解决",
+      "purpose": "辨明不同分支判断并保留来源后解决冲突",
+      "conditions": "同一Windows设备的完整备份副本与主根，相同扫描/对象各自产生A/B签署分支；不声称两台物理机器实测",
+      "expected": "冲突明确显示，不能静默覆盖；显式解决事件保留父链和历史，列表/统计一致；用户人工来源与数据要求",
+      "operations": "相同原扫描在backup-ui与主根真实UI产生分支并增量导入；发现I12后加载CdM0AXW-，检查空依据三按钮，填写依据并显式合并，再刷新重选查看历史",
+      "actual": "CdM0AXW-真实复验：空依据三合并动作禁用、标签完整；填入后启用并显式合并，待办4→3。刷新重选3条历史可读；最终2个revision1空父分支+1个revision2解决，解决parents精确包含双方，全部同规范对象/指纹。重复旧delta新增0、不复活冲突；主原14事件（含dc5原6）payload均保留",
+      "issues": "I12已修复并通过；普通签署规则与后端校验未改变",
+      "status": "已修复并通过",
+      "evidence": [
+        "conflict-review.md",
+        "../../output/ui-practical-20261114/audit-conflict-unresolved-main.json",
+        "../../output/ui-practical-20261114/audit-post-conflict-20261114.json",
+        "../../output/ui-practical-20261114/audit-post-conflict-checks-20261114.json",
+        "../../output/ui-practical-20261114/audit-post-conflict-backup-20261114.json",
+        "../../output/playwright/ui-practical-20261114/package-203-conflict-history.png",
+        "../../output/playwright/ui-practical-20261114/package-205-conflict-empty-rejected.png",
+        "../../output/playwright/ui-practical-20261114/package-209-conflict-new-form-empty.png",
+        "../../output/playwright/ui-practical-20261114/package-213-conflict-resolved-history.png",
+        "../../output/playwright/ui-practical-20261114/package-219-conflict-resolved-persistent-history.png"
+      ]
+    },
+    {
+      "id": "PK14",
+      "entry": "运行中传输 → 取消上传阶段",
+      "purpose": "在文件仍上传时中止传输",
+      "conditions": "真实localhost上传，受支持CDP网络限速20KB/s，未改DOM/状态/响应",
+      "expected": "实际取消当前上传且不发布不完整结果；用户中断恢复要求",
+      "operations": "通过支持的CDP上传限速20480B/s，在真实29.6%点击取消发现I13；同步后端并正式重启后，同包约40.7%再次点击取消，再恢复默认网络",
+      "actual": "原cbfa…虽CANCELLED却误称断网；新版0476…为CANCELLED/UPLOAD、收到163840/442731字节、无result，UI准确显示已取消导入上传/原记录保留。终审8归档5项目0错误，16库与17事件payload全同，原5导入job原样保留，临时文件0。附加UC02未取消的真实断流没有形成：CDP离线及正常关浏览器都让上传完成（2次重复合并0），该异常边界只有自动回归、未计UI通过",
+      "issues": "I13已修复并通过；非主动断流实操限制见专项UC02，不把正常完成当断流失败恢复",
+      "status": "已修复并通过",
+      "evidence": [
+        "upload-cancel-review.md",
+        "../../output/ui-practical-20261114/upload-cancel-first-result.json",
+        "../../output/ui-practical-20261114/i13-runtime-sync.json",
+        "../../output/ui-practical-20261114/i13-server-restart.json",
+        "../../output/ui-practical-20261114/audit-post-upload-20261114.json",
+        "../../output/ui-practical-20261114/audit-post-upload-checks-20261114.json",
+        "../../output/playwright/ui-practical-20261114/package-228-upload-network-restored.png",
+        "../../output/playwright/ui-practical-20261114/package-235-upload-retest-network-restored.png",
+        "../../output/playwright/ui-practical-20261114/package-247-reopen-after-upload-disconnect.png"
+      ]
+    }
+  ],
+  "remaining_discovery": [
+    "B02：外部vscode协议被Browser安全策略拒绝，站外编辑器跳转未验证，未换工具绕过。",
+    "B03：多核输入准备与合法ELF上传2项功能缺独立各核链接ELF和共享RAM绑定；同固件别名及普通对象库不替代。",
+    "B04：真实模型成功调用授权范围尚待澄清；机器有OpenCode，人为缺命令测试只验证失败与重试。",
+    "B05：永久释放需Computer Use工具规定的操作时确认，未执行；可恢复隔离/恢复已真实通过。",
+    "浏览器缩放和Windows显示缩放未独立调整验证；已检查1366×768、1920×1080及宿主1280×720 CSS/dPR1.75，不由dPR推定缩放比例。",
+    "附加异常边界UC02：未点击取消的真实上传socket断流未形成；CDP离线仅暂阻轮询，正常关浏览器时上传也完成，两任务实际重复合并0。该分支有自动回归但无真实失败界面通过证据，不当作独立功能增加数量。"
+  ],
+  "run_versions": [
+    {
+      "bundle": "index-B6iWxTn0.js",
+      "role": "初始实操与I01复现"
+    },
+    {
+      "bundle": "index-Cn6c7cff.js",
+      "role": "I01修复后的真实UI复验"
+    },
+    {
+      "bundle": "index-BjcqUQke.js",
+      "role": "I02/I03/I04新版实际复验"
+    },
+    {
+      "bundle": "index-Jd5kW4Cc.js",
+      "role": "主代理已重载并核对script资源；该版本完成重扫/同工程比较/Diff/嵌套作用域操作；后续I05–I09待新构建复验"
+    },
+    {
+      "bundle": "index-Dz_fcmH4.js",
+      "role": "主代理已正常关闭标签并经正式session入口重开；I05/I09/I10复验通过，最终样式index-Dw60A1lg.css；I06/I07/I08待最后UI核对"
+    }
+  ],
+  "round_closed": true
+}

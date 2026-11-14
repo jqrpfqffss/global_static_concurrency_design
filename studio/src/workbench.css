@@ -7,3 +7,4 @@ main.workbench-main{display:flex;flex-direction:column;overflow:auto;gap:8px;pad
 .symbol{grid-template-columns:minmax(0,1fr);row-gap:2px}.symbol>div{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;min-width:0}.symbol>div small{white-space:normal;overflow-wrap:anywhere}.symbol .tag{margin:0}
 
 .review-toggle .review-subject{flex:1;min-width:0;text-align:right;overflow-wrap:anywhere}.review-subject>strong,.review-subject>span{display:block}.review-toggle button{flex-shrink:0}
+.symbol small.translation-unit{white-space:normal;overflow-wrap:anywhere}

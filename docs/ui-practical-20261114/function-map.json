@@ -1,0 +1,864 @@
+{
+  "schema": "ECRA_UI_FUNCTION_MAP_V1",
+  "scope": "Independent user functions; detailed operations and boundary cases remain in checklist.json. Counts never replace unmet conditions with passed sibling scenarios.",
+  "principles": [
+    "独立用户目标/产品读写操作计1，点击次数、选项值、规模、失败/重试和同名/分页边界不另增数量。",
+    "不同入口能进入同一功能时合并，但每个已盘点入口仍须有状态；不以另一入口通过覆盖未验入口。",
+    "单纯页面总述和跨功能视觉观察作为证据保留，不重复计数。",
+    "组状态取所有适用记录中最未完成状态；通过只能在每条适用记录均已通过或已修复并通过时取得。",
+    "产品问题数与修复后通过功能数不同：同一功能可含多个独立缺陷，仍按1功能计。",
+    "输出应同时给去重功能数和操作/边界记录数，只有前者用于最终实操覆盖统计。"
+  ],
+  "aggregation_priority": [
+    "发现问题",
+    "已修复待复验",
+    "受阻未验证",
+    "待检查",
+    "已修复并通过",
+    "已通过",
+    "不适用(all only)"
+  ],
+  "groups": [
+    {
+      "function_key": "project_create",
+      "title": "新建工程与基本身份",
+      "item_ids": [
+        "H01",
+        "C01"
+      ],
+      "count": 1,
+      "count_rationale": "主页新建与手填工程基本身份属于同一建立流程，不按不同入口重复计数。"
+    },
+    {
+      "function_key": "project_build_config",
+      "title": "真实构建参数配置",
+      "item_ids": [
+        "C02"
+      ],
+      "count": 1,
+      "count_rationale": "构建方式/目标/工具链是独立配置目标；不和执行预检查混算。"
+    },
+    {
+      "function_key": "profile_yaml_save_reload",
+      "title": "完整配置核对、保存、重开与YAML校验",
+      "item_ids": [
+        "C04",
+        "C07",
+        "C10",
+        "A10",
+        "C17"
+      ],
+      "count": 1,
+      "count_rationale": "完整配置核对/保存/回读、故障恢复原文、损坏或长YAML错误提示为同一配置持久化/校验闭环；I10作为修复来源保留。"
+    },
+    {
+      "function_key": "profile_yaml_import",
+      "title": "从已有YAML导入配置",
+      "item_ids": [
+        "C05"
+      ],
+      "count": 1,
+      "count_rationale": "输入既有配置的独立入口，区别于结果包导入。"
+    },
+    {
+      "function_key": "project_path_check",
+      "title": "工程路径检查",
+      "item_ids": [
+        "C06"
+      ],
+      "count": 1,
+      "count_rationale": "有效与无效路径是一个检查功能的边界。"
+    },
+    {
+      "function_key": "build_preflight",
+      "title": "真实构建预检查",
+      "item_ids": [
+        "C08"
+      ],
+      "count": 1,
+      "count_rationale": "独立预检查动作，不与随后扫描重复计算。"
+    },
+    {
+      "function_key": "task_log_query",
+      "title": "任务日志查看与检索",
+      "item_ids": [
+        "C09",
+        "T08"
+      ],
+      "count": 1,
+      "count_rationale": "配置页查看检查日志与任务中心日志检索是同一日志能力的入口。"
+    },
+    {
+      "function_key": "task_profile_select",
+      "title": "任务工程配置选择",
+      "item_ids": [
+        "T01"
+      ],
+      "count": 1,
+      "count_rationale": "独立切换任务配置。"
+    },
+    {
+      "function_key": "task_resource_config",
+      "title": "任务资源预算配置",
+      "item_ids": [
+        "T02"
+      ],
+      "count": 1,
+      "count_rationale": "预算写入与资源查看不同。"
+    },
+    {
+      "function_key": "scan_start",
+      "title": "全量扫描启动",
+      "item_ids": [
+        "T03",
+        "C16",
+        "T11"
+      ],
+      "count": 1,
+      "count_rationale": "任务中心和配置完成按钮启动同一扫描能力；两条入口都保留验证要求。"
+    },
+    {
+      "function_key": "task_state_progress",
+      "title": "任务状态、阶段与范围显示",
+      "item_ids": [
+        "T04",
+        "T10"
+      ],
+      "count": 1,
+      "count_rationale": "同一任务详情的状态/标题查看；I06和I08仍分别列问题，不重复算功能。"
+    },
+    {
+      "function_key": "scan_stop",
+      "title": "安全停止扫描",
+      "item_ids": [
+        "T05"
+      ],
+      "count": 1,
+      "count_rationale": "独立状态变更动作。"
+    },
+    {
+      "function_key": "scan_resume",
+      "title": "校验输入并重试扫描",
+      "item_ids": [
+        "T06"
+      ],
+      "count": 1,
+      "count_rationale": "独立恢复动作。"
+    },
+    {
+      "function_key": "task_history",
+      "title": "任务历史选择",
+      "item_ids": [
+        "T07"
+      ],
+      "count": 1,
+      "count_rationale": "选择历史任务是独立的任务定位操作，与当前任务日志展示分别计数。"
+    },
+    {
+      "function_key": "task_resource_view",
+      "title": "完整资源采样与趋势",
+      "item_ids": [
+        "T09"
+      ],
+      "count": 1,
+      "count_rationale": "资源弹窗/最大化/关闭均为该读取功能操作。"
+    },
+    {
+      "function_key": "scan_open_switch",
+      "title": "打开与切换扫描归档",
+      "item_ids": [
+        "O01",
+        "HS03"
+      ],
+      "count": 1,
+      "count_rationale": "当前结果和历史结果是同一归档打开能力的不同入口。"
+    },
+    {
+      "function_key": "result_statistics",
+      "title": "当前分析分类统计",
+      "item_ids": [
+        "O02"
+      ],
+      "count": 1,
+      "count_rationale": "静态/AI分类与总数查看，区别人工队列进度。"
+    },
+    {
+      "function_key": "result_filter",
+      "title": "结果条件筛选与清空",
+      "item_ids": [
+        "O03",
+        "R02",
+        "R03"
+      ],
+      "count": 1,
+      "count_rationale": "概览分类卡片和筛选框均限制同一列表范围，清空属于同一条件管理。"
+    },
+    {
+      "function_key": "result_search",
+      "title": "变量/文件/身份搜索",
+      "item_ids": [
+        "R01"
+      ],
+      "count": 1,
+      "count_rationale": "独立文本搜索框的查询目的。"
+    },
+    {
+      "function_key": "result_sort",
+      "title": "结果排序与方向",
+      "item_ids": [
+        "R04"
+      ],
+      "count": 1,
+      "count_rationale": "独立改变顺序的功能，不把排序后的确认再计一次。"
+    },
+    {
+      "function_key": "result_page",
+      "title": "结果分页",
+      "item_ids": [
+        "R05"
+      ],
+      "count": 1,
+      "count_rationale": "上一页/下一页为一分页功能。"
+    },
+    {
+      "function_key": "symbol_identity",
+      "title": "变量身份辨别与可读性",
+      "item_ids": [
+        "D01",
+        "D13",
+        "L01"
+      ],
+      "count": 1,
+      "count_rationale": "同名不同文件、同位置不同TU和长文本是同一身份显示的边界。"
+    },
+    {
+      "function_key": "symbol_copy_name",
+      "title": "复制变量全名",
+      "item_ids": [
+        "D02"
+      ],
+      "count": 1,
+      "count_rationale": "独立剪贴板动作。"
+    },
+    {
+      "function_key": "symbol_access_evidence",
+      "title": "时序与访问证据查看",
+      "item_ids": [
+        "D03"
+      ],
+      "count": 1,
+      "count_rationale": "7条/40条访问等为同一证据功能的规模用例。"
+    },
+    {
+      "function_key": "symbol_call_navigation",
+      "title": "调用关系方向与层级展开",
+      "item_ids": [
+        "D04"
+      ],
+      "count": 1,
+      "count_rationale": "上游/下游、浅层/12层是同一调用导航的方向与深度。"
+    },
+    {
+      "function_key": "symbol_protection_evidence",
+      "title": "保护证据查看",
+      "item_ids": [
+        "D05"
+      ],
+      "count": 1,
+      "count_rationale": "独立保护窗口证据。"
+    },
+    {
+      "function_key": "workbench_focus",
+      "title": "专注阅读与恢复双栏",
+      "item_ids": [
+        "D06"
+      ],
+      "count": 1,
+      "count_rationale": "往返属于同一视图模式功能。"
+    },
+    {
+      "function_key": "symbol_adjacent",
+      "title": "上一项与下一项连续导航",
+      "item_ids": [
+        "D07"
+      ],
+      "count": 1,
+      "count_rationale": "页中/页末/确认后为同一相邻导航功能的边界。"
+    },
+    {
+      "function_key": "workbench_split",
+      "title": "列表与证据宽度调整",
+      "item_ids": [
+        "D08"
+      ],
+      "count": 1,
+      "count_rationale": "键盘或拖动为输入方式，不能按次数计数。"
+    },
+    {
+      "function_key": "symbol_ai_answer",
+      "title": "查看变量AI结论或未复核状态",
+      "item_ids": [
+        "D09",
+        "A02"
+      ],
+      "count": 1,
+      "count_rationale": "变量详情和复核页详情展示同一AI结果，保留多入口范围。"
+    },
+    {
+      "function_key": "source_view",
+      "title": "查看归档源码",
+      "item_ids": [
+        "S01"
+      ],
+      "count": 1,
+      "count_rationale": "打开当前对象源文件。"
+    },
+    {
+      "function_key": "source_font",
+      "title": "源码字号调整",
+      "item_ids": [
+        "S02"
+      ],
+      "count": 1,
+      "count_rationale": "放大/缩小为同一字号控制。"
+    },
+    {
+      "function_key": "source_wrap",
+      "title": "源码自动换行",
+      "item_ids": [
+        "S03"
+      ],
+      "count": 1,
+      "count_rationale": "独立显示开关。"
+    },
+    {
+      "function_key": "source_locate",
+      "title": "源码行定位",
+      "item_ids": [
+        "S04",
+        "D11"
+      ],
+      "count": 1,
+      "count_rationale": "输入行号和访问证据定位按钮均导航同一源码行能力。"
+    },
+    {
+      "function_key": "source_expand",
+      "title": "源码放大阅读与关闭",
+      "item_ids": [
+        "S05"
+      ],
+      "count": 1,
+      "count_rationale": "开/关/最大化是同一放大阅读功能。"
+    },
+    {
+      "function_key": "source_ide",
+      "title": "外部编辑器跳转",
+      "item_ids": [
+        "S06"
+      ],
+      "count": 1,
+      "count_rationale": "独立外部应用操作，B02阻断必须保留。"
+    },
+    {
+      "function_key": "source_page",
+      "title": "归档源码分段",
+      "item_ids": [
+        "S07"
+      ],
+      "count": 1,
+      "count_rationale": "前/后一段为一功能；40访问不能替代源码分页。"
+    },
+    {
+      "function_key": "source_full_reference",
+      "title": "完整源码文本与证据引用",
+      "item_ids": [
+        "S08"
+      ],
+      "count": 1,
+      "count_rationale": "独立完整原文/哈希核对，区别有限源码窗口。"
+    },
+    {
+      "function_key": "human_decision_save",
+      "title": "填写、保存与更正人工结论",
+      "item_ids": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M08",
+        "M09",
+        "M10",
+        "M11"
+      ],
+      "count": 1,
+      "count_rationale": "风险/无风险/需补证为同一判断写入的选择；同名/排序/分页/失败重试是绑定和持久化边界，不另计功能。"
+    },
+    {
+      "function_key": "human_history",
+      "title": "人工事件历史查看",
+      "item_ids": [
+        "M05"
+      ],
+      "count": 1,
+      "count_rationale": "独立读取历史事件。"
+    },
+    {
+      "function_key": "human_queue_statistics",
+      "title": "人工待办及无需确认统计",
+      "item_ids": [
+        "M06"
+      ],
+      "count": 1,
+      "count_rationale": "独立人工处理进度，区别静态分类。"
+    },
+    {
+      "function_key": "human_resume_position",
+      "title": "继续上次处理位置",
+      "item_ids": [
+        "M07"
+      ],
+      "count": 1,
+      "count_rationale": "刷新与正常关闭重开是一个恢复位置能力的使用方式。"
+    },
+    {
+      "function_key": "project_identity_view",
+      "title": "当前工程与构建身份查看",
+      "item_ids": [
+        "N01"
+      ],
+      "count": 1,
+      "count_rationale": "页头身份弹窗为独立来源核对。"
+    },
+    {
+      "function_key": "coverage_blockers",
+      "title": "覆盖阻断、完整证据与关联对象",
+      "item_ids": [
+        "N02",
+        "V01",
+        "V02"
+      ],
+      "count": 1,
+      "count_rationale": "主导航到覆盖页不是另一个独立功能，类型说明和关联详情属于阻断核对闭环。"
+    },
+    {
+      "function_key": "ai_queue_query",
+      "title": "AI待复核队列检索",
+      "item_ids": [
+        "N03",
+        "A01"
+      ],
+      "count": 1,
+      "count_rationale": "主导航入口和该页队列搜索属于同一队列访问能力。"
+    },
+    {
+      "function_key": "history_query",
+      "title": "历史归档检索",
+      "item_ids": [
+        "N04"
+      ],
+      "count": 1,
+      "count_rationale": "文本/模式/清空均为一个检索范围管理。"
+    },
+    {
+      "function_key": "storage_usage",
+      "title": "数据占用查看与刷新",
+      "item_ids": [
+        "N05"
+      ],
+      "count": 1,
+      "count_rationale": "查看与更新同一统计。"
+    },
+    {
+      "function_key": "startup_data_root",
+      "title": "启动数据目录设置",
+      "item_ids": [
+        "N06",
+        "Q01",
+        "Q15"
+      ],
+      "count": 1,
+      "count_rationale": "读取、检查、浏览、保存下次目录及重启生效属于同一数据目录设置闭环。"
+    },
+    {
+      "function_key": "coverage_records",
+      "title": "解析、别名及硬件缺口检索",
+      "item_ids": [
+        "V03"
+      ],
+      "count": 1,
+      "count_rationale": "独立诊断记录集合。"
+    },
+    {
+      "function_key": "coverage_translation_units",
+      "title": "编译单元与真实参数核对",
+      "item_ids": [
+        "V04"
+      ],
+      "count": 1,
+      "count_rationale": "TU筛选与参数展开为同一事实核对。"
+    },
+    {
+      "function_key": "coverage_build_scope",
+      "title": "构建与分析范围记录查看",
+      "item_ids": [
+        "V05"
+      ],
+      "count": 1,
+      "count_rationale": "独立归档构建范围读取。"
+    },
+    {
+      "function_key": "archive_index",
+      "title": "完整归档索引加载",
+      "item_ids": [
+        "V06"
+      ],
+      "count": 1,
+      "count_rationale": "首段/尾段属于同一索引完整读取功能。"
+    },
+    {
+      "function_key": "review_case_library",
+      "title": "案例库编辑保存与检索",
+      "item_ids": [
+        "A03"
+      ],
+      "count": 1,
+      "count_rationale": "新建/保存/查找组成可用案例闭环。"
+    },
+    {
+      "function_key": "review_context_edit",
+      "title": "工程背景编辑保存与草稿保护",
+      "item_ids": [
+        "A04",
+        "A05",
+        "A06"
+      ],
+      "count": 1,
+      "count_rationale": "正常文字、未保存关闭、合法空文为同一背景编辑功能的状态。"
+    },
+    {
+      "function_key": "data_backup_restore",
+      "title": "整套数据备份与恢复",
+      "item_ids": [
+        "Q02"
+      ],
+      "count": 1,
+      "count_rationale": "有效与无效计划、后续复制是完整功能要求，负面校验不能代替正常闭环。"
+    },
+    {
+      "function_key": "storage_policy",
+      "title": "空间策略编辑保存与重新读取",
+      "item_ids": [
+        "Q03",
+        "Q04"
+      ],
+      "count": 1,
+      "count_rationale": "草稿重读、策略保存和后续扫描布局属于同一存储策略闭环，不按策略选项重复计数。"
+    },
+    {
+      "function_key": "cleanup_preview",
+      "title": "回收候选预览",
+      "item_ids": [
+        "Q05"
+      ],
+      "count": 1,
+      "count_rationale": "独立只读规划动作，有实际账本但不移动候选。"
+    },
+    {
+      "function_key": "cleanup_execute_restore",
+      "title": "清理隔离及恢复",
+      "item_ids": [
+        "Q06"
+      ],
+      "count": 1,
+      "count_rationale": "可恢复清理动作，不能用预览通过覆盖。"
+    },
+    {
+      "function_key": "cleanup_history",
+      "title": "整理历史与计划查看",
+      "item_ids": [
+        "Q07"
+      ],
+      "count": 1,
+      "count_rationale": "独立查看清理历史。"
+    },
+    {
+      "function_key": "legacy_migration",
+      "title": "旧结果归属检查与迁移",
+      "item_ids": [
+        "Q08"
+      ],
+      "count": 1,
+      "count_rationale": "无效输入属于迁移边界，正常迁移尚需验证。"
+    },
+    {
+      "function_key": "legacy_migration_history",
+      "title": "迁移历史刷新",
+      "item_ids": [
+        "Q09"
+      ],
+      "count": 1,
+      "count_rationale": "独立历史查看，空历史是合法状态。"
+    },
+    {
+      "function_key": "multicore_inputs",
+      "title": "多核输入配置与下一步",
+      "item_ids": [
+        "Q10",
+        "Q11",
+        "Q12",
+        "Q14"
+      ],
+      "count": 1,
+      "count_rationale": "扫描选择、增减输入、折叠草稿及下一步为同一输入编排功能；缺少有效各核输入仍阻止整体通过。"
+    },
+    {
+      "function_key": "multicore_elf",
+      "title": "各核ELF上传与校验",
+      "item_ids": [
+        "Q13"
+      ],
+      "count": 1,
+      "count_rationale": "独立真实映像输入与验证。"
+    },
+    {
+      "function_key": "evidence_tabs",
+      "title": "证据标签切换与阅读位置保持",
+      "item_ids": [
+        "D10"
+      ],
+      "count": 1,
+      "count_rationale": "跨异步/保存时的标签稳定性是同一视图功能，不按时序用例数量计数。"
+    },
+    {
+      "function_key": "call_tree_zoom",
+      "title": "调用树缩放",
+      "item_ids": [
+        "D12"
+      ],
+      "count": 1,
+      "count_rationale": "独立可视化缩放控件。"
+    },
+    {
+      "function_key": "history_compare",
+      "title": "同工程历史比较及身份边界",
+      "item_ids": [
+        "HS01",
+        "HS02",
+        "HS04"
+      ],
+      "count": 1,
+      "count_rationale": "正常比较、跨工程拒绝和双方身份摘要为同一比较闭环；任一未验/有缺陷不能被其他通过掩盖。"
+    },
+    {
+      "function_key": "analysis_scope_config",
+      "title": "纳入目录与排除文件选择",
+      "item_ids": [
+        "C11"
+      ],
+      "count": 1,
+      "count_rationale": "同一变量范围配置，不按选中/清空次数计数。"
+    },
+    {
+      "function_key": "execution_entry_config",
+      "title": "执行入口配置",
+      "item_ids": [
+        "C12"
+      ],
+      "count": 1,
+      "count_rationale": "新增/移除为同一入口表编辑。"
+    },
+    {
+      "function_key": "analysis_parameters",
+      "title": "解析参数及默认值校验",
+      "item_ids": [
+        "C13"
+      ],
+      "count": 1,
+      "count_rationale": "180/-1/181及重载是同一参数编辑功能的边界。"
+    },
+    {
+      "function_key": "api_semantics_config",
+      "title": "扩展语义与API模式查看配置",
+      "item_ids": [
+        "C14"
+      ],
+      "count": 1,
+      "count_rationale": "独立高级语义配置区域；当前已验范围仍保留为展开读取。"
+    },
+    {
+      "function_key": "ai_parameter_config",
+      "title": "AI复核参数配置",
+      "item_ids": [
+        "C15"
+      ],
+      "count": 1,
+      "count_rationale": "独立参数组；展开不证明实际模型成功。"
+    },
+    {
+      "function_key": "human_inheritance",
+      "title": "重扫后的人工结论继承",
+      "item_ids": [
+        "M12",
+        "M13"
+      ],
+      "count": 1,
+      "count_rationale": "跨扫描来源规则，区别当前扫描事件写入。"
+    },
+    {
+      "function_key": "git_diff_scan",
+      "title": "Git双版本差异扫描",
+      "item_ids": [
+        "G01"
+      ],
+      "count": 1,
+      "count_rationale": "双版本分析是独立于全量的产品能力，参数及真实任务闭环要求保留。"
+    },
+    {
+      "function_key": "git_diff_evidence",
+      "title": "差异范围与变量证据查看",
+      "item_ids": [
+        "G02"
+      ],
+      "count": 1,
+      "count_rationale": "变更文件、删除空状态和访问差异为同一差异结果核对。"
+    },
+    {
+      "function_key": "review_delta_export",
+      "title": "人工确认增量导出与下载",
+      "item_ids": [
+        "PK02"
+      ],
+      "count": 1,
+      "count_rationale": "实际包与完成提示构成同一导出功能。"
+    },
+    {
+      "function_key": "report_export",
+      "title": "完整结果包导出与压缩选择",
+      "item_ids": [
+        "PK01",
+        "PK08",
+        "PK11"
+      ],
+      "count": 1,
+      "count_rationale": "快速/compact是同一完整导出的选项；真实下载及内容完整性均需通过。"
+    },
+    {
+      "function_key": "report_import",
+      "title": "完整结果包导入与恢复",
+      "item_ids": [
+        "H02",
+        "PK03",
+        "PK05",
+        "PK06"
+      ],
+      "count": 1,
+      "count_rationale": "主页入口以及已有包、新包、损坏包属于同一导入功能的入口与状态，不重复计数。"
+    },
+    {
+      "function_key": "review_delta_import",
+      "title": "人工增量导入与身份校验",
+      "item_ids": [
+        "PK04",
+        "PK07",
+        "PK13"
+      ],
+      "count": 1,
+      "count_rationale": "正常/重复/跨项目拒绝是同一合并功能的边界。"
+    },
+    {
+      "function_key": "transfer_history",
+      "title": "导入导出记录与进度操作",
+      "item_ids": [
+        "PK09"
+      ],
+      "count": 1,
+      "count_rationale": "查看/刷新/隐藏是同一传输记录管理。"
+    },
+    {
+      "function_key": "transfer_cancel",
+      "title": "取消运行中传输",
+      "item_ids": [
+        "PK10",
+        "PK12",
+        "PK14"
+      ],
+      "count": 1,
+      "count_rationale": "上传、后台导入与导出取消属于同一传输取消能力，分别保留实操证据；自然完成不能算作取消。"
+    },
+    {
+      "function_key": "builtin_sample_open",
+      "title": "打开内置示例",
+      "item_ids": [
+        "H03"
+      ],
+      "count": 1,
+      "count_rationale": "独立一键示例入口；从文件导入同一包不替代该按钮。"
+    },
+    {
+      "function_key": "ai_review_execute",
+      "title": "执行真实AI复核及完成状态",
+      "item_ids": [
+        "A07",
+        "A11"
+      ],
+      "count": 1,
+      "count_rationale": "缺工具失败与真实模型成功是同一复核执行功能的不同前提；A11受阻必须使整体受阻，不因失败分支正确称完整执行已通过。"
+    },
+    {
+      "function_key": "ai_review_receipts",
+      "title": "AI原始收据与技术错误详情",
+      "item_ids": [
+        "A08"
+      ],
+      "count": 1,
+      "count_rationale": "原始收据/stderr查看是独立诊断功能，区别业务AI结论读取。"
+    },
+    {
+      "function_key": "ai_review_retry_failed",
+      "title": "仅重试技术失败复核",
+      "item_ids": [
+        "A09"
+      ],
+      "count": 1,
+      "count_rationale": "独立重试失败集合的入口，当前只确认工具仍不可用时真实记录新尝试；不得扩大为恢复后模型成功。"
+    },
+    {
+      "function_key": "cleanup_purge",
+      "title": "永久释放隔离数据",
+      "item_ids": [
+        "Q16"
+      ],
+      "count_rationale": "不可恢复永久释放与可恢复暂存/恢复是不同用户目标与权限边界，动态发现后单独计1。"
+    },
+    {
+      "function_key": "legacy_originals_view",
+      "title": "查看旧归档原件与原复核材料",
+      "item_ids": [
+        "Q17"
+      ],
+      "count_rationale": "查看既有旧归档的保留原件是独立阅读目的，不等同执行一次迁移；原件、索引与事实展开不重复计数。"
+    },
+    {
+      "function_key": "human_conflict_resolution",
+      "title": "辨明并显式解决人工确认分支冲突",
+      "item_ids": [
+        "M14"
+      ],
+      "count_rationale": "已有并行人工分支的冲突处理是独立用户目标，不与普通签署/重复增量导入混计；分支创建/查看/解决不重复计数。"
+    }
+  ],
+  "noncounted_records": [
+    {
+      "item_id": "C03",
+      "count": 0,
+      "reason": "第3步综合描述，具体操作已分别归入C11/C12/C13/C14/C15；作为向导上下文记录保留，不再算独立功能。",
+      "covered_by": [
+        "analysis_scope_config",
+        "execution_entry_config",
+        "analysis_parameters",
+        "api_semantics_config",
+        "ai_parameter_config"
+      ]
+    }
+  ]
+}

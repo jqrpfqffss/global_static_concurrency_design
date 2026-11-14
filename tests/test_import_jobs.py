@@ -11,13 +11,14 @@ from unittest.mock import patch
 from urllib.parse import quote
 
 from fastapi.testclient import TestClient
+from starlette.requests import ClientDisconnect
 
 from ecra.human_reviews import ReviewStore
 from ecra.operation_progress import OperationCancelled
 from ecra.report_package import export_report, import_report, sha256
 from ecra.scan_store import EvidenceProvider, publish_scan
 from ecra.storage_activity import DataActivity, DataBusy
-from ecra.studio.import_jobs import ImportJobs, MAX_UPLOAD_BYTES
+from ecra.studio.import_jobs import ImportJobs, MAX_UPLOAD_BYTES, UploadDisconnected
 from ecra.studio.server import create_app
 
 
@@ -122,6 +123,95 @@ class ImportJobTests(unittest.TestCase):
         self.assertFalse(upload.path.parent.exists())
         with DataActivity(self.data,exclusive=True):pass
 
+    def test_explicit_upload_cancel_survives_following_socket_disconnect(self):
+        upload=self.jobs.begin_upload('cancelled.ecra-report',10)
+        upload.path.write_bytes(b'partial')
+        self.jobs.cancel(upload.item['id'])
+        self.jobs.abort_upload(upload,UploadDisconnected('上传连接已断开，请重新选择完整结果包'))
+        result=self.jobs.get(upload.item['id'])
+        self.assertEqual(result['state'],'CANCELLED')
+        self.assertIn('已取消导入上传',result['error'])
+        self.assertNotIn('连接已断开',result['error'])
+        self.assertFalse(upload.path.parent.exists())
+        self.assertFalse((self.data/'scans/scan').exists())
+        with DataActivity(self.data,exclusive=True):pass
+
+    def test_unrequested_upload_disconnect_remains_failure(self):
+        upload=self.jobs.begin_upload('disconnected.ecra-report',10)
+        upload.path.write_bytes(b'partial')
+        self.jobs.abort_upload(upload,UploadDisconnected('上传连接已断开，请重新选择完整结果包'))
+        result=self.jobs.get(upload.item['id'])
+        self.assertEqual(result['state'],'FAILED')
+        self.assertIn('连接已断开',result['error'])
+        self.assertFalse(upload.path.parent.exists())
+        self.assertFalse((self.data/'scans/scan').exists())
+        with DataActivity(self.data,exclusive=True):pass
+
+    def test_http_upload_disconnect_uses_persisted_cancel_intent(self):
+        for requested in (False,True):
+            with self.subTest(requested=requested):
+                ident=('c' if requested else 'd')*32
+                async def interrupted_stream(request):
+                    yield b'partial'
+                    if requested:self.jobs.cancel(ident)
+                    raise ClientDisconnect()
+                with patch('starlette.requests.Request.stream',interrupted_stream):
+                    response=self.client.post('/api/import-jobs',content=b'incomplete',
+                                              headers={'X-Upload-Id':ident})
+                self.assertEqual(response.status_code,400,response.text)
+                result=self.jobs.get(ident)
+                self.assertEqual(result['state'],'CANCELLED' if requested else 'FAILED')
+                self.assertIn('已取消导入上传' if requested else '连接已断开',result['error'])
+                self.assertEqual(list(self.jobs.uploads.iterdir()),[])
+                self.assertFalse((self.data/'scans/scan').exists())
+                with DataActivity(self.data,exclusive=True):pass
+
+    def test_cancel_intent_does_not_hide_upload_validation_or_disk_failure(self):
+        for error in (ValueError('上传长度与结果包声明不一致'),OSError(errno.ENOSPC,'disk full')):
+            with self.subTest(error=error):
+                upload=self.jobs.begin_upload('invalid.ecra-report',10)
+                upload.path.write_bytes(b'partial')
+                self.jobs.cancel(upload.item['id'])
+                self.jobs.abort_upload(upload,error)
+                result=self.jobs.get(upload.item['id'])
+                self.assertEqual(result['state'],'FAILED')
+                self.assertIn(str(error),result['error'])
+                self.assertFalse(upload.path.parent.exists())
+                with DataActivity(self.data,exclusive=True):pass
+
+    def test_late_upload_abort_preserves_terminal_result(self):
+        for requested in (False,True):
+            with self.subTest(requested=requested):
+                upload=self.jobs.begin_upload('late.ecra-report',10)
+                upload.path.write_bytes(b'partial')
+                if requested:self.jobs.cancel(upload.item['id'])
+                self.jobs.abort_upload(upload,UploadDisconnected('connection lost'))
+                original=self.jobs.get(upload.item['id'])
+                self.jobs.abort_upload(upload,ValueError('late unrelated error'))
+                self.assertEqual(self.jobs.cancel(upload.item['id']),original)
+                self.assertEqual(self.jobs.get(upload.item['id']),original)
+                with DataActivity(self.data,exclusive=True):pass
+
+    def test_service_stop_reason_survives_upload_cleanup(self):
+        upload=self.jobs.begin_upload('stopped.ecra-report',10)
+        reason='服务退出，导入上传已停止；已有扫描与人工记录保留。'
+        self.jobs.abort_upload(upload,OperationCancelled(reason))
+        result=self.jobs.get(upload.item['id'])
+        self.assertEqual(result['state'],'CANCELLED')
+        self.assertEqual(result['error'],reason)
+
+    def test_late_abort_cannot_replace_a_published_import(self):
+        content=self.package.read_bytes()
+        upload=self.jobs.begin_upload('published.ecra-report',len(content))
+        upload.path.write_bytes(content)
+        self.jobs.finish_upload(upload,len(content))
+        original=self.finish(upload.item['id'])
+        self.assertEqual(original['state'],'COMPLETE')
+        self.jobs.abort_upload(upload,UploadDisconnected('late browser disconnect'))
+        self.assertEqual(self.jobs.get(upload.item['id']),original)
+        self.assertTrue((self.data/'scans/scan/scan.db').is_file())
+        self.assertEqual(ReviewStore(self.data/'scans/scan/reviews.db',self.provider.metadata()).history(),[self.event])
+
     def test_bad_zip_failure_and_stale_upload_recovery_are_durable(self):
         job=self.start(b'PK invalid archive')
         failed=self.finish(job['id']);self.assertEqual(failed['state'],'FAILED')
@@ -131,6 +221,9 @@ class ImportJobTests(unittest.TestCase):
         upload.path.write_bytes(b'partial');upload.leases.close()
         restarted=ImportJobs(self.data)
         self.assertEqual(restarted.get(upload.item['id'])['state'],'INTERRUPTED')
+        original=restarted.get(upload.item['id'])
+        self.jobs.abort_upload(upload,UploadDisconnected('late old connection cleanup'))
+        self.assertEqual(restarted.get(upload.item['id']),original)
         self.assertFalse(upload.path.parent.exists())
         self.assertFalse((self.data/'scans/scan').exists())
 

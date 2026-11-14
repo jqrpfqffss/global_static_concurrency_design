@@ -1,0 +1,15 @@
+{
+  "checked_utc": "2026-11-14T02:08:54.123977+00:00",
+  "scope": "Documentation consistency only; no new product validation inferred",
+  "function_count": 87,
+  "counts": {
+    "已通过": 70,
+    "已修复并通过": 12,
+    "受阻未验证": 5
+  },
+  "operation_record_count": 135,
+  "unique_record_ids": true,
+  "round_closed": true,
+  "unclosed_records": [],
+  "broken_links": []
+}

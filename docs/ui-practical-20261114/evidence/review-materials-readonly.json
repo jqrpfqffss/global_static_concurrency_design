@@ -1,0 +1,19 @@
+{
+  "captured_utc": "2026-11-14T00:52:05.950286+00:00",
+  "read_only": true,
+  "files": [
+    {
+      "path": "H:\\global_static_concurrency_design\\output\\ui-practical-20261114\\runtime\\config\\concurrency_cases.md",
+      "bytes": 58512,
+      "sha256": "551db6445d1becd4e491ce2e1e39ca66ec84ef3f02e398d0b810ae4dd23b2c85",
+      "case_0027_present": true
+    },
+    {
+      "path": "H:\\global_static_concurrency_design\\output\\ui-practical-20261114\\runtime\\config\\review_context.md",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "case_0027_present": false
+    }
+  ],
+  "scope": "Only isolated runtime/config files; UI edit/save operations are recorded by parent agent"
+}
