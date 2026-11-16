@@ -114,7 +114,7 @@ class NativeConsumerTests(unittest.TestCase):
             actual=status(fixture.root,fixture.config)
         self.assertFalse(actual['resumable']);self.assertFalse(actual['review_complete'])
 
-    def test_canonical_legacy_in_firmware_is_viewed_but_never_reverified_or_written(self):
+    def test_explicit_legacy_firmware_output_is_refused_without_writes(self):
         fixture=fixtures.CanonicalScanTests(methodName='runTest');fixture.setUp();self.addCleanup(fixture.doCleanups)
         out,_=fixture.run_scan();legacy=fixture.root/'.ecra';shutil.copytree(out,legacy)
         raw=json.loads(fixture.config.read_text('utf-8'));raw['analysis']['output']=dict(location='project')
@@ -124,8 +124,8 @@ class NativeConsumerTests(unittest.TestCase):
         with patch.object(EvidenceProvider,'load',side_effect=AssertionError('full reconstruction forbidden')), \
              patch('ecra.native_consumers.status_report',side_effect=AssertionError('legacy runtime must migrate before SQLite opens')), \
              patch('ecra.workflow.read_queue',side_effect=AssertionError('legacy runtime must migrate before SQLite opens')):
-            info=status(fixture.root,fixture.config)
-        self.assertFalse(info['resumable']);self.assertIn('迁移',info['next_action'])
+            with self.assertRaisesRegex(ValueError, '固件.*迁移'):
+                status(fixture.root,fixture.config)
         self.assertEqual({str(p):sha256(p) for p in fixture.root.rglob('*') if p.is_file()},before)
 
     def test_scratch_junction_is_rejected_before_any_target_write(self):

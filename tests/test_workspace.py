@@ -16,13 +16,13 @@ from ecra.common import read_json, write_json
 from ecra.config import load_config
 from ecra.git_diff import pin, assert_pin
 from ecra.workspace import (WorkspaceResolver, migrate_legacy, file_hash,
-                            generated_untracked, lock_path, no_links, output_settings)
+                            generated_untracked, lock_path, managed_root, no_links, output_settings)
 from ecra.workflow import status, saved_run
 
 
 class WorkspaceTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix='ecra workspace 中文 ')
+        self.temp = tempfile.TemporaryDirectory(prefix='ws-', dir=managed_root())
         self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name).resolve()
         self.tool = self.home/'tool'
@@ -30,7 +30,8 @@ class WorkspaceTests(unittest.TestCase):
         self.patcher = patch('ecra.workspace.TOOL_ROOT', self.tool)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
-        self.data_env = patch.dict(os.environ, {'ECRA_DATA_ROOT': str(self.home/'data')})
+        self.data_dir = self.tool/'workspace/data-roots'
+        self.data_env = patch.dict(os.environ, {'ECRA_DATA_ROOT': str(self.data_dir/'data')})
         self.data_env.start()
         self.addCleanup(self.data_env.stop)
         self.repo = self.home/'固件 空格'
@@ -93,6 +94,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(first.project_id, WorkspaceResolver.resolve(self.root/'../Board', self.cfg['analysis']).project_id)
         other = self.home/'other'/'固件 空格'/'Board'
         other.mkdir(parents=True)
+        (other.parent/'.git').mkdir()
         self.assertNotEqual(first.project_id, WorkspaceResolver.resolve(other, self.cfg['analysis']).project_id)
         self.assertFalse(Path(first.results_root).is_relative_to(self.repo))
         metadata = read_json(Path(first.project_workspace)/'project.json')
@@ -166,12 +168,13 @@ class WorkspaceTests(unittest.TestCase):
 
     def test_T13_T14_configuration_compatibility(self):
         self.assertEqual(output_settings(dict(output_dir='.ecra'))['location'], 'user')
-        self.assertEqual(output_settings(dict(output_dir='my-results'))['location'], 'project')
-        with self.assertRaisesRegex(ValueError, '冲突'):
+        with self.assertRaisesRegex(ValueError, '禁止在固件'):
+            output_settings(dict(output_dir='my-results'))
+        with self.assertRaisesRegex(ValueError, '禁止在固件'):
             output_settings(dict(output_dir='old', output=dict(location='tool')))
-        self.cfg['analysis']['output'] = dict(location='custom', custom_dir=str(self.home/'external data'))
+        self.cfg['analysis']['output'] = dict(location='custom', custom_dir=str(self.data_dir/'extra'))
         out, _, _ = self.scan('full')
-        self.assertTrue(out.is_relative_to(self.home/'external data'))
+        self.assertTrue(out.is_relative_to(self.data_dir/'extra'))
         self.assertTrue(status(self.root, self.config)['resumable'])
 
     def test_T17_environment_and_compiler_bytes_invalidate_complete_cache(self):
@@ -208,7 +211,7 @@ class WorkspaceTests(unittest.TestCase):
     def test_T24_readonly_workspace_diagnostic(self):
         # Deterministic permission failure even under an administrator account.
         with patch('ecra.workspace.tempfile.TemporaryFile', side_effect=PermissionError('read only')):
-            with self.assertRaisesRegex(ValueError, 'custom_dir'):
+            with self.assertRaisesRegex(ValueError, '工具目录权限'):
                 self.ws().initialize()
         self.assertFalse((self.root/'.ecra').exists())
 
@@ -217,12 +220,12 @@ class WorkspaceTests(unittest.TestCase):
         private = self.root/'private-data'
         private.mkdir()
         (private/'keep.txt').write_text('user data')
-        with self.assertRaisesRegex(ValueError, '所有权'):
+        with self.assertRaisesRegex(ValueError, '禁止在固件'):
             WorkspaceResolver.resolve(self.root, options).initialize()
         self.assertEqual((private/'keep.txt').read_text(), 'user data')
         old = self.legacy()
         write_json(old/'run.json', dict(project_root=str(self.home/'different-project')))
-        with self.assertRaisesRegex(ValueError, '所有权'):
+        with self.assertRaisesRegex(ValueError, '禁止在固件'):
             WorkspaceResolver.resolve(self.root, dict(output=dict(location='project'))).initialize()
         self.assertFalse((old/'project.json').exists())
 
@@ -262,7 +265,7 @@ class WorkspaceTests(unittest.TestCase):
         original_open,original_fsync,original_rename=Path.open,os.fsync,Path.rename
         for point in ('open','fsync','rename'):
             with self.subTest(point=point):
-                ws=self.ws();work=Path(ws.project_workspace).with_name('signal-'+point)
+                ws=self.ws();work=Path(ws.project_workspace).with_name('signal-'+point+'_'+ws.project_id[:20])
                 ws=replace(ws,project_workspace=str(work),results_root=str(work/'results'))
                 marker=work/'project.json';pending=work/'project.json.pending';stops=[]
                 def stop():
@@ -287,7 +290,7 @@ class WorkspaceTests(unittest.TestCase):
     def test_explicit_interrupt_removes_only_owned_unpublished_claim_but_io_failure_keeps_it(self):
         from dataclasses import replace
         for error in (KeyboardInterrupt('cooperative abort'),OSError('actual fsync failure')):
-            ws=self.ws();work=Path(ws.project_workspace).with_name(type(error).__name__)
+            ws=self.ws();work=Path(ws.project_workspace).with_name(type(error).__name__+'_'+ws.project_id[:20])
             ws=replace(ws,project_workspace=str(work),results_root=str(work/'results'))
             marker=work/'project.json';pending=work/'project.json.pending'
             with patch('ecra.workspace.os.fsync',side_effect=error):
@@ -325,6 +328,7 @@ class WorkspaceTests(unittest.TestCase):
         ws = self.ws().initialize()
         other = self.home/'second-project'
         other.mkdir()
+        (other/'.git').mkdir()
         (other/'a.c').write_text('int second;void Task(void){second++;}')
         write_json(other/'compile_commands.json', [dict(directory=str(other), file='a.c',
             arguments=['arm-none-eabi-gcc', '-c', 'a.c'])])
@@ -334,20 +338,24 @@ class WorkspaceTests(unittest.TestCase):
         second['analysis']['git_diff']['enabled'] = False
         second_config = self.tool/'second.yaml'
         write_json(second_config, second)
-        script = Path(__file__).resolve().parents[1]/'run_ecra.py'
+        checkout = Path(__file__).resolve().parents[1]
+        script = self.tool/'run_ecra.py'
+        shutil.copyfile(checkout/script.name, script)
+        shutil.copytree(checkout/'ecra', self.tool/'ecra', ignore=shutil.ignore_patterns('__pycache__'))
+        env = dict(os.environ, ECRA_DATA_ROOT=str(self.tool/'workspace'))
         def command(config):
-            return [sys.executable, str(script), '--config', str(config), '--no-review','--legacy-output']
+            return [sys.executable, '-B', str(script), '--config', str(config), '--no-review','--legacy-output']
         with tempfile.TemporaryFile() as first_log, tempfile.TemporaryFile() as other_log:
-            first = subprocess.Popen(command(self.config), stdout=first_log, stderr=subprocess.STDOUT)
+            first = subprocess.Popen(command(self.config), stdout=first_log, stderr=subprocess.STDOUT, env=env)
             self.addCleanup(lambda: first.kill() if first.poll() is None else None)
             lock = Path(ws.project_workspace)/'scan.lock'
             deadline = time.monotonic()+15
             while not lock.exists() and first.poll() is None and time.monotonic() < deadline:
                 time.sleep(.02)
             self.assertTrue(lock.exists())
-            concurrent = subprocess.Popen(command(second_config), stdout=other_log, stderr=subprocess.STDOUT)
+            concurrent = subprocess.Popen(command(second_config), stdout=other_log, stderr=subprocess.STDOUT, env=env)
             self.addCleanup(lambda: concurrent.kill() if concurrent.poll() is None else None)
-            rejected = subprocess.run(command(self.config), capture_output=True, timeout=60)
+            rejected = subprocess.run(command(self.config), capture_output=True, timeout=60, env=env)
             self.assertEqual(rejected.returncode, 3, rejected.stdout)
             self.assertIn('扫描锁', rejected.stderr.decode('utf-8', errors='replace'))
             self.assertIn(first.wait(timeout=120), (0, 1, 2))
@@ -360,7 +368,8 @@ class WorkspaceTests(unittest.TestCase):
     def test_T27_junction_boundary(self):
         destination = self.home/'private'
         destination.mkdir()
-        alias = self.home/'data'
+        alias = self.data_dir/'data'
+        alias.parent.mkdir(parents=True)
         if os.name == 'nt':
             result = subprocess.run(['cmd', '/c', 'mklink', '/J', str(alias), str(destination)], capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -503,7 +512,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(code,3,'fixed commits must never consume the dirty original sibling header')
         self.assertEqual(before,(self.git('status','--porcelain=v1','-uall'),self.git('ls-files','--stage')))
         # Failure is explicit, rather than dropping the dependency from AST.
-        diagnostics=list(Path(self.ws().results_root).glob('git_diff/artifacts/base-*/result_validity.json'))
+        diagnostics=list(Path(self.ws().git_diff_root).glob('artifacts/base-*/result_validity.json'))
         self.assertEqual(len(diagnostics),1)
         self.assertIn('原固件工作区输入',read_json(diagnostics[0])['error'])
 

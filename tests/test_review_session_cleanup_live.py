@@ -147,6 +147,15 @@ def studio_api(data):
 @unittest.skipUnless(os.getenv('ECRA_TEST_OPENCODE_EXE'), 'opt in with ECRA_TEST_OPENCODE_EXE=absolute executable')
 class RealOpenCodeCleanupTest(unittest.TestCase):
     def test_real_opencode_live_disk_and_studio(self):
+        self.exercise(cleanup=True, workers=3, count=4)
+
+    def test_real_opencode_parallel_storage_without_cleanup(self):
+        self.exercise(cleanup=False, workers=3, count=3)
+
+    def test_real_opencode_single_variable_storage_without_cleanup(self):
+        self.exercise(cleanup=False, workers=1, count=1)
+
+    def exercise(self, *, cleanup, workers, count):
         case = fixtures.CanonicalScanTests(methodName='runTest')
         case.setUp()
         self.addCleanup(case.doCleanups)
@@ -165,13 +174,13 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
                    OPENCODE_DISABLE_AUTOUPDATE='true', OPENCODE_DISABLE_MODELS_FETCH='true',
                    OPENCODE_DISABLE_DEFAULT_PLUGINS='true', TEMP=str(tmp), TMP=str(tmp), TMPDIR=str(tmp))
 
-        names = [f'v{i}' for i in range(4)]
+        names = [f'v{i}' for i in range(count)]
         access = ' '.join(f'{name}++;' for name in names)
         (case.root/'main.c').write_text('int '+','.join(names)+';\nvoid ISR(void){'+access+
                                        '}\nint main(void){'+access+'return v0;}\n', encoding='utf-8')
         cfg = read_json(case.config)
-        cfg['review'].update(enabled=True, command=[exe], workers=3, retries=0, timeout_seconds=90,
-                             model='ecra-fixture/fixture', session_cleanup={'enabled': True})
+        cfg['review'].update(enabled=True, command=[exe], workers=workers, retries=0, timeout_seconds=90,
+                             model='ecra-fixture/fixture', session_cleanup={'enabled': cleanup})
         write_json(case.config, cfg)
         out = case.data/'scans'/'opencode-cleanup-live'
         sizes, deleted = [], []
@@ -223,11 +232,19 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
             sid = session_from_jsonl(evidence.read_text('utf-8'))[0]
             self.assertIsNotNone(sid)
             archived_ids.append(sid)
-        self.assertEqual(Counter(deleted), Counter(archived_ids), log.getvalue())
+        self.assertEqual(Counter(deleted), Counter(archived_ids) if cleanup else Counter(), log.getvalue())
         self.assertNotIn(manual_id, deleted)
-        self.assertEqual(len(sizes), 1, log.getvalue())
-        before, after = sizes[0]
-        self.assertGreater(before, after, log.getvalue())
+        if cleanup:
+            self.assertEqual(len(sizes), 1, log.getvalue())
+            before, after = sizes[0]
+            self.assertGreater(before, after, log.getvalue())
+        else:
+            databases = list((out/'opencode').glob('*/sessions.db'))
+            self.assertEqual(len(databases), 1)
+            with opencode.maintenance(databases[0]) as maintenance, maintenance.server() as api:
+                for sid in archived_ids:
+                    self.assertEqual(api.request('GET', '/session/'+sid)['id'], sid)
+            before = after = storage_bytes(databases[0])
 
         with studio_api(case.data) as studio:
             path = f'/api/scans/{out.name}'
@@ -236,7 +253,7 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
             for stream in ('stdout', 'stderr', 'prompt', 'packet'):
                 query = urlencode(dict(finding_id=row['finding_id'], name=row['execution'][stream+'_file']))
                 self.assertIn('text', studio(path+'/ai-artifact?'+query))
-        print(json.dumps(dict(opencode=VERSION, variables=len(rows), workers=3, precise_deletes=len(deleted),
+        print(json.dumps(dict(opencode=VERSION, variables=len(rows), workers=workers, precise_deletes=len(deleted),
                               manual_retained=1, disk_before_compaction=before, disk_after_compaction=after,
                               bytes_reclaimed=before-after, studio_evidence='verified'), ensure_ascii=False))
 

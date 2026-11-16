@@ -71,6 +71,10 @@ async function start(){
   })
 }
 async function stop(){await action(async()=>{await api(`/tasks/${selected.value}/stop`,'POST',{});notice.value=reviewTask.value?'复核停止请求已提交。已归档结果与静态检查点保留。':'停止请求已提交。已保存的数据和上一次有效扫描保留。'})}
+async function diagnostics(){await action(async()=>{
+  const bundle=await api(`/tasks/${selected.value}/diagnostics`,'POST',{})
+  notice.value='诊断包已保存：'+bundle.path
+})}
 async function retry(){await action(async()=>{const task=await api(`/tasks/${selected.value}/retry`,'POST',{});selected.value=task.id;logOffset.value=0;notice.value=task.mode==='review-failed'?'已提交技术失败项重试。':task.mode==='review-resume'?'已提交续跑，输入与收据校验后继续剩余项。':task.mode==='multicore'?'已提交固定输入的重新校验与派生重试。':'重新验证真实构建与完整输入闭包；只复用内容身份完全匹配的 TU 缓存。'})}
 function showTask(id:string){selected.value=id;logOffset.value=0;void poll()}
 watch(selected,(id)=>{detail.value=null;pollError.value='';if(id)emit('focus',id)},{flush:'sync'})
@@ -108,6 +112,7 @@ onUnmounted(()=>{mounted=false;if(timer)clearInterval(timer)})
       <div v-if="detail.failure&&!controlFailed&&control?.status!=='CANCELLED'" class="banner error"><strong>{{detail.failure.stage?.stage}}：{{detail.failure.exception_type}}</strong><p>{{detail.failure.message}}</p><p>请查看诊断及下方任务日志。</p></div>
       <p v-if="detail.pressure_publish_error" class="banner warning">{{detail.pressure_publish_error}}</p>
       <p v-if="detail.error" class="banner warning">{{detail.error}}</p><p v-for="message in detail.diagnostic_errors" class="banner warning" role="alert">{{message}}</p>
+      <button v-if="!running(detail)" :disabled="busy" @click="diagnostics">保存诊断包到数据目录</button>
       <div class="task-actions"><button :disabled="busy||detail.state!=='RUNNING'" @click="stop">安全停止</button><button :disabled="busy||active||!['FAILED','INTERRUPTED'].includes(detail.state)" @click="retry">{{reviewTask?(detail.mode==='review-failed'?'仅重试技术失败':'继续复核剩余项'):detail.mode==='multicore'?'重新校验固定输入并重试合并':detail.mode==='precheck'?'重新检查真实构建':'校验输入并重试扫描'}}</button><button v-if="detail.published" :disabled="busy" class="primary" @click="emit('open',detail.scan_id)">打开扫描结果</button></div>
       <p v-if="detail.reused_working_inputs">已完整复验并复用原任务 {{detail.reused_working_inputs.source_task}} 的CMake构建、生成输入及SDK。</p>
       <p v-if="reviewTask">重试先核对源码、编译输入和已归档收据。{{detail.mode==='review-failed'?'本任务仅重试技术失败项。':'已通过校验的归档项直接跳过。'}}</p><p v-else-if="detail.mode==='multicore'">重试将完整核对固定扫描、归档配置和ELF后重新执行派生合并。原有效结果与人工记录保留。</p><p v-else-if="detail.mode==='scan'&&detail.build_mode==='cmake'">恢复先完整复验已固定的源码、编译器、生成输入与SDK，通过后复用构建及匹配的TU。已完成的固定输入若已变化会拒绝恢复，请从工程配置发起新扫描。</p><p v-else-if="detail.mode==='scan'">恢复会重新检查源码、编译器、宏与依赖。缓存损坏或输入变化时重新提取；不会复用旧安全结论。</p>

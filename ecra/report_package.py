@@ -279,7 +279,8 @@ def _published_scan_hash(manifest, binding, version):
 def export_report(scan_directory, destination, *, compression='compact', progress=None):
     if not isinstance(compression,str) or compression not in {'compact','deflate'}:
         raise ValueError('完整包压缩只支持 compact（省空间）或 deflate（快速）')
-    source, destination = no_links(scan_directory), no_links(destination)
+    from .workspace import managed_path
+    source, destination = no_links(scan_directory), managed_path(destination, label='结果包保存路径')
     notify = progress or (lambda _: None)
     if destination.exists():
         raise FileExistsError('导出目标已存在，请另存新文件')
@@ -558,7 +559,8 @@ def import_report(package, data_root, *, max_bytes=128*1024**3, max_entries=1000
 
 @guarded_operation(lambda args:scan_data_root(args['scan_directory']))
 def export_delta(scan_directory, destination, *, progress=None):
-    source, destination = no_links(scan_directory), no_links(destination)
+    from .workspace import managed_path
+    source, destination = no_links(scan_directory), managed_path(destination, label='人工确认增量保存路径')
     provider = EvidenceProvider(source/'scan.db')
     binding = provider.validate(progress=progress)
     events = _review_events(source/'reviews.db', binding)
@@ -569,12 +571,12 @@ def export_delta(scan_directory, destination, *, progress=None):
         if prior:
             payload['prior_decisions']=prior
     # Validate the same lineage that the receiving computer will require.
-    with tempfile.TemporaryDirectory(prefix='ecra delta check ',dir=destination.parent if destination.parent.exists() else None) as folder:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='ecra delta check ', dir=destination.parent) as folder:
         check=ReviewStore(Path(folder)/'reviews.db',binding)
         with check.connection() as conn:
             copy_prior_rows(payload.get('prior_decisions',[]),conn,provider)
             check.merge(events,fingerprint_for=DiffReviewEvidence(source, provider, progress=progress).fingerprint,_connection=conn)
-    destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ecra delta ', dir=destination.parent) as folder:
         temp = Path(folder)/'delta.pending'
         temp.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True), encoding='utf-8')

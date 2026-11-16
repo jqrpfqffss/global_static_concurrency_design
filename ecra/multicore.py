@@ -307,6 +307,11 @@ def main():
     p.add_argument('--output',type=Path,help='独立数据根下全新的绝对路径 scans/<scan_id>；不允许固件内目录')
     p.add_argument('--data-root',type=Path,help='独立数据根；默认复用项目的WorkspaceResolver设置')
     a = p.parse_args()
+    from .runtime_storage import initialize
+    from .workspace import studio_data_root
+    if a.output is not None and a.output.is_absolute():
+        studio_data_root(a.output.parent.parent)
+    initialize(studio_data_root(a.data_root))
     def pairs(values,field):
         result={}
         for value in values:

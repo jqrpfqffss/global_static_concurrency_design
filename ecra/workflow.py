@@ -29,6 +29,12 @@ def file_digest(path):
 
 
 ENGINE_SCOPE = 'static-v1'
+# c96308d, the last engine before the workspace change. A sealed result may
+# resume archival review even when that engine's live build paths retired.
+_PRE_WORKSPACE_ENGINES = frozenset({
+    '3a1c30a68e917a2eb34cde42286c93e34bd2fdb48aef39c2c2ba5e0c4943190c',
+    'd5309f7d9f2520844b2dbf5611b142fe28c91cc21dee9c00f0f1adfdad6f6937',
+})
 # These modules consume existing facts; they do not recover accesses, calls or
 # static classifications. Unknown/new modules remain included by default.
 REVIEW_REPORT_MODULES = frozenset({
@@ -37,6 +43,7 @@ REVIEW_REPORT_MODULES = frozenset({
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
     'native_consumers.py', 'review_inheritance.py', 'review_sources.py', 'native_review_packet.py', 'review_hash.py', 'review_packet.py',
     'review_archive.py', 'review_process.py', 'review_session_cleanup.py', 'review_opencode_sessions.py',
+    'opencode_storage.py',
 })
 
 
@@ -644,9 +651,15 @@ def status(root, config_path=None):
             info.update(resumable=False, next_action='存在运行锁：等待扫描/复核结束；若进程已退出，确认后移除过期 scan.lock。当前数量来自已保存的结果。')
             return info
         try:
-            _, _, state = checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
-            from .git_diff import current_context
-            root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
+            from .workspace import context
+            ws = context(root, cfg['analysis'])
+            relocated = _archived_checkpoint(Path(ws.workspace_root), out, ws)
+            if relocated:
+                state = relocated[0]
+            else:
+                _, _, state = checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
+                from .git_diff import current_context
+                root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
             # A DONE label in queue.json is not enough to claim completion.
             # Check the immutable prompt, transcript, answer and cited source
             # before reporting a review as finished, without changing files.
@@ -654,6 +667,9 @@ def status(root, config_path=None):
             verified_queue = copy.deepcopy(queue)
             from .review_archive import verify_committed_review
             from .review_integrity import review_targets
+            from .review_sources import ArchivedSources, source_scope
+            from .scan_store import EvidenceProvider
+            archived = ArchivedSources(root, EvidenceProvider(out/'scan.db')) if is_canonical(out) else None
             expected = {f['finding_id']: f for f in review_targets(report)}
             for row in verified_queue:
                 if row.get('state') != 'DONE':
@@ -661,7 +677,8 @@ def status(root, config_path=None):
                 try:
                     fid = row['finding_id']
                     receipt = read_json(out/'review'/(fid+'.result.json'))
-                    verify_committed_review(root, out/'review', row, expected[fid], state['fingerprint'], receipt)
+                    with source_scope(archived):
+                        verify_committed_review(root, out/'review', row, expected[fid], state['fingerprint'], receipt)
                 except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
                     receipt_errors.append(dict(finding_id=row['finding_id'], error=str(exc)))
                     set_review_state(row, 'TECH_FAILED')
@@ -738,7 +755,8 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False, *, r
     from .storage_activity import DataActivity,review_data_root
     cfg,_=load_config(root,config_path)
     out=_out if _out is not None else output_path(root,cfg)
-    from .workspace import context, formal_workspace
+    from .workspace import context, formal_workspace, managed_path
+    out = managed_path(out)
     native = is_canonical(out)
     if native:
         formal_workspace(root, cfg['analysis'])
@@ -751,6 +769,45 @@ def saved_run(root, config_path=None, render_only=False, failed_only=False, *, r
         context(root, cfg['analysis']).initialize()
         with project_scan_lock(root, cfg['analysis']):
             return _saved_run(root, config_path, render_only, failed_only, resume=resume, resume_scope=resume_scope, _out=out)
+
+
+def _archived_checkpoint(data, out, workspace):
+    """Use the sealed static proof when its live storage paths are obsolete."""
+    from .data_transfer import retired_roots
+    roots = retired_roots(data)
+    state_path = out/'scan_state.json'
+    if not all(path.is_file() for path in (state_path, out/'manifest.json', out/'scan.db')):
+        return None
+    state = read_json(state_path)
+    previous_engine = state.get('engine_digest') in _PRE_WORKSPACE_ENGINES
+    if not roots and not previous_engine:
+        return None
+    from .scan_store import EvidenceProvider
+    from .report_package import validate_objects, sha256
+    from .scan_persistence import validate_review_binding
+    provider = EvidenceProvider(out/'scan.db')
+    try:
+        origin = Path(provider.load('report', ['workspace', 'results_root']))
+    except KeyError:
+        return None
+    if not ((origin == out and previous_engine) or any(origin == old/'scans'/out.name for old in roots)):
+        return None
+    manifest = read_json(out/'manifest.json')
+    binding = provider.validate(deep=True)
+    if (manifest.get('format') != 'ECRA_LOCAL_SCAN' or manifest.get('state') != 'STATIC_VALIDATED'
+            or any(manifest.get(key) != binding[key] for key in ('scan_id', 'project_id', 'facts_hash', 'report_hash'))
+            or binding['project_id'] != workspace.project_id or binding['scan_id'] != out.name
+            or sha256(out/'scan.db') != manifest.get('scan_sha256')):
+        raise ValueError('搬迁后的静态归档身份或内容校验失败')
+    validate_objects(out, manifest)
+    validate_review_binding(out, provider)
+    index = read_json(out/'evidence'/manifest['audit_index'])
+    state_hash = sha256(state_path)
+    if index['files']['scan_state.json']['sha256'] != state_hash:
+        raise ValueError('搬迁后的复核检查点与发布清单不一致')
+    if state['fingerprint'] != provider.load('report', ['fingerprint']):
+        raise ValueError('搬迁后的复核检查点与扫描指纹不一致')
+    return state, state_hash, manifest['scan_sha256']
 
 
 def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, resume=False, resume_scope=None, _out=None):
@@ -771,6 +828,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     source_reader=None;source_scope=None;source_token=None;source_entered=False
     from .scan_persistence import is_canonical
     runtime_only=is_canonical(out)
+    relocated = _archived_checkpoint(Path(workspace.workspace_root), out, workspace) if runtime_only else None
     from .scan_diagnostics import ACTIVE
     review_diagnostics=ACTIVE.get()
     if getattr(review_diagnostics,'consumer',None)!='REVIEW':review_diagnostics=None
@@ -781,26 +839,33 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         return generate(out,facts,report,reviews)
     try:
         try:
-            if runtime_only and not render_only and (out/'scan_state.json').is_file():
+            if relocated:
+                from .native_consumers import runtime_inputs
+                facts, report = runtime_inputs(out)
+                state = relocated[0]
+                print(f'使用已校验的历史扫描归档继续复核: {out}', flush=True)
+            elif runtime_only and not render_only and (out/'scan_state.json').is_file():
                 from .studio.opencode_recovery import recover_review_tree
                 state = read_json(out/'scan_state.json')
                 if isinstance(state, dict):
                     recover_review_tree(workspace, state.get('git_diff_pin'))
-            facts, report, state = checked_scan(root,out,cfg,config_file,with_facts=not runtime_only,
-                _report_projection=runtime_only)
-            if runtime_only:
-                from .native_consumers import runtime_inputs
-                facts,report=runtime_inputs(out)
-            from .git_diff import current_context
-            root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
+            if not relocated:
+                facts, report, state = checked_scan(root,out,cfg,config_file,with_facts=not runtime_only,
+                    _report_projection=runtime_only)
+                if runtime_only:
+                    from .native_consumers import runtime_inputs
+                    facts,report=runtime_inputs(out)
+                from .git_diff import current_context
+                root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
             if state.get('scan_mode'):
                 cfg['analysis']['git_diff']['enabled'] = state['scan_mode'] == 'diff'
-            from .frozen_scan import saved_reader
-            from .input_snapshot import SOURCE_READS
-            source_scope=saved_reader(root,out,cfg,state)
-            source_reader=source_scope.__enter__()
-            source_entered=True
-            if source_reader is not None:source_token=SOURCE_READS.set(source_reader)
+            if not relocated:
+                from .frozen_scan import saved_reader
+                from .input_snapshot import SOURCE_READS
+                source_scope=saved_reader(root,out,cfg,state)
+                source_reader=source_scope.__enter__()
+                source_entered=True
+                if source_reader is not None:source_token=SOURCE_READS.set(source_reader)
         except ValueError as exc:
             if '源码/头文件/编译数据库已变化' not in str(exc):
                 raise
@@ -823,15 +888,21 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         if render_only:
             from .review_archive import reconcile_reviews
             from .review_integrity import review_targets
-            reviews = reconcile_reviews(root, out, review_targets(report), read_queue(out), state['fingerprint'])
+            from .review_sources import ArchivedSources, source_scope as archived_scope
+            from .scan_store import EvidenceProvider
+            archived = ArchivedSources(root, EvidenceProvider(out/'scan.db')) if runtime_only else None
+            with archived_scope(archived):
+                reviews = reconcile_reviews(root, out, review_targets(report), read_queue(out), state['fingerprint'])
         else:
             cfg['review']['enabled'] = True
             try:
                 from contextlib import nullcontext
                 with review_diagnostics.cooperative_extraction_stop() if review_diagnostics else nullcontext():
+                    from .config import review_material_path
                     reviews = review_all(root, out, cfg, facts, report, state['fingerprint'],
-                                         review_context_path=config_file.parent/'review_context.md',
-                                         case_library_path=config_file.parent/'concurrency_cases.md', mode=mode, resume_scope=resume_scope)
+                                         review_context_path=review_material_path(config_file, 'review_context.md'),
+                                         case_library_path=review_material_path(config_file, 'concurrency_cases.md'),
+                                         mode=mode, resume_scope=resume_scope)
             except KeyboardInterrupt:
                 pause_saved_review(out, facts, report, 'INTERRUPTED')
                 print('复核已中断；使用 review-resume 继续剩余项。', flush=True)
@@ -842,7 +913,11 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         inputs_current = True
         review_stage('复核后完整输入重验与结果保存（剩余量未知）')
         try:
-            checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
+            if relocated:
+                if (file_digest(out/'scan_state.json'), file_digest(out/'scan.db')) != relocated[1:]:
+                    raise ValueError('复核期间搬迁归档的静态证据已变化')
+            else:
+                checked_scan(root, out, cfg, config_file, with_facts=False, _report_projection=True)
         except KeyboardInterrupt:
             pause_saved_review(out, facts, report, 'INTERRUPTED')
             raise
@@ -866,7 +941,7 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
                 f['status']=r['status']; f['review']=r['answer']
         refresh(facts,report,reviews)
         write_json(queue_file, reviews)
-        if inputs_current:
+        if inputs_current and not relocated:
             try:
                 verify_saved_publication(root, out, cfg, state, config_file)
             except KeyboardInterrupt:

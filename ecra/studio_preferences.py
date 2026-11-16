@@ -1,4 +1,4 @@
-"""Stable local startup preferences, separate from replaceable app/data roots."""
+"""Tool-local startup preferences with relative, relocation-safe selections."""
 import hashlib
 import json
 import os
@@ -20,22 +20,25 @@ def _hash(raw):
 
 
 def preference_home():
-    from .workspace import studio_data_root
+    from .workspace import control_path
+    return control_path('preferences')
+
+
+def legacy_home():
     if os.name == 'nt':
-        raw = os.environ.get('LOCALAPPDATA', '')
-        if not Path(raw).is_absolute():
-            raise PreferenceError('LOCALAPPDATA不可用，无法保存启动目录')
-        home = Path(raw)/'ECRAStudio'
-    else:
-        home = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config')))/'ECRAStudio'
-    return studio_data_root(home)
+        value = os.environ.get('LOCALAPPDATA')
+        return Path(value)/'ECRAStudio' if value and Path(value).is_absolute() else None
+    return Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config')))/'ECRAStudio'
 
 
 def read_preferences():
-    from .workspace import no_links, studio_data_root
+    from .workspace import managed_root, no_links, studio_data_root
     file = no_links(preference_home()/'preferences.json')
     if not file.exists():
-        return dict(revision='missing', status='MISSING', selected=None, error=None, payload=None, raw=None)
+        old = legacy_home()
+        if old is None or not (old/'preferences.json').is_file():
+            return dict(revision='missing', status='MISSING', selected=None, error=None, payload=None, raw=None)
+        file = no_links(old/'preferences.json')  # Previous selections are read-only.
     if file.stat().st_size > 1024*1024:
         raise PreferenceError('启动设置超过1MiB；请保留原件并从明确数据目录启动恢复：'+str(file))
     raw = file.read_bytes()
@@ -45,15 +48,18 @@ def read_preferences():
         if (not isinstance(payload, dict) or payload.get('format') != 'ECRA_STUDIO_PREFERENCES'
                 or type(payload.get('version')) is not int or payload['version'] != 1):
             raise ValueError('启动设置协议不支持')
-        target = payload.get('data_root')
-        if not isinstance(target, str) or not Path(target).is_absolute():
-            raise ValueError('已保存的数据目录不是绝对路径')
+        if 'workspace_relative' in payload:
+            value = payload['workspace_relative']
+            if not isinstance(value, str) or Path(value).anchor or '..' in Path(value).parts:
+                raise ValueError('相对工具数据目录无效')
+            target = managed_root()/value
+        else:
+            target = payload.get('data_root')
+            if not isinstance(target, str) or not Path(target).is_absolute():
+                raise ValueError('已保存的数据目录不是绝对路径')
         selected = studio_data_root(target)
-        from .config import TOOL_ROOT
-        if selected == Path(selected.anchor) or Path(TOOL_ROOT).resolve().is_relative_to(selected):
-            raise ValueError('数据目录不能是盘根或程序安装目录的父目录')
-        if not Path(selected.anchor).exists():
-            raise ValueError('已保存数据目录所在磁盘当前不可用')
+        if not selected.is_dir():
+            raise ValueError(f'已保存数据目录不存在: {selected}；请核对解压或迁移位置')
         result.update(status='VALID', selected=str(selected), payload=payload)
     except (ValueError, OSError, UnicodeError) as exc:
         result['error'] = '无法使用已保存的启动设置：'+str(exc)+'；原件保留于 '+str(file)
@@ -71,7 +77,9 @@ def startup_selection(explicit=None):
     """Reuse the workspace resolver; only a bad saved default enters recovery."""
     from .workspace import studio_data_root, default_user_data_root
     if explicit is not None:
-        return dict(root=studio_data_root(explicit), source='STARTUP_ARGUMENT', warning=None)
+        if os.environ.get('ECRA_DATA_ROOT'):
+            studio_data_root(os.environ['ECRA_DATA_ROOT'], label='ECRA_DATA_ROOT')
+        return dict(root=studio_data_root(explicit, label='--data-root'), source='STARTUP_ARGUMENT', warning=None)
     if os.environ.get('ECRA_DATA_ROOT'):
         return dict(root=studio_data_root(), source='ENVIRONMENT', warning=None)
     try:
@@ -80,10 +88,10 @@ def startup_selection(explicit=None):
             raise PreferenceError(state['error'])
         if state['selected']:
             return dict(root=studio_data_root(state['selected']), source='GUI_DEFAULT', warning=None)
-    except (PreferenceError, OSError) as exc:
+    except PreferenceError as exc:
         return dict(root=studio_data_root(default_user_data_root()), source='RECOVERY_DEFAULT',
-                    warning=str(exc)+'。当前在系统默认目录恢复设置，原数据目录未搬迁；请到设置页核对。')
-    return dict(root=studio_data_root(default_user_data_root()), source='SYSTEM_DEFAULT', warning=None)
+                    warning=str(exc)+'。正在使用工具内 workspace；可在设置页修复，旧数据可进行只读迁移。')
+    return dict(root=studio_data_root(default_user_data_root()), source='TOOL_DEFAULT', warning=None)
 
 
 def status(current, source, warning=None):
@@ -91,21 +99,17 @@ def status(current, source, warning=None):
     return dict(current_root=str(current), source=source, startup_warning=warning,
                 selected_root=state['selected'], revision=state['revision'], preference_status=state['status'],
                 error=state['error'], preference_file=str(preference_home()/'preferences.json'),
-                precedence='启动参数 > ECRA_DATA_ROOT > GUI保存的默认值 > 系统默认',
+                precedence='启动参数 > ECRA_DATA_ROOT > GUI保存的默认值 > 工具目录内 workspace',
                 explicit_override=source in {'STARTUP_ARGUMENT', 'ENVIRONMENT'})
 
 
 def _target(path, current):
-    from .workspace import no_links, studio_data_root
-    from .config import TOOL_ROOT, configured_project_root
+    from .workspace import managed_root, no_links, studio_data_root
+    from .config import configured_project_root
     if not isinstance(path, str) or not path or not Path(path).is_absolute():
-        raise ValueError('请选择数据目录的绝对路径，例如 D:/ECRA-data')
+        raise ValueError('请选择工具 workspace 内的数据根绝对路径')
     target = studio_data_root(path)
     current = no_links(current)
-    if target == Path(target.anchor) or Path(TOOL_ROOT).resolve().is_relative_to(target):
-        raise ValueError('数据目录不能是盘根或程序安装目录的父目录')
-    if target != current and (target.is_relative_to(current) or current.is_relative_to(target)):
-        raise ValueError('请选择与当前数据根无父子关系的另一独立目录')
     projects = no_links(current/'projects')
     if projects.exists():
         for profile in projects.glob('*/profiles/*.yaml'):
@@ -127,9 +131,9 @@ def _target(path, current):
         kind, marker_hash = 'REGISTERED', _hash(raw)
     else:
         if target.exists():
-            with os.scandir(target) as entries:
-                if next(entries, None) is not None:
-                    raise ValueError('目标非空且不是已登记Studio数据根；旧.ecra/workspace请从数据与共享迁移')
+            infrastructure = {'.ecra', 'a', 'data-roots'} if target == managed_root() else set()
+            if any(path.name not in infrastructure for path in target.iterdir()):
+                raise ValueError(f'目标非空且未登记为 Studio 数据根: {target}；已有结果可从数据与共享迁移')
         kind, marker_hash = 'EMPTY', None
     existing = target
     while not existing.exists():
@@ -165,7 +169,7 @@ def _settings_lock(home):
 
 
 def save(path, current, *, plan_id, revision, repair=False):
-    from .workspace import no_links
+    from .workspace import managed_root, no_links
     from .common import replace_file
     home = preference_home()
     home.mkdir(parents=True, exist_ok=True)
@@ -195,7 +199,9 @@ def save(path, current, *, plan_id, revision, repair=False):
                 if backup.read_bytes()!=state['raw']:
                     raise ValueError('启动设置备份摘要冲突；原设置保留')
         payload = dict(state['payload'] or {})
-        payload.update(format='ECRA_STUDIO_PREFERENCES', version=1, data_root=str(target))
+        payload.pop('data_root', None)
+        payload.update(format='ECRA_STUDIO_PREFERENCES', version=1,
+                       workspace_relative=target.relative_to(managed_root()).as_posix())
         raw = json.dumps(payload, ensure_ascii=True, indent=2).encode('utf-8')+b'\n'
         pending = None
         try:

@@ -10,6 +10,12 @@ from ecra.cli import run
 
 
 class CompleteInventoryTests(unittest.TestCase):
+    @property
+    def out(self):
+        from ecra.workspace import WorkspaceResolver
+        folder = Path(WorkspaceResolver.resolve(self.root, {}).results_root)
+        return folder
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='ecra complete ')
         self.addCleanup(self.temp.cleanup)
@@ -29,14 +35,14 @@ class CompleteInventoryTests(unittest.TestCase):
         (self.root/'.ecra').mkdir(exist_ok=True)
         inventory_analysis = dict(analysis or {})
         inventory_analysis.setdefault('build_closure_only', False)
-        inventory_analysis.setdefault('output', dict(location='project'))
+        inventory_analysis.setdefault('output', dict(location='tool'))
         cfg = dict(version=1, analysis=dict(compile_database='compile_commands.json', **inventory_analysis),
                    contexts=[dict(id='main',kind='MAIN',functions=['main'])], review=dict(enabled=False))
         (self.root/'.ecra/semantics.yaml').write_text(json.dumps(cfg))
         with contextlib.redirect_stdout(io.StringIO()):
             code = run(self.root, no_review=True)
         self.assertIn(code, [0,2])
-        out = self.root/cfg['analysis'].get('output_dir','.ecra')
+        out = self.out
         self.facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
         self.report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         outside = {v['symbol_id'] for v in self.facts['variables']
@@ -94,11 +100,11 @@ int main(void){
         self.assertGreater(rates['variant_inventory'], 0)
         self.assertEqual(all_inventory['denominator'], build['denominator'] + rates['variant_inventory'])
         self.assertEqual(all_inventory['numerator'], build['numerator'] + rates['variant_inventory'])
-        self.assertIn('RR_build', (self.root/'.ecra/classification_quality.html').read_text(encoding='utf-8'))
-        self.assertIn('RR_all', (self.root/'.ecra/classification_quality.html').read_text(encoding='utf-8'))
-        diagnostic = json.loads((self.root/'.ecra/reports/root_cause_v2.json').read_text(encoding='utf-8'))
+        self.assertIn('RR_build', (self.out/'classification_quality.html').read_text(encoding='utf-8'))
+        self.assertIn('RR_all', (self.out/'classification_quality.html').read_text(encoding='utf-8'))
+        diagnostic = json.loads((self.out/'reports/root_cause_v2.json').read_text(encoding='utf-8'))
         self.assertEqual(diagnostic['review_rates'], rates)
-        self.assertTrue((self.root/'.ecra/reports/classification_root_causes.md').exists())
+        self.assertTrue((self.out/'reports/classification_root_causes.md').exists())
 
     def test_header_real_tu_context_relative_includes(self):
         build=self.root/'build';build.mkdir()
@@ -146,7 +152,7 @@ int main(void){
         with tempfile.TemporaryDirectory(prefix='ecra external ') as external:
             path=Path(external)/'empty.h';path.write_text('/* empty */')
             self.scan({'main.c':'int main(void){return 0;}','build/user.c':'int built_user;'},
-                analysis=dict(include_dirs=['.',external],output_dir='custom-report'))
+                analysis=dict(include_dirs=['.',external]))
             cov={c['file']:c for c in self.report['coverage']['file_coverage']}
             self.assertIn(path.resolve().as_posix(),cov)
             self.assertEqual(cov[path.resolve().as_posix()]['variable_count'],0)

@@ -7,7 +7,7 @@ import yaml
 
 
 TOOL_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_HOME = Path(os.environ.get('ECRA_CONFIG_HOME', str(TOOL_ROOT / 'config'))).resolve()
+CONFIG_HOME = Path(os.environ.get('ECRA_CONFIG_HOME') or TOOL_ROOT/'config').resolve()
 SEMANTICS_FILE = CONFIG_HOME / 'semantics.yaml'
 
 
@@ -73,7 +73,7 @@ analysis:
   exclude_dirs: []
   exclude_files: []  # 混放在业务目录中的第三方 .c/.h 文件；保留调用链依赖
   parse_timeout_seconds: 180
-  # output: {location: user}  # 默认独立用户数据根，按工程和扫描隔离
+  # output: {location: tool}  # 默认工具目录 workspace，按工程和扫描隔离
   auto_contexts: true
 contexts:
   - id: main
@@ -200,7 +200,24 @@ def resolve_config_path(root=None, path=None):
         legacy = Path(root).resolve() / '.ecra' / 'semantics.yaml'
         if legacy.is_file():
             return legacy
+    from .workspace import control_path
+    if CONFIG_HOME == TOOL_ROOT/'config':
+        generated = control_path('config', 'semantics.yaml')
+        if generated.is_file():
+            return generated
     return SEMANTICS_FILE
+
+
+def review_material_path(config_path, name):
+    """Prefer Studio's tool-local edit for tool configs and packaged defaults."""
+    from .workspace import control_path
+    folder = Path(config_path).parent
+    if folder in {CONFIG_HOME, control_path('config')}:
+        edited = control_path('config', name)
+        if edited.is_file():
+            return edited
+        return CONFIG_HOME/name
+    return folder/name
 
 
 def configured_project_root(path=None):
@@ -310,6 +327,8 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
     a.pop('_workspace', None)
     a.pop('build_path_mapping', None)
     from .workspace import output_settings
+    if '_workspace' in a:
+        raise ValueError(f'配置不能指定内部运行目录 _workspace: {path}')
     output_settings(a)
     from .git_diff import settings as git_diff_settings
     a['git_diff'] = git_diff_settings(a.get('git_diff', {}))

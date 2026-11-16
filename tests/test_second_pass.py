@@ -23,6 +23,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Fixture(unittest.TestCase):
+    @property
+    def out(self):
+        from ecra.workspace import WorkspaceResolver
+        folder = Path(WorkspaceResolver.resolve(self.root, {}).results_root)
+        return folder
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="ecra 2nd ")
         self.root = Path(self.tmp.name).resolve()
@@ -44,15 +50,15 @@ class Fixture(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", **analysis),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", **analysis),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]),
                                         dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
         from ecra.cli import run
         run(self.root, no_review=True)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
-        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
+        report = json.loads((self.out/"reports/global_static_concurrency.json").read_text(encoding="utf-8"))
         outside = {v['symbol_id'] for v in facts['variables']
                    if v.get('static_classification') == 'OUT_OF_BUILD'}
         self.assertFalse(any(f.get('symbol_id') in outside for f in report['findings']))
@@ -68,7 +74,7 @@ class Fixture(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", **analysis),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", **analysis),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]),
                                         dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -129,7 +135,7 @@ class TestInactiveBranches(Fixture):
     def test_original_line_in_html(self):
         """HTML inventory must show original file and line, not worker paths."""
         facts, report = self.setup_run({"a.c": "int g;\n#if 0\nint hidden_var = 99;\n#endif\nvoid ISR(void){g++;} void Task(void){g++;}"})
-        html = (self.root / ".ecra/index.html").read_text(encoding="utf-8")
+        html = (self.out/"index.html").read_text(encoding="utf-8")
         self.assertIn("hidden_var", html)
         self.assertIn("a.c", html)
         self.assertNotIn("INACT_", html)
@@ -142,14 +148,14 @@ class TestInactiveBranches(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
         from ecra.cli import run
         run(self.root, no_review=True)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         hidden = [v for v in facts["variables"] if v["name"] == "extra_hidden"]
         self.assertTrue(hidden, "inactive branch in unlisted source not found")
         self.assertEqual(hidden[0].get("coverage_source"), "inactive_branch")
@@ -163,14 +169,14 @@ class TestInactiveBranches(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-I.", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
         from ecra.cli import run
         run(self.root, no_review=True)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         hidden = [v for v in facts["variables"] if v["name"] == "inactive_header_global"]
         self.assertTrue(hidden, "inactive header global not found")
         # Check that the declaration location is in config.h (may be in declarations, not definition_file)
@@ -188,14 +194,14 @@ class TestSupplementalIsolation(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
         from ecra.cli import run
         run(self.root, no_review=True)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         g = next(v for v in facts["variables"] if v["name"] == "g" and v.get("coverage_source", "compile_database") == "compile_database")
         self.assertNotIn("ExtraIRQHandler", str(g.get("writers", [])))
         self.assertNotIn("ExtraIRQHandler", str(g.get("contexts", [])))
@@ -209,14 +215,14 @@ class TestSupplementalIsolation(Fixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
         from ecra.cli import run
         run(self.root, no_review=True)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         isrs = [f for f in facts["functions"] if f["name"] == "ISR"]
         self.assertEqual(len(isrs), 1)
 

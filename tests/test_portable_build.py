@@ -12,23 +12,34 @@ import unittest
 from unittest.mock import patch
 
 from ecra.compilation import cmake_build_directory, configure_cmake
-from ecra.portable import audit_executable, check_cache, read_cache, tool_environment, tool_path, build_path
+from ecra.portable import audit_executable, check_cache, default_alias_root, read_cache, tool_environment, tool_path, build_path
+from ecra.workspace import WorkspaceResolver
 
 
 class PortableCMakeTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='ecra portable tests ')
         self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name).resolve()
-        self.build = self.root/'build/ecra'
+        home = Path(self.tmp.name).resolve()
+        self.root = home/'source'
+        self.root.mkdir()
+        self.settings = dict(output=dict(location='custom', custom_dir=str(home/'data')),
+                             cmake=dict(location='workspace',build_dir='build/ecra',generator='MinGW Makefiles',build=True))
+        workspace = WorkspaceResolver.resolve(self.root, self.settings).initialize()
+        self.build = Path(workspace.build_root)/'ecra'
         self.build.mkdir(parents=True)
-        self.settings = dict(output=dict(location='project'),
-                             cmake=dict(location='project',build_dir='build/ecra',generator='MinGW Makefiles',build=True))
+        stable_build = patch('ecra.compilation.workspace_build_path', return_value=self.build)
+        stable_build.start()
+        self.addCleanup(stable_build.stop)
+
+    def own_build(self):
+        (self.build/'.ecra-build-owner').write_text(str(self.root), encoding='utf-8')
 
     def cache(self, **kwargs):
         (self.build/'CMakeCache.txt').write_text('\n'.join(k+':STRING='+str(v) for k,v in kwargs.items()),encoding='utf-8')
 
     def test_generator_mismatch_does_not_invoke_cmake_or_delete(self):
+        self.own_build()
         self.cache(CMAKE_GENERATOR='Ninja')
         with patch('ecra.compilation.execute') as execute:
             with self.assertRaisesRegex(ValueError,'Generator 冲突'):
@@ -68,15 +79,16 @@ class PortableCMakeTests(unittest.TestCase):
             self.assertEqual((target/'keep.txt').read_text(), 'owned fixture')
 
     @unittest.skipUnless(os.name == 'nt', 'actual Windows deep TEMP junction')
-    def test_deep_supervised_temp_falls_back_to_bounded_independent_same_file_alias(self):
+    def test_deep_supervised_temp_keeps_bounded_tool_alias(self):
         import ecra.portable as portable
         target=self.root/'actual-build';target.mkdir();payload=target/'original.txt';payload.write_bytes(b'unchanged')
         before=(payload.read_bytes(),payload.stat().st_mtime_ns)
         deep=self.root/('deep-task-'*12)/('owned-'*12);deep.mkdir(parents=True)
-        with patch.dict(portable._BUILD_ALIASES,{},clear=True),patch('ecra.portable.tempfile.gettempdir',return_value=str(deep)),patch('ecra.portable._short_path',side_effect=str),patch.dict(os.environ,{'ECRA_PATH_ALIAS_ROOT':''}):
+        with patch.dict(portable._BUILD_ALIASES,{},clear=True),patch('ecra.portable._short_path',side_effect=str),patch.dict(os.environ,{'ECRA_PATH_ALIAS_ROOT':'','TEMP':str(deep)}):
             alias=Path(build_path(target,prefer_junction=True));self.addCleanup(alias.rmdir)
             self.assertLessEqual(len(str(alias)),120)
             self.assertFalse(str(alias).startswith(str(deep)))
+            self.assertEqual(alias.parent, portable.default_alias_root())
             self.assertEqual(alias.resolve(),target);self.assertTrue(os.path.samefile(alias/'original.txt',payload))
             self.assertEqual(before,(payload.read_bytes(),payload.stat().st_mtime_ns))
 
@@ -277,7 +289,7 @@ class PortableCMakeTests(unittest.TestCase):
         import hashlib
         source = self.root/'conflicting 中文'
         source.mkdir()
-        parent = Path(tempfile.gettempdir())/'ECRA-paths'
+        parent = default_alias_root()
         parent.mkdir(exist_ok=True)
         alias = parent/hashlib.sha256(str(source.resolve()).casefold().encode('utf-8')).hexdigest()[:32]
         alias.mkdir()
@@ -291,6 +303,7 @@ class PortableCMakeTests(unittest.TestCase):
         self.assertEqual(marker.read_text(),'user data')
 
     def test_build_false_exports_without_build(self):
+        self.own_build()
         self.settings['cmake']['build'] = False
         def invoke(command, **kwargs):
             (self.build/'compile_commands.json').write_text('[]')
@@ -302,6 +315,7 @@ class PortableCMakeTests(unittest.TestCase):
         self.assertEqual(records[0]['command'][records[0]['command'].index('-G')+1],'MinGW Makefiles')
 
     def test_portable_make_is_forced_and_postconfigure_external_compiler_rejected(self):
+        self.own_build()
         make = self.root/'tools/mingw/bin/mingw32-make.exe'
         cmake = self.root/'tools/cmake/bin/cmake.exe'
         (self.root/'portable-lock.json').write_text(json.dumps(dict(version_patterns={})))

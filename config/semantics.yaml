@@ -79,13 +79,11 @@ analysis:
   # 独立 TU 并行提取；全局指针/并发分析仍使用完整合并后的事实。
   extraction_workers: 8
 
-  # 默认独立用户数据根（%LOCALAPPDATA%/ECRAStudio/data），按项目身份隔离。
-  # 可设置绝对路径 ECRA_DATA_ROOT；配置位置不是扫描语义。
-  # output: {location: user}
-  # 外置数据盘：output: {location: custom, custom_dir: "D:/ECRA_Data"}
-  # tool/project 仅旧 CLI 兼容；Studio 正式路径校验会拒绝，请先保留并迁移旧数据。
-  # 报告、日志、缓存和状态都在独立数据根；无需修改固件忽略规则。
-  # output_dir: .ecra  # 旧默认值仍接受，并迁移到工具侧
+  # 默认数据在实际 ECRA 工具目录的 workspace，按项目和扫描隔离。
+  # output: {location: tool}
+  # 旧 location: user 或 output_dir: .ecra 使用同一规则。
+  # 自定义根需位于工具 workspace/data-roots 下，使用绝对路径。
+  # 固件工程内的输出模式已停用，旧数据可在 Studio 迁移。
 
   # 自动从真实 Arm GCC 编译命令探测标准头文件目录。STM32 + Arm GCC 通常保持 true。
   auto_system_includes: true

@@ -1,6 +1,6 @@
 复核后的当前风险、安全与人工待办已统一；安全项不再进入待人工确认。见 [v91 查看与确认指南](docs/studio-v91-results-guide.md)及 [134 号真实工程验收](docs/rearchitecture/134-current-results-and-human-queue.md)。
 
-案例库和工程背景可随时在上位机编辑 config 原文件，无需先保存工程配置，背景允许为空。见 [v90 填写式编辑指南](docs/studio-v90-review-materials-guide.md)；风险/安全展示和上一轮真实复核见 [132号记录](docs/rearchitecture/132-opencode-results-live-review.md)。
+可以在上位机编辑案例库和工程背景。改动保存在 `workspace/.ecra/config/`，任务使用已冻结的版本。背景允许为空。
 
 新版配置与开始扫描操作见 [配置与开始扫描指南](docs/studio-v84-configuration-guide.md)。
 
@@ -15,7 +15,7 @@ py -3.10 -m pip install -r requirements-studio.txt
 py -3.10 run_ecra.py ui
 ```
 
-只安装 `requirements.txt` 用于静态命令行扫描。默认数据在 `%LOCALAPPDATA%/ECRAStudio/data`，可用 `ECRA_DATA_ROOT` 指定独立数据目录；升级时保留数据根和已有配置。当前包仍是开发验收候选，本轮质量检查及未完成验证见 [交付验收记录](docs/quality-20261108/README.md)。
+只安装 `requirements.txt` 即可运行静态 CLI。默认运行数据在当前工具目录的 `workspace/`。源码版使用仓库根目录，便携版使用解压根目录。启动目录和 Python 位置可以不同。Windows 上请把整套工具放在非 C 盘可写目录。旧数据迁移和升级步骤见[工具数据目录](docs/workspace-storage.md)。
 
 **新版 v82 界面请先看[布局与操作指南](docs/studio-v82-layout-guide.md)**：目录/源码可放大，人工确认、覆盖、历史和日志使用新的工作区布局。完整验证范围见[128号记录](docs/rearchitecture/128-engineering-workspace-usability.md)。
 
@@ -182,7 +182,7 @@ OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围�
 
 默认逐项调用 OpenCode 的对象是候选项；静态判安全的变量留在变量清单。若要让范围内这些变量也逐项调用 OpenCode，完整运行时加入 `--review-safe-sample 9999 --review-shared-sample 9999`；这两个参数会将现有两类静态筛除变量全部加入独立复核队列，具体数量取决于当次扫描结果。
 
-若所有复核项几秒内失败，先查看 `review/*.attempt*.stderr.txt` 并在固件目录运行 `opencode agent list` 检查项目配置。OpenCode 会加载 `.opencode/agent/` 中的 agent 文件；其 YAML 头部的 `model` 只能是单个模型字符串，列表会使整个 OpenCode 命令启动失败。工具发现 `Configuration is invalid at ...` 后会保存该项技术失败，继续处理其余变量；修复配置后运行 `review-failed`（分析实现或扫描输入变化时需重新运行 `run`）。
+若复核失败，查看扫描目录下的 `review/*.attempt*.stderr.txt` 和 `review/*.attempt*.jsonl`。检查 OpenCode 版本、模型名称及提供商登录。ECRA 的复核使用私有 `ecra-review` agent，配置来源和保存位置见[工具数据目录](docs/workspace-storage.md)。修复后运行 `review-failed`；扫描输入变化时运行 `run`。
 
 判定时分开报告存储一致性与业务影响：没有额外业务消费者，不能据此否认 `++` 或位域/union 的非原子读改写会丢失更新；反过来，原子字节 store/store 的最后写者生效，也不能凭空推导出不存在的业务协议被破坏。变量结论绑定自己的 `symbol_id`，指针指向对象的问题不能重复算成指针本身的问题。
 
@@ -267,7 +267,7 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 
 旧版本扫描没有 `scan_state.json`，需要先重新运行一次。`Ctrl+C` 中断保留待办；并行复核会取消尚未开始的任务，已运行的会话可能需要等到本次调用完成或超时，单项收据可在恢复时复用。若静态扫描尚未完成，应重跑 `run`。因强制结束进程或断电遗留的 `scan.lock` 仍需先确认进程已经退出，再移除过期锁。
 
-也可以安装命令入口：`python -m pip install .`，然后在固件目录执行 `ecra`。
+便携包和源码推荐使用 `ECRA.cmd` 或 `py -3.10 run_ecra.py`。手工使用 `-m` 启动 Python 模块时加 `-B` 禁用解释器启动阶段的字节码缓存。
 
 ## 先运行自带示例
 
@@ -275,7 +275,7 @@ JSON 的 `risk_summary` 与 HTML、Markdown 共用变量风险分类；`review_s
 
 ```powershell
 cd H:/global_static_concurrency_design
-$demoConfigHome = Join-Path $env:LOCALAPPDATA 'ECRAStudio/demo-config'
+$demoConfigHome = Join-Path (Get-Location) "workspace/.ecra/demo-config"
 $previousConfigHome = $env:ECRA_CONFIG_HOME
 try {
   $env:ECRA_CONFIG_HOME = $demoConfigHome

@@ -261,16 +261,19 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
     if _compiler_view is not None:
         from .frozen_scan import check_mode
         check_mode(cfg, _workspace, doctor_only)
-    from .workspace import WorkspaceResolver, lock_path, migrate_legacy
+    from .workspace import formal_workspace, lock_path, migrate_legacy
     if _workspace is not None:
+        _workspace.verify_identity()
+        if Path(root) != Path(_workspace.project_root) and not Path(root).is_relative_to(_workspace.worktree_root):
+            raise ValueError(f'分析源码不属于本项目的隔离工作树: {root}')
         from .scan_persistence import is_canonical
         if is_canonical(_workspace.results_root):
             if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
                 raise ValueError('未提交输入的原生扫描缺少冻结描述，不能回退到实时工作区')
             from .frozen_scan import execution_workspace
             effective=dict(cfg['analysis'],output=dict(location='custom',custom_dir=_workspace.workspace_root))
-            execution_workspace(root,effective,_compiler_view)
-    workspace = _workspace or WorkspaceResolver.resolve(root, cfg['analysis']).initialize()
+            execution_workspace(_workspace.project_root,effective,_compiler_view)
+    workspace = _workspace or formal_workspace(root, cfg['analysis']).initialize()
     workspace.bind(cfg['analysis'])
     out = Path(workspace.results_root)
     out.mkdir(parents=True, exist_ok=True)
@@ -371,12 +374,10 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 elif p.is_file():
                     archive_file(p, snapshot / name)
             report_can_replace = True
-        progress(f'ECRA 并发风险扫描：{workspace.project_name}\n固件路径：{workspace.project_root}\n扫描结果目录：{out}')
+        progress(f'ECRA 并发风险扫描：{workspace.project_name}\n工具目录：{workspace.tool_root}\n'
+                 f'数据目录：{workspace.workspace_root}\n固件路径：{workspace.project_root}\n扫描结果目录：{out}')
         if 'output_dir' in cfg['analysis'] and 'output' not in cfg['analysis']:
-            progress('兼容配置 analysis.output_dir：' +
-                     ('旧默认 .ecra 已改为工具工作区；保留固件内输出可显式设置 analysis.output.location: project。'
-                      if cfg['analysis']['output_dir'] == '.ecra' else
-                      '保留原工程内目录；建议显式设置 analysis.output.location: project 或迁移到 custom。'))
+            progress('旧配置 analysis.output_dir: .ecra 使用当前工具数据目录。可移除此字段。')
         if not doctor_only:
             (out/'scan_state.json').unlink(missing_ok=True)
             (out/'input_closure.json').unlink(missing_ok=True)
@@ -775,9 +776,10 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         progress(f"已盘点 {len(facts['variables'])} 个变量，生成 {len(report['findings'])} 个候选/盲区复核项。")
         diagnostics.stage('可选 OpenCode 复核')
         with diagnostics.cooperative_extraction_stop():
+            from .config import review_material_path
             reviews = review_all(root, out, cfg, facts, report, fingerprint, progress,
-                                 review_context_path=config_file.parent/'review_context.md',
-                                 case_library_path=config_file.parent/'concurrency_cases.md')
+                                 review_context_path=review_material_path(config_file, 'review_context.md'),
+                                 case_library_path=review_material_path(config_file, 'concurrency_cases.md'))
         review_phase = False
         end_hashes = file_hashes(root, out, [root / p for p in after], exact=True)
         if end_hashes != after:
@@ -931,6 +933,7 @@ def main(argv=None):
                         help='run 全流程；review-resume 继续未完成项；review 重跑全部疑似/未知；review-failed 仅重跑技术失败；report 刷新报告；status 查看进度；doctor 环境检查')
     parser.add_argument("--project", type=Path, help="临时覆盖 semantics.yaml 中的 project.root")
     parser.add_argument("--config", help="显式配置文件路径；正常使用唯一的 config/semantics.yaml")
+    parser.add_argument('--data-root', type=Path, help='工具 workspace 或其中已选的数据根')
     parser.add_argument("--compile-database", help="init 时写入真实编译数据库路径（相对工程根目录）")
     parser.add_argument("--model", help="init 时写入已配置的 OpenCode provider/model")
     parser.add_argument('--toolchain-file', help='init 时指定 CMake Arm 工具链文件（相对固件根目录）')
@@ -943,7 +946,22 @@ def main(argv=None):
                         help='额外抽取 N 个 SHARED_NO_REVIEW 项生成质量复核证据包；不改变风险队列')
     parser.add_argument("--json", action="store_true", help="status 输出可供脚本读取的 JSON")
     args = parser.parse_args(argv)
+    from contextlib import ExitStack
+    with ExitStack() as scopes:
+        return _command(args, scopes)
+
+
+def _command(args, scopes):
     try:
+        from .studio_preferences import startup_selection
+        from .runtime_storage import initialize
+        from .workspace import control_path, managed_path, using_data_root
+        selection = startup_selection(args.data_root)
+        if selection['source'] in {'STARTUP_ARGUMENT', 'ENVIRONMENT', 'RECOVERY_DEFAULT'}:
+            scopes.enter_context(using_data_root(selection['root']))
+        if selection['warning']:
+            print(selection['warning'], file=sys.stderr)
+        initialize(selection['root'])
         if args.scan_mode is not None and args.command not in {'run', 'doctor'}:
             raise ValueError('--scan-mode 仅用于 run/doctor；恢复命令沿用已保存范围')
         if args.json and args.command != 'status':
@@ -986,7 +1004,8 @@ def main(argv=None):
             root = args.project.resolve()
             if not root.is_dir():
                 raise ValueError(f"工程目录不存在: {root}")
-            path = resolve_config_path(root, args.config) if args.config else SEMANTICS_FILE
+            path = (managed_path(resolve_config_path(root, args.config), label='init 配置保存路径')
+                    if args.config else control_path('config', 'semantics.yaml'))
             if path.exists():
                 raise ValueError(f"唯一配置已存在，不覆盖: {path}；请直接编辑 project.root 切换项目")
             managed_cmake = (root/'CMakeLists.txt').is_file() and args.compile_database is None

@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 import subprocess
 
-from ..workspace import no_links
+from ..workspace import managed_path, no_links
 
 
 class SidAttributes(ctypes.Structure):
@@ -101,14 +101,18 @@ class Windows:
             if sid:self.kernel.LocalFree(sid)
 
 
-def create_private_directory(path,*,source_root):
+def create_private_directory(path,*,source_root,workspace):
     """Only change a fresh owned output directory, never an existing tree."""
-    api=Windows();path=no_links(path)
+    api=Windows();path=managed_path(path)
     if path.exists():raise FileExistsError('Existing directories must never be relabelled')
-    source_root=no_links(source_root);installation=Path(__file__).resolve().parents[2]
+    source_root=no_links(source_root)
+    workspace.verify_identity()
+    if (path.parent != Path(workspace.build_root) or
+            not (Path(workspace.project_workspace)/'project.json').is_file()):
+        raise ValueError(f'私有构建目录缺少已验证的工程归属: {path}')
     if not source_root.is_dir():raise ValueError('Original source root must exist')
-    if any(path==root or path.is_relative_to(root) or root.is_relative_to(path) for root in [source_root,installation]):
-        raise ValueError('Private write scope overlaps original source or software installation')
+    if path.is_relative_to(source_root) or source_root.is_relative_to(path):
+        raise ValueError('Private write scope overlaps original source')
     path.mkdir(parents=True,exist_ok=False)
     descriptor=ctypes.c_void_p()
     try:

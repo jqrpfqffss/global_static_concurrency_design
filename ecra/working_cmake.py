@@ -199,7 +199,8 @@ def prepare(root, config, cfg, workspace, folder, progress, diagnostics, watch):
     diagnostics.stage('固定未提交CMake原HEAD、索引、全部工作字节及目录')
     fixed = capture(root,cfg,progress)
     def build(label):
-        executor = BuildExecutor(no_links(Path(workspace.build_root)/('working-cmake-'+uuid.uuid4().hex)),root,watch)
+        executor = BuildExecutor(no_links(Path(workspace.build_root)/('working-cmake-'+uuid.uuid4().hex)),
+                                 root, watch, workspace)
         current = copy.deepcopy(cfg)
         build_ws = replace(workspace,build_root=str(executor.namespace/'builds'),
             results_root=str(executor.namespace/'preparation'),cache_root=str(executor.namespace/'cache'),

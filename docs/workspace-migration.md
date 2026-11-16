@@ -1,6 +1,6 @@
 # 工程工作区与旧数据迁移
 
-从本次重构起，配置 `project.root` 后执行 `py -3.10 run_ecra.py`，默认结果位于：
+正式 Studio 和 CLI 的数据目录与旧 AppData 迁移见[工具数据目录](workspace-storage.md)。以下目录树说明兼容结果和 Git 缓存的组织，正式扫描归档放在活动数据根的 `scans/<扫描ID>/`。
 
 ```text
 <ECRA>/workspace/projects/<最多24字符的ASCII名称>_<身份摘要前20位>/
@@ -30,7 +30,7 @@
 
 目录标签只作显示辅助；完整中文工程名保存在元数据中。初始化先独占创建 project.json.pending，写入并刷新后发布 project.json。遇到遗留 pending 会明确报出初始化锁，不能把半成品当作有效身份。恢复时先确认创建进程已退出、备份目录并核对 JSON 完整身份；完整 pending 可改名为 project.json，不完整 pending 应保留为备份后重试。损坏的正式元数据不会被自动覆盖。
 
-正常仓库通过最近的 .git 标记识别仓库边界，全量扫描不强制要求 Git 可执行文件；差异 pin 再用 Git 验证真实根目录，一旦与身份边界不符即拒绝。默认 workspace 不得位于固件仓库内。工具位于固件仓库内部时，需选择仓库外的 custom_dir。可写数据路径中的符号链接/Junction 会被拒绝；固件源码本身的链接不被删除。ProjectID 冲突、未知数据目录、外置构建目录缺少所有权、写入权限不足均明确报错，不回退到固件目录。
+正常仓库通过最近的 .git 标记识别仓库边界；差异扫描再用 Git 验证真实仓库根。工具和固件应放在各自独立的目录。受管理的 workspace 可以位于工具仓库下。可写数据路径中的链接、项目身份冲突、未知数据目录和外置构建缺少所有权都会明确报错。
 
 ## 配置规则
 
@@ -46,19 +46,17 @@ analysis:
     current_ref: HEAD
 ```
 
-三种输出位置：
+默认和自选数据目录：
 
 ```yaml
 analysis:
   output:
     location: tool             # 默认 <工具>/workspace
     # location: custom
-    # custom_dir: "D:/ECRA_Data" # 必须是绝对路径，仍按项目身份隔离
-    # location: project        # 显式保留固件内兼容输出
-  # output_dir: .ecra          # 仅 project 模式决定其工程内子目录
+    # custom_dir: "D:/ECRA/workspace/data-roots/legacy"  # 当前工具下的绝对路径
 ```
 
-没有新字段时，旧 `output_dir: .ecra` 按默认迁移到工具侧，并打印兼容提示；旧非默认的工程内 output_dir 保持原位置并提示。旧外部绝对 output_dir 会被拒绝并提示改用 custom，避免悄悄改变已有数据位置。新 output 与非默认旧 output_dir 同时存在，只接受 location: project；其他组合明确报冲突。不会修改固件 .gitignore 或 .git/info/exclude。
+旧 `output_dir: .ecra` 和 `output.location: user` 使用当前工具数据根。其它旧 output_dir、`location: project` 和工具外的 custom_dir 会提示修改配置和迁移。软件保留固件的忽略规则。
 
 所有 run/full/diff/doctor/review/review-failed/report/status 使用同一解析层。status 不创建扫描结果或触发旧目录迁移；run/doctor 首次初始化时迁移。迁移前只有历史目录的工程，先执行 run 建立当前可验证扫描，再继续 review/report。
 
@@ -76,7 +74,7 @@ analysis:
 
 默认 `analysis.cmake.location: workspace`。旧 build_dir 继续接受，参与构建配置摘要；其源码内路径不再是默认实际构建位置。编译数据库显式指向旧 build_dir/compile_commands.json 的配置仍可识别，实际使用当轮外置构建新生成的数据库。`-S` 指向 analysis_root，`-B` 指向工程 workspace/builds 的版本专用目录；generator、工具链、build_type、target、args、build_args 保留。旧 auto_configure_cmake 也通过同一构建实现执行。
 
-需要源码内构建的工程可显式设 `analysis.cmake.location: project`，继续使用 build_dir。清理仅限带当前源码所有权标记的构建目录，原正式构建目录不会被接管删除。隔离版本不允许改写已提交文件或在所选构建目录外生成源码；出现这种行为会列出路径并建议使用 CMAKE_BINARY_DIR。不会修改用户 CMake 脚本，也不吞掉构建错误。外置生成头文件仍绑定到输入快照；两个版本的构建路径只在有当轮数据库证据时规范化比较，实际参数和文件哈希不被抹去。
+清理仅限带当前源码所有权标记的专用构建目录。使用 CMAKE_BINARY_DIR 保存构建生成文件。外置生成头文件仍绑定到输入快照；两个版本的构建路径只在有当轮数据库证据时规范化比较，实际参数和哈希保留。
 
 ## 迁移与确认记录
 

@@ -13,6 +13,7 @@ from tests.test_ecra import ProjectTest
 
 class RealClassificationRepairTests(TestCase):
     setUp = ProjectTest.setUp
+    out = ProjectTest.out
     project = ProjectTest.project
     extract = ProjectTest.extract
 
@@ -71,7 +72,7 @@ class RealClassificationRepairTests(TestCase):
             int main(void) { bad(); independent = 2; return independent; }'''},
             contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         run(self.root, no_review=True)
-        output = self.root / '.ecra'
+        output = self.out
         facts = json.loads((output / 'facts.json').read_text(encoding='utf-8'))
         report = json.loads((output / 'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         self.assertEqual(report['coverage']['translation_units_partial'], 1)

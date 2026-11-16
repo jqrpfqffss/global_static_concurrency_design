@@ -38,7 +38,8 @@ def _git_argv(root,*args):
 
 
 def _environment():
-    env=os.environ.copy()
+    from .runtime_storage import child_environment
+    env=child_environment()
     for key in ('GIT_DIR','GIT_WORK_TREE','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES','GIT_COMMON_DIR'):
         if env.get(key):raise ValueError('未能证明Git环境隔离，先移除 '+key)
     env['GIT_OPTIONAL_LOCKS']='0'

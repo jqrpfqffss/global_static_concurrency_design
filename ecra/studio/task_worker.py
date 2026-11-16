@@ -98,9 +98,29 @@ def main():
     parser.add_argument('--resume-scope', choices=['review'])
     parser.add_argument('--result', type=Path, required=True)
     args = parser.parse_args()
+    from ..workspace import managed_path, studio_data_root, using_data_root
+    from ..report_package import IDENTITY
+    from ..runtime_storage import initialize
+    try:
+        args.data_root = studio_data_root(args.data_root)
+        args.result = managed_path(args.result)
+        folder = args.result.parent
+        if (folder.parent != args.data_root/'work/tasks' or not IDENTITY.fullmatch(folder.name)
+                or not IDENTITY.fullmatch(args.scan_id)
+                or args.result != folder/'worker-result.json'
+                or args.config != folder/'semantics.yaml' or args.gate != folder/'start' or args.stop != folder/'stop'):
+            raise ValueError(f'任务工作目录与监督器参数不符: {folder}')
+        for path in (args.config, args.gate, args.stop):
+            managed_path(path)
+        initialize(args.data_root, directory=folder/'temporary')
+    except (ValueError, OSError) as exc:
+        import sys
+        print(f'ECRA: {exc}', file=sys.stderr)
+        return 3
     error=None
     try:
-        code=execute(args)
+        with using_data_root(args.data_root):
+            code=execute(args)
     except KeyboardInterrupt:
         code=130
     except Exception as exc:

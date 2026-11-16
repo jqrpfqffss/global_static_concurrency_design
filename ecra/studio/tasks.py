@@ -16,7 +16,7 @@ import uuid
 from ..common import write_json, read_json
 from ..resource_control import EVENT_LOG, PRESSURE_FILE, PRESSURE_NAME
 from ..scan_diagnostics import diagnostic_log
-from ..workspace import no_links
+from ..workspace import no_links, studio_data_root
 from ..report_package import IDENTITY
 from .process_budget import ProcessBudget
 from .task_records import display_record
@@ -103,7 +103,7 @@ def scan_size(folder):
 
 class TaskManager:
     def __init__(self, data):
-        self.data = Path(data)
+        self.data = studio_data_root(data)
         self.work = no_links(self.data/'work/tasks'); self.work.mkdir(parents=True, exist_ok=True)
         self.lock = threading.Lock()
         self.active = None
@@ -157,7 +157,7 @@ class TaskManager:
     def start(self, profile_path, *, profile_id, mode='scan', scan_id=None, resources=None,
               multicore=None, retry_from=None, expected_revision=None, request_id=None):
         from ..config import load_config, configured_project_root
-        from ..workspace import formal_workspace
+        from ..workspace import formal_workspace, using_data_root
         from ..data_transfer import relocated_task_config
         raw = Path(profile_path).read_bytes()
         if expected_revision is not None and hashlib.sha256(raw).hexdigest() != expected_revision:
@@ -208,11 +208,8 @@ class TaskManager:
         # Derived combinations read already selected archives and never build.
         # Their original config output setting does not select the destination.
         analysis = dict(output=dict(location='custom',custom_dir=str(self.data))) if mode=='multicore' else dict(cfg['analysis'])
-        if analysis.get('output', {}).get('location', 'user') == 'user':
-            analysis['output'] = dict(location='custom', custom_dir=str(self.data))
-        ws = formal_workspace(root, analysis)
-        if Path(ws.workspace_root) != self.data:
-            raise ValueError('配置的数据根与当前 Studio 不同；请在配置中使用 output.location: user，或从该数据根启动 Studio。')
+        with using_data_root(self.data):
+            ws = formal_workspace(root, analysis)
         if mode not in {'scan','precheck','multicore'}:
             from ..scan_store import EvidenceProvider
             if not isinstance(scan_id,str) or not IDENTITY.fullmatch(scan_id):
@@ -274,17 +271,13 @@ class TaskManager:
                     budget = ProcessBudget(value['budget_bytes'])
                     ownership.callback(budget.close)
                     stream = ownership.enter_context((folder/'console.log').open('wb'))
+                    stream.write(f'工具目录：{ws.tool_root}\n数据目录：{self.data}\n任务目录：{folder}\n'.encode('utf-8'))
                     if materials['status']=='FROZEN':
                         for name,record in materials['documents'].items():
                             stream.write(('复核资料已冻结：'+name+' · '+str(record['bytes'])+' 字节 · SHA-256 '+record['sha256']+'\n').encode('utf-8'))
                         stream.flush()
                     from .resource_policy import temporary_environment
                     env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'
-                    if (os.name == 'nt' and mode in {'scan', 'precheck'} and 'cmake' in cfg['analysis']
-                            and not env.get('ECRA_PATH_ALIAS_ROOT')):
-                        from ..portable import default_alias_root
-                        # Keep tool aliases independent of the task's scratch directory.
-                        env['ECRA_PATH_ALIAS_ROOT'] = str(default_alias_root())
                     if not env.get('PYTHONHASHSEED'):
                         env['PYTHONHASHSEED']='0'
                     env['ECRA_DATA_ROOT']=str(self.data)

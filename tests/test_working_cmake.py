@@ -155,8 +155,10 @@ class WorkingCMakeAuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='ECRA trace guard ') as name:
             home=Path(name).resolve();source=home/'source';source.mkdir()
             (source/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.20)\nproject(trace NONE)\n','utf-8')
+            from ecra.workspace import WorkspaceResolver
+            workspace = WorkspaceResolver.resolve(source, dict(output=dict(location='custom', custom_dir=str(home/'data')))).initialize()
             with InputWatch() as watch:
-                watch.directory(source);executor=BuildExecutor(home/'owned',source,watch)
+                watch.directory(source);executor=BuildExecutor(Path(workspace.build_root)/'owned',source,watch,workspace)
                 built=executor(['cmake','-S',str(source),'-B',str(executor.namespace/'builds/config'),'-G','Ninja'],cwd=source)
                 self.assertEqual(built.returncode,0,built.stderr)
                 trace=executor.traces[0];raw=trace.read_bytes();require_protected_source(executor.audit)

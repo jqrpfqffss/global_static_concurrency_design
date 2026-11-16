@@ -7,16 +7,16 @@ import traceback
 import uuid
 
 from ..common import write_json
-from ..data_transfer import registry,transfer
+from ..data_transfer import _source, _target, transfer
 from ..report_package import IDENTITY
 from ..storage_activity import DataActivity,DataBusy
-from ..workspace import no_links,studio_data_root
+from ..workspace import control_path, no_links, studio_data_root
 from .task_records import display_record
 
 
 class RootTransfers:
     def __init__(self,data):
-        self.data=studio_data_root(data);self.folder=registry(self.data)
+        self.data=studio_data_root(data);self.folder=control_path('transfer-jobs')
         self.folder.mkdir(parents=True,exist_ok=True)
         try:lease=DataActivity(self.folder,exclusive=True,purpose='root-transfer').__enter__()
         except DataBusy:return
@@ -49,16 +49,16 @@ class RootTransfers:
         return sorted([self.record(p) for p in self.folder.glob('job-*.json')],
             key=lambda item:item['started'],reverse=True)
 
-    def start(self,source,target,*,expected=None,resume=None):
-        source=studio_data_root(source)
+    def start(self,source,target,*,expected=None,resume=None,closed=False):
+        source=_source(source)
         if not isinstance(target,str) or not Path(target).is_absolute():raise ValueError('请选择目标数据根的绝对路径')
-        target=studio_data_root(target)
+        target=studio_data_root(target) if resume else _target(source,target)
         # Do not let a missing preview become an expensive background failure.
         if resume is None and (not isinstance(expected,str) or len(expected)!=64):raise ValueError('请先检查整套复制计划')
         lease=DataActivity(self.folder,exclusive=True,purpose='root-transfer').__enter__()
         ident=uuid.uuid4().hex;path=self.path(ident)
         item=dict(id=ident,state='RUNNING',started=datetime.now(timezone.utc).isoformat(),
-            source=str(source),target=str(target))
+            source=str(source),target=str(target),closed=closed is True)
         try:
             write_json(path,item)
             def update(value):
@@ -66,7 +66,7 @@ class RootTransfers:
                 write_json(path,item)
             def run():
                 try:
-                    result=transfer(source,str(target),expected=expected,resume=resume,progress=update)
+                    result=transfer(source,str(target),expected=expected,resume=resume,closed=closed,progress=update)
                     update(dict(state='COMPLETE',result={k:v for k,v in result.items() if k!='files'},journal=result['journal']))
                 except BaseException as exc:
                     (self.folder/('job-'+ident+'.trace.txt')).write_text(traceback.format_exc(),'utf-8')
@@ -77,8 +77,8 @@ class RootTransfers:
             lease.__exit__(None,None,None);raise
         return dict(id=ident,state='RUNNING')
 
-    def resume(self,ident):
+    def resume(self,ident,*,closed=False):
         previous=self.get(ident)
         if previous['state'] not in {'INTERRUPTED','FAILED','PUBLISHING'} or not previous.get('journal'):
             raise ValueError('只有保留了校验记录的中断/失败任务可恢复；否则重新检查计划')
-        return self.start(previous['source'],previous['target'],resume=previous['journal'])
+        return self.start(previous['source'],previous['target'],resume=previous['journal'],closed=closed)

@@ -37,7 +37,7 @@ class CaseLibraryTests(unittest.TestCase):
         self.config.write_text('version: 1\n', encoding='utf-8')
         self.library = self.config.with_name('concurrency_cases.md')
         self.library.write_text(ENTRY, encoding='utf-8')
-        self.out = self.root / '.ecra'
+        self.out = self.base / 'result'
         (self.root / 'app.c').write_text('int shared;\nvoid IRQ(void){shared++;}\n', encoding='utf-8')
         self.cfg = dict(analysis={}, review=dict(enabled=True, retries=0, workers=1))
         self.accesses = [dict(access_id=f'A{i}', access_kind=kind, function_id='irq',
@@ -93,7 +93,7 @@ class CaseLibraryTests(unittest.TestCase):
             self.assertIn(term, prompt)
         self.assertNotIn('BODY_ONLY_SENTINEL', prompt)
         snapshot = next((self.out / 'review' / 'case-library').glob('*.md'))
-        self.assertTrue(snapshot.is_relative_to(self.root))
+        self.assertTrue(snapshot.is_relative_to(self.out))
         self.assertEqual(snapshot.read_bytes(), self.library.read_bytes())
         self.assertIn(str(snapshot), prompt)
         permissions = json.loads(kwargs['env']['OPENCODE_PERMISSION'])

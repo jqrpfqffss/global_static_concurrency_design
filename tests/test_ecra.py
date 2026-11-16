@@ -19,6 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProjectTest(unittest.TestCase):
+    @property
+    def out(self):
+        from ecra.workspace import WorkspaceResolver
+        folder = Path(WorkspaceResolver.resolve(self.root, {}).results_root)
+        return folder
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="ecra test ")
         self.root = Path(self.tmp.name).resolve()
@@ -35,7 +41,7 @@ class ProjectTest(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name, "-o", name + ".o"]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", output=dict(location='project')),
+        cfg = dict(version=1, analysis=dict(compile_database="compile_commands.json", output=dict(location='tool')),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]), dict(id="task", kind="TASK", functions=["Task"])],
                    review=review or dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
@@ -195,8 +201,8 @@ void main(void) { Main_A(); Main_B(); Clear_Config(); Clear_Period(); }
                          pair['participant_a']['call_path_count'] * pair['participant_b']['call_path_count'])
         self.assertTrue(any(f['symbol_id'] == period['symbol_id'] for f in report['findings']))
         from ecra.html_report import write_html
-        write_html(self.root / '.ecra', facts, report, [])
-        page = (self.root / '.ecra' / 'index.html').read_text(encoding='utf-8')
+        write_html(self.out, facts, report, [])
+        page = (self.out / 'index.html').read_text(encoding='utf-8')
         self.assertIn('active_config.period', page)
         self.assertIn('执行上下文摘要', page)
         self.assertIn('全部源码访问与调用链', page)
@@ -262,7 +268,7 @@ void main(void) { ECAT_Task(); }
         self.assertEqual({a['access_kind'] for a in same_line_period}, {'READ'})
         self.assertEqual([view['access_kind'] for view in source_access_views(message['accesses'])],
                          ['WRITE', 'WRITE', 'READ'])
-        out = self.root / '.ecra'
+        out = self.out
         write_html(out, facts, report, [])
         page = (out / 'index.html').read_text(encoding='utf-8')
         self.assertIn('执行上下文摘要', page)
@@ -457,7 +463,7 @@ void main(int ready){ if (ready) __disable_irq(); g++; __enable_irq(); }
         self.project({"a.c": "int g; void ISR(void){g++;} void Task(void){g++;}", "bad.c": '#include "missing.h"\nint hidden;'})
         code = run(self.root, no_review=True)
         self.assertEqual(code, 2)
-        out = self.root / ".ecra"
+        out = self.out
         report = json.loads((out / "reports/global_static_concurrency.json").read_text(encoding="utf-8"))
         self.assertEqual(report["coverage"]["translation_units_failed"], 1)
         self.assertEqual(report["run_status"], "INCOMPLETE")
@@ -536,7 +542,7 @@ void ISR(){A::state++;S::counter++;} void Task(){B::state++;S::counter++;}
     def test_opencode_process_queue_cache_and_failures(self):
         cfg = self.project({"a.c": "int g;void ISR(void){g++;}void Task(void){g++;}"})
         facts, report = self.extract(cfg)
-        out = self.root / ".ecra"
+        out = self.out
         fake = out / "fake_opencode.py"
         fake.write_text('''import sys,json,os
 from pathlib import Path
@@ -575,18 +581,18 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
     def test_opencode_timeout_continues_to_next_batch(self):
         cfg = self.project({"a.c": "int g, h;void ISR(void){g++;h++;}void Task(void){g++;h++;}"})
         facts, report = self.extract(cfg)
-        fake = self.root / ".ecra/fake_opencode.py"
+        fake = self.out/"fake_opencode.py"
         fake.write_text("import time; print('partial-review-evidence',flush=True); time.sleep(5)", encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=[sys.executable, str(fake)], retries=0,
                              timeout_seconds=0.5)
         def checkpoint(results):
-            queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
+            queue = json.loads((self.out/'review/queue.json').read_text(encoding='utf-8'))
             self.assertEqual(len(queue), len(report['findings']))
-        results = review_all(self.root, self.root / ".ecra", cfg, facts, report, "fingerprint", lambda _: None, checkpoint)
+        results = review_all(self.root, self.out, cfg, facts, report, "fingerprint", lambda _: None, checkpoint)
         self.assertTrue(all(r["state"] == "TECH_FAILED" for r in results))
         self.assertTrue(all('单次调用超过 0.5 秒' in r['error'] for r in results))
         self.assertTrue(all(len(r['attempts'][-1]['error_message']) < 100 for r in results))
-        log = self.root/'.ecra/review'/results[0]['execution']['stdout_file']
+        log = self.out/'review'/results[0]['execution']['stdout_file']
         self.assertIn('partial-review-evidence', log.read_text(encoding='utf-8'))
 
     def test_run_command_reviews_all_targets_without_manual_review(self):
@@ -615,17 +621,17 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
 
         with patch('ecra.review.execute', side_effect=respond):
             self.assertEqual(run(self.root), 1)
-        queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
+        queue = json.loads((self.out/'review/queue.json').read_text(encoding='utf-8'))
         self.assertEqual(len(called), 2)
         self.assertEqual(len(set(called)), 2)
         self.assertTrue(all(r['state'] == 'DONE' for r in queue))
-        self.assertIn('复核成功 2', (self.root/'.ecra/run.log').read_text(encoding='utf-8'))
+        self.assertIn('复核成功 2', (self.out/'run.log').read_text(encoding='utf-8'))
 
     def test_review_cache_survives_different_process_hash_seeds(self):
         import os
         from ecra.common import execute
         self.project({'a.c': 'int g; void H(void){g++;} void ISR(void){H();} void Task(void){H();}'})
-        fake = self.root/'.ecra/fake_opencode.py'
+        fake = self.out/'fake_opencode.py'
         fake.write_text('''import sys,json
 from pathlib import Path
 p=Path(sys.argv[sys.argv.index('--file')+1])
@@ -653,7 +659,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                            # allow loaded Windows CI hosts to finish them.
                            env=env, timeout=120)
             self.assertEqual(proc.returncode, 1, proc.stdout+proc.stderr)
-            queue = json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))
+            queue = json.loads((self.out/'review/queue.json').read_text(encoding='utf-8'))
             self.assertTrue(queue)
             self.assertTrue(all(r['state']=='DONE' for r in queue))
             if command == 'run':
@@ -674,11 +680,11 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         answer['summary'] = '证据不足，暂无法判断：g 的模拟调度条件尚缺证据，需要进一步核实。'
         result = CompletedProcess([], 0, json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), '')
         with patch('ecra.review.execute', return_value=result) as execute:
-            review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None)
-            second = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None)
+            review_all(self.root, self.out, cfg, facts, report, 'same-input', lambda _:None)
+            second = review_all(self.root, self.out, cfg, facts, report, 'same-input', lambda _:None)
             self.assertEqual(execute.call_count, 1)
             self.assertTrue(second[0].get('cached'))
-            third = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'same-input', lambda _:None, mode='review')
+            third = review_all(self.root, self.out, cfg, facts, report, 'same-input', lambda _:None, mode='review')
         self.assertEqual(execute.call_count, 2)
         self.assertFalse(third[0].get('cached'))
 
@@ -697,25 +703,25 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.assertEqual(run(self.root, no_review=True), 0)
         (self.root / "orphan.h").write_text("static int hidden;", encoding="utf-8")
         self.assertEqual(run(self.root, no_review=True), 0)
-        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+        report = json.loads((self.out/"reports/global_static_concurrency.json").read_text(encoding="utf-8"))
         self.assertEqual(report["coverage"]["unlisted_headers"], [])
         self.assertEqual(report['findings'], [])
-        quality = self.root / '.ecra/classification_quality.html'
+        quality = self.out/'classification_quality.html'
         self.assertTrue(quality.is_file())
         quality_text = quality.read_text(encoding='utf-8')
         self.assertIn('Pre-OpenCode 四分类质量', quality_text)
         self.assertIn('SAFE_PROVEN', quality_text)
         self.assertIn('复核比例', quality_text)
-        self.assertTrue(list((self.root / ".ecra/snapshots").iterdir()))
+        self.assertTrue(list((self.out/"snapshots").iterdir()))
 
     def test_corrupt_review_cache_is_reprocessed(self):
         cfg = self.project({"a.c": "int g;void ISR(void){g++;}void Task(void){g++;}"})
         facts, report = self.extract(cfg)
-        folder = self.root / ".ecra/review"
+        folder = self.out/"review"
         folder.mkdir()
         (folder / (report["findings"][0]["finding_id"] + ".result.json")).write_text("{broken", encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=["ecra-nonexistent-cli-test"])
-        results = review_all(self.root, self.root / ".ecra", cfg, facts, report, "x", lambda _: None)
+        results = review_all(self.root, self.out, cfg, facts, report, "x", lambda _: None)
         self.assertTrue(all(r["state"] == "TECH_FAILED" for r in results))
 
     def test_review_reuses_facts_and_reruns_completed_candidates(self):
@@ -725,7 +731,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.project({'a.c': 'int g,h;void ISR(void){g++;h++;}void Task(void){g++;h++;}'},
                      review=dict(enabled=True,command=[sys.executable],retries=0))
         self.assertEqual(run(self.root,no_review=True),2)
-        out=self.root/'.ecra'
+        out=self.out
         saved_facts = (out/'facts.json').read_bytes()
         from ecra.cli import execute as real_execute
         validations = []
@@ -823,7 +829,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         self.project({'a.c': 'int shared; void ISR(void){shared++;} '
                              'void Task(void){shared++;}'})
         self.assertEqual(run(self.root, no_review=True), 2)
-        queue_file = self.root/'.ecra/review/queue.json'
+        queue_file = self.out/'review/queue.json'
         queue = json.loads(queue_file.read_text(encoding='utf-8'))
         self.assertTrue(queue)
         queue[0].update(state='DONE', status='REVIEWED_SAFE',
@@ -840,8 +846,8 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                      contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         with patch('ecra.workflow.engine_digest', side_effect=['before', 'after']):
             self.assertEqual(run(self.root, no_review=True), 3)
-        self.assertFalse((self.root/'.ecra/scan_state.json').exists())
-        failure = json.loads((self.root/'.ecra/run.json').read_text(encoding='utf-8'))
+        self.assertFalse((self.out/'scan_state.json').exists())
+        failure = json.loads((self.out/'run.json').read_text(encoding='utf-8'))
         self.assertIn('扫描期间分析实现已变化', failure['error'])
 
     def test_resume_rejects_changed_response_file_but_accepts_unbuilt_source(self):
@@ -853,16 +859,16 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         entries=json.loads(db.read_text()); entries[0]['arguments'].insert(1,'@outer.rsp')
         db.write_text(json.dumps(entries))
         self.assertEqual(run(self.root,no_review=True),2)
-        manifest=json.loads((self.root/'.ecra/input_manifest.json').read_text(encoding='utf-8'))
+        manifest=json.loads((self.out/'input_manifest.json').read_text(encoding='utf-8'))
         self.assertIn('inner.rsp',manifest)
         (self.root/'inner.rsp').write_text('-DFEATURE=2',encoding='utf-8')
         self.assertEqual(saved_run(self.root,render_only=True), 2)
-        self.assertTrue(all(r['state']=='TECH_FAILED' for r in json.loads((self.root/'.ecra/review/queue.json').read_text(encoding='utf-8'))))
+        self.assertTrue(all(r['state']=='TECH_FAILED' for r in json.loads((self.out/'review/queue.json').read_text(encoding='utf-8'))))
         (self.root/'inner.rsp').write_text('-DFEATURE=1',encoding='utf-8')
         (self.root/'new.c').write_text('int missed;',encoding='utf-8')
         from ecra.workflow import checked_scan
         cfg, config_file = load_config(self.root)
-        checked_scan(self.root, self.root/'.ecra', cfg, config_file)
+        checked_scan(self.root, self.out, cfg, config_file)
         # A file outside the selected firmware's compile closure is not a new
         # input. Adding its DB entry would change the manifest and fail closed.
         self.assertNotIn('new.c', manifest)
@@ -871,7 +877,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         from unittest.mock import patch
         self.project({'a.c':'int g;void ISR(void){g++;}void Task(void){g++;}'})
         run(self.root,no_review=True)
-        out=self.root/'.ecra'
+        out=self.out
         before={name:(out/name).read_bytes() for name in ('run.json','run.log','index.html','opencode_review.html','scan_state.json')}
         self.assertEqual(run(self.root,doctor_only=True),0)
         with patch('ecra.cli.prepare',side_effect=ValueError('missing database')):
@@ -886,7 +892,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         from ecra.workflow import saved_run
         self.project({'a.c':'int g;void ISR(void){g++;}void Task(void){g++;}'})
         run(self.root,no_review=True)
-        facts=self.root/'.ecra/facts.json'
+        facts=self.out/'facts.json'
         data=json.loads(facts.read_text(encoding='utf-8')); data['accesses']=[]
         facts.write_text(json.dumps(data),encoding='utf-8')
         with self.assertRaisesRegex(ValueError,'事实'):
@@ -896,7 +902,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         from ecra.workflow import saved_run
         self.project({'a.c':'int g;void ISR(void){g++;}void Task(void){g++;}'})
         run(self.root,no_review=True)
-        out=self.root/'.ecra'
+        out=self.out
         queue=out/'review/queue.json'
         rows=json.loads(queue.read_text(encoding='utf-8'))
         rows[0].update(state='DONE',status='REVIEWED_SAFE',answer={'reason':'old receipt from another scan'})

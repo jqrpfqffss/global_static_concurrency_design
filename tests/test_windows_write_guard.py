@@ -9,6 +9,7 @@ import unittest
 from ecra.report_package import sha256
 from ecra.studio.process_budget import ProcessBudget
 from ecra.studio.write_guard import create_private_directory,GuardedProcess
+from ecra.workspace import WorkspaceResolver
 
 
 @unittest.skipUnless(os.name=='nt','Actual Windows mandatory integrity control required')
@@ -17,7 +18,8 @@ class WindowsWriteGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='ECRA 写入保护 ') as folder:
             root=Path(folder);source=root/'firmware';source.mkdir();(source/'.git').mkdir()
             file=source/'main.c';file.write_text('int original;\n',encoding='utf-8');before=sha256(file)
-            private=create_private_directory(root/'private',source_root=source)
+            ws = WorkspaceResolver.resolve(source, dict(output=dict(location='custom', custom_dir=str(root/'data')))).initialize()
+            private=create_private_directory(Path(ws.build_root)/'private',source_root=source,workspace=ws)
             program='''import json,os,sys,ctypes,subprocess
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
@@ -62,15 +64,16 @@ print(json.dumps(dict(integrity=integrity,results=results,read_source=(source/'m
     def test_existing_directory_is_never_relabelled(self):
         with tempfile.TemporaryDirectory() as folder:
             file=Path(folder)/'keep';file.write_bytes(b'keep')
-            with self.assertRaises(FileExistsError):create_private_directory(folder,source_root=folder)
+            with self.assertRaises(FileExistsError):create_private_directory(folder,source_root=folder,workspace=None)
             self.assertEqual(file.read_bytes(),b'keep')
 
     def test_new_directories_inside_source_or_installation_are_rejected_before_creation(self):
         with tempfile.TemporaryDirectory() as folder:
             source=Path(folder)/'source';source.mkdir()
+            ws = WorkspaceResolver.resolve(source, dict(output=dict(location='custom', custom_dir=str(source.parent/'data')))).initialize()
             for path in [source/'forbidden',Path(__file__).resolve().parents[1]/'forbidden-low-integrity-scope']:
                 self.assertFalse(path.exists())
-                with self.assertRaises(ValueError):create_private_directory(path,source_root=source)
+                with self.assertRaises(ValueError):create_private_directory(path,source_root=source,workspace=ws)
                 self.assertFalse(path.exists())
 
 

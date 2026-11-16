@@ -98,6 +98,8 @@ def execute(argv, *, input=None, cancel_event=None, **kwargs):
     options = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                    encoding="utf-8", errors="replace")
     options.update(kwargs)
+    from .runtime_storage import child_environment
+    options['env'] = child_environment(options.get('env'))
     if input is not None:
         options['stdin'] = subprocess.PIPE
     timeout = options.pop("timeout", 300)
@@ -132,7 +134,7 @@ def execute(argv, *, input=None, cancel_event=None, **kwargs):
             if os.name == "nt":
                 try:
                     if proc.poll() is None:
-                        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], timeout=3,
+                        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], timeout=3, env=options['env'],
                                        capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
                 finally:
                     if proc.poll() is None:

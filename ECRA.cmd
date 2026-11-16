@@ -2,12 +2,10 @@
 setlocal DisableDelayedExpansion
 cd /d "%~dp0"
 title ECRA Studio - Local Workbench
-set "ECRA_CONFIG_HOME=%~dp0config"
 set "PYTHONDONTWRITEBYTECODE=1"
 if not defined PYTHONHASHSEED set "PYTHONHASHSEED=0"
 if exist "%~dp0runtime\python.exe" (
   set "ECRA_PY=%~dp0runtime\python.exe"
-  set "ECRA_PORTABLE_ROOT=%~dp0"
 ) else (
   set "ECRA_PY="
 )
@@ -15,6 +13,7 @@ if "%~1"=="" goto studio
 if "%~1"=="--data-root" goto studio
 if "%~1"=="--no-browser" goto studio
 if "%~1"=="--port" goto studio
+if "%~1"=="--session-file" goto studio
 if defined ECRA_PY (
   "%ECRA_PY%" -B "%~dp0run_ecra.py" %*
 ) else (
@@ -27,8 +26,10 @@ if defined ECRA_PY (
 ) else (
   py -3.10 -B -m ecra.studio %*
 )
-if errorlevel 1 (
+set "ECRA_STATUS=%ERRORLEVEL%"
+if not "%ECRA_STATUS%"=="0" (
   echo ECRA Studio failed to start. See the error above.
   echo Development: py -3.10 -m pip install -r requirements-studio.txt
-  pause
+  if "%~1"=="" pause
 )
+exit /b %ECRA_STATUS%

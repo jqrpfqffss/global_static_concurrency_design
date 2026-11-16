@@ -19,6 +19,12 @@ from ecra.workflow import status
 
 
 class ScopeCMakeTest(unittest.TestCase):
+    @property
+    def out(self):
+        from ecra.workspace import WorkspaceResolver
+        folder = Path(WorkspaceResolver.resolve(self.root, {}).results_root)
+        return folder
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='ecra scoped project ')
         self.addCleanup(self.temp.cleanup)
@@ -32,7 +38,7 @@ class ScopeCMakeTest(unittest.TestCase):
         self.addCleanup(lambda: os.chdir(original))
 
     def fixture(self, sources, **analysis):
-        analysis.setdefault('output', dict(location='project'))
+        analysis.setdefault('output', dict(location='tool'))
         entries = []
         for name, source in sources.items():
             path = self.root/name
@@ -161,7 +167,7 @@ class ScopeCMakeTest(unittest.TestCase):
         self.assertEqual({f['file'] for f in scope['excluded_files']}, {'Core/system.c', 'Core/legacy.h', 'Core/vendor/nested/lib.c'})
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 2)
-        report = json.loads((self.root/'.ecra/reports/global_static_concurrency.json').read_text(encoding='utf-8'))
+        report = json.loads((self.out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         self.assertFalse(any(f.get('symbol_id') and f['variable_name'] in {'legacy', 'SystemCoreClock', 'vendor'} for f in report['findings']))
 
     def test_all_definitions_and_missing_definition_exclusions_win(self):
@@ -193,7 +199,7 @@ class ScopeCMakeTest(unittest.TestCase):
         cfg = self.fixture({'App/main.c':'int count;void USART2_IRQHandler(void){count++;}int main(void){count++;return 0;}'}, include_dirs=['App'])
         with contextlib.redirect_stdout(io.StringIO()):
             run(self.root, no_review=True)
-        out = self.root/'.ecra'
+        out = self.out
         facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
         report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         finding = next(f for f in report['findings'] if f.get('symbol_id'))
@@ -230,7 +236,7 @@ class ScopeCMakeTest(unittest.TestCase):
         _,audit=prepare(self.root,cfg)
         self.assertIn(forgotten.as_posix(),audit['excluded_from_build'])
         self.assertEqual(audit['unlisted_sources'], [])
-        hashes=file_hashes(self.root,self.root/'.ecra',audit_roots=AuditScope(self.root,cfg['analysis']).includes)
+        hashes=file_hashes(self.root,self.out,audit_roots=AuditScope(self.root,cfg['analysis']).includes)
         self.assertIn(forgotten.as_posix(),hashes)
 
     def test_real_pipeline_excludes_vendor_headers_and_invalidates_changed_scope(self):
@@ -239,7 +245,7 @@ class ScopeCMakeTest(unittest.TestCase):
                           'Vendor/unused.h':'static int not_in_build;'},include_dirs=['App'],exclude_dirs=['Vendor'])
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root,no_review=True),2)
-        out=self.root/'.ecra'
+        out=self.out
         facts=json.loads((out/'facts.json').read_text(encoding='utf-8'))
         report=json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         self.assertEqual([v['name'] for v in facts['variables']],['count'])
@@ -251,13 +257,15 @@ class ScopeCMakeTest(unittest.TestCase):
         self.assertFalse(status(self.root)['resumable'])
 
     def managed(self):
-        return dict(analysis=dict(cmake=dict(location='project',build_dir='build',generator='Ninja',build_type='Debug',args=['-DBOARD=demo']),
-                                 output=dict(location='project'),auto_system_includes=False,exclude_dirs=['build']))
+        return dict(analysis=dict(cmake=dict(location='workspace',build_dir='build',generator='Ninja',build_type='Debug',args=['-DBOARD=demo']),
+                                 output=dict(location='tool'),auto_system_includes=False,exclude_dirs=['build']))
 
     def test_managed_cmake_refreshes_existing_database_and_builds_each_run(self):
         (self.root/'App').mkdir()
         (self.root/'App/main.c').write_text('int main(void){return 0;}')
-        build=self.root/'build';build.mkdir()
+        from ecra.compilation import cmake_build_directory
+        build=cmake_build_directory(self.root,self.managed()['analysis']);build.mkdir(parents=True)
+        (build/'.ecra-build-owner').write_text(str(self.root),'utf-8')
         database=build/'compile_commands.json'
         database.write_text('[]')  # deliberately stale
         def invoke(argv,**kwargs):
@@ -272,16 +280,17 @@ class ScopeCMakeTest(unittest.TestCase):
                 self.assertEqual(len(units),1)
                 self.assertEqual([s['stage'] for s in audit['cmake_steps']],['configure','build'])
             self.assertEqual(execute.call_count,4)
-        self.assertTrue((self.root/'.ecra/cmake-build.log').is_file())
+        self.assertTrue((self.out/'cmake-build.log').is_file())
 
     def test_managed_cmake_can_clean_only_its_configured_build_directory(self):
         (self.root/'App').mkdir()
         (self.root/'App/main.c').write_text('int main(void){return 0;}')
-        build = self.root/'build'; build.mkdir()
-        marker = build/'stale-cache.txt'; marker.write_text('stale')
-        (build/'.ecra-build-owner').write_text(str(self.root.resolve()), encoding='utf-8')
+        from ecra.compilation import cmake_build_directory
         cfg = self.managed()
         cfg['analysis']['cmake']['clean_before_configure'] = True
+        build = cmake_build_directory(self.root,cfg['analysis']); build.mkdir(parents=True)
+        marker = build/'stale-cache.txt'; marker.write_text('stale')
+        (build/'.ecra-build-owner').write_text(str(self.root.resolve()), encoding='utf-8')
 
         def invoke(argv, **kwargs):
             if '-S' in argv:

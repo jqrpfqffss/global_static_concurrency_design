@@ -394,70 +394,68 @@ def _validate_projections(conn, progress=None):
     retains exact binding, TEXT/INTEGER conversion and constraints for unusual
     typed index values. Normal string/null record IDs need no adapter query.
     """
-    import tempfile
     version = conn.execute('PRAGMA user_version').fetchone()[0]
     notify = progress or (lambda _: None)
     total = conn.execute('SELECT count(*) FROM records').fetchone()[0]
     processed = 0
     actual_symbols = conn.execute('SELECT * FROM symbols ORDER BY ordinal')
     actual_symbols.row_factory = None
-    with tempfile.TemporaryDirectory(prefix='ecra projection validation ') as folder:
-        with closing(sqlite3.connect(Path(folder)/'projection.db')) as adapter:
-            adapter.executescript('''
-                CREATE TABLE record_values (
-                    symbol_id TEXT, function_id TEXT, source_id TEXT, target_id TEXT);
-                CREATE TABLE symbols (
-                    symbol_id TEXT PRIMARY KEY, ordinal INTEGER NOT NULL UNIQUE,
-                    node INTEGER NOT NULL, name TEXT NOT NULL,
-                    static_classification TEXT NOT NULL, resource_kind TEXT NOT NULL,
-                    definition_file TEXT, definition_line INTEGER, analysis_coverage TEXT);
-            ''')
-            adapter.execute('PRAGMA cache_size=-1024')
-            for dataset in ('facts', 'report'):
-                root = conn.execute('SELECT node FROM roots WHERE name=?', (dataset,)).fetchone()[0]
-                relations = conn.execute(
-                    'SELECT e.key,e.child FROM edges e JOIN nodes n ON n.id=e.child '
-                    "WHERE e.parent=? AND n.kind='list' ORDER BY e.ordinal", (root,))
-                for relation, array in relations:
-                    actual = conn.execute(
-                        'SELECT * FROM records WHERE dataset=? AND relation=? ORDER BY ordinal',
-                        (dataset, relation))
-                    actual.row_factory = None
-                    symbols = dataset == 'facts' and relation == 'variables'
-                    for ordinal, node, values in _projection_rows(conn, array, symbols=symbols):
-                        if not isinstance(relation, str):
-                            raise ValueError('静态库查询投影关系身份无效')
-                        identities = (values.get('symbol_id'), values.get('function_id'),
-                            (values.get('caller_function_id') if version >= 2 else None)
-                                or values.get('caller') or values.get('caller_id'),
-                            (values.get('callee_function_id') if version >= 2 else None)
-                                or values.get('callee') or values.get('callee_id'))
-                        if any(value is not None and not isinstance(value, str) for value in identities):
-                            adapter.execute('DELETE FROM record_values')
-                            adapter.execute('INSERT INTO record_values VALUES (?,?,?,?)', identities)
-                            identities = adapter.execute('SELECT * FROM record_values').fetchone()
-                        rebuilt = (dataset, relation, ordinal, node, *identities)
-                        if next(actual, None) != rebuilt:
-                            raise ValueError('静态库查询投影与权威证据不一致: records')
-                        if symbols:
-                            adapter.execute('DELETE FROM symbols')
-                            adapter.execute('INSERT INTO symbols VALUES (?,?,?,?,?,?,?,?,?)',
-                                (values['symbol_id'], ordinal, node,
-                                 values.get('qualified_name') or values.get('name') or values['symbol_id'],
-                                 values.get('static_classification', 'UNKNOWN'), values.get('resource_kind', ''),
-                                 values.get('definition_file'), values.get('definition_line'),
-                                 values.get('analysis_coverage')))
-                            if next(actual_symbols, None) != adapter.execute('SELECT * FROM symbols').fetchone():
-                                raise ValueError('静态库查询投影与权威证据不一致: symbols')
-                        processed += 1
-                        if processed % 16384 == 0:
-                            notify(dict(completed=processed, total=total, unit='records'))
-                    if next(actual, None) is not None:
+    with closing(sqlite3.connect(':memory:')) as adapter:
+        adapter.executescript('''
+            CREATE TABLE record_values (
+                symbol_id TEXT, function_id TEXT, source_id TEXT, target_id TEXT);
+            CREATE TABLE symbols (
+                symbol_id TEXT PRIMARY KEY, ordinal INTEGER NOT NULL UNIQUE,
+                node INTEGER NOT NULL, name TEXT NOT NULL,
+                static_classification TEXT NOT NULL, resource_kind TEXT NOT NULL,
+                definition_file TEXT, definition_line INTEGER, analysis_coverage TEXT);
+        ''')
+        adapter.execute('PRAGMA cache_size=-1024')
+        for dataset in ('facts', 'report'):
+            root = conn.execute('SELECT node FROM roots WHERE name=?', (dataset,)).fetchone()[0]
+            relations = conn.execute(
+                'SELECT e.key,e.child FROM edges e JOIN nodes n ON n.id=e.child '
+                "WHERE e.parent=? AND n.kind='list' ORDER BY e.ordinal", (root,))
+            for relation, array in relations:
+                actual = conn.execute(
+                    'SELECT * FROM records WHERE dataset=? AND relation=? ORDER BY ordinal',
+                    (dataset, relation))
+                actual.row_factory = None
+                symbols = dataset == 'facts' and relation == 'variables'
+                for ordinal, node, values in _projection_rows(conn, array, symbols=symbols):
+                    if not isinstance(relation, str):
+                        raise ValueError('静态库查询投影关系身份无效')
+                    identities = (values.get('symbol_id'), values.get('function_id'),
+                        (values.get('caller_function_id') if version >= 2 else None)
+                            or values.get('caller') or values.get('caller_id'),
+                        (values.get('callee_function_id') if version >= 2 else None)
+                            or values.get('callee') or values.get('callee_id'))
+                    if any(value is not None and not isinstance(value, str) for value in identities):
+                        adapter.execute('DELETE FROM record_values')
+                        adapter.execute('INSERT INTO record_values VALUES (?,?,?,?)', identities)
+                        identities = adapter.execute('SELECT * FROM record_values').fetchone()
+                    rebuilt = (dataset, relation, ordinal, node, *identities)
+                    if next(actual, None) != rebuilt:
                         raise ValueError('静态库查询投影与权威证据不一致: records')
-            if processed != total:
-                raise ValueError('静态库查询投影与权威证据不一致: records')
-            if next(actual_symbols, None) is not None:
-                raise ValueError('静态库查询投影与权威证据不一致: symbols')
+                    if symbols:
+                        adapter.execute('DELETE FROM symbols')
+                        adapter.execute('INSERT INTO symbols VALUES (?,?,?,?,?,?,?,?,?)',
+                            (values['symbol_id'], ordinal, node,
+                             values.get('qualified_name') or values.get('name') or values['symbol_id'],
+                             values.get('static_classification', 'UNKNOWN'), values.get('resource_kind', ''),
+                             values.get('definition_file'), values.get('definition_line'),
+                             values.get('analysis_coverage')))
+                        if next(actual_symbols, None) != adapter.execute('SELECT * FROM symbols').fetchone():
+                            raise ValueError('静态库查询投影与权威证据不一致: symbols')
+                    processed += 1
+                    if processed % 16384 == 0:
+                        notify(dict(completed=processed, total=total, unit='records'))
+                if next(actual, None) is not None:
+                    raise ValueError('静态库查询投影与权威证据不一致: records')
+        if processed != total:
+            raise ValueError('静态库查询投影与权威证据不一致: records')
+        if next(actual_symbols, None) is not None:
+            raise ValueError('静态库查询投影与权威证据不一致: symbols')
     notify(dict(completed=processed, total=total, unit='records'))
 
 

@@ -42,6 +42,7 @@ def settings(value):
 
 def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=False):
     from .portable import bundle_root
+    from .runtime_storage import child_environment
     bundle = bundle_root()
     exe = str(bundle/'tools/git/cmd/git.exe') if bundle else 'git'
     if bundle and not Path(exe).is_file():
@@ -52,7 +53,7 @@ def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=
         proc = subprocess.run([exe, '-c', 'core.longpaths=true', '-c', 'diff.autoRefreshIndex=false',
                                '-C', str(root), *args], stdout=_stdout,
                               stderr=subprocess.PIPE, timeout=300,
-                              env=dict(os.environ, GIT_OPTIONAL_LOCKS='0'))
+                              env=child_environment(dict(os.environ, GIT_OPTIONAL_LOCKS='0')))
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError(f'Git 无法运行，差异扫描未完成：{exc}') from exc
     if proc.returncode not in _returncodes or (_reject_stderr and proc.stderr):

@@ -9,7 +9,7 @@ import sys
 
 from .common import digest,write_json
 from .config import load_config
-from .workspace import no_links,studio_data_root
+from .workspace import managed_path, no_links
 
 
 def supported(analysis):
@@ -49,7 +49,7 @@ def capture_inputs(root,config,folder,progress=lambda text:None,*,scan_mode=None
     # The existing private integration deliberately bypasses only the dirty
     # switch; every Resolver/firmware/install boundary remains enforced.
     ws=execution_workspace(root,cfg['analysis'],object()).initialize();ws.bind(cfg['analysis'])
-    folder=studio_data_root(folder)
+    folder=managed_path(folder)
     if not folder.is_relative_to(Path(ws.workspace_root)):
         raise ValueError('未提交输入盘点必须位于本工程既有独立数据根')
     folder.mkdir(parents=True,exist_ok=False)

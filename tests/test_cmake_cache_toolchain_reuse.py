@@ -10,7 +10,8 @@ import unittest
 from unittest.mock import patch
 
 from ecra.compilation import configure_cmake, cmake_toolchain_input
-from ecra.portable import _BUILD_ALIASES, read_cache
+from ecra.portable import _BUILD_ALIASES, default_alias_root, read_cache
+from ecra.workspace import WorkspaceResolver
 
 
 class CMakeCachedToolchainTests(unittest.TestCase):
@@ -28,8 +29,16 @@ class CMakeCachedToolchainTests(unittest.TestCase):
             ]
             for mode,cached,requested,clean,explicit in cases:
                 with self.subTest(mode=mode):
-                    root=home/mode;build=root/'build/ecra';build.mkdir(parents=True)
-                    selected=root/requested;selected.parent.mkdir(parents=True,exist_ok=True)
+                    root=home/mode;root.mkdir()
+                    settings=dict(output=dict(location='custom',custom_dir=str(home/(mode+'-data'))),
+                        cmake=dict(location='workspace',generator='Ninja', toolchain_file=requested,
+                                   clean_before_configure=clean,build=True))
+                    workspace=WorkspaceResolver.resolve(root,settings).initialize()
+                    build=Path(workspace.build_root)/'fixture';build.mkdir(parents=True)
+                    selected=build/'arm.cmake' if mode=='build-relative' else root/requested
+                    if mode=='build-relative':
+                        settings['cmake']['toolchain_file']=str(selected)
+                    selected.parent.mkdir(parents=True,exist_ok=True)
                     selected.write_text('# requested real input\n','utf-8')
                     if cached=='absolute':cached=str(selected)
                     elif cached is not None:
@@ -39,36 +48,36 @@ class CMakeCachedToolchainTests(unittest.TestCase):
                         if old!=selected:old.write_text('# different existing input\n','utf-8')
                     if cached is not None:
                         (build/'CMakeCache.txt').write_text('CMAKE_TOOLCHAIN_FILE:FILEPATH='+cached+'\n','utf-8')
-                    if clean:(build/'.ecra-build-owner').write_text(str(root),'utf-8')
-                    settings=dict(output=dict(location='custom',custom_dir=str(home/(mode+'-data'))),
-                        cmake=dict(location='project',build_dir='build/ecra',generator='Ninja',
-                                   toolchain_file=requested,clean_before_configure=clean,build=True))
+                    (build/'.ecra-build-owner').write_text(str(root),'utf-8')
                     original=copy.deepcopy(settings);before=selected.read_bytes()
                     def execute(command,**kwargs):
                         if '-B' in command:
                             folder=Path(command[command.index('-B')+1]);folder.mkdir(parents=True,exist_ok=True)
                             (folder/'compile_commands.json').write_text('[]','utf-8')
                         return subprocess.CompletedProcess(command,0,'boundary fixture','')
-                    with patch('ecra.compilation.bundle_root',return_value=None),patch('ecra.portable.bundle_root',return_value=None),patch('ecra.compilation.execute',side_effect=execute):
+                    with patch('ecra.compilation.workspace_build_path',return_value=build), \
+                         patch('ecra.compilation.bundle_root',return_value=None), \
+                         patch('ecra.portable.bundle_root',return_value=None),patch('ecra.compilation.execute',side_effect=execute):
                         _,steps=configure_cmake(root,settings,lambda _:None,True)
                     command=next(row['command'] for row in steps if row['stage']=='configure')
                     flags=[arg for arg in command if arg.startswith('-DCMAKE_TOOLCHAIN_FILE=')]
                     self.assertEqual(bool(flags),explicit)
-                    if explicit:self.assertEqual(flags,['-DCMAKE_TOOLCHAIN_FILE='+str(selected.resolve())])
+                    if explicit:
+                        self.assertEqual([Path(flag.partition('=')[2]).resolve() for flag in flags], [selected.resolve()])
                     self.assertEqual(settings,original)
                     self.assertEqual(selected.read_bytes(),before)
 
     @unittest.skipUnless(os.name=='nt','Actual Windows Portable CMake/ARM toolchain required')
     def test_actual_first_reconfigure_is_byte_stable_and_changed_inputs_are_still_consumed(self):
         with tempfile.TemporaryDirectory(prefix='ecra-real-cached-toolchain-') as name:
-            home=Path(name).resolve();source=home/'source';source.mkdir();aliases=home/'aliases'
+            home=Path(name).resolve();source=home/'source';source.mkdir()
+            aliases=default_alias_root()/home.name.removeprefix('ecra-real-cached-toolchain-')
             (source/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.20)\nproject(cache_identity C ASM)\nadd_library(firmware STATIC main.c)\n','utf-8')
             (source/'main.c').write_text('int actual_compiled_value;\n','utf-8')
             toolchain=source/'arm.cmake'
             toolchain.write_text('set(CMAKE_SYSTEM_NAME Generic)\nset(CMAKE_SYSTEM_PROCESSOR arm)\nset(CMAKE_C_COMPILER arm-none-eabi-gcc)\nset(CMAKE_ASM_COMPILER arm-none-eabi-gcc)\nset(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)\n','utf-8')
             settings=dict(output=dict(location='custom',custom_dir=str(home/'data')),
                 cmake=dict(location='workspace',build_dir='build/ecra',generator='Ninja',toolchain_file='arm.cmake',build=True))
-            from ecra.workspace import WorkspaceResolver
             WorkspaceResolver.resolve(source,settings).initialize().bind(settings)
             with patch.dict(os.environ,ECRA_PATH_ALIAS_ROOT=str(aliases)),patch.dict(_BUILD_ALIASES,{},clear=True):
                 try:

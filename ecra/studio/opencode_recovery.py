@@ -42,7 +42,7 @@ def recover_review_tree(workspace, pinned, progress=print):
     ignore = candidates[-1]
     if not ignore.is_file() or ignore.stat().st_size != len(_STARTUP_IGNORE) or ignore.read_bytes() != _STARTUP_IGNORE:
         return
-    home = no_links(work/'git-snapshots'/tree.name)
+    home = workspace.git_admin_home(tree)
     marker = no_links(home/'state.json')
     if not marker.is_file() or marker.with_name('state.json.pending').exists():
         return

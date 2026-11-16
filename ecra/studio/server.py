@@ -2,6 +2,7 @@
 from contextlib import closing
 import hashlib
 import json
+import os
 from pathlib import Path
 import secrets
 import sqlite3
@@ -17,7 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from ..human_reviews import ReviewConflict, ReviewStore
 from ..report_package import import_report, export_report, import_delta, export_delta, IDENTITY
 from ..scan_store import EvidenceProvider, connect_readonly
-from ..workspace import no_links, studio_data_root, formal_workspace
+from ..workspace import managed_path, managed_root, no_links, studio_data_root, formal_workspace
 from ..storage_activity import DataActivity,DataBusy
 from .display_manifest import DISPLAY_MANIFEST_LIMIT,manifest_object as _manifest_object,display_manifest as _display_manifest
 
@@ -73,20 +74,10 @@ def _import_preflight(upload, data):
 
 def create_app(data_root=None, *, token=None, authority='127.0.0.1:8765'):
     from ..studio_preferences import startup_selection
+    from ..runtime_storage import initialize
     selection = startup_selection(data_root)
-    try:
-        return _create_app(selection['root'], token=token, authority=authority, startup=selection)
-    except (ValueError, OSError) as exc:
-        if isinstance(exc,DataBusy):raise
-        if selection['source'] != 'GUI_DEFAULT':
-            raise
-        from ..workspace import default_user_data_root
-        fallback = studio_data_root(default_user_data_root())
-        if fallback == selection['root']:
-            raise
-        recovery = dict(root=fallback, source='RECOVERY_DEFAULT', warning='已保存目录无法打开：'+str(exc)+
-                        '。当前在系统默认目录恢复设置，原数据保留；请到设置页核对。')
-        return _create_app(fallback, token=token, authority=authority, startup=recovery)
+    initialize(selection['root'])
+    return _create_app(selection['root'], token=token, authority=authority, startup=selection)
 
 
 @_startup_barrier
@@ -175,7 +166,7 @@ def _create_app(data_root, *, token, authority, startup):
             exhausted=(isinstance(exc,OSError) and (exc.errno==errno.ENOSPC or getattr(exc,'winerror',None) in {39,112})) or (
                 isinstance(exc,sqlite3.Error) and ((type(sqlite_code) is int and sqlite_code&255==13) or str(exc).strip().lower()=='database or disk is full'))
             if exhausted:
-                message=('写入磁盘空间不足，操作未能正常完成。请检查独立数据目录及系统临时目录所在盘，释放空间后核对当前结果和人工状态再重试。'
+                message=('写入磁盘空间不足，操作未能正常完成。请检查 ECRA 工具所在盘，释放空间后核对当前结果和人工状态再重试。'
                          '“数据与共享”可查看占用和安全回收计划。当前数据目录：'+str(data)+'。技术信息：'+str(exc))
                 return JSONResponse(dict(error=message,code='DISK_FULL',detail=str(exc)),status_code=400)
             locked=isinstance(exc,sqlite3.Error) and (
@@ -237,7 +228,7 @@ def _create_app(data_root, *, token, authority, startup):
     @app.get('/api/bootstrap')
     def bootstrap():
         from .sample import sample_info
-        return dict(product='ECRA Studio', data_root=str(data), protocol=1,
+        return dict(product='ECRA Studio', tool_root=str(managed_root().parent), data_root=str(data), protocol=1,
             data_root_source=startup['source'], preference_warning=startup['warning'],
             sample=sample_info(),
             scan_pipeline='SQLITE_NATIVE_SCAN',
@@ -247,13 +238,27 @@ def _create_app(data_root, *, token, authority, startup):
 
     @app.get('/api/settings/data-root')
     def data_root_settings():
-        from ..studio_preferences import status
-        return status(data, startup['source'], startup['warning'])
+        from ..studio_preferences import legacy_home, status
+        old = legacy_home()
+        return dict(status(data, startup['source'], startup['warning']), workspace=str(managed_root()),
+                    legacy_source=str(old) if old is not None and old.is_dir() else '')
+
+    def open_folder(path):
+        folder = managed_path(path)
+        if not folder.is_dir():
+            raise ValueError(f'目录不存在: {folder}')
+        if os.name == 'nt':
+            os.startfile(folder)
+        return dict(path=str(folder))
+
+    @app.post('/api/settings/open-data-root')
+    def open_data_root():
+        return open_folder(data)
 
     @app.post('/api/data-transfers/preview')
     def transfer_preview(payload: dict):
         from ..data_transfer import preview
-        return preview(payload.get('source') or data,payload.get('target'))
+        return preview(payload.get('source') or data,payload.get('target'),closed=payload.get('closed') is True)
 
     @app.get('/api/data-transfers')
     def transfer_history():
@@ -261,15 +266,16 @@ def _create_app(data_root, *, token, authority, startup):
 
     @app.post('/api/data-transfers')
     def start_transfer(payload: dict):
-        return transfers.start(payload.get('source') or data,payload.get('target'),expected=payload.get('revision'))
+        return transfers.start(payload.get('source') or data,payload.get('target'),
+                               expected=payload.get('revision'),closed=payload.get('closed') is True)
 
     @app.get('/api/data-transfers/{ident}')
     def transfer_status(ident: str):
         return transfers.get(ident)
 
     @app.post('/api/data-transfers/{ident}/resume')
-    def resume_transfer(ident: str):
-        return transfers.resume(ident)
+    def resume_transfer(ident: str, payload: dict):
+        return transfers.resume(ident,closed=payload.get('closed') is True)
 
     @app.post('/api/settings/data-root/preview')
     def preview_data_root(payload: dict):
@@ -769,13 +775,53 @@ def _create_app(data_root, *, token, authority, startup):
         name = ident + ('.ecra-review-delta' if delta else '.ecra-report')
         if delta:
             export_delta(scan_path(scan_id),exports/name)
-            return dict(download='/api/download/'+name,filename=name)
+            return dict(path=str(exports/name), download='/api/download/'+name, filename=name)
         export_report(scan_path(scan_id),exports/name,compression=compression)
         import zipfile
         with zipfile.ZipFile(exports/name) as zipped:
             actual='compact' if zipped.getinfo('scan.db').compress_type==zipfile.ZIP_BZIP2 else 'deflate'
-        return dict(download='/api/download/'+name,filename=name,compression=actual,
+        return dict(path=str(exports/name), download='/api/download/'+name, filename=name, compression=actual,
                     compression_fallback=actual!=compression)
+
+    @app.post('/api/exports/{name}/show')
+    def show_export(name: str):
+        if len(name) == 32+len('.ecra-diagnostics.zip') and name.endswith('.ecra-diagnostics.zip'):
+            ident = name[:-len('.ecra-diagnostics.zip')]
+            if any(c not in '0123456789abcdef' for c in ident):
+                raise ValueError('诊断包身份无效')
+            path = managed_path(data/'exports'/name)
+            if not path.is_file():
+                raise ValueError(f'诊断包不存在: {path}')
+        else:
+            path = downloads.path(name)
+        return dict(open_folder(path.parent), file=str(path))
+
+    @app.post('/api/tasks/{task_id}/diagnostics')
+    def package_diagnostics(task_id: str):
+        folder = tasks.directory(task_id)
+        record = tasks.record(folder/'task.json')
+        if record['state'] in {'RUNNING', 'STOP_REQUESTED'}:
+            raise ValueError('请等待任务结束后保存诊断包')
+        exports = managed_path(data/'exports')
+        exports.mkdir(exist_ok=True)
+        name = uuid.uuid4().hex + '.ecra-diagnostics.zip'
+        destination = exports/name
+        with tempfile.TemporaryDirectory(prefix='diagnostic-', dir=exports) as scratch:
+            pending = Path(scratch)/name
+            with zipfile.ZipFile(pending, 'w', compression=zipfile.ZIP_DEFLATED) as bundle:
+                files = [folder/item for item in ('task.json', 'console.log', 'supervisor.log', 'worker-result.json')]
+                scan = managed_path(data/'scans'/record['scan_id'])
+                for directory in (scan/'diagnostics', folder/'review-diagnostics', folder/'multicore-diagnostics'):
+                    directory = managed_path(directory)
+                    files.extend(managed_path(p) for p in directory.rglob('*') if p.is_file())
+                for path in files:
+                    path = managed_path(path)
+                    if path.is_file():
+                        arcname = 'task/'+path.relative_to(folder).as_posix() if path.is_relative_to(folder) else (
+                            'scan/'+path.relative_to(scan).as_posix())
+                        bundle.write(path, arcname)
+            pending.rename(destination)
+        return dict(path=str(destination), filename=name)
 
     @app.get('/api/download/{name}')
     def download(name: str):
@@ -963,12 +1009,9 @@ def _create_app(data_root, *, token, authority, startup):
             if not root.is_dir():
                 raise ValueError('工程目录不存在: '+str(root))
             cfg, _ = load_config(root, path)
-            analysis = dict(cfg['analysis'])
-            if analysis.get('output', {}).get('location', 'user') == 'user':
-                analysis['output'] = dict(location='custom', custom_dir=str(data))
-            ws = formal_workspace(root, analysis)
-            if Path(ws.workspace_root) != data:
-                raise ValueError('配置输出与当前 Studio 数据根不同；请使用 output.location: user。')
+            from ..workspace import using_data_root
+            with using_data_root(data):
+                ws = formal_workspace(root, cfg['analysis'])
             checks = []
             for tool in ('cmake', 'arm-none-eabi-gcc', 'git'):
                 repair = ''

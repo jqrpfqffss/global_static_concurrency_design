@@ -52,6 +52,27 @@ class DataTransferTests(unittest.TestCase):
         self.assertEqual(sha256(self.provider.path),self.static)
         self.assertEqual((self.source/'opaque.bin').read_bytes(),(self.target/'opaque.bin').read_bytes())
 
+    def test_transient_windows_publish_sharing_conflict_preserves_staged_copy(self):
+        rename = Path.rename
+        attempts = []
+
+        def transient(path, target):
+            if target == self.target:
+                attempts.append(path)
+                if len(attempts) == 1:
+                    error = PermissionError('Windows temporarily sharing this directory')
+                    error.winerror = 5
+                    raise error
+            return rename(path, target)
+
+        with patch.object(Path, 'rename', transient):
+            result = self.transfer()
+        self.assertEqual(result['state'], 'COMPLETE')
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(attempts[0], attempts[1])
+        self.assertEqual(sha256(self.target/'scans/one/scan.db'), self.static)
+        self.assertEqual(self.store.history(), [self.event])
+
     def test_active_writer_and_stale_preview_refuse_before_publication(self):
         from ecra.data_transfer import transfer
         plan=self.preview()
@@ -114,7 +135,8 @@ class DataTransferTests(unittest.TestCase):
         self.assertEqual(yaml.safe_load(changed)['analysis']['output'],dict(location='user'))
         self.assertEqual((self.target/history.relative_to(self.source)).read_text('utf-8'),raw)
         self.assertEqual(profile.read_text('utf-8'),raw)
-        self.assertFalse((self.target/'projects/p/trees').exists())
+        self.assertEqual((self.target/'projects/p/trees/gitdir').read_bytes(), (tree/'gitdir').read_bytes())
+        self.assertTrue(all(not row['reusable'] for row in result['retained_runtime']))
         self.assertTrue(result['retained_runtime'])
 
     def test_committed_wal_payload_is_preserved_without_checkpointing_source(self):

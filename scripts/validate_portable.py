@@ -26,7 +26,9 @@ def sha256(path):
 
 
 def file_hashes(bundle):
-    return {p.relative_to(bundle).as_posix(): sha256(p) for p in sorted(bundle.rglob('*'))
+    files = (p for top in bundle.iterdir() if top.name != 'workspace'
+             for p in (top.rglob('*') if top.is_dir() else (top,)))
+    return {p.relative_to(bundle).as_posix(): sha256(p) for p in sorted(files)
             if p.is_file() and p.name != 'FILES.sha256.json' and '__pycache__' not in p.parts}
 
 
@@ -132,25 +134,28 @@ class Acceptance:
         self.env['PATH'] = os.pathsep.join(map(str, [bundle/'runtime', bundle/'tools/cmake/bin',
             bundle/'tools/ninja', bundle/'tools/mingw/bin', bundle/'tools/mingw/opt/bin', bundle/'tools/arm-gcc/bin',
             windows/'System32', windows, windows/'System32/Wbem', windows/'System32/WindowsPowerShell/v1.0']))
-        self.env['ECRA_PORTABLE_ROOT'] = str(bundle)
-        self.env['ECRA_CONFIG_HOME'] = str(bundle/'config')
         self.env['PYTHONDONTWRITEBYTECODE'] = '1'
-        self.env['ECRA_DATA_ROOT'] = str(work/'user-data')
+        for key in ('ECRA_PORTABLE_ROOT', 'ECRA_CONFIG_HOME', 'ECRA_DATA_ROOT', 'ECRA_PATH_ALIAS_ROOT'):
+            self.env.pop(key, None)
+            os.environ.pop(key, None)
+        from ecra.runtime_storage import initialize
+        scratch = initialize()
+        self.env.update({key:str(scratch) for key in ('TEMP', 'TMP', 'TMPDIR', 'SQLITE_TMPDIR')})
         from ecra.portable import build_path
-        tool_root = Path(build_path(bundle))
+        tool_root = Path(build_path(bundle/'tools'))
         self.env['PATH'] = os.pathsep.join(build_path(Path(p)) for p in self.env['PATH'].split(os.pathsep))
         # Remove compiler/include injection from the developer environment.
         for key in ('PYTHONPATH','PYTHONHOME','CC','CXX','ASM','CFLAGS','CXXFLAGS','LDFLAGS','CPATH',
                     'C_INCLUDE_PATH','CPLUS_INCLUDE_PATH','LIBRARY_PATH','GCC_EXEC_PREFIX','COMPILER_PATH',
                     'CMAKE_GENERATOR','CMAKE_MAKE_PROGRAM','CMAKE_TOOLCHAIN_FILE','INCLUDE','LIB'):
             self.env.pop(key, None)
-        self.cmake = tool_root/'tools/cmake/bin/cmake.exe'
-        self.make = tool_root/'tools/mingw/bin/mingw32-make.exe'
-        self.python = tool_root/'runtime/python.exe'
-        self.gcc = tool_root/'tools/mingw/bin/gcc.exe'
-        self.gpp = tool_root/'tools/mingw/bin/g++.exe'
-        self.arm = tool_root/'tools/arm-gcc/bin/arm-none-eabi-gcc.exe'
-        self.report['tool_root_alias'] = str(tool_root)
+        self.cmake = tool_root/'cmake/bin/cmake.exe'
+        self.make = tool_root/'mingw/bin/mingw32-make.exe'
+        self.python = bundle/'runtime/python.exe'
+        self.gcc = tool_root/'mingw/bin/gcc.exe'
+        self.gpp = tool_root/'mingw/bin/g++.exe'
+        self.arm = tool_root/'arm-gcc/bin/arm-none-eabi-gcc.exe'
+        self.report['tool_root'] = str(bundle)
 
     def save(self):
         (self.work/'acceptance.json').write_text(json.dumps(self.report, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -258,7 +263,7 @@ extern "C" int helper(void){
             self.command(generator+' execute', [build/'native.exe'])
         # Keep firmware outside the developer checkout's ancestor .git. The
         # source fixture is retained and its absolute path is in the receipt.
-        firmware = Path(tempfile.mkdtemp(prefix='ECRA STM32 中文 ')).resolve()
+        firmware = Path(tempfile.mkdtemp(prefix='ECRA STM32 中文 ', dir=self.work)).resolve()
         self.report['firmware_fixture'] = str(firmware)
         (firmware/'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.20)
 project(ecra_stm32 C CXX ASM)
@@ -306,7 +311,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         data = dict(version=1,project=dict(root=str(firmware),chip='STM32F103',core='Cortex-M3'),
             analysis=dict(cmake=dict(build_dir='build/ecra',generator='MinGW Makefiles',build=True,clean_before_configure=True,
                 toolchain_file='toolchain.cmake'),include_dirs=['.'],exclude_dirs=['build','.ecra'],
-                output=dict(location='custom', custom_dir=str(self.work/'runtime-data')),
+                output=dict(location='custom', custom_dir=str(self.bundle/'workspace/data-roots/arm')),
                 auto_system_includes=True,expected_defines=['STM32F103xB','USE_HAL_DRIVER']),
             contexts=[dict(id='main',kind='MAIN',functions=['main'])], review=dict(enabled=False,command=['opencode']))
         config.write_text(json.dumps(data), encoding='utf-8')
@@ -382,24 +387,22 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         paths2 = json.loads(self.command('resolve configure-only build', [str(self.python), '-c', resolver_code, str(firmware), str(config2)], cwd=self.bundle))
         if (Path(paths2['build'])/'firmware.elf').exists():
             raise ValueError('build:false unexpectedly built firmware')
-        # Exercise default tool-side storage in a relocated source copy, using
-        # this bundle's interpreter/tools. Keep validation reports outside the
-        # distribution so a later ZIP never ships acceptance runtime data.
-        relocated = self.work/'relocated-tool 中文'
-        (relocated/'ecra').mkdir(parents=True)
-        for source in (self.bundle/'ecra').glob('*.py'):
-            shutil.copyfile(source, relocated/'ecra'/source.name)
+        # Keep the interpreter and a relocated source tree on distinct paths.
+        relocated = self.work/'relocated-source'
+        shutil.copytree(self.bundle/'ecra', relocated/'ecra')
         data['analysis'].pop('output')
         default_config = self.work/'default-output.json'
         default_config.write_text(json.dumps(data), encoding='utf-8')
         launch = 'import sys;sys.path.insert(0,sys.argv.pop(1));from ecra.cli import main;raise SystemExit(main())'
         self.command('relocated default workspace real scan', [self.python, '-c', launch, relocated,
                      '--config', default_config, '--no-review'], allowed=(2,))
-        defaults = list((self.work/'user-data/scans').glob('*/scan.db'))
-        if len(defaults) != 1 or (firmware/'.ecra').exists() or (self.bundle/'workspace').exists() or (relocated/'workspace').exists():
-            raise ValueError('Default workspace location or distribution runtime-data isolation failed')
+        defaults = list((relocated/'workspace/scans').glob('*/scan.db'))
+        if (len(defaults) != 1 or (firmware/'.ecra').exists()
+                or not out.is_relative_to(self.bundle/'workspace') or (self.work/'workspace').exists()
+                or (self.bundle/'runtime/workspace').exists()):
+            raise ValueError('Default workspace did not follow the actual tool root')
         self.report['default_workspace'] = str(defaults[0].parent)
-        self.report['bundle_contains_runtime_data'] = False
+        self.report['runtime_workspace'] = str(self.bundle/'workspace')
         self.report['opencode'] = 'NOT_TESTED: external installation/provider required; review disabled interface passed'
 
     def run(self):
@@ -439,6 +442,8 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
             deps = verify_pe_dependencies(self.bundle)
             (self.work/'pe-dependencies.json').write_text(json.dumps(deps,indent=2),encoding='utf-8')
             self.builds()
+            if file_hashes(self.bundle) != expected:
+                raise ValueError('Portable runtime modified an installed file outside workspace')
             self.report['result'] = 'PASS'
         except Exception as exc:
             self.report.update(result='FAIL',error=str(exc),traceback=traceback.format_exc())
@@ -455,10 +460,14 @@ def main():
     args = parser.parse_args()
     bundle = args.bundle.resolve()
     if args.write_hashes:
+        if (bundle/'workspace').exists():
+            parser.error('The distribution must be clean before inventory')
         (bundle/'FILES.sha256.json').write_text(json.dumps(file_hashes(bundle),indent=2),encoding='utf-8')
         return
     if os.name != 'nt' or not args.work:
         parser.error('Windows and a new --work directory are required')
+    if (bundle/'workspace').exists():
+        parser.error('Use a fresh disposable bundle for runtime acceptance')
     # This file is also copied to the root of the deliverable.
     sys.path.insert(0,str(bundle))
     Acceptance(bundle,args.work.resolve()).run()

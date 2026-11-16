@@ -23,6 +23,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InventoryFixture(unittest.TestCase):
+    @property
+    def out(self):
+        from ecra.workspace import WorkspaceResolver
+        folder = Path(WorkspaceResolver.resolve(self.root, {}).results_root)
+        return folder
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="ecra inventory test ")
         self.root = Path(self.tmp.name).resolve()
@@ -41,7 +47,7 @@ class InventoryFixture(unittest.TestCase):
                 entries.append(dict(directory=str(self.root), file=name,
                                     arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name]))
         (self.root / "compile_commands.json").write_text(json.dumps(entries), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", **analysis),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", **analysis),
                    contexts=contexts or [dict(id="isr", kind="ISR", functions=["ISR"]),
                                          dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -236,7 +242,7 @@ class TestUncompiledAndSupplemental(InventoryFixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -244,7 +250,7 @@ class TestUncompiledAndSupplemental(InventoryFixture):
         from ecra.cli import run
         code = run(self.root, no_review=True)
         self.assertEqual(code, 2)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         self.assertTrue(any(v["name"] == "extra_var" for v in facts["variables"]))
         extra_var = next(v for v in facts["variables"] if v["name"] == "extra_var")
         self.assertEqual(extra_var.get("coverage_source"), "supplemental")
@@ -257,16 +263,16 @@ class TestUncompiledAndSupplemental(InventoryFixture):
             dict(directory=str(self.root), file="a.c",
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", "a.c"])
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json", build_closure_only=False),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json", build_closure_only=False),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
         (self.root / ".ecra/semantics.yaml").write_text(json.dumps(cfg), encoding="utf-8")
         from ecra.cli import run
         run(self.root, no_review=True)
-        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+        report = json.loads((self.out/"reports/global_static_concurrency.json").read_text(encoding="utf-8"))
         self.assertIn("orphan.h", report["coverage"].get("unlisted_headers", []))
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         hidden = [v for v in facts["variables"] if v["name"] == "hidden"]
         self.assertTrue(hidden)
         self.assertEqual(hidden[0].get("coverage_source"), "supplemental")
@@ -280,7 +286,7 @@ class TestUncompiledAndSupplemental(InventoryFixture):
                  arguments=["arm-none-eabi-gcc", "-mcpu=cortex-m7", "-mthumb", "-c", name])
             for name in ("a.c", "bad.c")
         ]), encoding="utf-8")
-        cfg = dict(version=1, analysis=dict(output=dict(location="project"), compile_database="compile_commands.json"),
+        cfg = dict(version=1, analysis=dict(output=dict(location="tool"), compile_database="compile_commands.json"),
                    contexts=[dict(id="isr", kind="ISR", functions=["ISR"]),
                              dict(id="task", kind="TASK", functions=["Task"])],
                    review=dict(enabled=False))
@@ -288,10 +294,10 @@ class TestUncompiledAndSupplemental(InventoryFixture):
         from ecra.cli import run
         code = run(self.root, no_review=True)
         self.assertEqual(code, 2)
-        report = json.loads((self.root / ".ecra/reports/global_static_concurrency.json").read_text(encoding="utf-8"))
+        report = json.loads((self.out/"reports/global_static_concurrency.json").read_text(encoding="utf-8"))
         self.assertEqual(report["analysis_status"], "INCOMPLETE")
         self.assertTrue(report["coverage"]["translation_units_failed"] >= 1)
-        facts = json.loads((self.root / ".ecra/facts.json").read_text(encoding="utf-8"))
+        facts = json.loads((self.out/"facts.json").read_text(encoding="utf-8"))
         self.assertTrue(any(v["name"] == "g" for v in facts["variables"]))
 
 
@@ -358,7 +364,7 @@ class TestHTMLInventoryDefaults(InventoryFixture):
             void Task(void *arg) { int local = g_msgSP; g_msgSP = 2; (void)arg; }
         """})
         facts, report = self.extract(cfg)
-        out = self.root / ".ecra"
+        out = self.out
         out.mkdir(exist_ok=True)
         write_html(out, facts, report, [])
         html_text = (out / "index.html").read_text(encoding="utf-8")
@@ -380,7 +386,7 @@ class TestHTMLInventoryDefaults(InventoryFixture):
             "a.c": '#include "h.h"\nint g_msgSP;\nvoid ISR(void){g_msgSP=1;state++;}',
             "b.c": '#include "h.h"\nvoid Task(void){g_msgSP=2;state++;}'})
         facts, report = self.extract(cfg)
-        out = self.root / ".ecra"
+        out = self.out
         out.mkdir(exist_ok=True)
         write_html(out, facts, report, [])
         html_text = (out / "index.html").read_text(encoding="utf-8")
@@ -431,7 +437,7 @@ class TestEngineChangeInvalidation(InventoryFixture):
         with patch('ecra.workflow.engine_digest', return_value='stale-engine-digest'):
             with self.assertRaisesRegex(ValueError, '静态分析实现已变化'):
                 saved_run(self.root)
-        self.assertFalse((self.root / '.ecra/scan.lock').exists())
+        self.assertFalse((self.out/'scan.lock').exists())
 
 
 if __name__ == "__main__":

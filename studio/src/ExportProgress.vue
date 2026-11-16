@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { api, download } from './api'
-import { exportJobs, exportWake, exportAutoDownload } from './exportJobs'
+import { api } from './api'
+import { exportJobs, exportWake } from './exportJobs'
 
-const error = ref(''), expanded = ref(false), downloading = ref(''), collapsed = ref(false)
+const error = ref(''), expanded = ref(false), opening = ref(''), collapsed = ref(false)
 const active = (job: any) => ['RUNNING', 'CANCELLING'].includes(job.state)
 const visible = computed(() => expanded.value ? exportJobs.value : exportJobs.value.filter(active).length ? exportJobs.value.filter(active) : exportJobs.value.slice(0, 1))
 let timer: ReturnType<typeof setTimeout> | undefined, disposed = false, reading = false
 function duration(seconds: number) { return `${Math.floor(seconds / 60)} 分 ${Math.floor(seconds % 60)} 秒` }
 function size(bytes: number) { return bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB` }
-async function save(job: any) {
-  downloading.value = job.id; error.value = ''
-  try { await download(job.result.download, job.result.filename) }
-  catch (e: any) { error.value = '下载未开始：' + e.message + '；可重试下载已完成的结果包。' }
-  finally { downloading.value = '' }
+async function openLocation(job: any) {
+  opening.value = job.id; error.value = ''
+  try { await api('/exports/'+encodeURIComponent(job.result.filename)+'/show', 'POST', {}) }
+  catch (e: any) { error.value = '无法打开结果包所在目录：' + e.message }
+  finally { opening.value = '' }
 }
 async function poll() {
   if (disposed || reading) return
@@ -21,9 +21,6 @@ async function poll() {
   try {
     exportJobs.value = (await api('/export-jobs')).items
     error.value = ''
-    for (const job of exportJobs.value) {
-      if (!active(job) && exportAutoDownload.delete(job.id) && job.state === 'COMPLETE') await save(job)
-    }
   } catch (e: any) { error.value = '导出进度暂时无法读取：' + e.message + '。后台任务可能仍在运行，请重试查询。' }
   finally {
     reading = false
@@ -59,7 +56,8 @@ onUnmounted(() => { disposed = true; clearTimeout(timer) })
         <div class="progress-label"><span>{{ job.kind === 'delta' ? '人工确认增量已就绪' : '完整结果包已就绪' }}</span><strong>100%</strong></div>
         <progress :max="100" :value="100" aria-label="导出进度" />
         <p v-if="job.result.compression_fallback">为保证正常导入，已使用快速压缩。</p>
-        <button :disabled="downloading === job.id" @click="save(job)">下载结果包（{{ size(job.result.bytes) }}）</button>
+        <p class="identity">{{ job.result.path || job.result.filename }}</p>
+        <button :disabled="opening === job.id" @click="openLocation(job)">打开结果包所在目录（{{ size(job.result.bytes) }}）</button>
       </template>
     </article>
     </template>

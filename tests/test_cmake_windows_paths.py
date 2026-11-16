@@ -4,13 +4,15 @@ from pathlib import Path
 import shutil
 import stat
 import subprocess
+import uuid
 
 import pytest
 
 from ecra.common import read_json
 from ecra.compilation import configure_cmake
 from ecra.path_io import filesystem_path
-from ecra.portable import read_cache
+from ecra.portable import default_alias_root, read_cache
+from ecra.workspace import WorkspaceResolver
 
 
 pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows path semantics required")
@@ -21,8 +23,8 @@ HAL_OBJECT = HAL_DIRECTORY / "CMakeFiles/stm32h745xxlib_obj.dir" / (HAL_SOURCE.a
 
 
 @pytest.fixture
-def aliases(tmp_path, monkeypatch):
-    parent = tmp_path.parent / "a"
+def aliases(monkeypatch):
+    parent = default_alias_root() / uuid.uuid4().hex[:8]
     monkeypatch.setenv("ECRA_PATH_ALIAS_ROOT", str(parent))
     monkeypatch.setattr("ecra.portable._BUILD_ALIASES", {})
     try:
@@ -32,6 +34,7 @@ def aliases(tmp_path, monkeypatch):
             for alias in parent.iterdir():
                 assert alias.lstat().st_reparse_tag == stat.IO_REPARSE_TAG_MOUNT_POINT
                 alias.rmdir()
+            parent.rmdir()
 
 
 def create_firmware(root, subdirectory):
@@ -62,28 +65,23 @@ def create_firmware(root, subdirectory):
 @pytest.mark.parametrize("generator,program", [("Ninja", "ninja"), ("MinGW Makefiles", "mingw32-make")])
 @pytest.mark.parametrize("length,source_dir",
                          [(232, "fw"), (259, "fw"), (286, "fw"), (286, "固件 文件"), (286, "fw files")])
-def test_managed_arm_build_and_clean(tmp_path, aliases, generator, program, length, source_dir):
+def test_managed_arm_build_and_clean(tmp_path_factory, monkeypatch, aliases, generator, program, length, source_dir):
     if not all(shutil.which(tool) for tool in ("cmake", program, "arm-none-eabi-gcc")):
         pytest.skip("CMake, selected generator and ARM GCC required")
-    root = tmp_path / source_dir
-    suffix = root / "b" / HAL_OBJECT
-    padding = length - len(str(suffix))
-    assert padding >= 0
-    # Keep the original build root <= 120 for the ASCII build. CMake adds
-    # the rest of the length in the object-library directory.
-    depth = max(0, len(str(root / ("b" + "x" * padding))) - 113)
-    subdirectory = HAL_DIRECTORY
-    if depth >= 2:
-        subdirectory = Path("p" * (depth - 1)) / subdirectory
-    else:
-        depth = 0
-    build = root / ("b" + "x" * (padding - depth))
-    object_path = build / subdirectory / HAL_OBJECT.relative_to(HAL_DIRECTORY)
+    home = tmp_path_factory.mktemp("b")
+    root = home / source_dir
+    analysis = dict(output=dict(location="custom", custom_dir=str(home / "d")),
+                    cmake=dict(location="workspace", generator=generator,
+                               target="firmware.elf", toolchain_file="arm.cmake", build=True))
+    build = Path(WorkspaceResolver.resolve(root, analysis).build_root) / "b"
+    monkeypatch.setattr("ecra.compilation.workspace_build_path", lambda *_: build)
+    object_suffix = HAL_OBJECT.relative_to(HAL_DIRECTORY)
+    depth = length - len(str(build / "x" / object_suffix)) + 1
+    assert depth > 0
+    subdirectory = Path("p" * depth)
+    object_path = build / subdirectory / object_suffix
     assert len(str(object_path)) == length
     create_firmware(root, subdirectory)
-    analysis = dict(output=dict(location="custom", custom_dir=str(tmp_path / "data")),
-                    cmake=dict(location="project", build_dir=str(build), generator=generator,
-                               target="firmware.elf", toolchain_file="arm.cmake", build=True))
 
     def configure():
         return configure_cmake(root, analysis, lambda _: None, True)
@@ -134,8 +132,13 @@ def test_clean_removes_existing_long_objects_on_the_real_tree(tmp_path, aliases)
         pytest.skip("CMake, Ninja and ARM GCC required")
     root = tmp_path / "fw"
     create_firmware(root, HAL_DIRECTORY)
-    build = root / ("build-" + "x" * 45)
-    build.mkdir()
+    analysis = dict(output=dict(location="custom", custom_dir=str(tmp_path / "data")),
+                    cmake=dict(location="workspace", generator="Ninja",
+                               target="firmware.elf", toolchain_file="arm.cmake", build=True,
+                               clean_before_configure=True))
+    from ecra.workspace import build_path
+    build = build_path(root, analysis)
+    build.mkdir(parents=True)
     (build / ".ecra-build-owner").write_text(str(root), encoding="utf-8")
     # Use the exact old object suffix from the Studio failure. The existing
     # tree can contain longer paths than the current configuration will build.
@@ -143,10 +146,6 @@ def test_clean_removes_existing_long_objects_on_the_real_tree(tmp_path, aliases)
     stale.parent.mkdir(parents=True)
     stale.write_bytes(b"old object")
     assert len(str(stale)) > 280
-    analysis = dict(output=dict(location="custom", custom_dir=str(tmp_path / "data")),
-                    cmake=dict(location="project", build_dir=str(build), generator="Ninja",
-                               target="firmware.elf", toolchain_file="arm.cmake", build=True,
-                               clean_before_configure=True))
     database, steps = configure_cmake(root, analysis, lambda _: None, True)
     assert not stale.exists()
     assert (build / "firmware.elf").read_bytes().startswith(b"\x7fELF")
@@ -154,12 +153,18 @@ def test_clean_removes_existing_long_objects_on_the_real_tree(tmp_path, aliases)
     assert [step["stage"] for step in steps] == ["clean", "configure", "target-closure", "build"]
 
 
-def test_reconfigure_existing_unaliased_cache(tmp_path, aliases):
+def test_reconfigure_existing_unaliased_cache(tmp_path_factory, monkeypatch, aliases):
     if not all(shutil.which(tool) for tool in ("cmake", "ninja", "arm-none-eabi-gcc")):
         pytest.skip("CMake, Ninja and ARM GCC required")
-    root = tmp_path.parent / "old-source"
-    create_firmware(root, HAL_DIRECTORY)
-    build = root / "b"
+    home = tmp_path_factory.mktemp("r")
+    root = home / "f"
+    create_firmware(root, Path("hal"))
+    (root / ".git").mkdir()
+    analysis = dict(output=dict(location="custom", custom_dir=str(home / "d")),
+                    cmake=dict(location="workspace", generator="Ninja",
+                               target="firmware.elf", toolchain_file="arm.cmake", build=True))
+    build = Path(WorkspaceResolver.resolve(root, analysis).build_root) / "b"
+    monkeypatch.setattr("ecra.compilation.workspace_build_path", lambda *_: build)
     subprocess.run(["cmake", "-S", str(root), "-B", str(build), "-G", "Ninja",
                     "-DCMAKE_TOOLCHAIN_FILE=" + str(root/"arm.cmake"),
                     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"], check=True, capture_output=True)
@@ -168,9 +173,6 @@ def test_reconfigure_existing_unaliased_cache(tmp_path, aliases):
     (build / ".ecra-build-owner").write_text(str(root), encoding="utf-8")
     sentinel = build / "keep"
     sentinel.touch()
-    analysis = dict(output=dict(location="custom", custom_dir=str(tmp_path / "data")),
-                    cmake=dict(location="project", build_dir="b", generator="Ninja",
-                               target="firmware.elf", toolchain_file="arm.cmake", build=True))
     database, steps = configure_cmake(root, analysis, lambda _: None, True)
     alias = Path(steps[0]["command"][4])
     assert alias.parent.resolve() == aliases.resolve()
@@ -246,7 +248,7 @@ def test_default_alias_does_not_depend_on_worker_temp(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("profile_dir", ["用户 目录", "user profile"])
-def test_alias_falls_back_when_local_appdata_has_no_compatible_spelling(
+def test_alias_stays_with_tool_when_local_appdata_has_no_compatible_spelling(
         tmp_path, tmp_path_factory, monkeypatch, profile_dir):
     import tempfile
     from ecra import portable
@@ -255,9 +257,7 @@ def test_alias_falls_back_when_local_appdata_has_no_compatible_spelling(
     local = tmp_path / profile_dir
     temp = tmp_path_factory.mktemp("t")
     local.mkdir()
-    spelling = portable._short_path(local)
-    if spelling.isascii() and " " not in spelling:
-        pytest.skip("fixture requires a volume without short names")
+    monkeypatch.setattr(portable, "_short_path", str)
     monkeypatch.setenv("LOCALAPPDATA", str(local))
     for key in ("TMPDIR", "TEMP", "TMP"):
         monkeypatch.setenv(key, str(temp))
@@ -267,7 +267,7 @@ def test_alias_falls_back_when_local_appdata_has_no_compatible_spelling(
     build.mkdir()
     alias = Path(portable.build_path(build, prefer_junction=True))
     try:
-        assert alias.parent.resolve() == temp / "ECRA-paths"
+        assert alias.parent.resolve() == portable.default_alias_root()
         assert alias.resolve() == build
     finally:
         alias.rmdir()
@@ -350,10 +350,12 @@ def test_clean_preserves_owner_when_a_file_is_in_use(tmp_path):
 def test_configure_reports_build_directory_file_conflict(tmp_path):
     root = tmp_path / "source"
     root.mkdir()
-    conflict = root / "build"
-    conflict.write_bytes(b"unrelated data")
     analysis = dict(output=dict(location="custom", custom_dir=str(tmp_path / "data")),
-                    cmake=dict(location="project", build_dir="build"))
+                    cmake=dict(location="workspace", build_dir="build"))
+    from ecra.workspace import build_path
+    conflict = build_path(root, analysis)
+    conflict.parent.mkdir(parents=True)
+    conflict.write_bytes(b"unrelated data")
     with pytest.raises(ValueError, match="构建路径被非目录占用"):
         configure_cmake(root, analysis, lambda _: None, True)
     assert conflict.read_bytes() == b"unrelated data"

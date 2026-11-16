@@ -1,9 +1,5 @@
-"""Verified, resumable copies of complete Studio roots; originals are retained.
-
-Publication is a same-volume directory rename. Journals live outside both roots
-so a failed or interrupted copy cannot masquerade as an activated data root.
-"""
-from contextlib import closing, ExitStack
+"""Verified, resumable copies from read-only legacy sources into workspace."""
+from contextlib import closing, contextmanager, ExitStack
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -14,12 +10,16 @@ from pathlib import Path
 from pathlib import PurePosixPath
 import shutil
 import sqlite3
+import time
 import uuid
 
 from .common import write_json
 from .diff_review import DiffReviewEvidence
 from .storage_activity import DataActivity
-from .workspace import no_links, studio_data_root
+from .workspace import control_path, managed_root, no_links, studio_data_root
+
+
+_INFRASTRUCTURE = {'.ecra', 'a', 'data-roots'}
 
 
 def _digest(value):
@@ -27,21 +27,25 @@ def _digest(value):
 
 
 def registry(source):
-    source=studio_data_root(source)
-    return studio_data_root(source.parent/'.ecra-root-transfers'/_digest(str(source)))
+    return control_path('transfers', _digest(os.path.normcase(str(no_links(source)))))
+
+
+def _walk(root, *, onerror):
+    for base, dirs, names in os.walk(root, followlinks=False, onerror=onerror):
+        if Path(base) == root and root == managed_root():
+            dirs[:] = [name for name in dirs if name not in _INFRASTRUCTURE]
+        yield Path(base), dirs, names
 
 
 def _files(root):
     result={}
     def fail(error):raise error
-    for base,dirs,names in os.walk(root,followlinks=False,onerror=fail):
+    for base,dirs,names in _walk(root,onerror=fail):
         dirs.sort();names.sort()
         for name in dirs+names:no_links(Path(base)/name)
         for name in names:
             path=Path(base)/name
-            if path.parent==root/'settings' and name in {
-                    'storage-activity.lock','scan-budget-activity.lock','cleanup-job-activity.lock',
-                    'legacy-import-activity.lock','storage-policy-activity.lock','api-activity.lock'}:
+            if path.parent==root/'settings' and name.endswith('-activity.lock'):
                 continue  # live OS mutexes are recreated, never user evidence
             if not path.is_file():raise ValueError('数据根包含非普通文件：'+str(path))
             stat=path.stat()
@@ -52,7 +56,7 @@ def _files(root):
 def _directories(root):
     def fail(error):raise error
     return sorted(no_links(Path(base)/name).relative_to(root).as_posix()
-        for base,dirs,_ in os.walk(root,followlinks=False,onerror=fail) for name in dirs)
+        for base,dirs,_ in _walk(root,onerror=fail) for name in dirs)
 
 
 def _hash(path):
@@ -65,20 +69,55 @@ def _hash(path):
 def _target(source,destination):
     from .studio_preferences import _target as check
     target=check(destination,source)
-    if target['path']==str(source) or target['kind']!='EMPTY':
-        raise ValueError('整套复制需要另一个空目录，不能覆盖当前或已有Studio数据根')
-    return no_links(target['path'])
+    path = studio_data_root(target['path'])
+    if (path == managed_root() or path == source or source.is_relative_to(path)
+            or (path.is_relative_to(source) and source != managed_root()) or target['kind'] != 'EMPTY'):
+        raise ValueError(f'请在 {managed_root() / "data-roots"} 选择新的空目录；不会覆盖已有数据: {path}')
+    return path
 
 
 def _source(value):
-    source=studio_data_root(value)
-    if not source.is_dir() or source==Path(source.anchor):raise ValueError('来源必须是独立Studio数据根')
+    if not isinstance(value, (str, Path)) or not Path(value).is_absolute():
+        raise ValueError('旧 Studio 来源必须是绝对路径')
+    source=no_links(value)
+    if source.name.casefold() == 'ecrastudio' and (source/'data').is_dir():
+        source=no_links(source/'data')
+    if not source.is_dir() or source==Path(source.anchor):
+        raise ValueError(f'没有找到旧 Studio 数据目录: {source}')
     device=no_links(source/'settings/device.json')
-    if not device.is_file() or device.stat().st_size>4096:raise ValueError('来源没有有效Studio设备声明；旧格式请从历史迁移导入')
-    record=json.loads(device.read_text('utf-8'))
-    if not isinstance(record,dict) or not isinstance(record.get('device'),str) or not record['device'].startswith('device-'):
-        raise ValueError('来源Studio设备声明无效，保留原件')
+    if device.exists():
+        if not device.is_file() or device.stat().st_size>4096:
+            raise ValueError(f'来源 Studio 设备声明无效: {device}')
+        record=json.loads(device.read_text('utf-8'))
+        if not isinstance(record,dict) or not isinstance(record.get('device'),str) or not record['device'].startswith('device-'):
+            raise ValueError(f'来源 Studio 设备声明无效: {device}')
+    elif not any((source/'scans').glob('*/scan.db')) and not any((source/'projects').glob('*/project.json')):
+        raise ValueError(f'旧数据没有 Studio 设备、扫描或工程归属，请核对旧目录: {source}')
     return source
+
+
+@contextmanager
+def _stable_source(source, *, closed=False):
+    """Hold existing activity locks read-only and detect writers during import."""
+    tool = managed_root()
+    if not source.is_relative_to(tool) and closed is not True:
+        raise ValueError(f'请先关闭旧 ECRA Studio 和扫描、复核等写入进程，再确认来源已停止写入: {source}')
+    with ExitStack() as locks:
+        if os.name == 'nt' and source != tool:
+            from .guarded_cmake import InputWatch
+            watch = locks.enter_context(InputWatch())
+            for path in sorted((source/'settings').glob('*-activity.lock')):
+                try:
+                    watch.file(path)
+                except OSError as exc:
+                    raise ValueError(f'旧 ECRA 正在使用活动锁，请关闭后重试: {path}') from exc
+            yield
+        else:
+            # The default root's transfer controls live in its excluded .ecra.
+            for path in sorted((source/'settings').glob('*-activity.lock')):
+                locks.enter_context(DataActivity(source, exclusive=True,
+                    purpose=path.name.removesuffix('-activity.lock'), read_only=True))
+            yield
 
 
 def _safe_name(name):
@@ -91,19 +130,44 @@ def _safe_name(name):
 def retired_roots(data):
     """Execution may not silently keep depending on a previous data location."""
     data=no_links(data);roots=set()
+    state = no_links(data/'settings/storage-location.json')
+    if state.is_file():
+        record = json.loads(state.read_text('utf-8'))
+        for name in [record['current'], *record['previous']]:
+            old = Path(name)
+            if not old.is_absolute():
+                raise ValueError(f'数据位置记录无效: {state}')
+            if old != data:
+                roots.add(old)
     for path in (data/'settings/root-transfers').glob('*.json'):
         record=json.loads(no_links(path).read_text('utf-8'))
         if record.get('format')!='ECRA_VERIFIED_ROOT_COPY_V1':raise ValueError('数据根复制来源记录版本无效')
         for name in ('source','target'):
             value=record.get(name)
             if not isinstance(value,str) or not Path(value).is_absolute():raise ValueError('数据根复制来源路径无效')
-            old=no_links(value)
+            old=Path(value)
             if old!=data:roots.add(old)
         for value in record.get('source_aliases',[]):
             if not isinstance(value,str) or not Path(value).is_absolute():raise ValueError('旧数据根别名无效')
-            old=no_links(value)
+            old=Path(value)
             if old!=data:roots.add(old)
     return sorted(roots)
+
+
+def register_location(data):
+    """Remember moves without rewriting the paths in immutable receipts."""
+    data = studio_data_root(data)
+    file = no_links(data/'settings/storage-location.json')
+    if file.is_file() and json.loads(file.read_text('utf-8')).get('current') == str(data):
+        return
+    with DataActivity(data, exclusive=True, purpose='root-transfer', wait=10):
+        record = json.loads(file.read_text('utf-8')) if file.is_file() else dict(previous=[])
+        previous = record['previous']
+        old = record.get('current')
+        if old and Path(old) != data and old not in previous:
+            previous.append(old)
+        if old != str(data):
+            write_json(file, dict(version=1, current=str(data), previous=previous))
 
 
 def reject_retired_inputs(data,values):
@@ -141,7 +205,11 @@ def reject_retired_inputs(data,values):
             old=str(root).replace('\\','/')
             if os.name=='nt':old=old.casefold()
             normalized=[s.replace('\\','/').casefold() if os.name=='nt' else s for s in candidates]
-            if alias_match or any(s==old or old.rstrip('/')+'/' in s for s in normalized):
+            nested = str(no_links(data)).replace('\\','/')
+            if os.name=='nt':nested=nested.casefold()
+            retained = normalized if not no_links(data).is_relative_to(root) else [
+                s for s in normalized if s != nested and nested.rstrip('/')+'/' not in s]
+            if (alias_match and retained) or any(s==old or old.rstrip('/')+'/' in s for s in retained):
                 raise ValueError('搬迁后的构建/编译输入仍引用旧数据目录：'+str(root)+
                     '；请在工程接入中重新检查构建或选择重新导出的编译数据库，不能依赖旧盘符继续扫描。')
 
@@ -162,14 +230,17 @@ def _aliases(path):
 def relocated_task_config(data,path,raw):
     """A derived execution config; never edit the original task snapshot."""
     data=no_links(data);path=no_links(path)
-    if not path.is_relative_to(data/'work/tasks'):return raw,None
+    task = path.parent.parent == data/'work/tasks' and path.name == 'semantics.yaml'
+    profile = path.parent.name == 'profiles' and path.parent.parent.parent == data/'projects'
+    if not task and not profile:return raw,None
     from .studio.profile_forms import _roundtrip,_plain,_same
     parser,document=_roundtrip(raw.decode('utf-8'));old=_plain(raw.decode('utf-8'))
     output=old.get('analysis',{}).get('output',{})
-    if output.get('location')!='custom' or no_links(output['custom_dir']) not in retired_roots(data):return raw,None
-    meta=json.loads((path.parent/'task.json').read_text('utf-8'))
+    if output.get('location')!='custom' or Path(output['custom_dir']) not in retired_roots(data):return raw,None
     original=hashlib.sha256(raw).hexdigest()
-    if meta.get('profile_revision')!=original:raise ValueError('搬迁后的原任务配置已变化，不能恢复；请从工程配置重新扫描')
+    if task:
+        meta=json.loads((path.parent/'task.json').read_text('utf-8'))
+        if meta.get('profile_revision')!=original:raise ValueError('搬迁后的原任务配置已变化，不能恢复；请从工程配置重新扫描')
     document['analysis']['output']={'location':'user'}
     expected=json.loads(json.dumps(old));expected['analysis']['output']={'location':'user'}
     stream=io.StringIO();parser.dump(document,stream);result=stream.getvalue()
@@ -178,16 +249,16 @@ def relocated_task_config(data,path,raw):
         old_output=output['custom_dir'],new_data_root=str(data),mode='REVALIDATE_INPUTS_AND_REUSE_ONLY_VALID_TU_CACHE')
 
 
-def preview(source,destination):
+def preview(source,destination,*,closed=False):
     source=_source(source)
     target=_target(source,destination)
-    with DataActivity(source,exclusive=True):
+    with _stable_source(source,closed=closed):
         files=_files(source);directories=_directories(source)
     total=sum(r['size'] for r in files.values())
     return dict(source=str(source),target=str(target),files=len(files),bytes=total,
         revision=_digest(dict(source=str(source),target=str(target),files=files,directories=directories)),
         retention='全部原数据保留；复制、校验及路径重绑成功后才发布新目录。',
-        activation='完成后可在设置中选择新目录并重新启动；当前窗口继续使用原目录。')
+        activation='完成后在设置中保存新数据目录，再重新启动 ECRA。')
 
 
 def _validate_copy(stage):
@@ -196,12 +267,12 @@ def _validate_copy(stage):
     from .human_reviews import ReviewStore
     from .report_package import _review_events,copy_prior_decisions,copy_ai_receipts,validate_objects
     import tempfile
-    for path in sorted(stage.rglob('*.db')):
+    for path in sorted(p for p in stage.rglob('*') if p.suffix.lower() in {'.db','.sqlite','.sqlite3'}):
         with path.open('rb') as stream:header=stream.read(16)
         if header!=b'SQLite format 3\0':
             if path.name in {'scan.db','reviews.db'}:raise ValueError('扫描/人工数据库文件头损坏：'+str(path))
             continue  # unknown opaque bytes are preserved, never interpreted
-        with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+        with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=rw',uri=True)) as conn:
             conn.execute('PRAGMA trusted_schema=OFF')
             if conn.execute('PRAGMA integrity_check').fetchone()!=('ok',):
                 raise ValueError('搬迁副本SQLite完整性失败：'+str(path))
@@ -255,32 +326,24 @@ def _rebind(stage,source,target):
             if not backup.exists():shutil.copyfile(path,backup)
             path.write_text(updated,encoding='utf-8',newline='')
             changed.append(path.relative_to(stage).as_posix())
-    # CMake caches and Git administrative paths cannot be rebased by replacing
-    # text. Preserve their complete bytes outside the resolver's live locations.
+    # Runtime caches keep their original bytes. The resolver keys new caches by
+    # the current data location and never reuses the previous namespaces.
     for project in sorted((stage/'projects').glob('*')):
-        for suffix in ('builds','trees','results/git_diff'):
+        for suffix in ('builds','trees','git-snapshots','results/git_diff'):
             old=project/suffix
-            if not old.exists():continue
-            new=stage/'settings/transfer-retained-runtime'/project.name/suffix
-            if new.exists():new=new.with_name(new.name+'-'+uuid.uuid4().hex)
-            assert old.resolve().is_relative_to(stage.resolve()) and new.resolve().is_relative_to(stage.resolve())
-            new.parent.mkdir(parents=True,exist_ok=True);old.rename(new)
-            retained.append(dict(original=old.relative_to(stage).as_posix(),retained=new.relative_to(stage).as_posix()))
+            if old.exists():
+                retained.append(dict(original=old.relative_to(stage).as_posix(), reusable=False))
     return changed,retained
 
 
-def transfer(source,destination,*,expected=None,resume=None,progress=lambda value:None):
+def transfer(source,destination,*,expected=None,resume=None,closed=False,progress=lambda value:None):
     source=_source(source);target=studio_data_root(destination)
     control=registry(source);control.mkdir(parents=True,exist_ok=True)
-    reservation=studio_data_root(target.parent/'.ecra-transfer-reservations'/_digest(str(target)))
+    reservation=control_path('reservations',_digest(os.path.normcase(str(target))))
     with ExitStack() as stack:
         stack.enter_context(DataActivity(control,exclusive=True))
         stack.enter_context(DataActivity(reservation,exclusive=True))
-        # Stop API writes and job metadata writers too, including the short
-        # intervals outside their inner storage transactions.
-        for purpose in ('api','scan-budget','cleanup-job','legacy-import','storage-policy'):
-            stack.enter_context(DataActivity(source,exclusive=True,purpose=purpose))
-        stack.enter_context(DataActivity(source,exclusive=True))
+        stack.enter_context(_stable_source(source,closed=closed))
         if resume:
             journal=no_links(resume)
             if journal.parent!=control or journal.suffix!='.json':raise ValueError('搬迁恢复记录不属于当前数据根')
@@ -305,7 +368,7 @@ def transfer(source,destination,*,expected=None,resume=None,progress=lambda valu
                     or row['size']<0 or type(row['mtime_ns']) is not int):raise ValueError('搬迁文件记录无效')
         if not isinstance(item.get('directories'),list):raise ValueError('搬迁目录清单无效')
         for name in item['directories']:_safe_name(name)
-        stage=no_links(target.parent/('.'+target.name+'.ecra-transfer-'+ident+'.pending'))
+        stage=control_path('staging',ident)
         marker=target/'settings/root-transfers'/(ident+'.json')
         if item['state']=='PUBLISHING' and marker.is_file() and not stage.exists():
             seal=json.loads(marker.read_text('utf-8'))
@@ -314,22 +377,30 @@ def transfer(source,destination,*,expected=None,resume=None,progress=lambda valu
                     or set(_files(target))!={*seal['files'],marker.relative_to(target).as_posix()}
                     or any(_hash(target/_safe_name(name))!=hashed for name,hashed in seal['files'].items())):
                 raise ValueError('发布后的搬迁副本校验失败，保留原根和现场')
-            item.update(state='COMPLETE',recovered_after_publication=True);write_json(journal,item);return item
+            item.update(state='COMPLETE',recovered_after_publication=True,
+                        verified_source=str(source), verified_source_bytes=sum(r['size'] for r in item['files'].values()))
+            write_json(journal,item)
+            return item
         _target(source,str(target))
         if _files(source)!=item['files'] or _directories(source)!=item['directories']:
             raise ValueError('来源文件/目录已变化，不能恢复旧搬迁；请创建新计划')
         total=sum(row['size'] for row in item['files'].values())
         parent=target.parent
         while not parent.exists():parent=parent.parent
-        if shutil.disk_usage(parent).free<total+16*1024**2:
-            raise ValueError('目标磁盘可用空间不足，原数据保留')
-        stage.mkdir(parents=True,exist_ok=True)
-        for name in item['directories']:no_links(stage/name).mkdir(parents=True,exist_ok=True)
         ready={}
         for path in sorted(control.glob(ident+'.copies-*.jsonl')):
             for line in path.read_bytes().splitlines(keepends=True):
                 if not line.endswith(b'\n'):continue  # incomplete crash tail proves nothing
                 row=json.loads(line);ready[row['file']]=row['sha256']
+        required = 16*1024**2
+        for name, record in item['files'].items():
+            existing = no_links(stage/name)
+            if name not in ready or not existing.is_file() or _hash(existing) != ready[name]:
+                required += record['size']
+        if shutil.disk_usage(parent).free < required:
+            raise ValueError(f'目标磁盘可用空间不足，需 {required} 字节: {target}；原数据保留')
+        stage.mkdir(parents=True,exist_ok=True)
+        for name in item['directories']:no_links(stage/name).mkdir(parents=True,exist_ok=True)
         count=copied=reused=0;hashes={}
         log=control/(ident+'.copies-'+uuid.uuid4().hex+'.jsonl')
         def update(state):
@@ -373,14 +444,25 @@ def transfer(source,destination,*,expected=None,resume=None,progress=lambda valu
                 raise ValueError('数据库/配置校验期间来源发生变化，拒绝发布')
             physical={name:_hash(stage/name) for name in _files(stage)}
             seal=dict(format='ECRA_VERIFIED_ROOT_COPY_V1',id=ident,source=str(source),target=str(target),
-                source_aliases=_aliases(source),files=physical,profiles_rebound=changed,retained_runtime=retained)
+                source_aliases=_aliases(source),files=physical,source_hashes=hashes,source_bytes=total,
+                profiles_rebound=changed,retained_runtime=retained)
             out=stage/'settings/root-transfers'/(ident+'.json');out.parent.mkdir(parents=True,exist_ok=True);write_json(out,seal)
             item.update(state='PUBLISHING',profiles_rebound=changed,retained_runtime=retained,reused_files=reused)
             write_json(journal,item)
             _target(source,str(target))
+            target.parent.mkdir(parents=True,exist_ok=True)
             if target.exists():target.rmdir()  # only the explicitly selected, still-empty directory
-            stage.rename(target)
-            item.update(state='COMPLETE',copied_files=count,total_bytes=total)
+            for attempt in range(6):
+                try:
+                    stage.rename(target)
+                    break
+                except PermissionError as exc:
+                    if getattr(exc,'winerror',None) not in {5,32,33} or attempt==5:raise
+                    if os.path.lexists(target):
+                        raise ValueError(f'搬迁目标在发布期间被占用: {target}') from exc
+                    time.sleep(.05*2**attempt)
+            item.update(state='COMPLETE',copied_files=count,total_bytes=total, verified_source=str(source),
+                        verified_source_bytes=total, source_retained=True)
             write_json(journal,item);update('COMPLETE')
             return item
         except BaseException as exc:

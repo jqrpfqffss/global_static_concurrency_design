@@ -75,10 +75,11 @@ class Run:
         self.api = None
         self.protocol_problem = None
         self.transport_problem = None
+        self.journal_lock = Lock()
 
     @contextmanager
     def connect(self):
-        with closing(sqlite3.connect(no_links(self.journal), timeout=2)) as conn, conn:
+        with self.journal_lock, closing(sqlite3.connect(no_links(self.journal), timeout=10)) as conn, conn:
             conn.row_factory = sqlite3.Row
             conn.execute('PRAGMA trusted_schema=OFF')
             conn.execute('PRAGMA synchronous=FULL')
@@ -122,9 +123,8 @@ class Run:
         self.check_store()
         invocation = Invocation(self, uuid.uuid4().hex)
         directory = Path(cwd).resolve()
-        # v1.18.35 uses project 'global' outside Git. For Git, the private
-        # service will query that exact (legacy) worktree before deletion.
-        project_id = None if any((p/'.git').exists() for p in (directory, *directory.parents)) else 'global'
+        # Model and maintenance processes disable discovery of external Git dirs.
+        project_id = 'global'
         with self.connect() as conn:
             conn.execute('INSERT INTO calls VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?)',
                          (invocation.id, request, record['finding_id'], record['number'], record['stage'],
@@ -279,8 +279,8 @@ class SessionCleanup:
     def finish(self, invocation, path, hashed):
         try:
             invocation.run.finish(invocation, path.read_text('utf-8', errors='replace'), hashed)
-        except Exception:
-            self.note('OpenCode 会话归属记录写入失败，已保留会话', skipped=1)
+        except Exception as exc:
+            self.note(f'OpenCode 会话归属记录写入失败，已保留会话: {exc}', skipped=1)
 
     def archived(self, row):
         if row['state'] != 'DONE' or row.get('cached') or row.get('scan_fingerprint') != self.fingerprint:

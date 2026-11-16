@@ -5,7 +5,6 @@ from pathlib import Path
 import shutil
 import stat
 import sys
-import tempfile
 from importlib.metadata import version
 
 from .common import execute
@@ -64,18 +63,20 @@ def _is_junction(path):
 
 
 def default_alias_root():
-    """Select a persistent path before a worker replaces its TEMP."""
-    local = os.environ.get('LOCALAPPDATA')
-    if local and Path(local).is_absolute():
-        parent = Path(local)/'ECRAStudio/path-aliases'
-        existing = next((path for path in (parent, *parent.parents) if filesystem_path(path).is_dir()), None)
-        if existing is not None:
-            spelling = Path(_short_path(existing))/parent.relative_to(existing)
-            value = str(spelling)
-            # Some project generators pass paths through a second shell.
-            if value.isascii() and ' ' not in value and len(value)+33 <= 120:
-                return parent
-    return Path(tempfile.gettempdir())/'ECRA-paths'
+    from .workspace import managed_path, managed_root
+    return managed_path(managed_root()/'a')
+
+
+def alias_root():
+    from .workspace import managed_path
+    root = default_alias_root()
+    override = os.environ.get('ECRA_PATH_ALIAS_ROOT')
+    if not override:
+        return root
+    value = managed_path(override, label='ECRA_PATH_ALIAS_ROOT')
+    if not value.is_relative_to(root):
+        raise ValueError(f'ECRA_PATH_ALIAS_ROOT 必须位于 {root}: {value}')
+    return value
 
 
 def build_path(value, *, prefer_junction=False):
@@ -125,18 +126,14 @@ def build_path(value, *, prefer_junction=False):
         import time
         # Studio gives each worker its own TEMP. Build references in CMakeCache
         # must survive the worker and be reachable when Studio is reopened.
-        override = os.environ.get('ECRA_PATH_ALIAS_ROOT')
-        parent = Path(override) if override else default_alias_root()
-        if not parent.is_absolute():
-            raise ValueError('ECRA_PATH_ALIAS_ROOT 必须是独立的绝对路径')
-        from .workspace import studio_data_root
-        parent = studio_data_root(parent)
-        if parent == root or parent.is_relative_to(root) or root.is_relative_to(parent):
-            raise ValueError('短构建别名根不可与实际源码/构建目标重叠：'+str(parent))
+        parent = alias_root()
+        if parent.is_relative_to(root) or root.is_relative_to(parent):
+            raise ValueError(f'短路径 Junction 不能指向别名目录及其父目录: {parent} / {root}')
         parent.mkdir(parents=True,exist_ok=True)
         parent = Path(_short_path(parent))
-        if not str(parent).isascii() or len(str(parent))+33 > 120:
-            raise ValueError('短构建别名仍过长或非ASCII；请选择独立且更短的 ECRA_PATH_ALIAS_ROOT：'+str(parent))
+        if not str(parent).isascii() or ' ' in str(parent) or len(str(parent))+33 > 120:
+            raise ValueError(f'工具内无法取得足够短的无空格英文构建别名: {parent}；'
+                             r'请将整个工具移动到类似 D:\ECRA 的非 C 盘短英文目录。')
         alias = parent/hashlib.sha256(str(root).casefold().encode('utf-8')).hexdigest()[:32]
         try:
             if not os.path.lexists(alias):
@@ -145,7 +142,7 @@ def build_path(value, *, prefer_junction=False):
             pass # another ECRA process may have created the identical alias
         except OSError as exc:
             raise ValueError(f'无法创建 CMake 短路径 Junction：{alias} -> {root}。'
-                             f'请检查别名目录是否可写并支持 Junction，或设置 ECRA_PATH_ALIAS_ROOT。{exc}') from exc
+                             f'请检查工具目录是否可写并支持 Junction。{exc}') from exc
         for attempt in range(5):
             if _is_junction(alias) and resolved_path(alias) == root:
                 break
@@ -159,20 +156,22 @@ def build_path(value, *, prefer_junction=False):
 
 
 def bundle_root():
+    from .config import TOOL_ROOT
     value = os.environ.get('ECRA_PORTABLE_ROOT')
-    root = Path(value).resolve() if value else Path(__file__).resolve().parent.parent
+    root = resolved_path(TOOL_ROOT)
+    if value and (not Path(value).is_absolute() or resolved_path(value) != root):
+        raise ValueError(f'ECRA_PORTABLE_ROOT 与正在运行的工具目录不同: {value}；实际目录 {root}')
     return root if (root / 'portable-lock.json').is_file() else None
 
 
 def tool_environment():
     """Build processes see bundled tools and Windows only; review keeps host PATH."""
-    env = os.environ.copy()
+    from .runtime_storage import child_environment
+    env = child_environment()
     root = bundle_root()
     if root:
-        # Register the whole bundle before individual bin directories. GCC
-        # resolves ../libexec and ../lib relative to argv[0]; aliasing bin alone
-        # makes those siblings disappear on Chinese/space install paths.
-        build_path(root)
+        # Keep GCC's bin/libexec siblings, without aliasing an ancestor of workspace.
+        build_path(root/'tools')
         windows = Path(env.get('SystemRoot', r'C:\Windows'))
         paths = [root/'runtime', root/'tools/cmake/bin', root/'tools/ninja',
                  root/'tools/mingw/bin', root/'tools/mingw/opt/bin', root/'tools/arm-gcc/bin',
@@ -191,7 +190,7 @@ def tool_path(name):
              'g++': 'mingw/bin/g++.exe', 'arm-none-eabi-gcc': 'arm-gcc/bin/arm-none-eabi-gcc.exe',
              'arm-none-eabi-g++': 'arm-gcc/bin/arm-none-eabi-g++.exe'}
     if root and name in paths:
-        build_path(root)
+        build_path(root/'tools')
         path = root/'tools'/paths[name]
         if not path.is_file():
             raise ValueError(f'Portable 缺少工具: {path}；重新生成完整包')

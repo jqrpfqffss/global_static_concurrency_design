@@ -61,11 +61,20 @@ class ExportJobs:
             row = conn.execute('SELECT payload FROM jobs WHERE id=?', (ident,)).fetchone()
         if row is None:
             raise ValueError('导出任务不存在')
-        return json.loads(row[0])
+        return self._view(row[0])
 
     def history(self):
         with self.connect() as conn:
-            return dict(items=[json.loads(row[0]) for row in conn.execute('SELECT payload FROM jobs ORDER BY started DESC LIMIT 20')])
+            return dict(items=[self._view(row[0]) for row in conn.execute('SELECT payload FROM jobs ORDER BY started DESC LIMIT 20')])
+
+    def _view(self, raw):
+        item = json.loads(raw)
+        if item['state'] == 'COMPLETE':
+            extension = '.ecra-report' if item['kind'] == 'full' else '.ecra-review-delta'
+            name = item['id'] + extension
+            if item['result']['filename'] == name and IDENTITY.fullmatch(item['id']):
+                item['result']['path'] = str(no_links(self.data/'exports'/name))
+        return item
 
     def start(self, scan, *, kind='full', compression='deflate'):
         if not isinstance(kind, str) or kind not in {'full', 'delta'}:
@@ -140,16 +149,16 @@ class ExportJobs:
                 export_report(scan, target, compression=item['compression'], progress=update)
             else:
                 export_delta(scan, target, progress=update)
-            result = dict(download='/api/download/'+name, filename=name, bytes=target.stat().st_size)
+            result = dict(path=str(target), download='/api/download/'+name, filename=name, bytes=target.stat().st_size)
             if item['kind'] == 'full':
                 with zipfile.ZipFile(target) as archive:
                     actual = 'compact' if archive.getinfo('scan.db').compress_type == zipfile.ZIP_BZIP2 else 'deflate'
                 result.update(compression=actual, compression_fallback=actual != item['compression'])
-            item.update(state='COMPLETE', stage='COMPLETE', message='导出完成，可下载完整结果包', result=result)
+            item.update(state='COMPLETE', stage='COMPLETE', message='已保存到 ECRA 数据目录', result=result)
         except OperationCancelled as exc:
             item.update(state='CANCELLED', error=str(exc))
         except Exception as exc:
-            item.update(state='FAILED', error='导出失败：'+str(exc)+'。请检查数据目录和系统临时目录的可用空间及归档状态；原扫描与人工记录保留。')
+            item.update(state='FAILED', error='导出失败：'+str(exc)+'。请检查 ECRA 数据盘的可用空间及归档状态。')
             try:
                 (self.folder/(item['id']+'.trace.txt')).write_text(traceback.format_exc(), encoding='utf-8')
             except OSError:

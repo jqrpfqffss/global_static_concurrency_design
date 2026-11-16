@@ -14,7 +14,7 @@ import uuid
 
 from .report_package import sha256
 from .review_process import owned_process
-from .workspace import canonical, no_links
+from .workspace import canonical, managed_path, no_links
 
 
 # Pinned to the release whose local (non-attach) run, DB override, JSONL
@@ -115,16 +115,13 @@ class Runtime:
 
     @contextmanager
     def maintenance(self, database):
-        # Maintenance does not load the user's plugins, credentials or OpenCode
-        # config. Model calls retain those paths and only override OPENCODE_DB.
-        with TemporaryDirectory(prefix='ecra-opencode-maint-', ignore_cleanup_errors=True) as name:
+        from .opencode_storage import isolated_environment
+        database = managed_path(database, label='OpenCode 会话数据库')
+        with TemporaryDirectory(prefix='m-', dir=database.parent, ignore_cleanup_errors=True) as name:
             cwd = Path(name)
             env = {k: v for k, v in os.environ.items() if not k.upper().startswith('OPENCODE_')}
-            for area in ('DATA', 'CONFIG', 'CACHE', 'STATE'):
-                env[f'XDG_{area}_HOME'] = str(cwd/area.lower())
-            env.update(OPENCODE_TEST_HOME=str(cwd), OPENCODE_DB=str(database),
-                       OPENCODE_DISABLE_PROJECT_CONFIG='true', OPENCODE_DISABLE_MODELS_FETCH='true',
-                       OPENCODE_DISABLE_AUTOUPDATE='true', OPENCODE_DISABLE_DEFAULT_PLUGINS='true',
+            env = isolated_environment(cwd, cwd, database, environment=env)
+            env.update(OPENCODE_DISABLE_MODELS_FETCH='true', OPENCODE_DISABLE_DEFAULT_PLUGINS='true',
                        OPENCODE_SERVER_USERNAME='ecra', OPENCODE_SERVER_PASSWORD=uuid.uuid4().hex)
             yield Maintenance(self, cwd, env, database)
 
@@ -138,7 +135,7 @@ class Maintenance:
         return [str(self.runtime.exe), '--pure', *args]
 
     def cli(self, *args):
-        with TemporaryFile() as stdout, TemporaryFile() as stderr:
+        with TemporaryFile(dir=self.cwd) as stdout, TemporaryFile(dir=self.cwd) as stderr:
             with owned_process(self._argv(*args), cwd=self.cwd, env=self.env, stdout=stdout, stderr=stderr) as proc:
                 try:
                     proc.wait(timeout=STARTUP_TIMEOUT)
@@ -151,7 +148,7 @@ class Maintenance:
 
     def verify(self):
         if self.cli('--version') != VERSION:
-            raise Unverifiable(f'当前清理接口仅验证过 OpenCode {VERSION}')
+            raise Unverifiable(f'当前目录隔离协议仅验证过 OpenCode {VERSION}；请使用此版本的原生程序')
         if canonical(self.cli('db', 'path')) != canonical(self.database):
             raise Unverifiable('OpenCode 未使用本次任务的独立会话库')
 
@@ -170,7 +167,7 @@ class Maintenance:
     @contextmanager
     def server(self):
         # The startup line names the port selected by the owned launcher.
-        with (self.cwd/'server.out').open('wb') as stdout, TemporaryFile() as stderr:
+        with (self.cwd/'server.out').open('wb') as stdout, TemporaryFile(dir=self.cwd) as stderr:
             with owned_process(self._argv('serve', '--hostname', '127.0.0.1', '--port', '0'),
                                cwd=self.cwd, env=self.env, stdout=stdout, stderr=stderr) as proc:
                 yield from self._open_api(proc, self.cwd/'server.out')

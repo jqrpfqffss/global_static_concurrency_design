@@ -38,10 +38,9 @@ def temporary_environment(owned_folder, environment):
     The caller owns the parent and has already checked firmware/data boundaries.
     Never changes the broker's environment or falls back to inherited TEMP.
     """
-    from ..workspace import no_links
-    parent=no_links(owned_folder)
+    from ..runtime_storage import temporary_environment as bind
+    from ..workspace import managed_path
+    parent=managed_path(owned_folder)
     if not parent.is_dir():raise ValueError('任务临时目录的受控父目录不存在')
-    temporary=no_links(parent/'temporary');temporary.mkdir(exist_ok=False)
-    updated=dict(environment)
-    for key in ['TEMP','TMP','TMPDIR','SQLITE_TMPDIR']:updated[key]=str(temporary)
-    return updated
+    temporary=managed_path(parent/'temporary');temporary.mkdir(exist_ok=False)
+    return bind(temporary, environment)

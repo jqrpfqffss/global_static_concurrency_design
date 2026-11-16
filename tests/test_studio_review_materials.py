@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from ecra.studio.review_materials import describe,save,stage,stage_for_task,material_lock,MAX_EDIT
+from ecra.studio.review_materials import describe,save,stage,stage_for_task,material_lock,target,MAX_EDIT
 from ecra.studio.review_document_forms import library_forms
 from ecra.review_context import review_context_section
 from ecra.human_reviews import ReviewConflict
@@ -17,18 +17,19 @@ class ReviewMaterialsTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.base=Path(self.temp.name);self.config=self.base/'tool/config';self.config.mkdir(parents=True)
-        self.data=self.base/'data';self.data.mkdir();self.profile=self.data/'projects/project/profiles/profile.yaml';self.profile.parent.mkdir(parents=True);self.profile.write_text('version: 1\n','utf-8')
+        self.data=self.base/'tool/workspace/data-roots/data';self.data.mkdir(parents=True);self.profile=self.data/'projects/project/profiles/profile.yaml';self.profile.parent.mkdir(parents=True);self.profile.write_text('version: 1\n','utf-8')
         (self.config/'concurrency_cases.md').write_text(CASE,'utf-8');(self.config/'review_context.md').write_text(CONTEXT,'utf-8')
         self.override=patch('ecra.config.CONFIG_HOME',self.config);self.override.start();self.addCleanup(self.override.stop)
+        self.tool=patch('ecra.workspace.TOOL_ROOT',self.config.parent);self.tool.start();self.addCleanup(self.tool.stop)
     def folder(self,name):
-        p=self.base/name;p.mkdir();return p
+        p=self.data/'work'/name;p.mkdir(parents=True);return p
     def payload(self,text='',name='review_context.md'):
         return dict(name=name,action='context',revision=describe()['documents'][name]['revision'],text=text)
 
     def test_no_profile_is_needed_and_empty_context_reaches_original_loader(self):
         self.profile.unlink();self.assertEqual(describe()['source'],'config')
         saved=save(self.data,self.payload(''));self.assertTrue(saved['saved'])
-        self.assertEqual((self.config/'review_context.md').read_bytes(),b'')
+        self.assertEqual(target('review_context.md').read_bytes(),b'')
         self.assertEqual(saved['documents']['review_context.md']['effective_chars'],0)
         task=self.folder('blank');stage(self.profile,task)
         self.assertEqual(review_context_section(task/'review_context.md'),'')
@@ -50,8 +51,8 @@ class ReviewMaterialsTests(unittest.TestCase):
         original=(self.config/'concurrency_cases.md').read_bytes()
         result=save(self.data,dict(name='concurrency_cases.md',action='case',revision=state['revision'],case_id=None,form=new))
         self.assertEqual(result['selected_case_id'],'CASE-0002');self.assertEqual(Path(result['backup']).read_bytes(),original)
-        self.assertEqual(Path(result['saved_copy']).read_bytes(),(self.config/'concurrency_cases.md').read_bytes())
-        self.assertEqual(len(library_forms((self.config/'concurrency_cases.md').read_text('utf-8'))[0]),2)
+        self.assertEqual(Path(result['saved_copy']).read_bytes(),target('concurrency_cases.md').read_bytes())
+        self.assertEqual(len(library_forms(target('concurrency_cases.md').read_text('utf-8'))[0]),2)
         self.assertEqual(self.profile.read_text('utf-8'),'version: 1\n')
         self.assertEqual(list(self.profile.parent.glob('*.review-materials.json')),[])
 
@@ -60,7 +61,7 @@ class ReviewMaterialsTests(unittest.TestCase):
         path=self.config/'concurrency_cases.md';path.write_bytes(raw)
         info=describe()['documents']['concurrency_cases.md'];value=info['entries'][0]['form'];value['title']='新名称'
         save(self.data,dict(name='concurrency_cases.md',action='case',revision=info['revision'],case_id='CASE-0001',form=value))
-        self.assertEqual(path.read_bytes(),raw.replace('边界测试'.encode(),'新名称'.encode()))
+        self.assertEqual(target('concurrency_cases.md').read_bytes(),raw.replace('边界测试'.encode(),'新名称'.encode()))
 
     def test_file_revision_conflict_keeps_concurrent_content_and_refuses_overwrite(self):
         spec=self.payload('my draft');(self.config/'review_context.md').write_text('external edit','utf-8')
@@ -93,7 +94,7 @@ class ReviewMaterialsTests(unittest.TestCase):
         self.assertEqual((task/'review_context.md').read_bytes(),b'')
         self.assertEqual(describe()['documents']['review_context.md']['revision'],'missing')
         save(self.data,self.payload(''))
-        self.assertEqual((self.config/'review_context.md').read_bytes(),b'')
+        self.assertEqual(target('review_context.md').read_bytes(),b'')
 
     def test_large_non_utf8_and_links_are_not_silently_overwritten(self):
         path=self.config/'review_context.md';path.write_bytes(b'x'*(MAX_EDIT+1));state=describe()['documents']['review_context.md'];self.assertFalse(state['editable'])
@@ -111,10 +112,10 @@ class ReviewMaterialsTests(unittest.TestCase):
         from ecra.studio import review_materials as module
         original=module._atomic
         def fail_target(path,raw):
-            if Path(path).parent.resolve()==self.config.resolve():raise PermissionError('synthetic write denial')
+            if path == target('review_context.md'):raise PermissionError('synthetic write denial')
             return original(path,raw)
         with patch.object(module,'_atomic',side_effect=fail_target):
-            with self.assertRaisesRegex(ValueError,'config 原文件不可写'):save(self.data,self.payload('new'))
+            with self.assertRaisesRegex(ValueError,'工具内编辑副本不可写'):save(self.data,self.payload('new'))
         self.assertEqual((self.config/'review_context.md').read_text('utf-8'),CONTEXT)
         self.assertTrue(list((self.data/'settings/review-materials-history').rglob('*.md')))
 
@@ -128,6 +129,7 @@ class ReviewMaterialsTests(unittest.TestCase):
         from tests.test_case_library import CaseLibraryTests
         fixture=CaseLibraryTests();fixture.setUp();self.addCleanup(fixture.doCleanups)
         task=self.folder('prompt');stage(self.profile,task)
+        fixture.out=self.data/'scans'/'fixture'
         fixture.library=task/'concurrency_cases.md'
         rows=fixture.run_review(review_context_path=task/'review_context.md')
         prompt=fixture.prompt();self.assertIn('CONTEXT_SENTINEL',prompt);self.assertNotIn('模板不进入提示',prompt)

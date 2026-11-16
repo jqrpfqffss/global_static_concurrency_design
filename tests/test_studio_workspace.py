@@ -25,7 +25,7 @@ class StudioWorkspaceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             firmware=Path(folder)/'firmware';firmware.mkdir()
             (firmware/'CMakeLists.txt').write_text('project(real_firmware C)')
-            with self.assertRaisesRegex(ValueError,'工程内'):
+            with self.assertRaisesRegex(ValueError,'workspace'):
                 create_app(firmware/'data')
             self.assertFalse((firmware/'data').exists())
     @unittest.skipUnless(os.name=='nt','NTFS build alias')
@@ -47,8 +47,12 @@ class StudioWorkspaceTests(unittest.TestCase):
         from ecra.workspace import migrate_legacy,file_hash
         with tempfile.TemporaryDirectory() as folder:
             base=Path(folder);fw=base/'firmware';fw.mkdir();tool=base/'old-install';tool.mkdir()
-            with patch('ecra.workspace.TOOL_ROOT',tool), patch.dict(os.environ,{'ECRA_DATA_ROOT':str(base/'user-data')}):
-                old=WorkspaceResolver.resolve(fw,dict(output=dict(location='tool'))).initialize()
+            (fw/'.git').mkdir()
+            data=tool/'workspace/data-roots/user-data'
+            with patch('ecra.workspace.TOOL_ROOT',tool), patch.dict(os.environ,{'ECRA_DATA_ROOT':str(data)}):
+                from ecra.workspace import using_data_root
+                with using_data_root(tool/'workspace'):
+                    old=WorkspaceResolver.resolve(fw,dict(output=dict(location='tool'))).initialize()
                 source=Path(old.results_root)
                 write_json(source/'run.json',dict(project_root=str(fw)))
                 write_json(source/'scan_state.json',dict(schema=1,project_root=str(fw),fingerprint='old'))
@@ -63,9 +67,9 @@ class StudioWorkspaceTests(unittest.TestCase):
                 for relative,hashed in hashes.items():
                     self.assertEqual(file_hash(target/relative),hashed)
                     self.assertEqual(file_hash(source/relative),hashed)
-                self.assertEqual(list(fw.iterdir()),[])
+                self.assertEqual(list(fw.iterdir()),[fw/'.git'])
 
-    def test_user_data_is_stable_and_not_inside_firmware_or_installation(self):
+    def test_user_data_is_owned_by_tool_and_separate_from_firmware(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
             fw = base/'固件'; fw.mkdir()
@@ -80,7 +84,7 @@ class StudioWorkspaceTests(unittest.TestCase):
     def test_formal_modes_reject_legacy_writes_and_unsafe_dirty_path(self):
         with tempfile.TemporaryDirectory() as folder:
             fw = Path(folder)
-            for cfg in [dict(output=dict(location='project')), dict(output=dict(location='tool')),
+            for cfg in [dict(output=dict(location='project')),
                         dict(cmake=dict(location='project')), dict(git_diff=dict(include_uncommitted=True))]:
                 with self.assertRaises(ValueError):
                     formal_workspace(fw, cfg)

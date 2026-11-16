@@ -1,6 +1,7 @@
 import fnmatch
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -171,6 +172,14 @@ def configure_cmake(root, analysis, progress, build_firmware):
         raise ValueError('cmake.args 不可覆盖源码/构建目录或生成器；请使用对应配置字段')
     if make and any('CMAKE_MAKE_PROGRAM' in arg for arg in args):
         raise ValueError('Portable 的 CMAKE_MAKE_PROGRAM 由 Generator 选择；不可用 cmake.args 覆盖')
+    outputs = re.compile(r'(?:CMAKE_(?:RUNTIME|LIBRARY|ARCHIVE|PDB|COMPILE_PDB)_OUTPUT_DIRECTORY(?:_\w+)?|'
+                         r'CMAKE_INSTALL_PREFIX)(?::\w+)?=(.*)', re.I)
+    for arg in args:
+        match = outputs.fullmatch(arg.removeprefix('-D').strip())
+        if match:
+            value = match[1]
+            if '$<' in value or ';' in value or not no_links(build/value).is_relative_to(build):
+                raise ValueError(f'CMake 输出参数超出本项目构建目录 {build}: {arg}')
     records = []
 
     allow_external = analysis.get('allow_external_toolchain', settings.get('allow_external_toolchain', False))
@@ -225,7 +234,8 @@ def configure_cmake(root, analysis, progress, build_firmware):
             toolchain_path = (str(Path(source_path)/toolchain.relative_to(root)) if source_alias and toolchain.is_relative_to(root)
                               else build_path(toolchain) if bundle_root() else str(toolchain))
             command += ['-DCMAKE_TOOLCHAIN_FILE=' + toolchain_path]
-    command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
+    command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+                       '-DCMAKE_EXPORT_PACKAGE_REGISTRY=OFF', '-DCMAKE_EXPORT_NO_PACKAGE_REGISTRY=ON']
     if make:
         command += ['-DCMAKE_MAKE_PROGRAM:FILEPATH=' + make]
 

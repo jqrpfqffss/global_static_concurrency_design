@@ -69,7 +69,8 @@ def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_pa
         stderr = stack.enter_context(stderr_path.open('wb'))
         stdin = None
         if input is not None:
-            stdin = stack.enter_context(TemporaryFile())
+            from .workspace import managed_path
+            stdin = stack.enter_context(TemporaryFile(dir=managed_path(env['TEMP'])))
             stdin.write(input.encode('utf-8'))
             stdin.seek(0)
         interrupted = None

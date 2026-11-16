@@ -170,7 +170,13 @@ class ProjectPortabilityTests(unittest.TestCase):
         self.base = Path(self.tmp.name).resolve()
         original = Path.cwd()
         self.addCleanup(lambda: os.chdir(original))
-        semantics = self.base/'tool/config/semantics.yaml'
+        tool = self.base/'tool'
+        tool.mkdir()
+        root = patch('ecra.workspace.TOOL_ROOT', tool)
+        root.start(); self.addCleanup(root.stop)
+        env = patch.dict(os.environ, ECRA_DATA_ROOT='')
+        env.start(); self.addCleanup(env.stop)
+        semantics = tool/'workspace/.ecra/config/semantics.yaml'
         for target in ('ecra.config.SEMANTICS_FILE', 'ecra.cli.SEMANTICS_FILE'):
             mocked = patch(target, semantics)
             mocked.start()

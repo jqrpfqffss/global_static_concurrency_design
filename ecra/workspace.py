@@ -5,6 +5,7 @@ before adopting a directory; links in writable data paths are rejected.
 """
 from dataclasses import dataclass, asdict, replace
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 import hashlib
@@ -31,6 +32,45 @@ def no_links(path):
         if info is not None and is_link(info):
             raise ValueError(f'ECRA 数据路径包含符号链接/Junction，拒绝写入: {item}')
     return resolved_path(path)
+
+
+_MOVE_TOOL = '当前工具位于 C 盘。请将整个 ECRA 工具目录移动到 D/E 等非 C 盘的可写目录后重新运行。'
+
+
+def _local_path(value, label):
+    path = Path(value)
+    if not path.is_absolute() or '..' in path.parts:
+        raise ValueError(f'{label} 必须使用明确的绝对路径: {value}')
+    if os.name == 'nt' and (
+            not re.fullmatch(r'[a-zA-Z]:', path.drive)
+            or any(':' in part or part.endswith(('.', ' ')) or Path(part).is_reserved() for part in path.parts[1:])):
+        raise ValueError(f'{label} 必须位于本机盘符，且不能使用设备名、数据流或异常路径: {value}')
+    return path
+
+
+def managed_root():
+    tool = resolved_path(TOOL_ROOT)
+    if os.name == 'nt' and tool.drive.casefold() == 'c:':
+        raise ValueError(f'{_MOVE_TOOL} 实际工具目录: {tool}')
+    _local_path(tool, 'ECRA 工具目录')
+    if not tool.is_dir():
+        raise ValueError(f'ECRA 工具目录不存在或不可访问: {tool}')
+    return no_links(tool/'workspace')
+
+
+def managed_path(value, *, label='ECRA 写入路径'):
+    """Admit only absolute writes in the workspace of this code installation."""
+    root = managed_root()
+    raw = _local_path(value, label)
+    path = no_links(raw)
+    if not path.is_relative_to(root) or (os.name == 'nt' and path.drive.casefold() == 'c:'):
+        raise ValueError(f'{label} 位于当前工具的数据区域之外: {path}；请使用 {root} 内的路径，'
+                         '旧数据可从 Studio「数据与共享」只读迁移。')
+    return path
+
+
+def control_path(*parts):
+    return managed_path(managed_root().joinpath('.ecra', *parts))
 
 
 def read_owner(marker):
@@ -69,60 +109,60 @@ def _owner_publication():
 
 
 def user_data_root():
-    """Stable user data, independent of replaceable program installations."""
+    """The historical user mode uses the same portable workspace as Studio."""
+    explicit = _active_data.get()
+    if explicit is not None:
+        return studio_data_root(explicit)
     value = os.environ.get('ECRA_DATA_ROOT')
     if value:
-        if not Path(value).is_absolute():
-            raise ValueError('ECRA_DATA_ROOT 必须是绝对路径')
-        return no_links(value)
+        return studio_data_root(value, label='ECRA_DATA_ROOT')
     from .studio_preferences import preferred_data_root
-    return no_links(preferred_data_root(default_user_data_root()))
+    return studio_data_root(preferred_data_root(default_user_data_root()))
 
 
 def default_user_data_root():
-    """Original system default, also used by the explicit settings recovery UI."""
-    if os.name == 'nt':
-        local = os.environ.get('LOCALAPPDATA')
-        if not local or not Path(local).is_absolute():
-            raise ValueError('LOCALAPPDATA 不可用；请设置独立的绝对路径 ECRA_DATA_ROOT')
-        return no_links(Path(local)/'ECRAStudio'/'data')
-    return no_links(Path(os.environ.get('XDG_DATA_HOME', str(Path.home()/'.local/share')))/'ECRAStudio'/'data')
+    return managed_root()
 
 
-def studio_data_root(value=None):
-    """Reject recognized source/install trees before Studio's first write."""
-    path=no_links(value if value is not None else user_data_root())
-    tool=Path(TOOL_ROOT).resolve()
-    if path==tool or path.is_relative_to(tool):
-        raise ValueError('Studio 数据根不能位于程序安装目录；请选择独立用户数据目录')
-    for ancestor in (path,*path.parents):
+def studio_data_root(value=None, *, label='ECRA 数据根'):
+    root = managed_root()
+    path = managed_path(value if value is not None else user_data_root(), label=label)
+    slots = root/'data-roots'
+    if path != root and (path == slots or not path.is_relative_to(slots) or
+                         any(part.startswith('.') for part in path.relative_to(slots).parts)):
+        raise ValueError(f'{label} 只能使用 {root} 或 {root / "data-roots" / "<名称>"}: {path}')
+    for ancestor in (path, *[p for p in path.parents if p.is_relative_to(slots)]):
         if ((ancestor/'.git').exists() or (ancestor/'CMakeLists.txt').is_file()
                 or (ancestor/'compile_commands.json').is_file()):
-            raise ValueError('Studio 数据根位于源码/Git/构建工程内，拒绝创建数据；请选择工程外独立目录: '+str(ancestor))
+            raise ValueError(f'{label} 与源码/Git/构建工程重叠: {ancestor}')
+        if ancestor.exists() and not ancestor.is_dir():
+            raise ValueError(f'{label} 的路径被文件占用: {ancestor}')
+        if ancestor != path and any((ancestor/name).exists() for name in (
+                'scans', 'projects', 'work', 'settings/device.json', 'settings/storage-location.json')):
+            raise ValueError(f'{label} 不能嵌套在另一数据根中: {ancestor} / {path}')
     return path
 
 
-def formal_workspace(root, analysis):
-    """Validate Studio boundaries without initializing or writing firmware.
+_active_data = ContextVar('ecra_active_data_root', default=None)
 
-    Legacy resolver modes remain available to isolated compatibility readers;
-    Studio never treats them as authorization for new in-source scans/builds.
-    """
-    settings = output_settings(analysis)
-    if settings['location'] in {'project', 'tool'}:
-        raise ValueError('正式扫描需要独立用户数据根；请迁移旧 .ecra/工具 workspace，'
-                         '移除 output.location: project/tool，或选择仓库及安装目录外的 custom_dir')
+
+@contextmanager
+def using_data_root(value):
+    token = _active_data.set(studio_data_root(value))
+    try:
+        yield
+    finally:
+        _active_data.reset(token)
+
+
+def formal_workspace(root, analysis):
+    """Validate scan boundaries without initializing or writing firmware."""
     if analysis.get('cmake', {}).get('location') == 'project':
         raise ValueError('正式扫描禁止在固件中构建；请使用 analysis.cmake.location: workspace')
     if analysis.get('git_diff', {}).get('include_uncommitted'):
         from .dirty_inputs import supported
         supported(analysis)
-    ws = WorkspaceResolver.resolve(root, analysis)
-    data, tool = Path(ws.workspace_root), Path(TOOL_ROOT).resolve()
-    if data == tool or data.is_relative_to(tool):
-        raise ValueError('数据根不能位于会被升级覆盖的程序安装目录内')
-    studio_data_root(data)
-    return ws
+    return WorkspaceResolver.resolve(root, analysis)
 
 
 def output_settings(analysis):
@@ -131,12 +171,15 @@ def output_settings(analysis):
     if not isinstance(legacy, str) or not legacy.strip():
         raise ValueError('analysis.output_dir 必须是非空路径字符串')
     if value is None:
-        return dict(location='user' if legacy == '.ecra' else 'project')
+        value = {}
     if not isinstance(value, dict) or set(value) - {'location', 'custom_dir'}:
         raise ValueError('analysis.output 只支持 location/custom_dir')
     mode = value.get('location', 'user')
     if mode not in {'user', 'tool', 'project', 'custom'}:
-        raise ValueError('analysis.output.location 必须是 user/custom（tool/project仅旧格式兼容）')
+        raise ValueError('analysis.output.location 必须是 tool 或 custom；旧 user 沿用工具数据根')
+    if mode == 'project' or legacy != '.ecra':
+        raise ValueError(f'禁止在固件工程中生成数据（analysis.output.location / output_dir: {legacy}）；'
+                         '请移除旧 output_dir，设置 output.location: tool，并从 Studio 迁移旧结果。')
     if mode == 'custom':
         if not isinstance(value.get('custom_dir'), str) or not value['custom_dir'].strip():
             raise ValueError('analysis.output.custom_dir 必须是非空绝对路径')
@@ -144,8 +187,6 @@ def output_settings(analysis):
             raise ValueError('analysis.output.custom_dir 必须是绝对路径')
     elif 'custom_dir' in value:
         raise ValueError('custom_dir 仅可用于 location: custom')
-    if mode != 'project' and legacy != '.ecra':
-        raise ValueError('analysis.output 与旧 output_dir 冲突；删除旧字段或显式选择 location: project')
     return dict(value, location=mode)
 
 
@@ -180,28 +221,31 @@ class WorkspaceResolver:
         if os.name == 'nt':
             name = name.casefold()
         settings = output_settings(analysis)
-        if settings['location'] == 'project':
-            requested = root/analysis.get('output_dir', '.ecra')
-            result = no_links(requested)
-            if result == root or not result.is_relative_to(root):
-                raise ValueError('location: project 的 output_dir 必须是固件工程内独立子目录；外置路径请使用 custom')
-            work = result
-            workspace = result.parent
-        else:
-            workspace = no_links(user_data_root() if settings['location'] == 'user' else
-                TOOL_ROOT/'workspace' if settings['location'] == 'tool' else settings['custom_dir'])
-            if workspace == repo or workspace.is_relative_to(repo):
-                raise ValueError(f'ECRA workspace 与固件 Git 仓库重叠: {workspace}；请配置 analysis.output.location: custom 和仓库外 custom_dir')
-            # Preserve the full Unicode display name in project.json while
-            # keeping data paths compact for Windows Git/embedded toolchains.
-            label = re.sub(r'[^A-Za-z0-9_.-]', '_', name).strip('._-')[:24] or 'project'
-            work = workspace/'projects'/(label + '_' + project_id[:20])
-            result = work/'results'
+        workspace = (studio_data_root(settings['custom_dir'], label='analysis.output.custom_dir')
+                     if settings['location'] == 'custom' else user_data_root())
+        active = _active_data.get()
+        if active is not None and workspace != active:
+            raise ValueError(f'配置的数据根 {workspace} 与本次启动数据根 {active} 不同；'
+                             '请修改 analysis.output 或从所选目录启动。')
+        tool = resolved_path(TOOL_ROOT)
+        if (workspace.is_relative_to(root) or root.is_relative_to(workspace)
+                or (repo != tool and (workspace.is_relative_to(repo) or repo.is_relative_to(workspace)))):
+            raise ValueError(f'ECRA 数据根与固件源码或 Git 仓库重叠: {workspace} / {root}')
+        label = re.sub(r'[^A-Za-z0-9_.-]', '_', name).strip('._-')[:24] or 'project'
+        work = workspace/'projects'/(label + '_' + project_id[:20])
+        result = work/'results'
         no_links(work)
-        return cls(*map(str, (TOOL_ROOT, root, repo, project_id, name, workspace, work, result,
-            result/'cache', result/'snapshots', work/'builds', result/'git_diff', work/'trees')))
+        location = digest(canonical(workspace))[:12]
+        return cls(*map(str, (tool, root, repo, project_id, name, workspace, work, result,
+            result/'cache', result/'snapshots', work/'builds', result/'git_diff'/location, work/'trees'/location)))
+
+    def git_admin_home(self, tree):
+        return no_links(Path(self.project_workspace)/'git-snapshots'/Path(self.worktree_root).name/Path(tree).name)
 
     def initialize(self):
+        self.verify_paths()
+        from .data_transfer import register_location
+        register_location(self.workspace_root)
         work = no_links(self.project_workspace)
         marker = no_links(work/'project.json')
         claim = no_links(work/'project.json.pending')
@@ -218,17 +262,7 @@ class WorkspaceResolver:
             if not isinstance(saved, dict) or any(saved.get(k) != v for k, v in expected.items()):
                 raise ValueError(f'ECRA 项目身份冲突，拒绝复用: {marker}')
         elif work.exists() and any(work.iterdir()):
-            if work != Path(self.results_root):
-                raise ValueError(f'ECRA 工作区已有未知数据，拒绝接管: {work}')
-            # Explicit project mode is not permission to adopt a source folder
-            # or another project's unmarked historical results.
-            names = {p.name for p in work.iterdir()}
-            if names != {'semantics.yaml'}:
-                try:
-                    legacy_files(self.project_root, work)
-                except (OSError, ValueError, KeyError, TypeError) as exc:
-                    raise ValueError(f'工程内输出目录缺少可验证所有权，拒绝接管: {work}；'
-                                     '请选择新的独立目录或使用默认 tool 模式。' + str(exc)) from exc
+            raise ValueError(f'ECRA 工作区已有未知数据，拒绝接管: {work}')
         try:
             work.mkdir(parents=True, exist_ok=True)
             # O_EXCL prevents two first runs from racing the ownership claim.
@@ -270,10 +304,23 @@ class WorkspaceResolver:
             with tempfile.TemporaryFile(dir=work):
                 pass
         except OSError as exc:
-            raise ValueError(f'ECRA workspace 无法写入: {work}；请设置 analysis.output.location: custom 和可写 custom_dir。{exc}') from exc
+            raise ValueError(f'ECRA workspace 无法写入: {work}；请检查工具目录权限和磁盘空间。{exc}') from exc
         return self
 
+    def verify_paths(self):
+        data = studio_data_root(self.workspace_root)
+        work = managed_path(self.project_workspace)
+        if work.parent != data/'projects' or not work.name.endswith('_'+self.project_id[:20]):
+            raise ValueError(f'项目工作区越出所属数据根: {work}')
+        for value in (self.results_root, self.cache_root, self.snapshots_root,
+                      self.build_root, self.git_diff_root, self.worktree_root):
+            path = managed_path(value)
+            if path != data and path.is_relative_to(data):
+                continue
+            raise ValueError(f'运行目录越出所属数据根: {path}')
+
     def verify_identity(self):
+        self.verify_paths()
         marker = no_links(Path(self.project_workspace)/'project.json')
         if marker.exists():
             saved = read_owner(marker)
@@ -313,9 +360,12 @@ def build_path(root, analysis):
     ws = context(root, analysis)
     settings = analysis['cmake']
     if settings.get('location', 'workspace') == 'project':
-        return no_links(Path(root)/settings.get('build_dir', 'build/ecra'))
+        raise ValueError('禁止在固件中构建；请使用 analysis.cmake.location: workspace')
+    label = Path(settings.get('build_dir', 'build/ecra'))
+    if label.anchor or '..' in label.parts:
+        raise ValueError(f'analysis.cmake.build_dir 只能使用工程内的相对标签；实际构建边界为 {ws.build_root}: {label}')
     # Actual source tree + settings bind separate commits and workspace builds.
-    key = digest(dict(source=canonical(root), cmake=settings))[:24]
+    key = digest(dict(source=canonical(root), cmake=settings, workspace=canonical(ws.workspace_root)))[:24]
     return no_links(Path(ws.build_root)/key)
 
 
@@ -394,7 +444,8 @@ def migrate_legacy(ws, progress=print):
         # Adopt only this resolver's exact previous tool identity, never a
         # directory guessed from a project display name. Raw bytes are copied
         # for revalidation; this does not bless old engine/input proofs.
-        previous = WorkspaceResolver.resolve(ws.project_root, dict(output=dict(location='tool')))
+        with using_data_root(managed_root()):
+            previous = WorkspaceResolver.resolve(ws.project_root, {})
         old_work = Path(previous.project_workspace)
         legacy = Path(previous.results_root)
         if legacy == out or not (old_work/'project.json').is_file():

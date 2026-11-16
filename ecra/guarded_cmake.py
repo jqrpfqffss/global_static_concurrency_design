@@ -149,9 +149,9 @@ def require_protected_source(root):
 
 
 class BuildExecutor:
-    def __init__(self, namespace, source, watch):
+    def __init__(self, namespace, source, watch, workspace):
         from .studio.write_guard import create_private_directory
-        self.namespace = create_private_directory(namespace,source_root=source)
+        self.namespace = create_private_directory(namespace, source_root=source, workspace=workspace)
         self.source=source
         self.watch = watch; self.calls = []
         self.temp = self.namespace/'temp'; self.temp.mkdir()
@@ -176,8 +176,8 @@ class BuildExecutor:
             trace = self.audit/('trace-'+str(len(self.calls))+'.jsonl')
             actual += ['--trace-expand','--trace-format=json-v1']
             self.traces.append(trace)
-        child_env = dict(os.environ if env is None else env)
-        child_env.update(TEMP=str(self.temp),TMP=str(self.temp),TMPDIR=str(self.temp))
+        from .runtime_storage import temporary_environment
+        child_env = temporary_environment(self.temp, env)
         folder = self.namespace/('command-'+str(len(self.calls))); folder.mkdir()
         budget = ProcessBudget(16*1024**3); process = None; start = time.monotonic()
         row = dict(command=actual,cwd=str(cwd),complete=False); self.calls.append(row)

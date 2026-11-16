@@ -22,11 +22,15 @@ class StudioPreferenceTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='ecra 目录设置 ')
         self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
+        tool=self.root/'tool';tool.mkdir()
+        patcher=patch('ecra.workspace.TOOL_ROOT',tool)
+        patcher.start();self.addCleanup(patcher.stop)
+        self.roots=tool/'workspace/data-roots';self.roots.mkdir(parents=True)
         self.env=patch.dict(os.environ,LOCALAPPDATA=str(self.root/'user'),XDG_CONFIG_HOME=str(self.root/'settings'),
                             XDG_DATA_HOME=str(self.root/'default'),ECRA_DATA_ROOT='')
         self.env.start();self.addCleanup(self.env.stop)
-        self.current=self.root/'current';self.current.mkdir()
-        self.target=self.root/'新数据 根'
+        self.current=self.roots/'current';self.current.mkdir()
+        self.target=self.roots/'新数据 根'
 
     def save(self,target=None,**extra):
         target=target or self.target;plan=prefs.preview(str(target),self.current)
@@ -41,14 +45,14 @@ class StudioPreferenceTests(unittest.TestCase):
         home=prefs.preference_home();self.assertFalse(home.exists())
         plan=prefs.preview(str(self.target),self.current)
         self.assertEqual(plan['kind'],'EMPTY');self.assertFalse(self.target.exists());self.assertFalse(home.exists())
-        self.assertEqual(prefs.startup_selection()['source'],'SYSTEM_DEFAULT')
+        self.assertEqual(prefs.startup_selection()['source'],'TOOL_DEFAULT')
 
     def test_explicit_save_next_start_and_unknown_preferences_fields_preserved_with_exact_backup(self):
         first=self.save();self.assertTrue(first['saved'])
         self.assertEqual(user_data_root(),self.target.resolve());self.assertEqual(list(self.target.iterdir()),[])
         file=prefs.preference_home()/'preferences.json';payload=json.loads(file.read_bytes());payload['future']={'keep':[True,'原文']}
         file.write_text(json.dumps(payload,ensure_ascii=False),'utf-8');old=file.read_bytes()
-        other=self.root/'另一个数据';self.save(other)
+        other=self.roots/'另一个数据';self.save(other)
         self.assertEqual(json.loads(file.read_bytes())['future'],payload['future'])
         backup=prefs.preference_home()/'preferences-backups'/(hashlib.sha256(old).hexdigest()+'.json')
         self.assertEqual(backup.read_bytes(),old);self.assertEqual(user_data_root(),other.resolve())
@@ -56,7 +60,7 @@ class StudioPreferenceTests(unittest.TestCase):
 
     def test_argument_and_environment_precede_saved_default_even_when_preferences_corrupt(self):
         self.save();file=prefs.preference_home()/'preferences.json';file.write_bytes(b'corrupt setting')
-        environment=self.root/'env';argument=self.root/'arg'
+        environment=self.roots/'env';argument=self.roots/'arg'
         with patch.dict(os.environ,ECRA_DATA_ROOT=str(environment)):
             self.assertEqual(user_data_root(),environment.resolve())
             self.assertEqual(prefs.startup_selection()['source'],'ENVIRONMENT')
@@ -104,7 +108,7 @@ class StudioPreferenceTests(unittest.TestCase):
 
     def test_stale_revision_rejected_without_last_writer_wins(self):
         one=prefs.preview(str(self.target),self.current)
-        other=self.root/'other';two=prefs.preview(str(other),self.current)
+        other=self.roots/'other';two=prefs.preview(str(other),self.current)
         prefs.save(str(self.target),self.current,plan_id=one['plan_id'],revision=one['revision'])
         original=self.raw()
         with self.assertRaises(prefs.PreferenceConflict):
@@ -140,23 +144,21 @@ class StudioPreferenceTests(unittest.TestCase):
         file=prefs.preference_home()/'preferences.json';file.parent.mkdir(parents=True);raw=b'{corrupt\n';file.write_bytes(raw)
         app=create_app(token='test',authority='127.0.0.1:12345')
         with TestClient(app,base_url='http://127.0.0.1:12345',headers={'X-ECRA-Session':'test'}) as client:
-            boot=client.get('/api/bootstrap').json();self.assertEqual(boot['data_root_source'],'RECOVERY_DEFAULT');self.assertIn('恢复设置',boot['preference_warning'])
+            boot=client.get('/api/bootstrap').json();self.assertEqual(boot['data_root_source'],'RECOVERY_DEFAULT');self.assertIn('工具内 workspace',boot['preference_warning'])
         with self.assertRaisesRegex(ValueError,'备份损坏'):self.save()
         self.assertEqual(file.read_bytes(),raw)
         self.save(repair=True)
         backup=file.parent/'preferences-backups'/(hashlib.sha256(raw).hexdigest()+'.json')
         self.assertEqual(backup.read_bytes(),raw);self.assertEqual(user_data_root(),self.target.resolve())
 
-    def test_unusable_saved_data_root_opens_explicit_recovery_without_rewriting_marker(self):
+    def test_unusable_saved_data_root_fails_without_rewriting_marker(self):
         self.save();(self.target/'settings').mkdir();marker=self.target/'settings/device.json';marker.write_bytes(b'broken')
-        app=create_app(token='test',authority='127.0.0.1:12345')
-        with TestClient(app,base_url='http://127.0.0.1:12345',headers={'X-ECRA-Session':'test'}) as client:
-            value=client.get('/api/bootstrap').json();self.assertEqual(value['data_root_source'],'RECOVERY_DEFAULT')
-            self.assertIn('已保存目录无法打开',value['preference_warning'])
+        with self.assertRaisesRegex(ValueError,'设备声明元数据损坏'):
+            create_app(token='test',authority='127.0.0.1:12345')
         self.assertEqual(marker.read_bytes(),b'broken')
 
     def test_probe_and_atomic_replace_failure_keep_old_preference_and_no_pending_file(self):
-        self.save();before=self.raw();other=self.root/'other'
+        self.save();before=self.raw();other=self.roots/'other'
         plan=prefs.preview(str(other),self.current)
         with patch('ecra.studio_preferences.tempfile.TemporaryFile',side_effect=PermissionError('controlled readonly')):
             with self.assertRaises(PermissionError):prefs.save(str(other),self.current,plan_id=plan['plan_id'],revision=plan['revision'])

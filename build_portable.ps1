@@ -27,6 +27,9 @@ $wheelRoot = Join-Path $cacheRoot 'wheels'
 New-Item -ItemType Directory -Path $downloadRoot, $wheelRoot -Force | Out-Null
 $evidence = Join-Path $outputRoot 'portable-evidence'
 New-Item -ItemType Directory -Path $evidence -Force | Out-Null
+$packTemp = Join-Path $evidence 'pack-tmp'
+New-Item -ItemType Directory -Path $packTemp -Force | Out-Null
+$env:TEMP = $env:TMP = $env:TMPDIR = $env:SQLITE_TMPDIR = $packTemp
 $inventory = @(Get-LocalToolInventory)
 $inventory | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $evidence 'local-tools.json') -Encoding UTF8
 function Select-LocalSource([string]$Explicit, [string]$Name) {
@@ -269,8 +272,11 @@ try {
         Remove-OutputChild $bundle $dir.FullName
     }
     $null = Invoke-Checked 'Inventory all deliverable files' $python @('-B',(Join-Path $bundle 'validate_portable.py'),'--bundle',$bundle,'--write-hashes')
-    $null = Invoke-Checked 'Uncompressed isolated acceptance' $python @('-B',(Join-Path $bundle 'validate_portable.py'),
-        '--bundle',$bundle,'--work',(Join-Path $evidence 'uncompressed'))
+    $testBundle = Join-Path $evidence 'test-tool'
+    if (Test-Path -LiteralPath $testBundle) { throw "Acceptance tool already exists: $testBundle" }
+    Copy-DirectoryContents $bundle $testBundle
+    $null = Invoke-Checked 'Uncompressed workspace acceptance' (Join-Path $testBundle 'runtime/python.exe') @(
+        '-B',(Join-Path $testBundle 'validate_portable.py'),'--bundle',$testBundle,'--work',(Join-Path $evidence 'uncompressed'))
     if (Test-Path -LiteralPath (Join-Path $bundle 'workspace')) {
         throw 'Acceptance created runtime data inside the distribution. Preserve it as evidence and rebuild in a new OutputDir; never package or automatically delete it.'
     }
@@ -278,8 +284,9 @@ try {
         $candidate = Join-Path $outputRoot 'ECRA-Portable.candidate.zip'
         if (Test-Path -LiteralPath $candidate) { throw "Previous failed candidate exists: $candidate" }
         [IO.Compression.ZipFile]::CreateFromDirectory($bundle,$candidate,[IO.Compression.CompressionLevel]::Optimal,$true)
-        $zipCheck = Join-Path $outputRoot ('.zip-check 空格 中文-' + [guid]::NewGuid().ToString('N'))
-        try {
+        # Extracted acceptance files (including local Junctions) remain in evidence.
+        $zipCheck = Join-Path $evidence 'zip-check'
+        if (Test-Path -LiteralPath $zipCheck) { throw "Acceptance extraction already exists: $zipCheck" }
             [IO.Compression.ZipFile]::ExtractToDirectory($candidate,$zipCheck)
             $top = @(Get-ChildItem -LiteralPath $zipCheck -Force)
             if ($top.Count -ne 1 -or $top[0].Name -cne 'ECRA-Portable' -or -not $top[0].PSIsContainer) {
@@ -291,7 +298,6 @@ try {
                 (Join-Path $extracted 'validate_portable.py'),'--bundle',$extracted,'--work',(Join-Path $evidence 'zip-extracted'))
             Move-Item -LiteralPath $candidate -Destination $zip
             Write-Receipt $zip 'ECRA build; full extracted isolated acceptance passed'
-        } finally { Remove-OutputChild $outputRoot $zipCheck }
     }
     Write-Host "Portable acceptance passed: $bundle"
     if (-not $SkipZip) { Write-Host "ZIP: $zip"; Get-FileHash -LiteralPath $zip -Algorithm SHA256 | Format-List }

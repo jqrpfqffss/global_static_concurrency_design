@@ -1,35 +1,31 @@
-"""Studio edits only the two config originals; tasks consume frozen copies."""
+"""Studio edits tool-local overrides; each task consumes a frozen copy."""
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import tempfile
-from ..workspace import no_links
+from ..workspace import control_path, managed_path, no_links
 from .review_document_forms import library_forms,update_library,context_text,context_markdown
 NAMES=('concurrency_cases.md','review_context.md')
 MAX_EDIT=4*1024**2
 
 
 def target(name):
-    if name not in NAMES:raise ValueError('只允许编辑 config 中的案例库和工程背景')
-    from ..config import CONFIG_HOME
-    return no_links(Path(CONFIG_HOME)/name)
+    if name not in NAMES:raise ValueError('只允许编辑案例库和工程背景')
+    return control_path('config', name)
 
 
 def config_source(name):
-    path=target(name)
+    from ..config import CONFIG_HOME, review_material_path
+    target(name)
+    path = no_links(review_material_path(CONFIG_HOME/'semantics.yaml', name))
     return None if name=='review_context.md' and not path.exists() else path
 
 
 def material_lock():
     from ..storage_activity import DataActivity
-    from ..config import CONFIG_HOME
-    key=str(no_links(Path(CONFIG_HOME))).casefold() if os.name=='nt' else str(no_links(Path(CONFIG_HOME)))
-    root=Path(tempfile.gettempdir())/'ECRAStudio-config-locks'/hashlib.sha256(key.encode()).hexdigest()
-    # A stable path across different Studio data roots protects the same two
-    # originals. No lock/database/cache is placed in config or the firmware.
-    return DataActivity(root,exclusive=True,purpose='api')
+    return DataActivity(control_path('review-material-lock'),exclusive=True,purpose='api')
 
 
 def inspect_document(path,name):
@@ -75,11 +71,8 @@ def _atomic(path,raw):
 def _describe():
     documents={}
     for name in NAMES:
-        path=target(name)
-        if not path.exists():
-            info=dict(available=True,path=str(path),bytes=0,sha256=None,text='',editable=True,
-                notice='文件尚未创建，填写后保存即可；工程背景也可以为空')
-        else:info=inspect_document(path,name)
+        info = inspect_document(config_source(name),name)
+        info['save_path'] = str(target(name))
         info['revision']=info.get('sha256') or 'missing'
         info['mode']='config'
         if info.get('editable') and info.get('available'):
@@ -102,11 +95,13 @@ def save(data,payload):
     if not isinstance(payload,dict):raise ValueError('资料填写格式无效')
     action=payload.get('action')
     allowed={'name','revision','action','text'} if action=='context' else {'name','revision','action','case_id','form'}
-    if set(payload)-allowed:raise ValueError('资料来源固定为工具 config，不接受外部路径或导入')
+    if set(payload)-allowed:raise ValueError('请从 Studio 的案例库和工程背景保存')
     name=payload.get('name');path=target(name)
     if (action=='context' and name!='review_context.md') or (action=='case' and name!='concurrency_cases.md') or action not in {'context','case'}:raise ValueError('资料操作无效')
     with DataActivity(data),material_lock():
-        exists=path.exists();old=path.read_bytes() if exists else b''
+        source=config_source(name)
+        exists=source is not None and source.exists()
+        old=source.read_bytes() if exists else b''
         revision=hashlib.sha256(old).hexdigest() if exists else 'missing'
         if payload.get('revision')!=revision:raise ReviewConflict('这份资料已被其他窗口或编辑器修改；草稿仍保留，请重新读取后核对')
         if len(old)>MAX_EDIT:raise ValueError('原文件超过4MiB，不能在线改写；请维护 config 原文件')
@@ -135,9 +130,12 @@ def save(data,payload):
             if saved_copy.exists():
                 if saved_copy.read_bytes()!=raw:raise ValueError('资料版本备份哈希不一致，请保留现场')
             else:_atomic(saved_copy,raw)
-            if path.exists()!=exists or (exists and path.read_bytes()!=old):raise ReviewConflict('保存前原文件发生变化；草稿保留，请重新读取后核对')
+            if config_source(name)!=source or (source is not None and
+                    (source.exists()!=exists or (exists and source.read_bytes()!=old))):
+                raise ReviewConflict('保存前资料发生变化；草稿保留，请重新读取后核对')
             try:_atomic(path,raw)
-            except PermissionError:raise ValueError('config 原文件不可写；请将完整工具放到可写目录后重试。草稿仍保留') from None
+            except PermissionError:
+                raise ValueError(f'工具内编辑副本不可写: {path}；请检查权限。草稿仍保留') from None
         return dict(saved=True,selected_case_id=selected,backup=str(backup) if backup else None,
                     saved_copy=str(saved_copy) if saved_copy else None,**_describe())
 
@@ -149,7 +147,7 @@ def stage(profile,folder,*,retry=False):
 
 def _stage(profile,folder,*,retry=False):
     """Freeze exact bytes adjacent to task YAML, without changing review logic."""
-    profile=Path(profile);folder=Path(folder);records={}
+    profile=Path(profile);folder=managed_path(folder);records={}
     previous=profile.parent/'review-materials.json'
     if retry and not previous.is_file():raise ValueError('原任务缺少复核资料快照；请保留现场并发起新任务，不能用当前 config 冒充原资料')
     frozen=json.loads(previous.read_text('utf-8'))['documents'] if retry and previous.is_file() else None

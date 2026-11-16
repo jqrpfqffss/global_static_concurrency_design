@@ -5,6 +5,7 @@ from contextlib import closing, contextmanager, redirect_stdout
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import io
 import json
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -364,6 +365,8 @@ class CleanupTests(unittest.TestCase):
     def test_two_tasks_eight_workers_each_with_100_variables_and_manual_sessions(self):
         self.cfg['review']['workers'] = 8
         other = self.root/'other task'
+        auth_home = self.root/'fixture-credentials'
+        write_json(auth_home/'opencode/auth.json', {'fixture': {'type': 'api', 'key': 'fixture-key'}})
         manuals = {self.fake.add_session(self.fake.manual) for _ in range(8)}
         tasks, workers = Barrier(2), Barrier(16)
         unchecked = set()
@@ -371,7 +374,7 @@ class CleanupTests(unittest.TestCase):
         def during(fid, _sid):
             # Reversed completion order, eight slots in use per task.
             if int(fid[1:]) < 8:
-                workers.wait(timeout=10)
+                workers.wait(timeout=45)
             time.sleep((8-int(fid[1:]) % 8)*.001)
 
         def deleted(store, sid):
@@ -388,12 +391,19 @@ class CleanupTests(unittest.TestCase):
                               'static-fingerprint', self.logs.append)
 
         self.fake.on_delete = deleted
-        with patch('ecra.review.execute', side_effect=lambda *args, **kw: self.fake.model(*args, **kw, during=during)):
+        with patch.dict(os.environ, XDG_DATA_HOME=str(auth_home)), \
+             patch('ecra.review.execute', side_effect=lambda *args, **kw: self.fake.model(*args, **kw, during=during)):
             with ThreadPoolExecutor(max_workers=2) as pool:
                 futures = [pool.submit(work, self.out, 100), pool.submit(work, other, 12)]
-                self.assertTrue(all(row['state'] == 'DONE' for f in futures for row in f.result(timeout=60)))
+                errors = [(row['finding_id'], row.get('error')) for future in futures
+                          for row in future.result(timeout=300) if row['state'] != 'DONE']
+                self.assertEqual(len(errors), 0, errors[:5])
         self.assertFalse(unchecked)
         self.assertEqual(self.fake.max_active, 16)
+        pending = [(row['finding_id'], row['cleanup_state'], row['reason'])
+                   for out in (self.out, other) for row in records(out) if row['cleanup_state'] != 'DELETED']
+        self.assertFalse(pending, (pending[:8], self.logs[-5:]))
+        self.assertFalse(self.expected() - self.deleted(), self.logs[-5:])
         self.assertEqual(self.deleted(), self.expected())
         self.assertEqual(Counter(self.fake.requests), self.expected())
         self.assertEqual(set(self.fake.stores[self.fake.manual]), manuals)
@@ -470,10 +480,12 @@ class CleanupTests(unittest.TestCase):
 
     def test_unsupported_binary_does_not_change_review_transport(self):
         self.fake.unsupported = True
+        manual = self.fake.add_session(self.fake.manual)
         row, = self.review()
         self.assertEqual(row['state'], 'DONE')
         self.assertFalse(self.fake.requests)
-        self.assertEqual(self.fake.spawned[0][0], self.fake.manual)
+        self.assertTrue(self.fake.spawned[0][0].is_relative_to(self.out/'opencode'))
+        self.assertEqual(set(self.fake.stores[self.fake.manual]), {manual})
         self.assertTrue(any('unsupported test version' in log for log in self.logs))
 
     def test_failed_and_interrupted_calls_are_retained_on_resume_and_retry(self):

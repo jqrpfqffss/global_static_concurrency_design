@@ -51,7 +51,8 @@ def preprocess_failed_units(facts):
         command = _preprocess_command(unit.get('original_arguments'))
         if command and unit.get('directory'):
             try:
-                probe = subprocess.run(command, cwd=unit['directory'],
+                from .runtime_storage import child_environment
+                probe = subprocess.run(command, cwd=unit['directory'], env=child_environment(),
                                        capture_output=True, timeout=60, check=False)
                 if probe.returncode == 0 and len(probe.stdout) <= 64 * 1024 * 1024:
                     opaque_assembly = bool(re.search(rb'\b(?:asm|__asm|__asm__)\b', probe.stdout))

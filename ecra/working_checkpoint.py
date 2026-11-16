@@ -26,9 +26,11 @@ def retry_inputs(data,folder,config,mode,progress=print):
         raise ValueError('恢复输入来源不属于本数据根的受控任务')
     source=no_links(data/'work/tasks'/spec['source_task']);task=read_json(no_links(source/'task.json'))
     original=no_links(source/'semantics.yaml')
+    from .data_transfer import relocated_task_config, retired_roots
+    derived, _ = relocated_task_config(data, original, original.read_bytes())
     if (task.get('id')!=spec['source_task'] or task.get('state') not in {'INTERRUPTED','FAILED'}
             or task.get('mode')!=mode or mode not in {'scan','precheck'}
-            or sha256(original)!=task.get('profile_revision') or sha256(config)!=sha256(original)):
+            or sha256(original)!=task.get('profile_revision') or config.read_bytes()!=derived):
         raise ValueError('恢复任务状态、模式或原配置字节已变化；保留检查点，请重新发起扫描')
     from .workflow import analysis_config,engine_digest
     root=configured_project_root(original);cfg,_=load_config(root,original)
@@ -36,13 +38,20 @@ def retry_inputs(data,folder,config,mode,progress=print):
     plan=no_links(source/'fixed-inputs/capture-plan.json')
     if not plan.is_file():return None  # No complete view existed before the stop.
     saved=read_json(plan)
+    descriptor = saved.get('compiler_view')
+    if isinstance(descriptor, dict) and isinstance(descriptor.get('file'), str):
+        original_capture = Path(descriptor['file'])
+        if not original_capture.is_relative_to(data) and any(
+                original_capture.is_relative_to(old) for old in retired_roots(data)):
+            progress(f'原构建检查点位于已迁移的数据根，重新固定输入: {original_capture}')
+            return None
     if (saved.get('engine_digest')!=engine_digest()
             or saved.get('effective_analysis_digest')!=digest(analysis_config(cfg))):
         raise ValueError('分析实现或有效配置已变化，不能复用旧CMake构建；请从工程配置启动新扫描')
     from .frozen_scan import execution_workspace,ScanFiles
     from .working_compiler_view import _load
     ws=execution_workspace(root,cfg['analysis'],object()).initialize();ws.bind(cfg['analysis'])
-    descriptor=saved.get('compiler_view');_,record=_load(descriptor,root,cfg)
+    _,record=_load(descriptor,root,cfg)
     if (record.get('format')!='ECRA_FROZEN_COMPILER_VIEW_V3' or saved.get('project_id')!=ws.project_id
             or Path(task.get('project_root','')).resolve()!=root.resolve()):
         raise ValueError('CMake恢复来源的工程或能力版本不一致')

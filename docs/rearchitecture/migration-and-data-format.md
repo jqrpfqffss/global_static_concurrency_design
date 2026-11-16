@@ -34,7 +34,7 @@ UI本地设备声明在数据根settings/device.json，不跟随结果包迁移�
 
 ## 用户数据与旧格式
 
-唯一解析器仍为WorkspaceResolver；默认 `%LOCALAPPDATA%/ECRAStudio/data`，可用绝对路径环境变量 `ECRA_DATA_ROOT` 或旧custom_dir选择其他盘。项目身份算法不变。GUI配置独立保存在 `projects/<identity>/profiles/*.yaml`，原文/注释/未知字段保留，旧版本另存history；SQLite写锁和revision阻止并发编辑覆盖。
+数据目录由 WorkspaceResolver 统一解析，默认保存在非 C 盘工具目录的 `workspace/`。自选活动目录须在 `workspace/data-roots/` 下。项目身份算法不变。GUI 配置保存在 `projects/<identity>/profiles/*.yaml`，保留原文、注释和未知字段。旧版本另存 history，SQLite 写锁和 revision 阻止并发覆盖。
 
 既有resolver复制迁移保留，新增GUI明确选择来源的只读转换，复用同一工程identity，原目录不删除。完整JSON及shared池通过SQLite中间关系流式转入相同权威图；其他旧字节CAS审计保留，包与回收可达性共用既有索引。六项真实Chrome迁移与50,000节点池编码实测见06-legacy-streaming-import.md。两个旧来源合并、巨型历史与缺证据降级Viewer仍未完整验收。不要删除任一原目录。显式tool/project仍存在于旧CLI兼容路径；Studio正式路径校验拒绝它们，H2全工作流尚未关闭。
 

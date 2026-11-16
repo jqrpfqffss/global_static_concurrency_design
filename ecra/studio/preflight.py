@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 from ..common import execute, read_json, write_json
-from ..workspace import formal_workspace, no_links, validate_analysis_inputs
+from ..workspace import formal_workspace, managed_path, no_links, studio_data_root, using_data_root, validate_analysis_inputs
 
 
 def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
@@ -25,7 +25,11 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
     from ..report_package import sha256
     from ..scan_diagnostics import ScanDiagnostics
     from ..workflow import engine_digest
-    folder = no_links(folder); folder.mkdir(parents=True, exist_ok=False)
+    data = studio_data_root(data)
+    folder = managed_path(folder)
+    if not folder.is_relative_to(data/'work'):
+        raise ValueError(f'预检查目录超出本次数据根的工作区: {folder}')
+    folder.mkdir(parents=True, exist_ok=False)
     result = dict(passed=False, state='PRECHECK', config_sha256=sha256(config),
                   started=datetime.now(timezone.utc).isoformat(), tools=[])
     receipt = folder/'preflight.json'
@@ -40,16 +44,14 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
             raise ValueError('未提交输入预检查缺少固定输入描述；请从Studio任务入口重新固定并检查，不能改用实时工作区')
         analysis = dict(cfg['analysis'])
-        if analysis.get('output', {}).get('location', 'user') == 'user':
-            analysis['output'] = dict(location='custom', custom_dir=str(data))
-        if _compiler_view is not None:
-            from ..dirty_inputs import supported
-            from ..frozen_scan import execution_workspace,ScanFiles
-            supported(analysis)
-            ws=execution_workspace(root,analysis,_compiler_view)
-        else:ws = formal_workspace(root, analysis)
-        if Path(ws.workspace_root) != Path(data):
-            raise ValueError('配置输出与本地Studio不同，请使用 output.location: user')
+        with using_data_root(data):
+            if _compiler_view is not None:
+                from ..dirty_inputs import supported
+                from ..frozen_scan import execution_workspace,ScanFiles
+                supported(analysis)
+                ws=execution_workspace(root,analysis,_compiler_view)
+            else:
+                ws = formal_workspace(root, analysis)
         ws = replace(ws.initialize(), results_root=str(folder), snapshots_root=str(folder/'snapshots'))
         ws.bind(cfg['analysis'])
         if _compiler_view is not None:

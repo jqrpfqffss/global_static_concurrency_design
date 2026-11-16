@@ -9,7 +9,6 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
-from tempfile import TemporaryDirectory
 import uuid
 
 from .common import read_json, write_json
@@ -75,6 +74,9 @@ def _sha(path):
 
 def resolve_command(command):
     result = list(command)
+    if any(arg.split('=', 1)[0] in {'--attach', '--continue', '--session', '--fork', '--dir', '--share'}
+           for arg in result[1:]):
+        raise ValueError('ECRA 复核只能启动独立的本地 OpenCode 会话；请移除会话复用或工作目录参数')
     executable = shutil.which(result[0])
     if not executable and Path(result[0]).is_file():
         executable = str(Path(result[0]).resolve())
@@ -471,7 +473,8 @@ ECRA发现 shared→读取旧值→实参保存→经调用路径写回同一sha
         + '\n聚焦事实：\n' + json.dumps(focused, ensure_ascii=False) + CONTRACT_PROMPT)
 
 
-def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None,archived_sources_only=False,root=None):
+def _review_env(paths, *, format_only=False, reference_paths=(), evidence_database=None,
+                archived_sources_only=False, root=None, environment=None):
     # Formatting sessions have no source or tool access and no previous session.
     permissions = {'*': 'deny'}
     if not format_only:
@@ -511,13 +514,13 @@ def _review_env(paths, *, format_only=False, reference_paths=(), evidence_databa
             for path in external_paths:
                 for pattern in (str(path.parent / '*'), path.parent.as_posix() + '/*'):
                     permissions['external_directory'][pattern] = 'allow'
-    env = os.environ.copy()
+    env = dict(os.environ if environment is None else environment)
     if archived_sources_only:
         # OpenCode initializes dependencies in discovered .opencode directories
         # before agent permissions take effect. Studio has its own review config.
         env['OPENCODE_DISABLE_PROJECT_CONFIG'] = '1'
     env['OPENCODE_PERMISSION'] = json.dumps(permissions)
-    configuration = dict(permission=permissions, share='disabled',
+    configuration = dict(permission=permissions, share='disabled', snapshot=False, lsp=False, formatter=False,
         agent={'ecra-review': dict(description='Read-only variable concurrency reviewer',
                                    mode='primary', permission=permissions)})
     if evidence_database is not None and not format_only:
@@ -536,6 +539,8 @@ def _review_env(paths, *, format_only=False, reference_paths=(), evidence_databa
 def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_result=None,
                review_context_path=None, *, mode='run', case_library_path=None, resume_scope=None):
     """Process scan targets and commit each validated result as it completes."""
+    from .workspace import managed_path
+    out = managed_path(out)
     settings = cfg['review']
     cleanup = None
     if settings.get('enabled', True) and settings.get('session_cleanup', {}).get('enabled') is True:
@@ -570,7 +575,11 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
     from .workflow import read_queue
     rows = read_queue(out)
     if mode != 'run' or native:
-        rows = reconcile_reviews(root, out, targets, rows, fingerprint, progress=progress)
+        from .review_sources import ArchivedSources, source_scope
+        from .scan_store import EvidenceProvider
+        archived = ArchivedSources(root, EvidenceProvider(out/'scan.db')) if native else None
+        with source_scope(archived):
+            rows = reconcile_reviews(root, out, targets, rows, fingerprint, progress=progress)
     previous = {r['finding_id']: normalize_review_record(r) for r in rows}
     if cleanup and mode == 'review-resume':
         cleanup.recover(previous, settings.get('command', ['opencode']))
@@ -628,10 +637,21 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         review_diagnostics.total_units=len(selected)
         review_diagnostics.completed_units=0
         review_diagnostics.stage('复核项目处理（含技术失败，剩余时间未知）')
-    command, command_error = None, None
+    command, command_error, storage = None, None, None
+    native_opencode = False
     if enabled and selected:
         try:
             command = resolve_command(settings.get('command', ['opencode']))
+            from .opencode_storage import ReviewStorage
+            from .scan_persistence import is_canonical
+            storage = ReviewStorage(out, project=None if is_canonical(out) else root, progress=progress)
+            executable = Path(command[0]).stem.lower()
+            native_opencode = executable == 'opencode' or executable.startswith('opencode-')
+            if native_opencode:
+                from .review_opencode_sessions import Runtime
+                with Runtime(command).maintenance(storage.database) as maintenance:
+                    maintenance.verify()
+                    maintenance.checkpoint()
         except (ValueError, OSError) as exc:
             command_error = exc
     facts_path = Path(settings.get('facts_path', out / 'facts.json')).resolve()
@@ -841,15 +861,18 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                 try:
                     # Canonical reviews read archived sources through MCP. Give
                     # each OpenCode process a scratch cwd outside the source tree.
-                    scratch = (TemporaryDirectory(prefix='ecra-review-', ignore_cleanup_errors=True)
-                               if native_database is not None else nullcontext(root))
-                    with scratch as cwd:
+                    with storage.call() as (scratch, child_env):
+                        cwd = scratch if native_database is not None else root
+                        diff_paths = [Path(packet['git_diff_impact'][key])
+                            for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
+                            if (packet.get('git_diff_impact') or {}).get(key)]
+                        if archived_sources is not None:
+                            diff_paths = [path for path in diff_paths if path.resolve().is_relative_to(out)]
                         env = _review_env([packet_path, shared_path, facts_path, report_path,
-                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
-                              if (packet.get('git_diff_impact') or {}).get(key)]],
+                            *diff_paths],
                             format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'},
                             reference_paths=library_paths, evidence_database=native_database,
-                            archived_sources_only=archived_sources is not None, root=cwd)
+                            archived_sources_only=archived_sources is not None, root=cwd, environment=child_env)
                         if cleanup:
                             invocation = cleanup.begin(command, ledger[fid]['review_request'], record, cwd)
                         options = {'input': stdin_text} if stdin_text is not None else {}
@@ -857,8 +880,11 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                             env['OPENCODE_DB'] = str(invocation.run.database)
                             argv = [str(invocation.run.runtime.exe), *argv[1:-2],
                                     '--title', invocation.title, *argv[-2:]]
-                            record['command'] = argv
                             options['on_exit'] = invocation.stopped
+                        elif native_opencode:
+                            # Avoid the extra model request OpenCode uses to generate a title.
+                            argv = [*argv[:-2], '--title', f'ECRA {fid} {stage} {number}', *argv[-2:]]
+                        record['command'] = argv
                         proc = execute(argv, cwd=cwd, timeout=float(settings.get('timeout_seconds', 300)),
                             stop=stop, stdout_path=folder/record['stdout_file'], stderr_path=folder/record['stderr_file'],
                             env=env, **options)

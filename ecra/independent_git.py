@@ -98,7 +98,7 @@ def prepare(source, tree, sha, workspace, *, allow_legacy_project=False):
         raise ValueError('独立 Git 来源、工作区或目标路径身份不一致')
     _git(source, 'cat-file', '-e', sha + '^{commit}')
     before = _capture(source)
-    home = no_links(work/'git-snapshots'/tree.name)
+    home = workspace.git_admin_home(tree)
     repository = no_links(home/'repository.git')
     marker = no_links(home/'state.json')
     identity = dict(version=1, project_id=workspace.project_id, source=canonical(source),

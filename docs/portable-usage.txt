@@ -2,8 +2,8 @@ ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 
 双击 ECRA.cmd 打开 Studio；首次在“新建工程”配置真实固件与构建，开始扫描后在
 工作台查看结果和覆盖范围。人工确认需显式保存；关闭浏览器后，使用同一数据根再次
-启动即可继续。默认数据根为 %LOCALAPPDATA%/ECRAStudio/data，可用 ECRA_DATA_ROOT
-或 .\ECRA.cmd --data-root D:/ECRAStudioData 指定源码、Git和构建目录以外的独立目录。关闭启动窗口或 Ctrl+C
+启动即可继续。把整套工具解压到非 C 盘可写目录，默认保存到解压根目录的 workspace。
+如需选择其他数据根，请使用 workspace/data-roots 下的数据目录。关闭启动窗口或 Ctrl+C
 停止服务；仅关闭浏览器标签不会停止服务。操作说明见 STUDIO-GUIDE.md。
 
 以下是兼容命令行入口。可选 Git 差异模式：配置 analysis.git_diff 或执行
@@ -21,13 +21,13 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
 3. cmake.generator 应保持工程实际设置：MinGW Makefiles / Ninja / Unix Makefiles。
    STM32 工程必须用其真实 ARM 工具链文件；MinGW GCC 仅用于 Windows 本机构建。
 4. build_dir 可沿用旧配置；默认实际构建目录在工具 workspace/projects/<工程身份>/builds/。
-   Git 两个版本分别构建，不共用 CMakeCache。需要源码内构建时显式设置
-   analysis.cmake.location: project；工具只清理有当前源码所有权的专用构建目录。
+   Git 两个版本分别构建，不共用 CMakeCache。使用 analysis.cmake.location: workspace。
+   工具只清理有当前源码所有权的专用构建目录。
    generator、工具链、target 和参数保留，构建失败不会回退或忽略。
-   正式结果在独立数据根 scans/<扫描ID>/；中间构建与工作文件位置由实际配置决定。
+   正式结果在活动数据根的 scans/<扫描ID>/；中间构建、缓存和工作文件也保存在工具内。
    仅兼容 --legacy-output 模式使用 workspace/projects/<工程身份>/results/index.html；
-   可用 analysis.output.location: custom 及绝对 custom_dir 改兼容输出位置。
-   不会回退写入固件。升级请保留完整数据根、旧配置及已有 workspace，不要覆盖或删除历史数据。
+   可用 analysis.output.location: custom 及绝对 custom_dir 选择工具内的数据根。
+   升级请保留完整 workspace。AppData 旧数据迁移和旧副本清理见 docs/workspace-storage.md。
    旧固件 .ecra 按身份、文件结构及哈希复制，原件保留；旧收据需重新校验。
    current_ref: HEAD 默认使用固定提交的独立工作树，未提交业务修改未纳入扫描。
    更多规则见 docs/workspace-migration.md；当前 Studio 数据合同见
@@ -47,10 +47,8 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
    .\ECRA.cmd --config D:/MyProject/semantics.yaml report
    report 重新生成只读投影，不会重新验证旧源码。退出码 2 表示仍有待办/覆盖缺口，
    不是全工程安全；失败和中断查看实际阶段及日志，不删除旧结果以重试。
-   GNU Make 4.4.1 的子进程路径接口不支持 CMake 输出的中文 UTF-8 路径。
-   ECRA 自动使用同一目录的 8.3 名称；没有短文件名时，在用户 TEMP/ECRA-paths
-   创建可重复使用的 ASCII junction。它指向原工具/工程，不复制或替换编译器。
-   TEMP 必须可写且能获得 ASCII 路径；路径映射在日志中可诊断。
+   ECRA 按工具链需要使用 8.3 短名称或 workspace/a 下的 ASCII Junction。
+   无法取得足够短的英文路径时，请将整套工具移到类似 D:\ECRA 的非 C 盘短英文目录。
    CMake 会将自身路径解析回真实目录，因此还为同一 GNU Make 4.4.1 增加
    Windows activeCodePage=UTF-8 manifest。所有非资源代码段保持不变，不改变
    Make 版本或构建逻辑；原始/产物 SHA256 和适配配方在 tools/mingw/make-utf8.json
@@ -70,7 +68,7 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
    若工程明确需要外部工具链，设置 analysis.cmake.allow_external_toolchain: true。
    外部路径会被诊断记录，不会悄悄替换工程的编译器、宏或架构参数。
 9. 独立重复验收（工作目录必须尚不存在）：
-   .\runtime\python.exe -B .\validate_portable.py --bundle . --work C:\Temp\ecra-check-new
+   .\runtime\python.exe -B .\validate_portable.py --bundle . --work D:\ecra-check-new
    此验收会校验出厂文件 SHA256；编辑用户配置后需使用原始 ZIP 解压副本运行。
 
 构建机打包：
