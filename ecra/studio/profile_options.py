@@ -17,7 +17,7 @@ OPTIONS = [
     option('analysis.cmake.generator','构建细节','CMake生成器','text','填写工程使用的生成器，例如 MinGW Makefiles 或 Ninja。未提交 CMake 扫描仍要求 Windows/Ninja。','Ninja'),
     option('analysis.cmake.build_dir','构建细节','构建目录标识','text','保留已有工程配置；正式构建仍由独立数据根隔离管理。','build/manual'),
     option('analysis.cmake.args','构建细节','CMake配置附加参数','lines','每行一个完整参数，空格保留；不要填-S、-B或-G。','-DAPP_RTOS=OFF\n-DBOARD=MY_BOARD'),
-    option('analysis.cmake.build_args','构建细节','CMake构建附加参数','lines','每行一个参数。用「固件构建目标」同时选择构建目标和编译闭包；附加参数只影响构建命令。','--parallel\n4'),
+    option('analysis.cmake.build_args','构建细节','CMake构建附加参数','lines','每行一个参数。传入目标或原生工具参数时，留空的「目标名称」沿用这些参数和原分析范围。','--parallel\n4'),
     option('analysis.cmake.build','构建细节','配置后执行构建','boolean','通常开启；关闭时只配置并取得编译数据库。'),
     option('analysis.cmake.clean_before_configure','构建细节','构建前清理专用目录','boolean','只清理经归属校验的ECRA构建目录；开启可避免旧缓存。'),
     option('analysis.cmake.timeout_seconds','构建细节','构建超时（秒）','number','单次配置或构建的最长等待时间；默认600秒。','600',0.001),

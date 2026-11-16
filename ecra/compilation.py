@@ -100,33 +100,24 @@ def cmake_build_directory(root, analysis):
 
 def cmake_input_records(root, build):
     """Bind the selected target's actual configure inputs to InputSnapshot."""
-    from .input_snapshot import read_consumed_text
-    reply = filesystem_path(build/'.cmake/api/v1/reply')
+    from .cmake_file_api import FileAPI
     try:
-        index = read_json(max(reply.glob('index-*.json'), key=lambda path: path.name))
-        ref = index['reply']['client-ecra']['cmakeFiles-v1']
-        file = reply/ref['jsonFile']
-        if not resolved_path(file).is_relative_to(resolved_path(reply)):
-            raise ValueError('CMake 输入索引引用越界')
-        data = read_json(file)
-        if (ref['kind'] != 'cmakeFiles' or ref['version']['major'] != 1
-                or resolved_path(data['paths']['source']) != resolved_path(root)
-                or resolved_path(data['paths']['build']) != build):
-            raise ValueError('CMake 输入索引的工程身份不一致')
         records = {}
-        for row in data['inputs']:
-            read_consumed_text(root/row['path'], records, errors='replace')
-        if not records:
-            raise ValueError('缺少 CMake 配置输入')
+        api = FileAPI(root, build, records)
+        api.inputs()
+        # Its filename is generation-specific; protected/explicit Ninja retain
+        # the existing input set rather than depending on a volatile pointer.
+        records.pop(str(api.index))
+        records.pop(str(api.reply/api.references['cmakeFiles-v1']['jsonFile']))
         return records
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise ValueError('所选目标的 CMake 构建输入无法校验，禁止发布分析结果') from exc
 
 
-def configure_cmake(root, analysis, progress, build_firmware):
+def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
     """Managed CMake mode refreshes the database on every run, even if present."""
     settings = analysis['cmake']
-    target = settings.get('target')
+    configured_target = effective_target = settings.get('target')
     build = cmake_build_directory(root, analysis)
     disk = filesystem_path(build)
     if disk.exists() and not disk.is_dir():
@@ -151,7 +142,7 @@ def configure_cmake(root, analysis, progress, build_firmware):
     generator = settings.get('generator', 'Ninja')
     if generator not in {'Ninja', 'MinGW Makefiles', 'Unix Makefiles'}:
         raise ValueError(f'不支持导出编译数据库的 Generator: {generator}')
-    if target and generator == 'Unix Makefiles':
+    if configured_target and generator == 'Unix Makefiles':
         raise ValueError('analysis.cmake.target 需要 Ninja 或 MinGW Makefiles')
     cmake = tool_path('cmake') if bundle_root() else 'cmake'
     make = None
@@ -183,6 +174,17 @@ def configure_cmake(root, analysis, progress, build_firmware):
     records = []
 
     allow_external = analysis.get('allow_external_toolchain', settings.get('allow_external_toolchain', False))
+    from .build_execution import BUILD_EXECUTOR
+    from .build_target_checkpoint import check_previous_selection, protected_baseline, save_selection
+    from .cmake_auto_target import eligibility
+    protected = BUILD_EXECUTOR.get() is not None
+    build_args = settings.get('build_args', [])
+    reason = None if configured_target else eligibility(
+        analysis, project or {}, build_firmware, protected or protected_baseline.get())
+    try_auto = not configured_target and reason is None
+    explicit_make = configured_target and generator == 'MinGW Makefiles'
+    check_previous_selection(root, build, try_auto)
+
     if empty:
         try:
             disk.mkdir(parents=True, exist_ok=True)
@@ -270,18 +272,26 @@ def configure_cmake(root, analysis, progress, build_firmware):
             raise ValueError(f'CMake {name} 失败 (退出码 {proc.returncode})，停止扫描。日志: {log}'
                              + hint + '\n' + message[-6000:])
         check_stop()
-    from .build_execution import BUILD_EXECUTOR
-    make_target = target and generator == 'MinGW Makefiles'
-    if target or BUILD_EXECUTOR.get() is not None:
-        query = disk/'.cmake/api/v1/query/client-ecra/cmakeFiles-v1'
-        query.parent.mkdir(parents=True, exist_ok=True)
-        query.touch()
-        if make_target:
-            query.with_name('codemodel-v2').touch()
-    previous_db = disk_database.stat() if make_target and disk_database.is_file() else None
+    from .cmake_file_api import AutoTargetUnavailable, FileAPI, latest_index, request
+    from .input_snapshot import read_consumed_text, record_consumed_file, verify_consumed_files
+    from .scan_stop import check_stop
+
+    def index_stamp():
+        path = latest_index(build)
+        return (path, filesystem_path(path).stat().st_mtime_ns) if path is not None else None
+
+    if try_auto:
+        request(build, 'cmakeFiles-v1', 'codemodel-v2', 'toolchains-v1')
+    elif explicit_make:
+        request(build, 'cmakeFiles-v1', 'codemodel-v2')
+    elif configured_target or protected:
+        request(build, 'cmakeFiles-v1')
+    previous_index = index_stamp() if try_auto or explicit_make else None
+    previous_db = disk_database.stat() if (try_auto or explicit_make) and disk_database.is_file() else None
     progress('CMake 配置并刷新编译数据库…')
     invoke(command, 'configure')
-    if target and not make_target:
+    configure_step = records[-1]
+    if configured_target and not explicit_make:
         records[-1]['consumed_inputs'] = cmake_input_records(root, build)
     cache, _ = check_cache(build, root, generator, make, allow_external)
     cached_build = cache.get('CMAKE_CACHEFILE_DIR')
@@ -291,6 +301,11 @@ def configure_cmake(root, analysis, progress, build_firmware):
         raise ValueError(f'CMake 未生成 {database}；请使用 Ninja 或 Makefiles 生成器')
     if previous_db is not None and previous_db.st_mtime_ns == disk_database.stat().st_mtime_ns:
         raise ValueError(f'CMake configure 未刷新 {database}；禁止使用旧编译数据库')
+    if try_auto or explicit_make:
+        current_index = index_stamp()
+        if current_index is None or current_index == previous_index:
+            raise ValueError('CMake configure 未刷新本轮 File API 索引；禁止使用旧目标证据')
+
     def audit_database(entries=None):
         if bundle_root():
             for entry in read_json(disk_database) if entries is None else entries:
@@ -300,83 +315,163 @@ def configure_cmake(root, analysis, progress, build_firmware):
                 count = 2 if Path(raw[0]).stem.lower() in {'ccache','sccache'} else 1
                 for executable in raw[:count]:
                     audit_executable(executable, entry.get('directory', root), allow_external=allow_external)
-    if make_target:
-        from .make_target import target_entries as make_entries
-        progress('从 CMake File API 和 Makefiles 读取目标编译闭包：' + target)
-        original_database = database
-        def read_target():
-            consumed = cmake_input_records(root, build)
-            rows, outputs = make_entries(root, build, original_database, generator, target, consumed)
-            hashes = {path: row['sha256'] for path, row in consumed.items()}
-            return rows, outputs, consumed, hashes
-        rows, outputs, consumed, hashes = read_target()
-        records.append(dict(stage='target-closure', source='cmake-file-api+makefiles', exit_code=0,
-                            target=target, translation_units=len(rows), consumed_inputs=consumed))
-    elif target:
-        # Ask the build graph itself, including object libraries and generated
-        # sources. A source-name/path filter would mix hardware variants.
-        ninja = make or read_cache(build).get('CMAKE_MAKE_PROGRAM')
+
+    def read_ninja(target, *, auto=False):
+        ninja = make or cache.get('CMAKE_MAKE_PROGRAM')
         if not ninja:
             raise ValueError('指定 cmake.target 时无法确定实际 Ninja 程序')
-        # Expand graph-bound response contents; Ninja deletes transient .rsp
-        # files after compilation, so later AST extraction cannot read them.
         argv = [ninja, '-C', build_command_path, '-t', 'compdb-targets', '-x', target]
-        progress('从 Ninja 完整依赖图读取目标编译闭包：' + target)
-        def target_entries():
-            proc = execute(argv, cwd=source_path, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
-            if proc.returncode:
-                raise ValueError('目标编译闭包读取失败；需要支持 compdb-targets 的 Ninja 和有效目标：'
-                                 + target + '\n' + proc.stderr[-4000:])
-            try:
-                rows = json.loads(proc.stdout)
-                if not isinstance(rows, list) or any(not isinstance(row, dict) or not row.get('file')
-                                                     or not row.get('command') or not row.get('output') for row in rows):
-                    raise ValueError('无效目标编译数据库')
-                # Compile rules carry -c. Link and code-generator rules may
-                # also have a source-looking input, so classify compiler rows
-                # using the real language option as well as the suffix.
-                compiler_rows = []
-                for row in rows:
-                    arguments = split_command(row['command'])
-                    if '-c' not in arguments:
-                        continue
-                    if source_language(row['file'], arguments) is None:
-                        raise ValueError('目标闭包含无法识别的编译语言: ' + row['file'])
-                    compiler_rows.append(row)
-                rows = compiler_rows
-                if not rows:
-                    raise ValueError('目标没有可解析编译单元')
-                return rows
-            except (ValueError, TypeError) as exc:
-                raise ValueError('目标编译闭包无效，禁止回退混用全目标数据库：' + target) from exc
-        rows = target_entries()
-        records.append(dict(stage='target-closure', command=argv, exit_code=0,
-                            target=target, translation_units=len(rows)))
-    if target:
-        database = build/'ecra-target-compile_commands.json'
-        records[-1]['database'] = str(database)
-    audit_database(rows if target else None)
+        check_stop()
+        proc = execute(argv, cwd=source_path, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
+        check_stop()
+        if proc.returncode:
+            if auto and "unknown tool 'compdb-targets'" in proc.stderr:
+                raise AutoTargetUnavailable('当前 Ninja 不支持 compdb-targets')
+            raise ValueError('目标编译闭包读取失败；需要支持 compdb-targets 的 Ninja 和有效目标：'
+                             + target + '\n' + proc.stderr[-4000:])
+        try:
+            raw = json.loads(proc.stdout)
+            if not isinstance(raw, list) or any(not isinstance(row, dict) or
+                    not all(isinstance(row.get(k), str) and row[k] for k in ('directory', 'file', 'command', 'output'))
+                    for row in raw):
+                raise ValueError('无效目标编译数据库')
+            compiler_rows = []
+            for row in raw:
+                arguments = split_command(row['command'])
+                if '-c' not in arguments:
+                    continue
+                if source_language(row['file'], arguments) is None:
+                    raise ValueError('目标闭包含无法识别的编译语言: ' + row['file'])
+                compiler_rows.append(row)
+            if not compiler_rows:
+                raise ValueError('目标没有可解析编译单元')
+            return compiler_rows, raw, argv
+        except (ValueError, TypeError) as exc:
+            raise ValueError('目标编译闭包无效，禁止回退混用全目标数据库：' + target) from exc
+
+    def read_make(target, inputs, *, auto=False):
+        from .make_target import target_entries
+        return target_entries(root, build, database, generator, target, inputs, auto=auto)
+
+    def target_step(target, rows, argv=None):
+        step = dict(stage='target-closure', exit_code=0, target=target, translation_units=len(rows))
+        if argv is None:
+            step['source'] = 'cmake-file-api+makefiles'
+        else:
+            step['command'] = argv
+        records.append(step)
+        return step
+
+    consumed = {}
+    outputs, rows, sources = set(), [], set()
+    api = None
+    if try_auto:
+        from .cmake_auto_target import (firmware_candidate, linker_evidence, ninja_graph_evidence,
+                                       scope_identity, verify_compilers, verify_ninja_default)
+        from .portable import resolved_executable
+        api = FileAPI(root, build, consumed, generator)
+        api.inputs()
+        safe_db = no_links(database)
+        full = json.loads(read_consumed_text(safe_db, consumed))
+        if not isinstance(full, list) or not full:
+            raise ValueError('编译数据库必须是非空数组')
+        record_consumed_file(no_links(build/OWNER_MARKER), consumed)
+        # Bind the cache and the literal compiler records whose values we use.
+        if read_cache(build, consumed_inputs=consumed) != cache:
+            raise ValueError('CMakeCache 在目标选择时改变')
+        try:
+            candidate, artifact, downstream = firmware_candidate(api, cache.get('CMAKE_BUILD_TYPE'))
+            name = candidate['name']
+            linker_evidence(api, candidate, artifact, analysis)
+            native_build_tool = cache.get('CMAKE_MAKE_PROGRAM')
+            if not native_build_tool:
+                raise ValueError('CMakeCache 缺少实际构建工具')
+            record_consumed_file(resolved_executable(native_build_tool, build), consumed)
+            argv = None
+            if generator == 'MinGW Makefiles':
+                rows, outputs = read_make(name, consumed, auto=True)
+            else:
+                ninja_graph_evidence(api)
+                rows, ninja_raw, argv = read_ninja(name, auto=True)
+            expected = scope_identity(full, api, analysis, generator=generator, targeted=False)
+            selected = scope_identity(rows, api, analysis, generator=generator, targeted=True)
+            if not expected or expected != selected:
+                raise AutoTargetUnavailable('候选的编译命令与原有效分析范围不一致')
+            all_selected = scope_identity(rows, api, analysis, generator=generator, targeted=True, effective=False)
+            audit_database(rows)
+            verify_compilers(api, candidate, all_selected, execute)
+            if generator == 'Ninja':
+                _, ninja_all, _ = read_ninja('all', auto=True)
+                verify_ninja_default(api, ninja_raw, ninja_all, artifact, downstream)
+                outputs = {entry[2] for entry in all_selected} | {artifact}
+            for source, *_ in all_selected:
+                if not source.is_relative_to(build):
+                    record_consumed_file(source, consumed)
+                sources.add(source)
+            effective_target = name
+            target_step(name, rows, argv)
+            reason = '唯一的裸机固件目标；实际构建闭包与原有效编译命令一致'
+        except AutoTargetUnavailable as exc:
+            reason = str(exc)
+        except (OSError, KeyError, TypeError, IndexError, AttributeError) as exc:
+            raise ValueError(f'CMake 自动目标证据无法校验: {exc}') from exc
+    elif explicit_make:
+        api = FileAPI(root, build, consumed, generator)
+        api.inputs()
+        progress('从 CMake File API 和 Makefiles 读取目标编译闭包：' + configured_target)
+        rows, outputs = read_make(configured_target, consumed)
+        target_step(configured_target, rows)
+        sources = {resolved_path(Path(row['directory'])/row['file']) for row in rows}
+    elif configured_target:
+        progress('从 Ninja 完整依赖图读取目标编译闭包：' + configured_target)
+        rows, ninja_raw, argv = read_ninja(configured_target)
+        target_step(configured_target, rows, argv)
+
+    source = ('explicit' if configured_target else 'automatic' if effective_target else
+              'build_args' if build_args else 'default')
+    selection = dict(source=source, effective_target=effective_target,
+                     reason=reason or '使用配置中显式指定的目标')
+    if source == 'automatic':
+        selection['artifact'] = str(artifact)
+    configure_step['target_selection'] = selection
+    progress(f'CMake 目标选择 [{source}]：{effective_target or "沿用原构建计划"}；{selection["reason"]}')
+    if consumed:
+        verify_consumed_files(consumed)
+    if try_auto:
+        save_selection(root, build, selection, consumed, api.index)
+    audit_database(rows if configured_target else None)
     if settings.get('build', True) and build_firmware:
-        build_args = settings.get('build_args', [])
-        selection = ('目标 ' + target if target else
-                     '按 build_args 构建（分析仍使用完整数据库）' if build_args else '默认 ALL')
-        progress('CMake 构建固件：' + selection)
+        label = ('目标 ' + effective_target if effective_target else
+                 '按 build_args 构建（分析仍使用完整数据库）' if build_args else '默认 ALL')
+        progress('CMake 构建固件：' + label)
         invoke([cmake, '--build', build_command_path, '--config', settings.get('build_type', 'Debug'),
-                *(['--target', target] if target else []),
+                *(['--target', effective_target] if effective_target else []),
                 *build_args], 'build')
-        if target:
-            records[-1]['target'] = target
-        if make_target:
-            if read_target()[3] != hashes:
-                raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
-            sources = {resolved_path(Path(row['directory'])/row['file']) for row in rows}
+        if effective_target:
+            records[-1]['target'] = effective_target
+        if consumed:
+            verify_consumed_files(consumed)
+            if latest_index(build) != api.index:
+                raise ValueError('构建期间 CMake File API 索引改变；请重新扫描')
+        if effective_target and generator == 'Ninja' and read_ninja(effective_target)[1] != ninja_raw:
+            raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
+        if effective_target:
             for path in sorted(outputs | sources):
                 if not filesystem_path(path).is_file():
-                    raise ValueError(f'CMake 目标 {target} 构建后缺少实际编译输入或对象: {path}')
-        elif target and target_entries() != rows:
-            raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
-    if target:
-        write_json(filesystem_path(database), rows)
+                    raise ValueError(f'CMake 目标 {effective_target} 构建后缺少实际编译输入或对象: {path}')
+        if source == 'automatic':
+            record_consumed_file(artifact, consumed)
+    if consumed:
+        # The index pointer is checked live; its referenced objects are stable
+        # content files and enter the snapshot, even across identical configure.
+        consumed.pop(str(api.index))
+        configure_step['consumed_inputs'] = consumed
+    if configured_target:
+        database = build/'ecra-target-compile_commands.json'
+        write_json(filesystem_path(no_links(database)), rows)
+        next(step for step in records if step['stage'] == 'target-closure')['database'] = str(database)
+    # Automatic builds deliberately retain the original database and ordering.
+    # The proof compared the effective scope under the existing filters.
     return database, records
 
 
@@ -657,6 +752,23 @@ def discover_databases(root):
     return sorted(found)
 
 
+def linked_input_filters(root, closure):
+    return tuple(None if key not in closure else
+                 {str(resolved_path(root/path)).casefold() for path in closure[key]}
+                 for key in ('linked_sources', 'linked_objects'))
+
+
+def linked_input_selected(source, directory, entry, args, filters, make_build=None):
+    """Apply the same linked input interpretation to planning and extraction."""
+    source_filter, object_filter = filters
+    obj = entry.get('output')
+    object_dir = make_build if obj and make_build is not None else directory
+    if not obj and '-o' in args and args.index('-o') + 1 < len(args):
+        obj = args[args.index('-o') + 1]
+    return ((source_filter is None or str(resolved_path(source)).casefold() in source_filter)
+            and (object_filter is None or (obj and str(resolved_path(Path(object_dir)/obj)).casefold() in object_filter)))
+
+
 def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     if file_view is not None and 'cmake' in cfg['analysis']:
         prepared=file_view.prepared_compilation()
@@ -674,7 +786,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     requested = None
     cmake_steps = []
     if 'cmake' in a:
-        database, cmake_steps = configure_cmake(root, a, progress, build_firmware)
+        database, cmake_steps = configure_cmake(root, a, progress, build_firmware, project=cfg.get('project'))
         candidates = [database]
     elif configured != "auto":
         requested = (root / configured).resolve()
@@ -711,15 +823,12 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     units, ignored, assembly_sources = [], [], []
     from .managed_build_closure import resolve as resolve_managed_closure
     closure,closure_binding=resolve_managed_closure(root,a,Path(candidates[0]).parent,cmake_steps,consumed_inputs)
-    linked_sources = closure.get('linked_sources')
-    linked_objects = closure.get('linked_objects')
-    def absolute(value, directory=root):
-        return str(resolved_path(Path(directory) / value)).casefold()
-    source_filter = {absolute(p) for p in linked_sources} if linked_sources is not None else None
-    object_filter = {absolute(p) for p in linked_objects} if linked_objects is not None else None
+    filters = linked_input_filters(root, closure)
     include_cache = {}
     compiler_audit = []
-    make_target = any(step.get('source') == 'cmake-file-api+makefiles' for step in cmake_steps)
+    target_selection = next((step['target_selection'] for step in cmake_steps if 'target_selection' in step), None)
+    make_target = (target_selection and target_selection['source'] == 'explicit'
+                   and a.get('cmake', {}).get('generator') == 'MinGW Makefiles')
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):
             raise ValueError(f"无效编译条目 #{i}")
@@ -742,13 +851,8 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
         unit["tu_id"] = f"TU-{i:05d}"
         # A target's actual link inputs narrow a multi-target compile database.
         # Paths come from build evidence, never name/path heuristics.
-        args = unit['original_arguments']
-        obj = entry.get('output')
-        object_dir = candidates[0].parent if obj and make_target else unit['directory']
-        if not obj and '-o' in args and args.index('-o') + 1 < len(args):
-            obj = args[args.index('-o') + 1]
-        if ((source_filter is not None and absolute(unit['source']) not in source_filter)
-                or (object_filter is not None and (not obj or absolute(obj, object_dir) not in object_filter))):
+        if not linked_input_selected(unit['source'], unit['directory'], entry, unit['original_arguments'],
+                                     filters, candidates[0].parent if make_target else None):
             ignored.append(unit['source_file'])
             continue
         language = source_language(unit['source'], unit['arguments'])
@@ -797,7 +901,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
                        selection_reason='managed cmake' if 'cmake' in a else ("explicit" if configured != "auto" else "unique candidate"),
                        unlisted_sources=sorted(set(sources) - covered) if not a.get('build_closure_only', True) else [],
                        excluded_from_build=sorted(set(sources) - covered),
-                       build_closure=dict(closure, source='linked_inputs' if source_filter is not None or object_filter is not None
+                       build_closure=dict(closure, source='linked_inputs' if any(f is not None for f in filters)
                            else 'compile_database', translation_units=sorted(covered),
                            complete=not bool(closure.get('missing_objects')), missing_objects=closure.get('missing_objects', [])),
                        assembly_sources=sorted(set(assembly_sources)),
@@ -806,4 +910,6 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
                        cmake_cache=read_cache(Path(candidates[0]).parent,consumed_inputs=consumed_inputs), compilers=compiler_audit,
                        external_tools=[c for c in compiler_audit if c['external']], consumed_inputs=consumed_inputs)
     if closure_binding is not None:compilation['build_closure_binding']=closure_binding
+    if target_selection is not None:
+        compilation['cmake_target_selection'] = target_selection
     return units,compilation

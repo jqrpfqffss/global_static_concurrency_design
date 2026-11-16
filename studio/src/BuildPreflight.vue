@@ -98,6 +98,7 @@ onUnmounted(()=>{generation++;if(timer)clearInterval(timer)})
     <template v-if="passed()&&plan?.check?.passed">
       <button @click="planOpen=true">查看完整构建计划与逐 TU 参数</button><WorkspaceDialog v-if="planOpen" title="真实构建计划与完整编译参数" @close="planOpen=false"><p v-if="planError" class="banner warning" role="alert">编译计划暂时无法读取。{{planError}} <button :disabled="planBusy" @click="readPlan(planRetryOffset)">重试读取此页</button></p><p>工程：{{plan.check.project_root}}</p><p v-if="plan.check.analysis_root!==plan.check.project_root">固定版本分析根：{{plan.check.analysis_root}}</p>
       <p>目标：{{plan.check.target||'真实编译数据库闭包'}} · 变体：{{plan.check.variant||'以逐TU参数为准'}}</p>
+      <p v-if="plan.check.target_selection">{{plan.check.target_selection.source==='automatic'?'自动选择：':plan.check.target_selection.source==='explicit'?'显式目标：':'沿用原构建：'}}{{plan.check.target_selection.reason}}</p>
       <p>独立数据：{{plan.check.data_root}}</p><p>编译数据库：{{plan.check.compile_database}}</p><p v-if="plan.check.build_root">独立构建：{{plan.check.build_root}}</p>
       <p v-if="plan.check.git">{{plan.check.git.base_ref}} → {{plan.check.git.current_ref}} · {{plan.check.git.base_sha}} → {{plan.check.git.head_sha}}</p>
       <p>全部 {{plan.total}} TU · 已校验 {{plan.check.input_files}} 个输入 · {{plan.check.snapshot_status}}</p>

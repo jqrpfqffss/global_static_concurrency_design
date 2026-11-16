@@ -103,5 +103,5 @@ class ManagedBuildClosureNativeTests(unittest.TestCase):
         self.assertFalse((root/'build').exists());self.assertFalse((out/'facts.json').exists())
         from ecra.studio.preflight import run_preflight
         with contextlib.redirect_stdout(io.StringIO()):
-            check=run_preflight(case.config,case.data,case.home/'preflight',lambda _:None)
+            check=run_preflight(case.config,case.data,case.data/'work/preflight',lambda _:None)
         self.assertTrue(check['passed']);self.assertEqual(case.source_files(),before)

@@ -1,5 +1,7 @@
 # STM32F4 MinGW 定向构建修复
 
+后续版本支持在已证明范围等价时[自动选择固件目标](cmake-auto-firmware-target.md)。本页保留原显式目标修复及其验证记录。
+
 起始分支为 `optimize_ccc`，HEAD 为 `f9b65a3968f4000486b3ac37fc3ccb3af9b43b4a`，与远端一致。验证使用独立 Workspace。
 
 ## 根因

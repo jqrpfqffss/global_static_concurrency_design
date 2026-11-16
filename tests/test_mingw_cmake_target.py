@@ -179,13 +179,15 @@ class MinGWTargetTests(unittest.TestCase):
         from ecra.scan_store import EvidenceProvider
         from ecra.studio.preflight import plan_page, run_preflight
         write_json(self.profile, self.cfg)
+        preflight = self.data/'work/preflight'
         with redirect_stdout(io.StringIO()):
-            check = run_preflight(self.profile, self.data, self.home/'preflight', lambda _: None)
+            check = run_preflight(self.profile, self.data, preflight, lambda _: None)
         self.assertTrue(check['passed'])
         self.assertEqual(check['target'], 'app_elf')
         self.assertEqual(check['translation_units'], 3)
         run = subprocess.run([os.sys.executable, 'run_ecra.py', '--config', str(self.profile), '--no-review'],
-                             capture_output=True, encoding='utf-8', timeout=180)
+                             capture_output=True, encoding='utf-8', timeout=180,
+                             env=dict(os.environ, ECRA_DATA_ROOT=str(self.data)))
         self.assertIn(run.returncode, (0, 1, 2), run.stdout+run.stderr)
         database, = self.data.rglob('scan.db')
         provider = EvidenceProvider(database)
@@ -193,7 +195,7 @@ class MinGWTargetTests(unittest.TestCase):
         report, facts = provider.load('report'), provider.load('facts')
         coverage = report['coverage']
         self.assertEqual([coverage['translation_units_'+k] for k in ('total', 'parsed', 'partial', 'failed')], [3, 3, 0, 0])
-        plan = plan_page(self.home/'preflight')['items']
+        plan = plan_page(preflight)['items']
         self.assertEqual([u['original_arguments'] for u in plan], [u['original_arguments'] for u in facts['translation_units']])
         self.assertEqual(coverage['cmake_steps'][-1]['target'], check['target'])
         self.assertEqual({v['name'] for v in facts['variables']}, {'dma_buffer', 'dma_buffer[0]', 'calls', 'state', 'count'})
@@ -223,6 +225,315 @@ class MinGWTargetTests(unittest.TestCase):
         self.assertEqual(len({unit['tu_id'] for unit in duplicate}), 2)
         self.assertEqual({arg for unit in duplicate for arg in unit['arguments'] if arg.startswith('-DVARIANT=')},
                          {'-DVARIANT=1', '-DVARIANT=2'})
+
+
+@unittest.skipUnless(all(shutil.which(tool) for tool in ('cmake', 'ninja', 'arm-none-eabi-gcc')),
+                     'requires real CMake, Ninja and ARM GCC')
+class AutomaticTargetTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix='ecra auto target ')
+        self.addCleanup(temp.cleanup)
+        self.home = Path(temp.name).resolve()
+        self.root = self.home/'固件 with spaces'
+        self.profile = self.home/'semantics.yaml'
+        self.data = self.home/'data'
+        create_project(self.root)
+        self.cmake = self.root/'CMakeLists.txt'
+        self.version = self.root/'version.txt'
+        self.version.write_text('2.22.1', 'utf-8')
+        body = self.cmake.read_text('utf-8').split('add_library(other ', 1)[0]
+        body = body.replace('app_elf', '${image}').replace('SUFFIX ".axf"',
+            'OUTPUT_NAME "linked-${version}" SUFFIX ".payload"')
+        body = body.replace('project(f4_fixture C)\n', '''project(f4_fixture C)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS version.txt)
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" version LIMIT_COUNT 1)
+set(image firmware_${version})
+''')
+        self.cmake.write_text(body+'''
+add_custom_target(package ALL
+  COMMAND ${CMAKE_COMMAND} -E touch package-entered
+  COMMAND ${CMAKE_COMMAND} -E false
+  DEPENDS ${image} VERBATIM)
+''', 'utf-8')
+        self.cfg = configuration(self.root, self.data)
+        self.cfg['analysis']['cmake'].pop('target')
+        self.cfg['analysis']['cmake']['generator'] = 'Ninja'
+        self.cfg['analysis']['build_closure']['elf'] = 'build/manual/linked-2.22.1.payload'
+
+    def prepare(self, **kwargs):
+        return prepare(self.root, self.cfg, **kwargs)
+
+    def extras(self, text):
+        with self.cmake.open('a', encoding='utf-8') as stream:
+            stream.write(text)
+
+    def selection(self, compilation, source='automatic', target='firmware_2.22.1'):
+        choice = compilation['cmake_target_selection']
+        self.assertEqual((choice['source'], choice['effective_target']), (source, target), choice)
+        return choice
+
+    def test_ninja_selects_logical_target_and_reconfigures_version_without_yaml_edit(self):
+        self.cfg['analysis']['cmake'].update(clean_before_configure=False, build_args=['--parallel', '2'])
+        self.cfg['analysis'].pop('build_closure')
+        write_json(self.profile, self.cfg)
+        config_bytes = self.profile.read_bytes()
+        cfg, _ = load_config(self.root, self.profile)
+        for version in ('2.22.1', '2.23.0'):
+            self.version.write_text(version, 'utf-8')
+            units, info = prepare(self.root, cfg)
+            self.selection(info, target='firmware_'+version)
+            self.assertEqual(len(units), 3)
+            build = Path(info['compile_database']).parent
+            output = build/('linked-'+version+'.payload')
+            self.assertEqual(output.read_bytes()[:4], b'\x7fELF')
+            self.assertIn(str(output), info['consumed_inputs'])
+            self.assertTrue((build/'generated.h').is_file())
+            self.assertFalse((build/'package-entered').exists())
+            self.assertTrue(any('support.dir' in row['output'] for row in read_json(info['compile_database'])))
+            self.assertEqual(self.profile.read_bytes(), config_bytes)
+            self.assertNotIn('target', cfg['analysis']['cmake'])
+        old = build/'linked-2.22.1.payload'
+        self.assertTrue(old.is_file())
+        self.assertNotIn(str(old), info['consumed_inputs'])
+
+    @unittest.skipUnless(os.name == 'nt' and shutil.which('mingw32-make'), 'requires real MinGW Makefiles')
+    def test_mingw_studio_preflight_and_cli_automatic_explicit_scans_agree(self):
+        from ecra.git_diff import build_arguments, summarize
+        from ecra.scan_store import EvidenceProvider
+        from ecra.studio.preflight import plan_page, run_preflight
+
+        self.cfg['analysis']['cmake']['generator'] = 'MinGW Makefiles'
+        def scan():
+            write_json(self.profile, self.cfg)
+            previous = set(self.data.rglob('scan.db'))
+            proc = subprocess.run([os.sys.executable, 'run_ecra.py', '--config', str(self.profile), '--no-review'],
+                                  capture_output=True, encoding='utf-8', timeout=180,
+                                  env=dict(os.environ, ECRA_DATA_ROOT=str(self.data)))
+            self.assertIn(proc.returncode, (0, 1, 2), proc.stdout+proc.stderr)
+            database, = set(self.data.rglob('scan.db'))-previous
+            provider = EvidenceProvider(database)
+            provider.validate(deep=True)
+            return provider.load('facts'), provider.load('report')
+
+        write_json(self.profile, self.cfg)
+        preflight = self.data/'work/preflight'
+        check = run_preflight(self.profile, self.data, preflight, lambda _: None)
+        self.assertIsNone(check['configured_target'])
+        self.assertEqual(check['target'], 'firmware_2.22.1')
+        self.assertEqual(check['target_selection']['source'], 'automatic')
+        auto_facts, auto_report = scan()
+        compilation = auto_report['coverage']
+        self.selection(compilation)
+        self.assertEqual(len(auto_facts['translation_units']), 3)
+        self.assertEqual([u['original_arguments'] for u in plan_page(preflight)['items']],
+                         [u['original_arguments'] for u in auto_facts['translation_units']])
+        for artifact in compilation['build_closure_binding']['artifacts'].values():
+            self.assertEqual(compilation['consumed_inputs'][artifact['actual']]['sha256'], artifact['sha256'])
+        build = Path(compilation['compile_database']).parent
+        self.assertTrue((build/'generated.c').is_file())
+        self.assertFalse((build/'package-entered').exists())
+        self.cfg['analysis']['cmake']['target'] = check['target']
+        explicit_facts, explicit_report = scan()
+        self.selection(explicit_report['coverage'], source='explicit')
+        self.assertEqual([build_arguments(u, self.root) for u in auto_facts['translation_units']],
+                         [build_arguments(u, self.root) for u in explicit_facts['translation_units']])
+        # Compare canonical variable identities, accesses, call chains and
+        # per-variable risk evidence across the actual independent builds.
+        auto = summarize(auto_facts, auto_report)
+        explicit = summarize(explicit_facts, explicit_report)
+        self.assertEqual(auto['variables'], explicit['variables'])
+        self.assertEqual(auto['edges'], explicit['edges'])
+        self.assertEqual(auto['graphs'], explicit['graphs'])
+        self.assertEqual(auto_report['coverage']['static_classification'],
+                         explicit_report['coverage']['static_classification'])
+        self.assertIn('HAL_DMA_Callback', json.dumps(auto_facts['calls']))
+
+    def test_unique_executable_with_extra_variant_keeps_all_analysis(self):
+        self.cmake.write_text(self.cmake.read_text('utf-8').split('add_custom_target(package ALL', 1)[0], 'utf-8')
+        self.extras('add_library(other STATIC "object sources/dispatch.c")\n'
+                    'target_compile_definitions(other PRIVATE VARIANT=2)\n')
+        units, info = self.prepare()
+        self.assertIn('分析范围', self.selection(info, 'default', None)['reason'])
+        self.assertEqual(len(units), 4)
+        self.assertEqual({arg for u in units if u['source_file'].endswith('dispatch.c')
+                          for arg in u['arguments'] if arg.startswith('-DVARIANT=')},
+                         {'-DVARIANT=1', '-DVARIANT=2'})
+        self.assertNotIn('--target', info['cmake_steps'][-1]['command'])
+
+    def test_linked_source_and_object_constraints_still_apply_after_selection(self):
+        build = cmake_build_directory(self.root, self.cfg['analysis'])
+        self.cfg['analysis']['build_closure'].update(
+            linked_sources=['app/main.c', 'object sources/dispatch.c'],
+            linked_objects=[str(build/'CMakeFiles/firmware_2.22.1.dir/app/main.c.obj')])
+        units, info = self.prepare()
+        self.selection(info)
+        self.assertEqual([unit['source_file'] for unit in units], ['app/main.c'])
+        self.assertEqual(info['build_closure']['source'], 'linked_inputs')
+        self.assertEqual(info['build_closure']['linked_objects'], self.cfg['analysis']['build_closure']['linked_objects'])
+        self.assertTrue((build/'object sources/CMakeFiles/support.dir/dispatch.c.obj').is_file())
+
+    def test_boot_app_and_independent_custom_targets_keep_default_build(self):
+        self.cmake.write_text(self.cmake.read_text('utf-8').split('add_custom_target(package ALL', 1)[0], 'utf-8')
+        self.extras('add_custom_target(independent ALL COMMAND ${CMAKE_COMMAND} -E touch independent-ran)\n')
+        units, info = self.prepare()
+        build = Path(info['compile_database']).parent
+        self.assertTrue((build/'independent-ran').is_file())
+        self.assertIn('自定义目标', self.selection(info, 'default', None)['reason'])
+        self.extras('add_executable(boot app/boot.c)\n'
+                    'target_link_options(boot PRIVATE -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard'
+                    ' -nostdlib -Wl,-e,main)\n')
+        (self.root/'app/boot.c').write_text('int boot_counter;int main(void) { return ++boot_counter; }\n', 'utf-8')
+        units, info = self.prepare()
+        self.assertIn('多个可执行目标', self.selection(info, 'default', None)['reason'])
+        self.assertEqual(len(units), 4)
+        self.assertIn('app/boot.c', {unit['source_file'] for unit in units})
+
+    @unittest.skipUnless(shutil.which('git'), 'requires Git worktrees')
+    def test_git_diff_resolves_two_versions_to_separate_targets_and_artifacts(self):
+        from ecra.scan_store import EvidenceProvider
+
+        def git(*args):
+            return subprocess.check_output(['git', '-c', 'user.name=ECRA test', '-c',
+                                            'user.email=ecra@example.invalid', *args],
+                                           cwd=self.root, text=True, encoding='utf-8').strip()
+        git('init', '-q')
+        git('add', '.')
+        git('commit', '-qm', 'first firmware version')
+        base = git('rev-parse', 'HEAD')
+        self.version.write_text('2.23.0', 'utf-8')
+        (self.root/'gen.c.in').write_text('#include "generated.h"\nint generated(void) { return 8; }\n', 'utf-8')
+        git('commit', '-qam', 'next firmware version')
+        self.cfg['analysis'].pop('build_closure')
+        self.cfg['analysis']['git_diff'] = dict(enabled=True, base_ref=base, verify_against_full=True)
+        write_json(self.profile, self.cfg)
+        proc = subprocess.run([os.sys.executable, 'run_ecra.py', '--config', str(self.profile), '--no-review'],
+                              capture_output=True, encoding='utf-8', timeout=180,
+                              env=dict(os.environ, ECRA_DATA_ROOT=str(self.data)))
+        self.assertIn(proc.returncode, (0, 1, 2), proc.stdout+proc.stderr)
+        database, = (self.data/'scans').glob('*/scan.db')
+        current = EvidenceProvider(database).load('report')
+        self.assertEqual(current['git_diff']['full_verification']['state'], 'PASSED')
+        baseline = EvidenceProvider(current['git_diff']['pin']['base_facts_path']).load('report')
+        artifacts = []
+        for report, version in ((baseline, '2.22.1'), (current, '2.23.0')):
+            choice = self.selection(report['coverage'], target='firmware_'+version)
+            path = Path(choice['artifact'])
+            self.assertEqual(path.name, 'linked-'+version+'.payload')
+            self.assertEqual(path.read_bytes()[:4], b'\x7fELF')
+            self.assertIn(str(path), report['coverage']['consumed_inputs'])
+            self.assertFalse((path.parent/'package-entered').exists())
+            artifacts.append(path)
+        self.assertNotEqual(artifacts[0].parent, artifacts[1].parent)
+        self.assertEqual(git('status', '--porcelain'), '')
+
+    def test_multicore_or_configure_only_keeps_existing_full_database(self):
+        self.extras('add_executable(boot EXCLUDE_FROM_ALL app/boot.c)\n')
+        (self.root/'app/boot.c').write_text('int main(void) { return 0; }\n', 'utf-8')
+        for build, project in ((False, {}), (True, dict(cm4_enabled=True))):
+            with self.subTest(build=build):
+                self.cfg['project'].update(project)
+                self.cfg['analysis']['cmake']['build'] = build
+                if build:
+                    with self.assertRaisesRegex(ValueError, r'(?s)CMake build 失败.*package'):
+                        self.prepare()
+                else:
+                    units, info = self.prepare()
+                    self.selection(info, 'default', None)
+                    self.assertEqual(len(units), 4)
+                    self.assertEqual([s['stage'] for s in info['cmake_steps']], ['clean', 'configure'])
+
+    def test_build_args_targets_and_native_parameters_keep_their_meaning(self):
+        for args in (['--target', 'firmware_2.22.1'], ['--', 'firmware_2.22.1']):
+            with self.subTest(args=args):
+                self.cfg['analysis']['cmake']['build_args'] = args
+                units, info = self.prepare()
+                self.selection(info, 'build_args', None)
+                self.assertEqual(len(units), 3)
+                self.assertEqual(info['cmake_steps'][-1]['command'][-len(args):], args)
+
+    def test_selected_compile_link_and_post_build_failures_are_not_hidden(self):
+        path = self.root/'app/main.c'
+        main, cmake = path.read_text('utf-8'), self.cmake.read_text('utf-8')
+        for src, extra, failure in [
+                ('#error required_source_broken\n'+main, '', 'required_source_broken'),
+                (main.replace('generated()', 'undefined_firmware_symbol()'), '', 'undefined reference'),
+                (main, 'add_custom_command(TARGET ${image} POST_BUILD COMMAND ${CMAKE_COMMAND} -E false)\n',
+                 ' -E false')]:
+            with self.subTest(failure=failure):
+                path.write_text(src, 'utf-8')
+                self.cmake.write_text(cmake+extra, 'utf-8')
+                with self.assertRaisesRegex(ValueError, r'(?s)CMake build 失败.*'+failure):
+                    self.prepare()
+                self.assertFalse((cmake_build_directory(self.root, self.cfg['analysis'])/'package-entered').exists())
+
+    def test_reply_escape_and_build_time_cmake_input_change_block(self):
+        from ecra.cmake_file_api import latest_index
+        from ecra.compilation import execute
+
+        build = cmake_build_directory(self.root, self.cfg['analysis'])
+        def corrupt(argv, **kwargs):
+            proc = execute(argv, **kwargs)
+            if '-S' in argv:
+                index = latest_index(build)
+                data = read_json(index)
+                data['reply']['client-ecra']['codemodel-v2']['jsonFile'] = '../outside.json'
+                write_json(index, data)
+            self.assertNotIn('--build', argv)
+            return proc
+        with patch('ecra.compilation.execute', side_effect=corrupt):
+            with self.assertRaisesRegex(ValueError, '引用越界'):
+                self.prepare()
+        self.extras('add_custom_command(TARGET ${image} POST_BUILD COMMAND ${CMAKE_COMMAND} -E touch changed-input)\n')
+        def change_input(argv, **kwargs):
+            proc = execute(argv, **kwargs)
+            if '--build' in argv:
+                self.version.write_text('2.23.0', 'utf-8')
+            return proc
+        with patch('ecra.compilation.execute', side_effect=change_input):
+            with self.assertRaisesRegex(ValueError, '输入证据变化.*version.txt'):
+                self.prepare()
+        self.assertFalse((build/'package-entered').exists())
+
+    def test_stop_retry_requires_same_configure_evidence(self):
+        from ecra.build_target_checkpoint import task_selection
+        from ecra.cmake_file_api import latest_index
+        from ecra.compilation import execute
+
+        self.extras('if(DEFINED ENV{ECRA_JOB_STOP_FILE})\n'
+                    '  add_custom_command(TARGET ${image} POST_BUILD COMMAND ${CMAKE_COMMAND} -E touch "$ENV{ECRA_JOB_STOP_FILE}" VERBATIM)\n'
+                    'endif()\n')
+        old, retry, changed = [self.data/'work/tasks'/name for name in ('original', 'retry', 'changed')]
+        for folder in (old, retry, changed):
+            folder.mkdir(parents=True)
+            write_json(folder/'semantics.yaml', self.cfg)
+        stop = self.home/'stop'
+        write_json(retry/'retry-source.json', dict(source_task=old.name))
+
+        def reformat_reply(argv, **kwargs):
+            result = execute(argv, **kwargs)
+            if '-S' in argv:
+                index = latest_index(cmake_build_directory(self.root, self.cfg['analysis']))
+                ref = read_json(index)['reply']['client-ecra']['codemodel-v2']['jsonFile']
+                path = index.parent/ref
+                write_json(path, read_json(path), indent=None)
+            return result
+
+        with patch.dict(os.environ, ECRA_JOB_STOP_FILE=str(stop)):
+            with task_selection(old), self.assertRaises(KeyboardInterrupt):
+                self.prepare()
+            self.assertTrue(stop.is_file())
+            stop.unlink()
+            # Fresh File API serialization is allowed when the real graph and
+            # compiler commands still prove the same target.
+            with task_selection(retry), patch('ecra.compilation.execute', side_effect=reformat_reply), \
+                    self.assertRaises(KeyboardInterrupt):
+                self.prepare()
+            self.assertTrue(stop.is_file())
+            stop.unlink()
+        self.version.write_text('2.23.0', 'utf-8')
+        write_json(changed/'retry-source.json', dict(source_task=retry.name))
+        with task_selection(changed), self.assertRaisesRegex(ValueError, '输入证据变化.*version.txt'):
+            self.prepare()
 
 
 class BuildLogTests(unittest.TestCase):

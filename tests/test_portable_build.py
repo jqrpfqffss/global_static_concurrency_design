@@ -23,8 +23,11 @@ class PortableCMakeTests(unittest.TestCase):
         home = Path(self.tmp.name).resolve()
         self.root = home/'source'
         self.root.mkdir()
+        # These ownership/cache tests stub only the default native build;
+        # native arguments bypass File API discovery.
         self.settings = dict(output=dict(location='custom', custom_dir=str(home/'data')),
-                             cmake=dict(location='workspace',build_dir='build/ecra',generator='MinGW Makefiles',build=True))
+                             cmake=dict(location='workspace',build_dir='build/ecra',generator='MinGW Makefiles',
+                                        build=True,build_args=['--','all']))
         workspace = WorkspaceResolver.resolve(self.root, self.settings).initialize()
         self.build = Path(workspace.build_root)/'ecra'
         self.build.mkdir(parents=True)

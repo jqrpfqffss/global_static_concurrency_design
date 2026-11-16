@@ -28,7 +28,7 @@ class BuildPreflightTests(unittest.TestCase):
         self.database.write_text(json.dumps([dict(file=str(self.source),directory=str(self.root),arguments=[
             self.compiler or 'arm-none-eabi-gcc','-mcpu=cortex-m0','-mthumb','-DVARIANT=1','-UVARIANT','-DVARIANT=2',
             '-c',str(self.source),'-o',str(self.build/('object'+str(i)+'.o'))]) for i in range(2)]),'utf-8')
-        self.data=self.base/'data';self.work=self.data/'work/task';self.work.mkdir(parents=True)
+        self.data=self.base/'data';self.work=self.data/'work/tasks/task';self.work.mkdir(parents=True)
         self.config=self.work/'semantics.yaml'
         self.cfg=dict(version=1,project=dict(root=str(self.root)),analysis=dict(compile_database=str(self.database),
             output=dict(location='custom',custom_dir=str(self.data)),extraction_workers=2),review=dict(enabled=False))
@@ -115,7 +115,8 @@ class BuildPreflightTests(unittest.TestCase):
         self.assertEqual(list(self.root.iterdir()),[self.source]);self.assertFalse((self.data/'scans').exists())
 
     def worker_args(self, mode='scan'):
-        gate=self.work/'gate';gate.write_text('owned','ascii')
+        gate=self.work/'start';gate.write_text('owned','ascii')
+        (self.work/'temporary').mkdir(exist_ok=True)
         return SimpleNamespace(gate=gate,config=self.config,data_root=self.data,stop=self.work/'stop',
                                result=self.work/'worker-result.json',mode=mode,scan_id='id',profile_id='profile')
 

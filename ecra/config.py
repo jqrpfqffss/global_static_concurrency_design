@@ -234,6 +234,21 @@ def configured_project_root(path=None):
     return (root if root.is_absolute() else config_path.parent / root).resolve()
 
 
+def cmake_build_args_allow_auto_target(args):
+    """Only scope-neutral CMake build options may inherit a target."""
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        index += 1
+        if arg in {'--verbose', '-v'}:
+            continue
+        if arg not in {'--parallel', '-j'}:
+            return False
+        if index < len(args) and args[index].isascii() and args[index].isdecimal():
+            index += 1
+    return True
+
+
 def load_config(root=None, path=None, *, consumed_inputs=None):
     path = resolve_config_path(root, path)
     if not path.is_file():

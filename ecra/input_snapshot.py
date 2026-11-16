@@ -100,6 +100,27 @@ def content_key(record):
     return record.get('status'), record.get('sha256')
 
 
+def record_consumed_file(path, records):
+    path = resolved_path(path)
+    record = file_record(path)
+    if record.get('status') != 'OK' or record.get('unstable'):
+        raise ValueError(f'构建输入无法稳定读取: {path}')
+    previous = records.setdefault(str(path), record)
+    if content_key(previous) != content_key(record) or previous.get('unstable'):
+        raise ValueError(f'构建输入在读取期间变化: {path}')
+
+
+def verify_consumed_files(records):
+    """Recheck inputs used to choose a build, even when no scan will be published."""
+    from .scan_stop import check_stop
+    for path, original in records.items():
+        check_stop()
+        actual = file_record(path)
+        if (original.get('status') != 'OK' or original.get('unstable')
+                or actual.get('unstable') or content_key(original) != content_key(actual)):
+            raise ValueError(f'CMake 配置或构建期间输入证据变化: {path}')
+
+
 def read_consumed_text(path, records, *, errors='strict'):
     """Bind parsed configuration to the exact bytes read, before discovery.
 

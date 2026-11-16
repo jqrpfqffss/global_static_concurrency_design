@@ -4,37 +4,23 @@ import json
 from pathlib import Path
 import re
 
+from .cmake_file_api import AutoTargetUnavailable, FileAPI
 from .input_snapshot import read_consumed_text
 from .path_io import filesystem_path, resolved_path
+from .workspace import no_links
 
 
-def target_entries(root, build, database, generator, target, consumed):
+def target_entries(root, build, database, generator, target, consumed, *, auto=False):
     def read(path):
-        return read_consumed_text(path, consumed)
-
-    reply = filesystem_path(build/'.cmake/api/v1/reply')
-
-    def reply_object(ref):
-        path = resolved_path(reply/ref['jsonFile'])
-        if not path.is_relative_to(resolved_path(reply)):
-            raise ValueError('CMake File API 引用越界')
-        return json.loads(read(path))
+        return read_consumed_text(no_links(path), consumed)
 
     def make_path(value):
         # CMake emits one Makefile2 prerequisite per line, including escaped spaces.
-        return resolved_path(build/value.replace(r'\ ', ' ').replace(r'\#', '#'))
+        return api.build_path(value.replace(r'\ ', ' ').replace(r'\#', '#'))
 
     try:
-        index = max(reply.glob('index-*.json'), key=lambda path: path.name)
-        index = json.loads(index.read_text(encoding='utf-8'))
-        model = reply_object(index['reply']['client-ecra']['codemodel-v2'])
-        actual_generator = index['cmake']['generator']
-        if (actual_generator['name'] != generator or actual_generator['multiConfig']
-                or model['kind'] != 'codemodel' or model['version']['major'] != 2
-                or resolved_path(model['paths']['source']) != resolved_path(root)
-                or resolved_path(model['paths']['build']) != build):
-            raise ValueError('CMake File API 的生成器或工程身份不一致')
-        config, = model['configurations']
+        api = FileAPI(root, build, consumed, generator)
+        config = api.configuration()
         matches = [row for row in config['targets'] if row['name'] == target]
         if len(matches) != 1:
             raise ValueError('当前 CMake 配置中没有唯一同名目标')
@@ -42,8 +28,8 @@ def target_entries(root, build, database, generator, target, consumed):
         directories = config['directories']
 
         def target_dir(row):
-            return resolved_path(build/directories[row['directoryIndex']]['build']/'CMakeFiles'/
-                                 (row['name']+'.dir'))
+            return api.build_path(Path(directories[row['directoryIndex']]['build'])/'CMakeFiles'/
+                                  (row['name']+'.dir'))
 
         targets = {target_dir(row): row for row in config['targets']}
         if len(targets) != len(config['targets']):
@@ -63,13 +49,15 @@ def target_entries(root, build, database, generator, target, consumed):
                 edges.add(make_path(prerequisite.removesuffix('/all')))
 
         rows = json.loads(read(database))
+        if auto and rows and all(isinstance(row, dict) and 'output' not in row for row in rows):
+            raise AutoTargetUnavailable('当前 CMake Makefiles 不导出对象输出字段')
         by_output = defaultdict(list)
         # Makefile generators export output relative to the top-level binary
         # tree even when the compile command runs from a subdirectory.
         for row in rows:
             if not row.get('output'):
                 raise ValueError('compile_commands.json 缺少对象输出字段')
-            by_output[resolved_path(build/row['output'])].append(row)
+            by_output[api.build_path(row['output'])].append(row)
 
         aliases = re.findall(r'^'+re.escape(target)+r':[ \t]+(.+)/rule$', rules, re.M)
         if len(aliases) != 1 or make_path(aliases[0]) != target_dir(selected):
@@ -85,9 +73,7 @@ def target_entries(root, build, database, generator, target, consumed):
             visited.add(directory)
             pending.extend(graph[directory])
             row = targets[directory]
-            description = reply_object(row)
-            if description['id'] != row['id']:
-                raise ValueError('CMake File API 的目标身份不一致')
+            description = api.target(row)
             dependencies.update(dep['id'] for dep in description.get('dependencies', []))
             sources = Counter(resolved_path(root/source['path']) for source in description.get('sources', [])
                               if 'compileGroupIndex' in source)
@@ -103,9 +89,9 @@ def target_entries(root, build, database, generator, target, consumed):
                 assignment = re.fullmatch(r'[^\s=]+[ \t]*=((?:[ \t]*"[^"\n]+")*[ \t]*)', assignments[0])
                 if len(assignments) != 1 or assignment is None:
                     raise ValueError(f'无法识别对象规则: {row["name"]} / {label}')
-                return [resolved_path(build/value) for value in re.findall(r'"([^"\n]+)"', assignment[1])]
+                return [api.build_path(value) for value in re.findall(r'"([^"\n]+)"', assignment[1])]
 
-            own_objects = ([resolved_path(build/item['path']) for item in description.get('artifacts', [])]
+            own_objects = (api.artifacts(description)
                            if description['type'] == 'OBJECT_LIBRARY' else objects('Object files'))
             actual = Counter()
             for output in own_objects:
@@ -130,9 +116,34 @@ def target_entries(root, build, database, generator, target, consumed):
             raise ValueError('链接对象缺少所选目标的编译命令: '+str(min(external - outputs)))
         if not outputs:
             raise ValueError('目标没有可解析编译单元')
+        if auto:
+            # The selected link must already be part of ALL. Check the real
+            # Makefile2 edges, including nested directory aggregates.
+            defaults = defaultdict(set)
+            for rule, prerequisite in re.findall(r'^([^\t#\n:]+):[ \t]+([^\n]+/all)$', rules, re.M):
+                if rule == 'all' or rule.endswith('/all'):
+                    key = make_path(rule.removesuffix('/all'))
+                    defaults[key].add(make_path(prerequisite.removesuffix('/all')))
+
+            def reachable(first, edges):
+                result, pending = set(), [first]
+                while pending:
+                    node = pending.pop()
+                    if node not in result:
+                        result.add(node)
+                        pending.extend(edges.get(node, ()))
+                return result
+
+            selected_dir = target_dir(selected)
+            all_targets = reachable(build/'all', {**defaults, **graph}) & targets.keys()
+            if selected_dir not in all_targets:
+                raise AutoTargetUnavailable('候选不在 Makefiles 的默认构建中')
+            for directory in sorted(all_targets - visited):
+                if (api.target(targets[directory])['type'] != 'UTILITY'
+                        or selected_dir not in reachable(directory, graph)):
+                    raise AutoTargetUnavailable('默认构建还有不属于该固件闭包的独立目标')
         # Keep original command ordering, flags and output identities.
-        entries = [row for row in rows if resolved_path(build/row['output']) in outputs]
-        selected_artifacts = reply_object(selected).get('artifacts', [])
-        return entries, outputs | {resolved_path(build/item['path']) for item in selected_artifacts}
+        entries = [row for row in rows if api.build_path(row['output']) in outputs]
+        return entries, outputs | set(api.artifacts(api.target(selected)))
     except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError) as exc:
         raise ValueError(f'{generator} 目标编译闭包无法校验，禁止回退混用全目标数据库: {target}\n{exc}') from exc

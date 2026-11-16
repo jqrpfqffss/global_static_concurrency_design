@@ -32,7 +32,7 @@ class CMakeCachedToolchainTests(unittest.TestCase):
                     root=home/mode;root.mkdir()
                     settings=dict(output=dict(location='custom',custom_dir=str(home/(mode+'-data'))),
                         cmake=dict(location='workspace',generator='Ninja', toolchain_file=requested,
-                                   clean_before_configure=clean,build=True))
+                                   clean_before_configure=clean,build=True,build_args=['--','all']))
                     workspace=WorkspaceResolver.resolve(root,settings).initialize()
                     build=Path(workspace.build_root)/'fixture';build.mkdir(parents=True)
                     selected=build/'arm.cmake' if mode=='build-relative' else root/requested

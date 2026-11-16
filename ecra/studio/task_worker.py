@@ -119,7 +119,10 @@ def main():
         return 3
     error=None
     try:
-        with using_data_root(args.data_root):
+        from contextlib import nullcontext
+        from ..build_target_checkpoint import task_selection
+        selections = task_selection(folder) if args.mode in {'scan', 'precheck'} else nullcontext()
+        with using_data_root(args.data_root), selections:
             code=execute(args)
     except KeyboardInterrupt:
         code=130

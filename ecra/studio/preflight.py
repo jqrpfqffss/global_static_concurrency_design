@@ -40,7 +40,7 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         diagnostics.stage('预检查：配置与独立数据边界')
         consumed = {}; root = configured_project_root(config)
         cfg, config = load_config(root, config, consumed_inputs=consumed)
-        result['target'] = cfg['analysis'].get('cmake', {}).get('target')
+        result['target'] = result['configured_target'] = cfg['analysis'].get('cmake', {}).get('target')
         if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
             raise ValueError('未提交输入预检查缺少固定输入描述；请从Studio任务入口重新固定并检查，不能改用实时工作区')
         analysis = dict(cfg['analysis'])
@@ -114,6 +114,10 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         engine = engine_digest()
         prepared={} if frozen is None else dict(file_view=frozen)
         units, compilation = prepare(root, cfg, progress=progress, build_firmware=True,**prepared)
+        target_selection = compilation.get('cmake_target_selection')
+        if target_selection:
+            result['target_selection'] = target_selection
+            result['target'] = target_selection['effective_target']
         diagnostics.total_units = len(units)
         for unit in units:
             if unit['missing_defines']:

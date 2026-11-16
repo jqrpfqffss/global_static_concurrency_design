@@ -1068,8 +1068,10 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             # generator inputs. Refresh real outputs before verifying the
             # saved compiler closure; a build failure must never become a hit.
             from .compilation import prepare
+            from .build_target_checkpoint import baseline_selection
             progress('刷新基准 CMake 构建输入后验证完整事实缓存。')
-            prepare(base_root, baseline, progress)
+            with baseline_selection(_frozen_current):
+                prepare(base_root, baseline, progress)
         try:
             validated, _ = load_config(base_root, config)
             base_workspace.bind(validated['analysis'])
@@ -1097,8 +1099,10 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             # Their identity is distinct; no current-version facts are copied.
             write_json(base_out/MARKER, dict(version=1, scan_id='base-'+pinned['base_sha'],
                 project_id=workspace.project_id, profile_id='git-baseline'))
-        code = run(base_root, str(config), no_review=True, _cache_enabled=cfg['analysis']['git_diff']['cache_enabled'],
-                   _workspace=base_workspace)
+        from .build_target_checkpoint import baseline_selection
+        with baseline_selection(_frozen_current):
+            code = run(base_root, str(config), no_review=True, _cache_enabled=cfg['analysis']['git_diff']['cache_enabled'],
+                       _workspace=base_workspace)
         if code == 3 or not read_json(base_out/'result_validity.json').get('analysis_valid'):
             raise ValueError('基准版本分析失败，差异扫描未完成；详见 ' + str(base_out))
         if is_canonical(base_out):

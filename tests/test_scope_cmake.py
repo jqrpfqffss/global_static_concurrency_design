@@ -257,7 +257,8 @@ class ScopeCMakeTest(unittest.TestCase):
         self.assertFalse(status(self.root)['resumable'])
 
     def managed(self):
-        return dict(analysis=dict(cmake=dict(location='workspace',build_dir='build',generator='Ninja',build_type='Debug',args=['-DBOARD=demo']),
+        return dict(analysis=dict(cmake=dict(location='workspace',build_dir='build',generator='Ninja',build_type='Debug',
+                                            args=['-DBOARD=demo'],build_args=['--','all']),
                                  output=dict(location='tool'),auto_system_includes=False,exclude_dirs=['build']))
 
     def test_managed_cmake_refreshes_existing_database_and_builds_each_run(self):
@@ -333,9 +334,10 @@ class ScopeCMakeTest(unittest.TestCase):
     def test_cmake_init_generates_baremetal_one_command_config(self):
         (self.root/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.20)')
         (self.root/'Core/Src').mkdir(parents=True)
+        config = str(self.root/'tool-config/semantics.yaml')
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(main(['init','--project',str(self.root)]),0)
-        cfg,_=load_config(self.root)
+            self.assertEqual(main(['init','--project',str(self.root),'--config',config]),0)
+        cfg,_=load_config(self.root,config)
         self.assertIn('cmake',cfg['analysis'])
         self.assertEqual(cfg['analysis']['include_dirs'],['.'])
         self.assertTrue(cfg['analysis']['auto_system_includes'])
