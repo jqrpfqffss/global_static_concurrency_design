@@ -1,11 +1,14 @@
 """OpenCode 1.18.35's local run protocol and private maintenance API."""
 import base64
 from contextlib import closing, contextmanager
+import hashlib
 import http.client
 import json
 import os
 from pathlib import Path
 import re
+import sqlite3
+import stat
 import subprocess
 from tempfile import TemporaryDirectory, TemporaryFile
 import time
@@ -20,6 +23,9 @@ from .workspace import canonical, managed_path, no_links
 # Pinned to the release whose local (non-attach) run, DB override, JSONL
 # protocol and recursive delete have been checked against source and runtime.
 VERSION = '1.18.35'
+# Sorted migration IDs from an initialized 1.18.35 database. Some migrations
+# reset session data, so a shared store must already have a compatible schema.
+MIGRATION_IDS_SHA256 = '5f943d4c5bf5c217795b8ffe3f62bfb5b20917030895ca971c00e250c92467e4'
 SESSION_ID = re.compile(r'ses_[0-9a-f]{12}[0-9A-Za-z]{14}')
 PART_TYPES = dict(text='text', tool_use='tool', step_start='step-start',
                   step_finish='step-finish', reasoning='reasoning')
@@ -89,15 +95,33 @@ def session_from_jsonl(raw):
 
 def file_identity(path):
     st = no_links(path).stat()
-    if not path.is_file() or not st.st_ino or st.st_nlink != 1:
-        raise Unverifiable('OpenCode 存储不是可确认的本地独立文件')
+    if not stat.S_ISREG(st.st_mode) or not st.st_ino or st.st_nlink != 1:
+        raise Unverifiable(f'OpenCode 存储必须是本地普通文件且不能有硬链接: {path}')
     return [st.st_dev, st.st_ino]
+
+
+def store_identity(database, *, allow_missing=False):
+    sidecars = False
+    for suffix in ('-wal', '-shm', '-journal'):
+        try:
+            file_identity(database.with_name(database.name + suffix))
+        except FileNotFoundError:
+            continue  # SQLite may create or remove a sidecar between calls.
+        sidecars = True
+    try:
+        return file_identity(database)
+    except FileNotFoundError as exc:
+        if not allow_missing:
+            raise
+        if sidecars:
+            raise Unverifiable(f'OpenCode 会话数据库缺少主文件且存在伴随文件: {database}') from exc
+        return None
 
 
 class Runtime:
     def __init__(self, command):
         if len(command) != 1:
-            raise Unverifiable('仅支持直接调用原生 OpenCode；保留自定义启动器的会话')
+            raise Unverifiable('数据库与会话验证需要直接调用原生 OpenCode')
         self.exe = Path(command[0]).resolve(strict=True)
         with self.exe.open('rb') as source:
             magic = source.read(4)
@@ -114,21 +138,23 @@ class Runtime:
             raise Unverifiable('OpenCode 程序在复核期间变化')
 
     @contextmanager
-    def maintenance(self, database):
-        from .opencode_storage import isolated_environment
-        database = managed_path(database, label='OpenCode 会话数据库')
-        with TemporaryDirectory(prefix='m-', dir=database.parent, ignore_cleanup_errors=True) as name:
+    def maintenance(self, database, *, workdir, shared=False, environment=None):
+        from .opencode_storage import database_path, isolated_environment
+        database = database_path(database, shared=shared)
+        with TemporaryDirectory(prefix='m-', dir=managed_path(workdir), ignore_cleanup_errors=True) as name:
             cwd = Path(name)
-            env = {k: v for k, v in os.environ.items() if not k.upper().startswith('OPENCODE_')}
-            env = isolated_environment(cwd, cwd, database, environment=env)
+            source = os.environ if environment is None else environment
+            env = {k: v for k, v in source.items() if not k.upper().startswith('OPENCODE_')}
+            env = isolated_environment(cwd, cwd, database, shared=shared, environment=env)
             env.update(OPENCODE_DISABLE_MODELS_FETCH='true', OPENCODE_DISABLE_DEFAULT_PLUGINS='true',
                        OPENCODE_SERVER_USERNAME='ecra', OPENCODE_SERVER_PASSWORD=uuid.uuid4().hex)
-            yield Maintenance(self, cwd, env, database)
+            yield Maintenance(self, cwd, env, database, shared=shared)
 
 
 class Maintenance:
-    def __init__(self, runtime, cwd, env, database):
+    def __init__(self, runtime, cwd, env, database, *, shared=False):
         self.runtime, self.cwd, self.env, self.database = runtime, cwd, env, database
+        self.shared = shared
 
     def _argv(self, *args):
         self.runtime.check_exe()
@@ -142,17 +168,72 @@ class Maintenance:
                 except subprocess.TimeoutExpired as exc:
                     raise Unavailable('OpenCode 维护命令超时') from exc
             if proc.returncode != 0:
-                raise Unavailable('OpenCode 维护命令失败')
+                stderr.seek(0)
+                stdout.seek(0)
+                detail = (stderr.read(8192).strip() or stdout.read(8192).strip()).decode('utf-8', 'replace')
+                raise Unavailable(f'OpenCode 维护命令失败（退出码 {proc.returncode}，数据库 {self.database}）'
+                                  + (f'：{detail}' if detail else ''))
             stdout.seek(0)
             return stdout.read(65536).decode('utf-8').strip()
 
-    def verify(self):
-        if self.cli('--version') != VERSION:
-            raise Unverifiable(f'当前目录隔离协议仅验证过 OpenCode {VERSION}；请使用此版本的原生程序')
-        if canonical(self.cli('db', 'path')) != canonical(self.database):
-            raise Unverifiable('OpenCode 未使用本次任务的独立会话库')
+    def verify(self, *, initialize=False):
+        identity = store_identity(self.database, allow_missing=initialize)
+        # Even OpenCode's db path command can apply pending migrations.
+        if self.shared and identity is not None:
+            self.check_shared_schema(writable=initialize)
+        version = self.cli('--version')
+        if version != VERSION:
+            raise Unverifiable(f'当前 OpenCode 版本为 {version}，数据库与会话协议需要原生 OpenCode {VERSION}')
+        self.verify_path(self.cli('db', 'path'))
+        return identity
+
+    def verify_path(self, actual):
+        if not isinstance(actual, str) or not Path(actual).is_absolute() or canonical(actual) != canonical(self.database):
+            raise Unverifiable(f'OpenCode 会话数据库路径不一致，预期 {self.database}，实际 {actual!r}')
+
+    def check_shared_schema(self, *, writable=False):
+        # Inspect before starting OpenCode, which applies pending migrations on
+        # open. A write reservation checks locks without changing session data.
+        try:
+            if writable:
+                with self.database.open('r+b'):
+                    pass
+            uri = self.database.as_uri() + ('?mode=rw' if writable else '?mode=ro')
+            with closing(sqlite3.connect(uri, uri=True, timeout=5)) as conn:
+                conn.execute('PRAGMA trusted_schema=OFF')
+                if writable:
+                    conn.execute('BEGIN IMMEDIATE')
+                objects = conn.execute('SELECT name, type FROM sqlite_master').fetchall()
+                if not objects and writable:
+                    return  # OpenCode can initialize a new or empty database.
+                tables = {name for name, kind in objects if kind == 'table'}
+                if not {'session', 'project', 'message', 'part', 'migration'}.issubset(tables):
+                    raise Unverifiable(f'OpenCode 会话数据库 {self.database} 缺少 {VERSION} 所需的会话表或迁移记录')
+                ids = [row[0] for row in conn.execute('SELECT id FROM migration ORDER BY id')]
+                if not all(isinstance(value, str) for value in ids) or (
+                        hashlib.sha256('\n'.join(ids).encode()).hexdigest() != MIGRATION_IDS_SHA256):
+                    raise Unverifiable(f'OpenCode 会话数据库 {self.database} 的迁移记录与 {VERSION} 不兼容')
+        except sqlite3.Error as exc:
+            raise Unavailable(f'OpenCode 会话数据库 {self.database} 无法访问：{exc}') from exc
+
+    def prepare(self):
+        identity = self.verify(initialize=True)
+        raw = self.cli('db', '--format', 'json', 'PRAGMA database_list')
+        try:
+            actual, = [row['file'] for row in json.loads(raw, object_pairs_hook=_unique_json) if row['name'] == 'main']
+        except (ValueError, KeyError, TypeError) as exc:
+            raise Unverifiable('OpenCode 未报告已打开的主数据库路径') from exc
+        self.verify_path(actual)
+        if not self.shared:
+            self.checkpoint()
+        opened = store_identity(self.database)
+        if identity is not None and opened != identity:
+            raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
+        return opened
 
     def checkpoint(self):
+        if self.shared:
+            raise Unverifiable('强制 WAL 写回仅适用于 ECRA 管理的独立会话库')
         raw = self.cli('db', '--format', 'json', 'PRAGMA wal_checkpoint(TRUNCATE)')
         if json.loads(raw, object_pairs_hook=_unique_json) != [{'busy': 0, 'log': 0, 'checkpointed': 0}]:
             raise Unavailable('OpenCode 独立会话库的 WAL 未完成写回')
@@ -161,11 +242,14 @@ class Maintenance:
         # Official CLI maintenance, on the private store only. The API, never
         # SQL, removes sessions. v1.18.35 can leave the compacted pages in
         # its WAL when the CLI exits, so also request a truncating checkpoint.
+        if self.shared:
+            raise Unverifiable('压缩仅适用于 ECRA 管理的独立会话库')
         self.cli('db', 'VACUUM')
         self.checkpoint()
 
     @contextmanager
     def server(self):
+        self.verify()
         # The startup line names the port selected by the owned launcher.
         with (self.cwd/'server.out').open('wb') as stdout, TemporaryFile(dir=self.cwd) as stderr:
             with owned_process(self._argv('serve', '--hostname', '127.0.0.1', '--port', '0'),

@@ -32,4 +32,5 @@ def workspace_scratch(tmp_path_factory, monkeypatch):
     # Test reviews never use a workstation account's model settings or tokens.
     monkeypatch.setenv('XDG_CONFIG_HOME', str(scratch/'opencode-config-input'))
     monkeypatch.setenv('XDG_DATA_HOME', str(scratch/'opencode-data-input'))
+    monkeypatch.delenv('OPENCODE_DB', raising=False)
     monkeypatch.setenv('PYTHONDONTWRITEBYTECODE', '1')

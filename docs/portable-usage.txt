@@ -60,9 +60,13 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
    .\ecra.cmd review-resume
    续跑会跳过已归档且通过校验的项目。用 review 重新复核全部疑似与未知，
    用 review-failed 仅重试技术失败项。
+   启动 ECRA 时可保留已设置的 OPENCODE_DB，ECRA 使用该绝对路径的会话库，
+   允许位于 workspace 外。未设置或为空时，使用 workspace 内的独立会话库。
+   复核归档、日志、配置副本和临时目录均保存在 workspace。
    可选 review.session_cleanup.enabled: true（默认 false）。使用原生 OpenCode
    1.18.35 时，变量归档后仅清理本轮归属已验证的会话，技术失败和 ECRA
-   原始证据保留。清理失败可用 review-resume 补偿，已归档结论无需重跑模型。
+   原始证据保留。自动压缩仅适用于 ECRA 创建的独立库。清理失败可用
+   review-resume 按原库补偿，已归档结论无需重跑模型。
    doctor 找到命令不代表模型连接或真实复核已通过测试。
 8. 构建子进程只使用内置工具及 Windows 系统目录；OpenCode 保留宿主 PATH。
    若工程明确需要外部工具链，设置 analysis.cmake.allow_external_toolchain: true。

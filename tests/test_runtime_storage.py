@@ -93,15 +93,59 @@ def test_saved_data_root_and_retired_location_follow_a_moved_tool(tool, monkeypa
     assert not tool.exists()
 
 
-def test_opencode_explicit_external_session_database_is_refused(tool, tmp_path, monkeypatch):
+@pytest.mark.parametrize('outside_workspace', [True, False])
+def test_only_explicit_opencode_database_can_leave_workspace(tool, tmp_path, monkeypatch, outside_workspace):
+    from ecra.opencode_storage import ReviewStorage, isolated_environment
+
+    workspace = tool/'workspace'
+    outside = tmp_path/'external'
+    outside.mkdir()
+    location = (outside if outside_workspace else workspace)/'OpenCode 临时库'
+    location.mkdir(parents=True)
+    database = location/'历史 会话.db'
+    monkeypatch.setenv('OPENCODE_DB', str(database))
+    storage = ReviewStorage(workspace/'scans/test')
+    assert storage.shared
+    assert storage.database == database
+    monkeypatch.setenv('OPENCODE_DB', str(outside/'different.db'))
+    with storage.call() as (cwd, env), storage.call() as (other, other_env):
+        assert cwd != other
+        assert env['OPENCODE_DB'] == other_env['OPENCODE_DB'] == str(database)
+        assert env['TEMP'] != other_env['TEMP']
+        for key in (*TEMP_KEYS, 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'XDG_DATA_HOME',
+                    'XDG_CONFIG_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR'):
+            assert Path(env[key]).is_relative_to(workspace)
+        for scope, scratch, data in ((outside, cwd, None), (storage.scope, outside, None),
+                                      (storage.scope, cwd, outside)):
+            with pytest.raises(ValueError, match='数据区域之外'):
+                isolated_environment(scope, scratch, database, shared=True, data=data)
+    assert os.environ['OPENCODE_DB'] == str(outside/'different.db')
+    assert not list(location.iterdir())
+    with pytest.raises(ValueError, match='数据区域之外'):
+        ReviewStorage(outside/'scans/test')
+
+
+@pytest.mark.parametrize('override', [None, ''])
+def test_unset_or_empty_opencode_database_uses_managed_store(tool, monkeypatch, override):
     from ecra.opencode_storage import ReviewStorage
 
-    outside = tmp_path/'manual.db'
-    outside.write_bytes(b'independent OpenCode sessions')
-    monkeypatch.setenv('OPENCODE_DB', str(outside))
-    with pytest.raises(ValueError, match='移除 OPENCODE_DB'):
+    if override is not None:
+        monkeypatch.setenv('OPENCODE_DB', override)
+    storage = ReviewStorage(tool/'workspace/scans/test')
+    assert not storage.shared
+    with storage.call() as (cwd, env):
+        assert Path(env['OPENCODE_DB']) == storage.scope/'sessions.db'
+        assert cwd.is_relative_to(tool/'workspace')
+
+
+@pytest.mark.parametrize('value', ['relative.db', ':memory:'])
+def test_invalid_explicit_opencode_path_reports_the_configured_value(tool, monkeypatch, value):
+    from ecra.opencode_storage import ReviewStorage
+
+    monkeypatch.setenv('OPENCODE_DB', value)
+    with pytest.raises(ValueError, match='OPENCODE_DB.*绝对路径') as error:
         ReviewStorage(tool/'workspace/scans/test')
-    assert outside.read_bytes() == b'independent OpenCode sessions'
+    assert value in str(error.value)
     assert not (tool/'workspace').exists()
 
 

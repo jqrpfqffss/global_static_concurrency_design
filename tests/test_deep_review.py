@@ -115,6 +115,8 @@ class DeepReviewTests(unittest.TestCase):
         import io
         import tempfile
         from ecra.cli import main
+        from ecra.config import load_config
+        from ecra.workflow import output_path
         cfg = self.project({'app.c': 'int g,h;\nvoid ISR(void){g++;h++;}\nvoid Task(void){g++;h++;}\n'},
                            review=dict(enabled=True, retries=0, workers=1))
         cfg['project']['root'] = str(self.root)
@@ -140,7 +142,8 @@ class DeepReviewTests(unittest.TestCase):
             self.assertEqual(main(['run', '--legacy-output', '--config', str(config)]), 1)
             self.assertTrue(prompts)
             self.assertTrue(all('CLI_INITIAL' in p and str(library.resolve()) in p for p in prompts))
-            before = read_json(self.root/'.ecra/facts.json')
+            out = output_path(self.root, load_config(self.root, config)[0])
+            before = read_json(out/'facts.json')
             library.write_text(library.read_text(encoding='utf-8') +
                 '\n## CASE-CLI-NEW｜追加\n**分类：** R20\n**识别线索：** CLI_NEW\n', encoding='utf-8')
             fail = True
@@ -148,8 +151,8 @@ class DeepReviewTests(unittest.TestCase):
             fail = False
             self.assertEqual(main(['review-failed', '--config', str(config)]), 1)
             self.assertTrue(all('CLI_NEW' in p for p in prompts[2:]))
-            self.assertEqual(read_json(self.root/'.ecra/facts.json'), before)
-            self.assertTrue((self.root/'.ecra/index.html').is_file())
+            self.assertEqual(read_json(out/'facts.json'), before)
+            self.assertTrue((out/'index.html').is_file())
 
     @unittest.skipUnless(os.environ.get('ECRA_DEEP_REVIEW_LIVE') == '1', 'opt-in real OpenCode review')
     def test_live_six_cases(self):

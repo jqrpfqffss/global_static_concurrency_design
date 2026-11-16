@@ -13,8 +13,9 @@ from threading import Lock
 import uuid
 
 from .common import digest
+from .opencode_storage import database_path
 from .report_package import sha256
-from .review_opencode_sessions import Runtime, Unavailable, Unverifiable, file_identity, session_from_jsonl
+from .review_opencode_sessions import Runtime, Unavailable, Unverifiable, file_identity, session_from_jsonl, store_identity
 from .storage_activity import DataActivity, DataBusy
 from .workspace import canonical, no_links
 
@@ -26,8 +27,10 @@ JOURNAL = 'ownership.sqlite3'
 
 
 def compatible_review_implementation(hashed):
-    # Preserve keys made before this cleanup-only change. Any later change
-    # to the model input/validation sources falls through to its own digest.
+    # Preserve keys across storage/cleanup changes. Edits to model inputs or
+    # validation fall through to their own digest.
+    if hashed == '23749946dbf1b2530e47464b658035eadc2d8d6b266aa31849837ee7d9c90a1b':
+        return '8636daf895c4b0024a23b22f8f0cca5bc417bc04f710ebf6cd7f17120eae775d'
     if hashed == '141ec36a8849a3abbf9c79e11e9d9bcf240a36935532b33420d605cb157d3542':
         return '699efac22ac5578db71150692ddd12643edbbca57a301c7fbc3ff7f8a74321b5'
     return hashed
@@ -63,12 +66,12 @@ class Invocation:
 
 
 class Run:
-    def __init__(self, path, runtime, binding):
+    def __init__(self, path, runtime, binding, environment):
         self.path = no_links(path)
-        self.database = self.path/'sessions.db'
         self.journal = self.path/JOURNAL
         self.runtime = runtime
         self.binding = dict(binding, run_id=self.path.name, exe=canonical(runtime.exe), exe_sha256=runtime.hash)
+        self.environment = environment
         self.identity = None
         self.resources = ExitStack()
         self.server_resources = ExitStack()
@@ -85,39 +88,51 @@ class Run:
             conn.execute('PRAGMA synchronous=FULL')
             yield conn
 
-    def start(self):
+    def start(self, storage):
         self.path.mkdir(mode=0o700)
         self.resources.enter_context(DataActivity(self.path, exclusive=True))
-        with self.runtime.maintenance(self.database) as maintenance:
-            maintenance.verify()
-            maintenance.checkpoint()  # Initialize one store before concurrent launches.
-        self.identity = file_identity(self.database)
+        self.database, self.shared = storage.database, storage.shared
+        if storage.identity is None:
+            storage.prepare(self.runtime)
+        self.identity = storage.identity
+        self.check_store()
+        self.binding.update(database=str(self.database), shared=self.shared)
         with self.connect() as conn:
             conn.executescript(SCHEMA)
             conn.execute('INSERT INTO run VALUES (?, ?, 1)',
                          (json.dumps(self.binding), json.dumps(self.identity)))
 
-    def reopen(self):
+    def reopen(self, legacy_environment):
         self.resources.enter_context(DataActivity(self.path, exclusive=True))
         # Recovery only opens a previously initialized ECRA run and store.
         file_identity(self.journal)
         with self.connect() as conn:
             rows = conn.execute('SELECT binding, database_identity FROM run').fetchall()
-        if len(rows) != 1 or json.loads(rows[0]['binding']) != self.binding:
+        if len(rows) != 1:
+            raise Unverifiable('复核会话清理账本缺少唯一的任务记录')
+        recorded = json.loads(rows[0]['binding'])
+        if recorded.get('schema') == 1:
+            database, shared = self.path/'sessions.db', False
+            expected = dict(self.binding, schema=1, environment=legacy_environment)
+        else:
+            database, shared = recorded.pop('database', None), recorded.pop('shared', None)
+            if not isinstance(database, str) or type(shared) is not bool:
+                raise Unverifiable('复核会话清理账本缺少数据库路径或归属')
+            expected = self.binding
+        if recorded != expected:
             raise Unverifiable('复核任务、工程或 OpenCode 程序身份不匹配')
+        self.database, self.shared = database_path(database, shared=shared), shared
         self.identity = json.loads(rows[0]['database_identity'])
         self.check_store()
 
     def check_store(self):
         self.runtime.check_exe()
-        if file_identity(self.database) != self.identity:
-            raise Unverifiable('OpenCode 会话库已更换')
-        for suffix in ('-wal', '-shm', '-journal'):
-            path = no_links(self.database.with_name(self.database.name + suffix))
-            try:
-                file_identity(path)
-            except FileNotFoundError:
-                pass  # OpenCode may create/checkpoint these while other reviews run.
+        if store_identity(self.database) != self.identity:
+            raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
+
+    def maintenance(self):
+        return self.runtime.maintenance(self.database, workdir=self.path, shared=self.shared,
+                                        environment=self.environment)
 
     def register(self, request, record, cwd):
         self.check_store()
@@ -147,7 +162,7 @@ class Run:
         with self.connect() as conn:
             conn.execute('UPDATE calls SET cleanup_state=?, reason=? WHERE invocation_id=?',
                          (state, reason, call['invocation_id']))
-            if state == 'DELETED':
+            if state == 'DELETED' and not self.shared:
                 conn.execute('UPDATE run SET compacted=0')
 
     def assert_claim(self, call):
@@ -170,8 +185,7 @@ class Run:
         try:
             if self.api is None:
                 try:
-                    agent = self.server_resources.enter_context(self.runtime.maintenance(self.database))
-                    agent.verify()
+                    agent = self.server_resources.enter_context(self.maintenance())
                     self.api = self.server_resources.enter_context(agent.server())
                 except Unverifiable as exc:
                     self.protocol_problem = str(exc)
@@ -190,7 +204,7 @@ class Run:
         if not needed or uncertain:
             return
         self.check_store()
-        with self.runtime.maintenance(self.database) as maintenance:
+        with self.maintenance() as maintenance:
             maintenance.verify()
             maintenance.compact()
         self.check_store()
@@ -208,11 +222,12 @@ class Run:
 
 
 class SessionCleanup:
-    """One run owns one store; only the post-commit queue may schedule deletion."""
+    """Bind a run to a store; only the post-commit queue may schedule deletion."""
     def __init__(self, root, out, fingerprint, progress):
         self.root, self.out, self.fingerprint = root, out, fingerprint
         self.native = (out/'scan.db').is_file()
         self.progress = progress
+        self.environment = os.environ.copy()
         self.base = out/'opencode-session-cleanup'
         self.lock = Lock()
         self.run = None
@@ -236,6 +251,13 @@ class SessionCleanup:
             conn.execute('PRAGMA trusted_schema=OFF')
             yield conn
 
+    def environment_binding(self, *, legacy=False):
+        keys = ('HOME', 'USERPROFILE', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME',
+                'OPENCODE_CONFIG', 'OPENCODE_CONFIG_DIR', 'OPENCODE_TEST_HOME')
+        if legacy:
+            keys += ('OPENCODE_DB',)
+        return digest({key: self.environment.get(key) for key in keys})
+
     def binding(self):
         ids = {}
         if self.native:
@@ -244,12 +266,10 @@ class SessionCleanup:
                 if row is None:
                     raise Unverifiable('扫描缺少工程归属')
                 ids = dict(zip(('scan_id', 'project_id', 'facts_hash', 'report_hash'), row))
-        env = ('HOME', 'USERPROFILE', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME',
-               'OPENCODE_CONFIG', 'OPENCODE_CONFIG_DIR', 'OPENCODE_DB', 'OPENCODE_TEST_HOME')
-        return dict(schema=1, output=canonical(self.out), project_root=canonical(self.root),
-                    fingerprint=self.fingerprint, environment=digest({k: os.environ.get(k) for k in env}), **ids)
+        return dict(schema=2, output=canonical(self.out), project_root=canonical(self.root),
+                    fingerprint=self.fingerprint, environment=self.environment_binding(), **ids)
 
-    def begin(self, command, request, record, cwd):
+    def begin(self, command, request, record, cwd, storage, runtime):
         if record['stage'] not in STAGES:
             return None
         problem = None
@@ -258,12 +278,11 @@ class SessionCleanup:
                 return None
             try:
                 if self.run is None:
-                    runtime = Runtime(command)
                     base = no_links(self.base)
                     base.mkdir(mode=0o700, exist_ok=True)
-                    run = Run(base/uuid.uuid4().hex, runtime, self.binding())
+                    run = Run(base/uuid.uuid4().hex, runtime or Runtime(command), self.binding(), self.environment)
                     try:
-                        run.start()
+                        run.start(storage)
                     except BaseException:
                         run.close()
                         raise
@@ -390,13 +409,14 @@ class SessionCleanup:
             from .review import resolve_command
             runtime = Runtime(resolve_command(command))
             binding = self.binding()
+            legacy_environment = self.environment_binding(legacy=True)
             for path in no_links(self.base).iterdir():
                 if not RUN_ID.fullmatch(path.name) or not (path/JOURNAL).is_file():
                     continue
                 run = None
                 try:
-                    run = Run(path, runtime, binding)
-                    run.reopen()
+                    run = Run(path, runtime, binding, self.environment)
+                    run.reopen(legacy_environment)
                     with run.connect() as conn:
                         pending = conn.execute('SELECT DISTINCT review_request, finding_id FROM calls WHERE '
                                                "cleanup_state IN ('WAITING_FOR_ARCHIVE','READY_TO_DELETE','DELETE_FAILED')").fetchall()
@@ -408,8 +428,8 @@ class SessionCleanup:
                     run = None
                 except DataBusy:
                     pass  # Another process owns this exact run, never adopt it.
-                except Exception:
-                    self.note('OpenCode 历史清理记录无法重新验证，已保留会话', skipped=1)
+                except Exception as exc:
+                    self.note(f'OpenCode 历史清理记录 {path.name} 无法重新验证，已保留会话：{exc}', skipped=1)
                 finally:
                     if run:
                         run.close()
@@ -421,7 +441,8 @@ class SessionCleanup:
             # The first resource is the lease. The service runs in a separate
             # stack so it can be stopped before reclaiming the store's pages.
             run.stop_api()
-            run.compact()
+            if not run.shared:
+                run.compact()
         except Exception:
             self.note('OpenCode 会话库暂未压缩，可在继续复核时重试')
         finally:

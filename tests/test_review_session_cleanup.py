@@ -21,7 +21,7 @@ from ecra.common import read_json, write_json
 from ecra.config import load_config
 from ecra.review import parse_answer, review_all, validate_result_receipt
 from ecra.review_contract import NVICFactConflictError, StaleWritebackSafetyError
-from ecra.review_opencode_sessions import API, VERSION, Unverifiable, session_from_jsonl
+from ecra.review_opencode_sessions import API, VERSION, Unverifiable, file_identity, session_from_jsonl
 from ecra.review_session_cleanup import JOURNAL
 from ecra.scan_persistence import runtime
 from ecra.workflow import saved_run
@@ -49,6 +49,7 @@ class FakeOpenCode:
         self.spawned = []
         self.deleted = []
         self.requests = []
+        self.maintenance_commands = []
         self.on_delete = None
         self.delete_failure = None
         self.unsupported = False
@@ -113,24 +114,34 @@ class FakeOpenCode:
                 pass
 
             @contextmanager
-            def maintenance(self, database):
-                yield Maintenance(database)
+            def maintenance(self, database, *, workdir, shared=False, environment=None):
+                yield Maintenance(database, shared)
 
         class Maintenance:
-            def __init__(self, database):
+            def __init__(self, database, shared):
                 self.store = database
+                self.shared = shared
 
             def verify(self):
                 if fake.unsupported:
                     raise Unverifiable('unsupported test version')
 
-            def compact(self):
+            def prepare(self):
+                self.verify()
                 self.store.touch()
+                if not self.shared:
+                    self.checkpoint()
+                return file_identity(self.store)
 
-            checkpoint = compact
+            def checkpoint(self):
+                fake.maintenance_commands.append(('checkpoint', self.store))
+
+            def compact(self):
+                fake.maintenance_commands.append(('compact', self.store))
 
             @contextmanager
             def server(self):
+                self.verify()
                 with fake.server(self.store) as api:
                     yield api
 
@@ -230,6 +241,7 @@ class CleanupTests(unittest.TestCase):
                                'session_cleanup': {'enabled': True}}}
         for target, args in (
             ('ecra.review.resolve_command', dict(return_value=[sys.executable])),
+            ('ecra.review_opencode_sessions.Runtime', dict(side_effect=self.fake.runtime)),
             ('ecra.review_session_cleanup.Runtime', dict(side_effect=self.fake.runtime)),
             ('ecra.review.execute', dict(side_effect=self.fake.model)),
         ):
@@ -346,6 +358,8 @@ class CleanupTests(unittest.TestCase):
         self.cfg['review']['workers'] = 3
         all_started, release = Barrier(3), Event()
         observations = []
+        shared_db = self.root/'历史 会话.db'
+        manual = self.fake.add_session(shared_db)
 
         def during(fid, _sid):
             all_started.wait(timeout=10)
@@ -357,10 +371,13 @@ class CleanupTests(unittest.TestCase):
             release.set()
 
         self.fake.on_delete = deleted
-        self.review(3, respond=lambda *args, **kwargs: self.fake.model(*args, **kwargs, during=during))
+        with patch.dict(os.environ, OPENCODE_DB=str(shared_db)):
+            self.review(3, respond=lambda *args, **kwargs: self.fake.model(*args, **kwargs, during=during))
         by_fid = {fid: sid for _, fid, _, sid in self.fake.spawned}
         self.assertEqual(observations[0], (by_fid['F1'], {by_fid['F0'], by_fid['F2']}))
         self.assertEqual(self.deleted(), self.expected())
+        self.assertEqual(set(self.fake.stores[shared_db]), {manual})
+        self.assertFalse(self.fake.maintenance_commands)
 
     def test_two_tasks_eight_workers_each_with_100_variables_and_manual_sessions(self):
         self.cfg['review']['workers'] = 8
@@ -525,14 +542,55 @@ class CleanupTests(unittest.TestCase):
 
     def test_replaced_store_is_not_adopted_on_resume(self):
         self.fake.delete_failure = lambda *_: 503
-        self.review()
-        store, _, _, sid = self.fake.spawned[0]
-        store.rename(store.with_suffix('.previous'))
-        store.touch()
-        self.fake.delete_failure = None
-        self.review(mode='review-resume')
+        store = self.root/'shared.db'
+        with patch.dict(os.environ, OPENCODE_DB=str(store)):
+            self.review()
+            sid = self.fake.spawned[0][3]
+            store.rename(store.with_suffix('.previous'))
+            store.touch()
+            self.fake.delete_failure = None
+            self.review(mode='review-resume')
         self.assertEqual(self.fake.requests, [(store, sid)])
         self.assertFalse(self.fake.deleted)
+
+    def test_resume_uses_original_shared_store_when_override_changes(self):
+        store, other = self.root/'first.db', self.root/'second.db'
+        self.fake.delete_failure = lambda *_: 503
+        with patch.dict(os.environ, OPENCODE_DB=str(store)):
+            row, = self.review()
+        sid = self.fake.spawned[0][3]
+        other.touch()
+        self.fake.stores[other] = {sid: dict(self.fake.stores[store][sid])}
+        self.fake.delete_failure = None
+        with patch.dict(os.environ, OPENCODE_DB=str(other)):
+            resumed, = self.review(mode='review-resume')
+        self.assertEqual(resumed, row)
+        self.assertEqual(self.fake.deleted, [(store, sid)])
+        self.assertIn(sid, self.fake.stores[other])
+        self.assertEqual(len(self.fake.spawned), 1)
+        self.assertFalse(self.fake.maintenance_commands)
+
+    def test_resume_recovers_legacy_managed_database_in_journal_directory(self):
+        from ecra.review_session_cleanup import SessionCleanup
+
+        self.fake.delete_failure = lambda *_: 503
+        row, = self.review()
+        store, _, _, sid = self.fake.spawned[0]
+        journal, = (self.out/'opencode-session-cleanup').glob('*/'+JOURNAL)
+        legacy_store = journal.parent/'sessions.db'
+        store.rename(legacy_store)
+        self.fake.stores[legacy_store] = self.fake.stores.pop(store)
+        with closing(sqlite3.connect(journal)) as conn, conn:
+            recorded = json.loads(conn.execute('SELECT binding FROM run').fetchone()[0])
+            del recorded['database'], recorded['shared']
+            recorded['schema'] = 1
+            cleanup = SessionCleanup(self.root, self.out, 'static-fingerprint', self.logs.append)
+            recorded['environment'] = cleanup.environment_binding(legacy=True)
+            conn.execute('UPDATE run SET binding=?', (json.dumps(recorded),))
+        self.fake.delete_failure = None
+        resumed, = self.review(mode='review-resume')
+        self.assertEqual(resumed, row)
+        self.assertEqual(self.fake.deleted, [(legacy_store, sid)])
 
     def test_same_id_in_other_stores_cannot_be_deleted(self):
         sid = session_id(9000)
@@ -566,12 +624,13 @@ class CleanupTests(unittest.TestCase):
         def probe(_store, _sid):
             # Separate Python process, same run folder. It must not be able
             # to adopt/recover or compact a store still used by its owner.
+            journal, = (self.out/'opencode-session-cleanup').glob('*/'+JOURNAL)
             result = subprocess.run([sys.executable, '-c',
                 'from ecra.storage_activity import DataActivity, DataBusy\n'
                 'import sys\n'
                 'try:\n with DataActivity(sys.argv[1], exclusive=True): sys.exit(8)\n'
                 'except DataBusy: sys.exit(0)\n',
-                str(_store.parent)], capture_output=True, timeout=10)
+                str(journal.parent)], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
 
         self.fake.on_delete = probe
@@ -598,16 +657,16 @@ class CleanupTests(unittest.TestCase):
         try:
             with patch.object(ThreadPoolExecutor, 'shutdown', interrupt), self.assertRaises(KeyboardInterrupt):
                 self.review()
-            store, *_ = self.fake.spawned[0]
+            journal, = (self.out/'opencode-session-cleanup').glob('*/'+JOURNAL)
             with self.assertRaises(DataBusy):
-                with DataActivity(store.parent, exclusive=True):
+                with DataActivity(journal.parent, exclusive=True):
                     pass
         finally:
             release.set()
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             try:
-                with DataActivity(store.parent, exclusive=True):
+                with DataActivity(journal.parent, exclusive=True):
                     break
             except DataBusy:
                 time.sleep(.02)

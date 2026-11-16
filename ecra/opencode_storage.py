@@ -9,9 +9,10 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 import uuid
 
 from .common import read_json, replace_file, write_json
+from .review_opencode_sessions import Unverifiable, store_identity
 from .runtime_storage import temporary_environment
 from .storage_activity import DataActivity
-from .workspace import control_path, managed_path
+from .workspace import _local_path, control_path, managed_path, no_links
 
 
 _CONFIG_FILES = ('config.json', 'opencode.json', 'opencode.jsonc')
@@ -56,13 +57,24 @@ def _xdg_input(env, key, default):
     return path
 
 
-def isolated_environment(scope, scratch, database, *, environment=None, data=None):
+def database_path(value, *, shared=False):
+    if not shared:
+        return managed_path(value, label='OpenCode 会话数据库')
+    path = no_links(_local_path(value, 'OPENCODE_DB'))
+    if not path.parent.is_dir():
+        raise ValueError(f'OPENCODE_DB 的上级目录不存在或不可访问: {path.parent}')
+    return path
+
+
+def isolated_environment(scope, scratch, database, *, shared=False, environment=None, data=None):
     """Every write-bearing path is set before OpenCode loads its global module."""
-    scope, scratch, database = map(managed_path, (scope, scratch, database))
-    data = managed_path(data) if data is not None else scope/'data'
+    scope, scratch = map(managed_path, (scope, scratch))
+    database = database_path(database, shared=shared)
+    data = managed_path(data if data is not None else scope/'data')
     temporary = managed_path(scratch/'tmp')
     temporary.mkdir()
     env = temporary_environment(temporary, environment)
+    env.pop('PWD', None)  # OpenCode run uses PWD in preference to the process cwd.
     # Clear write redirects and keep provider credentials from the environment.
     inherited = {'OPENCODE_AUTH_CONTENT', 'OPENCODE_DISABLE_MODELS_FETCH', 'OPENCODE_MODELS_URL',
                  'OPENCODE_MODELS_PATH', 'OPENCODE_CONSOLE_TOKEN', 'OPENCODE_DISABLE_DEFAULT_PLUGINS'}
@@ -92,19 +104,14 @@ def isolated_environment(scope, scratch, database, *, environment=None, data=Non
 
 
 class ReviewStorage:
-    def __init__(self, out, *, project=None, progress=print):
-        self.environment = os.environ.copy()
+    def __init__(self, out, *, project=None, environment=None):
+        self.environment = dict(os.environ if environment is None else environment)
         override = self.environment.get('OPENCODE_DB')
-        if override:
-            try:
-                managed_path(override, label='OPENCODE_DB')
-            except ValueError as exc:
-                raise ValueError(f'{exc} ECRA 为每轮复核分配独立会话库。'
-                                 '请在启动 ECRA 的环境中移除 OPENCODE_DB，保留原 OpenCode 会话库。') from exc
-            progress(f'检测到 OPENCODE_DB={override}。本轮复核使用 ECRA 分配的独立会话库。')
         self.scope = managed_path(Path(out)/'opencode'/uuid.uuid4().hex)
+        self.shared = bool(override)
+        self.database = database_path(override, shared=True) if self.shared else self.scope/'sessions.db'
+        self.identity = None
         self.scope.mkdir(parents=True)
-        self.database = self.scope/'sessions.db'
         home = Path.home()
         config = _xdg_input(self.environment, 'XDG_CONFIG_HOME', home/'.config')/'opencode'
         auth = _xdg_input(self.environment, 'XDG_DATA_HOME', home/'.local/share')/'opencode/auth.json'
@@ -145,6 +152,11 @@ class ReviewStorage:
                     merged[key] = value
         write_json(config/'opencode.json', merged)
 
+    def prepare(self, runtime):
+        with runtime.maintenance(self.database, workdir=self.scope, shared=self.shared,
+                                 environment=self.environment) as maintenance:
+            self.identity = maintenance.prepare()
+
     def _seed_auth(self, source):
         if self.environment.get('OPENCODE_AUTH_CONTENT') or not source.is_file():
             return
@@ -179,9 +191,11 @@ class ReviewStorage:
 
     @contextmanager
     def call(self):
+        if self.identity is not None and store_identity(self.database) != self.identity:
+            raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
         with TemporaryDirectory(prefix='c-', dir=self.scope, ignore_cleanup_errors=True) as name:
             cwd = Path(name)
-            yield cwd, isolated_environment(self.scope, cwd, self.database,
+            yield cwd, isolated_environment(self.scope, cwd, self.database, shared=self.shared,
                                             environment=self.environment, data=self.data)
 
 

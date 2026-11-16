@@ -638,20 +638,21 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         review_diagnostics.completed_units=0
         review_diagnostics.stage('复核项目处理（含技术失败，剩余时间未知）')
     command, command_error, storage = None, None, None
-    native_opencode = False
+    runtime = None
     if enabled and selected:
         try:
             command = resolve_command(settings.get('command', ['opencode']))
             from .opencode_storage import ReviewStorage
             from .scan_persistence import is_canonical
-            storage = ReviewStorage(out, project=None if is_canonical(out) else root, progress=progress)
+            storage = ReviewStorage(out, project=None if is_canonical(out) else root,
+                                    environment=cleanup.environment if cleanup else None)
             executable = Path(command[0]).stem.lower()
-            native_opencode = executable == 'opencode' or executable.startswith('opencode-')
-            if native_opencode:
+            if storage.shared or executable == 'opencode' or executable.startswith('opencode-'):
                 from .review_opencode_sessions import Runtime
-                with Runtime(command).maintenance(storage.database) as maintenance:
-                    maintenance.verify()
-                    maintenance.checkpoint()
+                runtime = Runtime(command)
+                storage.prepare(runtime)
+                command = [str(runtime.exe)]
+                progress(f'OpenCode 使用会话数据库 {storage.database}')
         except (ValueError, OSError) as exc:
             command_error = exc
     facts_path = Path(settings.get('facts_path', out / 'facts.json')).resolve()
@@ -874,16 +875,17 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                             reference_paths=library_paths, evidence_database=native_database,
                             archived_sources_only=archived_sources is not None, root=cwd, environment=child_env)
                         if cleanup:
-                            invocation = cleanup.begin(command, ledger[fid]['review_request'], record, cwd)
+                            invocation = cleanup.begin(command, ledger[fid]['review_request'], record, cwd, storage, runtime)
                         options = {'input': stdin_text} if stdin_text is not None else {}
                         if invocation:
-                            env['OPENCODE_DB'] = str(invocation.run.database)
                             argv = [str(invocation.run.runtime.exe), *argv[1:-2],
                                     '--title', invocation.title, *argv[-2:]]
                             options['on_exit'] = invocation.stopped
-                        elif native_opencode:
+                        elif runtime is not None:
                             # Avoid the extra model request OpenCode uses to generate a title.
                             argv = [*argv[:-2], '--title', f'ECRA {fid} {stage} {number}', *argv[-2:]]
+                        if runtime is not None:
+                            runtime.check_exe()
                         record['command'] = argv
                         proc = execute(argv, cwd=cwd, timeout=float(settings.get('timeout_seconds', 300)),
                             stop=stop, stdout_path=folder/record['stdout_file'], stderr_path=folder/record['stderr_file'],
@@ -1228,7 +1230,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         current = [ledger[f['finding_id']] for f in selected]
         counts = Counter(r.get('status') for r in current if r['state'] == 'DONE')
         failed = sum(r['state'] == 'TECH_FAILED' for r in current)
-        progress(f'OpenCode复核完成：本次目标 {len(selected)}，复核成功 {sum(counts.values())}，技术失败 {failed}')
+        progress(f'OpenCode 复核结果：本次目标 {len(selected)}，复核成功 {sum(counts.values())}，技术失败 {failed}')
         progress('  ' + '；'.join(f'{s} {counts[s]}' for s in sorted(STATUSES)))
         if failed:
             progress(f'存在 {failed} 个技术复核失败项。执行 py -3.10 run_ecra.py review-failed 仅重新复核失败变量。')
