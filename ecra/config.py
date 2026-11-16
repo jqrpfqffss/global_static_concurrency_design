@@ -121,6 +121,8 @@ review:
   retries: 1
   # 同时复核的变量数，范围 1–8；任何一项结束后立即补入下一项，直到全部完成。
   workers: 1
+  session_cleanup:
+    enabled: false  # 成功归档后清理本次可确认归属的 OpenCode 会话
   summary:
     enabled: true
     max_chars: 120  # Unicode 字符数，不是 token；不截断 reason
@@ -173,6 +175,8 @@ review:
   retries: 1
   # 同时复核的变量数，范围 1–8；任何一项结束后立即补入下一项，直到全部完成。
   workers: 1
+  session_cleanup:
+    enabled: false  # 成功归档后清理本次可确认归属的 OpenCode 会话
   summary:
     enabled: true
     max_chars: 120
@@ -384,6 +388,11 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
     workers = cfg['review'].get('workers', 1)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('review.workers 必须是 1 到 8 的整数')
+    cleanup = cfg['review'].setdefault('session_cleanup', {})
+    if not isinstance(cleanup, dict):
+        raise ValueError('review.session_cleanup 必须是映射')
+    if type(cleanup.setdefault('enabled', False)) is not bool:
+        raise ValueError('review.session_cleanup.enabled 必须是 YAML 布尔值 true/false')
     command = cfg["review"].get("command", ["opencode"])
     if not isinstance(command, list) or not command or any(not isinstance(x, str) for x in command):
         raise ValueError("review.command 必须是非空参数数组，不能是 shell 命令字符串")

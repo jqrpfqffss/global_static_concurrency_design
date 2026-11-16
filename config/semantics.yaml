@@ -203,6 +203,8 @@ review:
 
   # 同时复核的变量数；任何一项结束，空闲会话立即处理下一项，直到全部完成。
   workers: 3  # 独立只读复核会话数，范围 1–8。
+  session_cleanup:
+    enabled: false  # 成功归档后仅清理本次可确认归属的 OpenCode 会话；技术失败保留。
   summary:
     enabled: true  # 独立一句话结论；false 时仍完整保留 reason 和证据
     max_chars: 120  # Unicode 字符数（含标点和标识符），不是 token；范围 1–10000

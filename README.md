@@ -172,6 +172,8 @@ OpenCode 页面顶部直接显示总体结论：有问题、当前覆盖范围�
 
 `review.workers` 为 1–8（默认 1），控制同时复核的变量数。任何一项结束，空闲会话立即处理下一项，无需等待其他复核结束；三个复核入口均自动处理完全部目标。Packet 保留全部访问、完整调用链、上下文、保护、初始化、别名与未知事实，重复调用链只做无损去重；不再默认附带 1600 行函数正文。OpenCode 按声明、访问点、调用链、入口、保护和 unknowns 导航读取必要源码，避免无关全仓扫描。
 
+`review.session_cleanup.enabled` 默认 `false`。设为 `true` 后，ECRA 在每个变量的结果和原件成功归档后，仅删除本次复核可证明归属的 OpenCode 会话。原始输出、证据、人工确认和 Studio 历史均保留。当前清理接口仅支持已验证的原生 OpenCode 1.18.35；清理失败时可用 `review-resume` 补偿，不重新复核已通过校验的结果。详见[会话清理与恢复](docs/opencode-session-cleanup.md)。
+
 只执行一次正常语义复核。输出结构异常时最多两次 `FORMAT_FIX`，只发送原始分析文字、具体错误、简单格式和 finding_id；格式会话无工具权限，不发送 Packet、不重读源码。旧的 `audit_verdicts` 设置不再参与流程，可从项目配置删除。
 
 一句话结论默认启用。在 `config/semantics.yaml` 的 `review` 下配置 `summary: {enabled: true, max_chars: 120, fix_retries: 2}`；缺省使用这些默认值。`max_chars` 为 1–10000 的整数，`fix_retries` 为 0–10 的整数，类型或范围错误会直接报错。长度按 Python `len(str)` 统计 Unicode 码点，包含变量名、空格和标点；它不同于模型 token 数，也不同于组合字形数。程序不通过切片缩短摘要。摘要缺失、超长或出现可检测的残缺/矛盾时，独立调用无工具权限的 `SUMMARY_FIX`，仅允许修改顶层 `summary`，其余字段须完全一致；耗尽次数记 `TECH_FAILED`。关闭 `summary.enabled` 后无需摘要，完整 reason 和证据仍保留。规则只检查可确定的问题，不能证明所有语义都准确；完整配置、日志字段、历史 v2 兼容和根因清单见[摘要修复说明](docs/review-summary.md)。
@@ -350,6 +352,8 @@ review:
   timeout_seconds: 300
   retries: 1
   workers: 1  # 同时复核的变量数；完成一项后立即补入下一项
+  session_cleanup:
+    enabled: false  # 成功归档后清理本次可确认归属的 OpenCode 会话
 ```
 
 上下文支持 `functions` 精确名称/符号 ID/`文件::函数`、`patterns` 通配符和 `regex` 列表。多个规则匹配同一个函数会保留全部上下文。`priority` 和显式抢占关系作为复核证据，第一版不会仅根据数字或 `preemptive: false` 排除风险。

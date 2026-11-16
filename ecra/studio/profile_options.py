@@ -42,6 +42,7 @@ OPTIONS = [
     option('review.timeout_seconds','OpenCode','单次复核超时（秒）','number','每次调用的等待上限，不是变量之间的间隔。','600',0.001),
     option('review.retries','OpenCode','失败后额外重试数','integer','0表示不作技术重试；格式修复另行计算。','1',0),
     option('review.workers','OpenCode','同时复核数','integer','1–8个独立只读会话；按模型服务容量填写。','3',1,8),
+    option('review.session_cleanup.enabled','OpenCode','归档后清理 OpenCode 会话','boolean','默认关闭。仅清理本次已成功归档且归属已验证的会话；技术失败及原始日志保留。'),
     option('review.summary.enabled','OpenCode','生成一句话摘要','boolean','关闭后仍完整保留复核理由和证据。'),
     option('review.summary.max_chars','OpenCode','摘要最多字符数','integer','按字符计算，含标点；不是token，不会直接截断理由。','120',1,10000),
     option('review.summary.fix_retries','OpenCode','摘要格式修复次数','integer','摘要不合格时最多重新修复几次，范围0–10。','2',0,10),

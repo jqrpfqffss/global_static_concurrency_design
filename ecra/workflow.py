@@ -36,14 +36,30 @@ REVIEW_REPORT_MODULES = frozenset({
     'review.py', 'review_context.py', 'review_contract.py', 'review_integrity.py',
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
     'native_consumers.py', 'review_inheritance.py', 'review_sources.py', 'native_review_packet.py', 'review_hash.py', 'review_packet.py',
-    'review_archive.py', 'review_process.py',
+    'review_archive.py', 'review_process.py', 'review_session_cleanup.py', 'review_opencode_sessions.py',
 })
+
+
+_CLEANUP_CONFIG_UPGRADE = {
+    # Only templates and review-only validation changed; retain static scan
+    # and TU cache identities of both existing checkout line endings.
+    '2cc053b945906dd2004889bbff6cf96e1892344f05883aae61a6c02e8502a883':
+        'dcf410fed1f7cc3d01feb4a741ccc37dff8f8c3af90c26fe0d8c3e4afd90cd92',
+    '0ce816b7a38da890e1bd73086a684802bdc59840eece4f683c6d32481d56f294':
+        '54281c250ca8663f3e781ab389c94870738f33293702fda58ee57ec49d4f446e',
+}
+
+
+def _config_engine_hash(hashed):
+    return _CLEANUP_CONFIG_UPGRADE.get(hashed, hashed)
 
 
 def _engine_files():
     package = Path(__file__).parent
-    return {path.name: file_digest(path) for path in sorted(package.glob('*.py'))
-            if path.name not in REVIEW_REPORT_MODULES}
+    files = {path.name: file_digest(path) for path in sorted(package.glob('*.py'))
+             if path.name not in REVIEW_REPORT_MODULES}
+    files['config.py'] = _config_engine_hash(files['config.py'])
+    return files
 
 
 _REVIEW_PUBLICATION_UPGRADE = {
@@ -94,6 +110,8 @@ def matches_static_engine(expected, current=None):
         raw = (package/name).read_bytes().replace(b'\r\n', b'\n')
         lf[name] = hashlib.sha256(raw).hexdigest()
         crlf[name] = hashlib.sha256(raw.replace(b'\n', b'\r\n')).hexdigest()
+    for variant in (lf, crlf):
+        variant['config.py'] = _config_engine_hash(variant['config.py'])
     for hashes in product(*previous.values()):
         prior = dict(zip(previous, hashes))
         if any(expected == digest({**variant, **prior}) for variant in (files, lf, crlf)):

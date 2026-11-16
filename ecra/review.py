@@ -536,6 +536,21 @@ def _review_env(paths, *, format_only=False, reference_paths=(), evidence_databa
 def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_result=None,
                review_context_path=None, *, mode='run', case_library_path=None, resume_scope=None):
     """Process scan targets and commit each validated result as it completes."""
+    settings = cfg['review']
+    cleanup = None
+    if settings.get('enabled', True) and settings.get('session_cleanup', {}).get('enabled') is True:
+        from .review_session_cleanup import SessionCleanup
+        cleanup = SessionCleanup(root, out, fingerprint, progress)
+    try:
+        return _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
+                           review_context_path, mode, case_library_path, resume_scope, cleanup)
+    finally:
+        if cleanup:
+            cleanup.close()
+
+
+def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
+                review_context_path, mode, case_library_path, resume_scope, cleanup):
     if mode not in {'run', 'review', 'review-resume', 'review-failed'}:
         raise ValueError('非法复核模式: ' + mode)
     settings = cfg['review']
@@ -557,6 +572,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     if mode != 'run' or native:
         rows = reconcile_reviews(root, out, targets, rows, fingerprint, progress=progress)
     previous = {r['finding_id']: normalize_review_record(r) for r in rows}
+    if cleanup and mode == 'review-resume':
+        cleanup.recover(previous, settings.get('command', ['opencode']))
     ordinals = {f['finding_id']: index for index, f in enumerate(targets)}
     ledger, selected = {}, []
     for finding in targets:
@@ -652,9 +669,11 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         shared=dict(contexts=facts.get('contexts',[]),coverage=report.get('coverage',{}),limitations=report.get('limitations',[]),
             compile_commands=[{k:u[k] for k in ('source_file','arguments','parse_status','diagnostics') if k in u}
                 for u in facts.get('translation_units',[])],source_files=sorted({f['file'] for f in facts.get('functions',[]) if f.get('file')}))
+    model_config = dict(cfg, review={k: v for k, v in settings.items() if k != 'session_cleanup'})
     write_json(shared_path,dict(contexts=shared['contexts'],coverage=shared['coverage'],limitations=shared['limitations'],
-        config=cfg,compile_commands=shared['compile_commands'],source_files=shared['source_files']))
-    implementation = digest([Path(__file__).read_text(encoding='utf-8'),
+        config=model_config,compile_commands=shared['compile_commands'],source_files=shared['source_files']))
+    from .review_session_cleanup import compatible_review_implementation
+    implementation = compatible_review_implementation(digest([Path(__file__).read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_contract.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_language.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_sources.py').read_text(encoding='utf-8'),
@@ -662,7 +681,7 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                              Path(__file__).with_name('review_hash.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('review_packet.py').read_text(encoding='utf-8'),
                              Path(__file__).with_name('evidence_mcp.py').read_text(encoding='utf-8'),
-                             Path(__file__).with_name('review_summary.py').read_text(encoding='utf-8')])
+                             Path(__file__).with_name('review_summary.py').read_text(encoding='utf-8')]))
     if case_library_path is None:
         from .config import SEMANTICS_FILE
         case_library_path = Path(review_context_path or SEMANTICS_FILE).with_name('concurrency_cases.md')
@@ -818,21 +837,33 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     record['message'] = message
                 result['execution'] = record
                 write_json(attempt_receipt, result)
+                invocation = None
                 try:
                     # Canonical reviews read archived sources through MCP. Give
                     # each OpenCode process a scratch cwd outside the source tree.
                     scratch = (TemporaryDirectory(prefix='ecra-review-', ignore_cleanup_errors=True)
                                if native_database is not None else nullcontext(root))
                     with scratch as cwd:
+                        env = _review_env([packet_path, shared_path, facts_path, report_path,
+                            *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
+                              if (packet.get('git_diff_impact') or {}).get(key)]],
+                            format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'},
+                            reference_paths=library_paths, evidence_database=native_database,
+                            archived_sources_only=archived_sources is not None, root=cwd)
+                        if cleanup:
+                            invocation = cleanup.begin(command, ledger[fid]['review_request'], record, cwd)
+                        options = {'input': stdin_text} if stdin_text is not None else {}
+                        if invocation:
+                            env['OPENCODE_DB'] = str(invocation.run.database)
+                            argv = [str(invocation.run.runtime.exe), *argv[1:-2],
+                                    '--title', invocation.title, *argv[-2:]]
+                            record['command'] = argv
+                            options['on_exit'] = invocation.stopped
                         proc = execute(argv, cwd=cwd, timeout=float(settings.get('timeout_seconds', 300)),
                             stop=stop, stdout_path=folder/record['stdout_file'], stderr_path=folder/record['stderr_file'],
-                            **({'input': stdin_text} if stdin_text is not None else {}),
-                            env=_review_env([packet_path, shared_path, facts_path, report_path,
-                                *[Path(packet['git_diff_impact'][key]) for key in ('base_facts_path', 'base_summary_path', 'diff_patch_path')
-                                  if (packet.get('git_diff_impact') or {}).get(key)]],
-                                            format_only=stage in {'FORMAT_FIX', 'LANGUAGE_FIX', 'SUMMARY_FIX'},
-                                            reference_paths=library_paths, evidence_database=native_database,
-                                            archived_sources_only=archived_sources is not None, root=cwd))
+                            env=env, **options)
+                        if invocation:
+                            invocation.stopped()
                     for stream in ('stdout', 'stderr'):
                         path = folder / record[stream + '_file']
                         if path.stat().st_size == 0 and getattr(proc, stream):
@@ -866,6 +897,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
                     record['finished'] = _now()
                     for stream in ('stdout', 'stderr', 'prompt'):
                         record[stream + '_sha256'] = _sha(folder / record[stream + '_file'])
+                    if invocation:
+                        cleanup.finish(invocation, folder/record['stdout_file'], record['stdout_sha256'])
                     write_json(attempt_receipt, result)
 
             def repair_summary(answer):
@@ -1096,6 +1129,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
             archive_receipt(out, cache, row)
             commit_review_result(writer, ordinals[fid], row)
         elif not row.get('cached'):
+            if cleanup and cleanup.run:
+                row['review_request'] = ledger[fid]['review_request']
             cache = folder/(fid+'.result.json')
             write_receipt(cache, row)
         if row.get('state') == 'TECH_FAILED' and 'Configuration is invalid at ' in row.get('error', ''):
@@ -1104,6 +1139,8 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         completed_rows.append(row)
         if not native:
             save_queue()
+        if cleanup:
+            cleanup.after_archive(row)
         if review_diagnostics:review_diagnostics.completed_units+=1
         if notify and on_result:
             on_result(completed_rows)
