@@ -1,7 +1,9 @@
 """Keep deterministic predefined-macro effects in the TU semantic signature."""
 from collections import defaultdict, deque
 import ctypes
+from functools import cache
 from pathlib import Path
+import re
 
 from clang import cindex as ci
 
@@ -10,6 +12,12 @@ from .common import digest
 
 BUILTINS = frozenset({'__LINE__', '__FILE__', '__BASE_FILE__', '__COUNTER__'})
 DYNAMIC_BUILTINS = frozenset({'__DATE__', '__TIME__', '__TIMESTAMP__'})
+CALLABLES = {'FUNCTION_DECL', 'CXX_METHOD'}
+RUNTIME_STATEMENTS = {'COMPOUND_STMT', 'IF_STMT', 'SWITCH_STMT', 'CASE_STMT', 'DEFAULT_STMT',
+                      'WHILE_STMT', 'DO_STMT', 'FOR_STMT', 'CXX_FOR_RANGE_STMT', 'LABEL_STMT',
+                      'CXX_TRY_STMT', 'CXX_CATCH_STMT'}
+COMPILE_TIME_DECL = re.compile(r'\b(?:constexpr|consteval)\b|\b_*(?:enable_if|diagnose_if)_*\s*\(')
+STRING_TOKEN = re.compile(r'(?:u8?|U|L)?R?"')
 
 
 def sensitive_macros(definitions, builtins=BUILTINS):
@@ -31,16 +39,153 @@ def sensitive_macros(definitions, builtins=BUILTINS):
     return result
 
 
-def dynamic_input_abstraction(tu, definitions, root):
-    """Accept only clock-independent raw facts for immutable string metadata.
+def expanded_declaration(cursor, terse=False):
+    lib = ci.conf.lib
+    policy = lib.clang_getCursorPrintingPolicy
+    policy.argtypes, policy.restype = [ci.Cursor], ctypes.c_void_p
+    printed = lib.clang_getCursorPrettyPrinted
+    printed.argtypes, printed.restype = [ci.Cursor, ctypes.c_void_p], ci._CXString
+    printed.errcheck = ci._CXString.from_result
+    dispose = lib.clang_PrintingPolicy_dispose
+    dispose.argtypes, dispose.restype = [ctypes.c_void_p], None
+    value = policy(cursor)
+    try:
+        if terse:
+            set_property = lib.clang_PrintingPolicy_setProperty
+            set_property.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint]
+            set_property.restype = None
+            set_property(value, 17, 1)  # CXPrintingPolicy_TerseOutput: omit the body
+        return printed(cursor, value)
+    finally:
+        dispose(value)
+
+
+def _string_literal(expression):
+    while expression.kind.name in {'UNEXPOSED_EXPR', 'PAREN_EXPR'}:
+        children = list(expression.get_children())
+        if len(children) != 1:
+            return None
+        expression = children[0]
+    return expression if expression.kind.name == 'STRING_LITERAL' else None
+
+
+def _file_position(location):
+    # Expansion coordinates collapse all arguments of a forwarding macro to
+    # its start. File coordinates identify the originating argument instead.
+    get_location = ci.conf.lib.clang_getFileLocation
+    pointer = ctypes.POINTER
+    get_location.argtypes = [ci.SourceLocation, pointer(ci.c_object_p),
+                             pointer(ctypes.c_uint), pointer(ctypes.c_uint), pointer(ctypes.c_uint)]
+    get_location.restype = None
+    file, offset = ci.c_object_p(), ctypes.c_uint()
+    get_location(location, ctypes.byref(file), None, None, ctypes.byref(offset))
+    return (ci.File(file).name if file else None, offset.value)
+
+
+def _unparen(tokens):
+    while tokens[:1] == ['('] and tokens[-1:] == [')']:
+        tokens = tokens[1:-1]
+    return tokens
+
+
+def _comma_groups(tokens):
+    groups = [[]]
+    for token in tokens:
+        if token == ',':
+            groups.append([])
+        else:
+            groups[-1].append(token)
+    return groups if tokens else []
+
+
+def _forwarding_target(row):
+    """Prove a single call with arguments forwarded at most once.
+
+    A second use can be folded away or absent from the cursor tree (e.g. a
+    type or attribute). Seeing one literal in a call does not prove safety.
+    """
+    function_like, _, *tokens = row
+    if not function_like:
+        return tokens[0] if len(tokens) == 1 and tokens[0].isidentifier() else None
+    if tokens[:1] != ['('] or ')' not in tokens:
+        return None
+    end = tokens.index(')')
+    parameters = _comma_groups(tokens[1:end])
+    if any(len(group) != 1 for group in parameters):
+        return None
+    formals = {'__VA_ARGS__' if group[0] == '...' else group[0] for group in parameters}
+    body = tokens[end + 1:]
+    if body[-1:] == [';']:
+        body = body[:-1]
+    if body[:2] == ['do', '{'] and body[-6:] == [';', '}', 'while', '(', '0', ')']:
+        body = body[2:-6]
+    body = _unparen(body)
+    if len(body) < 3 or not body[0].isidentifier() or body[1] != '(' or body[-1] != ')':
+        return None
+    if body[0] in formals:
+        return None
+    for group in _comma_groups(body[2:-1]):
+        group = _unparen(group)
+        if len(group) != 1:
+            return None
+        token = group[0]
+        if token in formals:
+            formals.remove(token)
+        elif not (STRING_TOKEN.match(token) or token.isdecimal()):
+            return None
+    return body[0]
+
+
+def _runtime_string_arguments(tu, files):
+    declarations, candidates = defaultdict(list), defaultdict(list)
+
+    def visit(node, parents):
+        kind = node.kind.name
+        if kind in CALLABLES:
+            declarations[node.spelling].append(node)
+        if kind == 'CALL_EXPR' and node.location.file and node.location.file.name in files:
+            frames = iter(reversed(parents))
+            parent = next(frames)
+            while (parent.kind.name == 'PAREN_EXPR'
+                   or (parent.kind.name in {'CSTYLE_CAST_EXPR', 'CXX_STATIC_CAST_EXPR'}
+                       and parent.type.kind.name == 'VOID')):
+                parent = next(frames)
+            if parent.kind.name == 'COMPOUND_STMT':
+                owner = next(p for p in frames if p.kind.name not in RUNTIME_STATEMENTS)
+                # In particular, a GNU StmtExpr can consume the value of the
+                # final expression in its compound statement.
+                callee = node.referenced
+                if owner.kind.name in CALLABLES and callee and callee.kind.name in CALLABLES:
+                    for index, argument in enumerate(node.get_arguments()):
+                        if argument.type.get_canonical().kind.name not in {'POINTER', 'CONSTANTARRAY'}:
+                            continue
+                        literal = _string_literal(argument)
+                        if literal is None:
+                            continue
+                        start, end = literal.extent.start, literal.extent.end
+                        file, first = _file_position(start)
+                        end_file, last = _file_position(end)
+                        if file and file == end_file:
+                            candidates[file].append((first, last, start.offset, end.offset,
+                                                     index, callee, owner))
+        if not node.kind.is_preprocessing():
+            for child in node.get_children():
+                visit(child, (*parents, node))
+
+    visit(tu.cursor, ())
+    return candidates, declarations
+
+
+def dynamic_input_abstraction(tu, definitions, root, catalog):
+    """Accept clock-independent facts for metadata or full runtime string arguments.
 
     String bytes are not inferred by the analyzer. Numeric/layout uses, or
     references which Clang could fold in this TU, require real preprocessed
     build inputs; accepting the extraction clock would permit stale proofs.
     """
     sensitive = sensitive_macros(definitions, DYNAMIC_BUILTINS)
-    uses = [cursor for cursor in tu.cursor.get_children()
-            if cursor.kind.name == 'MACRO_INSTANTIATION' and cursor.spelling in sensitive]
+    invocations = [cursor for cursor in tu.cursor.get_children() if cursor.kind.name == 'MACRO_INSTANTIATION']
+    uses = [cursor for cursor in invocations if cursor.spelling in sensitive and cursor.location.file]
     if not uses:
         return []
     candidates = []
@@ -57,14 +202,79 @@ def dynamic_input_abstraction(tu, definitions, root):
         children = [child for child in node.get_children() if not child.kind.name.endswith('_ATTR')]
         if len(children) != 1:
             continue
-        expression = children[0]
-        while expression.kind.name in {'UNEXPOSED_EXPR', 'PAREN_EXPR'}:
-            children = list(expression.get_children())
-            if len(children) != 1:
-                break
-            expression = children[0]
-        if expression.kind.name == 'STRING_LITERAL':
+        expression = _string_literal(children[0])
+        if expression is not None:
             candidates.append((node, expression))
+
+    @cache
+    def runtime_arguments():
+        return _runtime_string_arguments(tu, {use.location.file.name for use in uses})
+
+    @cache
+    def compile_time(declaration):
+        return COMPILE_TIME_DECL.search(expanded_declaration(declaration, terse=True)) is not None
+
+    @cache
+    def proven_macro(name, forwarding=False):
+        pending, seen = [name], set(DYNAMIC_BUILTINS) if not forwarding else set()
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            if not catalog.get(current):
+                return False
+            for row in catalog[current]:
+                if forwarding:
+                    target = _forwarding_target(row)
+                    if not target:
+                        return False
+                    if target in catalog:
+                        pending.append(target)
+                else:
+                    body = _unparen(row[2:])
+                    if row[0] or not body:
+                        return False
+                    pending.extend(token for token in body if not STRING_TOKEN.match(token))
+        return True
+
+    @cache
+    def invocation_spans(file):
+        return [(c.extent.start.offset, c.extent.end.offset, c.spelling) for c in invocations
+                if c.location.file and c.location.file.name == file]
+
+    def runtime_use(use):
+        location = use.location
+        file, offset = location.file.name, location.offset
+        spans = invocation_spans(file)
+        wrappers = [(start, end) for start, end, _ in spans if start < offset < end]
+        # A literal written in a macro body can have the entire invocation
+        # as its extent. Only a literal originating in the actual argument
+        # can account for a builtin passed to that macro.
+        argument_start = max((start for start, _ in wrappers), default=-1)
+        arguments, declarations = runtime_arguments()
+        # The end of a forwarded literal may point to the start of its last
+        # token, including the zero-width span of a lone forwarded builtin.
+        matches = [arg for arg in arguments[file] if argument_start < arg[0] <= offset <= arg[1]]
+        if not matches:
+            return None, '需要独立运行期调用的完整字符串实参或不可变字符串元数据'
+        if len(matches) != 1 or not proven_macro(use.spelling):
+            return None, '无法唯一确认宏展开后的字符串实参用途'
+        first, last, expansion_first, expansion_last, index, callee, owner = matches[0]
+        # Within a wrapper, other macro arguments can alter the expansion
+        # before it reaches the callee. Require proof for those macros too.
+        for start, end in wrappers:
+            first, last = min(first, start), max(last, end - 1)
+        for start, _, name in spans:
+            if first <= start <= last or start in (expansion_first, expansion_last):
+                if not (proven_macro(name) or (wrappers and proven_macro(name, forwarding=True))):
+                    return None, f'无法唯一确认包装宏 {name} 展开后的字符串实参用途'
+        if (callee.spelling.startswith('__builtin_') or compile_time(owner) or compile_time(callee)
+                or any(compile_time(d) for d in declarations[callee.spelling])):
+            return None, f'调用 {callee.spelling} 可能参与编译期求值'
+        return dict(kind='RUNTIME_STRING_ARGUMENT', callee_usr=callee.get_usr(),
+                    callee_name=callee.spelling, argument_index=index), None
+
     accepted, records = set(), []
     root = Path(root).resolve()
     for use in uses:
@@ -72,13 +282,16 @@ def dynamic_input_abstraction(tu, definitions, root):
             if expression.extent.start.file and use.location.file
             and expression.extent.start.file.name == use.location.file.name
             and expression.extent.start.offset <= use.location.offset < expression.extent.end.offset), None)
-        if match is None:
-            raise ValueError('动态预定义宏用于运行逻辑或存储布局，无法绑定实际构建时刻，已停止提取：'
-                             +use.spelling+' @ '+str(use.location))
-        accepted.add(match.get_usr())
+        if match is not None:
+            accepted.add(match.get_usr())
+            record = dict(kind='IMMUTABLE_STRING_METADATA', declaration_usr=match.get_usr())
+        else:
+            record, reason = runtime_use(use)
+            if record is None:
+                raise ValueError('动态预定义宏用于运行逻辑或存储布局，无法绑定实际构建时刻，已停止提取：'
+                                 + use.spelling + ' @ ' + str(use.location) + '；' + reason)
         file = Path(use.location.file.name).resolve()
-        records.append(dict(kind='IMMUTABLE_STRING_METADATA', macro=use.spelling,
-            builtins=sorted(sensitive[use.spelling]), declaration_usr=match.get_usr(),
+        records.append(dict(record, macro=use.spelling, builtins=sorted(sensitive[use.spelling]),
             file=file.relative_to(root).as_posix() if file.is_relative_to(root) else str(file),
             line=use.location.line, column=use.location.column,
             value_coverage='STRING_CONTENT_UNKNOWN'))

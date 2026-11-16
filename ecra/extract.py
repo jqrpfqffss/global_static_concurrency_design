@@ -152,19 +152,8 @@ def function_alias_attribute(cursor):
 
 
 def function_alias_target(cursor):
-    lib = ci.conf.lib
-    policy = lib.clang_getCursorPrintingPolicy
-    policy.argtypes, policy.restype = [ci.Cursor], ctypes.c_void_p
-    printed = lib.clang_getCursorPrettyPrinted
-    printed.argtypes, printed.restype = [ci.Cursor, ctypes.c_void_p], ci._CXString
-    printed.errcheck = ci._CXString.from_result
-    dispose = lib.clang_PrintingPolicy_dispose
-    dispose.argtypes, dispose.restype = [ctypes.c_void_p], None
-    value = policy(cursor)
-    try:
-        text = printed(cursor, value)
-    finally:
-        dispose(value)
+    from .macro_semantics import expanded_declaration
+    text = expanded_declaration(cursor)
     targets = re.findall(r'__attribute__\s*\(\(\s*(?:__)?alias(?:__)?\s*\(\s*"([A-Za-z_$][A-Za-z_0-9.$]*)"\s*\)\s*\)\)', text)
     return (targets[0] if len(targets) == 1 else None), text
 
@@ -986,7 +975,7 @@ class Extractor:
                 self.section_macros[macro.spelling] = parameters.index(match.group(1))
         from .macro_semantics import update_signature, dynamic_input_abstraction
         update_signature(semantic_macros, tu.cursor.get_children(), macro_dependencies, self.root, self.tu_name)
-        dynamic_inputs = dynamic_input_abstraction(tu, macro_dependencies, self.root)
+        dynamic_inputs = dynamic_input_abstraction(tu, macro_dependencies, self.root, macro_catalog)
         start_stage('Clang 声明提取', self.tu_name)
         self.declare(tu.cursor)
         self.recover_function_aliases()
