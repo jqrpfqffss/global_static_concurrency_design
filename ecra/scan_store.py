@@ -13,11 +13,14 @@ import os
 from pathlib import Path
 import sqlite3
 import struct
+import sys
 import uuid
 
 SCHEMA_VERSION = 3
 SUPPORTED_VERSIONS = {1, 2, 3}
 CONTAINER_KINDS = ('STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER')
+_SEQUENCE_CACHE_BYTES = 8 * 1024**2
+_SEQUENCE_CACHE_MIN = 1024
 
 
 def derived_container_sql(alias='s'):
@@ -193,6 +196,8 @@ class GraphWriter:
         self.cache = OrderedDict()
         self.cache_size = cache_size
         self.scalars = OrderedDict()
+        self._sequences = OrderedDict()
+        self._sequence_bytes = 0
         self._roots = None
 
     def put_roots(self, values):
@@ -214,6 +219,8 @@ class GraphWriter:
         finally:
             self._roots=None
             self.cache.clear()
+            self._sequences.clear()
+            self._sequence_bytes = 0
             if ready:self.conn.execute('DELETE FROM ecra_identity')
 
     def put(self, value, *, _stable=False):
@@ -229,6 +236,25 @@ class GraphWriter:
             if previous is not None and previous[0] is value:
                 self.cache.move_to_end(id(value))
                 return previous[1:]
+            sequence_key = None
+            # Distinct coherence records can contain equal access-ID lists
+            # with hundreds of thousands of entries. Reuse only exact string
+            # sequences, including order and duplicates; Python tuple-key
+            # equality checks the complete content even on a hash collision.
+            # Immutable roots already retain the strings. This bounded memo
+            # owns only tuple references/index overhead and lives for one
+            # publication, never across mutable or generated containers.
+            if (stable and type(value) in {list, tuple}
+                    and _SEQUENCE_CACHE_MIN <= len(value)
+                    and len(value) * struct.calcsize('P') + 512 <= _SEQUENCE_CACHE_BYTES
+                    and all(type(item) is str for item in value)):
+                sequence_key = tuple(value)
+                previous = self._sequences.get(sequence_key)
+                if previous is not None:
+                    self._sequences.move_to_end(sequence_key)
+                    self.conn.execute('INSERT INTO ecra_identity VALUES (?,?,?)',
+                                      (id(value), *previous))
+                    return previous
             kind = 'object' if isinstance(value, dict) else 'list'
             count = len(value)
             hasher = _hash_start(kind, count)
@@ -253,6 +279,13 @@ class GraphWriter:
             self.cache[id(value)] = (value, node, hashed)
             while len(self.cache) > self.cache_size:
                 self.cache.popitem(last=False)
+            if sequence_key is not None:
+                size = sys.getsizeof(sequence_key) + 256
+                while self._sequences and self._sequence_bytes + size > _SEQUENCE_CACHE_BYTES:
+                    old, _ = self._sequences.popitem(last=False)
+                    self._sequence_bytes -= sys.getsizeof(old) + 256
+                self._sequences[sequence_key] = (node, hashed)
+                self._sequence_bytes += size
             if stable:self.conn.execute('INSERT INTO ecra_identity VALUES (?,?,?)',(id(value),node,hashed))
             return node, hashed
         kind, payload = _scalar(value)

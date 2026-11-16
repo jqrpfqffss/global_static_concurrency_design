@@ -10,6 +10,68 @@ from ecra.scan_store import EvidenceProvider, GraphWriter, publish_scan,SCHEMA
 
 
 class ScanStoreTests(unittest.TestCase):
+    def test_equal_large_string_lists_are_written_once_without_changing_any_graph_row(self):
+        ids = ['A-' + str(i) for i in range(1100)] + ['duplicate', 'duplicate']
+        rows = [dict(ordinal=i, reader_access_ids=list(ids)) for i in range(12)]
+        rows.extend([dict(reader_access_ids=tuple(ids)),
+                     dict(reader_access_ids=list(reversed(ids))),
+                     dict(reader_access_ids=ids[:-1] + ['changed'])])
+        values = [('facts', dict(variables=[], multi_field_coherence=rows)),
+                  ('report', dict(findings=[])), ('provenance', {})]
+        results, writes = [], []
+        for bound in (False, True):
+            with closing(sqlite3.connect(':memory:')) as conn:
+                conn.executescript(SCHEMA)
+                count = [0]
+                def trace(statement):
+                    if statement.startswith('INSERT INTO edges VALUES'):
+                        count[0] += 1
+                conn.set_trace_callback(trace)
+                writer = GraphWriter(conn, cache_size=4)
+                roots = (writer.put_roots(values) if bound else
+                         {name: writer.put(value) for name, value in values})
+                results.append((roots, conn.execute('SELECT * FROM nodes ORDER BY id').fetchall(),
+                                conn.execute('SELECT * FROM edges ORDER BY parent,ordinal').fetchall()))
+                writes.append(count[0])
+        self.assertEqual(results[0], results[1])
+        self.assertGreaterEqual(writes[0] - writes[1], 11 * len(ids),
+            'Equal content in distinct lists must not rewrite every access-ID edge')
+
+    def test_large_sequence_memo_is_bounded_typed_and_cleared_after_success_or_failure(self):
+        limit = 24000
+        peaks = []
+        class ObservedWriter(GraphWriter):
+            def put(self, value, *, _stable=False):
+                result = super().put(value, _stable=_stable)
+                if self._sequence_bytes:
+                    peaks.append(self._sequence_bytes)
+                return result
+        ids = ['A-' + str(i) for i in range(1100)]
+        values = [('facts', dict(rows=[ids + [str(i)] for i in range(7)] +
+            [list(ids) + ['0'], ids * 3], typed=[ids + [v] for v in (True, 1, -0.0, 0.0)]))]
+        results = []
+        with patch('ecra.scan_store._SEQUENCE_CACHE_BYTES', limit):
+            for bound in (False, True):
+                with closing(sqlite3.connect(':memory:')) as conn:
+                    conn.executescript(SCHEMA)
+                    writer = ObservedWriter(conn, cache_size=4)
+                    roots = (writer.put_roots(values) if bound else
+                             {name: writer.put(value) for name, value in values})
+                    results.append((roots, conn.execute('SELECT * FROM nodes ORDER BY id').fetchall(),
+                                    conn.execute('SELECT * FROM edges ORDER BY parent,ordinal').fetchall()))
+                    self.assertFalse(writer._sequences)
+                    self.assertEqual(writer._sequence_bytes, 0)
+                    if bound:
+                        with self.assertRaises(TypeError):
+                            writer.put_roots([('bad', dict(ids=list(ids), invalid=object()))])
+                        self.assertIsNone(writer._roots)
+                        self.assertFalse(writer._sequences)
+                        self.assertEqual(writer._sequence_bytes, 0)
+                        self.assertEqual(conn.execute('SELECT count(*) FROM ecra_identity').fetchone()[0], 0)
+        self.assertEqual(results[0], results[1])
+        self.assertTrue(peaks)
+        self.assertLessEqual(max(peaks), limit)
+
     def test_every_scalar_byte_is_bound_at_empty_and_chunk_boundaries(self):
         for name, value in [('empty', ''), ('short', 'x'), ('chunk', 'x'*(1024**2)),
                             ('after-chunk', 'x'*(1024**2+1)), ('unicode-chunk', 'x'*(1024**2-1)+'😀')]:

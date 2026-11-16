@@ -4,12 +4,12 @@ import os
 import shlex
 import shutil
 import subprocess
-import time
-import stat
 from pathlib import Path
 
 from .common import read_json, relative, write_json
 from .build_execution import execute, save_logs
+from .build_tree import OWNER_MARKER, clean_owned_directory, owns_build_directory as _owns_build_directory
+from .path_io import filesystem_path, resolved_path
 from .scope import AuditScope
 from .workspace import build_path as workspace_build_path, results_path, context, no_links
 from .portable import (bundle_root, tool_path, tool_environment, check_cache, read_cache,
@@ -47,37 +47,21 @@ def source_language(source, arguments=()):
     return None
 
 
-def _is_link(path):
-    return path.is_symlink() or (path.exists() and
-        bool(getattr(path.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT))
-
-
 def cmake_toolchain_input(root, build, value):
     """Resolve the configure input using CMake's build-first relative contract."""
     path = Path(value)
     if not path.is_absolute():
         built = Path(build) / path
-        path = built if built.is_file() else Path(root) / path
-    return path.resolve()
+        path = built if filesystem_path(built).is_file() else Path(root) / path
+    return resolved_path(path)
 
 
 def _validated_build_directory(root, requested, boundary=None):
-    for item in (requested, *requested.parents):
-        if _is_link(item):
-            raise ValueError(f'拒绝使用含链接的构建路径: {item}')
-        if item == root:
-            break
-    build = requested.resolve()
-    boundary = (boundary or root).resolve()
+    build = no_links(requested)
+    boundary = no_links(boundary or root)
     if build == boundary or not build.is_relative_to(boundary):
         raise ValueError(f'analysis.cmake.build_dir 必须位于独立且归属明确的构建边界内: {boundary}')
     return build
-
-
-def _owns_build_directory(build, root):
-    marker = build / '.ecra-build-owner'
-    return (not _is_link(marker) and marker.is_file() and
-            marker.read_text(encoding='utf-8') == str(root.resolve()))
 
 
 def cmake_build_directory(root, analysis):
@@ -104,8 +88,9 @@ def cmake_build_directory(root, analysis):
         build = _validated_build_directory(root, build, boundary)
         if out == build or out.is_relative_to(build):
             raise ValueError(f'构建目录不可包含 ECRA 输出目录: {build} / {out}')
-        if (not settings.get('clean_before_configure', False) or not build.exists() or
-                (build.is_dir() and (not any(build.iterdir()) or _owns_build_directory(build, root)))):
+        disk = filesystem_path(build)
+        if (not settings.get('clean_before_configure', False) or not disk.exists() or
+                (disk.is_dir() and (not any(disk.iterdir()) or _owns_build_directory(build, root)))):
             break
         suffix += 1
         build = configured.with_name(configured.name + '-ecra' + (f'-{suffix}' if suffix > 1 else ''))
@@ -115,17 +100,17 @@ def cmake_build_directory(root, analysis):
 def cmake_input_records(root, build):
     """Bind the selected target's actual configure inputs to InputSnapshot."""
     from .input_snapshot import read_consumed_text
-    reply = build/'.cmake/api/v1/reply'
+    reply = filesystem_path(build/'.cmake/api/v1/reply')
     try:
         index = read_json(max(reply.glob('index-*.json'), key=lambda path: path.name))
         ref = index['reply']['client-ecra']['cmakeFiles-v1']
         file = reply/ref['jsonFile']
-        if not file.resolve().is_relative_to(reply.resolve()):
+        if not resolved_path(file).is_relative_to(resolved_path(reply)):
             raise ValueError('CMake 输入索引引用越界')
         data = read_json(file)
         if (ref['kind'] != 'cmakeFiles' or ref['version']['major'] != 1
-                or Path(data['paths']['source']).resolve() != root.resolve()
-                or Path(data['paths']['build']).resolve() != build.resolve()):
+                or resolved_path(data['paths']['source']) != resolved_path(root)
+                or resolved_path(data['paths']['build']) != build):
             raise ValueError('CMake 输入索引的工程身份不一致')
         records = {}
         for row in data['inputs']:
@@ -142,18 +127,24 @@ def configure_cmake(root, analysis, progress, build_firmware):
     settings = analysis['cmake']
     target = settings.get('target')
     build = cmake_build_directory(root, analysis)
-    if settings.get('location', 'workspace') == 'workspace' and build.exists() and any(build.iterdir()) and not _owns_build_directory(build, root):
+    disk = filesystem_path(build)
+    if disk.exists() and not disk.is_dir():
+        raise ValueError(f'CMake 构建路径被非目录占用：{build}；请选择独立的构建目录。')
+    owned = _owns_build_directory(build, root)
+    empty = not disk.exists() or not any(disk.iterdir())
+    if settings.get('location', 'workspace') == 'workspace' and not empty and not owned:
         raise ValueError(f'外置构建目录没有当前源码所有权，拒绝接管: {build}')
-    configured = (root / settings.get('build_dir', 'build/ecra')).resolve()
+    configured = resolved_path(root / settings.get('build_dir', 'build/ecra'))
     requested = analysis.get('compile_database', 'auto')
     # Explicit paths referring to the configured tree remain valid after isolation;
     # managed CMake always returns the freshly generated database in the chosen tree.
-    if requested != 'auto' and (root/requested).resolve() not in {
+    if requested != 'auto' and resolved_path(root/requested) not in {
             configured / 'compile_commands.json', build / 'compile_commands.json'}:
         raise ValueError(f'analysis.compile_database 与 cmake.build_dir 不匹配；应为 {build / "compile_commands.json"}')
     if build != configured:
         progress(f'保留非 ECRA 专用构建目录: {configured}；自动使用独立构建目录: {build}')
     database = build / 'compile_commands.json'
+    disk_database = filesystem_path(database)
     out = results_path(root, analysis)
     out.mkdir(parents=True, exist_ok=True)
     generator = settings.get('generator', 'Ninja')
@@ -175,73 +166,32 @@ def configure_cmake(root, analysis, progress, build_firmware):
             probe = probe_tool(tool, lock['version_patterns'].get(tool))
             if not probe.get('matching', probe['running']):
                 raise ValueError(f'Portable 工具版本不匹配: {probe}')
-    # Host-installed ARM/Make tools have the same Win32 path limits as the
-    # Portable copies. TryCompile adds >100 characters below the managed root.
-    needs_alias = bool(bundle_root()) or (os.name == 'nt' and
-        (len(str(build)) > 120 or not str(root).isascii() or not str(build).isascii()))
-    make_source_alias = os.name == 'nt' and generator == 'MinGW Makefiles' and not str(root).isascii()
-    source_path = (build_path(root, prefer_junction=make_source_alias)
-                   if make_source_alias or bundle_root() else str(root))
-    build_command_path = build_path(build, prefer_junction=True) if needs_alias else str(build)
-    if source_path != str(root) or build_command_path != str(build):
-        progress(f'GNU Make 路径兼容别名（同一目录）: {root} -> {source_path}; {build} -> {build_command_path}')
-    command = [cmake, '-S', source_path, '-B', build_command_path, '-G', generator]
-    command += ['-DCMAKE_BUILD_TYPE=' + settings.get('build_type', 'Debug')]
-    if settings.get('toolchain_file'):
-        toolchain = (root/settings['toolchain_file']).resolve()
-        previous_toolchain = read_cache(build).get('CMAKE_TOOLCHAIN_FILE')
-        same_toolchain = (toolchain.is_file() and previous_toolchain
-                          and cmake_toolchain_input(root, build, previous_toolchain) == toolchain)
-        will_clean = settings.get('clean_before_configure', False) and build_firmware
-        # Repeating -D overwrites CMake's initialized FILEPATH/help metadata,
-        # changing an otherwise identical Cache on the first reconfigure.
-        # Keep the proved same cached input, but explicitly select new/changed
-        # toolchains and every fresh configure after an owned-directory clean.
-        if not same_toolchain or will_clean:
-            command += ['-DCMAKE_TOOLCHAIN_FILE=' + (build_path(toolchain) if bundle_root() else str(toolchain))]
     args = settings.get('args', [])
     if any(x in {'-S', '-B', '-G', '--preset', '--build', '--install'} or x.startswith(('-S', '-B', '-G', '--preset=')) for x in args):
         raise ValueError('cmake.args 不可覆盖源码/构建目录或生成器；请使用对应配置字段')
-    command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
-    if make:
-        if any('CMAKE_MAKE_PROGRAM' in arg for arg in args):
-            raise ValueError('Portable 的 CMAKE_MAKE_PROGRAM 由 Generator 选择；不可用 cmake.args 覆盖')
-        command += ['-DCMAKE_MAKE_PROGRAM:FILEPATH=' + make]
+    if make and any('CMAKE_MAKE_PROGRAM' in arg for arg in args):
+        raise ValueError('Portable 的 CMAKE_MAKE_PROGRAM 由 Generator 选择；不可用 cmake.args 覆盖')
     records = []
 
     allow_external = analysis.get('allow_external_toolchain', settings.get('allow_external_toolchain', False))
-    marker = build / '.ecra-build-owner'
-    owner = str(root.resolve())
-    # Only ECRA-owned directories may be recursively removed. Existing formal
-    # build trees are usable incrementally, but never adopted for deletion.
-    if _is_link(build):
-        raise ValueError(f'拒绝清理链接构建目录: {build}')
-    if not build.exists() or not any(build.iterdir()):
-        build.mkdir(parents=True, exist_ok=True)
-        marker.write_text(owner, encoding='utf-8')
+    if empty:
+        try:
+            disk.mkdir(parents=True, exist_ok=True)
+            with (disk / OWNER_MARKER).open('x', encoding='utf-8') as stream:
+                stream.write(str(resolved_path(root)))
+        except OSError as exc:
+            raise ValueError(f'CMake 初始化构建目录失败：{build}；请检查目录占用与写入权限。{exc}') from exc
+        owned = True
 
-    if settings.get('clean_before_configure', False) and build_firmware and build.exists():
+    will_clean = settings.get('clean_before_configure', False) and build_firmware
+    if will_clean:
         progress('清理 CMake 构建目录…')
         previous_cache = read_cache(build)
-        if not _owns_build_directory(build, root):
-            raise ValueError(f'拒绝清理非 ECRA 专用构建目录: {build}；请选择新的 build/ecra 目录')
-        for item in build.rglob('*'):
-            if _is_link(item):
-                raise ValueError(f'拒绝清理含链接的目录: {item}')
-        for attempt in range(5):
-            try:
-                shutil.rmtree(build)
-                break
-            except PermissionError:
-                if attempt == 4:
-                    raise
-                time.sleep(0.1 * 2**attempt)
-        build.mkdir()
-        marker.write_text(owner, encoding='utf-8')
-        records.append(dict(stage='clean', command=['remove-directory', str(build)], exit_code=0,
+        clean_owned_directory(build, root)
+        records.append(dict(stage='clean', command=['clean-build-tree', str(build)], exit_code=0,
                             previous_cache=previous_cache))
 
-    check_cache(build, root, generator, make, allow_external)
+    cache, _ = check_cache(build, root, generator, make, allow_external)
     if bundle_root():
         for key in ('CC', 'CXX', 'ASM'):
             if os.environ.get(key):
@@ -251,11 +201,42 @@ def configure_cmake(root, analysis, progress, build_firmware):
                 raise ValueError(f'Portable 检测到宿主编译环境变量 {key}={os.environ[key]}；'
                                  '请清除它或明确选择 allow_external_toolchain')
 
+    # The generator adds target, object, depfile and TryCompile directories
+    # after -B is selected. Even a short physical root can exhaust Win32's
+    # budget. Keep CMake's entire owned build on one compact tool-side path.
+    source_spelling = str(root)
+    source_alias = os.name == 'nt' and (not source_spelling.isascii() or ' ' in source_spelling
+                                      or len(source_spelling) > 120)
+    build_alias = os.name == 'nt' and (owned or bool(bundle_root())
+                                      or not str(build).isascii() or len(str(build)) > 120)
+    source_path = build_path(root, prefer_junction=True) if source_alias else source_spelling
+    build_command_path = build_path(build, prefer_junction=True) if build_alias else str(build)
+    if source_path != str(root) or build_command_path != str(build):
+        progress(f'CMake Windows 路径别名（同一目录）：{root} -> {source_path}；{build} -> {build_command_path}')
+    command = [cmake, '-S', source_path, '-B', build_command_path, '-G', generator]
+    command += ['-DCMAKE_BUILD_TYPE=' + settings.get('build_type', 'Debug')]
+    if settings.get('toolchain_file'):
+        toolchain = resolved_path(root/settings['toolchain_file'])
+        previous_toolchain = cache.get('CMAKE_TOOLCHAIN_FILE')
+        same_toolchain = (filesystem_path(toolchain).is_file() and previous_toolchain
+                          and cmake_toolchain_input(root, build, previous_toolchain) == toolchain)
+        # Preserve CMake's initialized FILEPATH metadata on incremental runs.
+        if not same_toolchain:
+            toolchain_path = (str(Path(source_path)/toolchain.relative_to(root)) if source_alias and toolchain.is_relative_to(root)
+                              else build_path(toolchain) if bundle_root() else str(toolchain))
+            command += ['-DCMAKE_TOOLCHAIN_FILE=' + toolchain_path]
+    command += args + ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
+    if make:
+        command += ['-DCMAKE_MAKE_PROGRAM:FILEPATH=' + make]
+
+    path_warning = False
+
     def invoke(argv, name):
         from .scan_stop import check_stop
+        nonlocal path_warning
         check_stop()
         try:
-            proc = execute(argv, cwd=root, env=tool_environment(), timeout=settings.get('timeout_seconds', 600),
+            proc = execute(argv, cwd=source_path, env=tool_environment(), timeout=settings.get('timeout_seconds', 600),
                            text=False, encoding=None, errors=None)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
             log, _, _ = save_logs(out, name, getattr(exc, 'output', None), getattr(exc, 'stderr', None))
@@ -263,32 +244,46 @@ def configure_cmake(root, analysis, progress, build_firmware):
             if isinstance(exc, KeyboardInterrupt):
                 raise KeyboardInterrupt(message) from exc
             raise ValueError(message) from exc
+        except OSError as exc:
+            raise ValueError(f'CMake {name} 无法启动：{argv[0]}；工作目录：{source_path}。'
+                             f'请检查工具和路径：{exc}') from exc
         log, raw_logs, message = save_logs(out, name, proc.stdout, proc.stderr)
         records.append(dict(stage=name, command=argv, exit_code=proc.returncode, log=str(log), raw_logs=raw_logs))
+        if name == 'configure':
+            path_warning = (os.name == 'nt' and 'CMAKE_OBJECT_PATH_MAX' in message
+                            and 'cannot be safely placed under this directory' in message)
         if proc.returncode:
-            raise ValueError(f'CMake {name} 失败 (退出码 {proc.returncode})，停止扫描。日志: {log}\n' + message[-6000:])
+            hint = ''
+            if path_warning and 'opening dependency file' in message and 'No such file or directory' in message:
+                hint = (f'\nCMake 报告对象路径超过生成器预算，编译器无法创建依赖文件。'
+                        f'实际构建路径：{build_command_path}。请缩短别名所在路径或工程的构建子目录。')
+            raise ValueError(f'CMake {name} 失败 (退出码 {proc.returncode})，停止扫描。日志: {log}'
+                             + hint + '\n' + message[-6000:])
         check_stop()
     from .build_execution import BUILD_EXECUTOR
     make_target = target and generator == 'MinGW Makefiles'
     if target or BUILD_EXECUTOR.get() is not None:
-        query = build/'.cmake/api/v1/query/client-ecra/cmakeFiles-v1'
+        query = disk/'.cmake/api/v1/query/client-ecra/cmakeFiles-v1'
         query.parent.mkdir(parents=True, exist_ok=True)
         query.touch()
         if make_target:
             query.with_name('codemodel-v2').touch()
-    previous_db = database.stat() if make_target and database.is_file() else None
+    previous_db = disk_database.stat() if make_target and disk_database.is_file() else None
     progress('CMake 配置并刷新编译数据库…')
     invoke(command, 'configure')
     if target and not make_target:
         records[-1]['consumed_inputs'] = cmake_input_records(root, build)
-    check_cache(build, root, generator, make, allow_external)
-    if not database.is_file():
+    cache, _ = check_cache(build, root, generator, make, allow_external)
+    cached_build = cache.get('CMAKE_CACHEFILE_DIR')
+    if cached_build and resolved_path(cached_build) != build:
+        raise ValueError(f'CMakeCache 构建目录身份不一致：{cached_build}，要求实际目录 {build}；请检查旧构建路径。')
+    if not disk_database.is_file():
         raise ValueError(f'CMake 未生成 {database}；请使用 Ninja 或 Makefiles 生成器')
-    if previous_db is not None and previous_db.st_mtime_ns == database.stat().st_mtime_ns:
+    if previous_db is not None and previous_db.st_mtime_ns == disk_database.stat().st_mtime_ns:
         raise ValueError(f'CMake configure 未刷新 {database}；禁止使用旧编译数据库')
     def audit_database(entries=None):
         if bundle_root():
-            for entry in read_json(database) if entries is None else entries:
+            for entry in read_json(disk_database) if entries is None else entries:
                 raw = entry.get('arguments') or split_command(entry.get('command', ''))
                 if not raw:
                     raise ValueError(f'空编译命令: {database}')
@@ -318,7 +313,7 @@ def configure_cmake(root, analysis, progress, build_firmware):
         argv = [ninja, '-C', build_command_path, '-t', 'compdb-targets', '-x', target]
         progress('从 Ninja 完整依赖图读取目标编译闭包：' + target)
         def target_entries():
-            proc = execute(argv, cwd=root, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
+            proc = execute(argv, cwd=source_path, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
             if proc.returncode:
                 raise ValueError('目标编译闭包读取失败；需要支持 compdb-targets 的 Ninja 和有效目标：'
                                  + target + '\n' + proc.stderr[-4000:])
@@ -364,14 +359,14 @@ def configure_cmake(root, analysis, progress, build_firmware):
         if make_target:
             if read_target()[3] != hashes:
                 raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
-            sources = {(Path(row['directory'])/row['file']).resolve() for row in rows}
+            sources = {resolved_path(Path(row['directory'])/row['file']) for row in rows}
             for path in sorted(outputs | sources):
-                if not path.is_file():
+                if not filesystem_path(path).is_file():
                     raise ValueError(f'CMake 目标 {target} 构建后缺少实际编译输入或对象: {path}')
         elif target and target_entries() != rows:
             raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
     if target:
-        write_json(database, rows)
+        write_json(filesystem_path(database), rows)
     return database, records
 
 
@@ -517,7 +512,7 @@ def expand_response(args, directory, seen=None, files=None, consumed_inputs=None
     result = []
     for arg in args:
         if arg.startswith("@"):
-            path = (directory / arg[1:]).resolve()
+            path = resolved_path(directory / arg[1:])
             if files is not None:
                 files.add(str(path))
             if path in seen or len(seen) > 20:
@@ -525,7 +520,7 @@ def expand_response(args, directory, seen=None, files=None, consumed_inputs=None
             # Windows gives argv[0] special quote rules; response files contain
             # options only, so supply a dummy executable before tokenizing.
             if consumed_inputs is None:
-                content = path.read_text(encoding="utf-8-sig")
+                content = filesystem_path(path).read_text(encoding="utf-8-sig")
             else:
                 from .input_snapshot import read_consumed_text
                 content = read_consumed_text(path, consumed_inputs)
@@ -540,8 +535,8 @@ def normalize(entry, root, analysis, consumed_inputs=None):
     directory = Path(entry.get("directory", root))
     if not directory.is_absolute():
         directory = root / directory
-    directory = directory.resolve()
-    source = (directory / entry["file"]).resolve()
+    directory = resolved_path(directory)
+    source = resolved_path(directory / entry["file"])
     raw = entry.get("arguments") or split_command(entry.get("command", ""))
     if not raw or not isinstance(raw, list):
         raise ValueError(f"空编译命令: {source}")
@@ -629,7 +624,7 @@ def normalize_clang_arguments(args, directory, source, remove_args=()):
                        for prefix in value_joined_drop)
                 or arg.startswith('-M')):
             removed.append(arg)
-        elif not arg.startswith('-') and (directory / arg).resolve() == source:
+        elif not arg.startswith('-') and resolved_path(directory / arg) == source:
             removed.append(arg)
         else:
             filtered.append(arg)
@@ -709,7 +704,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     linked_sources = closure.get('linked_sources')
     linked_objects = closure.get('linked_objects')
     def absolute(value, directory=root):
-        return str((Path(directory) / value).resolve()).casefold()
+        return str(resolved_path(Path(directory) / value)).casefold()
     source_filter = {absolute(p) for p in linked_sources} if linked_sources is not None else None
     object_filter = {absolute(p) for p in linked_objects} if linked_objects is not None else None
     include_cache = {}
@@ -724,7 +719,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
             # The real database is produced by this version's managed build.
             # Canonical comparison may normalize this proven build root only;
             # extraction and cache keys retain the actual paths and bytes.
-            unit['ecra_build_root'] = str(candidates[0].parent.resolve())
+            unit['ecra_build_root'] = str(resolved_path(candidates[0].parent))
         if bundle_root():
             raw = unit['original_arguments']
             index = 1 if Path(raw[0]).stem.lower() in {'ccache', 'sccache'} else 0

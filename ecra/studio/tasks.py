@@ -280,6 +280,11 @@ class TaskManager:
                         stream.flush()
                     from .resource_policy import temporary_environment
                     env = temporary_environment(folder,os.environ); env['PYTHONIOENCODING']='utf-8'
+                    if (os.name == 'nt' and mode in {'scan', 'precheck'} and 'cmake' in cfg['analysis']
+                            and not env.get('ECRA_PATH_ALIAS_ROOT')):
+                        from ..portable import default_alias_root
+                        # Keep tool aliases independent of the task's scratch directory.
+                        env['ECRA_PATH_ALIAS_ROOT'] = str(default_alias_root())
                     if not env.get('PYTHONHASHSEED'):
                         env['PYTHONHASHSEED']='0'
                     env['ECRA_DATA_ROOT']=str(self.data)

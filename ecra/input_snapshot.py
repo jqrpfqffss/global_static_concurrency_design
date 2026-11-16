@@ -30,19 +30,19 @@ def runtime_environment():
 
 def read_analysis_bytes(path):
     snapshot = SOURCE_READS.get()
-    return snapshot.read_bytes(path) if snapshot is not None else Path(path).read_bytes()
+    return snapshot.read_bytes(path) if snapshot is not None else filesystem_path(path).read_bytes()
 
 
 def read_analysis_text(path, *, encoding='utf-8', errors='strict'):
     snapshot = SOURCE_READS.get()
     if snapshot is not None:
         return snapshot.read_text(path,encoding=encoding,errors=errors)
-    return Path(path).read_text(encoding=encoding,errors=errors)
+    return filesystem_path(path).read_text(encoding=encoding,errors=errors)
 
 
 def iter_analysis_lines(path, *, encoding='utf-8', errors='strict'):
     if SOURCE_READS.get() is None:
-        with Path(path).open(encoding=encoding,errors=errors) as stream:
+        with filesystem_path(path).open(encoding=encoding,errors=errors) as stream:
             yield from stream
         return
     text = read_analysis_text(path,encoding=encoding,errors=errors)
@@ -66,10 +66,11 @@ def assert_active_source_inputs():
     if snapshot is not None:
         snapshot.assert_valid()
 from .common import digest
+from .path_io import filesystem_path, resolved_path
 
 
 def file_record(path):
-    path = Path(path)
+    path = filesystem_path(path)
     try:
         sha = hashlib.sha256()
         with path.open('rb') as stream:
@@ -106,8 +107,8 @@ def read_consumed_text(path, records, *, errors='strict'):
     Re-reading one response file with different bytes also invalidates the
     scan even if its final disk content matches one of those observations.
     """
-    path = Path(path).resolve()
-    data = path.read_bytes()
+    path = resolved_path(path)
+    data = filesystem_path(path).read_bytes()
     record = dict(status='OK', sha256=hashlib.sha256(data).hexdigest(), size=len(data),
                   read_completed_ns=time.time_ns())
     key = str(path)
@@ -242,14 +243,14 @@ class InputSnapshot:
         A disk check after analysis misses a different version read and then
         restored. Keep only hashes/counts, never another copy of source text.
         """
-        path = Path(path).resolve()
+        path = resolved_path(path)
         key = relative(path, self.root)
         self.assert_valid()
         if key not in self.before and key in self.optional_before:
             self.before[key] = self.optional_before[key]
         expected = self.before.get(key)
         try:
-            data = self.file_view.read_bytes(path) if self.file_view is not None else path.read_bytes()
+            data = self.file_view.read_bytes(path) if self.file_view is not None else filesystem_path(path).read_bytes()
         except OSError as exc:
             consumed = dict(status='MISSING' if isinstance(exc, FileNotFoundError) else 'UNREADABLE',
                             sha256=None, error=f'{type(exc).__name__}: {exc}')

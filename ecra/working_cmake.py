@@ -8,6 +8,7 @@ from pathlib import Path
 import uuid
 
 from .common import digest
+from .path_io import resolved_path
 from .workspace import no_links
 from .input_snapshot import file_record
 
@@ -16,8 +17,8 @@ def registered_aliases(*,used_path=None):
     """Both 8.3 and expanded parent spellings of our exact junctions."""
     from .portable import _BUILD_ALIASES
     for target, alias in _BUILD_ALIASES.items():
-        for spelling in dict.fromkeys((alias, alias.parent.resolve()/alias.name)):
-            if spelling.resolve() != target:
+        for spelling in dict.fromkeys((alias, resolved_path(alias.parent)/alias.name)):
+            if resolved_path(spelling) != target:
                 if used_path is not None and (used_path==spelling or used_path.is_relative_to(spelling)):
                     raise ValueError('内部编译路径别名已变化：'+str(spelling))
                 continue
@@ -36,7 +37,7 @@ def input_path(path):
         for target,alias in registered_aliases(used_path=path):
             if path==alias or path.is_relative_to(alias):
                 expected=target/path.relative_to(alias)
-                if path.resolve()==expected.resolve():return no_links(expected)
+                if resolved_path(path)==resolved_path(expected):return no_links(expected)
         raise
 
 

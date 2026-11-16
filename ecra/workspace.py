@@ -11,12 +11,12 @@ import hashlib
 import os
 import re
 import shutil
-import stat
 import tempfile
 import time
 
 from .common import digest, read_json, write_json
 from .config import TOOL_ROOT
+from .path_io import is_link, lstat_if_present, resolved_path
 
 
 def canonical(path):
@@ -26,11 +26,11 @@ def canonical(path):
 
 def no_links(path):
     path = Path(path).absolute()
-    for item in (path, *path.parents):
-        if item.is_symlink() or (item.exists() and
-                getattr(item.lstat(), 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT):
+    for item in reversed((path, *path.parents)):
+        info = lstat_if_present(item)
+        if info is not None and is_link(info):
             raise ValueError(f'ECRA 数据路径包含符号链接/Junction，拒绝写入: {item}')
-    return path.resolve()
+    return resolved_path(path)
 
 
 def read_owner(marker):

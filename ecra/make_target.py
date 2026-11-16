@@ -5,23 +5,24 @@ from pathlib import Path
 import re
 
 from .input_snapshot import read_consumed_text
+from .path_io import filesystem_path, resolved_path
 
 
 def target_entries(root, build, database, generator, target, consumed):
     def read(path):
         return read_consumed_text(path, consumed)
 
-    reply = build/'.cmake/api/v1/reply'
+    reply = filesystem_path(build/'.cmake/api/v1/reply')
 
     def reply_object(ref):
-        path = (reply/ref['jsonFile']).resolve()
-        if not path.is_relative_to(reply.resolve()):
+        path = resolved_path(reply/ref['jsonFile'])
+        if not path.is_relative_to(resolved_path(reply)):
             raise ValueError('CMake File API 引用越界')
         return json.loads(read(path))
 
     def make_path(value):
         # CMake emits one Makefile2 prerequisite per line, including escaped spaces.
-        return (build/value.replace(r'\ ', ' ').replace(r'\#', '#')).resolve()
+        return resolved_path(build/value.replace(r'\ ', ' ').replace(r'\#', '#'))
 
     try:
         index = max(reply.glob('index-*.json'), key=lambda path: path.name)
@@ -30,8 +31,8 @@ def target_entries(root, build, database, generator, target, consumed):
         actual_generator = index['cmake']['generator']
         if (actual_generator['name'] != generator or actual_generator['multiConfig']
                 or model['kind'] != 'codemodel' or model['version']['major'] != 2
-                or Path(model['paths']['source']).resolve() != root.resolve()
-                or Path(model['paths']['build']).resolve() != build):
+                or resolved_path(model['paths']['source']) != resolved_path(root)
+                or resolved_path(model['paths']['build']) != build):
             raise ValueError('CMake File API 的生成器或工程身份不一致')
         config, = model['configurations']
         matches = [row for row in config['targets'] if row['name'] == target]
@@ -41,8 +42,8 @@ def target_entries(root, build, database, generator, target, consumed):
         directories = config['directories']
 
         def target_dir(row):
-            return (build/directories[row['directoryIndex']]['build']/'CMakeFiles'/
-                    (row['name']+'.dir')).resolve()
+            return resolved_path(build/directories[row['directoryIndex']]['build']/'CMakeFiles'/
+                                 (row['name']+'.dir'))
 
         targets = {target_dir(row): row for row in config['targets']}
         if len(targets) != len(config['targets']):
@@ -68,7 +69,7 @@ def target_entries(root, build, database, generator, target, consumed):
         for row in rows:
             if not row.get('output'):
                 raise ValueError('compile_commands.json 缺少对象输出字段')
-            by_output[(build/row['output']).resolve()].append(row)
+            by_output[resolved_path(build/row['output'])].append(row)
 
         aliases = re.findall(r'^'+re.escape(target)+r':[ \t]+(.+)/rule$', rules, re.M)
         if len(aliases) != 1 or make_path(aliases[0]) != target_dir(selected):
@@ -88,19 +89,24 @@ def target_entries(root, build, database, generator, target, consumed):
             if description['id'] != row['id']:
                 raise ValueError('CMake File API 的目标身份不一致')
             dependencies.update(dep['id'] for dep in description.get('dependencies', []))
-            sources = Counter((root/source['path']).resolve() for source in description.get('sources', [])
+            sources = Counter(resolved_path(root/source['path']) for source in description.get('sources', [])
                               if 'compileGroupIndex' in source)
             makefile = read(directory/'build.make').replace('\r\n', '\n').replace('\\\n', '')
 
-            def objects(suffix):
-                variable = re.escape(row['name']+suffix)
-                values = re.findall(r'^'+variable+r' =([^\n]*)$', makefile, re.M)
-                if len(values) > 1 or (values and not re.fullmatch(r'(?:[ \t]*"[^"\n]+")*[ \t]*', values[0])):
-                    raise ValueError('无法识别对象规则: '+row['name']+suffix)
-                return [(build/value).resolve() for value in re.findall(r'"([^"\n]+)"', values[0])] if values else []
+            def objects(label):
+                # CMake rewrites punctuation in the Make variable name and can
+                # number collisions. Its preceding target comment is explicit.
+                comment = re.escape(f'# {label} for target {row["name"]}')
+                assignments = re.findall(r'^'+comment+r'\n([^\n]*)', makefile, re.M)
+                if not assignments:
+                    return []
+                assignment = re.fullmatch(r'[^\s=]+[ \t]*=((?:[ \t]*"[^"\n]+")*[ \t]*)', assignments[0])
+                if len(assignments) != 1 or assignment is None:
+                    raise ValueError(f'无法识别对象规则: {row["name"]} / {label}')
+                return [resolved_path(build/value) for value in re.findall(r'"([^"\n]+)"', assignment[1])]
 
-            own_objects = ([(build/item['path']).resolve() for item in description.get('artifacts', [])]
-                           if description['type'] == 'OBJECT_LIBRARY' else objects('_OBJECTS'))
+            own_objects = ([resolved_path(build/item['path']) for item in description.get('artifacts', [])]
+                           if description['type'] == 'OBJECT_LIBRARY' else objects('Object files'))
             actual = Counter()
             for output in own_objects:
                 if len(by_output[output]) != 1:
@@ -108,15 +114,15 @@ def target_entries(root, build, database, generator, target, consumed):
                 entry = by_output[output][0]
                 if not output.is_relative_to(directory) or output in outputs:
                     raise ValueError('对象输出归属有歧义: '+str(output))
-                actual[(Path(entry['directory'])/entry['file']).resolve()] += 1
+                actual[resolved_path(Path(entry['directory'])/entry['file'])] += 1
                 outputs.add(output)
             if actual != sources:
                 raise ValueError('目标源码与实际对象编译命令不一致: '+row['name'])
             if own_objects:
                 read(directory/'flags.make')
-            if (directory/'link.txt').is_file():
+            if filesystem_path(directory/'link.txt').is_file():
                 read(directory/'link.txt')
-            external.update(objects('_EXTERNAL_OBJECTS'))
+            external.update(objects('External object files'))
 
         if dependencies - {targets[directory]['id'] for directory in visited}:
             raise ValueError('Makefile2 闭包缺少 CMake File API 声明的目标依赖')
@@ -125,8 +131,8 @@ def target_entries(root, build, database, generator, target, consumed):
         if not outputs:
             raise ValueError('目标没有可解析编译单元')
         # Keep original command ordering, flags and output identities.
-        entries = [row for row in rows if (build/row['output']).resolve() in outputs]
+        entries = [row for row in rows if resolved_path(build/row['output']) in outputs]
         selected_artifacts = reply_object(selected).get('artifacts', [])
-        return entries, outputs | {(build/item['path']).resolve() for item in selected_artifacts}
+        return entries, outputs | {resolved_path(build/item['path']) for item in selected_artifacts}
     except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError) as exc:
         raise ValueError(f'{generator} 目标编译闭包无法校验，禁止回退混用全目标数据库: {target}\n{exc}') from exc

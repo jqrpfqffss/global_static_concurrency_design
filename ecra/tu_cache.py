@@ -1,13 +1,13 @@
 """Content-bound raw TU cache; preprocessing is always rediscovered first."""
-from pathlib import Path
 import shutil
 from .common import digest, read_json, write_json, replace_file
+from .path_io import filesystem_path
 from .workflow import engine_digest, file_digest
 
 
 class TUCache:
     def __init__(self, folder, cfg, snapshot):
-        self.folder = Path(folder)
+        self.folder = filesystem_path(folder)
         self.folder.mkdir(parents=True, exist_ok=True)
         self.snapshot = snapshot
         from .workflow import analysis_config
@@ -56,8 +56,8 @@ class TUCache:
             meta = manifest['metadata']
             if meta.get('parse_status') != 'PARSED' or not isinstance(meta.get('input_snapshot'), dict):
                 raise ValueError('缓存事实不完整')
-            shutil.copyfile(raw, response)
-            write_json(metadata, meta)
+            shutil.copyfile(raw, filesystem_path(response))
+            write_json(filesystem_path(metadata), meta)
         except FileNotFoundError:
             self.misses += 1
             return False
@@ -76,7 +76,7 @@ class TUCache:
         key = self.key(unit)
         raw = self.folder/(key + '.facts')
         temp = raw.with_suffix('.pending')
-        shutil.copyfile(response, temp)
+        shutil.copyfile(filesystem_path(response), temp)
         replace_file(temp, raw)
         write_json(self.folder/(key + '.json'), dict(schema=1, sha256=file_digest(raw),
                                                    metadata=meta, metadata_sha256=digest(meta)))

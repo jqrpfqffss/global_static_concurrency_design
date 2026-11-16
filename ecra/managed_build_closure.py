@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from .input_snapshot import file_record
+from .path_io import filesystem_path
 from .workspace import no_links
 
 
@@ -19,11 +20,11 @@ def resolve(root,analysis,build,steps,consumed):
     root=no_links(root);build=no_links(build)
     # Existing explicit inputs retain their old meaning. Never select between
     # a user's real file and a managed output merely by matching a filename.
-    if any((root/path).exists() for path in paths.values()):return closure,None
+    if any(filesystem_path(root/path).exists() for path in paths.values()):return closure,None
     from .compilation import _owns_build_directory
     if not _owns_build_directory(build,root):raise ValueError('CMake闭包绑定缺少本轮构建归属，原输入保留')
     bound={key:no_links(build/path.relative_to(configured)) for key,path in paths.items()}
-    if any(not path.is_relative_to(build) or not path.is_file() for path in bound.values()):
+    if any(not path.is_relative_to(build) or not filesystem_path(path).is_file() for path in bound.values()):
         raise ValueError('CMake声明的ELF/MAP未在本轮实际构建目录生成，禁止猜测或省略')
     proof={}
     for key,path in bound.items():

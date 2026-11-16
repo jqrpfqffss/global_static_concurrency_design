@@ -234,8 +234,11 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(info['legacy_history'], str(old))
         self.assertFalse(Path(self.ws().project_workspace).exists())
         self.assertEqual(file_hash(old/'index.html'), before)
-        with self.assertRaisesRegex(ValueError, '旧版.*run'):
+        with self.assertRaises(ValueError) as error:
             saved_run(self.root, self.config, render_only=True)
+        self.assertIn('旧版报告需要重新扫描', str(error.exception))
+        self.assertRegex(str(error.exception), r'\brun\b')
+        self.assertEqual(file_hash(old/'index.html'), before)
 
     def test_interrupted_project_claim_is_explicit_and_recoverable(self):
         ws = self.ws().initialize()

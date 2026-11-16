@@ -1,6 +1,7 @@
 import hashlib
 import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -8,8 +9,9 @@ import unittest
 from unittest.mock import patch
 
 from ecra.input_snapshot import file_record
+from ecra.path_io import filesystem_path
 from ecra.tu_cache import TUCache
-from ecra.common import write_json
+from ecra.common import read_json
 
 
 class ExtractionRuntimeCacheTests(unittest.TestCase):
@@ -24,6 +26,25 @@ class ExtractionRuntimeCacheTests(unittest.TestCase):
 
     def cache(self):
         return TUCache(self.root/'cache',self.cfg,self.snapshot)
+
+    @unittest.skipUnless(os.name == 'nt', 'requires the Windows path limit')
+    def test_store_and_restore_verified_facts_on_long_windows_paths(self):
+        directory = self.root / ('c' * max(1, 218 - len(str(self.root))))
+        filesystem_path(directory).mkdir()
+        self.addCleanup(shutil.rmtree, filesystem_path(directory))
+        payload = self.root / 'raw.json'
+        payload.write_bytes(b'{"accesses":[{"access_id":"a"}]}')
+        metadata = dict(parse_status='PARSED', input_snapshot={'sealed': True})
+        with patch.dict(os.environ, PYTHONHASHSEED='0'):
+            cache = TUCache(directory, self.cfg, self.snapshot)
+            key = cache.key(self.unit)
+            self.assertGreater(len(str(directory / (key + '.pending'))), 260)
+            cache.store(self.unit, payload, metadata)
+            output = directory / ('r' * 60 + '.json')
+            receipt = directory / ('m' * 60 + '.json')
+            self.assertTrue(TUCache(directory, self.cfg, self.snapshot).restore(self.unit, output, receipt))
+            self.assertEqual(filesystem_path(output).read_bytes(), payload.read_bytes())
+            self.assertEqual(read_json(filesystem_path(receipt)), metadata)
 
     def test_default_worker_seed_matches_explicit_zero_and_does_not_mutate_parent_environment(self):
         with patch.dict(os.environ):

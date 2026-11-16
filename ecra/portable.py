@@ -9,6 +9,7 @@ import tempfile
 from importlib.metadata import version
 
 from .common import execute
+from .path_io import filesystem_path, lstat_if_present, resolved_path
 
 
 _BUILD_ALIASES = {}
@@ -58,6 +59,25 @@ def _junction(alias, target):
             api.CloseHandle(handle)
 
 
+def _is_junction(path):
+    return getattr(lstat_if_present(path), 'st_reparse_tag', None) == stat.IO_REPARSE_TAG_MOUNT_POINT
+
+
+def default_alias_root():
+    """Select a persistent path before a worker replaces its TEMP."""
+    local = os.environ.get('LOCALAPPDATA')
+    if local and Path(local).is_absolute():
+        parent = Path(local)/'ECRAStudio/path-aliases'
+        existing = next((path for path in (parent, *parent.parents) if filesystem_path(path).is_dir()), None)
+        if existing is not None:
+            spelling = Path(_short_path(existing))/parent.relative_to(existing)
+            value = str(spelling)
+            # Some project generators pass paths through a second shell.
+            if value.isascii() and ' ' not in value and len(value)+33 <= 120:
+                return parent
+    return Path(tempfile.gettempdir())/'ECRA-paths'
+
+
 def build_path(value, *, prefer_junction=False):
     """Same files under an ASCII spelling for Make 4.4.1's ANSI subprocess API.
 
@@ -78,10 +98,10 @@ def build_path(value, *, prefer_junction=False):
         # on which directories happened to be registered earlier in this run.
         if compact and root != path:
             continue
-        junction = (alias.exists() and bool(getattr(alias.lstat(), 'st_file_attributes', 0)
-                                            & stat.FILE_ATTRIBUTE_REPARSE_POINT)) if compact else False
-        if path.is_relative_to(root) and str(alias/path.relative_to(root)).isascii() and (not compact or junction):
-            if alias.resolve()!=root:raise ValueError(f'路径别名未指向原目录: {alias} -> {root}')
+        if (path.is_relative_to(root) and str(alias/path.relative_to(root)).isascii()
+                and (not compact or _is_junction(alias))):
+            if resolved_path(alias) != root:
+                raise ValueError(f'路径别名未指向原目录: {alias} -> {root}')
             return str(alias/path.relative_to(root))
     # A tool-side workspace may contain a Chinese project name even when the
     # package directory itself is ASCII. Aliasing only the package left that
@@ -91,25 +111,22 @@ def build_path(value, *, prefer_junction=False):
     # target makes the first configure and later runs use the same spelling
     # without creating or modifying the target here. Noncompact tool/file paths
     # continue to alias the nearest existing directory and retain sibling layout.
-    if compact and path.exists() and not path.is_dir():
+    if compact and filesystem_path(path).exists() and not filesystem_path(path).is_dir():
         raise ValueError('短构建别名要求目录：'+str(path))
-    root = path if compact or path.is_dir() else path.parent
-    while not compact and not root.is_dir():
+    root = path if compact or filesystem_path(path).is_dir() else path.parent
+    while not compact and not filesystem_path(root).is_dir():
         root = root.parent
-    root = root.resolve()
+    root = resolved_path(root)
     alias = Path(_short_path(root))
     # CMake expands native 8.3 names back to long Unicode paths in Makefiles.
     # A virtual junction keeps deeply nested build/probe paths short as well.
     if compact or not str(alias).isascii():
         import hashlib
         import time
-        parent = Path(os.environ.get('ECRA_PATH_ALIAS_ROOT') or Path(tempfile.gettempdir())/'ECRA-paths')
-        spelling = Path(_short_path(parent))
-        if not os.environ.get('ECRA_PATH_ALIAS_ROOT') and (not str(spelling).isascii() or len(str(spelling))+33 > 120):
-            local = os.environ.get('LOCALAPPDATA')
-            if not local or not Path(local).is_absolute():
-                raise ValueError('短构建别名需要独立用户目录；请设置绝对、短ASCII的 ECRA_PATH_ALIAS_ROOT')
-            parent = Path(local)/'ECRAStudio/path-aliases'
+        # Studio gives each worker its own TEMP. Build references in CMakeCache
+        # must survive the worker and be reachable when Studio is reopened.
+        override = os.environ.get('ECRA_PATH_ALIAS_ROOT')
+        parent = Path(override) if override else default_alias_root()
         if not parent.is_absolute():
             raise ValueError('ECRA_PATH_ALIAS_ROOT 必须是独立的绝对路径')
         from .workspace import studio_data_root
@@ -126,13 +143,16 @@ def build_path(value, *, prefer_junction=False):
                 _junction(alias,root)
         except FileExistsError:
             pass # another ECRA process may have created the identical alias
+        except OSError as exc:
+            raise ValueError(f'无法创建 CMake 短路径 Junction：{alias} -> {root}。'
+                             f'请检查别名目录是否可写并支持 Junction，或设置 ECRA_PATH_ALIAS_ROOT。{exc}') from exc
         for attempt in range(5):
-            if alias.resolve() == root:
+            if _is_junction(alias) and resolved_path(alias) == root:
                 break
             if attempt == 4:
                 raise ValueError(f'ASCII 路径别名冲突，拒绝覆盖: {alias}；要求指向 {root}')
             time.sleep(0.05)
-    if alias.resolve() != root:
+    if resolved_path(alias) != root:
         raise ValueError(f'路径别名未指向原目录: {alias} -> {root}')
     _BUILD_ALIASES[root] = alias
     return str(alias/path.relative_to(root))
@@ -183,11 +203,11 @@ def read_cache(build, *, consumed_inputs=None):
     result = {}
     def text(file):
         if consumed_inputs is None:
-            return file.read_text(encoding='utf-8-sig',errors='replace')
+            return filesystem_path(file).read_text(encoding='utf-8-sig',errors='replace')
         from .input_snapshot import read_consumed_text
         return read_consumed_text(file,consumed_inputs,errors='replace')
     path = Path(build)/'CMakeCache.txt'
-    if path.is_file():
+    if filesystem_path(path).is_file():
         for line in text(path).splitlines():
             if line.startswith(('#', '//')) or '=' not in line or ':' not in line.split('=', 1)[0]:
                 continue
@@ -200,7 +220,8 @@ def read_cache(build, *, consumed_inputs=None):
         version_dir = '.'.join(result.get('CMAKE_CACHE_' + part + '_VERSION', '')
                                for part in ('MAJOR','MINOR','PATCH'))
         if re.fullmatch(r'\d+\.\d+\.\d+', version_dir):
-            for file in sorted((Path(build)/'CMakeFiles'/version_dir).glob('CMake*Compiler.cmake')):
+            compiler_dir = filesystem_path(Path(build)/'CMakeFiles'/version_dir)
+            for file in sorted(compiler_dir.glob('CMake*Compiler.cmake')):
                 for line in text(file).splitlines():
                     match = re.fullmatch(r'set\((CMAKE_(?:C|CXX|ASM)_COMPILER(?:_VERSION)?) "([^"]*)"\)',line.strip())
                     if match:
@@ -233,7 +254,7 @@ def check_cache(build, root, generator, make=None, allow_external=False):
     if cache.get('CMAKE_GENERATOR', generator) != generator:
         raise ValueError(f'CMakeCache Generator 冲突: {build}: {cache["CMAKE_GENERATOR"]} != {generator}；'
                          '请选择新的 ECRA 专用 build_dir，不删除正式构建目录')
-    if cache.get('CMAKE_HOME_DIRECTORY') and Path(cache['CMAKE_HOME_DIRECTORY']).resolve() != root.resolve():
+    if cache.get('CMAKE_HOME_DIRECTORY') and resolved_path(cache['CMAKE_HOME_DIRECTORY']) != resolved_path(root):
         raise ValueError(f'CMakeCache 属于另一工程: {build}: {cache["CMAKE_HOME_DIRECTORY"]}')
     if make and cache.get('CMAKE_MAKE_PROGRAM'):
         actual = resolved_executable(cache['CMAKE_MAKE_PROGRAM'], root)
