@@ -261,9 +261,11 @@ extern "C" int helper(void){
             self.inspect_build(build,self.gcc,make)
             self.command(generator+' build', [self.cmake,'--build',build_path(build),'--verbose'])
             self.command(generator+' execute', [build/'native.exe'])
-        # Keep firmware outside the developer checkout's ancestor .git. The
-        # source fixture is retained and its absolute path is in the receipt.
+        # Full scans need no Git executable. Give this generated fixture its
+        # own repository-boundary marker so workspace-local acceptance does
+        # not inherit the developer checkout's ancestor .git.
         firmware = Path(tempfile.mkdtemp(prefix='ECRA STM32 中文 ', dir=self.work)).resolve()
+        (firmware/'.git').mkdir()
         self.report['firmware_fixture'] = str(firmware)
         (firmware/'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.20)
 project(ecra_stm32 C CXX ASM)
@@ -363,8 +365,19 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
         if not shared or len(shared.get('writers',[])) < 2:
             raise ValueError('AST/global-variable/concurrent writer extraction regression')
         static_facts_sha256 = sha256(out/'scan.db')
-        self.command('ecra.cmd review disabled interface', self.ecra('review',config),allowed=(2,))
-        self.command('ecra.cmd review-failed disabled interface', self.ecra('review-failed',config),allowed=(2,))
+        # This acceptance PATH intentionally excludes a workstation OpenCode.
+        # Shared initialization failure is a task error, not fabricated model
+        # failures for every variable. Pending work must remain resumable.
+        self.command('ecra.cmd review missing OpenCode task failure', self.ecra('review',config),allowed=(3,))
+        self.command('ecra.cmd review-failed no dispatched failures', self.ecra('review-failed',config),allowed=(2,))
+        self.command('ecra.cmd review-resume missing OpenCode task failure', self.ecra('review-resume',config),allowed=(3,))
+        pending_code=('import json,sys;from pathlib import Path;from ecra.workflow import read_queue;'
+            'o=Path(sys.argv[1]);rows=read_queue(o);'
+            'assert rows and all(r["state"]=="PENDING" and not r.get("attempts") for r in rows),rows;'
+            'error=json.loads((o/"review/initialization-error.json").read_text("utf-8"));'
+            'assert error["model_calls"]==0,error;print(json.dumps(dict(pending=len(rows),model_calls=0)))')
+        self.report['initialization_failure']=json.loads(self.command('verify pending queue after task failure',
+            [self.python,'-B','-c',pending_code,str(out)],cwd=self.bundle))
         self.command('ecra.cmd report', self.ecra('report',config),allowed=(2,))
         if sha256(out/'scan.db') != static_facts_sha256:
             raise ValueError('Saved review/report commands changed the complete static facts')
@@ -403,7 +416,7 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
             raise ValueError('Default workspace did not follow the actual tool root')
         self.report['default_workspace'] = str(defaults[0].parent)
         self.report['runtime_workspace'] = str(self.bundle/'workspace')
-        self.report['opencode'] = 'NOT_TESTED: external installation/provider required; review disabled interface passed'
+        self.report['opencode'] = 'NOT_TESTED: external installation/provider required; missing-command task failure and resumable queue passed'
 
     def run(self):
         try:

@@ -40,6 +40,7 @@ OPTIONS = [
     option('review.command','OpenCode','OpenCode命令与参数','lines','第一行是程序路径，其余每行一个参数；不要填整条shell命令。','opencode'),
     option('review.model','OpenCode','模型','text','填写已登录的provider/model；留空使用OpenCode自己的默认模型。','provider/model'),
     option('review.timeout_seconds','OpenCode','单次复核超时（秒）','number','每次调用的等待上限，不是变量之间的间隔。','600',0.001),
+    option('review.maintenance_timeout_seconds','OpenCode','维护命令/服务就绪超时（秒）','number','默认60秒；独立于模型复核超时。超时或暂停仅回收本次任务所属进程，并在workspace保留诊断。','60',0.001),
     option('review.retries','OpenCode','失败后额外重试数','integer','0表示不作技术重试；格式修复另行计算。','1',0),
     option('review.workers','OpenCode','同时复核数','integer','1–8个独立只读会话；按模型服务容量填写。','3',1,8),
     option('review.session_cleanup.enabled','OpenCode','归档后清理 OpenCode 会话','boolean','默认关闭。仅清理本次已成功归档且归属已验证的会话；技术失败及原始日志保留。'),

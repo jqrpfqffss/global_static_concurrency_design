@@ -61,6 +61,10 @@ class ReviewExecutionError(ValueError):
     """Provider/transport failures are technical, never formatting repairs."""
 
 
+class ReviewInitializationError(ReviewExecutionError):
+    """Task setup failed before any model request was dispatched."""
+
+
 def _now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -545,10 +549,15 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
     cleanup = None
     if settings.get('enabled', True) and settings.get('session_cleanup', {}).get('enabled') is True:
         from .review_session_cleanup import SessionCleanup
-        cleanup = SessionCleanup(root, out, fingerprint, progress)
+        cleanup = SessionCleanup(root, out, fingerprint, progress,
+                                 timeout=settings.get('maintenance_timeout_seconds', 60))
     try:
         return _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                            review_context_path, mode, case_library_path, resume_scope, cleanup)
+    except KeyboardInterrupt:
+        if cleanup:
+            cleanup.stop.cancelled.set()
+        raise
     finally:
         if cleanup:
             cleanup.close()
@@ -566,6 +575,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
     folder = out / 'review'
     folder.mkdir(parents=True, exist_ok=True)
     stop = ReviewStop()
+    if cleanup:
+        cleanup.stop = stop
     stop.check()
     targets = review_targets(report)
     native = (out/'scan.db').is_file()
@@ -581,7 +592,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         with source_scope(archived):
             rows = reconcile_reviews(root, out, targets, rows, fingerprint, progress=progress)
     previous = {r['finding_id']: normalize_review_record(r) for r in rows}
-    if cleanup and mode == 'review-resume':
+    if cleanup and mode in {'review-resume', 'review-failed'}:
         cleanup.recover(previous, settings.get('command', ['opencode']))
     ordinals = {f['finding_id']: index for index, f in enumerate(targets)}
     ledger, selected = {}, []
@@ -605,8 +616,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             ledger[fid] = set_review_state(dict(finding_id=fid,
                 static_classification=finding.get('static_classification'),
                 scan_fingerprint=fingerprint, review_request=uuid.uuid4().hex), 'PENDING')
-            if mode == 'review-failed':
-                ledger[fid]['review_retry_mode'] = mode
+            if mode == 'review-failed' or old['state'] == 'TECH_FAILED':
+                ledger[fid]['review_retry_mode'] = 'review-failed'
 
     def save_queue():
         rows = [ledger[f['finding_id']] for f in targets]
@@ -623,11 +634,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                 static_classification=finding.get('static_classification'),
                 error='OpenCode 自动复核已关闭；全部静态事实保留在 facts.json 和报告中'), 'PENDING')
         return save_queue()
-    if native:
-        from .scan_persistence import append_runtime
-        append_runtime(out, dict(run_status='REVIEW_RUNNING'), list(ledger.values()))
-    else:
-        save_queue()
+    from .scan_persistence import append_runtime
     if not selected:
         return list(ledger.values())
     from .scan_diagnostics import ACTIVE
@@ -649,12 +656,31 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             executable = Path(command[0]).stem.lower()
             if storage.shared or executable == 'opencode' or executable.startswith('opencode-'):
                 from .review_opencode_sessions import Runtime
-                runtime = Runtime(command)
+                runtime = Runtime(command, timeout=settings.get('maintenance_timeout_seconds', 60), stop=stop)
                 storage.prepare(runtime)
                 command = [str(runtime.exe)]
                 progress(f'OpenCode 使用会话数据库 {storage.database}')
         except (ValueError, OSError) as exc:
-            command_error = exc
+            # Keep completed receipts, and make unstarted work resumable.
+            # No model attempt/failure is fabricated for a shared failure.
+            for fid, old in previous.items():
+                if old['state'] == 'DONE':
+                    ledger[fid] = old
+            message = f'OpenCode 初始化失败，复核尚未启动：{type(exc).__name__}: {exc}'
+            write_json(folder/'initialization-error.json', dict(
+                stage='initialization', error=message, created_at=_now(),
+                selected_ids=[f['finding_id'] for f in selected], model_calls=0))
+            if native:
+                append_runtime(out, dict(run_status='FAILED', error=message), list(ledger.values()))
+            else:
+                save_queue()
+            assert_review_integrity(report, list(ledger.values()), require_terminal=False)
+            progress(message)
+            raise ReviewInitializationError(message) from exc
+    if native:
+        append_runtime(out, dict(run_status='REVIEW_RUNNING'), list(ledger.values()))
+    else:
+        save_queue()
     facts_path = Path(settings.get('facts_path', out / 'facts.json')).resolve()
     shared_path = folder / 'project-evidence.json'
     # The published report may contain prior AI answers. Navigation must point
@@ -690,7 +716,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         shared=dict(contexts=facts.get('contexts',[]),coverage=report.get('coverage',{}),limitations=report.get('limitations',[]),
             compile_commands=[{k:u[k] for k in ('source_file','arguments','parse_status','diagnostics') if k in u}
                 for u in facts.get('translation_units',[])],source_files=sorted({f['file'] for f in facts.get('functions',[]) if f.get('file')}))
-    model_config = dict(cfg, review={k: v for k, v in settings.items() if k != 'session_cleanup'})
+    model_config = dict(cfg, review={k: v for k, v in settings.items()
+                                    if k not in {'session_cleanup', 'maintenance_timeout_seconds'}})
     write_json(shared_path,dict(contexts=shared['contexts'],coverage=shared['coverage'],limitations=shared['limitations'],
         config=model_config,compile_commands=shared['compile_commands'],source_files=shared['source_files']))
     from .review_session_cleanup import compatible_review_implementation
@@ -818,9 +845,6 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             if not enabled:
                 result['error'] = 'OpenCode 自动复核已关闭；证据包已生成'
                 return result
-            if command_error:
-                raise command_error
-
             def invoke(text, stage, metadata=None):
                 """A single audited, read-only process invocation."""
                 stop.check()
@@ -1184,6 +1208,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         if workers == 1:
             for index, finding in enumerate(selected):
                 stop.check()
+                if command_error:
+                    break
                 completed(process(index, finding), writer)
         else:
             # Keep at most one in-flight variable per worker. A completed row
@@ -1193,7 +1219,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                 futures = set()
 
                 def dispatch():
-                    if not stop.is_set():
+                    if not stop.is_set() and command_error is None:
                         item = next(pending, None)
                         if item is not None:
                             futures.add(executor.submit(process, *item))
@@ -1223,6 +1249,14 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                     raise
         stop.check()
     rows = list(ledger.values()) if native else save_queue()
+    if command_error:
+        message = f'OpenCode 公共配置失败，已停止派发后续变量；已归档结果保留：{command_error}'
+        write_json(folder/'configuration-error.json', dict(stage='configuration', error=message, created_at=_now()))
+        assert_review_archive(report, rows, folder, require_terminal=False)
+        if native:
+            append_runtime(out, dict(run_status='FAILED', error=message), [])
+        progress(message)
+        raise ReviewExecutionError(message) from command_error
     assert_review_integrity(dict(findings=selected), [ledger[f['finding_id']] for f in selected],
                             require_terminal=enabled)
     assert_review_archive(report, rows, folder, require_terminal=False)

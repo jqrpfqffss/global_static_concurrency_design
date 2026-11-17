@@ -310,12 +310,13 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
                                 run_canonical(case.root, case.config, scan_id=out.name)
                             failed = runtime(out)['reviews']
                             self.assertEqual(len(failed), count)
-                            self.assertTrue(all(row['state'] == 'TECH_FAILED' and row['failure_stage'] == 'launch'
-                                                and 'OPENCODE_DB' in row['error'] for row in failed), failed)
+                            self.assertTrue(all(row['state'] == 'PENDING' and not row.get('attempts')
+                                                for row in failed), failed)
+                            self.assertIn('OPENCODE_DB', read_json(out/'review/initialization-error.json')['error'])
                             self.assertFalse(model_calls)
                             self.assertFalse(unusable.parent.exists())
                             static = sha256(out/'scan.db')
-                            result = saved_run(case.root, case.config, failed_only=True, _out=out)
+                            result = saved_run(case.root, case.config, resume=True, _out=out)
                             self.assertEqual(sha256(out/'scan.db'), static)
                         elif resume:
                             with patch.object(SessionCleanup, 'after_archive', side_effect=KeyboardInterrupt):

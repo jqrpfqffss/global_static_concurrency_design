@@ -196,6 +196,8 @@ review:
   # model: provider/model
   # 每次 OpenCode 调用的最长等待时间，不是变量之间的等待间隔；返回即校验、归档并推进。
   timeout_seconds: 600
+  # 每条本地维护命令及维护服务就绪的独立预算；不消耗模型调用超时。
+  maintenance_timeout_seconds: 60
   # 执行失败后的额外技术重试次数；格式异常另有最多 2 次轻量修正。
   retries: 1
 

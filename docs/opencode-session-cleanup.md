@@ -31,3 +31,27 @@ py -3.10 -m pytest -q -s tests/test_review_session_cleanup_live.py
 真实运行使用临时配置、测试专用会话库和本地模型响应。测试检查实际 DELETE 请求和对应的已归档 Session ID、历史会话及消息、独立库压缩前后的磁盘占用，并通过 Studio 重新读取归档。共享库测试覆盖含中文和空格的外部路径、三变量并行、清理开关、启动失败重试和暂停后继续。
 
 Windows 10 x64（19044）实测：3 个 Worker、4 个变量均已归档，精确删除 4 个会话，保留 1 个独立手动测试会话；OpenCode 库及 WAL 的 NTFS 分配由 5,455,872 字节降至 282,624 字节。用 ECRA Portable 内置 Python 重复测试，实际分配由 5,910,528 字节降至 282,624 字节。两次重新启动 Studio 后，归档答复和原始文件接口均通过读取校验。
+
+## 维护启动诊断与任务失败
+
+`review.maintenance_timeout_seconds` 默认 60 秒，分别约束每条本地维护命令和
+回环维护服务的就绪等待；模型调用仍使用 `review.timeout_seconds`。Studio 的
+OpenCode 高级选项可编辑该值。等待每 50ms 检查任务停止信号，超时/暂停关闭
+当前调用的 Windows Job（或 POSIX 进程组），不按进程名称结束其他会话。
+
+维护输出和 `invocation.json` 在临时目录释放前写入当前工具 workspace：
+首次初始化位于扫描目录 `opencode/<运行ID>/maintenance-logs/`，归档后清理位于
+`opencode-session-cleanup/<运行ID>/maintenance-logs/`。记录包含阶段、参数数组、
+原生程序及摘要、PID、cwd、数据库、预算、首个输出时间、结束时间和退出码。
+不记录环境变量；日志会隐藏继承的密钥、认证值及代理 URL 凭据。
+
+必要初始化失败只产生任务级错误“OpenCode 初始化失败，复核尚未启动”，详情在
+`review/initialization-error.json`。未调用模型的项保持 PENDING，已有 DONE 归档
+保留；使用“继续复核”恢复。历史 launch/TECH_FAILED 仍支持“仅重试失败项”；
+若该重试又在初始化阶段失败，其 PENDING 队列保留失败重试标识。
+
+仅在同一个 Runtime 内复用通过的版本检查，每次使用仍核对可执行文件身份与
+变更，数据库路径/共享库迁移兼容性/文件身份仍逐次核对。维护层不会发起或重试模型请求，
+正式复核仍沿用原有的请求重试策略。
+外部 `OPENCODE_DB` 继续按用户设置使用，禁止对共享库自动 VACUUM、强制 checkpoint
+或删除数据库。可选清理失败保留会话、具体原因及已成功归档的答案。

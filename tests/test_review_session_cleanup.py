@@ -103,7 +103,7 @@ class FakeOpenCode:
             with self.lock:
                 self.active.discard((store, sid))
 
-    def runtime(self, _command):
+    def runtime(self, _command, **options):
         fake = self
 
         class Runtime:
@@ -258,6 +258,56 @@ class CleanupTests(unittest.TestCase):
 
     def deleted(self):
         return Counter(self.fake.deleted)
+
+    def test_common_initialization_failure_is_one_task_error_and_resumes(self):
+        from ecra.review import ReviewInitializationError
+        from ecra.review_opencode_sessions import Unavailable
+        from ecra.workflow import read_queue
+        done = self.review(count=1)[0]
+        calls = len(self.fake.spawned)
+        with patch.dict(os.environ, OPENCODE_DB=str(self.root/'shared.db')), \
+                patch('ecra.opencode_storage.ReviewStorage.prepare', side_effect=Unavailable('db path timeout')):
+            with self.assertRaisesRegex(ReviewInitializationError, '初始化失败，复核尚未启动'):
+                self.review(count=5, mode='review-resume')
+        rows = read_queue(self.out)
+        self.assertEqual(Counter(r['state'] for r in rows), {'DONE': 1, 'PENDING': 4})
+        self.assertEqual(rows[0], done)
+        self.assertEqual(len(self.fake.spawned), calls)
+        self.assertTrue(all(not r.get('attempts') for r in rows[1:]))
+        self.assertEqual(read_json(self.out/'review/initialization-error.json')['model_calls'], 0)
+        rows = self.review(count=5, mode='review-resume')
+        self.assertTrue(all(r['state'] == 'DONE' for r in rows))
+        self.assertEqual(rows[0], done)
+        self.assertEqual(len(self.fake.spawned), calls+4)
+
+    def test_discovered_invalid_configuration_stops_dispatch_without_fake_attempts(self):
+        from ecra.review import ReviewExecutionError
+        from ecra.workflow import read_queue
+        calls = []
+        def invalid(argv, **kwargs):
+            calls.append(argv)
+            return subprocess.CompletedProcess(argv, 1, '', 'Configuration is invalid at test-config')
+        with self.assertRaisesRegex(ReviewExecutionError, '已停止派发'):
+            self.review(count=5, respond=invalid)
+        rows = read_queue(self.out)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(Counter(r['state'] for r in rows), {'TECH_FAILED': 1, 'PENDING': 4})
+        self.assertTrue(all(not row.get('attempts') for row in rows[1:]))
+        self.assertTrue(all(r['state'] == 'DONE' for r in self.review(count=5, mode='review-resume')))
+
+    def test_legacy_launch_failure_is_retried_by_failed_only_entry(self):
+        from ecra.review_integrity import set_review_state
+        row = self.review()[0]
+        legacy = set_review_state(dict(row), 'TECH_FAILED')
+        legacy.pop('answer', None)
+        legacy.update(failure_stage='launch', error='Unavailable: OpenCode 维护命令超时',
+                      attempt_count=0, attempts=[])
+        write_json(self.out/'review/queue.json', [legacy])
+        write_json(self.out/'review/F0.result.json', legacy)
+        count = len(self.fake.spawned)
+        recovered = self.review(mode='review-failed')[0]
+        self.assertEqual(recovered['state'], 'DONE')
+        self.assertEqual(len(self.fake.spawned), count+1)
 
     def expected(self, spawned=None):
         return Counter((store, sid) for store, _, _, sid in (self.fake.spawned if spawned is None else spawned))

@@ -10,13 +10,14 @@ import re
 import sqlite3
 import stat
 import subprocess
-from tempfile import TemporaryDirectory, TemporaryFile
+from tempfile import TemporaryDirectory
 import time
 from urllib.parse import urlencode
 import uuid
 
 from .report_package import sha256
-from .review_process import owned_process
+from .review_process import ReviewStop, owned_process
+from .common import write_json
 from .workspace import canonical, managed_path, no_links
 
 
@@ -29,7 +30,7 @@ MIGRATION_IDS_SHA256 = '5f943d4c5bf5c217795b8ffe3f62bfb5b20917030895ca971c00e250
 SESSION_ID = re.compile(r'ses_[0-9a-f]{12}[0-9A-Za-z]{14}')
 PART_TYPES = dict(text='text', tool_use='tool', step_start='step-start',
                   step_finish='step-finish', reasoning='reasoning')
-STARTUP_TIMEOUT = 10
+MAINTENANCE_TIMEOUT = 60
 REQUEST_TIMEOUT = 3
 
 
@@ -119,7 +120,12 @@ def store_identity(database, *, allow_missing=False):
 
 
 class Runtime:
-    def __init__(self, command):
+    def __init__(self, command, *, timeout=MAINTENANCE_TIMEOUT, stop=None):
+        import math
+        if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError('review.maintenance_timeout_seconds 必须大于 0')
+        self.timeout, self.stop = timeout, stop or ReviewStop()
+        self.version_verified = False
         if len(command) != 1:
             raise Unverifiable('数据库与会话验证需要直接调用原生 OpenCode')
         self.exe = Path(command[0]).resolve(strict=True)
@@ -148,42 +154,116 @@ class Runtime:
             env = isolated_environment(cwd, cwd, database, shared=shared, environment=env)
             env.update(OPENCODE_DISABLE_MODELS_FETCH='true', OPENCODE_DISABLE_DEFAULT_PLUGINS='true',
                        OPENCODE_SERVER_USERNAME='ecra', OPENCODE_SERVER_PASSWORD=uuid.uuid4().hex)
-            yield Maintenance(self, cwd, env, database, shared=shared)
+            yield Maintenance(self, cwd, env, database, shared=shared,
+                              diagnostics=managed_path(workdir)/'maintenance-logs'/cwd.name)
 
 
 class Maintenance:
-    def __init__(self, runtime, cwd, env, database, *, shared=False):
+    def __init__(self, runtime, cwd, env, database, *, shared=False, diagnostics=None):
         self.runtime, self.cwd, self.env, self.database = runtime, cwd, env, database
         self.shared = shared
+        self.diagnostics = managed_path(diagnostics or cwd/'maintenance-logs')
+
+    def _redact(self, text):
+        # Persist output, never the environment. Also scrub secrets if a launcher
+        # echoes an inherited credential or a proxy URL in an error message.
+        for key, value in self.env.items():
+            if value and re.search(r'KEY|TOKEN|SECRET|PASSWORD|AUTH', key, re.I):
+                text = text.replace(value, '<redacted>')
+        text = re.sub(r'(https?://)[^\s/@]+:[^\s/@]+@', r'\1<redacted>@', text)
+        return re.sub(r'(?i)(bearer\s+)[\w.\-]+', r'\1<redacted>', text)
+
+    @contextmanager
+    def _operation(self, args, stage):
+        """Keep diagnostics outside the scratch directory, including on stop."""
+        self.runtime.stop.check()
+        argv = self._argv(*args)
+        target = self.diagnostics/uuid.uuid4().hex
+        target.mkdir(parents=True)
+        started = time.monotonic()
+        record = dict(stage=stage, argv=[self._redact(a) for a in argv],
+                      executable=str(self.runtime.exe), executable_sha256=self.runtime.hash,
+                      cwd=str(self.cwd), database=str(self.database), shared=self.shared,
+                      timeout_seconds=self.runtime.timeout, started_at=time.time(),
+                      pid=None, first_output_seconds=None, outcome='starting')
+        proc = None
+        stdout_path, stderr_path = self.cwd/(target.name+'.out'), self.cwd/(target.name+'.err')
+        try:
+            with stdout_path.open('wb') as stdout, stderr_path.open('wb') as stderr:
+                with owned_process(argv, cwd=self.cwd, env=self.env, stdout=stdout, stderr=stderr,
+                                   stop=self.runtime.stop) as proc:
+                    record.update(pid=proc.pid, launched_seconds=time.monotonic()-started, outcome='running')
+                    yield proc, stdout_path, stderr_path, record, started
+                    record['outcome'] = 'completed'
+        except BaseException as exc:
+            record['outcome'] = 'cancelled' if isinstance(exc, KeyboardInterrupt) else 'failed'
+            record['error'] = self._redact(str(exc))
+            if isinstance(exc, subprocess.TimeoutExpired):
+                record['outcome'] = 'timeout'
+                raise Unavailable(f'OpenCode 维护步骤 {stage} 超时；命令 {record["argv"]}；'
+                                  f'等待 {self.runtime.timeout:g} 秒；程序 {self.runtime.exe}；'
+                                  f'数据库 {self.database}；详细日志 {target}') from exc
+            raise
+        finally:
+            record.update(elapsed_seconds=time.monotonic()-started, finished_at=time.time(),
+                          returncode=proc.returncode if proc else None,
+                          process_exited=proc.returncode is not None if proc else None)
+            for name, path in [('stdout', stdout_path), ('stderr', stderr_path)]:
+                raw = path.read_text('utf-8', errors='replace') if path.exists() else ''
+                (target/(name+'.log')).write_text(self._redact(raw), encoding='utf-8')
+            write_json(target/'invocation.json', record)
+
+    def _observe(self, stdout, stderr, record, started):
+        self.runtime.stop.check()
+        self._first_output(stdout, stderr, record, started)
+        if time.monotonic()-started >= self.runtime.timeout:
+            raise subprocess.TimeoutExpired(record['argv'], self.runtime.timeout)
+
+    def _first_output(self, stdout, stderr, record, started):
+        if record['first_output_seconds'] is not None:
+            return
+        # Windows directory metadata may retain a zero size while the child
+        # still owns the write handle. Observe bytes, not a directory listing.
+        for path in (stdout, stderr):
+            with path.open('rb') as stream:
+                if stream.read(1):
+                    record['first_output_seconds'] = time.monotonic()-started
+                    return
 
     def _argv(self, *args):
         self.runtime.check_exe()
         return [str(self.runtime.exe), '--pure', *args]
 
     def cli(self, *args):
-        with TemporaryFile(dir=self.cwd) as stdout, TemporaryFile(dir=self.cwd) as stderr:
-            with owned_process(self._argv(*args), cwd=self.cwd, env=self.env, stdout=stdout, stderr=stderr) as proc:
+        stage = ' '.join(args)
+        with self._operation(args, stage) as (proc, stdout, stderr, record, started):
+            while proc.poll() is None:
+                self._observe(stdout, stderr, record, started)
                 try:
-                    proc.wait(timeout=STARTUP_TIMEOUT)
-                except subprocess.TimeoutExpired as exc:
-                    raise Unavailable('OpenCode 维护命令超时') from exc
+                    proc.wait(timeout=.05)
+                except subprocess.TimeoutExpired:
+                    pass
+            record['exit_seconds'] = time.monotonic()-started
+            self._first_output(stdout, stderr, record, started)
             if proc.returncode != 0:
-                stderr.seek(0)
-                stdout.seek(0)
-                detail = (stderr.read(8192).strip() or stdout.read(8192).strip()).decode('utf-8', 'replace')
-                raise Unavailable(f'OpenCode 维护命令失败（退出码 {proc.returncode}，数据库 {self.database}）'
-                                  + (f'：{detail}' if detail else ''))
-            stdout.seek(0)
-            return stdout.read(65536).decode('utf-8').strip()
+                detail = self._redact((stderr.read_text('utf-8', errors='replace').strip()
+                                      or stdout.read_text('utf-8', errors='replace').strip())[:8192])
+                raise Unavailable(f'OpenCode 维护步骤 {stage} 失败（退出码 {proc.returncode}，'
+                                  f'程序 {self.runtime.exe}，数据库 {self.database}）；'
+                                  f'详细日志 {self.diagnostics}：{detail}')
+            return stdout.read_text('utf-8').strip()
 
     def verify(self, *, initialize=False):
         identity = store_identity(self.database, allow_missing=initialize)
         # Even OpenCode's db path command can apply pending migrations.
         if self.shared and identity is not None:
             self.check_shared_schema(writable=initialize)
-        version = self.cli('--version')
-        if version != VERSION:
-            raise Unverifiable(f'当前 OpenCode 版本为 {version}，数据库与会话协议需要原生 OpenCode {VERSION}')
+        self.runtime.check_exe()
+        if not self.runtime.version_verified:
+            version = self.cli('--version')
+            if version != VERSION:
+                raise Unverifiable(f'当前 OpenCode 版本为 {version}，数据库与会话协议需要原生 OpenCode {VERSION}')
+            self.runtime.version_verified = True
         self.verify_path(self.cli('db', 'path'))
         return identity
 
@@ -251,25 +331,26 @@ class Maintenance:
     def server(self):
         self.verify()
         # The startup line names the port selected by the owned launcher.
-        with (self.cwd/'server.out').open('wb') as stdout, TemporaryFile(dir=self.cwd) as stderr:
-            with owned_process(self._argv('serve', '--hostname', '127.0.0.1', '--port', '0'),
-                               cwd=self.cwd, env=self.env, stdout=stdout, stderr=stderr) as proc:
-                yield from self._open_api(proc, self.cwd/'server.out')
+        args = ('serve', '--hostname', '127.0.0.1', '--port', '0')
+        with self._operation(args, 'serve readiness') as operation:
+            yield from self._open_api(*operation)
 
-    def _open_api(self, proc, log_path):
-        deadline = time.monotonic() + STARTUP_TIMEOUT
+    def _open_api(self, proc, log_path, stderr, record, started):
         listen = re.compile(rb'^opencode server listening on http://127\.0\.0\.1:([1-9][0-9]{0,4})\r?$', re.M)
         with log_path.open('rb') as stream:
-            while proc.poll() is None and time.monotonic() < deadline:
+            while proc.poll() is None:
+                self._observe(log_path, stderr, record, started)
                 stream.seek(0)
                 match = listen.search(stream.read(65536))
                 if match and (port := int(match[1])) <= 65535:
                     api = API(port, self.env['OPENCODE_SERVER_PASSWORD'], alive=lambda: proc.poll() is None)
                     api.verify()
+                    record['ready_seconds'] = time.monotonic()-started
                     yield api
                     return
                 time.sleep(.05)
-        raise Unavailable('无法启动本次任务的 OpenCode 回环维护服务')
+        raise Unavailable(f'无法启动本次任务的 OpenCode 回环维护服务；退出码 {proc.returncode}；'
+                          f'程序 {self.runtime.exe}；数据库 {self.database}；详细日志 {self.diagnostics}')
 
 
 class API:

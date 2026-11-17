@@ -95,6 +95,24 @@ def engine_digest():
 def matches_static_engine(expected, current=None):
     if expected == (current if current is not None else engine_digest()):
         return True
+    # 3a12408 -> maintenance diagnostics: only review defaults/validation in
+    # config.py changed. Admit that exact predecessor, not arbitrary engines.
+    files = _engine_files()
+    config_upgrade = {
+        '5d23965cdb19132dc10b04a08d2425b13ccc272e4ecb1977e6b1a1dfd569b3ba':
+            '88d6861cbf63e0d6815e92c1e36884fe2f89d7eabc7c748f8604048146021e5d',
+        '6352e018cec582589236685c52402ad514842e35e9134179048e3938c8505d65':
+            '86cd56ed3cdc1916e3ea201b442917273c33d729d2b1c0270785fd42005b2bd2',
+    }
+    predecessor = config_upgrade.get(files['config.py'])
+    if predecessor:
+        compatible = dict(files, **{'config.py': predecessor})
+        for name, (after, before) in _REVIEW_PUBLICATION_UPGRADE.items():
+            if name in compatible and hashlib.sha256(
+                    (Path(__file__).parent/name).read_bytes().replace(b'\r\n', b'\n')).hexdigest() == after:
+                compatible[name] = before
+        if expected == digest(compatible):
+            return True
     # Legacy checkouts also hashed CRLF working copies of these four files.
     from itertools import product
     previous = {

@@ -14,6 +14,7 @@ import uuid
 
 from .common import digest
 from .opencode_storage import database_path
+from .review_process import ReviewStop
 from .report_package import sha256
 from .review_opencode_sessions import Runtime, Unavailable, Unverifiable, file_identity, session_from_jsonl, store_identity
 from .storage_activity import DataActivity, DataBusy
@@ -29,7 +30,8 @@ JOURNAL = 'ownership.sqlite3'
 def compatible_review_implementation(hashed):
     # Preserve keys across storage/cleanup changes. Edits to model inputs or
     # validation fall through to their own digest.
-    if hashed == '23749946dbf1b2530e47464b658035eadc2d8d6b266aa31849837ee7d9c90a1b':
+    if hashed in {'23749946dbf1b2530e47464b658035eadc2d8d6b266aa31849837ee7d9c90a1b',
+                  'b481381bb8933a5e0a6e4224ffc5d6c0df783d95174b077f38e69c4c04926abb'}:
         return '8636daf895c4b0024a23b22f8f0cca5bc417bc04f710ebf6cd7f17120eae775d'
     if hashed == '141ec36a8849a3abbf9c79e11e9d9bcf240a36935532b33420d605cb157d3542':
         return '699efac22ac5578db71150692ddd12643edbbca57a301c7fbc3ff7f8a74321b5'
@@ -223,11 +225,13 @@ class Run:
 
 class SessionCleanup:
     """Bind a run to a store; only the post-commit queue may schedule deletion."""
-    def __init__(self, root, out, fingerprint, progress):
+    def __init__(self, root, out, fingerprint, progress, *, timeout=60):
         self.root, self.out, self.fingerprint = root, out, fingerprint
         self.native = (out/'scan.db').is_file()
         self.progress = progress
         self.environment = os.environ.copy()
+        self.timeout = timeout
+        self.stop = ReviewStop()
         self.base = out/'opencode-session-cleanup'
         self.lock = Lock()
         self.run = None
@@ -280,7 +284,7 @@ class SessionCleanup:
                 if self.run is None:
                     base = no_links(self.base)
                     base.mkdir(mode=0o700, exist_ok=True)
-                    run = Run(base/uuid.uuid4().hex, runtime or Runtime(command), self.binding(), self.environment)
+                    run = Run(base/uuid.uuid4().hex, runtime or Runtime(command, timeout=self.timeout, stop=self.stop), self.binding(), self.environment)
                     try:
                         run.start(storage)
                     except BaseException:
@@ -380,6 +384,11 @@ class SessionCleanup:
                 except Exception as exc:
                     run.state(call, 'DELETE_FAILED', str(exc))
                     counts['failed'] += 1
+                except KeyboardInterrupt as exc:
+                    # Pause stops optional maintenance too. Keep its session
+                    # and a recoverable reason without changing the DONE row.
+                    run.state(call, 'DELETE_FAILED', str(exc))
+                    counts['failed'] += 1
                 else:
                     run.state(call, 'DELETED')
                     counts['deleted'] += 1
@@ -407,7 +416,7 @@ class SessionCleanup:
     def _recover(self, rows, command):
         try:
             from .review import resolve_command
-            runtime = Runtime(resolve_command(command))
+            runtime = Runtime(resolve_command(command), timeout=self.timeout, stop=self.stop)
             binding = self.binding()
             legacy_environment = self.environment_binding(legacy=True)
             for path in no_links(self.base).iterdir():
@@ -443,8 +452,8 @@ class SessionCleanup:
             run.stop_api()
             if not run.shared:
                 run.compact()
-        except Exception:
-            self.note('OpenCode 会话库暂未压缩，可在继续复核时重试')
+        except (Exception, KeyboardInterrupt) as exc:
+            self.note(f'OpenCode 会话库暂未压缩，可在继续复核时重试：{exc}')
         finally:
             try:
                 run.close()

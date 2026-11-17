@@ -108,7 +108,7 @@ class IntegrityTests(unittest.TestCase):
         self.assertEqual(row['state'], 'DONE')
         self.assertEqual(len(calls), 2)
 
-    def test_timeout_provider_error_exit_and_missing_command_are_technical(self):
+    def test_transport_failures_are_technical_but_missing_command_is_task_failure(self):
         cases = [subprocess.TimeoutExpired(['synthetic'], 1, output=b'partial-output', stderr=b'partial-error'),
                  CompletedProcess([], 1, 'raw stdout', 'provider error'),
                  CompletedProcess([], 0, json.dumps(dict(type='error', error='provider failed')), ''),
@@ -136,18 +136,18 @@ class IntegrityTests(unittest.TestCase):
                 self.assertTrue(row['last_error']['type'])
                 self.assertTrue(row['last_attempt_time'])
         self.out = self.root / '.launch-failure'
-        with patch('ecra.review.resolve_command', side_effect=ValueError('missing OpenCode')):
-            row = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan', lambda _: None)[0]
-        self.assertEqual(row['state'], 'TECH_FAILED')
-        self.assertEqual(row['failure_stage'], 'launch')
-        self.assertEqual(row['attempt_count'], 1)
-        self.assertTrue(row['execution']['stderr_file'])
-        self.assertEqual(row['attempts'][0], row['execution'])
-        old_stderr = row['execution']['stderr_file']
-        fixed = self.run_review(lambda *a, **k: self.response(answer_for()), mode='review-failed')[0]
+        from ecra.review import ReviewInitializationError
+        with patch('ecra.review.resolve_command', side_effect=ValueError('missing OpenCode')), \
+                self.assertRaisesRegex(ReviewInitializationError, '复核尚未启动'):
+            review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan', lambda _: None)
+        row = read_json(self.out/'review/queue.json')[0]
+        self.assertEqual(row['state'], 'PENDING')
+        self.assertFalse(row.get('attempts'))
+        self.assertFalse(row.get('attempt_count'))
+        self.assertEqual(read_json(self.out/'review/initialization-error.json')['model_calls'], 0)
+        fixed = self.run_review(lambda *a, **k: self.response(answer_for()), mode='review-resume')[0]
         self.assertEqual(fixed['state'], 'DONE')
-        self.assertEqual(fixed['attempts'][0]['stderr_file'], old_stderr)
-        self.assertTrue((self.out / 'review' / old_stderr).is_file())
+        self.assertEqual(fixed['attempt_count'], 1)
 
     def test_nonzero_exit_preserves_stdout_api_error_without_headers_or_format_fix(self):
         event=dict(type='error',error=dict(name='APIError',data=dict(statusCode=429,

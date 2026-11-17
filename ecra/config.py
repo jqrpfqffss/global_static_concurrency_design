@@ -118,6 +118,7 @@ review:
   command: [opencode]
   # model: provider/model  # 使用你已配置并登录的 OpenCode 模型
   timeout_seconds: 300
+  maintenance_timeout_seconds: 60  # 本地维护命令/服务就绪；独立于模型调用
   retries: 1
   # 同时复核的变量数，范围 1–8；任何一项结束后立即补入下一项，直到全部完成。
   workers: 1
@@ -172,6 +173,7 @@ review:
   command: [opencode]
   # model: provider/model
   timeout_seconds: 300
+  maintenance_timeout_seconds: 60
   retries: 1
   # 同时复核的变量数，范围 1–8；任何一项结束后立即补入下一项，直到全部完成。
   workers: 1
@@ -397,7 +399,8 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
             raise ValueError('analysis.cmake.timeout_seconds 必须大于 0')
         if a.get('auto_configure_cmake') or any(k.startswith('cmake_') for k in a):
             raise ValueError('analysis.cmake 不可与旧的 auto_configure_cmake/cmake_* 配置混用')
-    for section, name in (("analysis", "parse_timeout_seconds"), ("review", "timeout_seconds")):
+    for section, name in (("analysis", "parse_timeout_seconds"), ("review", "timeout_seconds"),
+                          ("review", "maintenance_timeout_seconds")):
         value = cfg[section].get(name, 180)
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"{section}.{name} 必须大于 0")
