@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Language repair is a separate audited operation, never a semantic rewrite."""
 import copy
 import json
@@ -34,7 +35,7 @@ class ReviewLanguageTests(unittest.TestCase):
         def respond(argv, **kwargs):
             calls.append((argv, kwargs))
             return CompletedProcess(argv, 0, json.dumps(next(iterator), ensure_ascii=False), '')
-        with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
+        with mock_runtime(['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
             rows = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan', lambda _: None, **options)
         return rows[0], calls
 

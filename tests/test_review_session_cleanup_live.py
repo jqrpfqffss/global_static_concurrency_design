@@ -274,7 +274,7 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
 
         def observe_cli(agent, *args):
             self.assertTrue(agent.cwd.is_relative_to(workspace))
-            if shared:
+            if agent.shared:
                 self.assertEqual(agent.database, manual_db)
                 self.assertFalse(any('wal_checkpoint' in arg or arg == 'VACUUM' for arg in args))
             return cli(agent, *args)
@@ -387,7 +387,7 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
             for stream in ('stdout', 'stderr', 'prompt', 'packet'):
                 query = urlencode(dict(finding_id=row['finding_id'], name=row['execution'][stream+'_file']))
                 self.assertIn('text', studio(path+'/ai-artifact?'+query))
-        print(json.dumps(dict(opencode=VERSION, variables=len(rows), workers=workers, precise_deletes=len(deleted),
+        print(json.dumps(dict(opencode=opencode.version, level='B_REAL_CLI_LOCAL_MODEL', variables=len(rows), workers=workers, precise_deletes=len(deleted),
                               shared_database=shared, historical_sessions_retained=2,
                               disk_before_compaction=before, disk_after_compaction=after,
                               bytes_reclaimed=before-after, studio_evidence='verified'), ensure_ascii=False))

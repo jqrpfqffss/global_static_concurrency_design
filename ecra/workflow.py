@@ -43,7 +43,7 @@ REVIEW_REPORT_MODULES = frozenset({
     'review_presentation.py', 'review_language.py', 'review_summary.py', 'workflow.py',
     'native_consumers.py', 'review_inheritance.py', 'review_sources.py', 'native_review_packet.py', 'review_hash.py', 'review_packet.py',
     'review_archive.py', 'review_process.py', 'review_session_cleanup.py', 'review_opencode_sessions.py',
-    'opencode_storage.py',
+    'opencode_storage.py', 'opencode_protocol.py', 'opencode_command.py', 'opencode_check.py',
 })
 
 
@@ -61,11 +61,19 @@ def _config_engine_hash(hashed):
     return _CLEANUP_CONFIG_UPGRADE.get(hashed, hashed)
 
 
+# Exact review-only configuration/CLI upgrade; all static code still hashes normally.
+_OPENCODE_RUNTIME_UPGRADE = {'config.py': {'c6078d9845b98cffc04aaad28645a5b8a09ec417c2df1e9c4b037753eb8c4311': '5d23965cdb19132dc10b04a08d2425b13ccc272e4ecb1977e6b1a1dfd569b3ba', '22d80b1c791cb093dd389ae94c5b8170e5c827a2431f99c47a1b609f83648070': '6352e018cec582589236685c52402ad514842e35e9134179048e3938c8505d65'}, 'cli.py': {'47d8615ad5fad1bd7a5b9c12b7048b90f4e0e10226e5f9ce6e35f7fbedc78508': '7beb189aab8dd9a5631b1ed850153bd070c26bb240458716c61eedf46b62c0e7', '23ef00da6290812ff063631d269deefe3bf04e00a5d83402765584931db5a48b': '6609c549543f4922fe18e2b5ad172a6a4b4ae0fb64a2c562a854ac9420231e46'}}
+
+
 def _engine_files():
     package = Path(__file__).parent
     files = {path.name: file_digest(path) for path in sorted(package.glob('*.py'))
              if path.name not in REVIEW_REPORT_MODULES}
-    files['config.py'] = _config_engine_hash(files['config.py'])
+    for name, upgrades in _OPENCODE_RUNTIME_UPGRADE.items():
+        if name in files:
+            files[name] = upgrades.get(files[name], files[name])
+    if 'config.py' in files:
+        files['config.py'] = _config_engine_hash(files['config.py'])
     return files
 
 

@@ -28,6 +28,11 @@ JOURNAL = 'ownership.sqlite3'
 
 
 def compatible_review_implementation(hashed):
+    # This exact change touches launch/storage validation, not static facts or model prompts.
+    if hashed in {'ff8c4bb0347c98c4e06aeecd9afa8ed95f6feebe3aa880d5058a66495ad40888',
+                  '13eaa88dbe466e7c15a20c359d7eef810c4b54f319a07888bedfdc1e553ebde2',
+                  'cca8ecb58791f29718767005ab024b40a0511618f8ab71f396f407494c551a70'}:
+        hashed = 'b481381bb8933a5e0a6e4224ffc5d6c0df783d95174b077f38e69c4c04926abb'
     # Preserve keys across storage/cleanup changes. Edits to model inputs or
     # validation fall through to their own digest.
     if hashed in {'23749946dbf1b2530e47464b658035eadc2d8d6b266aa31849837ee7d9c90a1b',
@@ -134,7 +139,7 @@ class Run:
 
     def maintenance(self):
         return self.runtime.maintenance(self.database, workdir=self.path, shared=self.shared,
-                                        environment=self.environment)
+                                        environment=getattr(self.runtime, 'context', {}).get('environment', self.environment))
 
     def register(self, request, record, cwd):
         self.check_store()
@@ -198,6 +203,9 @@ class Run:
             # Don't incur one timeout per queued variable during an outage.
             self.transport_problem = str(exc)
             raise
+        else:
+            if hasattr(self.runtime, 'capabilities'):
+                self.runtime.capabilities['cleanup'] = 'DELETION_VERIFIED'
 
     def compact(self):
         with self.connect() as conn:
@@ -225,12 +233,13 @@ class Run:
 
 class SessionCleanup:
     """Bind a run to a store; only the post-commit queue may schedule deletion."""
-    def __init__(self, root, out, fingerprint, progress, *, timeout=60):
+    def __init__(self, root, out, fingerprint, progress, *, timeout=60, settings=None):
         self.root, self.out, self.fingerprint = root, out, fingerprint
         self.native = (out/'scan.db').is_file()
         self.progress = progress
         self.environment = os.environ.copy()
         self.timeout = timeout
+        self.settings = settings or {}
         self.stop = ReviewStop()
         self.base = out/'opencode-session-cleanup'
         self.lock = Lock()
@@ -301,7 +310,7 @@ class SessionCleanup:
 
     def finish(self, invocation, path, hashed):
         try:
-            invocation.run.finish(invocation, path.read_text('utf-8', errors='replace'), hashed)
+            invocation.run.finish(invocation, path.read_text('utf-8-sig'), hashed)
         except Exception as exc:
             self.note(f'OpenCode 会话归属记录写入失败，已保留会话: {exc}', skipped=1)
 
@@ -348,7 +357,7 @@ class SessionCleanup:
             raw = path.read_bytes()
             if hashlib.sha256(raw).hexdigest() != hashed:
                 raise Unverifiable('会话原始日志归档摘要不一致')
-            if stream == 'stdout' and session_from_jsonl(raw.decode('utf-8', errors='replace'))[0] != call['session_id']:
+            if stream == 'stdout' and session_from_jsonl(raw.decode('utf-8-sig'))[0] != call['session_id']:
                 raise Unverifiable('已归档的会话事件和归属记录不一致')
 
     def retire(self, run, row):
@@ -417,6 +426,9 @@ class SessionCleanup:
         try:
             from .review import resolve_command
             runtime = Runtime(resolve_command(command), timeout=self.timeout, stop=self.stop)
+            from .opencode_storage import ReviewStorage
+            storage = ReviewStorage(self.out, environment=self.environment, settings=self.settings)
+            runtime.context = dict(scope=storage.scope, data=storage.data, environment=storage.environment)
             binding = self.binding()
             legacy_environment = self.environment_binding(legacy=True)
             for path in no_links(self.base).iterdir():
@@ -455,6 +467,15 @@ class SessionCleanup:
         except (Exception, KeyboardInterrupt) as exc:
             self.note(f'OpenCode 会话库暂未压缩，可在继续复核时重试：{exc}')
         finally:
+            if run is self.run:
+                try:
+                    from .common import write_json
+                    report = run.runtime.report()
+                    report['cleanup_counts'] = dict(self.counts)
+                    report['cleanup_error'] = run.protocol_problem or run.transport_problem
+                    write_json(self.out/'review/opencode-capabilities.json', report)
+                except Exception:
+                    self.note('清理能力诊断未写入；已归档结果保持有效')
             try:
                 run.close()
             except Exception:

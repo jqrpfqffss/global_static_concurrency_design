@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Real Clang scale fixtures; model protocol simulations are explicitly mocked."""
 import copy
 import json
@@ -214,7 +215,7 @@ class ReviewScaleTests(unittest.TestCase):
                           summary='已验证当前条件下安全：测试变量的模拟访问条件已排除冲突，仅用于协议测试。',
                           evidence=[dict(file='app.c', line=1, claim='模拟测试源码')])
             return CompletedProcess(argv, 0, json.dumps(answer), '')
-        with patch('ecra.review.resolve_command', return_value=['synthetic-only']), patch('ecra.review.execute', side_effect=execute):
+        with mock_runtime(['synthetic-only']), patch('ecra.review.execute', side_effect=execute):
             first = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
             cfg['review']['workers'] = 3  # Scheduling changes do not invalidate semantic receipts.
             second = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)

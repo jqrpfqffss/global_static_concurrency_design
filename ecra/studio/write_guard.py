@@ -154,7 +154,7 @@ class GuardedProcess:
             startup=StartupEx();startup.startup.cb=ctypes.sizeof(StartupEx);startup.attributes=ctypes.addressof(attributes)
             startup.startup.flags=0x100|1;startup.startup.show=0
             startup.startup.stdin=stdin;startup.startup.stdout=stdout;startup.startup.stderr=stderr
-            command=ctypes.create_unicode_buffer(subprocess.list2cmdline(self.args))
+            command=ctypes.create_unicode_buffer(getattr(argv, 'windows_command_line', subprocess.list2cmdline(self.args)))
             environment=ctypes.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(env.items(),key=lambda item:item[0].upper()))+'\0\0')
             info=ProcessInfo();flags=0x4|0x400|0x80000|0x8000000  # suspended, Unicode env, explicit handle list, no window
             if token:api.check(api.adv.CreateProcessAsUserW(token,str(executable),command,None,None,True,flags,environment,str(cwd),ctypes.byref(startup),ctypes.byref(info)))

@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Synthetic receipts test summary repair, never real model reasoning quality."""
 import copy
 import json
@@ -149,7 +150,7 @@ class SummaryWorkflowTests(unittest.TestCase):
             if isinstance(value, subprocess.CompletedProcess):
                 return value
             return self.response(value)
-        with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
+        with mock_runtime(['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
             rows = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan', lambda _: None, mode=mode)
         return rows[0], calls
 
@@ -199,7 +200,10 @@ else:
 print(json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))))
 '''.replace('PAYLOAD', repr(json.dumps(original))), encoding='utf-8')
         self.cfg['review']['command'] = [sys.executable, str(fake)]
-        row = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan', lambda _: None)[0]
+        # This Python transport tests summary repair, not the OpenCode wire
+        # contract. Production initialization must never depend on its name.
+        with mock_runtime(self.cfg['review']['command']):
+            row = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan', lambda _: None)[0]
         self.assertEqual(row['state'], 'DONE', row.get('error'))
         self.assertEqual([a['stage'] for a in row['attempts']], ['ANALYZE', 'SUMMARY_FIX'])
         self.assertEqual(row['attempts'][-1]['input_method'], 'stdin')
@@ -397,7 +401,7 @@ class SummaryRenderingTests(unittest.TestCase):
         repaired = dict(original, summary=answer_for()['summary'])
         values = iter([original, repaired])
         cfg['review'].update(enabled=True, retries=0)
-        with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch('ecra.review.execute',
+        with mock_runtime(['synthetic-cli']), patch('ecra.review.execute',
                 side_effect=lambda *a, **kw: subprocess.CompletedProcess([], 0, json.dumps(next(values)), '')):
             rows = review_all(self.root, out, cfg, facts, report, 'scan', lambda _: None)
         self.assertEqual(rows[0]['state'], 'DONE', rows[0].get('error'))

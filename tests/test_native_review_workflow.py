@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Canonical review lifecycle with synthetic transport, not model reasoning."""
 import contextlib
 import io
@@ -31,7 +32,7 @@ class NativeReviewWorkflowTests(unittest.TestCase):
 
     def review(self,respond=None,**options):
         with (patch.object(EvidenceProvider,'load',side_effect=AssertionError('Whole authority reconstruction forbidden')),
-              patch('ecra.review.resolve_command',return_value=['synthetic-test-executor']),
+              mock_runtime(['synthetic-test-executor']),
               patch('ecra.review.execute',side_effect=respond or self.response),contextlib.redirect_stdout(io.StringIO())):
             return saved_run(self.case.root,self.case.config,_out=self.out,**options)
 

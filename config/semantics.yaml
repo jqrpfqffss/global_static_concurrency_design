@@ -191,6 +191,15 @@ review:
 
   # 复核命令必须是参数数组，而不是带空格的一整条 shell 字符串。
   command: [opencode]
+  # 保留实际入口及参数数组；支持 exe、npm 的 cmd/ps1 和显式 Node 入口。
+  # 不按文件名跳过初始化，不从企业入口抽出底层 exe，不强制 --pure。
+  # runtime:
+  #   auth_file: D:/authorized-input/auth.json  # 可选标准认证来源，不等同于企业域登录凭据
+  #   config_file: D:/authorized-input/opencode.json  # 仅导入 provider/model 配置
+  #   auth_plugins: []  # 仅填写企业正式支持、明确授权的认证插件
+  # finding_ids: [GS-example]  # 可选的真实候选批次；其余项保持 PENDING
+  # 首次接入：run_ecra.py opencode-check --json（不调用模型）。
+  # 版本仅供协议选择；独立测试库先验证路径/schema，再检查共享 OPENCODE_DB。
 
   # 启用复核时，可指定已登录的 provider/model；不需要则保持注释。
   # model: provider/model

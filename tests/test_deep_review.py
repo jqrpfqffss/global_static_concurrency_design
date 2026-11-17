@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Real Clang packets, synthetic protocol checks, and opt-in real model review.
 
 Mocks only test transport/contract compatibility. They do not establish model
@@ -85,7 +86,7 @@ class DeepReviewTests(unittest.TestCase):
                     calls.append((argv, kwargs))
                     return CompletedProcess(argv, 0, json.dumps(value, ensure_ascii=False), '')
 
-                with patch('ecra.review.resolve_command', return_value=['synthetic-opencode']), patch(
+                with mock_runtime(['synthetic-opencode']), patch(
                         'ecra.review.execute', side_effect=respond):
                     row = review_all(self.root, out, cfg, facts, report, 'fixture',
                         mode='review', case_library_path=LIBRARY, progress=lambda _: None)[0]
@@ -137,8 +138,7 @@ class DeepReviewTests(unittest.TestCase):
             answer['evidence'] = [dict(file='app.c', line=2, claim='模拟协议测试')]
             return CompletedProcess(argv, 0, json.dumps(answer), '')
 
-        with contextlib.redirect_stdout(io.StringIO()), patch('ecra.review.resolve_command',
-                return_value=['synthetic-opencode']), patch('ecra.review.execute', side_effect=respond):
+        with contextlib.redirect_stdout(io.StringIO()), mock_runtime(['synthetic-opencode']), patch('ecra.review.execute', side_effect=respond):
             self.assertEqual(main(['run', '--legacy-output', '--config', str(config)]), 1)
             self.assertTrue(prompts)
             self.assertTrue(all('CLI_INITIAL' in p and str(library.resolve()) in p for p in prompts))

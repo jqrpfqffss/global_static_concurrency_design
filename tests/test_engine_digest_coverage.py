@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """A classifier change must invalidate a saved scan before review resumes."""
 
 import json
@@ -71,8 +72,8 @@ class ReviewResumeDigestTests(unittest.TestCase):
         self.project({'a.c': 'int value;void ISR(void){value++;}void Task(void){value++;}'},
                      review=dict(enabled=True, retries=0, command=['synthetic-cli']))
         self.assertEqual(run(self.root, no_review=True), 2)
-        self.out = self.root / '.ecra'
         self.cfg, self.config_file = workflow.load_config(self.root)
+        self.out = workflow.output_path(self.root, self.cfg)
 
     def test_review_and_updated_cases_reuse_scan_and_rerun_done(self):
         self.scan()
@@ -105,7 +106,7 @@ class ReviewResumeDigestTests(unittest.TestCase):
         def changed_review_only(path):
             return 'updated-review-module' if Path(path).name in REVIEW_REPORT_MODULES else original_digest(path)
 
-        with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), \
+        with mock_runtime(['synthetic-cli']), \
                 patch('ecra.review.execute', side_effect=respond), \
                 patch('ecra.cli.execute', side_effect=dependency_only):
             self.assertIn(workflow.saved_run(self.root), (1, 2))

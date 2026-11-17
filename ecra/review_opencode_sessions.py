@@ -1,4 +1,4 @@
-"""OpenCode 1.18.35's local run protocol and private maintenance API."""
+"""Probe a private local protocol before admitting any shared database access."""
 import base64
 from contextlib import closing, contextmanager
 import hashlib
@@ -15,18 +15,15 @@ import time
 from urllib.parse import urlencode
 import uuid
 
-from .report_package import sha256
 from .review_process import ReviewStop, owned_process
 from .common import write_json
 from .workspace import canonical, managed_path, no_links
+from .opencode_protocol import (AuthenticationRequired, ProtocolError, interactive_prompt,
+                                parse_version, parse_json, protocol_text)
 
 
-# Pinned to the release whose local (non-attach) run, DB override, JSONL
-# protocol and recursive delete have been checked against source and runtime.
+# Reference release for legacy test fixtures only; never an admission gate.
 VERSION = '1.18.35'
-# Sorted migration IDs from an initialized 1.18.35 database. Some migrations
-# reset session data, so a shared store must already have a compatible schema.
-MIGRATION_IDS_SHA256 = '5f943d4c5bf5c217795b8ffe3f62bfb5b20917030895ca971c00e250c92467e4'
 SESSION_ID = re.compile(r'ses_[0-9a-f]{12}[0-9A-Za-z]{14}')
 PART_TYPES = dict(text='text', tool_use='tool', step_start='step-start',
                   step_finish='step-finish', reasoning='reasoning')
@@ -36,10 +33,20 @@ REQUEST_TIMEOUT = 3
 
 class Unverifiable(ValueError):
     """Ownership, process scope or the protocol could not be proved."""
+    code = 'protocol_unverified'
 
 
 class Unavailable(OSError):
     """A verified operation may be retried without rerunning the model."""
+    code = 'startup_failed'
+
+
+class DatabaseIncompatible(Unverifiable):
+    code = 'database_incompatible'
+
+
+class DatabaseUnavailable(Unavailable):
+    code = 'database_unavailable'
 
 
 class DeleteFailed(RuntimeError):
@@ -126,36 +133,110 @@ class Runtime:
             raise ValueError('review.maintenance_timeout_seconds 必须大于 0')
         self.timeout, self.stop = timeout, stop or ReviewStop()
         self.version_verified = False
-        if len(command) != 1:
-            raise Unverifiable('数据库与会话验证需要直接调用原生 OpenCode')
-        self.exe = Path(command[0]).resolve(strict=True)
-        with self.exe.open('rb') as source:
-            magic = source.read(4)
-        if not (magic.startswith(b'MZ') if os.name == 'nt'
-                else magic in {b'\x7fELF', b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xca\xfe\xba\xbe'}):
-            raise Unverifiable('无法确认 OpenCode 原生程序')
-        self.hash = sha256(self.exe)
-        self.stat = self.exe.stat()
+        from .opencode_command import resolve_command, identity, identity_hash
+        self.command = resolve_command(command)
+        self.exe = Path(self.command[0])
+        self.entry_identity = identity(self.command)
+        self.hash = identity_hash(self.entry_identity)
+        self.context = {}
+        self.version = None
+        self.product = None
+        self.schema = None
+        self.probe_binding = None
+        self.adapter = 'local-jsonl-v1'
+        self.capabilities = dict(initialization='NOT_TESTED', authentication='AWAITING_FIRST_RUN', review='NOT_TESTED', storage='NOT_TESTED',
+                                 cleanup='NOT_TESTED', compaction='NOT_TESTED')
 
     def check_exe(self):
-        st = self.exe.stat()
-        keys = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns')
-        if any(getattr(st, k) != getattr(self.stat, k) for k in keys):
+        from .opencode_command import identity
+        if identity(self.command) != self.entry_identity:
             raise Unverifiable('OpenCode 程序在复核期间变化')
 
     @contextmanager
-    def maintenance(self, database, *, workdir, shared=False, environment=None):
+    def maintenance(self, database, *, workdir, shared=False, environment=None, scope=None, data=None):
         from .opencode_storage import database_path, isolated_environment
+        from .workspace import control_path
         database = database_path(database, shared=shared)
-        with TemporaryDirectory(prefix='m-', dir=managed_path(workdir), ignore_cleanup_errors=True) as name:
+        # CreateProcess rejects overly long current directories even when
+        # Python/Bun can open the corresponding files. Recovery adds another
+        # journal/probe level, so keep process cwd separate from diagnostics.
+        scratch = control_path('opencode-maintenance')
+        scratch.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(prefix='m-', dir=scratch, ignore_cleanup_errors=True) as name:
             cwd = Path(name)
-            source = os.environ if environment is None else environment
-            env = {k: v for k, v in source.items() if not k.upper().startswith('OPENCODE_')}
-            env = isolated_environment(cwd, cwd, database, shared=shared, environment=env)
-            env.update(OPENCODE_DISABLE_MODELS_FETCH='true', OPENCODE_DISABLE_DEFAULT_PLUGINS='true',
+            source = self.context.get('environment', os.environ) if environment is None else environment
+            env = isolated_environment(scope or self.context.get('scope', cwd), cwd, database,
+                                       shared=shared, environment=source, data=data or self.context.get('data'))
+            env.update(OPENCODE_DISABLE_MODELS_FETCH='true',
                        OPENCODE_SERVER_USERNAME='ecra', OPENCODE_SERVER_PASSWORD=uuid.uuid4().hex)
             yield Maintenance(self, cwd, env, database, shared=shared,
                               diagnostics=managed_path(workdir)/'maintenance-logs'/cwd.name)
+
+    def probe(self, maintenance):
+        """No model calls, no inherited default store, no user database commands."""
+        # No persistent trust cache. A task-local result is reusable only with
+        # unchanged credential/config bytes, credential/proxy environment and
+        # entry content. This digest is kept in memory, never a credential log.
+        inputs = {}
+        for key, name in [('XDG_DATA_HOME','opencode/auth.json'), ('XDG_CONFIG_HOME','opencode/opencode.json')]:
+            path = Path(maintenance.env[key])/name
+            inputs[key] = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+        inputs['environment'] = {k:v for k,v in maintenance.env.items()
+                                 if (re.search(r'AUTH|TOKEN|SECRET|API.?KEY|PROXY|PLUGIN', k, re.I) or k=='OPENCODE_CONFIG_CONTENT')
+                                 and k not in {'OPENCODE_SERVER_PASSWORD', 'OPENCODE_SERVER_USERNAME'}}
+        binding = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+        if self.schema is not None and binding == self.probe_binding:
+            self.check_exe()
+            return
+        self.schema = None
+        from .opencode_storage import isolated_environment
+        import shutil
+        probe = managed_path(maintenance.cwd/('probe-'+uuid.uuid4().hex))
+        probe.mkdir()
+        database = probe/'protocol.db'
+        env = isolated_environment(probe, probe, database, environment=maintenance.env)
+        # Copy only the documented standard credential file, not user trees.
+        auth = Path(maintenance.env['XDG_DATA_HOME'])/'opencode/auth.json'
+        if auth.is_file():
+            target = probe/'data/opencode/auth.json'
+            target.parent.mkdir(parents=True)
+            shutil.copyfile(auth, target)
+        source_config = Path(maintenance.env['XDG_CONFIG_HOME'])/'opencode/opencode.json'
+        if source_config.is_file():
+            target = probe/'config/opencode/opencode.json'
+            target.parent.mkdir(parents=True)
+            shutil.copyfile(source_config, target)
+        check = Maintenance(self, probe, env, database, diagnostics=maintenance.diagnostics/'probe')
+        raw = check.cli('--version')
+        self.product, self.version = parse_version(raw, check.last_stderr)
+        self.version_verified = True
+        help_stdout = check.cli('run', '--help')
+        help_text = protocol_text(help_stdout + '\n' + check.last_stderr)
+        missing = [flag for flag in ('--format', '--agent', '--model', '--file', '--title') if flag not in help_text]
+        if missing:
+            raise Unverifiable('基础复核参数能力缺失：' + ', '.join(missing))
+        # A daemon-capable runtime is not owned by the CLI Job. Until an
+        # explicit standalone contract is implemented it cannot adopt stores.
+        if '--service' in help_text or int(self.version.split('.')[0]) >= 2:
+            raise Unverifiable('此入口的独立本地运行/后台服务归属尚未验证；未访问用户数据库')
+        check.verify_path(protocol_text(check.cli('db', 'path')))
+        check.opened_database()
+        self.schema = check.schema_signature()
+        self.probe_binding = binding
+        self.capabilities.update(initialization='PASSED', review='AWAITING_FIRST_RUN', storage='PROBE_PASSED')
+        write_json(maintenance.diagnostics/'capabilities.json', self.report())
+
+    def report(self):
+        from .opencode_command import display_command
+        return dict(command=display_command(self.command), identity=self.entry_identity, product=self.product, version=self.version,
+                    adapter=self.adapter, capabilities=self.capabilities, automatic_probe_model_calls=0)
+
+    def validate_run(self, raw):
+        from .opencode_protocol import validate_run
+        sid = validate_run(raw)
+        self.capabilities['review'] = 'PASSED'
+        self.capabilities['authentication'] = 'PASSED'
+        return sid
 
 
 class Maintenance:
@@ -163,15 +244,11 @@ class Maintenance:
         self.runtime, self.cwd, self.env, self.database = runtime, cwd, env, database
         self.shared = shared
         self.diagnostics = managed_path(diagnostics or cwd/'maintenance-logs')
+        self.last_stderr = ''
 
     def _redact(self, text):
-        # Persist output, never the environment. Also scrub secrets if a launcher
-        # echoes an inherited credential or a proxy URL in an error message.
-        for key, value in self.env.items():
-            if value and re.search(r'KEY|TOKEN|SECRET|PASSWORD|AUTH', key, re.I):
-                text = text.replace(value, '<redacted>')
-        text = re.sub(r'(https?://)[^\s/@]+:[^\s/@]+@', r'\1<redacted>@', text)
-        return re.sub(r'(?i)(bearer\s+)[\w.\-]+', r'\1<redacted>', text)
+        from .opencode_protocol import redactor
+        return redactor(self.env)(text)
 
     @contextmanager
     def _operation(self, args, stage):
@@ -181,11 +258,17 @@ class Maintenance:
         target = self.diagnostics/uuid.uuid4().hex
         target.mkdir(parents=True)
         started = time.monotonic()
-        record = dict(stage=stage, argv=[self._redact(a) for a in argv],
-                      executable=str(self.runtime.exe), executable_sha256=self.runtime.hash,
+        from .opencode_command import display_command
+        record = dict(stage=stage, argv=[self._redact(a) for a in display_command(argv)],
+                      executable=str(self.runtime.exe), executable_sha256=self.runtime.entry_identity['files'][0]['sha256'],
+                      entry_identity_sha256=self.runtime.hash,
+                      product=self.runtime.product, version=self.runtime.version, adapter=self.runtime.adapter,
                       cwd=str(self.cwd), database=str(self.database), shared=self.shared,
                       timeout_seconds=self.runtime.timeout, started_at=time.time(),
-                      pid=None, first_output_seconds=None, outcome='starting')
+                      environment_paths={k:self.env.get(k) for k in ('HOME', 'USERPROFILE', 'XDG_DATA_HOME',
+                          'XDG_CONFIG_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME', 'TEMP', 'OPENCODE_DB')},
+                      pid=None, first_output_seconds=None, outcome='starting', ecra_requested_reap=False,
+                      returncode_before_reap=None, exited_before_reap=False)
         proc = None
         stdout_path, stderr_path = self.cwd/(target.name+'.out'), self.cwd/(target.name+'.err')
         try:
@@ -193,13 +276,19 @@ class Maintenance:
                 with owned_process(argv, cwd=self.cwd, env=self.env, stdout=stdout, stderr=stderr,
                                    stop=self.runtime.stop) as proc:
                     record.update(pid=proc.pid, launched_seconds=time.monotonic()-started, outcome='running')
-                    yield proc, stdout_path, stderr_path, record, started
-                    record['outcome'] = 'completed'
+                    try:
+                        yield proc, stdout_path, stderr_path, record, started
+                        record['outcome'] = 'completed'
+                    finally:
+                        record.update(returncode_before_reap=proc.poll(), exited_before_reap=proc.poll() is not None,
+                                      ecra_requested_reap=proc.poll() is None, reap_started_seconds=time.monotonic()-started)
         except BaseException as exc:
             record['outcome'] = 'cancelled' if isinstance(exc, KeyboardInterrupt) else 'failed'
             record['error'] = self._redact(str(exc))
+            record['error_code'] = getattr(exc, 'code', 'startup_failed')
             if isinstance(exc, subprocess.TimeoutExpired):
                 record['outcome'] = 'timeout'
+                record['error_code'] = 'startup_timeout'
                 raise Unavailable(f'OpenCode 维护步骤 {stage} 超时；命令 {record["argv"]}；'
                                   f'等待 {self.runtime.timeout:g} 秒；程序 {self.runtime.exe}；'
                                   f'数据库 {self.database}；详细日志 {target}') from exc
@@ -216,6 +305,13 @@ class Maintenance:
     def _observe(self, stdout, stderr, record, started):
         self.runtime.stop.check()
         self._first_output(stdout, stderr, record, started)
+        # Version/help/db/serve are noninteractive contracts. Match the known
+        # complete prompt, not arbitrary words such as “login” in model text.
+        for path in (stdout, stderr):
+            with path.open('rb') as stream:
+                raw = stream.read(65536)
+            if interactive_prompt(raw.decode('utf-8', errors='replace')):
+                raise AuthenticationRequired('OpenCode 维护阶段要求输入域账号；请使用发行版正式登录入口，诊断：' + str(self.diagnostics))
         if time.monotonic()-started >= self.runtime.timeout:
             raise subprocess.TimeoutExpired(record['argv'], self.runtime.timeout)
 
@@ -232,7 +328,7 @@ class Maintenance:
 
     def _argv(self, *args):
         self.runtime.check_exe()
-        return [str(self.runtime.exe), '--pure', *args]
+        return [*self.runtime.command, *args]
 
     def cli(self, *args):
         stage = ' '.join(args)
@@ -245,26 +341,26 @@ class Maintenance:
                     pass
             record['exit_seconds'] = time.monotonic()-started
             self._first_output(stdout, stderr, record, started)
+            self.last_stderr = stderr.read_text('utf-8-sig')
+            output = stdout.read_text('utf-8-sig')
+            if interactive_prompt(output) or interactive_prompt(self.last_stderr):
+                raise AuthenticationRequired('OpenCode 要求交互域认证；请通过发行版正式登录入口续期；诊断：' + str(self.diagnostics))
             if proc.returncode != 0:
                 detail = self._redact((stderr.read_text('utf-8', errors='replace').strip()
                                       or stdout.read_text('utf-8', errors='replace').strip())[:8192])
                 raise Unavailable(f'OpenCode 维护步骤 {stage} 失败（退出码 {proc.returncode}，'
                                   f'程序 {self.runtime.exe}，数据库 {self.database}）；'
                                   f'详细日志 {self.diagnostics}：{detail}')
-            return stdout.read_text('utf-8').strip()
+            return output.strip()
 
     def verify(self, *, initialize=False):
+        self.runtime.probe(self)
         identity = store_identity(self.database, allow_missing=initialize)
         # Even OpenCode's db path command can apply pending migrations.
         if self.shared and identity is not None:
             self.check_shared_schema(writable=initialize)
         self.runtime.check_exe()
-        if not self.runtime.version_verified:
-            version = self.cli('--version')
-            if version != VERSION:
-                raise Unverifiable(f'当前 OpenCode 版本为 {version}，数据库与会话协议需要原生 OpenCode {VERSION}')
-            self.runtime.version_verified = True
-        self.verify_path(self.cli('db', 'path'))
+        self.verify_path(protocol_text(self.cli('db', 'path')))
         return identity
 
     def verify_path(self, actual):
@@ -286,36 +382,50 @@ class Maintenance:
                 objects = conn.execute('SELECT name, type FROM sqlite_master').fetchall()
                 if not objects and writable:
                     return  # OpenCode can initialize a new or empty database.
-                tables = {name for name, kind in objects if kind == 'table'}
-                if not {'session', 'project', 'message', 'part', 'migration'}.issubset(tables):
-                    raise Unverifiable(f'OpenCode 会话数据库 {self.database} 缺少 {VERSION} 所需的会话表或迁移记录')
-                ids = [row[0] for row in conn.execute('SELECT id FROM migration ORDER BY id')]
-                if not all(isinstance(value, str) for value in ids) or (
-                        hashlib.sha256('\n'.join(ids).encode()).hexdigest() != MIGRATION_IDS_SHA256):
-                    raise Unverifiable(f'OpenCode 会话数据库 {self.database} 的迁移记录与 {VERSION} 不兼容')
+                if self.schema_signature(conn) != self.runtime.schema:
+                    raise DatabaseIncompatible(f'OpenCode 会话数据库 {self.database} 的结构或迁移记录与隔离探测库不兼容；未启动共享库命令')
         except sqlite3.Error as exc:
-            raise Unavailable(f'OpenCode 会话数据库 {self.database} 无法访问：{exc}') from exc
+            raise DatabaseUnavailable(f'OpenCode 会话数据库 {self.database} 无法访问：{exc}') from exc
+
+    def schema_signature(self, conn=None):
+        if conn is None:
+            with closing(sqlite3.connect(self.database.as_uri()+'?mode=ro', uri=True)) as reader:
+                reader.execute('PRAGMA trusted_schema=OFF')
+                reader.execute('BEGIN')
+                return self.schema_signature(reader)
+        objects = conn.execute("SELECT type,name,tbl_name,sql FROM sqlite_master "
+                               "WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").fetchall()
+        tables = {r[1] for r in objects if r[0] == 'table'}
+        if not {'session', 'project', 'message', 'part', 'migration'}.issubset(tables):
+            raise DatabaseIncompatible('数据库结构不满足本地会话协议；缺少 session/project/message/part/migration，尚未适配该存储族')
+        migrations = conn.execute('SELECT id FROM migration ORDER BY id').fetchall()
+        if not migrations or any(not isinstance(row[0], str) for row in migrations):
+            raise Unverifiable('数据库缺少有效迁移身份')
+        return hashlib.sha256(json.dumps([objects, migrations], ensure_ascii=False).encode()).hexdigest()
 
     def prepare(self):
         identity = self.verify(initialize=True)
-        raw = self.cli('db', '--format', 'json', 'PRAGMA database_list')
-        try:
-            actual, = [row['file'] for row in json.loads(raw, object_pairs_hook=_unique_json) if row['name'] == 'main']
-        except (ValueError, KeyError, TypeError) as exc:
-            raise Unverifiable('OpenCode 未报告已打开的主数据库路径') from exc
-        self.verify_path(actual)
-        if not self.shared:
-            self.checkpoint()
+        self.opened_database()
+        self.runtime.capabilities['storage'] = 'PASSED'
+        # Compaction is optional, never part of the admission of a review.
         opened = store_identity(self.database)
         if identity is not None and opened != identity:
             raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
         return opened
 
+    def opened_database(self):
+        raw = self.cli('db', '--format', 'json', 'PRAGMA database_list')
+        try:
+            actual, = [row['file'] for row in parse_json(raw) if row['name'] == 'main']
+        except (ValueError, KeyError, TypeError) as exc:
+            raise Unverifiable('OpenCode 未报告已打开的主数据库路径') from exc
+        self.verify_path(actual)
+
     def checkpoint(self):
         if self.shared:
             raise Unverifiable('强制 WAL 写回仅适用于 ECRA 管理的独立会话库')
         raw = self.cli('db', '--format', 'json', 'PRAGMA wal_checkpoint(TRUNCATE)')
-        if json.loads(raw, object_pairs_hook=_unique_json) != [{'busy': 0, 'log': 0, 'checkpointed': 0}]:
+        if parse_json(raw) != [{'busy': 0, 'log': 0, 'checkpointed': 0}]:
             raise Unavailable('OpenCode 独立会话库的 WAL 未完成写回')
 
     def compact(self):
@@ -326,6 +436,7 @@ class Maintenance:
             raise Unverifiable('压缩仅适用于 ECRA 管理的独立会话库')
         self.cli('db', 'VACUUM')
         self.checkpoint()
+        self.runtime.capabilities['compaction'] = 'PASSED'
 
     @contextmanager
     def server(self):
@@ -343,8 +454,10 @@ class Maintenance:
                 stream.seek(0)
                 match = listen.search(stream.read(65536))
                 if match and (port := int(match[1])) <= 65535:
-                    api = API(port, self.env['OPENCODE_SERVER_PASSWORD'], alive=lambda: proc.poll() is None)
+                    api = API(port, self.env['OPENCODE_SERVER_PASSWORD'], alive=lambda: proc.poll() is None,
+                              version=self.runtime.version)
                     api.verify()
+                    self.runtime.capabilities['cleanup'] = 'API_VERIFIED'
                     record['ready_seconds'] = time.monotonic()-started
                     yield api
                     return
@@ -354,10 +467,11 @@ class Maintenance:
 
 
 class API:
-    def __init__(self, port, password, *, alive=None):
+    def __init__(self, port, password, *, alive=None, version=VERSION):
         self.port = port
         self.authorization = 'Basic ' + base64.b64encode(f'ecra:{password}'.encode()).decode()
         self.alive = alive
+        self.version = version
 
     def request(self, method, path, cwd=None, *, allow_missing=False):
         if self.alive is not None and not self.alive():
@@ -402,7 +516,7 @@ class API:
         except (OSError, http.client.HTTPException) as exc:
             raise Unavailable('无法验证 OpenCode 回环服务认证') from exc
         health = self.request('GET', '/global/health')
-        if health != dict(healthy=True, version=VERSION):
+        if health != dict(healthy=True, version=self.version):
             raise Unverifiable('OpenCode 回环服务身份或版本不匹配')
         spec = self.request('GET', '/doc')
         paths = spec.get('paths', {}) if isinstance(spec, dict) else {}
@@ -433,7 +547,7 @@ class API:
         directory = info.get('directory') if isinstance(info, dict) else None
         if (not isinstance(directory, str) or not Path(directory).is_absolute()
                 or info.get('id') != sid or info.get('title') != title or canonical(directory) != cwd
-                or info.get('version') != VERSION
+                or info.get('version') != self.version
                 or info.get('parentID') is not None or info.get('workspaceID') is not None):
             raise Unverifiable('会话身份、工作目录或父会话不匹配')
         if project_id is None:

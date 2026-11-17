@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Queue/repair/process regression tests with explicitly synthetic responses."""
 import copy
 import json
@@ -30,7 +31,7 @@ class IntegrityTests(unittest.TestCase):
         self.cfg = dict(review=dict(enabled=True, retries=0, workers=1), analysis={})
 
     def run_review(self, respond, mode='run', progress=lambda _: None, on_result=None):
-        with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch(
+        with mock_runtime(['synthetic-cli']), patch(
                 'ecra.review.execute', side_effect=respond):
             return review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan',
                               progress, on_result, mode=mode)
@@ -65,8 +66,8 @@ class IntegrityTests(unittest.TestCase):
                 for argv, kwargs in calls[1:]:
                     self.assertNotIn('--file', argv)
                     self.assertIn('FORMAT_FIX', argv[-1])
-                    self.assertIn('不要重新分析或读取源码', argv[-1])
-                    self.assertIn('"reason": ""', argv[-1])
+                    self.assertIn('不要重新分析或读取源码', kwargs['input'])
+                    self.assertIn('"reason": ""', kwargs['input'])
                     permissions = json.loads(kwargs['env']['OPENCODE_PERMISSION'])
                     self.assertEqual(permissions, {'*': 'deny'})
                     self.assertNotIn('project_evidence_path', argv[-1])

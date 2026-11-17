@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Real AST fixtures and synthetic reviewer answers for stale value writeback."""
 import json
 import os
@@ -77,7 +78,7 @@ class StaleWritebackTests(unittest.TestCase):
             value['summary'] = answer_for(value['status'], variable=variable.get('canonical_path', variable['qualified_name']))['summary']
             return CompletedProcess([], 0, json.dumps(value, ensure_ascii=False), '')
 
-        with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
+        with mock_runtime(['synthetic-cli']), patch('ecra.review.execute', side_effect=respond):
             self.review_out = self.root/'.ecra'/case
             row = review_all(self.root, self.review_out, cfg, facts, report, 'scan', lambda _: None)[0]
         return row, calls, packet

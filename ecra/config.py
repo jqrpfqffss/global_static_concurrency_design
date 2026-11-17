@@ -433,4 +433,13 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
     command = cfg["review"].get("command", ["opencode"])
     if not isinstance(command, list) or not command or any(not isinstance(x, str) for x in command):
         raise ValueError("review.command 必须是非空参数数组，不能是 shell 命令字符串")
+    runtime = cfg['review'].get('runtime', {})
+    if not isinstance(runtime, dict) or set(runtime) - {'auth_file', 'config_file', 'auth_plugins'}:
+        raise ValueError('review.runtime 仅支持 auth_file、config_file、auth_plugins')
+    for key in ('auth_file', 'config_file'):
+        if key in runtime and (not isinstance(runtime[key], str) or any(c in runtime[key] for c in '\r\n\0')):
+            raise ValueError('review.runtime.' + key + ' 必须为文件路径字符串')
+    plugins = runtime.get('auth_plugins', [])
+    if not isinstance(plugins, list) or any(not isinstance(x, str) or not x.strip() for x in plugins):
+        raise ValueError('review.runtime.auth_plugins 必须为明确授权的认证插件数组')
     return cfg, path

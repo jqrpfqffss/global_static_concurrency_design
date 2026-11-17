@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 import contextlib
 import copy
 import io
@@ -664,7 +665,7 @@ class GitIntegrationTests(unittest.TestCase):
             seen.append(True)
             # Deliberate protocol-only failure; no model is executed.
             return subprocess.CompletedProcess(argv, 1, '', '仅校验读取权限')
-        with contextlib.redirect_stdout(io.StringIO()), patch('ecra.review.resolve_command', return_value=['fake-review']), patch('ecra.review.execute', side_effect=check_permissions):
+        with contextlib.redirect_stdout(io.StringIO()), mock_runtime(['fake-review']), patch('ecra.review.execute', side_effect=check_permissions):
             review_all(self.root, self.root/'.ecra', cfg, facts, report, report['fingerprint'])
         self.assertTrue(seen)
 

@@ -109,12 +109,20 @@ class FakeOpenCode:
         class Runtime:
             exe = Path(sys.executable)
             hash = 'fake-binary'
+            command = list(_command)
+            product, version = 'SYNTHETIC_TEST_ONLY', VERSION
+
+            def report(self):
+                return {'test_only': True}
+
+            def validate_run(self, raw):
+                pass
 
             def check_exe(self):
                 pass
 
             @contextmanager
-            def maintenance(self, database, *, workdir, shared=False, environment=None):
+            def maintenance(self, database, *, workdir, shared=False, environment=None, **context):
                 yield Maintenance(database, shared)
 
         class Maintenance:
@@ -127,7 +135,7 @@ class FakeOpenCode:
                     raise Unverifiable('unsupported test version')
 
             def prepare(self):
-                self.verify()
+                # This flag describes optional cleanup, not basic admission.
                 self.store.touch()
                 if not self.shared:
                     self.checkpoint()
@@ -258,6 +266,29 @@ class CleanupTests(unittest.TestCase):
 
     def deleted(self):
         return Counter(self.fake.deleted)
+
+    def test_insufficient_balance_stops_retry_and_preserves_pending(self):
+        from ecra.review import ReviewExecutionError
+        from ecra.workflow import read_queue
+        self.cfg['review']['retries'] = 2
+        calls = []
+        def quota(argv, **kw):
+            calls.append(argv)
+            error = dict(type='error', error=dict(name='APIError',
+                data=dict(statusCode=429, message='account is suspended due to insufficient balance')))
+            return subprocess.CompletedProcess(argv, 1, json.dumps(error), '')
+        with self.assertRaises(ReviewExecutionError):
+            self.review(4, respond=quota)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual([r['state'] for r in read_queue(self.out)], ['TECH_FAILED','PENDING','PENDING','PENDING'])
+
+    def test_explicit_batch_keeps_unselected_candidates_pending(self):
+        self.cfg['review']['finding_ids'] = ['F1', 'F3']
+        rows = self.review(5)
+        self.assertEqual([r['state'] for r in rows], ['PENDING','DONE','PENDING','DONE','PENDING'])
+        count = len(self.fake.spawned)
+        self.review(5, mode='review-resume')
+        self.assertEqual(len(self.fake.spawned), count)
 
     def test_common_initialization_failure_is_one_task_error_and_resumes(self):
         from ecra.review import ReviewInitializationError
@@ -545,7 +576,7 @@ class CleanupTests(unittest.TestCase):
         self.assertFalse(self.fake.deleted)
         self.assertEqual(len(self.fake.requests), 1)
 
-    def test_unsupported_binary_does_not_change_review_transport(self):
+    def test_unsupported_cleanup_does_not_change_review_transport(self):
         self.fake.unsupported = True
         manual = self.fake.add_session(self.fake.manual)
         row, = self.review()
@@ -553,7 +584,9 @@ class CleanupTests(unittest.TestCase):
         self.assertFalse(self.fake.requests)
         self.assertTrue(self.fake.spawned[0][0].is_relative_to(self.out/'opencode'))
         self.assertEqual(set(self.fake.stores[self.fake.manual]), {manual})
-        self.assertTrue(any('unsupported test version' in log for log in self.logs))
+        capability = read_json(self.out/'review/opencode-capabilities.json')
+        self.assertIn('unsupported test version', capability['cleanup_error'])
+        self.assertEqual(records(self.out)[0]['cleanup_state'], 'SKIPPED_UNVERIFIABLE')
 
     def test_failed_and_interrupted_calls_are_retained_on_resume_and_retry(self):
         row, = self.review(respond=lambda *a, **kw: self.fake.model(*a, **kw, transport_error=True))
@@ -741,6 +774,7 @@ class NativeCleanupTests(unittest.TestCase):
         self.logs = io.StringIO()
         for manager in (
             patch('ecra.review.resolve_command', return_value=[sys.executable]),
+            patch('ecra.review_opencode_sessions.Runtime', side_effect=self.fake.runtime),
             patch('ecra.review_session_cleanup.Runtime', side_effect=self.fake.runtime),
             patch('ecra.review.execute', side_effect=self.model),
             redirect_stdout(self.logs),

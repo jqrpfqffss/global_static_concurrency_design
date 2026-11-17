@@ -26,6 +26,8 @@ class ReviewStop:
 @contextmanager
 def owned_process(argv, *, cwd, env, stdout, stderr, stdin=None, stop=None):
     """Contain each OpenCode process and release its helpers before returning."""
+    from .opencode_command import launch_argv
+    argv, env = launch_argv(argv, env)
     with ExitStack() as stack:
         if os.name == 'nt':
             from .studio.process_budget import ProcessBudget
@@ -64,6 +66,9 @@ def owned_process(argv, *, cwd, env, stdout, stderr, stdin=None, stop=None):
 
 def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_path, on_exit=None):
     stop.check()
+    from .opencode_protocol import redactor
+    from .opencode_command import display_command
+    scrub = redactor(env)
     with ExitStack() as stack:
         stdout = stack.enter_context(stdout_path.open('wb'))
         stderr = stack.enter_context(stderr_path.open('wb'))
@@ -79,18 +84,39 @@ def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_pa
                 deadline = time.monotonic() + timeout
                 while proc.poll() is None:
                     stop.check()
+                    from .opencode_protocol import AuthenticationRequired, interactive_prompt
+                    for path in (stdout_path, stderr_path):
+                        with path.open('rb') as output:
+                            prefix = output.read(65536).decode('utf-8', errors='replace')
+                        if interactive_prompt(prefix):
+                            raise AuthenticationRequired('OpenCode 调用要求交互域认证；本批次停止继续派发，请使用发行版正式登录入口')
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
-                        raise subprocess.TimeoutExpired(argv, timeout)
+                        raise subprocess.TimeoutExpired(display_command(argv), timeout)
                     try:
                         proc.wait(timeout=min(remaining, .1))
                     except subprocess.TimeoutExpired:
                         continue
-            except (KeyboardInterrupt, subprocess.TimeoutExpired) as exc:
+            except BaseException as exc:
                 interrupted = exc
         if on_exit is not None:
             on_exit()
-        if interrupted is not None:
-            raise interrupted
-    return subprocess.CompletedProcess(argv, proc.returncode, stdout_path.read_text('utf-8', errors='replace'),
-                                       stderr_path.read_text('utf-8', errors='replace'))
+    decoded = []
+    for path in (stdout_path, stderr_path):
+        raw = path.read_bytes()
+        try:
+            text = raw.decode('utf-8-sig')
+        except UnicodeError:
+            from .opencode_protocol import ProtocolError
+            interrupted = interrupted or ProtocolError('OpenCode 重定向输出不是有效 UTF-8；已保留容错显示的脱敏诊断，不能用于协议判断')
+            text = raw.decode('utf-8', errors='replace')
+        safe = scrub(text)
+        if safe != text or interrupted is not None:
+            path.write_text(safe, encoding='utf-8')
+        decoded.append(safe)
+    if interrupted is not None:
+        raise interrupted
+    from .opencode_protocol import AuthenticationRequired, interactive_prompt
+    if any(interactive_prompt(text) for text in decoded):
+        raise AuthenticationRequired('OpenCode 返回了交互域认证提示；本批次停止继续派发')
+    return subprocess.CompletedProcess(argv, proc.returncode, *decoded)

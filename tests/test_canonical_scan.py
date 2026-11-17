@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Real one-TU extraction and publication/recovery failure boundaries."""
 import contextlib
 import io
@@ -226,7 +227,7 @@ class CanonicalScanTests(unittest.TestCase):
             value['evidence'] = [dict(file='main.c', line=1, claim='协议测试使用归档源码。')]
             return CompletedProcess(argv, 0, json.dumps(value), '')
 
-        with (patch('ecra.review.resolve_command', return_value=['test-review']),
+        with (mock_runtime(['test-review']),
               patch('ecra.review.execute', side_effect=answer) as execute,
               contextlib.redirect_stdout(io.StringIO())):
             self.assertIn(saved_run(self.root, self.config, _out=out), (0, 1, 2))
@@ -333,12 +334,15 @@ class CanonicalScanTests(unittest.TestCase):
         self.assertLess(len(str(alias)),len(str(actual)))
 
     def test_native_benchmark_resolves_new_pointer_and_audits_sqlite_without_html(self):
-        import subprocess,sys
+        import subprocess,sys,os
         evidence=self.base/'benchmark'
         command=[sys.executable,'-B',str(Path(__file__).resolve().parents[1]/'scripts/benchmark_project_scan.py'),
             '--project',str(self.root),'--config',str(self.config),'--scan-mode','full','--evidence',str(evidence)]
-        result=subprocess.run(command,capture_output=True,encoding='utf-8',errors='replace',timeout=120)
-        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        env=dict(os.environ,ECRA_DATA_ROOT=str(self.data))
+        result=subprocess.run(command,env=env,capture_output=True,encoding='utf-8',errors='replace',timeout=120)
+        console=evidence/'console.log'
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr+
+                         (console.read_text(encoding='utf-8',errors='replace') if result.returncode and console.is_file() else ''))
         receipt=read_json(evidence/'execution.json')
         self.assertTrue(receipt['complete']);self.assertTrue(receipt['artifact_audit']['passed'])
         out=Path(receipt['output'])
@@ -346,6 +350,6 @@ class CanonicalScanTests(unittest.TestCase):
         measured=receipt['seconds'];receipt['complete']=False
         from ecra.common import write_json
         write_json(evidence/'execution.json',receipt)
-        resumed=subprocess.run([*command,'--audit-saved'],capture_output=True,encoding='utf-8',errors='replace',timeout=120)
+        resumed=subprocess.run([*command,'--audit-saved'],env=env,capture_output=True,encoding='utf-8',errors='replace',timeout=120)
         self.assertEqual(resumed.returncode,0,resumed.stdout+resumed.stderr)
         self.assertEqual(read_json(evidence/'execution.json')['seconds'],measured)

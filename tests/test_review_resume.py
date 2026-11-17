@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Exercise the committed AI ledger through a real static scan and Studio API."""
 import contextlib
 from collections import Counter
@@ -47,7 +48,7 @@ class ReviewResumeTests(unittest.TestCase):
 
     def model(self, respond=None):
         stack = contextlib.ExitStack()
-        stack.enter_context(patch('ecra.review.resolve_command', return_value=['synthetic-review-transport']))
+        stack.enter_context(mock_runtime(['synthetic-review-transport']))
         stack.enter_context(patch('ecra.review.execute', side_effect=respond or self.response))
         stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
         return stack
@@ -404,7 +405,7 @@ def crash_driver(stage, config, journal):
         if stage in {'after-commit', 'parallel'}:
             os._exit(42)
 
-    with (patch('ecra.review.resolve_command', return_value=['synthetic-review-transport']),
+    with (mock_runtime(['synthetic-review-transport']),
           patch('ecra.review.execute', side_effect=invoke), patch('ecra.review.parse_answer', side_effect=validate),
           patch('ecra.scan_persistence.commit_review_result', side_effect=commit)):
         saved_run(root, config)

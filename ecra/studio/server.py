@@ -228,7 +228,12 @@ def _create_app(data_root, *, token, authority, startup):
     @app.get('/api/bootstrap')
     def bootstrap():
         from .sample import sample_info
+        import sys
+        import ecra
+        package = managed_root().parent/'VERSION.txt'
         return dict(product='ECRA Studio', tool_root=str(managed_root().parent), data_root=str(data), protocol=1,
+            runtime=dict(python=sys.executable, module=str(Path(ecra.__file__).resolve()),
+                         package_sha256=hashlib.sha256(package.read_bytes()).hexdigest() if package.is_file() else None),
             data_root_source=startup['source'], preference_warning=startup['warning'],
             sample=sample_info(),
             scan_pipeline='SQLITE_NATIVE_SCAN',
@@ -376,8 +381,16 @@ def _create_app(data_root, *, token, authority, startup):
     def ai_records(scan_id: str, offset: int=0, limit: int=50, outcome: str='', search: str='',
                    revision: int | None=None, finding_id: str=''):
         from ..scan_persistence import ai_page
-        return ai_page(scan_path(scan_id),offset,limit,outcome=outcome,search=search,revision=revision,finding_id=finding_id,
-                       include_progress=not finding_id)
+        out = scan_path(scan_id)
+        result = ai_page(out,offset,limit,outcome=outcome,search=search,revision=revision,finding_id=finding_id,
+                         include_progress=not finding_id)
+        from ..common import read_json
+        for name, key in [('opencode-capabilities.json', 'opencode'), ('initialization-error.json', 'initialization_error'),
+                          ('configuration-error.json', 'configuration_error')]:
+            path = no_links(out/'review'/name)
+            if path.is_file():
+                result[key] = read_json(path)
+        return result
 
     @app.get('/api/scans/{scan_id}/ai-artifact')
     def ai_artifact(scan_id: str, name: str, offset: int=0, limit: int=16384, finding_id: str=''):
@@ -992,6 +1005,15 @@ def _create_app(data_root, *, token, authority, startup):
                                preset='manual',peak_gib=saved['budget_bytes']/1024**3,
                                workers=saved.get('resource_policy',{}).get('workers',1)),
                            multicore=json.loads((folder/'multicore.json').read_text('utf-8')) if saved.get('mode')=='multicore' else None)
+
+    @app.post('/api/profiles/opencode-check')
+    def profile_opencode_check(payload: dict):
+        from ..config import load_config, configured_project_root
+        from ..opencode_check import check
+        path = profile_path(payload['project_id'], payload['profile_id'])
+        root = configured_project_root(path)
+        cfg, _ = load_config(root, path)
+        return check(cfg['review'], project=root)
 
     @app.post('/api/profiles/check')
     def check_profile(payload: dict):

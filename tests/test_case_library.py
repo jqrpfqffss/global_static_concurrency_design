@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Exercise the actual OpenCode input boundary, not just a prompt constant."""
 import copy
 import fnmatch
@@ -58,7 +59,7 @@ class CaseLibraryTests(unittest.TestCase):
             return CompletedProcess(argv, 0, json.dumps(dict(type='text', part=dict(
                 text=json.dumps(next(responses), ensure_ascii=False)))), '')
 
-        with patch('ecra.review.resolve_command', return_value=['synthetic-opencode']), patch(
+        with mock_runtime(['synthetic-opencode']), patch(
                 'ecra.review.execute', side_effect=respond):
             return review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan',
                               progress=self.messages.append, mode=mode,
@@ -178,7 +179,7 @@ class CaseLibraryTests(unittest.TestCase):
         self.assertFalse((self.root / 'config' / 'concurrency_cases.md').exists())
 
     def test_context_path_fallback_uses_actual_config_directory(self):
-        with patch('ecra.review.resolve_command', return_value=['synthetic-opencode']), patch(
+        with mock_runtime(['synthetic-opencode']), patch(
                 'ecra.review.execute', return_value=CompletedProcess([], 0, json.dumps(answer_for()), '')):
             row = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan',
                 progress=self.messages.append, review_context_path=self.config.with_name('review_context.md'))[0]

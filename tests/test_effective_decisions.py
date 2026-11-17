@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Static risk must survive inconclusive or unfinished semantic reviews."""
 import copy
 import contextlib
@@ -181,7 +182,7 @@ class ExportTests(unittest.TestCase):
                                             variable=packet['variable'].get('canonical_path', packet['variable']['qualified_name']))
                         return CompletedProcess([], 1, '', 'synthetic transport failure') if mode == 'TECH_FAILED' else (
                             CompletedProcess([], 0, json.dumps(answer), ''))
-                    with patch('ecra.review.resolve_command', return_value=['synthetic-cli']), patch(
+                    with mock_runtime(['synthetic-cli']), patch(
                             'ecra.review.execute', side_effect=respond) as execute:
                         reviews = review_all(self.root, out, config, facts, report, 'scan', lambda _: None)
                         if mode == 'OFF':

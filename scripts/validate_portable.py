@@ -128,7 +128,10 @@ class Acceptance:
         self.bundle, self.work = bundle, work
         work.mkdir(parents=True, exist_ok=False)
         self.records = []
-        self.report = dict(bundle=str(bundle), commands=self.records, result='RUNNING', opencode='NOT_TESTED')
+        self.report = dict(bundle=str(bundle), commands=self.records, result='RUNNING', opencode='NOT_TESTED',
+            opencode_acceptance=dict(real_cli='NOT_TESTED', real_model='NOT_TESTED',
+                required_project='NOT_TESTED', external_shared_database='NOT_TESTED',
+                note='Package self-checks do not certify OpenCode. Run validate_opencode_project.py against this package with explicit CLI/model/checkpoint.'))
         self.env = os.environ.copy()
         windows = Path(self.env.get('SystemRoot', r'C:\Windows'))
         self.env['PATH'] = os.pathsep.join(map(str, [bundle/'runtime', bundle/'tools/cmake/bin',

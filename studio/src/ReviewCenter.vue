@@ -14,6 +14,9 @@ const profiles=ref<any[]>([]), profile=ref(''), page=ref<any>(null), offset=ref(
 const outcome=ref(''),search=ref(''),source=ref<any>(null)
 const appliedSearch=ref(''), pollError=ref(''),confirmAll=ref(false),starting=ref(false)
 const progress=computed(()=>page.value?.progress)
+const availability=ref<any>(null),checking=ref(false)
+const runtime=computed(()=>availability.value||page.value?.opencode)
+async function checkOpenCode(){if(checking.value)return;checking.value=true;error.value='';try{const p=profiles.value.find(p=>p.id===profile.value);if(!p)throw Error('请选择复核配置');availability.value=await api('/profiles/opencode-check','POST',{project_id:p.project_id,profile_id:p.id});if(!availability.value.ready)error.value=availability.value.error}catch(e:any){error.value=e.message}finally{checking.value=false}}
 const percentage=computed(()=>progress.value?.total?(100*progress.value.done/progress.value.total).toFixed(1):'0.0')
 const groups=[['confirmed','确认风险'],['likely','疑似风险'],['safe','确认安全 / 误报'],['unresolved','待复核 / 无法判断']]
 const names:Record<string,string>={PENDING:'等待复核',RUNNING:'正在复核',DONE:'已通过答复与收据校验',TECH_FAILED:'技术失败',STALE:'证据已失效',CONFIRMED:'OpenCode确认存在风险',LIKELY:'OpenCode认为可能有风险',FALSE_POSITIVE:'OpenCode确认静态误报',REVIEWED_SAFE:'OpenCode确认条件下安全',NEED_MORE_CONTEXT:'需要补充证据'}
@@ -29,7 +32,7 @@ async function refresh(background=false){
     let value=await api(`/scans/${props.scan}/ai?`+params)
     if(mine!==pageRequest)return
     pollError.value=''
-    if(value.unchanged)return
+    if(value.unchanged){page.value={...page.value,opencode:value.opencode,initialization_error:value.initialization_error,configuration_error:value.configuration_error};return}
     if(offset.value&&offset.value>=value.total){
       offset.value=value.total?Math.floor((value.total-1)/50)*50:0
       params.set('offset',String(offset.value));params.delete('revision')
@@ -62,6 +65,12 @@ onUnmounted(()=>{clearInterval(timer);pageRequest++})
   <div class="records-page ai-center"><h1>OpenCode 逐项复核</h1><p>静态分类、AI 答复和人工确认分别保留。打开本页不会调用模型或重新提取 TU。</p><div v-if="error" class="banner error" role="alert">{{error}}</div>
   <p v-if="!canReview" class="banner warning">归档模式缺少本机检查点或原源码，不能重新复核；可查看已有答复与收据。</p><section class="ai-controls"><details :open="configurationOpen" @toggle="configurationOpen=($event.target as HTMLDetailsElement).open"><summary>复核配置与执行说明</summary>
     <label>复核配置<select v-model="profile" aria-label="OpenCode复核配置"><option v-for="p in profiles" :value="p.id">{{p.name}} · {{p.project_root}} · {{p.id.slice(0,8)}}</option></select></label>
+    <button :disabled="checking||!profile" @click="checkOpenCode">{{checking?'正在检查入口与隔离存储…':'检查 OpenCode（不调用模型）'}}</button>
+    <p v-if="runtime">{{runtime.product||'发行版待识别'}} {{runtime.version||''}} · 基础复核：{{runtime.capabilities?.review||'NOT_TESTED'}} · 存储：{{runtime.capabilities?.storage||'NOT_TESTED'}} · 清理：{{runtime.capabilities?.cleanup||'NOT_TESTED'}}</p>
+    <p v-if="runtime" class="identity">实际入口：{{runtime.command?.join(' ')}}<br/>{{runtime.notice||''}}</p>
+    <p v-if="runtime?.cleanup_error" class="banner warning">清理未完成，会话已保留：{{runtime.cleanup_error}}</p>
+    <p v-if="page?.initialization_error" class="banner error" role="alert">{{page.initialization_error.error}}；未派发项保持待复核。</p>
+    <p v-if="page?.configuration_error" class="banner error" role="alert">{{page.configuration_error.error}}</p>
     <p>使用该配置中的 command、provider/model、Worker、超时和重试设置。发起后先验证原输入闭包；模型或工具不可用会记录“技术失败”。</p>
     </details><ReviewMaterials/><div class="actions"><button class="primary" :disabled="starting||!canReview||!profile||!(progress?.pending||progress?.tech_failed)" @click="start('review-resume')">继续复核剩余项</button><button :disabled="starting||!canReview||!profile||!progress?.total" @click="confirmAll=true">重新复核全部</button><button :disabled="starting||!canReview||!profile||!progress?.tech_failed" @click="start('review-failed')">仅重试技术失败</button><button @click="emit('tasks')">任务日志与安全停止</button></div>
   </section>

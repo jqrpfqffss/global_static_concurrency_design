@@ -1,3 +1,4 @@
+from tests.review_fixtures import mock_runtime
 """Synthetic transport/citation checks, not real model reasoning acceptance."""
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
@@ -72,7 +73,7 @@ class ArchivedReviewSourceTests(unittest.TestCase):
             self.assertNotIn('*.c',permissions['read'])
             self.assertNotIn('*app.c',permissions['read'])
             return CompletedProcess(argv,0,json.dumps(answer,ensure_ascii=False),'')
-        with patch('ecra.review.resolve_command',return_value=['synthetic-test-executor']),patch('ecra.review.execute',side_effect=respond):
+        with mock_runtime(['synthetic-test-executor']),patch('ecra.review.execute',side_effect=respond):
             rows=review_all(self.root,self.out,cfg,self.facts,self.report,'scan',progress=lambda text:None)
         self.assertEqual([row['state'] for row in rows],['DONE','DONE'],[(r['finding_id'],r.get('error')) for r in rows])
         for row in rows:
@@ -110,8 +111,10 @@ class ArchivedReviewSourceTests(unittest.TestCase):
     def test_non_git_project_exact_read_paths_also_match_global_worktree_root(self):
         import os
         document=self.out/'review/case-library/exact.md'
+        # Fixtures live under the checkout. The production isolated GIT_DIR
+        # makes OpenCode use the global worktree despite that ancestor .git.
         rules=json.loads(_review_env([],reference_paths=[document],root=self.root,
-            archived_sources_only=True)['OPENCODE_PERMISSION'])['read']
+            archived_sources_only=True, environment={'GIT_DIR':str(self.root/'private-no-git')})['OPENCODE_PERMISSION'])['read']
         relative=os.path.relpath(document.resolve(),Path(self.root.resolve().anchor))
         self.assertEqual(rules[relative],'allow')
         self.assertEqual(rules[Path(relative).as_posix()],'allow')

@@ -1,4 +1,30 @@
 """Invented protocol payloads ONLY for tests, never model or project evidence."""
+from contextlib import contextmanager
+from unittest.mock import patch
+
+
+@contextmanager
+def mock_runtime(command):
+    """Explicit boundary for archive/semantic tests that do not test a CLI."""
+    class SyntheticRuntime:
+        product, version = 'SYNTHETIC_TEST_ONLY', '0.0.0'
+
+        def __init__(self):
+            self.command = command
+
+        def report(self):
+            return {'test_only': True}
+
+        def check_exe(self):
+            pass
+
+        def validate_run(self, raw):
+            pass  # Wire validation is exercised separately with real CLI tests.
+
+    with patch('ecra.review.resolve_command', return_value=command) as resolved, \
+         patch('ecra.review.initialize_runtime', return_value=SyntheticRuntime()):
+        yield resolved
+
 def structured_fields(status='CONFIRMED', review_type='VARIABLE'):
     unknown = status in {'NEED_MORE_CONTEXT', 'LIKELY'}
     safe = status in {'REVIEWED_SAFE', 'FALSE_POSITIVE'}

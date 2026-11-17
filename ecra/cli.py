@@ -929,7 +929,7 @@ def main(argv=None):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="STM32 全局/static 清单、读写调用链与 OpenCode 并发复核")
-    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "review", "review-resume", "review-failed", "report", "status"], default="run",
+    parser.add_argument("command", nargs="?", choices=["run", "init", "doctor", "opencode-check", "review", "review-resume", "review-failed", "report", "status"], default="run",
                         help='run 全流程；review-resume 继续未完成项；review 重跑全部疑似/未知；review-failed 仅重跑技术失败；report 刷新报告；status 查看进度；doctor 环境检查')
     parser.add_argument("--project", type=Path, help="临时覆盖 semantics.yaml 中的 project.root")
     parser.add_argument("--config", help="显式配置文件路径；正常使用唯一的 config/semantics.yaml")
@@ -964,8 +964,8 @@ def _command(args, scopes):
         initialize(selection['root'])
         if args.scan_mode is not None and args.command not in {'run', 'doctor'}:
             raise ValueError('--scan-mode 仅用于 run/doctor；恢复命令沿用已保存范围')
-        if args.json and args.command != 'status':
-            raise ValueError('--json 仅用于 status')
+        if args.json and args.command not in {'status', 'opencode-check'}:
+            raise ValueError('--json 仅用于 status 或 opencode-check')
         if args.review_safe_sample < 0:
             raise ValueError('--review-safe-sample 必须是非负整数')
         if args.review_shared_sample < 0:
@@ -979,6 +979,12 @@ def _command(args, scopes):
             root = args.project.resolve() if args.project else configured_project_root(config_path)
             if not root.is_dir():
                 raise ValueError(f"工程目录不存在: {root}")
+        if args.command == 'opencode-check':
+            from .opencode_check import check
+            cfg, _ = load_config(root, config_path)
+            result = check(cfg['review'], project=root)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result['ready'] else 1
         if args.command in {'review', 'review-resume', 'review-failed', 'report', 'status'}:
             from .workflow import saved_run, status
             if args.no_review:
