@@ -28,6 +28,9 @@ JOURNAL = 'ownership.sqlite3'
 
 
 def compatible_review_implementation(hashed):
+    # Exact direct-run/diagnostic change: prompts and archive validation are unchanged.
+    if hashed == '381daeb159bdf41ffe3407331b1637854bd50240ac78e70d0c766321c189454c':
+        hashed = 'cca8ecb58791f29718767005ab024b40a0511618f8ab71f396f407494c551a70'
     # This exact change touches launch/storage validation, not static facts or model prompts.
     if hashed in {'ff8c4bb0347c98c4e06aeecd9afa8ed95f6feebe3aa880d5058a66495ad40888',
                   '13eaa88dbe466e7c15a20c359d7eef810c4b54f319a07888bedfdc1e553ebde2',
@@ -99,10 +102,12 @@ class Run:
         self.path.mkdir(mode=0o700)
         self.resources.enter_context(DataActivity(self.path, exclusive=True))
         self.database, self.shared = storage.database, storage.shared
-        if storage.identity is None:
-            storage.prepare(self.runtime)
+        self.storage = storage
         self.identity = storage.identity
-        self.check_store()
+        if getattr(storage, 'identity_error', None):
+            raise Unverifiable(storage.identity_error)
+        if self.identity is not None:
+            self.check_store()
         self.binding.update(database=str(self.database), shared=self.shared)
         with self.connect() as conn:
             conn.executescript(SCHEMA)
@@ -134,6 +139,8 @@ class Run:
 
     def check_store(self):
         self.runtime.check_exe()
+        if self.identity is None:
+            raise Unverifiable('OpenCode 数据库身份待绑定；保留会话')
         if store_identity(self.database) != self.identity:
             raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
 
@@ -142,7 +149,8 @@ class Run:
                                         environment=getattr(self.runtime, 'context', {}).get('environment', self.environment))
 
     def register(self, request, record, cwd):
-        self.check_store()
+        if self.identity is not None:
+            self.check_store()
         invocation = Invocation(self, uuid.uuid4().hex)
         directory = Path(cwd).resolve()
         # Model and maintenance processes disable discovery of external Git dirs.
@@ -151,7 +159,8 @@ class Run:
             conn.execute('INSERT INTO calls VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?)',
                          (invocation.id, request, record['finding_id'], record['number'], record['stage'],
                           canonical(directory), project_id, record['stdout_file'],
-                          'RUNNING', 'PENDING', 'WAITING_FOR_ARCHIVE', ''))
+                          'RUNNING', 'PENDING', 'WAITING_FOR_ARCHIVE',
+                          '数据库身份待绑定' if self.identity is None else ''))
         return invocation
 
     def finish(self, invocation, stdout, hashed):
@@ -159,6 +168,17 @@ class Run:
         if not invocation.ended:
             problem = '无法确认原 OpenCode 进程已结束'
         with self.connect() as conn:
+            if not problem:
+                try:
+                    if self.identity is None:
+                        self.identity = self.storage.bind_identity()
+                        if self.storage.identity_error:
+                            raise Unverifiable(self.storage.identity_error)
+                        if self.identity is not None:
+                            conn.execute('UPDATE run SET database_identity=?', (json.dumps(self.identity),))
+                    self.check_store()
+                except (ValueError, OSError) as exc:
+                    problem = str(exc)
             conn.executemany('INSERT INTO claims VALUES (?, ?)', [(sid, invocation.id) for sid in claims])
             conn.execute('UPDATE calls SET stdout_sha256=?, session_id=?, process_state=?, cleanup_state=?, reason=? '
                          'WHERE invocation_id=?',

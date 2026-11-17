@@ -1,4 +1,4 @@
-"""Real Chrome read/preflight check; explicitly NOT a model acceptance."""
+"""Real Chrome read/local-configuration check; explicitly NOT a model acceptance."""
 import argparse
 import json
 import os
@@ -28,7 +28,7 @@ def main():
     session.unlink(missing_ok=True)
     env = dict(os.environ, PYTHONPATH=str(args.engine), PYTHONIOENCODING='utf-8')
     env.pop('ECRA_CONFIG_HOME',None)
-    report = dict(passed=False, level='UI_AND_NO_MODEL_PREFLIGHT', model_calls=0)
+    report = dict(passed=False, level='UI_AND_LOCAL_CONFIGURATION', model_calls=0)
     with (evidence/'server.log').open('wb') as log:
         server = subprocess.Popen([str(args.python),'-B','-m','ecra.studio','--data-root',str(args.data),
             '--no-browser','--session-file',str(session)],cwd=args.engine,env=env,stdout=log,
@@ -66,18 +66,19 @@ def main():
                 page.get_by_label('归档 '+args.scan,exact=True).get_by_role('button',name='打开结果',exact=True).click()
                 page.get_by_role('link',name='OpenCode 复核',exact=True).click()
                 page.get_by_text('复核配置与执行说明',exact=True).click()
-                expect(page.get_by_role('button',name='检查 OpenCode（不调用模型）',exact=True)).to_be_enabled()
+                expect(page.get_by_role('button',name='检查本地启动条件（不运行 OpenCode）',exact=True)).to_be_enabled()
                 with page.expect_response(lambda r:r.url.endswith('/profiles/opencode-check'),timeout=90000) as response:
-                    page.get_by_role('button',name='检查 OpenCode（不调用模型）',exact=True).click()
-                report['preflight']=response.value.json()
-                expect(page.get_by_role('button',name='检查 OpenCode（不调用模型）',exact=True)).to_be_enabled(timeout=90000)
+                    page.get_by_role('button',name='检查本地启动条件（不运行 OpenCode）',exact=True).click()
+                report['local_configuration']=response.value.json()
+                expect(page.get_by_role('button',name='检查本地启动条件（不运行 OpenCode）',exact=True)).to_be_enabled(timeout=90000)
                 page.screenshot(path=str(evidence/'review.png'),full_page=True)
                 (evidence/'review-page.txt').write_text(page.locator('body').inner_text(),encoding='utf-8')
                 browser.close()
             assert tasks_before==api('/tasks'), 'Reading/checking must not dispatch review tasks'
             assert Path(report['bootstrap']['runtime']['module']).is_relative_to(args.engine)
             report['archive_api']=api('/scans/'+args.scan+'/ai')
-            report['passed']=report['preflight']['ready']
+            report['local_configuration_ready']=report['local_configuration']['ready']
+            report['passed']=True  # UI/readability; launch readiness is reported separately.
         except BaseException as exc:
             report['error']=type(exc).__name__+': '+str(exc)
             raise

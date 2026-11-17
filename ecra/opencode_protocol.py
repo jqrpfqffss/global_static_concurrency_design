@@ -12,10 +12,6 @@ class AuthenticationRequired(ProtocolError):
     code = 'authentication_required'
 
 
-class VersionOutputError(ProtocolError):
-    code = 'version_output_invalid'
-
-
 def redactor(environment):
     """Build an in-memory scrubber; never serialize credentials or full env."""
     values = set()
@@ -55,8 +51,6 @@ def redactor(environment):
 
 
 ANSI = re.compile(r'\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))')
-VERSION_LINE = re.compile(r'(?:(?:x?opencode(?:\s+version)?|version)\s*[:=]?\s+)?v?'
-                          r'(?P<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)', re.I)
 # This banner is supplied by the enterprise distribution. No arbitrary log
 # lines, dates, Bun resource versions, or JSON fragments are discarded.
 BANNERS = frozenset({'欢迎使用研发工具|xOpenCode'})
@@ -74,32 +68,6 @@ def interactive_prompt(text):
 def protocol_text(text):
     lines = clean(text).splitlines()
     return '\n'.join(line for line in lines if line.strip() not in BANNERS).strip()
-
-
-def parse_version(stdout, stderr='', returncode=0):
-    if interactive_prompt(stdout) or interactive_prompt(stderr):
-        raise AuthenticationRequired('OpenCode 要求输入域账号；请通过发行版正式登录入口完成认证，ECRA 不提交账号密码')
-    if returncode != 0:
-        raise VersionOutputError(f'OpenCode 版本命令非零退出：{returncode}')
-    found = set()
-    product = 'OpenCode'
-    for stream in (stdout, stderr):
-        for line in clean(stream).splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            if line in BANNERS:
-                product = 'xOpenCode'
-                continue
-            match = VERSION_LINE.fullmatch(line)
-            if not match:
-                raise VersionOutputError('OpenCode 版本输出含未识别内容；请查看脱敏诊断')
-            found.add(match['version'])
-            if line.lower().startswith('xopencode'):
-                product = 'xOpenCode'
-    if len(found) != 1:
-        raise VersionOutputError('OpenCode 版本输出缺少唯一版本（缺失或冲突）')
-    return product, found.pop()
 
 
 def unique_json(pairs):

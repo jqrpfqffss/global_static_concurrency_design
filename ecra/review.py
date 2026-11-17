@@ -676,8 +676,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             (folder/'initialization-error.json').unlink(missing_ok=True)
             (folder/'configuration-error.json').unlink(missing_ok=True)
             from .opencode_command import display_command
-            progress(f'OpenCode {runtime.product} {runtime.version}；入口 {display_command(command)}；会话数据库 {storage.database}')
-            progress(f'OpenCode 使用会话数据库 {storage.database}')
+            progress(f'OpenCode 本地启动条件已准备（版本未查询）；入口 {display_command(command)}；会话数据库 {storage.database}')
         except (ValueError, OSError) as exc:
             # Keep completed receipts, and make unstarted work resumable.
             # No model attempt/failure is fabricated for a shared failure.
@@ -688,7 +687,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             write_json(folder/'initialization-error.json', dict(
                 stage='initialization', error=message, created_at=_now(),
                 error_code=getattr(exc, 'code', 'initialization_failed'),
-                selected_ids=[f['finding_id'] for f in selected], model_calls=0))
+                selected_ids=[f['finding_id'] for f in selected], cli_launch_attempts=0, model_calls=0))
             if native:
                 append_runtime(out, dict(run_status='FAILED', error=message), list(ledger.values()))
             else:
@@ -933,6 +932,10 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                         if runtime is not None:
                             runtime.check_exe()
                         record['command'] = display_command(argv)
+                        record.update(cwd=str(cwd), database=str(storage.database),
+                                      config_sources=storage.config_sources, auth_source=storage.auth_source,
+                                      operation_stage='run', cli_launch_attempts=0, model_calls=None)
+                        options['diagnostic'] = record
                         proc = execute(argv, cwd=cwd, timeout=float(settings.get('timeout_seconds', 300)),
                             stop=stop, stdout_path=folder/record['stdout_file'], stderr_path=folder/record['stderr_file'],
                             env=env, **options)
@@ -952,8 +955,10 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                             raise type(exc)(f'OpenCode exit={proc.returncode}: {exc}') from exc
                         raise ReviewExecutionError(f'OpenCode exit={proc.returncode}: {proc.stderr}')
                     # Provider errors must not be mistaken for malformed JSON.
+                    record['validation_state'] = 'VALIDATING_OUTPUT'
                     extracted = review_answer_text(proc.stdout)
                     runtime.validate_run(proc.stdout)
+                    record['validation_state'] = 'PASSED'
                     record['state'] = 'EXECUTED'
                     return extracted, proc.stdout
                 except BaseException as exc:
@@ -967,6 +972,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                     message = f'OpenCode 单次调用超过 {settings.get("timeout_seconds", 300)} 秒' if timed_out else str(exc)
                     record.update(state='TECH_FAILED', error_type=type(exc).__name__, error_message=message,
                                   timeout=timed_out)
+                    if record.get('validation_state') == 'VALIDATING_OUTPUT':
+                        record['validation_state'] = 'FAILED'
                     raise
                 finally:
                     record['finished'] = _now()

@@ -1,13 +1,11 @@
-"""Probe a private local protocol before admitting any shared database access."""
+"""Local launch context and optional, ownership-checked session maintenance."""
 import base64
 from contextlib import closing, contextmanager
-import hashlib
 import http.client
 import json
 import os
 from pathlib import Path
 import re
-import sqlite3
 import stat
 import subprocess
 from tempfile import TemporaryDirectory
@@ -19,11 +17,9 @@ from .review_process import ReviewStop, owned_process
 from .common import write_json
 from .workspace import canonical, managed_path, no_links
 from .opencode_protocol import (AuthenticationRequired, ProtocolError, interactive_prompt,
-                                parse_version, parse_json, protocol_text)
+                                parse_json, protocol_text)
 
 
-# Reference release for legacy test fixtures only; never an admission gate.
-VERSION = '1.18.35'
 SESSION_ID = re.compile(r'ses_[0-9a-f]{12}[0-9A-Za-z]{14}')
 PART_TYPES = dict(text='text', tool_use='tool', step_start='step-start',
                   step_finish='step-finish', reasoning='reasoning')
@@ -132,7 +128,6 @@ class Runtime:
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('review.maintenance_timeout_seconds 必须大于 0')
         self.timeout, self.stop = timeout, stop or ReviewStop()
-        self.version_verified = False
         from .opencode_command import resolve_command, identity, identity_hash
         self.command = resolve_command(command)
         self.exe = Path(self.command[0])
@@ -141,8 +136,6 @@ class Runtime:
         self.context = {}
         self.version = None
         self.product = None
-        self.schema = None
-        self.probe_binding = None
         self.adapter = 'local-jsonl-v1'
         self.capabilities = dict(initialization='NOT_TESTED', authentication='AWAITING_FIRST_RUN', review='NOT_TESTED', storage='NOT_TESTED',
                                  cleanup='NOT_TESTED', compaction='NOT_TESTED')
@@ -172,64 +165,10 @@ class Runtime:
             yield Maintenance(self, cwd, env, database, shared=shared,
                               diagnostics=managed_path(workdir)/'maintenance-logs'/cwd.name)
 
-    def probe(self, maintenance):
-        """No model calls, no inherited default store, no user database commands."""
-        # No persistent trust cache. A task-local result is reusable only with
-        # unchanged credential/config bytes, credential/proxy environment and
-        # entry content. This digest is kept in memory, never a credential log.
-        inputs = {}
-        for key, name in [('XDG_DATA_HOME','opencode/auth.json'), ('XDG_CONFIG_HOME','opencode/opencode.json')]:
-            path = Path(maintenance.env[key])/name
-            inputs[key] = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
-        inputs['environment'] = {k:v for k,v in maintenance.env.items()
-                                 if (re.search(r'AUTH|TOKEN|SECRET|API.?KEY|PROXY|PLUGIN', k, re.I) or k=='OPENCODE_CONFIG_CONTENT')
-                                 and k not in {'OPENCODE_SERVER_PASSWORD', 'OPENCODE_SERVER_USERNAME'}}
-        binding = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
-        if self.schema is not None and binding == self.probe_binding:
-            self.check_exe()
-            return
-        self.schema = None
-        from .opencode_storage import isolated_environment
-        import shutil
-        probe = managed_path(maintenance.cwd/('probe-'+uuid.uuid4().hex))
-        probe.mkdir()
-        database = probe/'protocol.db'
-        env = isolated_environment(probe, probe, database, environment=maintenance.env)
-        # Copy only the documented standard credential file, not user trees.
-        auth = Path(maintenance.env['XDG_DATA_HOME'])/'opencode/auth.json'
-        if auth.is_file():
-            target = probe/'data/opencode/auth.json'
-            target.parent.mkdir(parents=True)
-            shutil.copyfile(auth, target)
-        source_config = Path(maintenance.env['XDG_CONFIG_HOME'])/'opencode/opencode.json'
-        if source_config.is_file():
-            target = probe/'config/opencode/opencode.json'
-            target.parent.mkdir(parents=True)
-            shutil.copyfile(source_config, target)
-        check = Maintenance(self, probe, env, database, diagnostics=maintenance.diagnostics/'probe')
-        raw = check.cli('--version')
-        self.product, self.version = parse_version(raw, check.last_stderr)
-        self.version_verified = True
-        help_stdout = check.cli('run', '--help')
-        help_text = protocol_text(help_stdout + '\n' + check.last_stderr)
-        missing = [flag for flag in ('--format', '--agent', '--model', '--file', '--title') if flag not in help_text]
-        if missing:
-            raise Unverifiable('基础复核参数能力缺失：' + ', '.join(missing))
-        # A daemon-capable runtime is not owned by the CLI Job. Until an
-        # explicit standalone contract is implemented it cannot adopt stores.
-        if '--service' in help_text or int(self.version.split('.')[0]) >= 2:
-            raise Unverifiable('此入口的独立本地运行/后台服务归属尚未验证；未访问用户数据库')
-        check.verify_path(protocol_text(check.cli('db', 'path')))
-        check.opened_database()
-        self.schema = check.schema_signature()
-        self.probe_binding = binding
-        self.capabilities.update(initialization='PASSED', review='AWAITING_FIRST_RUN', storage='PROBE_PASSED')
-        write_json(maintenance.diagnostics/'capabilities.json', self.report())
-
     def report(self):
         from .opencode_command import display_command
         return dict(command=display_command(self.command), identity=self.entry_identity, product=self.product, version=self.version,
-                    adapter=self.adapter, capabilities=self.capabilities, automatic_probe_model_calls=0)
+                    adapter=self.adapter, capabilities=self.capabilities, version_status="NOT_QUERIED")
 
     def validate_run(self, raw):
         from .opencode_protocol import validate_run
@@ -305,7 +244,7 @@ class Maintenance:
     def _observe(self, stdout, stderr, record, started):
         self.runtime.stop.check()
         self._first_output(stdout, stderr, record, started)
-        # Version/help/db/serve are noninteractive contracts. Match the known
+        # Maintenance commands are noninteractive contracts. Match the known
         # complete prompt, not arbitrary words such as “login” in model text.
         for path in (stdout, stderr):
             with path.open('rb') as stream:
@@ -353,65 +292,24 @@ class Maintenance:
                                   f'详细日志 {self.diagnostics}：{detail}')
             return output.strip()
 
-    def verify(self, *, initialize=False):
-        self.runtime.probe(self)
-        identity = store_identity(self.database, allow_missing=initialize)
-        # Even OpenCode's db path command can apply pending migrations.
-        if self.shared and identity is not None:
-            self.check_shared_schema(writable=initialize)
+    def verify(self):
+        """Only called for requested maintenance, after a real run/archival."""
         self.runtime.check_exe()
+        identity = store_identity(self.database)
         self.verify_path(protocol_text(self.cli('db', 'path')))
+        self.opened_database()
+        if store_identity(self.database) != identity:
+            raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
         return identity
 
     def verify_path(self, actual):
         if not isinstance(actual, str) or not Path(actual).is_absolute() or canonical(actual) != canonical(self.database):
             raise Unverifiable(f'OpenCode 会话数据库路径不一致，预期 {self.database}，实际 {actual!r}')
 
-    def check_shared_schema(self, *, writable=False):
-        # Inspect before starting OpenCode, which applies pending migrations on
-        # open. A write reservation checks locks without changing session data.
-        try:
-            if writable:
-                with self.database.open('r+b'):
-                    pass
-            uri = self.database.as_uri() + ('?mode=rw' if writable else '?mode=ro')
-            with closing(sqlite3.connect(uri, uri=True, timeout=5)) as conn:
-                conn.execute('PRAGMA trusted_schema=OFF')
-                if writable:
-                    conn.execute('BEGIN IMMEDIATE')
-                objects = conn.execute('SELECT name, type FROM sqlite_master').fetchall()
-                if not objects and writable:
-                    return  # OpenCode can initialize a new or empty database.
-                if self.schema_signature(conn) != self.runtime.schema:
-                    raise DatabaseIncompatible(f'OpenCode 会话数据库 {self.database} 的结构或迁移记录与隔离探测库不兼容；未启动共享库命令')
-        except sqlite3.Error as exc:
-            raise DatabaseUnavailable(f'OpenCode 会话数据库 {self.database} 无法访问：{exc}') from exc
-
-    def schema_signature(self, conn=None):
-        if conn is None:
-            with closing(sqlite3.connect(self.database.as_uri()+'?mode=ro', uri=True)) as reader:
-                reader.execute('PRAGMA trusted_schema=OFF')
-                reader.execute('BEGIN')
-                return self.schema_signature(reader)
-        objects = conn.execute("SELECT type,name,tbl_name,sql FROM sqlite_master "
-                               "WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").fetchall()
-        tables = {r[1] for r in objects if r[0] == 'table'}
-        if not {'session', 'project', 'message', 'part', 'migration'}.issubset(tables):
-            raise DatabaseIncompatible('数据库结构不满足本地会话协议；缺少 session/project/message/part/migration，尚未适配该存储族')
-        migrations = conn.execute('SELECT id FROM migration ORDER BY id').fetchall()
-        if not migrations or any(not isinstance(row[0], str) for row in migrations):
-            raise Unverifiable('数据库缺少有效迁移身份')
-        return hashlib.sha256(json.dumps([objects, migrations], ensure_ascii=False).encode()).hexdigest()
-
     def prepare(self):
-        identity = self.verify(initialize=True)
-        self.opened_database()
-        self.runtime.capabilities['storage'] = 'PASSED'
-        # Compaction is optional, never part of the admission of a review.
-        opened = store_identity(self.database)
-        if identity is not None and opened != identity:
-            raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
-        return opened
+        """Compatibility entry for local preparation; never starts OpenCode."""
+        self.runtime.check_exe()
+        return store_identity(self.database, allow_missing=True)
 
     def opened_database(self):
         raw = self.cli('db', '--format', 'json', 'PRAGMA database_list')
@@ -454,8 +352,7 @@ class Maintenance:
                 stream.seek(0)
                 match = listen.search(stream.read(65536))
                 if match and (port := int(match[1])) <= 65535:
-                    api = API(port, self.env['OPENCODE_SERVER_PASSWORD'], alive=lambda: proc.poll() is None,
-                              version=self.runtime.version)
+                    api = API(port, self.env['OPENCODE_SERVER_PASSWORD'], alive=lambda: proc.poll() is None)
                     api.verify()
                     self.runtime.capabilities['cleanup'] = 'API_VERIFIED'
                     record['ready_seconds'] = time.monotonic()-started
@@ -467,11 +364,10 @@ class Maintenance:
 
 
 class API:
-    def __init__(self, port, password, *, alive=None, version=VERSION):
+    def __init__(self, port, password, *, alive=None):
         self.port = port
         self.authorization = 'Basic ' + base64.b64encode(f'ecra:{password}'.encode()).decode()
         self.alive = alive
-        self.version = version
 
     def request(self, method, path, cwd=None, *, allow_missing=False):
         if self.alive is not None and not self.alive():
@@ -516,8 +412,8 @@ class API:
         except (OSError, http.client.HTTPException) as exc:
             raise Unavailable('无法验证 OpenCode 回环服务认证') from exc
         health = self.request('GET', '/global/health')
-        if health != dict(healthy=True, version=self.version):
-            raise Unverifiable('OpenCode 回环服务身份或版本不匹配')
+        if not isinstance(health, dict) or health.get('healthy') is not True:
+            raise Unverifiable('OpenCode 回环服务未报告健康状态')
         spec = self.request('GET', '/doc')
         paths = spec.get('paths', {}) if isinstance(spec, dict) else {}
         expected = {
@@ -547,7 +443,6 @@ class API:
         directory = info.get('directory') if isinstance(info, dict) else None
         if (not isinstance(directory, str) or not Path(directory).is_absolute()
                 or info.get('id') != sid or info.get('title') != title or canonical(directory) != cwd
-                or info.get('version') != self.version
                 or info.get('parentID') is not None or info.get('workspaceID') is not None):
             raise Unverifiable('会话身份、工作目录或父会话不匹配')
         if project_id is None:

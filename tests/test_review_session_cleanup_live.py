@@ -21,7 +21,7 @@ from urllib.parse import urlencode
 from ecra.common import read_json, write_json
 from ecra.report_package import sha256
 from ecra.review import validate_result_receipt
-from ecra.review_opencode_sessions import API, Maintenance, Runtime, Unavailable, Unverifiable, VERSION, session_from_jsonl
+from ecra.review_opencode_sessions import API, Maintenance, Runtime, Unavailable, Unverifiable, session_from_jsonl
 from ecra.review_session_cleanup import Run, SessionCleanup
 from ecra.scan_persistence import run_canonical, runtime
 from ecra.workflow import saved_run
@@ -179,39 +179,16 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
     def test_real_shared_database_cleanup_after_pause_and_resume(self):
         self.exercise(cleanup=True, workers=1, count=2, shared=True, resume=True)
 
-    def test_real_shared_database_reports_incompatible_readonly_and_locked(self):
+    def test_real_shared_database_local_preparation_never_opens_database(self):
         opencode = Runtime([os.environ['ECRA_TEST_OPENCODE_EXE']])
-        workspace = managed_root()
-        with TemporaryDirectory(prefix='ecra-probe-', dir=workspace) as work, \
-             TemporaryDirectory(prefix='ecra 外部测试 ', dir=workspace.parent) as outside:
-            database = Path(outside)/'历史 会话.db'
+        with TemporaryDirectory(prefix='ecra-local-', dir=managed_root()) as work:
+            database = Path(work)/'history.db'
+            database.write_bytes(b'Uninterpreted enterprise store')
+            before = database.read_bytes()
             with opencode.maintenance(database, workdir=work, shared=True) as maintenance:
-                database.write_bytes(b'Not a SQLite database.')
-                with self.assertRaisesRegex(Unavailable, 'file is not a database'):
-                    maintenance.prepare()
-                self.assertEqual(database.read_bytes(), b'Not a SQLite database.')
-                database.unlink()
-
-                maintenance.prepare()
-                mode = database.stat().st_mode
-                database.chmod(stat.S_IREAD)
-                try:
-                    if os.name == 'nt' or not os.access(database, os.W_OK):
-                        with self.assertRaisesRegex(OSError, 'Permission denied|readonly'):
-                            maintenance.prepare()
-                finally:
-                    database.chmod(mode)
-                with closing(sqlite3.connect(database)) as conn:
-                    conn.execute('BEGIN IMMEDIATE')
-                    with self.assertRaisesRegex(Unavailable, 'database is locked'):
-                        maintenance.prepare()
-                    conn.rollback()
-                    with conn:
-                        conn.execute('DELETE FROM migration WHERE id=(SELECT max(id) FROM migration)')
-                before = sha256(database)
-                with self.assertRaisesRegex(Unverifiable, '迁移记录.*不兼容'):
-                    maintenance.prepare()
-                self.assertEqual(sha256(database), before)
+                self.assertIsNotNone(maintenance.prepare())
+            self.assertEqual(database.read_bytes(), before)
+            self.assertIsNone(opencode.version)
 
     def exercise(self, *, cleanup, workers, count, shared=False, retry=False, resume=False):
         case = fixtures.CanonicalScanTests(methodName='runTest')

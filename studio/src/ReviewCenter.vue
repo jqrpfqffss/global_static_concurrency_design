@@ -65,8 +65,8 @@ onUnmounted(()=>{clearInterval(timer);pageRequest++})
   <div class="records-page ai-center"><h1>OpenCode 逐项复核</h1><p>静态分类、AI 答复和人工确认分别保留。打开本页不会调用模型或重新提取 TU。</p><div v-if="error" class="banner error" role="alert">{{error}}</div>
   <p v-if="!canReview" class="banner warning">归档模式缺少本机检查点或原源码，不能重新复核；可查看已有答复与收据。</p><section class="ai-controls"><details :open="configurationOpen" @toggle="configurationOpen=($event.target as HTMLDetailsElement).open"><summary>复核配置与执行说明</summary>
     <label>复核配置<select v-model="profile" aria-label="OpenCode复核配置"><option v-for="p in profiles" :value="p.id">{{p.name}} · {{p.project_root}} · {{p.id.slice(0,8)}}</option></select></label>
-    <button :disabled="checking||!profile" @click="checkOpenCode">{{checking?'正在检查入口与隔离存储…':'检查 OpenCode（不调用模型）'}}</button>
-    <p v-if="runtime">{{runtime.product||'发行版待识别'}} {{runtime.version||''}} · 基础复核：{{runtime.capabilities?.review||'NOT_TESTED'}} · 存储：{{runtime.capabilities?.storage||'NOT_TESTED'}} · 清理：{{runtime.capabilities?.cleanup||'NOT_TESTED'}}</p>
+    <button :disabled="checking||!profile" @click="checkOpenCode">{{checking?'正在检查本地配置…':'检查本地启动条件（不运行 OpenCode）'}}</button>
+    <p v-if="runtime">OpenCode · 版本：{{runtime.version||'未查询'}} · 基础复核：{{runtime.capabilities?.review||'NOT_TESTED'}} · 存储身份：{{runtime.capabilities?.storage||'NOT_TESTED'}} · 清理：{{runtime.capabilities?.cleanup||'NOT_TESTED'}}</p>
     <p v-if="runtime" class="identity">实际入口：{{runtime.command?.join(' ')}}<br/>{{runtime.notice||''}}</p>
     <p v-if="runtime?.cleanup_error" class="banner warning">清理未完成，会话已保留：{{runtime.cleanup_error}}</p>
     <p v-if="page?.initialization_error" class="banner error" role="alert">{{page.initialization_error.error}}；未派发项保持待复核。</p>

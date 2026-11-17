@@ -112,7 +112,7 @@ def test_only_explicit_opencode_database_can_leave_workspace(tool, tmp_path, mon
         assert cwd != other
         assert env['OPENCODE_DB'] == other_env['OPENCODE_DB'] == str(database)
         assert env['TEMP'] != other_env['TEMP']
-        for key in (*TEMP_KEYS, 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'XDG_DATA_HOME',
+        for key in (*TEMP_KEYS, 'XDG_DATA_HOME',
                     'XDG_CONFIG_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR'):
             assert Path(env[key]).is_relative_to(workspace)
         for scope, scratch, data in ((outside, cwd, None), (storage.scope, outside, None),

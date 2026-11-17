@@ -8,38 +8,11 @@ import sys
 import pytest
 
 from ecra.opencode_command import resolve_command
-from ecra.opencode_protocol import (AuthenticationRequired, ProtocolError, VersionOutputError,
-                                    parse_json, parse_version, validate_run)
+from ecra.opencode_protocol import (AuthenticationRequired, ProtocolError,
+                                    parse_json, validate_run)
 from ecra.opencode_storage import ReviewStorage
 from ecra.review_opencode_sessions import Runtime, Maintenance, Unverifiable
 from ecra.review_process import ReviewStop, execute
-
-
-@pytest.mark.parametrize('out,err,expected', [
-    ('1.18.35', '', ('OpenCode', '1.18.35')),
-    ('\ufeff\n\x1b[32mv1.18.35\x1b[0m\n', '', ('OpenCode', '1.18.35')),
-    ('欢迎使用研发工具|xOpenCode\n\n1.19.5-h1', '', ('xOpenCode', '1.19.5-h1')),
-    ('', 'OpenCode version: 1.20.0-dev.1+vendor', ('OpenCode', '1.20.0-dev.1+vendor')),
-    ('opencode 1.19.5', '1.19.5', ('OpenCode', '1.19.5')),
-    ('OpenCode v1.19.5', '', ('OpenCode', '1.19.5')),
-])
-def test_version_contract(out, err, expected):
-    assert parse_version(out, err) == expected
-
-
-@pytest.mark.parametrize('out,err', [('', ''), ('Bun 1.4.4', ''),
-    ('build at 2026.11.17\n1.19.5', ''), ('1.19.5', '1.18.35'),
-    ('{"version":"1.19.5"}', ''), ('1.19.5\nUnexpected error', '')])
-def test_version_rejects_ambiguous_or_unidentified_output(out, err):
-    with pytest.raises(VersionOutputError):
-        parse_version(out, err)
-
-
-def test_version_login_and_nonzero():
-    with pytest.raises(AuthenticationRequired):
-        parse_version('欢迎使用研发工具|xOpenCode\n请输入域账号:')
-    with pytest.raises(VersionOutputError):
-        parse_version('1.19.5', returncode=1)
 
 
 def test_only_known_banner_is_removed_from_json():
@@ -70,20 +43,16 @@ def test_context_is_shared_by_prepare_call_and_maintenance(tmp_path, monkeypatch
                        OPENCODE_AUTH_CONTENT='{"fixture":true}')
     storage = ReviewStorage(tmp_path, environment=environment)
     runtime = Runtime([sys.executable])
-    seen = []
-    def prepared(maintenance):
-        seen.append(maintenance.env)
-        maintenance.database.touch()
-        from ecra.review_opencode_sessions import store_identity
-        return store_identity(maintenance.database)
-    monkeypatch.setattr(Maintenance, 'prepare', prepared)
+    monkeypatch.setattr(Maintenance, 'prepare', lambda *_: pytest.fail('maintenance before run'))
     storage.prepare(runtime)
+    assert storage.identity is None
     with storage.call() as (_, env), runtime.maintenance(storage.database, workdir=tmp_path) as later:
-        for key in ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'OPENCODE_ENTERPRISE_TOKEN', 'OPENCODE_AUTH_CONTENT']:
-            assert seen[0][key] == env[key] == later.env[key]
-        assert env['HOME'] != environment.get('HOME')
+        for key in ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'OPENCODE_ENTERPRISE_TOKEN', 'OPENCODE_AUTH_CONTENT',
+                    'HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA']:
+            assert env.get(key) == later.env.get(key)
+        for key in ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA']:
+            assert env.get(key) == environment.get(key)
         assert 'OPENCODE_PURE' not in env
-        assert 'OPENCODE_PURE' not in seen[0]
     assert environment['XDG_DATA_HOME'] == str(source)
 
 
@@ -93,7 +62,7 @@ def test_known_login_prompt_ends_early_and_records_before_reap(tmp_path, monkeyp
         monkeypatch.setattr(maintenance, '_argv', lambda *a: [sys.executable, '-u', '-c',
             "import time,sys;sys.stdout.buffer.write('欢迎使用研发工具|xOpenCode\\n请输入域账号:'.encode());sys.stdout.flush();time.sleep(30)"])
         with pytest.raises(AuthenticationRequired):
-            maintenance.cli('--version')
+            maintenance.cli('db', 'path')
     record = json.loads(next(tmp_path.glob('maintenance-logs/*/*/invocation.json')).read_text('utf-8'))
     assert record['elapsed_seconds'] < 5
     assert record['ecra_requested_reap']
@@ -102,22 +71,17 @@ def test_known_login_prompt_ends_early_and_records_before_reap(tmp_path, monkeyp
     assert record['outcome'] == 'failed'
 
 
-def test_shared_database_not_started_before_private_probe(tmp_path, monkeypatch):
+def test_shared_database_local_preparation_does_not_open_or_migrate(tmp_path, monkeypatch):
     database = tmp_path/'history.db'
-    with sqlite3.connect(database) as conn:
-        conn.execute('CREATE TABLE history (message TEXT)')
-        conn.execute("INSERT INTO history VALUES ('keep')")
-    before = database.read_bytes()
+    database.write_bytes(b'unknown enterprise database')
+    storage = ReviewStorage(tmp_path, environment=dict(os.environ, OPENCODE_DB=str(database)))
     runtime = Runtime([sys.executable])
-    def reject(maintenance):
-        assert maintenance.database == database
-        raise Unverifiable('probe rejected before shared launch')
-    monkeypatch.setattr(runtime, 'probe', reject)
-    monkeypatch.setattr(Maintenance, 'cli', lambda *a: pytest.fail('shared database command started'))
-    with runtime.maintenance(database, workdir=tmp_path, shared=True) as maintenance:
-        with pytest.raises(Unverifiable):
-            maintenance.prepare()
-    assert database.read_bytes() == before
+    monkeypatch.setattr(Maintenance, 'cli', lambda *a: pytest.fail('database command before run'))
+    storage.prepare(runtime)
+    assert storage.identity is not None
+    assert database.read_bytes() == b'unknown enterprise database'
+    assert runtime.version is None
+    assert not list(tmp_path.rglob('protocol.db'))
 
 
 @pytest.mark.skipif(os.name != 'nt', reason='Windows script argument contract')
@@ -156,35 +120,6 @@ def test_entry_content_change_invalidates_runtime(tmp_path):
         runtime.check_exe()
 
 
-@pytest.mark.parametrize('version,accepted', [('1.99.123-company.7', True), ('2.0.7', False)])
-def test_unseen_version_is_provisional_by_protocol_and_daemon_is_not_adopted(tmp_path, monkeypatch, version, accepted):
-    runtime = Runtime([sys.executable])
-    commands = []
-    def cli(agent, *args):
-        commands.append(args)
-        assert agent.database != tmp_path/'historical.db'
-        if args == ('--version',):
-            return version
-        if args == ('run','--help'):
-            return '--format --agent --model --file --title'
-        if args == ('db','path'):
-            return str(agent.database)
-        return json.dumps([dict(name='main', file=str(agent.database))])
-    monkeypatch.setattr(Maintenance, 'cli', cli)
-    monkeypatch.setattr(Maintenance, 'schema_signature', lambda *a:'fixture-schema')
-    with runtime.maintenance(tmp_path/'historical.db', workdir=tmp_path, shared=True) as maintenance:
-        if accepted:
-            runtime.probe(maintenance)
-            assert runtime.version == version
-            assert runtime.capabilities['review'] == 'AWAITING_FIRST_RUN'
-            assert runtime.capabilities['cleanup'] == 'NOT_TESTED'
-        else:
-            with pytest.raises(Unverifiable, match='后台服务'):
-                runtime.probe(maintenance)
-            assert commands == [('--version',), ('run','--help')]
-    assert not any(args[0]=='run' and args != ('run','--help') for args in commands)
-
-
 def test_redactor_scrubs_individual_credentials_without_serializing_environment(tmp_path):
     from ecra.opencode_protocol import redactor
     auth = tmp_path/'opencode/auth.json'
@@ -213,8 +148,8 @@ def test_timeout_diagnostic_does_not_expose_command_credentials(tmp_path):
 
 @pytest.mark.skipif(os.name != 'nt', reason='Windows CreateProcess cwd limit')
 def test_deep_archive_keeps_actual_maintenance_cwd_short(tmp_path):
-    entry = tmp_path/'version.py'
-    entry.write_text('print("1.18.35")', encoding='utf-8')
+    entry = tmp_path/'maintenance.py'
+    entry.write_text('print("fixture-maintenance")', encoding='utf-8')
     archive = tmp_path/('nested-'*18)/('journal-'*12)
     archive.mkdir(parents=True)
     assert len(str(archive)) > 260
@@ -222,39 +157,55 @@ def test_deep_archive_keeps_actual_maintenance_cwd_short(tmp_path):
     with runtime.maintenance(tmp_path/'test.db', workdir=archive) as maintenance:
         assert len(str(maintenance.cwd)) < 240
         assert maintenance.diagnostics.is_relative_to(archive)
-        assert maintenance.cli('--version') == '1.18.35'
+        assert maintenance.cli('db', 'path') == 'fixture-maintenance'
 
 
-def test_auth_and_config_changes_require_new_private_probe(tmp_path, monkeypatch):
-    runtime = Runtime([sys.executable])
-    versions = []
-    def cli(agent, *args):
-        assert agent.database != tmp_path/'historical.db'
-        if args == ('--version',):
-            versions.append(args)
-            return '1.99.123-company.7'
-        if args == ('run', '--help'):
-            return '--format --agent --model --file --title'
-        if args == ('db', 'path'):
-            return str(agent.database)
-        return json.dumps([dict(name='main', file=str(agent.database))])
-    monkeypatch.setattr(Maintenance, 'cli', cli)
-    monkeypatch.setattr(Maintenance, 'schema_signature', lambda *a:'fixture-schema')
-    with runtime.maintenance(tmp_path/'historical.db', workdir=tmp_path, shared=True) as maintenance:
-        auth = Path(maintenance.env['XDG_DATA_HOME'])/'opencode/auth.json'
-        auth.parent.mkdir(parents=True)
-        auth.write_text('{"fixture":{"key":"first-fixture-key"}}')
-        runtime.probe(maintenance)
-        runtime.probe(maintenance)
-        assert len(versions) == 1
-        auth.write_text('{"fixture":{"key":"renewed-fixture-key"}}')
-        runtime.probe(maintenance)
-        assert len(versions) == 2
-        maintenance.env['OPENCODE_CONFIG_CONTENT'] = '{"model":"fixture/new"}'
-        runtime.probe(maintenance)
-        assert len(versions) == 3
-        maintenance.env['OPENCODE_ENTERPRISE_AUTH_TOKEN'] = 'changed-fixture-token'
-        runtime.probe(maintenance)
-        assert len(versions) == 4
-    assert runtime.capabilities['authentication'] == 'AWAITING_FIRST_RUN'
-    assert not (tmp_path/'historical.db').exists()
+def test_auth_and_config_changes_never_launch_a_probe(tmp_path, monkeypatch):
+    from ecra.opencode_check import check
+    monkeypatch.setattr(Maintenance, 'cli', lambda *a: pytest.fail('local check launched CLI'))
+    for key, value in [('OPENCODE_ENTERPRISE_AUTH_TOKEN', 'new-fixture-token'),
+                       ('OPENCODE_CONFIG_CONTENT', '{"model":"fixture/new"}')]:
+        monkeypatch.setenv(key, value)
+        result = check({'command': [sys.executable]}, project=tmp_path)
+        assert result['ready'] and result['version'] is None
+        assert result['cli_launch_attempts'] == result['model_calls'] == 0
+        assert result['capabilities']['authentication'] == 'AWAITING_FIRST_RUN'
+
+
+@pytest.mark.parametrize('health', [{'healthy': True}, {'healthy': True, 'version': '2.99-enterprise', 'extra': 7}])
+def test_optional_api_health_ignores_unrelated_version_metadata(monkeypatch, health):
+    from ecra.review_opencode_sessions import API
+    class Response:
+        status = 401
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+    class Connection:
+        def __init__(self, *args, **kwargs): pass
+        def request(self, *args, **kwargs): pass
+        def getresponse(self): return Response()
+        def close(self): pass
+    monkeypatch.setattr('http.client.HTTPConnection', Connection)
+    api = API(1, 'test-only')
+    routes = {'/session/{sessionID}': {'get': 'session.get', 'delete': 'session.delete'},
+              '/session/{sessionID}/children': {'get': 'session.children'},
+              '/session/status': {'get': 'session.status'}, '/project/current': {'get': 'project.current'}}
+    spec = {'paths': {route: {method: {'operationId': op} for method, op in methods.items()}
+                      for route, methods in routes.items()}}
+    monkeypatch.setattr(api, 'request', lambda method, path: health if path == '/global/health' else spec)
+    api.verify()
+    health['healthy'] = False
+    with pytest.raises(Unverifiable, match='健康'):
+        api.verify()
+
+
+def test_review_only_change_preserves_old_receipt_identity():
+    from ecra.common import digest
+    from ecra import review
+    from ecra.review_session_cleanup import compatible_review_implementation
+    names = ['review.py', 'review_contract.py', 'review_language.py', 'review_sources.py',
+             'native_review_packet.py', 'review_hash.py', 'review_packet.py', 'evidence_mcp.py', 'review_summary.py']
+    texts = [(Path(review.__file__).parent/name).read_text('utf-8') for name in names]
+    previous = 'cca8ecb58791f29718767005ab024b40a0511618f8ab71f396f407494c551a70'
+    assert compatible_review_implementation(digest(texts)) == compatible_review_implementation(previous)
+    texts[1] += '\n# a different answer contract'
+    assert compatible_review_implementation(digest(texts)) != compatible_review_implementation(previous)

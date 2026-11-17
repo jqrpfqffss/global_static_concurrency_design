@@ -21,7 +21,7 @@ from ecra.common import read_json, write_json
 from ecra.config import load_config
 from ecra.review import parse_answer, review_all, validate_result_receipt
 from ecra.review_contract import NVICFactConflictError, StaleWritebackSafetyError
-from ecra.review_opencode_sessions import API, VERSION, Unverifiable, file_identity, session_from_jsonl
+from ecra.review_opencode_sessions import API, Unverifiable, file_identity, session_from_jsonl
 from ecra.review_session_cleanup import JOURNAL
 from ecra.scan_persistence import runtime
 from ecra.workflow import saved_run
@@ -61,7 +61,7 @@ class FakeOpenCode:
         with self.lock:
             self.serial += 1
             sid = sid or session_id(self.serial)
-            info = dict(id=sid, title=title, directory=str(Path(cwd).resolve()), projectID='global', version=VERSION)
+            info = dict(id=sid, title=title, directory=str(Path(cwd).resolve()), projectID='global', version='fixture-metadata')
             if parent:
                 info['parentID'] = parent
             self.stores.setdefault(store, {})[sid] = info
@@ -76,6 +76,7 @@ class FakeOpenCode:
             fid = packet['finding_id']
         title = argv[argv.index('--title')+1] if '--title' in argv else 'unmanaged'
         store = Path(env['OPENCODE_DB']) if 'OPENCODE_DB' in env else self.manual
+        store.touch(exist_ok=True)  # The actual run, not maintenance, creates the store.
         sid = self.add_session(store, title, cwd, sid=bind_session)
         if child:
             self.add_session(store, parent=sid, cwd=cwd)
@@ -110,7 +111,8 @@ class FakeOpenCode:
             exe = Path(sys.executable)
             hash = 'fake-binary'
             command = list(_command)
-            product, version = 'SYNTHETIC_TEST_ONLY', VERSION
+            product, version = 'SYNTHETIC_TEST_ONLY', None
+            capabilities = {}
 
             def report(self):
                 return {'test_only': True}
@@ -132,7 +134,7 @@ class FakeOpenCode:
 
             def verify(self):
                 if fake.unsupported:
-                    raise Unverifiable('unsupported test version')
+                    raise Unverifiable('unsupported cleanup interface')
 
             def prepare(self):
                 # This flag describes optional cleanup, not basic admission.
@@ -297,7 +299,7 @@ class CleanupTests(unittest.TestCase):
         done = self.review(count=1)[0]
         calls = len(self.fake.spawned)
         with patch.dict(os.environ, OPENCODE_DB=str(self.root/'shared.db')), \
-                patch('ecra.opencode_storage.ReviewStorage.prepare', side_effect=Unavailable('db path timeout')):
+                patch('ecra.opencode_storage.ReviewStorage.prepare', side_effect=Unavailable('local directory unavailable')):
             with self.assertRaisesRegex(ReviewInitializationError, '初始化失败，复核尚未启动'):
                 self.review(count=5, mode='review-resume')
         rows = read_queue(self.out)
@@ -585,7 +587,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(self.fake.spawned[0][0].is_relative_to(self.out/'opencode'))
         self.assertEqual(set(self.fake.stores[self.fake.manual]), {manual})
         capability = read_json(self.out/'review/opencode-capabilities.json')
-        self.assertIn('unsupported test version', capability['cleanup_error'])
+        self.assertIn('unsupported cleanup interface', capability['cleanup_error'])
         self.assertEqual(records(self.out)[0]['cleanup_state'], 'SKIPPED_UNVERIFIABLE')
 
     def test_failed_and_interrupted_calls_are_retained_on_resume_and_retry(self):

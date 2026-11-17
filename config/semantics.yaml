@@ -199,7 +199,7 @@ review:
   #   auth_plugins: []  # 仅填写企业正式支持、明确授权的认证插件
   # finding_ids: [GS-example]  # 可选的真实候选批次；其余项保持 PENDING
   # 首次接入：run_ecra.py opencode-check --json（不调用模型）。
-  # 版本仅供协议选择；独立测试库先验证路径/schema，再检查共享 OPENCODE_DB。
+  # 直接执行配置的 run，不查询版本或建立探测库；清理在可靠归档后按需进行。
 
   # 启用复核时，可指定已登录的 provider/model；不需要则保持注释。
   # model: provider/model

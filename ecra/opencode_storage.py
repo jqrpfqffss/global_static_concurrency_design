@@ -86,9 +86,7 @@ def isolated_environment(scope, scratch, database, *, shared=False, environment=
     env.update(
         XDG_DATA_HOME=str(data), XDG_CONFIG_HOME=str(scope/'config'),
         XDG_STATE_HOME=str(scope/'state'), XDG_CACHE_HOME=str(scope/'cache'),
-        XDG_RUNTIME_DIR=str(temporary), HOME=str(scratch), USERPROFILE=str(scratch),
-        LOCALAPPDATA=str(scratch/'local'), APPDATA=str(scratch/'roaming'),
-        OPENCODE_TEST_HOME=str(scratch), OPENCODE_DB=str(database),
+        XDG_RUNTIME_DIR=str(temporary), OPENCODE_DB=str(database),
         OPENCODE_TEST_MANAGED_CONFIG_DIR=str(scope/'managed-config'),
         OPENCODE_DISABLE_PROJECT_CONFIG='true', OPENCODE_DISABLE_AUTOUPDATE='true',
         OPENCODE_DISABLE_FFF='true',
@@ -100,8 +98,9 @@ def isolated_environment(scope, scratch, database, *, shared=False, environment=
         NPM_CONFIG_CACHE=str(scope/'cache/npm'), NPM_CONFIG_PREFIX=str(scope/'cache/npm-prefix'),
         NPM_CONFIG_USERCONFIG=str(scope/'config/npmrc'), NPM_CONFIG_GLOBALCONFIG=str(scope/'config/npmrc'),
     )
-    if os.name == 'nt':
-        env.update(HOMEDRIVE=scratch.drive, HOMEPATH=str(scratch)[len(scratch.drive):])
+    # Keep the configured OS/enterprise login context. A fresh HOME per call
+    # hides credentials used by distributions outside standard auth.json.
+    # XDG state/cache, database and temporary writes remain workspace-owned.
     return env
 
 
@@ -130,6 +129,7 @@ class ReviewStorage:
                 managed_path(Path(folder)/name)
         self._seed_auth(auth)
         paths = [config/name for name in _CONFIG_FILES]
+        self.auth_source = str(auth) if auth.is_file() else None
         explicit = self.environment.get('OPENCODE_CONFIG')
         explicit = self.settings.get('config_file') or explicit
         if explicit:
@@ -150,6 +150,9 @@ class ReviewStorage:
         # Keep OpenCode's config layering without loading external MCP servers,
         # plugins or commands. The files used by OpenCode are private copies.
         layers = [_settings(path, home) for path in paths if path.is_file()]
+        self.config_sources = [str(path) for path in paths if path.is_file()]
+        if self.environment.get('OPENCODE_CONFIG_CONTENT'):
+            self.config_sources.append('OPENCODE_CONFIG_CONTENT')
         if self.environment.get('OPENCODE_CONFIG_CONTENT'):
             try:
                 content = json.loads(self.environment['OPENCODE_CONFIG_CONTENT'])
@@ -175,11 +178,24 @@ class ReviewStorage:
         write_json(config/'opencode.json', merged)
 
     def prepare(self, runtime):
+        """Local preparation only. The first OpenCode process is the real run."""
         runtime.context = dict(scope=self.scope, data=self.data, environment=self.environment)
-        with runtime.maintenance(self.database, workdir=self.scope, shared=self.shared,
-                                 environment=self.environment, scope=self.scope, data=self.data) as maintenance:
-            self.identity = maintenance.prepare()
         self.runtime = runtime
+        self.identity_error = None
+        self.bind_identity()
+        runtime.capabilities.update(initialization='LOCAL_READY', storage='UNVERIFIABLE' if self.identity_error
+                                    else 'IDENTITY_BOUND' if self.identity else 'IDENTITY_PENDING')
+
+    def bind_identity(self):
+        """Optional cleanup ownership; absence must never block a model call."""
+        try:
+            actual = store_identity(self.database, allow_missing=True)
+            if self.identity is not None and actual != self.identity:
+                raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
+            self.identity = actual
+        except (ValueError, OSError) as exc:
+            self.identity_error = str(exc)
+        return self.identity
 
     def _seed_auth(self, source):
         if self.environment.get('OPENCODE_AUTH_CONTENT') or not source.is_file():
@@ -215,11 +231,6 @@ class ReviewStorage:
 
     @contextmanager
     def call(self):
-        if self.identity is not None and store_identity(self.database) != self.identity:
-            raise Unverifiable(f'OpenCode 会话数据库已更换: {self.database}')
-        if self.shared and self.runtime is not None and getattr(self.runtime, 'schema', None) is not None:
-            from .review_opencode_sessions import Maintenance
-            Maintenance(self.runtime, self.scope, {}, self.database, shared=True).check_shared_schema()
         scratch = control_path('opencode-calls')
         scratch.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(prefix='c-', dir=scratch, ignore_cleanup_errors=True) as name:
