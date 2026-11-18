@@ -599,8 +599,11 @@ class GitIntegrationTests(unittest.TestCase):
 
     def test_portable_missing_offline_git_is_explicit(self):
         from ecra.git_diff import git
-        with patch('ecra.portable.bundle_root', return_value=self.root/'portable'):
-            with self.assertRaisesRegex(ValueError, '离线 Git'):
+        bundle = self.root/'portable'
+        bundle.mkdir()
+        write_json(bundle/'portable-lock.json', {'git_runtime_version': None})
+        with patch('ecra.portable.bundle_root', return_value=bundle):
+            with self.assertRaisesRegex(ValueError, '旧包未声明 Git'):
                 git(self.root, '--version')
 
     def test_saved_review_failed_uses_persisted_diff_range(self):

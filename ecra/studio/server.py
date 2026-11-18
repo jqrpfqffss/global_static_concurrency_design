@@ -1018,7 +1018,7 @@ def _create_app(data_root, *, token, authority, startup):
     @app.post('/api/profiles/check')
     def check_profile(payload: dict):
         from ..config import load_config, configured_project_root, read_yaml
-        from ..portable import tool_path
+        from ..portable import git_status, tool_path
         import shutil
         work = no_links(data/'work'); work.mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='profile-check-', dir=work) as folder:
@@ -1036,6 +1036,11 @@ def _create_app(data_root, *, token, authority, startup):
                 ws = formal_workspace(root, cfg['analysis'])
             checks = []
             for tool in ('cmake', 'arm-none-eabi-gcc', 'git'):
+                if tool == 'git':
+                    status = git_status()
+                    checks.append(dict(tool=tool, path=status['path'], available=status['running'],
+                                       version=status['version'], repair=status.get('error', '')))
+                    continue
                 repair = ''
                 try:
                     resolved = tool_path(tool)

@@ -2,7 +2,7 @@
     [string]$CacheDir = (Join-Path $PSScriptRoot '.tools-cache'),
     [string]$PythonSource, [string]$CMakeSource, [string]$NinjaSource,
     [string]$MinGWSource, [string]$MinGWMakeSource, [string]$ArmGccSource,
-    [string]$VcRuntimeSource,
+    [string]$VcRuntimeSource, [string]$GitSource,
     [switch]$ForceArchives, [switch]$OfflineCheck
 )
 $ErrorActionPreference = 'Stop'
@@ -47,6 +47,7 @@ $inventory | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $cach
 $resolved = @{}
 $errors = @()
 $assets = @(
+    @('git',$GitSource,$sources.GitArchive,$sources.GitUrl,'git.exe'),
     @('python',$PythonSource,$sources.PythonArchive,$sources.PythonUrl,'python.exe'),
     @('vc-runtime',$VcRuntimeSource,$sources.VcRuntimeArchive,$sources.VcRuntimeUrl,'vc-runtime'),
     @('cmake',$CMakeSource,$sources.CMakeArchive,$sources.CMakeUrl,'cmake.exe'),
@@ -56,14 +57,15 @@ $assets = @(
 foreach ($asset in $assets) {
     $kind,$source,$archive,$url,$command = $asset
     try {
-        if (-not $source -and -not $OfflineCheck) {
+        if (-not $source -and -not $ForceArchives) {
+            try { $resolved[$kind] = Resolve-Asset $kind '' $archive; continue }
+            catch { if ($OfflineCheck) { throw } }
+        }
+        if (-not $source -and -not $OfflineCheck -and $kind -notin @('git','python')) {
             $found = @($inventory | Where-Object { $_.ContainsKey('name') -and $_.name -eq $command -and $_.complete_and_matching })
-            if ($found.Count -and $kind -ne 'python') { $source = $found[0].root }
+            if ($found.Count) { $source = $found[0].root }
         }
         if (-not $source) {
-            # Reuse only complete, version-scoped, hash-verified offline caches.
-            try { $resolved[$kind] = Resolve-Asset $kind '' $archive; if (-not $ForceArchives) { continue } }
-            catch { if ($OfflineCheck) { throw } }
             $expected = if ($sources.Sha256.ContainsKey($archive)) { $sources.Sha256[$archive] } else { '' }
             if ($kind -eq 'cmake' -and -not $OfflineCheck) {
                 $checksums = Get-RemoteText $sources.CMakeChecksumUrl
@@ -90,7 +92,7 @@ try {
 try {
     $null = Get-Download $sources.NinjaLicenseArchive $sources.NinjaLicenseUrl
     $pipWheel = Join-Path $downloadRoot $sources.PipWheel
-    if (-not $OfflineCheck) {
+    if (-not $OfflineCheck -and -not (Test-Path -LiteralPath ($pipWheel + '.receipt.json'))) {
         $metadata = Get-RemoteText $sources.PipMetadataUrl | ConvertFrom-Json
         $wheel = @($metadata.urls | Where-Object { $_.filename -eq $sources.PipWheel })[0]
         $pipWheel = Get-Download $sources.PipWheel $wheel.url $wheel.digests.sha256
@@ -108,7 +110,7 @@ try {
             "libclang==$($sources.LibClangVersion)","PyYAML==$($sources.PyYamlVersion)")
         foreach ($pattern in @('libclang-18.1.1-*-win_amd64.whl',"pyyaml-$($sources.PyYamlVersion)-cp310-cp310-win_amd64.whl")) {
             $wheels = @(Get-ChildItem -LiteralPath $wheelRoot -Filter $pattern -File)
-            if (-not $OfflineCheck) {
+            if (-not $OfflineCheck -and ($wheels.Count -ne 1 -or -not (Test-Path -LiteralPath ($wheels[0].FullName + '.receipt.json')))) {
                 $package = if ($pattern.StartsWith('libclang')) { 'libclang' } else { 'PyYAML' }
                 $pin = if ($package -eq 'libclang') { $sources.LibClangVersion } else { $sources.PyYamlVersion }
                 $meta = Get-RemoteText "https://pypi.org/pypi/$package/$pin/json" | ConvertFrom-Json
@@ -126,8 +128,11 @@ try {
         $pipArgs += @('--no-index','--find-links',$wheelRoot)
         $null = Invoke-Checked 'Python 3.10 compatible wheels' $python $pipArgs
         $studioArgs = @('-B',(Join-Path $PSScriptRoot 'scripts/prepare_studio_wheels.py'),'--cache',$cacheRoot)
-        if ($OfflineCheck) { $studioArgs += '--offline' }
-        $null = Invoke-Checked 'Studio Python 3.10 wheel hashes and licenses' $python $studioArgs
+        try { $null = Invoke-Checked 'Verify cached Studio wheels' $python ($studioArgs + '--offline') }
+        catch {
+            if ($OfflineCheck) { throw }
+            $null = Invoke-Checked 'Studio Python 3.10 wheel hashes and licenses' $python $studioArgs
+        }
     } finally { if ($stage) { Remove-OutputChild $cacheRoot $stage } }
 } catch { $errors += "Python dependencies : $_"; Write-Warning $errors[-1] }
 $summary = @{ resolved=$resolved; errors=$errors; offline=[bool]$OfflineCheck; utc=[datetime]::UtcNow.ToString('o') }

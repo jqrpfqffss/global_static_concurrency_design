@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
+import subprocess
 import time
 
 from . import __version__
@@ -385,6 +386,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             write_json(out / 'result_validity.json', dict(analysis_valid=False, state='RUNNING', started=started))
             write_failure(out, state='RUNNING')
         if cfg['analysis']['git_diff']['enabled']:
+            from .portable import require_git
+            require_git('analysis.git_diff / Git')
             from .git_diff import pin, prepare_base, prepare_current
             diff_pin = pin(root, cfg)
             if frozen_files is not None:
@@ -454,7 +457,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress('验收状态: ' + json.dumps(doctor['acceptance'], ensure_ascii=False))
             write_json(out / 'doctor.json', doctor)
             run_info["state"] = "DOCTOR_READY"
-            if doctor['portable_root'] and any(not info.get('matching', True) for info in doctor['tools'].values()):
+            if doctor['portable_root'] and any(not info.get('matching', True) for name, info in doctor['tools'].items()
+                                               if name != 'git' or cfg['analysis']['git_diff']['enabled']
+                                               or cfg['analysis']['git_diff']['include_uncommitted']):
                 progress('Portable 工具版本/运行检查失败，详见 doctor.json。')
                 return 3
             if doctor.get('opencode_command_found') is False:
@@ -739,9 +744,10 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                               snapshot_inputs.consumed_selections(), diff_pin])
         report.update(fingerprint=fingerprint, generated_at=started, tool_version=__version__)
         try:
-            git = execute(["git", "rev-parse", "HEAD"], cwd=root, timeout=10)
+            from .portable import tool_path
+            git = execute([tool_path("git"), "rev-parse", "HEAD"], cwd=root, timeout=10)
             report["git_commit"] = git.stdout.strip() if git.returncode == 0 else "unknown"
-        except OSError:
+        except (OSError, ValueError, subprocess.TimeoutExpired):
             report["git_commit"] = "unknown"
         old_ids = previous_ids
         new_ids = {f["finding_id"] for f in report["findings"]}

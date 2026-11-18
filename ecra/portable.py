@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import stat
+import subprocess
 import sys
 from importlib.metadata import version
 
@@ -189,6 +190,26 @@ def tool_path(name):
              'mingw32-make': 'mingw/bin/mingw32-make.exe', 'gcc': 'mingw/bin/gcc.exe',
              'g++': 'mingw/bin/g++.exe', 'arm-none-eabi-gcc': 'arm-gcc/bin/arm-none-eabi-gcc.exe',
              'arm-none-eabi-g++': 'arm-gcc/bin/arm-none-eabi-g++.exe'}
+    if name == 'git':
+        if not root:
+            return shutil.which(name) or name
+        path = root/'tools'/paths[name]
+        if path.is_file():
+            return str(path)
+        lock = json.loads((root/'portable-lock.json').read_text('utf-8-sig'))
+        declared = lock.get('git_runtime_version') or lock.get('versions', {}).get('git')
+        manifest = root/'FILES.sha256.json'
+        if not declared and manifest.is_file():
+            declared = any(p.startswith('tools/git/') for p in json.loads(manifest.read_text('utf-8-sig')))
+        nested = next((root/'tools/git').glob('**/cmd/git.exe'), None)
+        if nested:
+            detail = f'解压层级错误，实际入口 {nested}'
+        elif declared:
+            detail = '清单已声明 Git，当前安装不完整'
+        else:
+            detail = '旧包未声明 Git'
+        raise ValueError(f'{detail}。缺少 {path}；差异比较、版本选择及未提交输入捕获需要完整 MinGit。'
+                         '请将通过验收的完整 ZIP 解压到新目录，并按升级说明保留 workspace。')
     if root and name in paths:
         build_path(root/'tools')
         path = root/'tools'/paths[name]
@@ -196,6 +217,47 @@ def tool_path(name):
             raise ValueError(f'Portable 缺少工具: {path}；重新生成完整包')
         return build_path(path)
     return shutil.which(name, path=tool_environment().get('PATH')) or name
+
+
+def check_git_components(root):
+    """Check distribution structure independently of the generated hash manifest."""
+    git = root/'tools/git'
+    native = next((p for p in (git/'ucrt64', git/'mingw64') if (p/'bin/git.exe').is_file()), None)
+    if native is None:
+        raise ValueError(f'Git 运行组件缺失：{git} 下需要 ucrt64/bin/git.exe 或 mingw64/bin/git.exe。'
+                         '请在新目录完整解压经校验的 ZIP。')
+    for file in (git/'cmd/git.exe', git/'etc/gitconfig', git/'LICENSE.txt', git/'usr/bin/sh.exe',
+                 git/'usr/bin/msys-2.0.dll', native/'bin/git-upload-pack.exe',
+                 native/'share/git-core/templates/description', native/'libexec/git-core/git-sh-setup'):
+        if not file.is_file():
+            raise ValueError(f'Git 运行组件缺失：{file}；请在新目录完整解压经校验的 ZIP')
+
+
+def git_status(expected=None):
+    root = bundle_root()
+    path = str(root/'tools/git/cmd/git.exe') if root else 'git'
+    try:
+        path = tool_path('git')
+        if root:
+            check_git_components(root)
+    except (OSError, ValueError) as exc:
+        return dict(path=path, running=False, matching=False, version='', error=str(exc))
+    repair = ('请对照 FILES.sha256.json 核对 tools/git，并从已校验的 ZIP 完整解压到新目录。'
+              if root else '请检查系统 Git 安装和 PATH。')
+    try:
+        result = _probe_version(path, expected, None)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return dict(path=path, running=False, matching=False, version='', error=f'{path} --version：{exc}。{repair}')
+    if not result['running']:
+        result.update(matching=False, error=f'{path} --version 退出码 {result["exit_code"]}，{result["version"]}。{repair}')
+    return result
+
+
+def require_git(feature):
+    status = git_status()
+    if not status['running']:
+        raise ValueError(f'{feature} 需要可运行的 Git：{status["path"]}。{status["error"]}')
+    return status
 
 
 def read_cache(build, *, consumed_inputs=None):
@@ -270,9 +332,13 @@ def check_cache(build, root, generator, make=None, allow_external=False):
 
 def probe_tool(name, expected=None):
     path = tool_path(name)
-    proc = execute([path, '--version'], env=tool_environment(), timeout=20)
+    return _probe_version(path, expected, tool_environment())
+
+
+def _probe_version(path, expected, env):
+    proc = execute([path, '--version'], env=env, timeout=20)
     text = (proc.stdout + proc.stderr).strip()
-    result = dict(path=path, canonical_path=str(Path(path).resolve()), version=text.splitlines()[0] if text else '', running=proc.returncode == 0)
+    result = dict(path=path, canonical_path=str(Path(path).resolve()), version=text.splitlines()[0] if text else '', running=proc.returncode == 0, exit_code=proc.returncode)
     if expected:
         import re
         result['required'] = expected
@@ -292,6 +358,7 @@ def diagnostics(libclang_file=None):
             tools[name] = probe_tool(name, required.get(name))
         except (OSError, ValueError) as exc:
             tools[name] = dict(running=False, matching=False, error=str(exc))
+    tools['git'] = git_status(required.get('git'))
     for package, module in (('PyYAML', 'yaml'), ('libclang', 'clang.cindex')):
         try:
             import importlib
@@ -309,5 +376,5 @@ def diagnostics(libclang_file=None):
     return dict(portable_root=str(root) if root else None, tools=tools,
                 acceptance=dict(portable_runtime='PASS' if all(tools[k].get('matching', True) for k in
                     ('python','PyYAML','libclang')) else 'FAIL', cmake_configure='NOT_RUN',
-                    cmake_build='NOT_RUN', arm_cross_compile='NOT_RUN', static_scan='NOT_RUN',
+                    git_diff_scan='NOT_RUN', cmake_build='NOT_RUN', arm_cross_compile='NOT_RUN', static_scan='NOT_RUN',
                     opencode_review='NOT_TESTED'))

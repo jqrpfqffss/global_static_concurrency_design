@@ -35,6 +35,28 @@ class PortableCMakeTests(unittest.TestCase):
         stable_build.start()
         self.addCleanup(stable_build.stop)
 
+    def test_git_missing_in_declared_package_cannot_fall_back_to_path(self):
+        (self.root/'portable-lock.json').write_text(json.dumps({'git_runtime_version': 'git version 2.56.1.windows.1'}))
+        with patch('ecra.portable.bundle_root', return_value=self.root):
+            with self.assertRaisesRegex(ValueError, '清单已声明 Git'):
+                tool_path('git')
+            nested = self.root/'tools/git/MinGit/cmd/git.exe'
+            nested.parent.mkdir(parents=True)
+            nested.touch()
+            with self.assertRaisesRegex(ValueError, '解压层级错误'):
+                tool_path('git')
+
+    def test_regenerating_inventory_without_git_cannot_certify_a_full_bundle(self):
+        from scripts.validate_portable import Acceptance, file_hashes
+        receipt = self.root/'FILES.sha256.json'
+        receipt.write_text(json.dumps(file_hashes(self.root)), 'utf-8')
+        # Run the production structural gate with a matching but incomplete inventory.
+        validator = Acceptance.__new__(Acceptance)
+        validator.bundle, validator.work, validator.report = self.root, self.root.parent, {}
+        with self.assertRaisesRegex(ValueError, 'Git 运行组件缺失'):
+            validator.run()
+        self.assertEqual(validator.report['result'], 'FAIL')
+
     def own_build(self):
         (self.build/'.ecra-build-owner').write_text(str(self.root), encoding='utf-8')
 

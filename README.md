@@ -55,7 +55,7 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
 
 ## Windows Full Portable 离线打包
 
-`build_portable.ps1` **不会联网**。它从项目根目录的 `.tools-cache/` 读取工具和 Python 依赖，生成 `dist/ECRA-Portable/` 与 `dist/ECRA-Portable.zip`。默认版本记录在 `config/portable_sources.psd1`，本轮内置 Python 为 **3.10.9（64 位）**、Arm GCC 为 **10.3.1**，以真实包内版本收据为准。若缓存中仍是旧版 Arm GCC，需重新准备缓存，或通过 `-ArmGccSource` 指定本地 10.3.1 完整目录。
+`build_portable.ps1` **不会联网**。它从项目根目录的 `.tools-cache/` 读取工具和 Python 依赖，生成 `dist/ECRA-Portable/` 与 `dist/ECRA-Portable.zip`。默认版本记录在 `config/portable_sources.psd1`，本轮内置 Python 为 **3.10.9（64 位）**、Git 为 **MinGit 2.56.1.windows.1 x64**、Arm GCC 为 **10.3.1**，以真实包内版本收据为准。若缓存中仍是旧版 Arm GCC，需重新准备缓存，或通过 `-ArmGccSource` 指定本地 10.3.1 完整目录。
 
 ### 把源码和已有缓存迁移到新电脑打包
 
@@ -72,6 +72,7 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
       ├─ cmake\
       ├─ ninja\
       ├─ arm-gcc\
+      ├─ git-2.56.1.windows.1\
       ├─ downloads\
       └─ wheels\
    ```
@@ -99,9 +100,11 @@ CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `-
 
 **系统安装的 Python 不决定便携包版本。** 准备和打包脚本使用缓存中的嵌入式 Python 3.10.9 与匹配的 cp310 依赖 wheel。不要只修改版本号；更换便携 Python 需要同步调整运行时、路径文件及依赖 wheel，并重新通过实际自检。
 
-### 新电脑只有源码、没有缓存
+### 准备新增 Git 资产或从零准备缓存
 
-先在可联网的新电脑运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\prepare_portable_cache.ps1`，下载 Python、CMake、Ninja、ARM GNU Toolchain、pip wheel 和 `requirements.txt` 的依赖 wheel 到 `.tools-cache/`，再按上面的步骤执行 `-OfflineCheck` 和离线打包。若需要保留四个工具的原始 ZIP，在准备时加 `-ForceArchives`；默认也可复用完整解压缓存。已有其他本地工具目录或 ZIP 时，可向打包脚本传入 `-PythonSource`、`-CMakeSource`、`-NinjaSource`、`-ArmGccSource`，pip wheel 可用 `-PipWheelSource` 指定。
+先在可联网的新电脑运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\prepare_portable_cache.ps1`，复用通过收据校验的资产，补齐 MinGit、Python、CMake、Ninja、ARM GNU Toolchain、pip wheel 和 `requirements.txt` 的依赖 wheel 到 `.tools-cache/`，再按上面的步骤执行 `-OfflineCheck` 和离线打包。若需要保留四个工具的原始 ZIP，在准备时加 `-ForceArchives`；默认也可复用完整解压缓存。已有其他本地工具目录或 ZIP 时，可向打包脚本传入 `-PythonSource`、`-CMakeSource`、`-NinjaSource`、`-ArmGccSource`，pip wheel 可用 `-PipWheelSource` 指定。
+
+已有其他工具缓存时，只需补齐 Git。可联网运行准备脚本，也可将官方 `MinGit-2.56.1-64-bit.zip` 放入 `.tools-cache/downloads/` 后运行 `prepare_portable_cache.ps1 -OfflineCheck`。版本和 SHA-256 固定在 `config/portable_sources.psd1`。默认离线打包自动包含 Git；`build_portable.ps1 -GitSource <完整的本地 MinGit x64 目录>` 用于显式覆盖并记录来源。打包脚本在独立目录副本和候选 ZIP 解压副本中，分别通过包内 Git 创建两次提交，执行全量、差异和重复差异扫描，校验 SQLite 结果后发布 ZIP。
 
 将便携包解压到目标电脑后，按实际固件位置修改包内 `config/semantics.yaml` 的 `project.root` 和相关 CMake 设置。AI review 仍需目标电脑有可用的 OpenCode；只做静态扫描可使用 `--no-review`。
 

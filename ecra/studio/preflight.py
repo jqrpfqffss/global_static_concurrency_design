@@ -82,8 +82,15 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
                 raise ValueError(field+'：'+str(exc)+'；请修复完整Portable工具资产后重新检查。') from exc
             return probe(name, cwd, field)
 
-        if cfg['analysis']['git_diff']['enabled']:
-            named_tool('git', root, 'analysis.git_diff / Git')
+        options = cfg['analysis']['git_diff']
+        if options['enabled'] or options['include_uncommitted']:
+            from ..portable import require_git
+            status = require_git('analysis.git_diff / Git')
+            path = Path(status['path']).resolve()
+            executables.append(str(path))
+            tools.append(dict(field='analysis.git_diff / Git', path=str(path), version=status['version'],
+                              sha256=sha256(path), available=True))
+        if options['enabled']:
             from ..git_diff import pin, prepare_current
             from .opencode_recovery import recover_review_tree
             fixed = pin(root, cfg)

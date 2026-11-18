@@ -16,7 +16,7 @@ import subprocess
 import uuid
 
 from .workspace import context,no_links,canonical,studio_data_root
-from .portable import bundle_root
+from .portable import tool_path
 from .scan_stop import check_stop
 
 LEGACY_SCHEMA="""
@@ -28,9 +28,7 @@ SCHEMA=LEGACY_SCHEMA+'\nCREATE TABLE directories(relative TEXT PRIMARY KEY);\n'
 
 
 def _git_argv(root,*args):
-    bundle=bundle_root()
-    exe=str(bundle/'tools/git/cmd/git.exe') if bundle else 'git'
-    if bundle and not Path(exe).is_file():raise ValueError('隔离输入需要完整离线Git运行时')
+    exe=tool_path('git')
     # Porcelain diff refreshes stat-only index entries even with optional
     # locks disabled. Input inspection must preserve the caller's real index.
     return [exe,'-c','core.longpaths=true','-c','core.fsmonitor=false',

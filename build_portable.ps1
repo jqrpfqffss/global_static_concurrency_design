@@ -45,6 +45,16 @@ function Select-LocalSource([string]$Explicit, [string]$Name) {
     return ''
 }
 try {
+    if ($GitSource) {
+        $gitRoot = Find-AssetRoot 'git' (Resolve-Path -LiteralPath $GitSource).Path
+        $null = Assert-Asset 'git' $gitRoot
+        $gitOrigin = @{source=$gitRoot; mode='explicit-directory'}
+    } else {
+        $gitRoot = Resolve-Asset 'git' '' $sources.GitArchive
+        $receipt = Get-Content -LiteralPath (Join-Path $gitRoot '.portable-receipt.json') -Raw | ConvertFrom-Json
+        $gitOrigin = @{source=$receipt.source; mode='verified-cache'; archive_sha256=$receipt.archive_sha256}
+        if ($receipt.archive_sha256 -eq $sources.Sha256[$sources.GitArchive]) { $gitOrigin.url = $sources.GitUrl }
+    }
     $pythonBase = Resolve-Asset 'python' $PythonSource $sources.PythonArchive
     $vcBase = Resolve-Asset 'vc-runtime' $VcRuntimeSource $sources.VcRuntimeArchive
     $cmakeBase = Resolve-Asset 'cmake' (Select-LocalSource $CMakeSource 'cmake.exe') $sources.CMakeArchive
@@ -94,6 +104,7 @@ try {
         Copy-Item -LiteralPath (Join-Path (Join-Path $PSScriptRoot 'config') $name) -Destination $configOut
     }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'scripts/validate_portable.py') -Destination (Join-Path $bundle 'validate_portable.py')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'scripts/validate_portable_diff_target.py') -Destination $bundle
     $runtime = Join-Path $bundle 'runtime'
     Copy-DirectoryContents $pythonBase $runtime
     $sitePackages = Join-Path $runtime 'Lib/site-packages'
@@ -141,49 +152,41 @@ try {
     Copy-Item -LiteralPath $ninjaLicense -Destination (Join-Path $toolsDir 'ninja/COPYING.txt')
     Copy-DirectoryContents $mingwBase (Join-Path $toolsDir 'mingw')
     Copy-DirectoryContents $armBase (Join-Path $toolsDir 'arm-gcc')
-    # Optional, strictly offline MinGit distribution. Copy the complete tree,
-    # including libexec, DLLs and licences; a lone git.exe is insufficient.
-    $gitVersion = $null
     $gitOmitted = @()
-    if ($GitSource) {
-        $gitRoot = (Resolve-Path -LiteralPath $GitSource).Path
-        if (-not (Test-Path -LiteralPath (Join-Path $gitRoot 'cmd/git.exe'))) {
-            throw "GitSource 必须是包含 cmd/git.exe 的完整 MinGit 分发目录：$gitRoot"
-        }
-        Copy-DirectoryContents $gitRoot (Join-Path $toolsDir 'git')
-        # GCM is a separate optional authentication/UI component. Official
-        # MinGit can include its .NET Framework/Avalonia distribution, which
-        # is not an offline runtime for the local-only comparison feature.
-        # Remove the complete component, never exempt missing DLLs from QA.
-        $gcmPatterns = @('git-credential-manager*','git-credential-helper-selector.exe',
-            'Atlassian.Bitbucket.dll','GitHub.dll','GitLab.dll','gcmcore.dll',
-            'Avalonia*.dll','MicroCom.Runtime.dll','HarfBuzzSharp.dll','libHarfBuzzSharp.dll',
-            'SkiaSharp.dll','libSkiaSharp.dll','av_libglesv2.dll','msalruntime.dll',
-            'Microsoft*.dll','System.*.dll')
-        $gitOut = Join-Path $toolsDir 'git'
-        foreach ($nativeDir in @('mingw64/bin','ucrt64/bin')) {
-            $nativeRoot = Join-Path $gitOut $nativeDir
-            if (-not (Test-Path -LiteralPath $nativeRoot)) { continue }
-            foreach ($component in Get-ChildItem -LiteralPath $nativeRoot -File) {
-                if (@($gcmPatterns | Where-Object { $component.Name -like $_ }).Count) {
-                    $gitOmitted += @{path=($nativeDir + '/' + $component.Name);
-                        sha256=(Get-FileHash -LiteralPath $component.FullName -Algorithm SHA256).Hash;
-                        reason='本地差异扫描不使用的 GCM 凭据管理与界面组件'}
-                    Remove-OutputChild $bundle $component.FullName
-                }
+    Copy-DirectoryContents $gitRoot (Join-Path $toolsDir 'git')
+    # GCM is a separate optional authentication/UI component. Official
+    # MinGit can include its .NET Framework/Avalonia distribution, which
+    # is not an offline runtime for the local-only comparison feature.
+    # Remove the complete component, never exempt missing DLLs from QA.
+    $gcmPatterns = @('git-credential-manager*','git-credential-helper-selector.exe',
+        'Atlassian.Bitbucket.dll','GitHub.dll','GitLab.dll','gcmcore.dll',
+        'Avalonia*.dll','MicroCom.Runtime.dll','HarfBuzzSharp.dll','libHarfBuzzSharp.dll',
+        'SkiaSharp.dll','libSkiaSharp.dll','av_libglesv2.dll','msalruntime.dll',
+        'Microsoft*.dll','System.*.dll')
+    $gitOut = Join-Path $toolsDir 'git'
+    foreach ($nativeDir in @('mingw64/bin','ucrt64/bin')) {
+        $nativeRoot = Join-Path $gitOut $nativeDir
+        if (-not (Test-Path -LiteralPath $nativeRoot)) { continue }
+        foreach ($component in Get-ChildItem -LiteralPath $nativeRoot -File) {
+            if (@($gcmPatterns | Where-Object { $component.Name -like $_ }).Count) {
+                $gitOmitted += @{path=($nativeDir + '/' + $component.Name);
+                    sha256=(Get-FileHash -LiteralPath $component.FullName -Algorithm SHA256).Hash;
+                    reason='本地差异扫描不使用的 GCM 凭据管理与界面组件'}
+                Remove-OutputChild $bundle $component.FullName
             }
         }
-        # Keep the portable Git's configuration independent of other installed
-        # Git distributions and of an omitted authentication component.
-        $gitConfig = Join-Path $gitOut 'etc/gitconfig'
-        if (Test-Path -LiteralPath $gitConfig) {
-            $configText = [IO.File]::ReadAllText($gitConfig)
-            $configText = [regex]::Replace($configText, '(?ms)^\[credential\]\r?\n.*?(?=^\[|\z)', '')
-            $configText = [regex]::Replace($configText, '(?ms)^\[include\]\r?\n.*?(?=^\[|\z)', '')
-            [IO.File]::WriteAllText($gitConfig, $configText, (New-Object Text.UTF8Encoding($false)))
-        }
-        $gitVersion = Invoke-Checked '离线 Git 运行时' (Join-Path $toolsDir 'git/cmd/git.exe') @('--version')
     }
+    # Keep the portable Git's configuration independent of other installed
+    # Git distributions and of an omitted authentication component.
+    $gitConfig = Join-Path $gitOut 'etc/gitconfig'
+    if (Test-Path -LiteralPath $gitConfig) {
+        $configText = [IO.File]::ReadAllText($gitConfig)
+        $configText = [regex]::Replace($configText, '(?ms)^\[credential\]\r?\n.*?(?=^\[|\z)', '')
+        $configText = [regex]::Replace($configText, '(?ms)^\[include\]\r?\n.*?(?=^\[|\z)', '')
+        [IO.File]::WriteAllText($gitConfig, $configText, (New-Object Text.UTF8Encoding($false)))
+    }
+    $gitVersion = Assert-Asset 'git' $gitOut
+    $gitOrigin.entry_sha256 = (Get-FileHash -LiteralPath (Join-Path $gitOut 'cmd/git.exe')).Hash
     # The upstream Python-enabled debugger requires a separately installed
     # 32-bit Python 2.7. It is not a compiler component. Keep the standard GDB
     # and the complete compiler/binutils/libraries; do not ship a broken optional
@@ -211,6 +214,7 @@ try {
         '--make',(Join-Path $toolsDir 'mingw/bin/mingw32-make.exe'),'--report',$makeReport,'--expected-source-sha256',$makeSourceSha)
     $makeAdapter = Get-Content -LiteralPath $makeReport -Raw | ConvertFrom-Json
     $patterns = @{
+        git=('^' + [regex]::Escape($gitVersion) + '$')
         cmake=('(?m)^cmake version ' + [regex]::Escape($sources.CMakeVersion) + '(\s|$)')
         ninja=('\A' + [regex]::Escape($sources.NinjaVersion) + '\Z')
         gcc=('(?i)^gcc\.exe \(' + [regex]::Escape($sources.MinGWVariant) + ', Built by MinGW-Builds project\) ' + [regex]::Escape($sources.MinGWVersion) + '(\s|$)')
@@ -218,15 +222,15 @@ try {
         'mingw32-make'=('(?m)^GNU Make ' + [regex]::Escape($sources.MakeVersion) + '\nBuilt for ' + $sources.MakePlatform)
         'arm-none-eabi-gcc'=([regex]::Escape($sources.ArmGccRelease) + '\) ' + [regex]::Escape($sources.ArmGccVersion) + ' 20210824 \(release\)')
     }
-    $actualVersions = @{}
+    $actualVersions = @{git=$gitVersion}
     foreach ($entry in @(@('python',$runtime),@('cmake',(Join-Path $toolsDir 'cmake')),@('ninja',(Join-Path $toolsDir 'ninja')),
             @('mingw',(Join-Path $toolsDir 'mingw')),@('make',(Join-Path $toolsDir 'mingw')),@('arm-gcc',(Join-Path $toolsDir 'arm-gcc')))) {
         $actualVersions[$entry[0]] = ((Assert-Asset $entry[0] $entry[1]) -split "`n")[0]
     }
-    $lock = @{ versions=@{python=$sources.PythonVersion;cmake=$sources.CMakeVersion;ninja=$sources.NinjaVersion;
+    $lock = @{ versions=@{git=$gitVersion.Substring(12);python=$sources.PythonVersion;cmake=$sources.CMakeVersion;ninja=$sources.NinjaVersion;
             mingw=$sources.MinGWVersion;make=$sources.MakeVersion;arm=$sources.ArmGccVersion};
         version_patterns=$patterns; dependencies=@{libclang=$sources.LibClangVersion;PyYAML=$sources.PyYamlVersion};
-        sources=@{python=$pythonBase;cmake=$cmakeBase;ninja=$ninjaBase;mingw=$mingwBase;make=$makeBase;arm=$armBase;vc_runtime=$vcBase}; actual_versions=$actualVersions;
+        sources=@{git=$gitOrigin;python=$pythonBase;cmake=$cmakeBase;ninja=$ninjaBase;mingw=$mingwBase;make=$makeBase;arm=$armBase;vc_runtime=$vcBase}; actual_versions=$actualVersions;
         vc_runtime_version=$sources.VcRuntimeVersion;
         git_runtime_version=$gitVersion;
         git_omitted_optional_components=$gitOmitted;
@@ -252,9 +256,9 @@ try {
     [IO.File]::WriteAllText((Join-Path $bundle 'STUDIO-GUIDE.md'),
         "# ECRA Studio 操作说明`r`n`r`n双击 ECRA.cmd 打开本地工作台。首次使用见[启动、扫描、确认与交接教程](docs/studio-v81-user-tutorial.md)，日常处理见[查看与人工确认](docs/studio-v91-results-guide.md)。数据位置和能力边界见[用户操作说明](docs/rearchitecture/portable-and-user-guide.md)。`r`n`r`n本包仍为开发验收候选，完整重构发布门禁未全部通过。技术证据见[需求追踪](docs/rearchitecture/01-requirements-traceability.md)与[验收记录](docs/rearchitecture/performance-and-acceptance.md)。`r`n", [Text.Encoding]::UTF8)
     $commit = 'unknown (source archive or Git unavailable)'
-    $git = Get-Command git.exe -ErrorAction SilentlyContinue
-    if ($git -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {
-        try { $commit = Invoke-Checked 'Git source revision' $git.Source @('-C',$PSScriptRoot,'rev-parse','HEAD') }
+    $git = Join-Path $gitOut 'cmd/git.exe'
+    if ( (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {
+        try { $commit = Invoke-Checked 'Git source revision' $git @('-C',$PSScriptRoot,'rev-parse','HEAD') }
         catch { $commit = 'unknown (Git could not resolve revision)' }
     } else {
         $frozenSource = Get-FrozenSourceRevision $PSScriptRoot
@@ -266,7 +270,7 @@ try {
     }
     $pyproject = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'pyproject.toml') -Raw
     $version = [regex]::Match($pyproject, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
-    [IO.File]::WriteAllText((Join-Path $bundle 'VERSION.txt'), "ECRA: $version`r`nGit: $commit`r`nUTC: $([datetime]::UtcNow.ToString('o'))`r`n" +
+    [IO.File]::WriteAllText((Join-Path $bundle 'VERSION.txt'), "ECRA: $version`r`nGit: $commit`r`nGit runtime: $gitVersion`r`nUTC: $([datetime]::UtcNow.ToString('o'))`r`n" +
         ($lock | ConvertTo-Json -Depth 8), [Text.Encoding]::UTF8)
     foreach ($dir in @(Get-ChildItem -LiteralPath $bundle -Recurse -Directory -Filter '__pycache__' | Sort-Object { $_.FullName.Length } -Descending)) {
         Remove-OutputChild $bundle $dir.FullName

@@ -82,6 +82,12 @@ function Test-Asset([string]$Kind, [string]$Directory) {
     $required = switch ($Kind) {
         'python' { @('python.exe', 'python310.dll', 'python310.zip', 'python310._pth', 'LICENSE.txt') }
         'cmake' { @('bin/cmake.exe', 'bin/ctest.exe', 'share/cmake-3.29/Modules/CMake.cmake', 'doc') }
+        'git' {
+            $native = @('ucrt64','mingw64') | Where-Object { Test-Path -LiteralPath (Join-Path $Directory "$_/bin/git.exe") } | Select-Object -First 1
+            if (-not $native) { return $false }
+            @('cmd/git.exe','etc/gitconfig','LICENSE.txt','usr/bin/sh.exe','usr/bin/msys-2.0.dll',
+                "$native/bin/git-upload-pack.exe","$native/share/git-core/templates/description","$native/libexec/git-core/git-sh-setup")
+        }
         'ninja' { @('ninja.exe') }
         'mingw' { @('bin/gcc.exe', 'bin/g++.exe', 'bin/ar.exe', 'bin/ld.exe', 'bin/as.exe',
             'lib/gcc/x86_64-w64-mingw32/14.2.0', 'x86_64-w64-mingw32/include/windows.h',
@@ -110,7 +116,7 @@ function Assert-Asset([string]$Kind, [string]$Directory) {
         return "Microsoft VC++ x64 Runtime $($sources.VcRuntimeVersion)"
     }
     $exe = switch ($Kind) {
-        'python' { 'python.exe' }; 'cmake' { 'bin/cmake.exe' }; 'ninja' { 'ninja.exe' }
+        'git' { 'cmd/git.exe' }; 'python' { 'python.exe' }; 'cmake' { 'bin/cmake.exe' }; 'ninja' { 'ninja.exe' }
         'mingw' { 'bin/gcc.exe' }; 'make' { 'bin/mingw32-make.exe' }; 'arm-gcc' { 'bin/arm-none-eabi-gcc.exe' }
     }
     $oldPath = $env:PATH
@@ -118,6 +124,7 @@ function Assert-Asset([string]$Kind, [string]$Directory) {
         $env:PATH = (Join-Path $Directory 'bin') + ';' + $Directory + ';' + (Get-SystemPath)
         $version = Invoke-Checked $Kind (Join-Path $Directory $exe) @('--version')
         $ok = switch ($Kind) {
+            'git' { $version -match '^git version [0-9.]+\.windows\.\d+$' }
             'python' { $version -match ('(?m)^Python ' + [regex]::Escape($sources.PythonVersion) + '$') }
             'cmake' { $version -match ('(?m)^cmake version ' + [regex]::Escape($sources.CMakeVersion) + '(\s|$)') }
             'ninja' { $version -ceq $sources.NinjaVersion }
@@ -126,6 +133,10 @@ function Assert-Asset([string]$Kind, [string]$Directory) {
             'arm-gcc' { $version -match ([regex]::Escape($sources.ArmGccRelease) + '\) ' + [regex]::Escape($sources.ArmGccVersion) + ' 20210824 \(release\)') }
         }
         if (-not $ok) { throw "$Kind version/distribution mismatch: $Directory`n$version" }
+        if ($Kind -eq 'git') {
+            $options = Invoke-Checked 'Git architecture' (Join-Path $Directory $exe) @('version','--build-options')
+            if ($options -notmatch '(?m)^cpu: x86_64\s*$') { throw "Expected x64 MinGit: $Directory ($options)" }
+        }
         if ($Kind -eq 'cmake') {
             $copyright = @(Get-ChildItem -LiteralPath (Join-Path $Directory 'doc') -Recurse -File -Filter Copyright.txt)
             if (-not $copyright.Count) { throw "CMake redistribution notices missing: $Directory/doc" }
@@ -271,11 +282,12 @@ function Assert-TreeReceipt([string]$Directory) {
 function Resolve-Asset([string]$Kind, [string]$Source, [string]$ArchiveName) {
     $tag = switch ($Kind) { 'python' {$sources.PythonVersion}; 'cmake' {$sources.CMakeVersion}; 'ninja' {$sources.NinjaVersion};
         'mingw' { $sources.MinGWVersion + '-' + $sources.MinGWVariant }; 'make' {$sources.MakeVersion}; 'arm-gcc' {'10.3-2021.10'};
-        'vc-runtime' {$sources.VcRuntimeVersion} }
+        'vc-runtime' {$sources.VcRuntimeVersion}; 'git' {$sources.GitVersion} }
     $cached = Join-Path $cacheRoot ($Kind + '-' + $tag)
     if (-not $Source -and (Test-Path -LiteralPath $cached)) {
         # A wrong/stale cache never quietly falls through to another version.
-        $null = Assert-Asset $Kind $cached
+        $actual = Assert-Asset $Kind $cached
+        if ($Kind -eq 'git' -and $actual -ne "git version $tag") { throw "Cached Git version mismatch: $actual; expected $tag" }
         Assert-TreeReceipt $cached
         return $cached
     }
@@ -287,6 +299,9 @@ function Resolve-Asset([string]$Kind, [string]$Source, [string]$ArchiveName) {
         else {
             $path = Join-Path $downloadRoot $ArchiveName
             $expected = if ($sources.Sha256.ContainsKey($ArchiveName)) { $sources.Sha256[$ArchiveName] } else { '' }
+            if ($Kind -eq 'git' -and -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+                throw "Missing MinGit: $path. Run prepare_portable_cache.ps1 online or import $ArchiveName via -GitSource."
+            }
             Assert-Archive $path $expected
         }
         if (Test-Path -LiteralPath $path -PathType Container) { $root = Find-AssetRoot $Kind $path; $hash = $null }
@@ -309,6 +324,7 @@ function Resolve-Asset([string]$Kind, [string]$Source, [string]$ArchiveName) {
             $root = Find-AssetRoot $Kind $stage
         }
         $actual = Assert-Asset $Kind $root
+        if ($Kind -eq 'git' -and $actual -ne "git version $tag") { throw "Expected git version $tag for default cache, got $actual. Use build_portable.ps1 -GitSource for an explicit distribution." }
         Copy-DirectoryContents $root $replacement
         $null = Assert-Asset $Kind $replacement
         $receipt = @{ source = $path; archive_sha256 = $hash; version = ($actual -split "`r?`n")[0]; files = (Get-TreeHashes $replacement) }

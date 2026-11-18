@@ -41,12 +41,9 @@ def settings(value):
 
 
 def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=False):
-    from .portable import bundle_root
+    from .portable import tool_path
     from .runtime_storage import child_environment
-    bundle = bundle_root()
-    exe = str(bundle/'tools/git/cmd/git.exe') if bundle else 'git'
-    if bundle and not Path(exe).is_file():
-        raise ValueError('Portable 差异模式缺少离线 Git：请将完整 MinGit 解压到 tools/git（包含 cmd/git.exe）')
+    exe = tool_path('git')
     try:
         # GIT_OPTIONAL_LOCKS alone does not disable porcelain diff's stat-only
         # index refresh. All comparison callers preserve the original index.
@@ -55,9 +52,12 @@ def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=
                               stderr=subprocess.PIPE, timeout=300,
                               env=child_environment(dict(os.environ, GIT_OPTIONAL_LOCKS='0')))
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise ValueError(f'Git 无法运行，差异扫描未完成：{exc}') from exc
+        raise ValueError(f'Git 无法运行，差异扫描未完成：{exe}，{exc}') from exc
     if proc.returncode not in _returncodes or (_reject_stderr and proc.stderr):
-        raise ValueError('Git 比较失败，差异扫描未完成：' + proc.stderr.decode('utf-8', 'replace'))
+        detail = proc.stderr.decode('utf-8', 'replace').strip()
+        if args == ('rev-parse', '--show-toplevel'):
+            raise ValueError(f'Git 无法识别固件工作树 {root}，请核对工程仓库。{exe} 退出码 {proc.returncode}：{detail}')
+        raise ValueError(f'Git 比较失败，差异扫描未完成：{exe} 退出码 {proc.returncode}：{detail}')
     return proc.stdout
 
 
@@ -126,7 +126,9 @@ def resolve_revision(root, ref):
         if len(matches) > 1:
             names = ', '.join(name.removeprefix('refs/heads/') for name in matches[:10])
             raise ValueError(f'Git 短分支名 {ref} 有多个匹配，请填写完整分支名：{names}')
-    raise ValueError(f'Git 引用不能解析为提交：{ref}；请检查本地分支、标签或提交 SHA')
+    from .portable import tool_path
+    raise ValueError(f'Git 引用不能解析为提交：{ref}（{root}，{tool_path("git")}）。'
+                     '请在当前固件仓库中选择已有的本地分支、标签或提交 SHA 后重试。')
 
 
 def _content_changes(root, base, current=None):

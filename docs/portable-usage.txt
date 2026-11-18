@@ -9,9 +9,12 @@ ECRA Windows Full Portable（Windows 10 1903+ / Windows 11 x64）
 以下是兼容命令行入口。可选 Git 差异模式：配置 analysis.git_diff 或执行
 .\ECRA.cmd --scan-mode diff run --no-review。
 base_ref/current_ref 指定 project.root 固件仓库中直接比较的两个分支、标签或提交。
-current_ref 默认 HEAD；指定其它引用时自动隔离分析，无需切换分支。离线打包时使用
-build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/git/cmd/git.exe。
-未打包 Git 时全量模式不变，差异模式和差异 doctor 会明确报错。首次比较需独立构建基准；
+current_ref 默认 HEAD；指定其它引用时自动隔离分析，无需切换分支。完整包默认包含 MinGit（tools/git/cmd/git.exe）。
+doctor 会列出 Git 实际路径和版本。旧包可对照 portable-lock.json 的 git_runtime_version
+与 FILES.sha256.json 的 tools/git/ 条目；两者均缺少且入口不存在，表示没有交付记录。
+有记录但文件缺失时请从已校验 ZIP 完整解压到新目录；若有额外嵌套目录，请核对 ZIP 层级。
+旧包普通全量仍可使用；差异比较、版本选择及包含未提交输入的扫描需要 Git。
+首次比较需独立构建基准；
 正常 CLI 扫描也发布到 Studio 数据根，使用 Studio 打开；只有显式 --legacy-output
 兼容模式才生成旧 index.html。差异范围之外不代表安全。不要单独删除报告引用的
 基准 worktree/事实。
@@ -80,6 +83,9 @@ build_portable.ps1 -GitSource <完整 MinGit 分发目录>，包内需有 tools/
   powershell -NoProfile -ExecutionPolicy Bypass -File .\build_portable.ps1 -OutputDir .\dist-new
   离线先执行 prepare_portable_cache.ps1 -OfflineCheck；build_portable.ps1 从不联网。
   可提供 -PythonSource -CMakeSource -NinjaSource -MinGWSource -MinGWMakeSource -ArmGccSource。
+  已准备其他工具时，联网运行准备脚本即可补齐 Git。离线可将官方 MinGit-2.56.1-64-bit.zip
+  放入 .tools-cache/downloads 再运行 -OfflineCheck，或用准备脚本的 -GitSource 指定本地归档。
+  打包时可用 -GitSource 指定已有的完整 MinGit x64 目录；默认从缓存读入，来源和版本写入锁文件。
   -VcRuntimeSource 可指定完整 VC++ x64 运行库目录/ZIP 或锁定的微软官方 redist exe。
   来源必须为完整目录或 ZIP（上游 MinGW .7z 需要构建机安装 7-Zip）。
   旧版本缓存不会复用；缺失 DLL、错误版本、外部编译器或真实构建失败会终止打包。

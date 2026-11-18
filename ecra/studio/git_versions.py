@@ -34,6 +34,8 @@ def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', inc
         raise ValueError('版本筛选或分页参数无效')
     if not any((p/'.git').exists() for p in (root, *root.parents)):
         return dict(available=False, items=[], total=0, message='此目录不是 Git 工程，可继续全量扫描。')
+    from ..portable import require_git
+    require_git('查询本地版本')
     repository = git(root, 'rev-parse', '--show-toplevel').decode('utf-8', 'strict').strip()
     work = no_links(work)
     repo = Path(repository).resolve()

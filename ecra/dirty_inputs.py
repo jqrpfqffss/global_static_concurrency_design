@@ -46,6 +46,8 @@ def capture_inputs(root,config,folder,progress=lambda text:None,*,scan_mode=None
     if scan_mode is not None:
         if scan_mode not in {'full','diff'}:raise ValueError('scan_mode必须是full或diff')
         cfg['analysis']['git_diff']['enabled']=scan_mode=='diff'
+    from .portable import require_git
+    require_git('纳入未提交输入')
     # The existing private integration deliberately bypasses only the dirty
     # switch; every Resolver/firmware/install boundary remains enforced.
     ws=execution_workspace(root,cfg['analysis'],object()).initialize();ws.bind(cfg['analysis'])

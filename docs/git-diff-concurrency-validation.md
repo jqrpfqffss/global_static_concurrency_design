@@ -120,7 +120,7 @@ TU 缓存绑定源码/有效头文件内容、最新 Clang 预处理签名、实
 
 ## Portable 和磁盘生命周期
 
-原全量模式不增加 Git 依赖。离线打包可传 `build_portable.ps1 -GitSource <MinGit目录>`，复制完整运行时/许可证，记录实际版本并沿用交付文件哈希。差异扫描和 doctor 先检查包内 `tools/git/cmd/git.exe`；缺失会中文报错，不回落开发机 Git，也不静默跳过。
+原全量模式不增加 Git 依赖。当前完整包默认从已验证缓存携带 MinGit。显式覆盖可传 `build_portable.ps1 -GitSource <MinGit目录>`，复制完整运行时/许可证，记录实际版本并沿用交付文件哈希。差异扫描和 doctor 先检查包内 `tools/git/cmd/git.exe`；缺失会中文报错，不回落开发机 Git，也不静默跳过。
 
 worktree、基准原始证据、缓存、patch 暂不自动回收，防止删除仍被报告/复核引用的数据。释放空间前应归档整个输出目录及其引用。移动 Portable 后须重新扫描，历史绝对路径检查点不能作为当前有效输入。
 

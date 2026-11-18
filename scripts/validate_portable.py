@@ -192,12 +192,16 @@ class Acceptance:
             raise ValueError(f'Wrong Python version: {actual}')
         if Path(sys.executable).resolve() != self.python.resolve():
             raise ValueError(f'Validator must run with bundled Python: {sys.executable}')
+        if not lock.get('git_runtime_version') or not lock['version_patterns'].get('git'):
+            raise ValueError('Full Portable lock must identify the included Git runtime and version pattern')
         for name, pattern in lock['version_patterns'].items():
-            exe = shutil.which(name, path=self.env['PATH'])
+            exe = str(self.bundle/'tools/git/cmd/git.exe') if name == 'git' else shutil.which(name, path=self.env['PATH'])
             if not exe or not Path(exe).resolve().is_relative_to(self.bundle):
                 raise ValueError(f'PATH selected external/missing tool: {name}: {exe}')
             text = self.command(name, [exe, '--version']).strip().replace('\r\n','\n')
-            if not re.search(pattern.replace('\\Z', '\\Z'), text):
+            if name == 'git' and text != lock['git_runtime_version']:
+                raise ValueError(f'Git runtime differs from portable-lock.json: {text}')
+            if not re.search(pattern, text):
                 raise ValueError(f'Version/distribution mismatch: {name}: {text}')
         probe = """import sys, struct, json, sqlite3, ssl, multiprocessing, yaml
 from importlib.metadata import version
@@ -423,7 +427,9 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
 
     def run(self):
         try:
-            for name in ('ecra.cmd','run_ecra.py','README.txt','VERSION.txt','portable-lock.json',
+            from ecra.portable import check_git_components
+            check_git_components(self.bundle)
+            for name in ('validate_portable_diff_target.py','ecra.cmd','run_ecra.py','README.txt','VERSION.txt','portable-lock.json',
                          'ecra/studio/web/index.html','ecra/studio/server.py','requirements-studio.txt','STUDIO-PREVIEW.txt',
                          'ecra/studio/sample_assets/sample.json','ecra/studio/sample_assets/stm32-demo.ecra-report',
                          'STUDIO-GUIDE.md','docs/rearchitecture/portable-and-user-guide.md',
@@ -458,6 +464,9 @@ SECTIONS { .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
             deps = verify_pe_dependencies(self.bundle)
             (self.work/'pe-dependencies.json').write_text(json.dumps(deps,indent=2),encoding='utf-8')
             self.builds()
+            self.command('real full and repeated Git diff', [self.python, '-B',
+                self.bundle/'validate_portable_diff_target.py', '--bundle', self.bundle,
+                '--work', self.work/'Git 差异 fixture'])
             if file_hashes(self.bundle) != expected:
                 raise ValueError('Portable runtime modified an installed file outside workspace')
             self.report['result'] = 'PASS'
