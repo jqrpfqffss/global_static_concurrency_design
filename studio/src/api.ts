@@ -95,6 +95,12 @@ const fields: Record<string, string> = {
   removed_arguments:'解析适配移除的参数',response_files:'编译响应文件',inferred_target:'推导的编译目标',missing_defines:'缺失的宏定义',
   tu_id:'编译单元身份',system_include_dirs:'系统头文件路径',audit_role:'编译单元用途',parse_status:'原始解析状态',
   diagnostics:'原始解析诊断',diagnostic:'原始诊断',includes:'实际包含的头文件',semantic_macros_digest:'语义宏摘要',
-  dynamic_predefined_inputs:'动态预定义宏输入',relevance_proofs:'全部对象关联证明',symbol_ids:'归档关联对象身份'
+  dynamic_predefined_inputs:'动态预定义宏输入',relevance_proofs:'全部对象关联证明',symbol_ids:'归档关联对象身份',
+  impact_class:'影响归属',impact_evidence:'实际影响路径与证据',exclusion_proof:'排除关联的证明',
+  object_change:'对象存在性与构建变化',risk_transition:'静态风险变化',impact_coverage_evidence:'双侧影响覆盖证据',
+  matrix_case:'九格转换案例',closure:'旧风险关闭证明',correspondences:'旧冲突与当前证明对应',
+  related_gaps:'相关缺口',excluded_gaps:'已证明无关的缺口',unaccounted_gaps:'尚未排除关联的缺口',
+  comparison_status:'可比性状态',base_classification:'基准静态分类',head_classification:'当前静态分类',
+  base:'基准侧',head:'当前侧',evidence_changes:'具体证据变化',reason_labels:'影响原因',regional_gaps:'区域性未识别缺口'
 }
 export function field(value: string) { return fields[value] || '技术字段：'+value }

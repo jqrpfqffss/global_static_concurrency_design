@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import os
 
-from ..git_diff import git, resolve_revision
+from ..git_diff import git, resolve_revision, resolve_selection, validate_mode
 from ..workspace import no_links
 
 
@@ -23,6 +23,7 @@ def _records(stream, separator):
 def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', include_uncommitted=False, search='', offset=0, limit=50,build_mode=''):
     if build_mode not in {'','database','cmake'}:raise ValueError('构建方式必须为编译数据库或CMake')
     if type(include_uncommitted) is not bool:raise ValueError('纳入未提交输入必须是布尔值')
+    validate_mode(dict(enabled=bool(base_ref), include_uncommitted=include_uncommitted))
     if include_uncommitted and current_ref!='HEAD':raise ValueError('纳入未提交输入仅适用于当前 ref 为 HEAD；其他分支请使用固定提交比较')
     if not isinstance(project_root, str) or not Path(project_root).is_absolute():
         raise ValueError('固件目录必须是绝对路径')
@@ -45,7 +46,7 @@ def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', inc
     def text(*args, codes=(0,)):
         return git(root, *args, _returncodes=codes).decode('utf-8', 'strict').strip()
     def resolve(value):
-        return None if value == '' else resolve_revision(root, value)
+        return None if value == '' else (resolve_selection(root, value)[0] if base_ref else resolve_revision(root, value))
     items = []; total = 0
     with tempfile.TemporaryFile(dir=work) as output:
         git(root, 'for-each-ref', '--format=%(refname)%00%(objectname)%00%(objecttype)%00%(symref)',
@@ -82,7 +83,7 @@ def inspect_versions(project_root, work, *, base_ref='', current_ref='HEAD', inc
                 dirty['conflicted'] += 1
             else:
                 raise ValueError('无法完整解释 Git 工作区状态，未确认覆盖')
-    return dict(available=True, repository=repository, head=resolve('HEAD'),
+    return dict(available=True, repository=repository, head=resolve_revision(root, 'HEAD'),
         branch=text('symbolic-ref', '-q', '--short', 'HEAD', codes=(0, 1)) or None,
         base_ref=base_ref, current_ref=current_ref, base_sha=resolve(base_ref), current_sha=resolve(current_ref),
         items=items, total=total, offset=offset, limit=limit, search=search,

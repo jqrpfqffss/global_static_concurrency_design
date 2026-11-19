@@ -157,6 +157,8 @@ def using_data_root(value):
 
 def formal_workspace(root, analysis):
     """Validate scan boundaries without initializing or writing firmware."""
+    from .git_diff import validate_mode
+    validate_mode(analysis.get('git_diff', {}))
     if analysis.get('cmake', {}).get('location') == 'project':
         raise ValueError('正式扫描禁止在固件中构建；请使用 analysis.cmake.location: workspace')
     if analysis.get('git_diff', {}).get('include_uncommitted'):

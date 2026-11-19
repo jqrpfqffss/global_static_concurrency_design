@@ -32,17 +32,17 @@ project:
   native_word_bits: 32       # STM32 通常为 32；必须是 8 的正整数倍。
 
 analysis:
-  # 比较 project.root 固件仓库中的任意两个分支、标签或提交；方向为 base_ref → current_ref。
+  # 比较 project.root 固件仓库中的任意两个分支或标签；方向为 base_ref → current_ref。
   # 默认全量扫描；启用后直接比较两个版本，不自动取共同祖先。
   # 可填分支名。如果本地只有一个分支以 /该名称 结尾，也可省略前缀。
-  # current_ref: HEAD 默认扫描固定提交的独立工作树；未提交修改只有显式 include_uncommitted: true 才纳入。
-  # 缓存自动启用且校验有效性，影响不明确时自动保守扩大；差异范围之外不代表安全。
+  # current_ref: HEAD 代表当前分支；两端提交与构建输入固定后，继续编辑工作区不影响本轮比较。
+  # 缓存自动启用且校验有效性；影响分为明确、待核实和可排除，区域性缺口单独保留。
   git_diff:
     enabled: true
     base_ref: diff-baseline-20261030
     current_ref: main
-    # 可选：仅 current_ref 为 HEAD 时可包含未提交修改，默认 false。
-    # include_uncommitted: true
+    # Diff 只比较固定分支/tag，不支持纳入暂存、未暂存或未跟踪修改。
+    # include_uncommitted: false
 
   # ---------------------------------------------------------------------------
   # 变量排查范围

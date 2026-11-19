@@ -1,5 +1,7 @@
 # Git 分支差异并发扫描：实现与验收记录
 
+当前源码的需求与分阶段验收以 [2026-11-18 Git Diff 清单](git-diff-requirements-and-acceptance-20261118.md) 为准：只比较分支/tag 的固定提交，三类影响完整归账，前台展示明确影响与待核实，人工确认复用原规则。本页配置说明已同步；标有早期日期的测试数量、工作区模式和旧 HTML 记录保留其历史含义。
+
 2026-10-31 工作区改造与最终验收见[工作区交付记录](workspace-validation.md)。固定提交扫描还检查输入归属：若绝对 include、编译数据库或 CMake 输入仍指向原固件仓库，而不是所选隔离版本，会明确拒绝发布并列出路径。仓库内引用应使用相对路径或所选版本新生成的数据库，工具链放在仓库外；不通过忽略依赖、缩小 AST 或读取原工作区兜底来消除错误。完整配置与恢复方法见[迁移说明](workspace-migration.md)。
 
 2026-10-30 已修复默认清单被扩大至近乎全量的问题，最新实测见[差异清单收敛验收](git-diff-focused-validation.md)。下方早期执行记录保留当时的全量扩大数量，不代表当前默认展示规则。
@@ -31,9 +33,9 @@ current_ref: HEAD
 
 引用属于 `project.root` 的固件仓库。默认关闭。`--scan-mode full|diff` 仅改变本次内存配置；恢复沿用检查点模式。配置严格检查类型、允许值和未知键；构建前检查 Git 与引用。
 
-固定 `base_ref` 与 `current_ref` 的 SHA、仓库根、项目子目录，以及文件增删改/重命名。直接比较两个引用的提交内容，不自动计算 merge-base。支持本地分支、远端跟踪分支、标签和提交 SHA，不自动 fetch。路径采用 NUL 分隔，不通过 shell 拼接执行 Git。
+固定 `base_ref` 与 `current_ref` 解析出的 SHA、仓库根、项目子目录，以及文件增删改/重命名。直接比较两个引用的提交内容，不自动计算 merge-base。用户选择本地分支、远端跟踪分支或 tag；提交 SHA 作为已固定身份归档，不接受 SHA 或任意 revision 表达式作为配置引用。工具不自动 fetch。路径采用 NUL 分隔，不通过 shell 拼接执行 Git。
 
-`current_ref: HEAD` 默认固定 HEAD SHA，并与基准一起使用独立 detached worktree。原工作区未提交内容不阻断比较，也不纳入结果；终端与 HTML 明确说明这一边界。仅 `include_uncommitted: true` 使用真实工作区，同时绑定暂存、未暂存、未跟踪内容。非 HEAD 引用不能启用该选项。默认结果、工作树、构建及缓存集中到工具侧项目 workspace；不要求修改固件忽略规则。旧数据按归属验证和哈希清单迁移，不按 .ecra/build 目录名排除真实输入。详细兼容、迁移与恢复步骤见[工作区说明](workspace-migration.md)。发布前后和恢复时继续验证引用、隔离源码及实际编译输入，不执行用户工作区 checkout/reset/clean。
+`current_ref: HEAD` 表示当前检出的分支，与基准一起在启动时解析并固定提交。两侧配置、构建输入和必要 Git 元数据独立固定；原工作区可以继续编辑，分支/tag 后续推进只影响新扫描。Diff 的 `include_uncommitted: true` 旧配置明确拒绝；暂存、未暂存、未跟踪内容都不进入比较。结果、工作树、构建及缓存集中到工具侧数据根。发布前后和恢复时继续校验实际固定输入及归档证据，旧有效结果保留。详细迁移步骤见[工作区说明](workspace-migration.md)；非 Diff 工作字节模式维持既有行为。
 
 ### 参数取舍与迁移
 
@@ -45,14 +47,14 @@ current_ref: HEAD
 | `base_ref` | 比较基准，默认 origin/master | 指定变化之前的版本，是比较方向的一部分。应按实际仓库填写。 |
 | `current_ref` | 待检查版本，默认 HEAD | 指定变化之后的版本；可填写任意分支，无需手动 checkout。 |
 | 原 `compare_mode` | 删除 | 当前固定直接比较两个版本，与“任意两个分支比较”一致，避免用户再选择比较语义。 |
-| `include_uncommitted` | 可选，默认 false | 是否把本地开发修改加入 HEAD 扫描是用户意图，不能自动猜测；仅在需要时添加。 |
+| `include_uncommitted` | Diff 保持 false | 旧 true 配置明确拒绝；工作区字节扫描使用原非 Diff 全量流程。 |
 | `cache_enabled` | 高级可选，默认 true | 有效性由内容、构建、引擎和输入闭包校验决定，用户无需管理；故障定位或性能验收可设 false，不影响完整性检查。 |
 | `verify_against_full` | 高级可选，默认 false | 独立重新提取全量事实并核对结果，额外耗时、占用内存；用于引擎升级验收与排查，不是日常扫描前提，也不关闭已有完整性检查。 |
-| 原 `uncertain_impact_policy` | 删除 | 不忽略未知影响：保留完整后台分析，并在覆盖说明记录未排除的潜在影响；不再将这些变量自动填入默认差异清单。 |
+| 原 `uncertain_impact_policy` | 删除 | 无法排除的对象列为待核实并展示证据；可排除对象留后台。明确影响、待核实及可排除互斥归账，容器另计。 |
 
 两个可选高级字段继续受严格类型检查，但不再出现在日常 YAML 中。默认缓存复用失败时重新提取，不需要用户手动更改参数。
 
-旧配置会给出迁移错误，不会悄悄改变扫描范围：原 `target_ref` 改成 `base_ref`，添加 `current_ref: HEAD`，删除 `compare_mode` 与 `uncertain_impact_policy`。原 `direct` 行为保持。原 `merge_base` 若要保留同样的比较基准，先在固件仓库执行 `git merge-base <原target_ref> <current_ref>`，将输出 SHA 填入 `base_ref`；改为分支名直接比较意味着采用新语义。
+旧配置会给出迁移错误：原 `target_ref` 改成 `base_ref`，添加 `current_ref`，删除 `compare_mode` 与 `uncertain_impact_policy`，Diff 的 `include_uncommitted` 改为 false。直接比较语义保持；原 `merge_base` 如需保留某个历史基准，先为该提交建立分支或 tag，再将名称填入 `base_ref`。已有历史扫描保留，缺少新证明字段的旧归档不重新解释为新增风险或已修复。
 
 例如任意双分支比较：
 

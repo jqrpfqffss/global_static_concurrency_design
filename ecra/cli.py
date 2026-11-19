@@ -248,15 +248,23 @@ def safe_review_samples(facts, count, shared_count=0):
 
 def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
         review_shared_sample=0, scan_mode=None, _cache_enabled=False, _workspace=None,_lock_owned=False,
-        _compiler_view=None, _publish_static=None):
+        _compiler_view=None, _publish_static=None, _git_pin=None):
     started = datetime.now(timezone.utc).isoformat()
     started_ns = time.time_ns()
     consumed_config = {}
+    if _git_pin is not None:
+        from .git_diff import fixed_config_path
+        if scan_mode == 'full':
+            raise ValueError('固定 Diff 输入不能用于全量扫描')
+        config_path = fixed_config_path(_git_pin)
     cfg, config_file = load_config(root, config_path, consumed_inputs=consumed_config)
+    review_config_file = Path((_git_pin or {}).get('profile_config_path', config_file))
     if scan_mode is not None:
         if scan_mode not in ('full', 'diff'):
             raise ValueError('scan_mode 必须是 full/diff')
         cfg['analysis']['git_diff']['enabled'] = scan_mode == 'diff'
+    from .git_diff import validate_mode
+    validate_mode(cfg['analysis']['git_diff'])
     if no_review:
         cfg["review"]["enabled"] = False
     if _compiler_view is not None:
@@ -389,7 +397,18 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             from .portable import require_git
             require_git('analysis.git_diff / Git')
             from .git_diff import pin, prepare_base, prepare_current
-            diff_pin = pin(root, cfg)
+            if _git_pin is None:
+                diff_pin = pin(root, cfg)
+            else:
+                import copy
+                from .git_diff import assert_pin
+                diff_pin = copy.deepcopy(_git_pin)
+                assert_pin(root, cfg, diff_pin)
+            diff_pin.setdefault('profile_config_path', str(review_config_file))
+            # Later profile edits cannot change the effective configuration.
+            config_file = Path(diff_pin['config_path'])
+            from .input_snapshot import file_record
+            consumed_config = {str(config_file): file_record(config_file)}
             if frozen_files is not None:
                 # Bind the already-captured HEAD/index/work bytes to this pin
                 # before the independent baseline can perform lengthy work.
@@ -554,9 +573,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 except Exception as exc:
                     if isinstance(exc, MemoryError):
                         raise
-                    part = dict(parse_status="FAILED", diagnostics=[dict(severity=4, message=str(exc))])
-                    write_json(response, part)
-                    metadata_only = False
+                    raise RuntimeError(f"Worker {unit['tu_id']} 的事实/元数据无法读取；不能将归档损坏作为解析缺口") from exc
+                if not isinstance(part, dict) or part.get('parse_status') not in {'PARSED', 'PARTIAL', 'FAILED'}:
+                    raise ValueError(f"Worker {unit['tu_id']} 的提取状态未知或元数据无效，不能作为解析缺口")
                 if part.get('worker_exception'):
                     raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']}: "
                                        f"{part['worker_exception']}；详见 diagnostics/workers")
@@ -572,6 +591,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 unit["includes"] = part.get("includes", [])
                 unit['semantic_macros_digest'] = part.get('semantic_macros_digest')
                 unit['dynamic_predefined_inputs'] = part.get('dynamic_predefined_inputs', [])
+                if diff_pin and cfg['analysis']['git_diff']['verify_against_full']:
+                    from .diff_verification import extraction_digest
+                    unit['extraction_digest'] = extraction_digest(response)
                 for variable in part.get("variables", []):
                     variable["parse_status"] = part["parse_status"]
                 all_includes.update(part.get("includes", []))
@@ -585,6 +607,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                         if storage is not None and part.get('parse_status')=='PARSED':
                             storage.compress(tu_cache.folder/(tu_cache.key(unit)+'.facts'),'cache')
                 else:
+                    if part['parse_status'] != 'FAILED':
+                        raise ValueError('提取事实缺少实际输入快照，不能作为有效局部结果')
                     # A timed-out/failed extraction supplies no safe facts. Keep
                     # the parse gap; final discovery still verifies its inputs.
                     unit['input_verification'] = 'NO_EXTRACTION_BUFFER_PARSE_FAILED'
@@ -699,7 +723,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                         out/'diagnostics/git-diff-verification-failed.json', len(units))
                     from .workflow import file_digest
                     write_json(out/'diagnostics/full-verification-summary-proof.json',dict(
-                        format='ECRA_FULL_REFERENCE_SUMMARY_PROOF_V1',state='PASSED',
+                        format='ECRA_FULL_REFERENCE_SUMMARY_PROOF_V1',state=report['git_diff']['full_verification']['state'],
                         sha256=file_digest(full_reference_file),bytes=full_reference_file.stat().st_size,
                         scope='Complete independent summary compared before removing this unreferenced private intermediate'))
                     no_links(full_reference_file).unlink();full_reference_file.parent.rmdir()
@@ -707,6 +731,10 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                     from .git_diff import verify_full
                     report['git_diff']['full_verification'] = verify_full(root, out, cfg, units, cov, facts, report,
                         worker_dir, env, tool_root, read_verified_source, **dependency_args)
+            else:
+                report['git_diff']['full_verification'] = dict(state='NOT_RUN')
+            from .diff_verification import publication
+            report['git_diff']['publication'] = publication(report['git_diff'])
         snapshot_inputs.finalize_parent_inputs()
         diagnostics.fact_counts = {key: len(value) for key, value in facts.items() if isinstance(value, list)}
         samples = safe_review_samples(facts, review_safe_sample, review_shared_sample)
@@ -784,8 +812,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         with diagnostics.cooperative_extraction_stop():
             from .config import review_material_path
             reviews = review_all(root, out, cfg, facts, report, fingerprint, progress,
-                                 review_context_path=review_material_path(config_file, 'review_context.md'),
-                                 case_library_path=review_material_path(config_file, 'concurrency_cases.md'))
+                                 review_context_path=review_material_path(review_config_file, 'review_context.md'),
+                                 case_library_path=review_material_path(review_config_file, 'concurrency_cases.md'))
         review_phase = False
         end_hashes = file_hashes(root, out, [root / p for p in after], exact=True)
         if end_hashes != after:

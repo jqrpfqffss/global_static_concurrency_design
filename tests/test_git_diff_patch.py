@@ -20,11 +20,13 @@ class GitPatchTests(unittest.TestCase):
     scan = test_git_diff.GitIntegrationTests.scan
 
     def snapshot(self, root=None):
+        if self.command('status', '--porcelain'):
+            self.command('add', '--all')
+            self.command('commit', '-m', 'committed patch input')
         cfg, _ = load_config(self.root)
-        cfg['analysis']['git_diff']['include_uncommitted'] = True
         return pin(root or self.root, cfg)
 
-    def test_staged_unstaged_unicode_binary_empty_and_leading_dash_roundtrip(self):
+    def test_committed_unicode_binary_empty_and_leading_dash_roundtrip(self):
         self.repository()
         (self.root/'a.c').write_text('int g;void Task(void){g=71;}void ISR(void){g++;}', encoding='utf-8')
         self.command('add', 'a.c')
@@ -48,6 +50,7 @@ class GitPatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='ecra-patch-clone-') as name:
             clone = Path(name)/'clone'
             subprocess.check_output(['git', 'clone', '--no-hardlinks', str(self.root), str(clone)], stderr=subprocess.STDOUT)
+            subprocess.check_output(['git', '-C', str(clone), 'checkout', '--detach', pinned['base_sha']], stderr=subprocess.STDOUT)
             subprocess.check_output(['git', '-C', str(clone), '-c', 'core.autocrlf=false',
                                      'apply', '--binary', str(destination)], stderr=subprocess.STDOUT)
             for name in ('a.c', 'b.c', *additions):
@@ -64,6 +67,7 @@ class GitPatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='ecra-patch-subdir-') as name:
             clone = Path(name)/'clone'
             subprocess.check_output(['git', 'clone', '--no-hardlinks', str(self.root), str(clone)], stderr=subprocess.STDOUT)
+            subprocess.check_output(['git', '-C', str(clone), 'checkout', '--detach', pinned['base_sha']], stderr=subprocess.STDOUT)
             subprocess.check_output(['git', '-C', str(clone), '-c', 'core.autocrlf=false',
                                      'apply', str(destination)], stderr=subprocess.STDOUT)
             self.assertEqual((sub/'新 文件.h').read_bytes(), (clone/'固件 子目录/新 文件.h').read_bytes())
@@ -77,33 +81,40 @@ class GitPatchTests(unittest.TestCase):
         destination.write_bytes(b'previous complete archive')
         real_git = git
         def fail(root, *args, **kwargs):
-            if '--no-index' in args:
-                raise ValueError('模拟新增文件补丁失败')
+            if 'diff' in args:
+                raise ValueError('模拟固定提交补丁失败')
             return real_git(root, *args, **kwargs)
         with patch('ecra.git_diff.git', side_effect=fail):
             with self.assertRaisesRegex(ValueError, '模拟'):
                 write_comparison_patch(pinned, destination)
         self.assertEqual(destination.read_bytes(), b'previous complete archive')
         self.assertFalse(list(destination.parent.glob('.patch-*.pending')))
-        # Git no-index also returns 1 on an unreadable/disappeared input. It
-        # must not be accepted as the normal "difference found" return code.
+        # Deleting the original working file cannot change committed patches.
         source.unlink()
-        with self.assertRaises(ValueError):
-            write_comparison_patch(pinned, destination)
-        self.assertEqual(destination.read_bytes(), b'previous complete archive')
+        write_comparison_patch(pinned, destination)
+        self.assertIn(b'NEW_VALUE 5', destination.read_bytes())
         self.assertFalse(list(destination.parent.glob('.patch-*.pending')))
 
     def test_new_header_definition_reaches_saved_diff_and_complete_packet(self):
         self.repository()
         cfg = read_json(self.root/'.ecra/semantics.yaml')
-        cfg['analysis']['git_diff']['include_uncommitted'] = True
         write_json(self.root/'.ecra/semantics.yaml', cfg)
         (self.root/'新 文件.h').write_text('#define ADDED_VALUE 314159\n', encoding='utf-8')
         (self.root/'a.c').write_text('#include "新 文件.h"\nint g;void Task(void){g=ADDED_VALUE;}void ISR(void){g++;}', encoding='utf-8')
-        report = self.scan()
-        facts = read_json(self.root/'.ecra/facts.json')
+        self.command('add', '--all');self.command('commit', '-m', 'versioned new header')
+        import contextlib
+        import io
+        from ecra.scan_persistence import run_canonical
+        from ecra.scan_store import EvidenceProvider
+        from ecra.workflow import output_path
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run_canonical(self.root, no_review=True)
+        self.assertIn(code, (0, 1, 2))
+        out = output_path(self.root, load_config(self.root)[0])
+        report = EvidenceProvider(out/'scan.db').load('report')
+        facts = EvidenceProvider(out/'scan.db').load('facts')
         finding = next(f for f in report['findings'] if f.get('symbol_id') == 'c:@g')
-        packet = build_variable_review_packet(self.root, facts, finding,
+        packet = build_variable_review_packet(Path(report['git_diff']['pin']['current_source_root']), facts, finding,
             facts_path='facts.json', shared_path='shared.json', report_path='report.json')
         saved = Path(packet['git_diff_impact']['diff_patch_path'])
         self.assertIn(b'314159', saved.read_bytes())

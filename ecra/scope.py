@@ -147,6 +147,19 @@ def select_facts(facts, scope, coverage):
     excluded_counts = Counter((v.get('definition_file') or next((d.get('file') for d in v.get('declarations', []) if d.get('file')), '归属未知'),
                                scope.variable_reason(v)) for v in all_variables if not scope.variable(v))
     ids = {v['symbol_id'] for v in selected}
+    # Ownership filters presentation/risk objects, not value dependencies.
+    # Keep only the storage/alias evidence needed to trace an excluded
+    # driver's value into an included object; never classify it as a target.
+    dependency_accesses = defaultdict(list)
+    for access in facts['accesses']:
+        if access['symbol_id'] not in ids:
+            dependency_accesses[access['symbol_id']].append(access)
+    dependency_fields = ('symbol_id', 'name', 'definition_file', 'definition_line', 'semantic_digest', 'consumed_macros_digest', 'type', 'kind',
+        'storage_class', 'owner_function_id', 'initializer', 'member_definitions', 'resource_kind',
+        'array_index', 'array_root_symbol_id', 'root_symbol_id', 'field_path', 'offset_bits',
+        'size_bytes', 'overlap_groups', 'is_struct', 'is_array')
+    facts['diff_dependency_storage'] = [dict({key: v.get(key) for key in dependency_fields},
+        accesses=dependency_accesses[v['symbol_id']]) for v in all_variables if v['symbol_id'] not in ids]
     accesses = [a for a in facts['accesses'] if a['symbol_id'] in ids]
     relevant = {a['function_id'] for a in accesses}
     incoming = defaultdict(set)

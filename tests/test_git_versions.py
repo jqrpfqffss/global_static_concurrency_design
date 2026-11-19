@@ -50,7 +50,7 @@ class GitVersionTests(unittest.TestCase):
     def test_staged_unstaged_rename_and_untracked_are_truthful_and_never_included(self):
         self.git('mv','a.c','renamed.c');(self.repo/'renamed.c').write_bytes(b'int later;\n')
         (self.repo/'未跟踪.txt').write_bytes(b'keep')
-        before=self.files();value=self.read(base_ref='HEAD^')
+        before=self.files();value=self.read(base_ref='v1')
         self.assertEqual(value['dirty'],dict(staged=1,unstaged=1,untracked=1,conflicted=0))
         self.assertFalse(value['include_uncommitted']);self.assertEqual(self.files(),before)
 
@@ -76,19 +76,25 @@ class GitVersionTests(unittest.TestCase):
             inspect_versions(str(self.repo),self.repo/'forbidden')
         self.assertFalse((self.repo/'forbidden').exists());self.assertEqual(self.files(),before)
         other=self.home/'non-git';other.mkdir()
-        self.assertFalse(inspect_versions(str(other),self.work)['available'])
+        # The fixture lives under the tool's own Git checkout. Hide that
+        # enclosing marker to model a genuinely non-Git directory.
+        exists = Path.exists
+        with patch.object(Path, 'exists', lambda p: False if p.name == '.git' else exists(p)):
+            self.assertFalse(inspect_versions(str(other),self.work)['available'])
         with patch('ecra.git_diff.subprocess.run',side_effect=FileNotFoundError('missing git')):
             with self.assertRaisesRegex(ValueError,'Git 无法运行'):self.read()
 
     def test_explicit_working_input_preview_is_head_only_and_preserves_repository(self):
         (self.repo/'a.c').write_bytes(b'int actual_working_bytes;\n')
         (self.repo/'new.h').write_bytes(b'#define ACTUAL_INPUT 1\n');before=self.files()
-        value=self.read(base_ref='v1',include_uncommitted=True)
+        with self.assertRaisesRegex(ValueError,'Diff 只支持'):
+            self.read(base_ref='v1',include_uncommitted=True)
+        value=self.read(include_uncommitted=True)
         self.assertIs(value['include_uncommitted'],True);self.assertEqual(value['current_sha'],self.head)
         self.assertIs(value['formal_scan_allowed'],False);self.assertIn('阻断',value['blocking_reason'])
-        supported=self.read(base_ref='v1',include_uncommitted=True,build_mode='database')
+        supported=self.read(include_uncommitted=True,build_mode='database')
         self.assertTrue(supported['formal_scan_allowed']);self.assertIsNone(supported['blocking_reason'])
-        cmake=self.read(base_ref='v1',include_uncommitted=True,build_mode='cmake')
+        cmake=self.read(include_uncommitted=True,build_mode='cmake')
         import os
         self.assertEqual(cmake['formal_scan_allowed'],os.name=='nt')
         if os.name=='nt':self.assertIsNone(cmake['blocking_reason'])
@@ -105,7 +111,18 @@ class GitVersionTests(unittest.TestCase):
             self.assertEqual(response.status_code,200,response.text);self.assertIs(response.json()['include_uncommitted'],True)
             response=client.post('/api/profiles/git-versions',json=dict(project_root=str(self.repo),include_uncommitted=True,current_ref='v1'))
             self.assertEqual(response.status_code,400,response.text);self.assertIn('HEAD',response.json()['error'])
+            response=client.post('/api/profiles/git-versions',json=dict(project_root=str(self.repo),base_ref='v1',include_uncommitted=True))
+            self.assertEqual(response.status_code,400,response.text);self.assertIn('Diff 只支持',response.json()['error'])
         self.assertEqual(self.files(),before)
+
+    def test_diff_only_accepts_branches_and_tags_and_head_aliases_its_branch(self):
+        for ref in (self.base, 'HEAD^', 'v1^{commit}'):
+            with self.subTest(ref=ref),self.assertRaisesRegex(ValueError,'Diff 只支持'):
+                self.read(base_ref=ref)
+        self.git('checkout','--detach',self.head)
+        with self.assertRaisesRegex(ValueError,'游离 HEAD'):
+            self.read(base_ref='v1')
+        self.assertEqual(self.read(base_ref='v1',current_ref='feature/001')['current_sha'],self.head)
 
     def test_authenticated_api_real_values_and_page_limit_survive_reopen(self):
         data=self.home/'api-data';before=self.files()

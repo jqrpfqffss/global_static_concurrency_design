@@ -28,15 +28,18 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         write_json(self.root/'compile_commands.json',[dict(directory=str(self.root),file=name,
             arguments=['arm-none-eabi-gcc','-mcpu=cortex-m7','-mthumb','-c',name]) for name in ['main.c','other.c']])
         self.git('init');self.git('config','user.name','Native cache test');self.git('config','user.email','test@example.invalid')
-        self.git('add','.');self.git('commit','-m','base');self.base=self.git('rev-parse','HEAD')
+        self.git('add','.');self.git('commit','-m','base');self.base=self.git('rev-parse','HEAD');self.git('branch','baseline')
         (self.root/'main.c').write_text('int shared;void Task(void){shared=2;}void ISR(void){shared++;}\n','utf-8')
         self.git('commit','-am','current')
         self.data=self.home/'data';self.config=self.home/'semantics.yaml'
         write_json(self.config,dict(version=1,project=dict(root=str(self.root)),
             analysis=dict(compile_database='compile_commands.json',output=dict(location='custom',custom_dir=str(self.data)),
-                          git_diff=dict(enabled=True,base_ref=self.base)),
+                          git_diff=dict(enabled=True,base_ref='baseline')),
             contexts=[dict(id='task',kind='TASK',functions=['Task']),dict(id='irq',kind='ISR',functions=['ISR'])],
             review=dict(enabled=False,prepare_packets=False)))
+        from ecra.config import load_config
+        from ecra.workspace import WorkspaceResolver
+        self.diff_root = Path(WorkspaceResolver.resolve(self.root, load_config(self.root, self.config)[0]['analysis']).git_diff_root)
         self.before=self.source_files()
 
     def git(self,*args):
@@ -59,11 +62,12 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
     def test_cross_scan_hit_matches_original_full_key_and_summary_without_full_baseline_load(self):
         load=EvidenceProvider.load
         def cold_guard(provider,name,*args,**kwargs):
-            if provider.path.parent.name.startswith('base-'+self.base):
+            if provider.path.parent.name.startswith('base-'):
                 raise AssertionError('A native cold summary must not restore the complete baseline '+name)
             return load(provider,name,*args,**kwargs)
         with patch.object(EvidenceProvider,'load',new=cold_guard):first=self.scan('first')
         report=read_json(first/'reports/global_static_concurrency.json')
+        self.assertEqual(report['git_diff']['full_verification']['state'],'NOT_RUN')
         pin=report['git_diff']['pin'];archived=Path(pin['base_summary_path']);original=archived.read_bytes()
         base_out=Path(pin['base_facts_path'])  # Immutable archive of exactly the baseline database.
         facts=EvidenceProvider(base_out).load('facts');full_report=EvidenceProvider(base_out).load('report')
@@ -72,9 +76,9 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         key=digest(dict(schema=SUMMARY_SCHEMA,engine=engine_digest(),facts=pin['base_facts_sha256'],
             report=saved_report_digest(clean_report(full_report),encoding='ECRA_MERKLE_V1'),renames={}))
         self.assertEqual(archived.name,key+'.summary.json')
-        cache=next((self.data/'projects').glob('*/results/git_diff/summary-cache/'+archived.name))
+        cache=self.diff_root/'summary-cache'/archived.name
         self.assertFalse(os.path.samefile(cache,archived))
-        baseline=cache.parent.parent/'artifacts'/('base-'+self.base)/'scan.db'
+        baseline=Path(pin['base_scan_path'])/'scan.db'
         load=EvidenceProvider.load
         def guarded(provider,name,*args,**kwargs):
             if provider.path.resolve()==baseline.resolve():
@@ -84,6 +88,7 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
             second=self.scan('second')
         self.assertEqual(build.call_count,1,'Only the current side is summarized on a hit')
         second_report=read_json(second/'reports/global_static_concurrency.json')
+        self.assertEqual(second_report['git_diff']['full_verification']['state'],'NOT_RUN')
         self.assertEqual(second_report['git_diff']['baseline_summary_cache'],dict(hit=True,corrupt=False))
         second_archive=Path(second_report['git_diff']['pin']['base_summary_path'])
         self.assertNotEqual(second_archive,archived);self.assertEqual(second_archive.read_bytes(),original)
@@ -110,10 +115,14 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         # Both versions really contain an unresolvable compiler input.
         (self.root/'main.c').write_text('#include "absent.h"\nint shared;\n','utf-8')
         self.git('commit','-am','partial baseline');partial=self.git('rev-parse','HEAD')
-        cfg=read_json(self.config);cfg['analysis']['git_diff']['base_ref']=partial;write_json(self.config,cfg)
-        self.before=self.source_files();failed=self.scan('partial',success=False)
-        self.assertFalse((failed/'manifest.json').exists())
-        self.assertEqual(list(self.data.glob('projects/*/results/git_diff/summary-cache/*.manifest.json')),[])
+        self.git('branch','partial-baseline',partial)
+        cfg=read_json(self.config);cfg['analysis']['git_diff']['base_ref']='partial-baseline';write_json(self.config,cfg)
+        self.before=self.source_files();out=self.scan('partial')
+        report=read_json(out/'reports/global_static_concurrency.json')
+        self.assertEqual(report['git_diff']['publication']['state'],'VALID_PARTIAL')
+        manifest=read_json(Path(report['git_diff']['pin']['base_summary_path']).with_suffix('.manifest.json'))
+        self.assertFalse(manifest['complete_tus'])
+        self.assertEqual(manifest['completeness']['state'],'VALID_PARTIAL')
 
     def test_mutation_between_validation_and_archive_copy_blocks_new_publication(self):
         first=self.scan('first');report=read_json(first/'reports/global_static_concurrency.json')
@@ -145,10 +154,11 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         cfg['analysis'].update(compile_database='auto',cmake=dict(build_dir='build/ecra',generator='Ninja',
             build_type='Debug',build=True,clean_before_configure=False,args=['-DCMAKE_SYSTEM_NAME=Generic','-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
                                              '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
-        cfg['analysis']['git_diff'].update(base_ref=self.base,verify_against_full=True)
+        self.git('branch','cmake-baseline',self.base)
+        cfg['analysis']['git_diff'].update(base_ref='cmake-baseline',verify_against_full=True)
         write_json(self.config,cfg);self.before=self.source_files()
         first=self.scan('cmake-first');first_report=read_json(first/'reports/global_static_concurrency.json')
-        original_baselines={p:sha256(p) for p in self.data.glob('projects/*/results/git_diff/artifacts/base-*/scan.db')}
+        original_baselines={p:sha256(p) for p in self.diff_root.glob('artifacts/base-*/scan.db')}
         self.assertEqual(len(original_baselines),1)
         def marker_size(report):
             facts=EvidenceProvider(report['git_diff']['pin']['base_facts_path']).load('facts')
@@ -166,13 +176,13 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         for library in libraries:
             with library.open('rb') as stream:self.assertEqual(stream.read(8),b'!<arch>\n')
         for path,original in original_baselines.items():self.assertEqual(sha256(path),original)
-        self.assertEqual(len(list(self.data.glob('projects/*/results/git_diff/artifacts/base-*/scan.db'))),2)
+        self.assertEqual(len(list(self.diff_root.glob('artifacts/base-*/scan.db'))),2)
         self.assertNotEqual(first_report['git_diff']['pin']['base_facts_sha256'],report['git_diff']['pin']['base_facts_sha256'])
         self.assertIn('c:@shared',report['git_diff']['selected_symbol_ids'])
 
     def test_unknown_or_escaping_baseline_index_is_rejected_without_changing_prior_authority(self):
         first=self.scan('first');original=sha256(first/'scan.db')
-        index=next(self.data.glob('projects/*/results/git_diff/artifacts/base-*.latest.json'));saved=read_json(index)
+        index=next(self.diff_root.glob('artifacts/base-*.latest.json'));saved=read_json(index)
         invalid=[dict(saved,version=True),dict(saved,version=2),dict(saved,base_sha='other'),
                  dict(saved,directory='../../outside'),dict(saved,directory='base-'+self.base+'-unknown'),dict(saved,extra='unknown')]
         for ordinal,value in enumerate(invalid):
@@ -184,7 +194,7 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
     def test_interrupted_baseline_reuses_verified_tu_cache_in_new_authority(self):
         with patch('ecra.cli.merge',side_effect=RuntimeError('EXPLICIT_BASELINE_STOP_BEFORE_MERGE')):
             self.scan('interrupted-baseline',success=False)
-        old=next(self.data.glob('projects/*/results/git_diff/artifacts/base-'+self.base))
+        old=next(p for p in self.diff_root.glob('artifacts/base-*') if (p/'run.json').is_file())
         original={p.relative_to(old).as_posix():sha256(p) for p in old.rglob('*') if p.is_file()}
         self.assertFalse((old/'scan.db').exists())
         cache=next(self.data.glob('projects/*/results/cache/**/git-baselines/*/tu-v1'))
@@ -197,7 +207,7 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         self.assertEqual(report['git_diff']['pin']['base_facts_sha256'],sha256(new/'scan.db'))
 
     def test_failed_regeneration_never_replaces_locator_or_old_baseline(self):
-        first=self.scan('first');index=next(self.data.glob('projects/*/results/git_diff/artifacts/base-*.latest.json'))
+        first=self.scan('first');index=next(self.diff_root.glob('artifacts/base-*.latest.json'))
         original_index=index.read_bytes();baseline=index.parent/read_json(index)['directory'];original=sha256(baseline/'scan.db')
         cfg=read_json(self.config);cfg['analysis']['git_diff']['cache_enabled']=False;write_json(self.config,cfg)
         with patch('ecra.git_diff.write_comparison_patch',side_effect=OSError('EXPLICIT_FAILURE_BEFORE_BASELINE_INDEX_PUBLICATION')):

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import WorkspaceDialog from './WorkspaceDialog.vue'
+import {publicationLabel,verificationLabel} from './diffPresentation'
 import { api } from './api'
 import BuildPreflight from './BuildPreflight.vue'
 import { createTask, taskCreationPending } from './taskLaunch'
@@ -16,7 +17,7 @@ function taskName(task:any){
   if(task.metadata_error)return '任务记录无法读取'
   let state=states[task.state]||task.state
   if(task.state==='COMPLETE'){
-    if(task.mode==='scan'&&task.published)state='扫描已发布'
+    if(task.mode==='scan'&&task.published)state=task.publication?publicationLabel(task.publication.state):'扫描已发布'
     if(task.mode==='precheck')state='检查通过，尚未开始扫描'
     if(task.mode==='multicore'&&task.published)state='派生结果已发布'
   }
@@ -105,7 +106,7 @@ onUnmounted(()=>{mounted=false;if(timer)clearInterval(timer)})
     <template v-if="detail"><h3>{{taskName(detail)}}</h3><p class="identity">{{detail.id}} · {{detail.profile_id}}</p><p>{{detail.project_root}}</p>
       <p v-if="preflightNotice(detail)" role="status">{{preflightNotice(detail)}}</p>
       <ol class="task-stages"><li v-for="stage in detail.stages" :key="stage.started+stage.stage"><strong>{{stage.stage}}</strong> · {{stage.status==='RUNNING'?'进行中，剩余量未知':stage.status==='COMPLETE'?'阶段结束':stage.status}}<span v-if="stage.seconds"> · {{stage.seconds.toFixed(1)}} s</span></li></ol>
-      <p v-if="detail.mode==='multicore'">本任务使用已归档输入，记录实际校验和派生阶段。</p><p v-else-if="detail.review_progress" role="status">OpenCode 复核进度 {{detail.review_progress.total?(100*detail.review_progress.done/detail.review_progress.total).toFixed(1):'0.0'}}% · 总复核对象 {{detail.review_progress.total}} · 已完成 {{detail.review_progress.done}} · 技术失败 {{detail.review_progress.tech_failed}} · 待复核 {{detail.review_progress.pending}}</p><p v-else-if="detail.memory?.total_units">{{counterName}} {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>
+      <p v-if="detail.publication">{{verificationLabel(detail.publication.verification_state)}} · 批次 {{detail.scan_id}}</p><p v-if="detail.state==='FAILED'" class="banner warning">本次失败；当前已打开的旧有效批次不会被本次结果替换，请核对页头批次。</p><p v-if="detail.mode==='multicore'">本任务使用已归档输入，记录实际校验和派生阶段。</p><p v-else-if="detail.review_progress" role="status">OpenCode 复核进度 {{detail.review_progress.total?(100*detail.review_progress.done/detail.review_progress.total).toFixed(1):'0.0'}}% · 总复核对象 {{detail.review_progress.total}} · 已完成 {{detail.review_progress.done}} · 技术失败 {{detail.review_progress.tech_failed}} · 待复核 {{detail.review_progress.pending}}</p><p v-else-if="detail.memory?.total_units">{{counterName}} {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>
       <p v-else-if="detail.progress?.total_units">{{counterName}} {{detail.progress.completed_units}} / {{detail.progress.total_units}}（实时计数）</p>
       <p v-if="detail.tu_cache">内容校验后的 TU 缓存：命中 {{detail.tu_cache.hits}}，重新提取 {{detail.tu_cache.extracted}}，损坏 {{detail.tu_cache.corrupt}}</p>
       <div v-if="control" :class="['banner',controlFailed?'error':control.status==='RETRYING'?'warning':'']" :role="controlFailed?'alert':'status'"><strong>{{control.stage || 'Clang 翻译单元提取'}}</strong><p>{{control.message}}</p><p>故障发生时已处理 {{control.completed_units}} / {{control.total_units}} 个 TU。</p></div>

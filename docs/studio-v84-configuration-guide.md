@@ -1,5 +1,7 @@
 # 配置与人工确认操作说明（v88最终版）
 
+当前源码的 Git Diff 规则已于 2026-11-18 更新：两侧选择分支或 tag，启动时固定 SHA、配置和构建输入；工作区可继续编辑，未提交内容不进入 Diff。旧 `include_uncommitted: true` 差异配置需改为 false，工作区字节扫描仍走原非 Diff 全量流程。当前实现与验收状态见 [Git Diff 清单](git-diff-requirements-and-acceptance-20261118.md)；下方 v88 路径和截图保留其原版本含义。
+
 本机入口：`H:/ECRAStudio-build-20261107-studio-v88/ECRA-Portable/ECRA.cmd`。
 
 ## 配好后怎样开始扫描

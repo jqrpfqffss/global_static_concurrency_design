@@ -368,6 +368,8 @@ def verify_saved_input_closure(root, out, cfg, state, manifest, config_file):
 
 
 def _verify_saved_closure(root,out,cfg,state,manifest,config_file,capsule,*,file_view=None):
+    if (state.get('git_diff_pin') or {}).get('schema') == 3:
+        config_file = Path(state['git_diff_pin']['config_path'])
     import shutil
     import tempfile
     from .cli import dependency_results
@@ -526,6 +528,8 @@ def checked_scan(root, out, cfg, config_file, *, with_facts=True, _report_projec
     required=('project_root','config_file','config_digest','engine_digest','facts_sha256','manifest_sha256','report_digest','fingerprint')
     if not isinstance(state,dict) or any(not isinstance(state.get(k),str) for k in required):
         raise ValueError('扫描检查点损坏；请重新运行 run')
+    if (state.get('git_diff_pin') or {}).get('schema') == 3:
+        config_file = Path(state['git_diff_pin']['config_path'])
     from .git_diff import current_context
     root, cfg = current_context(root, cfg, state.get('git_diff_pin'))
     if state.get('schema') != 1 or state.get('project_root') != str(root):

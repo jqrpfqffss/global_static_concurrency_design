@@ -61,7 +61,17 @@ def status_report(out):
         root=_root(conn,'report')
         coverage=_child(conn,root,'coverage')
         result=dict(analysis_status=_field(conn,root,'analysis_status'),
-                    coverage=dict(variables_total=_field(conn,coverage,'variables_total')))
+                    coverage={key:_field(conn,coverage,key) for key in
+                        ('variables_total','translation_units_total','translation_units_parsed',
+                         'translation_units_partial','translation_units_failed')})
+        try:closure=_child(conn,coverage,'build_closure')
+        except KeyError:pass
+        else:
+            result['coverage']['build_complete']=_field(conn,closure,'complete')
+            try:missing=_child(conn,closure,'missing_objects')
+            except KeyError:result['coverage']['missing_object_count']=0
+            else:result['coverage']['missing_object_count']=conn.execute(
+                'SELECT length FROM nodes WHERE id=?',(missing,)).fetchone()[0]
         if result['analysis_status'] is None:raise ValueError('静态报告缺少分析状态')
         saved_status=_field(conn,root,'run_status',MISSING)
         if saved_status is not MISSING:result['run_status']=saved_status

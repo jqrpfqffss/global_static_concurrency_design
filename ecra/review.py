@@ -375,7 +375,11 @@ def build_variable_review_packet(root, facts, finding, *, facts_path, shared_pat
             if caller and caller not in related:
                 related.add(caller)
                 pending.append(caller)
-    functions = [f for f in facts.get('functions', []) if f['function_id'] in related]
+    # The internal Diff expression DAG is stored in the native authority.
+    # Review continues using its original function evidence; Diff's causal
+    # witnesses already have their separate git_diff_impact field below.
+    functions = [{key: value for key, value in f.items() if key != 'diff_dependencies'}
+                 for f in facts.get('functions', []) if f['function_id'] in related]
     calls = [c for c in facts.get('calls', [])
              if c.get('caller_function_id') in related or c.get('callee_function_id') in related]
     # Keep every distinct static assessment once per context combination.

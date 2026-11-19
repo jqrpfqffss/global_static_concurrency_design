@@ -13,17 +13,23 @@ import subprocess
 
 from .common import digest, read_json, write_json
 
-SUMMARY_SCHEMA = 8
+SUMMARY_SCHEMA = 11
 
 DEFAULTS = dict(enabled=False, base_ref='origin/master', current_ref='HEAD',
                 include_uncommitted=False, cache_enabled=True, verify_against_full=False)
+
+
+def validate_mode(options):
+    if options.get('enabled') and options.get('include_uncommitted'):
+        raise ValueError('Diff 只支持分支或 tag 的固定提交比较，不再支持 include_uncommitted: true；'
+                         '请明确设置 include_uncommitted: false，或关闭 Diff 使用原全量未提交扫描')
 
 
 def settings(value):
     if isinstance(value, dict) and set(value) & {'target_ref', 'compare_mode', 'uncertain_impact_policy'}:
         raise ValueError('analysis.git_diff 配置已简化：用 base_ref/current_ref 指定直接比较的两个版本；'
                          '删除 target_ref、compare_mode、uncertain_impact_policy。'
-                         '旧 merge_base 语义请先用 git merge-base 求出基准提交，再填入 base_ref')
+                         '旧 merge_base 语义请先建立指向该基准提交的分支或 tag，再填入 base_ref')
     if not isinstance(value, dict) or set(value) - DEFAULTS.keys():
         raise ValueError('analysis.git_diff 必须是映射且不能包含未知字段')
     result = dict(DEFAULTS, **value)
@@ -72,7 +78,7 @@ def write_comparison_patch(pinned, destination):
     """
     import tempfile
     from .common import replace_file
-    repo = Path(pinned['repository_root'])
+    repo = Path(pinned.get('frozen_git', {}).get('repository', pinned['repository_root']))
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     pending = None
@@ -131,6 +137,26 @@ def resolve_revision(root, ref):
                      '请在当前固件仓库中选择已有的本地分支、标签或提交 SHA 后重试。')
 
 
+def resolve_selection(root, ref):
+    """Public Diff inputs are branch/tag names; HEAD aliases its branch."""
+    # Reuse argument validation and the unique local leaf convenience.
+    sha = resolve_revision(root, ref)
+    name = ref
+    if ref == 'HEAD':
+        name = git(root, 'symbolic-ref', '--quiet', 'HEAD', _returncodes=(0, 1)).decode('utf-8').strip()
+    elif '/' not in ref:
+        exact = text(root, 'for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes', 'refs/tags').splitlines()
+        if not any(p in exact for p in ('refs/heads/'+ref, 'refs/tags/'+ref)):
+            leaves = [p for p in exact if p.startswith('refs/heads/') and p.endswith('/'+ref)]
+            if len(leaves) == 1:
+                name = leaves[0]
+    full = (git(root, 'rev-parse', '--symbolic-full-name', '--verify', '--quiet', '--end-of-options', name,
+                _returncodes=(0, 1), _reject_stderr=True).decode('utf-8').strip() if name else '')
+    if not full.startswith(('refs/heads/', 'refs/remotes/', 'refs/tags/')):
+        raise ValueError('Diff 只支持已有分支或 tag；HEAD 必须指向分支，不能使用游离 HEAD、提交表达式或裸 SHA：' + ref)
+    return sha, full
+
+
 def _content_changes(root, base, current=None):
     """Content-aware paths, including zero-line/binary/rename changes.
 
@@ -181,41 +207,51 @@ def changes(root, base, current=None):
 
 
 def pin(root, cfg):
-    options = cfg['analysis']['git_diff']
+    options = dict(cfg['analysis']['git_diff'], enabled=True)
+    validate_mode(options)
     repo = Path(text(root, 'rev-parse', '--show-toplevel')).resolve()
     from .workspace import context, canonical
-    if canonical(repo) != canonical(context(root, cfg['analysis']).repository_root):
+    ws = context(root, cfg['analysis'])
+    if canonical(repo) != canonical(ws.repository_root):
         raise ValueError('Git 实际仓库根目录与项目身份边界不一致；请检查 .git/core.worktree 配置后重新扫描')
-    head = resolve_revision(root, options['current_ref'])
-    base = resolve_revision(root, options['base_ref'])
-    workspace_mode = options['include_uncommitted']
-    from .workspace import generated_untracked
-    generated = generated_untracked(root, cfg) if workspace_mode else set()
-    tracked = {p.decode('utf-8') for p in git(repo, 'ls-files', '--cached', '-z').split(b'\0') if p} if workspace_mode else set()
-    generated -= tracked
-    files = changes(repo, base, None if options['include_uncommitted'] else head)
-    if options['include_uncommitted']:
-        untracked = git(repo, 'ls-files', '--others', '--exclude-standard', '-z').split(b'\0')
-        files.extend(dict(status='?', old_path=None, new_path=p.decode('utf-8')) for p in untracked
-                     if p and p.decode('utf-8') not in generated)
+    # Resolve both names only after their shared, build-visible Git view exists.
+    from .independent_git import freeze
+    frozen = freeze(repo, ws)
+    fixed_repo = Path(frozen['repository'])
+    head, head_ref = resolve_selection(fixed_repo, options['current_ref'])
+    base, base_ref = resolve_selection(fixed_repo, options['base_ref'])
+    files = changes(fixed_repo, base, head)
     for change in files:
         change['comment_only'] = False
         if change['status'].startswith('M') and Path(change['new_path']).suffix.lower() in ('.h', '.hh', '.hpp', '.hxx', '.inc'):
-            before = git(repo, 'show', base + ':' + change['old_path'])
-            path = repo/change['new_path']
-            if not options['include_uncommitted'] or path.is_file():
-                after = path.read_bytes() if options['include_uncommitted'] else git(repo, 'show', head + ':' + change['new_path'])
-                old, new = comment_insensitive(before), comment_insensitive(after)
-                change['comment_only'] = old is not None and old == new
-    # Full input contents (not mtimes) bind the workspace. Ignored generated
-    # compiler inputs are additionally bound by InputSnapshot.
-    paths = git(repo, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0') if workspace_mode else []
-    from .workflow import file_digest
-    workspace = {p.decode('utf-8'): file_digest(repo/p.decode('utf-8')) if (repo/p.decode('utf-8')).is_file() else None
-                 for p in paths if p and p.decode('utf-8') not in generated} if workspace_mode else None
-    return dict(schema=2, repository_root=str(repo), project_subdir=Path(root).resolve().relative_to(repo).as_posix(),
+            before = git(fixed_repo, 'show', base + ':' + change['old_path'])
+            after = git(fixed_repo, 'show', head + ':' + change['new_path'])
+            old, new = comment_insensitive(before), comment_insensitive(after)
+            change['comment_only'] = old is not None and old == new
+    effective = copy.deepcopy(cfg)
+    effective['analysis'].pop('_workspace', None)
+    effective.setdefault('project', {})['root'] = str(Path(root).resolve())
+    input_id = digest([frozen['id'], effective])
+    from .workspace import no_links
+    config = no_links(Path(ws.git_diff_root)/'inputs'/input_id[:24]/'semantics.json')
+    # Configuration is part of the fixed input, not a pointer to a mutable
+    # profile. Preserve a corrupt existing copy for diagnosis instead of repair.
+    import json
+    data = json.dumps(effective, ensure_ascii=False, sort_keys=True, indent=2).encode('utf-8')
+    import hashlib
+    config_sha = hashlib.sha256(data).hexdigest()
+    if config.exists():
+        if config.read_bytes() != data:
+            raise ValueError('本轮固定配置已损坏；保留现场，禁止复用')
+    else:
+        config.parent.mkdir(parents=True, exist_ok=True)
+        from .independent_git import _write
+        _write(config, data)
+    return dict(schema=3, repository_root=str(repo), project_subdir=Path(root).resolve().relative_to(repo).as_posix(),
         current_ref=options['current_ref'], base_ref=options['base_ref'], head_sha=head, base_sha=base,
-        include_uncommitted=options['include_uncommitted'], workspace_digest=digest(workspace), files=files)
+        current_resolved_ref=head_ref, base_resolved_ref=base_ref, frozen_git=frozen, input_id=input_id,
+        config_path=str(config), config_sha256=config_sha,
+        include_uncommitted=False, workspace_digest=digest(None), files=files)
 
 
 def comment_insensitive(data):
@@ -235,21 +271,54 @@ def comment_insensitive(data):
     return '\n'.join(line.strip() for line in value.splitlines() if line.strip())
 
 
+def fixed_config_path(pinned):
+    from .workflow import file_digest
+    if pinned.get('schema') != 3:
+        raise ValueError('旧 Diff 检查点未固定构建输入；请重新扫描')
+    path = Path(pinned['config_path'])
+    if file_digest(path) != pinned['config_sha256']:
+        raise ValueError('本轮固定配置已改变/损坏；请重新扫描')
+    return path
+
+
 def assert_pin(root, cfg, expected):
     origin_root = Path(expected['repository_root']) / expected['project_subdir']
-    current = pin(origin_root, cfg)
-    if any(current[k] != expected.get(k) for k in current):
-        raise ValueError('Git 引用或工作区快照已变化；差异结果失效，请重新扫描')
+    if expected.get('schema') != 3:
+        raise ValueError('旧 Diff 检查点未固定 Git 构建元数据与配置；请重新扫描以建立固定输入身份')
+    from .workspace import context, canonical
+    ws = context(origin_root, cfg['analysis'])
+    if canonical(ws.repository_root) != canonical(expected['repository_root']):
+        raise ValueError('固定 Git 输入不属于当前工程')
+    from .independent_git import check_frozen, check_external, _owned
+    repository = check_frozen(expected['frozen_git'], ws)
+    for side, sha_key in (('base', 'base_sha'), ('current', 'head_sha')):
+        if resolve_revision(repository, expected[side+'_resolved_ref']) != expected[sha_key]:
+            raise ValueError('固定 Git 提交身份已改变/损坏；禁止使用')
+        if expected.get(side+'_source_root'):
+            source = Path(expected[side+'_source_root'])
+            tree = source if expected['project_subdir'] == '.' else source.parents[len(Path(expected['project_subdir']).parts)-1]
+            _owned(repository, tree, expected[sha_key])
+            check_external(tree, expected['frozen_git'])
     from .workflow import file_digest
-    for path_key, hash_key in (('base_facts_path', 'base_facts_sha256'), ('diff_patch_path', 'diff_patch_sha256'),
+    for path_key, hash_key in (('config_path', 'config_sha256'), ('base_facts_path', 'base_facts_sha256'), ('diff_patch_path', 'diff_patch_sha256'),
                                ('base_summary_path', 'base_summary_sha256')):
         if expected.get(path_key) and file_digest(expected[path_key]) != expected[hash_key]:
-            raise ValueError('基准事实或本轮代码差异已变化/损坏；请重新扫描')
+            raise ValueError('固定输入或基准证据已变化/损坏：' + expected[path_key] + '；请重新扫描')
     if expected.get('base_source_root'):
         base_root = Path(expected['base_source_root'])
         check_isolated_tree(base_root, expected['base_sha'], expected.get('base_build_path'))
     if expected.get('current_source_root'):
         check_current_tree(expected)
+    if expected.get('base_scan_path'):
+        # Baseline-only headers, generator outputs and external SDK inputs
+        # must remain valid through current extraction/publication as well.
+        # Checking just the immutable facts would miss a changed build input.
+        from .config import load_config
+        from .workflow import checked_scan
+        base_cfg, base_config = load_config(Path(expected['base_source_root']), expected['base_config_path'])
+        ws.for_results(Path(expected['base_scan_path'])).bind(base_cfg['analysis'])
+        checked_scan(Path(expected['base_source_root']), Path(expected['base_scan_path']), base_cfg,
+                     base_config, with_facts=False, _report_projection=True)
 
 
 def canonical_id(value, renames):
@@ -404,6 +473,7 @@ def variable_change_summary(variable, contexts, renames):
 
 
 def summarize(facts, report, renames=None):
+    from .diff_risk import object_evidence, risk_evidence, scope_evidence
     class BuildRenames(dict):
         pass
     renames = BuildRenames(renames or {})
@@ -419,6 +489,7 @@ def summarize(facts, report, renames=None):
             renames['CFG-' + digest([source, fid])[:20]] = 'CFG-' + digest(canonical)[:20]
     cid = lambda value: canonical_id(value, renames)
     functions = {cid(f['function_id']): dict(digest=digest([f.get('semantic_digest'), f.get('consumed_macros_digest')]),
+                  _dependency_program=f.get('diff_dependencies'),
                   non_call_digest=digest([f.get('non_call_digest', f.get('semantic_digest')), f.get('consumed_macros_digest')]),
                   standalone_calls=[[offset, cid(target)] for offset, target in f.get('standalone_calls', [])],
                   return_type_kind=f.get('return_type_kind'), name=f['name'],
@@ -472,7 +543,11 @@ def summarize(facts, report, renames=None):
         dimensions = dict(
             declaration=digest(normalize({k: v.get(k) for k in ('semantic_digest', 'consumed_macros_digest', 'type', 'kind', 'storage_class',
                 'owner_function_id', 'field_path', 'array_size', 'size_bytes', 'initializer', 'member_definitions')}, renames)),
-            accesses=row_hashes(accesses, renames),
+            # Per-function protection_event hints are attached to every
+            # access for navigation. Actual per-access protection is compared
+            # below; moving a lock around a must not create a change in b.
+            accesses=row_hashes(({key: value for key, value in access.items() if key != 'protection_evidence'}
+                                 for access in accesses), renames),
             contexts=row_hashes(
                 [c for c in facts.get('context_bindings', []) if cid(c.get('function_id')) in accessors]
                 + [dict(context_id=context, nvic_state=state) for context in v.get('contexts', [])
@@ -482,7 +557,9 @@ def summarize(facts, report, renames=None):
             coverage=digest(dict(analysis_coverage=v.get('analysis_coverage'),
                 blocking_evidence=evidence_digest(v.get('blocking_evidence'), renames),
                 screening_blockers=evidence_digest(v.get('screening_blockers'), renames),
-                safe_evidence=evidence_digest(v.get('safe_evidence'), renames))),
+                safe_evidence=evidence_digest(v.get('safe_evidence'), renames),
+                shared_evidence=evidence_digest({key: value for key, value in (v.get('shared_evidence') or {}).items()
+                    if not key.endswith('_access_ids')}, renames))),
             conflicts=row_hashes(v.get('conflict_pairs', []), renames),
             classification=v.get('static_classification'), graph=graph)
         # A global conservative fallback need not pull in a private scalar
@@ -501,12 +578,15 @@ def summarize(facts, report, renames=None):
                     and not any(a.get(k) for k in ('via_alias', 'via_api', 'inherited_from_access_id'))
                     for a in accesses))
         variables[cid(sid)] = dict(symbol_id=sid, name=v.get('qualified_name', v.get('name')),
+            _dependency_accesses=accesses,
+            object_evidence=object_evidence(v, cid), risk_evidence=risk_evidence(v, context_rows, cid),
             private_storage_isolation=private_isolation,
             file=cid(v.get('definition_file')), original_file=v.get('definition_file'), line=v.get('definition_line'), dimensions=dimensions,
             accessors=sorted(accessors), graph_id=graph,
             reads=sorted({cid(a['function_id']) for a in accesses if a.get('access_kind') in ('READ', 'RMW')}),
             writes=sorted({cid(a['function_id']) for a in accesses if a.get('access_kind') in ('WRITE', 'RMW')}),
-            root=cid(v.get('root_symbol_id') or sid),
+            root=cid(v.get('root_symbol_id') or v.get('array_root_symbol_id') or sid),
+            array_index=v.get('array_index'),
             field_path=v.get('field_path'), is_union=v.get('is_union'),
             offset_bits=v.get('offset_bits'), size_bytes=v.get('size_bytes'), overlap_groups=v.get('overlap_groups', []),
             container=v.get('static_classification') == 'CONTAINER',
@@ -518,17 +598,33 @@ def summarize(facts, report, renames=None):
             classification=v.get('static_classification'),
             graph=dict(functions=len(graphs[graph]['functions']), edges=len(graphs[graph]['edges']),
                        roots=len(graphs[graph]['roots'])))
+    from .diff_dependencies import bind_dependencies
+    dependency_storage = {}
+    for variable in facts.get('diff_dependency_storage', []):
+        sid = cid(variable['symbol_id'])
+        dependency_storage[sid] = dict(symbol_id=sid, root=cid(variable.get('root_symbol_id')
+            or variable.get('array_root_symbol_id') or variable['symbol_id']),
+            declaration=digest(normalize({key: value for key, value in variable.items() if key != 'accesses'}, renames)),
+            container=bool(variable.get('is_struct') or variable.get('is_array')
+                           or variable.get('resource_kind') in {'STRUCT_CONTAINER', 'STRUCT_MEMBER_CONTAINER', 'ARRAY_CONTAINER'}),
+            _dependency_accesses=variable.get('accesses', []),
+            **{key: variable.get(key) for key in ('array_index', 'field_path', 'offset_bits', 'size_bytes', 'overlap_groups')})
+    bind_dependencies(functions, dict(dependency_storage, **variables), cid, lambda value: normalize(value, renames))
     global_semantics = {k: row_hashes(facts.get(k, []), renames) for k in
         ('contexts', 'irq_priority_events', 'nvic_resolved_events', 'protection_events', 'registrations',
          'hardware_contexts', 'preemption_relations', 'address_escapes')}
     global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
     return dict(schema=SUMMARY_SCHEMA, variables=variables, graphs=graphs, functions=functions, edges=edges,
+        dependency_storage=dependency_storage,
+        comparison_scope=scope_evidence(facts, report, cid),
         return_edges=return_edges,
         macros={cid(u['source_file']): u.get('semantic_macros_digest') for u in facts.get('translation_units', [])},
         dependencies=sorted({canonical_id(str(Path(p).resolve().relative_to(Path(report['coverage']['project_root']).resolve())).replace('\\', '/'), renames)
             if report.get('coverage', {}).get('project_root') and Path(p).resolve().is_relative_to(Path(report['coverage']['project_root']).resolve())
             else cid(str(p)) for u in facts.get('translation_units', []) for p in u.get('includes', [])}),
         semantics=global_semantics, unknowns=row_hashes(facts.get('unknowns', []), renames),
+        impact_unknowns=[normalize({key: gap.get(key) for key in ('kind', 'function_id', 'symbol_id', 'file')}, renames)
+                        for gap in facts.get('unknowns', [])],
         build=sorted(digest([cid(u.get('source_file')), build_arguments(u, report.get('coverage', {}).get('project_root'))])
                      for u in facts.get('translation_units', [])),
         analysis_status=report['analysis_status'])
@@ -539,7 +635,14 @@ REASONS = dict(DIRECT_CHANGED='声明、初始化或存储定义变化', CALL_GR
     PROTECTION_CHANGED='保护机制变化', COVERAGE_CHANGED='覆盖证据变化',
     CONFLICT_CHANGED='并发冲突证据变化', STATIC_CHANGED='静态结论变化',
     SEMANTIC_IMPACT='上下游数据或控制语义影响', CANNOT_EXCLUDE_IMPACT='无法排除影响，保守扩大',
-    BUILD_SEMANTICS_CHANGED='头文件、宏或构建语义变化', MATCH_UNCERTAIN='跨版本存储身份无法可靠匹配')
+    BUILD_SEMANTICS_CHANGED='头文件、宏或构建语义变化', MATCH_UNCERTAIN='跨版本存储身份无法可靠匹配',
+    OBJECT_CHANGED='对象存在性或构建归属变化', VERSION_EVIDENCE='双版本对象证据变化',
+    DATA_DEPENDENCY='实际数据依赖', RETURN_DEPENDENCY='返回值被实际消费',
+    COVERAGE_DEPENDENCY='提取缺口可能隐藏变化，沿实际依赖保留待核实',
+    PARAMETER_DEPENDENCY='实际参数值依赖', CONTROL_DEPENDENCY='控制条件影响执行',
+    CALL_DEPENDENCY='实际调用执行影响', FUNCTION_ONLY_DEPENDENCY='仅函数级或不完整依赖，待核实',
+    PHYSICAL_OVERLAP='已证明物理存储重叠', POSSIBLE_OVERLAP='可能存储重叠，待核实',
+    INDEPENDENCE_PROVEN='具有独立性证明，可排除', CONTAINER_AGGREGATION='仅汇总成员，不重复计作风险')
 
 
 def variable_graph(summary, variable):
@@ -561,33 +664,22 @@ def risk_comparison(old, new):
     if old_container != new_container:
         return ('STORAGE_SHAPE_CHANGED',
                 '存储对象在标量与容器间转换，根对象与成员的风险需要分别核对，不能据容器分类判断风险新增或消除。')
-    if 'UNKNOWN' in (old_class, new_class):
-        return 'UNKNOWN_CLASSIFICATION', '至少一个版本的静态结论为无法判断，不能据此确定风险新增或消除。'
-    comparable = {'SUSPECT', 'SAFE_PROVEN', 'SHARED_NO_REVIEW'}
+    comparable = {'SUSPECT', 'SAFE_PROVEN', 'SHARED_NO_REVIEW', 'UNKNOWN'}
     if old_container or old_class not in comparable or new_class not in comparable:
         return ('AGGREGATE_OR_UNASSESSED',
                 '容器、非存储对象或尚未分析的记录不是可直接比较的变量风险结论，需核对实际存储对象及其成员。')
     return 'COMPARABLE', None
 
 
-def changed_standalone_calls(old, new):
-    """Localize pure edits to standalone no-argument calls with stable surrounding code."""
-    if not old or not new or not old.get('non_call_digest') or old['non_call_digest'] != new.get('non_call_digest'):
-        return set()
-    before = [tuple(site) for site in old['standalone_calls']]
-    after = [tuple(site) for site in new['standalone_calls']]
-    removed, added = Counter(before), Counter(after)
-    targets = {target for _, target in (removed - added).keys() | (added - removed).keys()}
-    if [site for site in before if site[1] not in targets] != [site for site in after if site[1] not in targets]:
-        return set()
-    return targets
-
-
 def compare(base, head, pinned):
+    from .diff_risk import COMPARISON_SCHEMA, ObjectComparison, risk_transition, change_counts
     bv, hv = base['variables'], head['variables']
+    objects = ObjectComparison(base, head, pinned)
     reasons = defaultdict(set)
     modified = {f for f in base['functions'].keys() | head['functions'].keys()
                 if base['functions'].get(f, {}).get('digest') != head['functions'].get(f, {}).get('digest')
+                or base['functions'].get(f, {}).get('dependencies', {}).get('semantic_digest')
+                   != head['functions'].get(f, {}).get('dependencies', {}).get('semantic_digest')
                 or f not in base['functions'] or f not in head['functions']}
     mapping = dict(declaration='DIRECT_CHANGED', accesses='ACCESS_CHANGED', graph='CALL_GRAPH_CHANGED',
         contexts='EXECUTION_CONTEXT_CHANGED', protection='PROTECTION_CHANGED', coverage='COVERAGE_CHANGED',
@@ -595,7 +687,9 @@ def compare(base, head, pinned):
     for sid in bv.keys() | hv.keys():
         old, new = bv.get(sid), hv.get(sid)
         if old is None or new is None:
-            reasons[sid].update(('DIRECT_CHANGED', 'MATCH_UNCERTAIN'))
+            event = objects.describe(old, new)['event']
+            reasons[sid].add('OBJECT_CHANGED')
+            reasons[sid].add('MATCH_UNCERTAIN' if event in {'MATCH_UNCERTAIN', 'EXISTENCE_UNCERTAIN'} else 'DIRECT_CHANGED')
             continue
         if risk_comparison(old, new)[0] == 'STORAGE_SHAPE_CHANGED':
             reasons[sid].add('MATCH_UNCERTAIN')
@@ -604,76 +698,11 @@ def compare(base, head, pinned):
                 reasons[sid].add(reason)
         if old['findings'] != new['findings']:
             reasons[sid].add('CONFLICT_CHANGED')
-    # Direction matters: visiting a callee must not walk back through every
-    # caller and then spread to their unrelated siblings. Only a changed body
-    # or shared input can affect a consumed return value in its callers.
-    outgoing, function_vars, readers, root_vars = (defaultdict(set) for _ in range(4))
-    for a, b in base['edges'] + head['edges']:
-        outgoing[a].add(b)
-    return_callers = defaultdict(set)
-    for summary in (base, head):
-        for a, b in summary.get('return_edges', summary['edges']):
-            if summary['functions'].get(b, {}).get('return_type_kind') != 'VOID':
-                return_callers[b].add(a)
-    for summary in (base, head):
-        for sid, v in summary['variables'].items():
-            for f in v['accessors']:
-                function_vars[f].add(sid)
-            readers[sid].update(v['reads'])
-            root_vars[v['root']].add(sid)
-    pending = deque()
-    for f in modified:
-        targets = changed_standalone_calls(base['functions'].get(f), head['functions'].get(f))
-        if targets:
-            pending.extend(('callee', target) for target in targets)
-        else:
-            pending.append(('effect', f))
-    pending.extend(('variable', sid) for sid in list(reasons))
-    seen = set()
-    while pending:
-        kind, key = pending.popleft()
-        if (kind, key) in seen:
-            continue
-        seen.add((kind, key))
-        if kind in {'effect', 'callee'}:
-            pending.extend(('callee', f) for f in outgoing[key])
-            if kind == 'effect':
-                pending.extend(('effect', f) for f in return_callers[key])
-            for sid in function_vars[key]:
-                reasons[sid].add('SEMANTIC_IMPACT')
-                pending.append(('variable', sid))
-                if any(key in summary['variables'].get(sid, {}).get('writes', []) for summary in (base, head)):
-                    pending.extend(('effect', f) for f in readers[sid])
-        else:
-            # A selected read alone is not a write. Only affected writers and
-            # changed storage can propagate values into cross-function readers.
-            old, new = bv.get(key, {}), hv.get(key, {})
-            writers = set(old.get('writes', [])) | set(new.get('writes', []))
-            if 'DIRECT_CHANGED' in reasons[key] or any(('effect', f) in seen or ('callee', f) in seen for f in writers):
-                pending.extend(('effect', f) for f in readers[key])
-            for v in (old, new):
-                for sibling in root_vars[v.get('root')]:
-                    if sibling != key:
-                        other = hv.get(sibling) or bv.get(sibling)
-                        if other.get('container'):
-                            # A UI aggregation node must not bridge otherwise
-                            # disjoint physical fields back to every sibling.
-                            continue
-                        # Concrete non-overlapping fields keep field precision.
-                        a, b = v.get('offset_bits'), other.get('offset_bits')
-                        sa, sb = v.get('size_bytes'), other.get('size_bytes')
-                        if (all(type(n) is int and n >= 0 for n in (a, b, sa, sb))
-                                and not (set(v.get('overlap_groups', [])) & set(other.get('overlap_groups', [])))
-                                and (a + 8*sa <= b or b + 8*sb <= a)):
-                            continue
-                        reasons[sibling].add('CANNOT_EXCLUDE_IMPACT')
-                        pending.append(('variable', sibling))
     fallback = []
     if base['semantics'] != head['semantics']:
         fallback.append('执行入口、保护、NVIC、DMA 或别名全局语义变化')
-    # The current analyser has conservative gaps, not complete interprocedural
-    # dependency proofs. With changed semantics an unresolved boundary expands
-    # to the whole build; full analysis still retains UNKNOWN classifications.
+    # Record global review triggers separately from each object's positive or
+    # negative dependence proof. They do not automatically change risk labels.
     if (modified or reasons) and (base['unknowns'] or head['unknowns']):
         fallback.append('存在未解析依赖，无法证明局部影响边界')
     dependencies = set(base.get('dependencies', [])) | set(head.get('dependencies', []))
@@ -686,23 +715,26 @@ def compare(base, head, pinned):
             and Path(os.path.relpath(f['new_path'], prefix)).as_posix() in dependencies) for f in pinned['files'] if not f.get('comment_only'))
     if build_changed:
         fallback.append('头文件或构建输入变化，重新评估完整构建范围')
-    fallback_exemptions = {}
-    conservative = set()
-    if fallback:
-        for sid in bv.keys() | hv.keys():
-            old, new = bv.get(sid), hv.get(sid)
-            if (not build_changed and sid not in reasons and old and new
-                    and old.get('private_storage_isolation') and new.get('private_storage_isolation')
-                    and old['dimensions'] == new['dimensions']):
-                fallback_exemptions[new['symbol_id']] = '未逃逸私有标量，两版完整直接访问、上下文及调用子图一致，且不在语义影响闭包内'
-                continue
-            if sid in reasons:
-                if build_changed:
-                    reasons[sid].add('BUILD_SEMANTICS_CHANGED')
-            elif new:
-                conservative.add(new['symbol_id'])
+    from .diff_impact import classify_impacts, LABELS
+    # Macro/header consumers and declaration layouts are already compared
+    # from expanded AST facts. Actual command/link/build changes still need
+    # an independent build-boundary proof before excluding an object.
+    build_uncertain = base.get('build') != head.get('build') or any(
+        Path(f['new_path']).suffix.lower() in ('.cmake', '.ld', '.lds', '.s', '.a', '.o', '.obj', '.mk', '.sct', '.icf')
+        or Path(f['new_path']).name in ('CMakeLists.txt', 'CMakePresets.json', 'CMakeUserPresets.json', 'compile_commands.json', 'Makefile')
+        for f in pinned['files'] if not f.get('comment_only'))
+    accounting = classify_impacts(base, head, reasons, modified,
+                                  build_changed=build_uncertain)
+    if build_changed:
+        for sid, category in accounting['categories'].items():
+            if category != 'EXCLUDED':
+                reasons[sid].add('BUILD_SEMANTICS_CHANGED')
+    fallback_exemptions = accounting['fallback_exemptions']
+    conservative = {hv[sid]['symbol_id'] for sid, category in accounting['categories'].items()
+                    if category == 'UNCERTAIN' and sid in hv}
+    incomplete_impact = bool(accounting['counts']['UNCERTAIN'] or accounting['regional_gaps'])
     from functools import lru_cache
-    impacts, deleted = {}, []
+    impacts, deleted, baseline_only = {}, [], []
     @lru_cache(maxsize=32)
     def indexed_edges(is_base, graph_id):
         # Only an acceleration cache is bounded; every graph is still compared.
@@ -718,16 +750,20 @@ def compare(base, head, pinned):
         old_edges, new_edges = edges_of(base, old), edges_of(head, new)
         old_class = old['dimensions']['classification'] if old else None
         new_class = new['dimensions']['classification'] if new else None
-        comparison_status, comparison_note = risk_comparison(old, new)
-        risk = ('无法判断变化结果' if comparison_status != 'COMPARABLE'
-            else '新增疑似风险' if old_class != 'SUSPECT' and new_class == 'SUSPECT'
-            else '风险可能已消除' if old_class == 'SUSPECT' and new_class != 'SUSPECT'
-            else '风险证据发生变化' if old['dimensions'] != new['dimensions']
-            else '已有风险受到修改影响' if new_class == 'SUSPECT' else '当前静态结论未变化')
-        impact = dict(selected=True, reasons=sorted(why), reason_labels=[REASONS[r] for r in sorted(why)],
+        object_change = objects.describe(old, new)
+        transition = risk_transition(old, new, object_change,
+                                     base.get('comparison_scope', {}), head.get('comparison_scope', {}))
+        category = accounting['categories'][sid]
+        impact = dict(selected=category != 'EXCLUDED', impact_class=category, impact_label=LABELS[category],
+            impact_evidence=accounting['evidence'].get(sid, []),
+            exclusion_proof=accounting['exclusion_proofs'].get(sid),
+            impact_coverage_evidence=accounting['coverage'][sid], reasons=sorted(why), reason_labels=[REASONS[r] for r in sorted(why)],
             added_edges=[list(e) for e in sorted(new_edges-old_edges)], removed_edges=[list(e) for e in sorted(old_edges-new_edges)],
-            unchanged_edges_count=len(old_edges & new_edges), impact_coverage='CONSERVATIVE' if fallback else 'COMPLETE',
-            risk_change=risk, risk_comparison_status=comparison_status, risk_comparison_note=comparison_note,
+            unchanged_edges_count=len(old_edges & new_edges), impact_coverage='CONSERVATIVE' if (
+                category == 'UNCERTAIN' or any(assessment['related_gaps'] or assessment['unaccounted_gaps']
+                    for assessment in accounting['coverage'][sid].values())) else 'COMPLETE',
+            object_change=object_change, risk_transition=transition,
+            risk_change=transition['label'], risk_comparison_status=transition['comparison_status'], risk_comparison_note=transition['note'],
             base=old, head_classification=new_class,
             base_source_root=pinned.get('base_source_root'), head_sha=pinned['head_sha'], base_sha=pinned['base_sha'])
         impact['evidence_changes'] = {dimension: dict(
@@ -742,14 +778,55 @@ def compare(base, head, pinned):
         if new:
             impacts[new['symbol_id']] = impact
         else:
-            deleted.append(dict(symbol_id=old['symbol_id'], name=old['name'], impact=impact))
-    return dict(pin=pinned, selected_symbol_ids=sorted(impacts), impacts=impacts, deleted_variables=deleted,
+            record = dict(symbol_id=old['symbol_id'], name=old['name'], impact_class=category,
+                          impact_label=LABELS[category], impact=impact)
+            baseline_only.append(record)
+            if object_change['event'] == 'DELETED':
+                deleted.append(record)
+    from itertools import chain
+    object_accounting = [dict(object_id=sid, symbol_id=(hv.get(sid) or bv[sid])['symbol_id'],
+        name=(hv.get(sid) or bv[sid])['name'], evidence_side='current' if sid in hv else 'baseline',
+        impact_class=category, impact_label=LABELS[category],
+        container=bool((hv.get(sid) or bv[sid]).get('container')), reasons=sorted(reasons[sid]))
+        for sid, category in sorted(accounting['categories'].items())]
+    comparison_objects = []
+    baseline_indexes = {item['symbol_id']: i for i, item in enumerate(baseline_only)}
+    for row in object_accounting:
+        side, symbol = row['evidence_side'], row['symbol_id']
+        if row['impact_class'] == 'EXCLUDED':
+            continue
+        if side == 'current':
+            impact = impacts[symbol]
+            path = ['impacts', symbol]
+        else:
+            index = baseline_indexes[symbol]
+            impact = baseline_only[index]['impact']
+            path = ['baseline_only_variables', index, 'impact']
+        transition = impact['risk_transition']
+        comparison_objects.append(dict(row, object_event=impact['object_change']['event'],
+            base_classification=transition['base_classification'], head_classification=transition['head_classification'],
+            risk_case=transition['matrix_case'], risk_code=transition['code'], risk_label=transition['label'],
+            impact_path=path))
+    return dict(pin=pinned, selected_symbol_ids=sorted(sid for sid, row in impacts.items() if row['selected']),
+        definite_symbol_ids=sorted(sid for sid, row in impacts.items() if row['impact_class'] == 'DEFINITE'),
+        excluded_symbol_ids=sorted(sid for sid, row in impacts.items() if row['impact_class'] == 'EXCLUDED'),
+        impacts=impacts, deleted_variables=deleted,
+        impact_schema=accounting['schema'], impact_counts=accounting['counts'],
+        identified_object_count=accounting['identified_object_count'], container_count=accounting['container_count'],
+        identified_objects_accounted=True, real_object_inventory_complete=not accounting['regional_gaps'],
+        regional_gaps=accounting['regional_gaps'],
+        object_accounting=object_accounting,
+        comparison_objects=comparison_objects,
+        comparison_analysis_status=dict(base=base.get('analysis_status'), head=head.get('analysis_status')),
+        comparison_schema=COMPARISON_SCHEMA, baseline_only_variables=baseline_only,
+        change_counts=change_counts(chain((row for row in impacts.values() if row['selected']),
+                                         (row['impact'] for row in baseline_only if row['impact']['selected']))),
         modified_function_ids=sorted(modified), fallback_level='L1' if fallback else 'L0', fallback_reasons=fallback,
         fallback_exemptions=fallback_exemptions,
         conservative_symbol_ids=sorted(conservative),
-        selection_basis='VERSION_EVIDENCE_AND_DIRECTED_DEPENDENCIES',
-        impact_coverage='CONSERVATIVE' if fallback else 'COMPLETE',
-        note='默认清单只列有版本变化或明确依赖关系的变量；未排除的潜在影响保存在覆盖证据，不自动填满差异清单。未列出不代表安全，后台保留完整并发分析。')
+        selection_basis='THREE_WAY_DEPENDENCY_ACCOUNTING',
+        impact_coverage='CONSERVATIVE' if incomplete_impact else 'COMPLETE',
+        note='差异清单包含明确影响和待核实对象；可排除对象及其证明保留在后台。三类数量仅覆盖已识别存储对象，容器不重复计数，区域性缺口单独记录。影响分类不改变静态风险和原人工规则。')
 
 
 def representative_paths(variable, changed_edges, evidence_graph=None):
@@ -815,7 +892,7 @@ def presentation_view(facts, report):
     view, result = dict(facts), dict(report)
     view['variables'] = [v for v in facts['variables'] if v['symbol_id'] in ids]
     result['findings'] = selected_findings(report)
-    result['presentation_notice'] = '当前差异范围：仅展示有版本变化或明确依赖关系的变量；未排除的潜在影响见覆盖说明，后台保留完整分析。未列出不代表安全。'
+    result['presentation_notice'] = '当前差异范围：展示明确影响与待核实变量；可排除对象及证明保留在后台。区域性缺口不计入变量数量，后台保留完整分析。'
     return view, result
 
 
@@ -904,15 +981,30 @@ def current_context(root, cfg, pinned):
     origin = Path(pinned['repository_root']) / pinned['project_subdir']
     if root.resolve() not in (origin.resolve(), source.resolve()):
         raise ValueError('分支比较检查点不属于当前工程；请重新扫描')
-    if cfg.get('project', {}).get('root') == str(source):
+    if cfg.get('project', {}).get('root') == str(source) and pinned.get('schema') != 3:
         return source, cfg
     from .workspace import context
     workspace = context(origin, cfg['analysis'])
+    if pinned.get('schema') == 3:
+        from .workflow import file_digest
+        if file_digest(pinned['config_path']) != pinned['config_sha256']:
+            raise ValueError('本轮固定配置已改变/损坏；请重新扫描')
+        # Review settings may still change independently of static evidence.
+        fixed = read_json(pinned['config_path'])
+        fixed['review'] = copy.deepcopy(cfg.get('review', {}))
+        cfg = fixed
     current_cfg = relocate_config(cfg, origin, source)
     workspace.bind(current_cfg['analysis'])
     if pinned.get('current_database_path'):
         current_cfg['analysis']['compile_database'] = pinned['current_database_path']
     return source, current_cfg
+
+
+def version_directory(workspace, pinned, side):
+    sha = pinned['head_sha' if side == 'current' else 'base_sha']
+    identity = digest([sha, pinned['input_id']])[:20] if pinned.get('schema') == 3 else sha[:16]
+    from .workspace import no_links
+    return no_links(Path(workspace.worktree_root)/(side + '-' + identity))
 
 
 def check_isolated_tree(source, sha, build=None):
@@ -950,15 +1042,16 @@ def prepare_current(root, out, cfg, pinned, progress):
     workspace = context(root, cfg['analysis'])
     # Keep Windows Git's administrative paths bounded. The complete SHA is
     # always checked before reuse; a shortened-name collision is rejected.
-    directory = no_links(Path(workspace.worktree_root)/('current-' + pinned['head_sha'][:16]))
-    from .independent_git import prepare
-    from .scan_persistence import is_canonical
-    private = prepare(Path(pinned['repository_root']), directory, pinned['head_sha'], workspace,
-                      allow_legacy_project=not is_canonical(out))
+    directory = version_directory(workspace, pinned, 'current')
+    from .independent_git import prepare_frozen
+    private = prepare_frozen(directory, pinned['head_sha'], workspace, pinned['frozen_git'])
     pinned['current_gitdir_reference'] = _relative_worktree_gitdir(private['repository'], directory, pinned['head_sha'])
     source = directory/pinned['project_subdir']
     pinned['current_source_root'] = str(source)
-    source, current_cfg = current_context(root, cfg, pinned)
+    # Preparation starts from the version's configured database. A preflight
+    # pin already carries the derived database path for saved-result replay;
+    # treating that artifact as a version-local source would relocate twice.
+    source, current_cfg = current_context(root, cfg, dict(pinned, current_database_path=None))
     if 'cmake' in current_cfg['analysis']:
         from .compilation import cmake_build_directory
         pinned['current_build_path'] = str(cmake_build_directory(source, current_cfg['analysis']))
@@ -968,13 +1061,13 @@ def prepare_current(root, out, cfg, pinned, progress):
         if db == 'auto':
             raise ValueError('任意分支比较的非 CMake 工程必须显式配置版本内的 compile_database')
         relative_db = (source/db).relative_to(directory).as_posix()
-        database = Path(workspace.git_diff_root)/'artifacts'/('current-' + pinned['head_sha'])/'compile_commands.json'
+        database = Path(workspace.git_diff_root)/'artifacts'/directory.name/'compile_commands.json'
         allowed = str(database)
     pinned['current_database_path'] = allowed
     check_current_tree(pinned)
     if allowed:
         import json
-        entries = json.loads(git(root, 'show', pinned['head_sha'] + ':' + relative_db))
+        entries = json.loads(git(private['repository'], 'show', pinned['head_sha'] + ':' + relative_db))
         entries = relocate_paths(entries, root, source)
         write_json(database, entries)
         current_cfg['analysis']['compile_database'] = str(database)
@@ -986,14 +1079,17 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     """Persistent detached worktree: no checkout/reset/clean in user workspace."""
     from .cli import run
     from .workflow import read_saved_json, file_digest, checked_scan, engine_digest, clean_report, saved_report_digest
-    repo = Path(pinned['repository_root'])
+    repo = Path(pinned['frozen_git']['repository'])
     from .workspace import context, no_links
     workspace = context(root, cfg['analysis'])
-    directory = no_links(Path(workspace.worktree_root)/('base-' + pinned['base_sha'][:16]))
-    from .independent_git import prepare
+    if file_digest(pinned['config_path']) != pinned['config_sha256']:
+        raise ValueError('本轮固定配置已改变/损坏；请重新扫描')
+    cfg = read_json(pinned['config_path'])
+    workspace.bind(cfg['analysis'])
+    directory = version_directory(workspace, pinned, 'base')
+    from .independent_git import prepare_frozen
     from .scan_persistence import is_canonical
-    private = prepare(repo, directory, pinned['base_sha'], workspace,
-                      allow_legacy_project=not is_canonical(out))
+    private = prepare_frozen(directory, pinned['base_sha'], workspace, pinned['frozen_git'])
     if text(directory, 'rev-parse', 'HEAD') != pinned['base_sha']:
         raise ValueError('基准工作树身份不一致；禁止复用')
     pinned['base_gitdir_reference'] = _relative_worktree_gitdir(private['repository'], directory, pinned['base_sha'])
@@ -1011,7 +1107,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     # explicit inputs and are checked by the ordinary snapshot mechanism.
     baseline = relocate_config(baseline, root, base_root)
     artifacts = no_links(Path(workspace.git_diff_root)/'artifacts')
-    base_name = 'base-' + pinned['base_sha']
+    base_name = directory.name
     baseline_index = no_links(artifacts/(base_name+'.latest.json'))
     native_baseline = is_canonical(out)
     candidate = no_links(artifacts/base_name)
@@ -1050,12 +1146,12 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             raise ValueError('基准版本缺少编译数据库；请使用隔离 CMake 构建或提交可重定位的真实数据库')
         # Never copy the HEAD database/build products into the baseline.
         relative_db = original_database.relative_to(directory).as_posix()
-        database = Path(workspace.git_diff_root)/'artifacts'/('base-db-' + pinned['base_sha'])/'compile_commands.json'
+        database = Path(workspace.git_diff_root)/'artifacts'/(base_name+'-db')/'compile_commands.json'
         import json
         entries = relocate_paths(json.loads(git(repo, 'show', pinned['base_sha'] + ':' + relative_db)), root, base_root)
         write_json(database, entries)
         baseline['analysis']['compile_database'] = str(database)
-    config = out/'git_diff/base-semantics.yaml'
+    config = artifacts/(base_name+'-config')/'semantics.json'
     saved_baseline = copy.deepcopy(baseline)
     saved_baseline['analysis'].pop('_workspace', None)
     write_json(config, saved_baseline)
@@ -1132,13 +1228,14 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     reused, corrupt = False, False
     if cfg['analysis']['git_diff']['cache_enabled']:
         try:
+            from .diff_verification import summary_cache_matches
             manifest = read_json(manifest_file)
             if (not isinstance(manifest, dict) or manifest.get('key') != key or manifest.get('schema') != SUMMARY_SCHEMA
-                    or manifest.get('complete_tus') is not True
+                    or not summary_cache_matches(manifest, base_report['coverage'])
                     or manifest.get('sha256') != file_digest(summary_file)):
                 raise ValueError('基准摘要缓存内容不一致')
             reused = True
-            progress('基准规范化证据摘要通过内容校验，复用已验证的完整摘要。')
+            progress('基准规范化证据摘要通过内容校验，复用摘要及其覆盖状态。')
         except FileNotFoundError:
             pass
         except (ValueError, KeyError, TypeError, OSError):
@@ -1149,13 +1246,13 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             summary = summarize_native(base_out/'scan.db', renames)
         else:
             base_facts = read_saved_json(base_out/'facts.json', canonical_accesses=True)
-            units = base_facts.get('translation_units', [])
-            if not units or any(u.get('parse_status') != 'PARSED' for u in units):
-                raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
             summary = summarize(base_facts, base_report, renames)
             del base_facts
+        from .diff_verification import completeness
+        summary_completeness = completeness(summary['comparison_scope'])
         write_json(summary_file, summary, indent=None)
-        manifest = dict(schema=SUMMARY_SCHEMA, key=key, complete_tus=True, sha256=file_digest(summary_file))
+        manifest = dict(schema=SUMMARY_SCHEMA, key=key, complete_tus=summary_completeness['complete_tus'],
+                        completeness=summary_completeness, sha256=file_digest(summary_file))
         write_json(manifest_file, manifest)
         del summary
     summary_sha256 = manifest['sha256']
@@ -1199,6 +1296,8 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
         raise ValueError('不可变基准证据归档损坏；禁止发布')
     pinned['base_facts_path'] = str(immutable)
     pinned['base_facts_sha256'] = sha
+    pinned['base_scan_path'] = str(base_out)
+    pinned['base_config_path'] = str(config)
     patch = out/'git_diff'/(digest({k: v for k, v in pinned.items() if not k.startswith('base_facts')}) + '.patch')
     patch_inputs = pinned if not _frozen_current else dict(pinned,repository_root=_frozen_current['repository_root'])
     write_comparison_patch(patch_inputs, patch)
@@ -1228,16 +1327,28 @@ def full_reference_summary(root, out, cfg, units, coverage, worker_dir, env, too
     with closing(responses):
         for unit, response, metadata in responses:
             meta = read_json(metadata)
-            if meta.get('parse_status') != 'PARSED':
-                raise ValueError('全量对照提取不完整，禁止报告验证通过')
-            snapshot.observe(unit, meta['input_snapshot'], signature=meta.get('preprocessor_signature'))
+            if meta.get('worker_exception'):
+                raise RuntimeError('独立对照提取内部故障：'+str(meta['worker_exception']))
+            if meta.get('parse_status') not in {'PARSED', 'PARTIAL', 'FAILED'}:
+                raise ValueError('独立对照提取状态无效')
+            if isinstance(meta.get('input_snapshot'), dict):
+                snapshot.observe(unit, meta['input_snapshot'], signature=meta.get('preprocessor_signature'))
+            elif meta['parse_status'] != 'FAILED':
+                raise ValueError('独立对照缺少输入证据')
+            from .diff_verification import extraction_digest
             parts.append_metadata(response, meta)
             verification_units.append(dict(unit, semantic_macros_digest=meta.get('semantic_macros_digest'),
+                                           extraction_digest=extraction_digest(response),
                                            includes=meta.get('includes', []), parse_status=meta['parse_status']))
     snapshot.assert_valid()
     full_facts = merge(parts)
     parts.clear()
     full_facts['translation_units'] = verification_units
+    coverage = copy.deepcopy(coverage)
+    coverage.update(translation_units_parsed=sum(u['parse_status']=='PARSED' for u in verification_units),
+        translation_units_partial=sum(u['parse_status']=='PARTIAL' for u in verification_units),
+        translation_units_failed=sum(u['parse_status']=='FAILED' for u in verification_units),
+        parse_coverage_percent=round(100*sum(u['parse_status'] in {'PARSED','PARTIAL'} for u in verification_units)/len(verification_units),2))
     full_cfg = copy.deepcopy(cfg)
     full_cfg['analysis']['git_diff']['enabled'] = False
     if not cfg['analysis'].get('build_closure_only', True):
@@ -1252,8 +1363,9 @@ def verify_full(root, out, cfg, units, coverage, facts, report, worker_dir, env,
     actual = full_reference_summary(root, out, cfg, units, coverage, worker_dir, env, tool_root,
                                     source_reader, compiler_view=compiler_view)
     expected = summarize(facts, report)
-    if expected != actual:
+    from .diff_verification import verify_summaries
+    try:
+        return verify_summaries(expected, actual, len(units))
+    except ValueError:
         write_json(out/'diagnostics/git-diff-verification-failed.json', dict(expected=expected, actual=actual), indent=None)
-        raise ValueError('增量与独立全量的语义事实不一致，已阻止发布')
-    return dict(state='PASSED', variables=len(actual['variables']), reextracted_units=len(units),
-                classification_mismatches=0, semantic_mismatches=0)
+        raise

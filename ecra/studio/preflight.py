@@ -40,6 +40,8 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         diagnostics.stage('预检查：配置与独立数据边界')
         consumed = {}; root = configured_project_root(config)
         cfg, config = load_config(root, config, consumed_inputs=consumed)
+        from ..git_diff import validate_mode
+        validate_mode(cfg['analysis']['git_diff'])
         result['target'] = result['configured_target'] = cfg['analysis'].get('cmake', {}).get('target')
         if cfg['analysis']['git_diff'].get('include_uncommitted') and _compiler_view is None:
             raise ValueError('未提交输入预检查缺少固定输入描述；请从Studio任务入口重新固定并检查，不能改用实时工作区')
@@ -94,6 +96,10 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
             from ..git_diff import pin, prepare_current
             from .opencode_recovery import recover_review_tree
             fixed = pin(root, cfg)
+            fixed['profile_config_path'] = str(config)
+            config = Path(fixed['config_path'])
+            from ..input_snapshot import file_record
+            consumed = {str(config): file_record(config)}
             recover_review_tree(ws, fixed, progress)
             root, cfg = prepare_current(root, folder, cfg, fixed, progress)
         if 'cmake' in cfg['analysis']:
@@ -164,8 +170,11 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         snapshot.seal()
         validate_analysis_inputs(root, cfg['analysis'], snapshot.before, config_file=config, compilation=compilation)
         diagnostics.snapshot_status = snapshot.status
-        if engine_digest() != engine or sha256(config) != result['config_sha256']:
+        if engine_digest() != engine or sha256(config) != (fixed['config_sha256'] if fixed else result['config_sha256']):
             raise ValueError('引擎或配置在检查中变化，请重新检查')
+        if fixed:
+            from ..git_diff import assert_pin
+            assert_pin(root, cfg, fixed)
         with closing(sqlite3.connect(folder/'plan.db')) as db, db:
             db.execute('CREATE TABLE units (ordinal INTEGER PRIMARY KEY, body TEXT NOT NULL)')
             db.executemany('INSERT INTO units VALUES (?,?)', ((i,json.dumps(unit,ensure_ascii=True)) for i,unit in enumerate(units)))

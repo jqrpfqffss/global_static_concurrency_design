@@ -9,6 +9,62 @@ from ecra.studio.query import QueryService
 
 
 class StudioFilterTests(unittest.TestCase):
+    def test_empty_baseline_selection_does_not_open_or_validate_baseline(self):
+        from unittest.mock import patch
+        from ecra.diff_review import DiffReviewEvidence
+        for baseline_rows in (None, [], [dict(symbol_id='excluded', impact_class='EXCLUDED')]):
+            with self.subTest(baseline_rows=baseline_rows), tempfile.TemporaryDirectory() as folder:
+                out = Path(folder)
+                diff = dict(selected_symbol_ids=['current'], conservative_symbol_ids=[],
+                    deleted_variables=[], baseline_only_variables=baseline_rows)
+                if baseline_rows is None:
+                    del diff['baseline_only_variables']
+                publish_scan(out/'scan.db', dict(variables=[dict(symbol_id='current', name='current',
+                    static_classification='SAFE_PROVEN')]), dict(findings=[], git_diff=diff),
+                    scan_id='empty-base-selection', project_id='p')
+                ReviewStore(out/'reviews.db', EvidenceProvider(out/'scan.db').metadata())
+                query = QueryService(out)
+                with patch.object(DiffReviewEvidence, 'baseline',
+                                  side_effect=AssertionError('No selected baseline objects: do not read baseline')):
+                    self.assertEqual(query.symbols(diff='changes')['total'], 1)
+                    for scope in ('baseline', 'deleted'):
+                        page = query.symbols(diff=scope)
+                        self.assertEqual(page['total'], 0)
+                        self.assertEqual(page['items'], [])
+                        self.assertIsNone(page['next_offset'])
+
+    def test_impact_partition_and_regional_gaps_are_paged_without_full_restore(self):
+        from unittest.mock import patch
+        from ecra.diff_impact import IMPACT_SCHEMA
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            rows = [dict(object_id=sid, symbol_id=sid, name=sid, impact_class=category,
+                         evidence_side='current', container=False)
+                    for sid, category in [('a', 'DEFINITE'), ('b', 'UNCERTAIN'), ('c', 'EXCLUDED')]]
+            diff = dict(impact_schema=IMPACT_SCHEMA, object_accounting=rows,
+                impact_counts=dict(DEFINITE=1, UNCERTAIN=1, EXCLUDED=1), identified_object_count=3,
+                container_count=0, identified_objects_accounted=True, real_object_inventory_complete=False,
+                selected_symbol_ids=['a', 'b'], definite_symbol_ids=['a'], conservative_symbol_ids=['b'],
+                excluded_symbol_ids=['c'], regional_gaps=[dict(side='base', kind='EXTRACTION_REGION',
+                    source_file='failed.c', parse_status='FAILED', unidentified_objects_possible=True)])
+            facts = dict(variables=[dict(symbol_id=sid, name=sid, static_classification='UNKNOWN') for sid in 'abc'])
+            publish_scan(out/'scan.db', facts, dict(findings=[], git_diff=diff), scan_id='diff', project_id='p')
+            ReviewStore(out/'reviews.db', EvidenceProvider(out/'scan.db').metadata())
+            with patch.object(EvidenceProvider, 'load', side_effect=AssertionError('must page evidence')):
+                query = QueryService(out)
+                summary = query.diff_summary()
+                self.assertEqual(summary['impact_accounting_status'], 'AVAILABLE')
+                self.assertEqual(summary['impact_counts'], diff['impact_counts'])
+                self.assertEqual(summary['regional_gap_count'], 1)
+                self.assertFalse(summary['real_object_inventory_complete'])
+                first = query.diff_changes('accounting', limit=2)
+                last = query.diff_changes('accounting', offset=first['next_offset'], limit=2)
+                self.assertEqual([row['impact_class'] for row in first['items'] + last['items']],
+                                 ['DEFINITE', 'UNCERTAIN', 'EXCLUDED'])
+                self.assertEqual(query.diff_changes('regional_gaps')['items'][0]['source_file'], 'failed.c')
+                for selection, expected in [('selected', 'ab'), ('direct', 'a'), ('conservative', 'b'), ('excluded', 'c')]:
+                    self.assertEqual({row['symbol_id'] for row in query.symbols(diff=selection)['items']}, set(expected))
+
     def test_server_sorting_has_stable_pages_counts_and_independent_review_order(self):
         from ecra.report_package import sha256
         with tempfile.TemporaryDirectory() as folder:
@@ -60,6 +116,8 @@ class StudioFilterTests(unittest.TestCase):
             self.assertEqual(query.symbols(ai_state='DONE')['total'],2)
             self.assertEqual(query.symbols(context="irq' OR 1=1 --")['total'],0)
             summary = query.diff_summary()
+            self.assertEqual(summary['risk_comparison_status'], 'LEGACY_EVIDENCE')
+            self.assertIn('旧变化标签', summary['risk_comparison_note'])
             self.assertEqual(summary['conservative_symbol_ids_count'], 1)
             self.assertNotIn('file_count', summary)
             self.assertNotIn('deleted_variable_count', summary)
@@ -93,3 +151,28 @@ class StudioFilterTests(unittest.TestCase):
             self.assertEqual(deleted['node'], query.evidence.resolve('report', ['git_diff', 'deleted_variables', 0]))
             with self.assertRaises(ValueError):
                 query.diff_changes('unsupported')
+
+    def test_comparison_counts_and_unobserved_baseline_rows_survive_native_pages(self):
+        from unittest.mock import patch
+        from ecra.diff_risk import COMPARISON_SCHEMA
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            counts = dict(basis='SELECTED_DIFF_OBJECTS', transitions={'SUSPECT_DISCOVERED': 1},
+                objects={'EXISTENCE_UNCERTAIN': 1}, counts_as_new_risk=0, counts_as_risk_resolution=0,
+                current_suspect=1, prior_risk_unclosed=1)
+            diff = dict(comparison_schema=COMPARISON_SCHEMA, change_counts=counts,
+                selected_symbol_ids=[], deleted_variables=[], baseline_only_variables=[
+                    dict(symbol_id='missing', name='maybe_present', impact=dict(
+                        object_change=dict(event='EXISTENCE_UNCERTAIN')))])
+            publish_scan(out/'scan.db', dict(variables=[]), dict(findings=[], git_diff=diff),
+                         scan_id='diff', project_id='p')
+            with patch.object(EvidenceProvider, 'load', side_effect=AssertionError('UI must page evidence')):
+                query = QueryService(out)
+                summary = query.diff_summary()
+                self.assertEqual(summary['risk_comparison_status'], 'AVAILABLE')
+                self.assertEqual(summary['change_counts'], counts)
+                self.assertEqual(summary['deleted_variable_count'], 0)
+                self.assertEqual(summary['baseline_only_variable_count'], 1)
+                page = query.diff_changes('baseline_only', limit=1)
+                self.assertEqual(page['items'][0]['symbol_id'], 'missing')
+                self.assertIsNone(page['next_offset'])

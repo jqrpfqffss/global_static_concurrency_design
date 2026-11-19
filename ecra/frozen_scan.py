@@ -17,6 +17,8 @@ def execution_workspace(root, analysis, compiler_view):
     unproved build modes remain blocked by the separate configuration policy.
     """
     from .workspace import formal_workspace
+    from .git_diff import validate_mode
+    validate_mode(analysis.get('git_diff', {}))
     if compiler_view is None:
         return formal_workspace(root, analysis)
     effective=dict(analysis,git_diff=dict(analysis.get('git_diff',{}),include_uncommitted=False))

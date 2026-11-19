@@ -1,0 +1,1462 @@
+{
+  "recorded_at": "2026-11-19T17:44:24.742778+00:00",
+  "phase_scope": [
+    4,
+    5,
+    6
+  ],
+  "complete": true,
+  "frozen_engine": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+  "test_batches": [
+    {
+      "report": "output/playwright/diff-core-final.xml",
+      "sha256": "400d0ce4bd1d829757d63573aa2ecc6ccf75ccc150fdbe111b9de8268dda4b80",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "243",
+          "time": "311.206",
+          "timestamp": "2026-11-19T11:59:01.154608+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-production-final.xml",
+      "sha256": "a65bdea77c928297d0ab208f2dcd7d4127cfb612c0abdd85b4f443282c9437a1",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "4",
+          "time": "594.912",
+          "timestamp": "2026-11-19T11:59:01.069834+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-invalid-status-final.xml",
+      "sha256": "23d3eab3745ff41246c55797e606f8828d30c91823abdff2ff597ce3a543726f",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "1",
+          "time": "87.257",
+          "timestamp": "2026-11-19T12:09:40.356166+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-regression-repairs.xml",
+      "sha256": "1b8f3db4fd63601c65d8b5a5016fcc1a264d49606c6eae2ba8b5ffc1e4c4b858",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "6",
+          "time": "242.375",
+          "timestamp": "2026-11-19T11:59:01.174624+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-studio-contract-results.xml",
+      "sha256": "9dbe43c1e752ebe74f1a5f4355021ba53eb1d7067aeafb62bad24c7419aad685",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "3",
+          "time": "73.842",
+          "timestamp": "2026-11-19T11:52:28.370070+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-baseline-risk-filter.xml",
+      "sha256": "8bd6e63b24995f86d61486ec06550aed891336739ba3b078bfad11f9fdaa8ffb",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "1",
+          "time": "21.779",
+          "timestamp": "2026-11-19T12:30:43.760733+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-task-metadata.xml",
+      "sha256": "3c1d55710d5efe0903cb3fcf06103d00799d9f58843dd95210cd13e630025efc",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "4",
+          "time": "1.609",
+          "timestamp": "2026-11-19T12:02:55.988509+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-verification-final.xml",
+      "sha256": "2aaeb159b5c1a82a6f6ce5a75f8ed5c53955f9a10c67b44914d50771070943cd",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "33",
+          "time": "0.281",
+          "timestamp": "2026-11-19T11:58:16.592295+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-verification-results.xml",
+      "sha256": "a70145c36e3702c254fc8975156b0be8e10a39f2eb301fc1f74dc9d0ec281755",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "54",
+          "time": "33.518",
+          "timestamp": "2026-11-19T11:57:40.621381+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-dependency-scaling.xml",
+      "sha256": "ed86218a51cd832527964521b46b888788a244034a3d0a9c95dde77e820214f2",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "84",
+          "time": "1.485",
+          "timestamp": "2026-11-19T15:00:02.007708+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-scale-semantic-regression.xml",
+      "sha256": "b786c936756a419aac0e5ae82a95ab6aa64f830de39f60dddbe882f31a53e728",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "119",
+          "time": "63.920",
+          "timestamp": "2026-11-19T14:57:16.321660+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-core-scale-final.xml",
+      "sha256": "aaf0348843c6f123521d4c15ef32741109836ab8439bb5daa2c404f31d137cca",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "327",
+          "time": "201.456",
+          "timestamp": "2026-11-19T15:05:28.511430+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-dependency-scaling-final.xml",
+      "sha256": "36b9c308457f624bd4339ec27ad9989bd05745b5ebee7cf231b2b1a1d75d12b5",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "85",
+          "time": "1.663",
+          "timestamp": "2026-11-19T15:16:32.870098+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-core-complete-final.xml",
+      "sha256": "c782064094364cb4559f8835717ade3692dda72349e0fe69a99ad9935fb48c91",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "328",
+          "time": "215.466",
+          "timestamp": "2026-11-19T15:17:20.169420+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-production-scale-final.xml",
+      "sha256": "8bcdac5f7c09ede96f70aa41894fa3e0554a027630365f59dc54957fad68f8af",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "5",
+          "time": "564.971",
+          "timestamp": "2026-11-19T15:05:38.673655+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-production-complete-final.xml",
+      "sha256": "536add06fbddf80ae292fe4411a8ba2ad6bd8844eeebf64412001691b832be9a",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "5",
+          "time": "614.878",
+          "timestamp": "2026-11-19T15:17:20.065821+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-build-scope-final.xml",
+      "sha256": "427f4eb55b570a0648c5933971583e57ab49655219105c93f3e907cc17059818",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "1",
+          "time": "0.937",
+          "timestamp": "2026-11-19T15:28:23.139144+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    },
+    {
+      "report": "output/playwright/diff-empty-baseline-final.xml",
+      "sha256": "c8df32d83dcb306a3eb494f7448c5b54c49c54b1e69ed135d4fc867f19b34690",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "13",
+          "time": "173.339",
+          "timestamp": "2026-11-19T18:13:05.371229+08:00",
+          "hostname": "DESKTOP-LBGUUM3"
+        }
+      ]
+    }
+  ],
+  "test_batch_note": "Batches overlap and are not summed as unique tests. JUnit counts include pytest subtests. Iteration reports are retained; final compact graph/storage implementation uses the complete-final and dependency-scaling-final reports.",
+  "additional_observed_checks": [
+    {
+      "check": "Fixed refs, frozen input and publication rollback",
+      "tests": 33,
+      "subcases": 20,
+      "seconds": 1025.61,
+      "status": "PASSED"
+    },
+    {
+      "check": "Ordinary mode, native consumers and working CMake",
+      "tests": 25,
+      "subcases": 19,
+      "seconds": 1272.22,
+      "status": "PASSED"
+    },
+    {
+      "check": "Frontend Node interactions",
+      "tests": 34,
+      "status": "PASSED"
+    },
+    {
+      "check": "vue-tsc --noEmit and Vite production build",
+      "status": "PASSED"
+    },
+    {
+      "check": "Serial injection acceptance",
+      "scenarios": 21,
+      "status": "PASSED"
+    }
+  ],
+  "browser_evidence": [
+    "output/playwright/diff-uncertain-baseline.png",
+    "output/playwright/diff-cleared-scope.png",
+    "output/playwright/diff-risk-R09-final.png"
+  ],
+  "real_measurement": {
+    "engine_digest": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+    "project": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\firmware",
+    "config": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\semantics-stable.json",
+    "config_sha256": "a992767c8342e8d3fcb677f7669585b85821287d8763ec504b09d2fe02ea7a7f",
+    "runs": [
+      {
+        "name": "cold",
+        "seconds": 10476.438,
+        "exit_code": 2,
+        "peak_tree_rss_bytes": 9809960960,
+        "memory_sampling_errors": 0,
+        "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\scans\\b6b7ef67778f4e7fb99a43d62449afb1",
+        "scan_sha256": "9785e56f3e5874c9dc4b8e4f9b33b85cc09efd7cbcb05c4de76dd06d543f0c3d",
+        "signature": {
+          "summary": "a54cab88e8712ac05d02583b0f9f506926305dde891bc8a301a7c1dbd88324ee",
+          "comparison": "a3f0fb1723a0be01da67e7cbe3494b89cc1c47ab62debde9464127792daedc69"
+        },
+        "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+        "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+        "translation_units": 61,
+        "parse_statuses": {
+          "PARSED": 61
+        },
+        "variables": 328,
+        "functions": 3935,
+        "impact_counts": {
+          "DEFINITE": 1,
+          "UNCERTAIN": 277,
+          "EXCLUDED": 0
+        },
+        "verification": {
+          "state": "PASSED",
+          "variables": 328,
+          "reextracted_units": 61,
+          "classification_mismatches": 0,
+          "semantic_mismatches": 0,
+          "mismatch_scope": "COMPLETE_SUMMARY",
+          "gaps": [],
+          "scope": "完整规范化事实一致"
+        },
+        "publication": {
+          "state": "VALID_PARTIAL",
+          "verification_state": "PASSED",
+          "regional_gap_count": 0
+        },
+        "tu_cache": {
+          "hits": 0,
+          "extracted": 61,
+          "corrupt": 0,
+          "total": 61
+        },
+        "summary_cache": {
+          "hit": false,
+          "corrupt": false
+        },
+        "database_bytes": 4129841152
+      },
+      {
+        "name": "hot",
+        "seconds": 6523.094,
+        "exit_code": 2,
+        "peak_tree_rss_bytes": 6546280448,
+        "memory_sampling_errors": 0,
+        "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\scans\\ffa6560da2434f3e957cf39544ed78de",
+        "scan_sha256": "ae40faaa81a560b48bccad19b21412d3b82e82237837992626a47930a480f642",
+        "signature": {
+          "summary": "a54cab88e8712ac05d02583b0f9f506926305dde891bc8a301a7c1dbd88324ee",
+          "comparison": "a3f0fb1723a0be01da67e7cbe3494b89cc1c47ab62debde9464127792daedc69"
+        },
+        "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+        "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+        "translation_units": 61,
+        "parse_statuses": {
+          "PARSED": 61
+        },
+        "variables": 328,
+        "functions": 3935,
+        "impact_counts": {
+          "DEFINITE": 1,
+          "UNCERTAIN": 277,
+          "EXCLUDED": 0
+        },
+        "verification": {
+          "state": "PASSED",
+          "variables": 328,
+          "reextracted_units": 61,
+          "classification_mismatches": 0,
+          "semantic_mismatches": 0,
+          "mismatch_scope": "COMPLETE_SUMMARY",
+          "gaps": [],
+          "scope": "完整规范化事实一致"
+        },
+        "publication": {
+          "state": "VALID_PARTIAL",
+          "verification_state": "PASSED",
+          "regional_gap_count": 0
+        },
+        "tu_cache": {
+          "hits": 61,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 61
+        },
+        "summary_cache": {
+          "hit": true,
+          "corrupt": false
+        },
+        "database_bytes": 4129935360
+      },
+      {
+        "name": "summary-cache-recovery",
+        "seconds": 7396.312,
+        "exit_code": 2,
+        "peak_tree_rss_bytes": 9725186048,
+        "memory_sampling_errors": 0,
+        "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\scans\\06be032f32b446d5bf4ce5bb6f7864bc",
+        "scan_sha256": "f618a0640cdde0e0c50a84f11f53d11988bbcb7aa321d5e56b295bab7a87e877",
+        "signature": {
+          "summary": "a54cab88e8712ac05d02583b0f9f506926305dde891bc8a301a7c1dbd88324ee",
+          "comparison": "a3f0fb1723a0be01da67e7cbe3494b89cc1c47ab62debde9464127792daedc69"
+        },
+        "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+        "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+        "translation_units": 61,
+        "parse_statuses": {
+          "PARSED": 61
+        },
+        "variables": 328,
+        "functions": 3935,
+        "impact_counts": {
+          "DEFINITE": 1,
+          "UNCERTAIN": 277,
+          "EXCLUDED": 0
+        },
+        "verification": {
+          "state": "PASSED",
+          "variables": 328,
+          "reextracted_units": 61,
+          "classification_mismatches": 0,
+          "semantic_mismatches": 0,
+          "mismatch_scope": "COMPLETE_SUMMARY",
+          "gaps": [],
+          "scope": "完整规范化事实一致"
+        },
+        "publication": {
+          "state": "VALID_PARTIAL",
+          "verification_state": "PASSED",
+          "regional_gap_count": 0
+        },
+        "tu_cache": {
+          "hits": 61,
+          "extracted": 0,
+          "corrupt": 0,
+          "total": 61
+        },
+        "summary_cache": {
+          "hit": false,
+          "corrupt": true
+        },
+        "database_bytes": 4130275328
+      }
+    ],
+    "complete": true,
+    "hardware_executed": false,
+    "review_executed": false,
+    "measurement_script_sha256": "e835e30fac96f3fa1d7336dea4cdd902df3b9950e8a06fe32c0c2291c3ee5bf5",
+    "query_consumer_sha256": "c89de27b63a836e45c4cbd6cc0dcaf0350416799b0c1003b4f80b1c214aed0de",
+    "measurement_conditions": "Fresh ECRA caches; OS filesystem cache not cleared; same host may run acceptance tests. CMake builds preconfigured to stable command/input hashes outside timed runs.",
+    "build_preparation": {
+      "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+      "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+      "sides": {
+        "base": {
+          "source": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\trees\\1a0f61f80b06\\base-7a161c1a65abe58b0d99",
+          "build": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\builds\\5c2047cba8db262d1b31f771",
+          "database": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\builds\\5c2047cba8db262d1b31f771\\ecra-target-compile_commands.json",
+          "attempts": [
+            {
+              "attempt": 1,
+              "seconds": 8.203,
+              "signature": {
+                "database": "e7123cd21791eba7cc35cdf6d82f282a14ac2adafbfc7b7bfc47b33b6f6df333",
+                "cmake_inputs": "35682a074038abf07b70a5c2aa3b331695e186526149ec4d841a8cedecd10ec0"
+              }
+            },
+            {
+              "attempt": 2,
+              "seconds": 5.125,
+              "signature": {
+                "database": "bd7d86a76e0eafeeb6d686f96d3d3f07cd9a5400e388bfbe9996cbec3683214a",
+                "cmake_inputs": "02fd62e1ee6820b9781e3b32b82f99639b663baa50cae8ef1af2552861c55516"
+              }
+            },
+            {
+              "attempt": 3,
+              "seconds": 1.312,
+              "signature": {
+                "database": "bd7d86a76e0eafeeb6d686f96d3d3f07cd9a5400e388bfbe9996cbec3683214a",
+                "cmake_inputs": "02fd62e1ee6820b9781e3b32b82f99639b663baa50cae8ef1af2552861c55516"
+              }
+            }
+          ]
+        },
+        "current": {
+          "source": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\trees\\1a0f61f80b06\\current-82f343ed5f7a37de7194",
+          "build": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\builds\\c40e24d0d8f3ce48bb37e891",
+          "database": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\builds\\c40e24d0d8f3ce48bb37e891\\ecra-target-compile_commands.json",
+          "attempts": [
+            {
+              "attempt": 1,
+              "seconds": 8.047,
+              "signature": {
+                "database": "bdfff7c6cd38be08d38fef83875fe1301a3da53a02484989d560db948f189daf",
+                "cmake_inputs": "f11ced0da1439d651003254b03e1eca349abd6572253f512a626d6c699cf10af"
+              }
+            },
+            {
+              "attempt": 2,
+              "seconds": 5.407,
+              "signature": {
+                "database": "1da345a58a44a8e65e4107e853ada0b02f523aaae89c939e51f9f922da4988ea",
+                "cmake_inputs": "73b8d8cc36f69f2ed5ffeebfa4457485ce58d9fd3c15c45abc52d8cffe330361"
+              }
+            },
+            {
+              "attempt": 3,
+              "seconds": 1.484,
+              "signature": {
+                "database": "1da345a58a44a8e65e4107e853ada0b02f523aaae89c939e51f9f922da4988ea",
+                "cmake_inputs": "73b8d8cc36f69f2ed5ffeebfa4457485ce58d9fd3c15c45abc52d8cffe330361"
+              }
+            }
+          ]
+        }
+      },
+      "analysis_cache_files": 0,
+      "summary_cache_files": 0,
+      "note": "CMake configure/build preparation is outside timed CLI runs; ECRA analysis caches remain empty."
+    }
+  },
+  "baseline_observation": {
+    "observed_at": "2026-11-19T05:33:17.069961+00:00",
+    "engine_digest": "795dacfcccd705b7fda5819e8d50f529893ccecec0537808a3daa248702fd2a7",
+    "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+    "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-verified\\projects\\firmware_6ed7062ea5f3dbd53f46\\results\\git_diff\\de033dd08edc\\artifacts\\base-9e2f330c896a3039d4d4",
+    "database_bytes": 4055891968,
+    "analysis_status": "INCOMPLETE",
+    "coverage": {
+      "variables_total": 327,
+      "translation_units_total": 61,
+      "translation_units_parsed": 61,
+      "translation_units_partial": 0,
+      "translation_units_failed": 0,
+      "build_complete": true,
+      "missing_object_count": 0
+    },
+    "finding_states": {
+      "SUSPECT": 106,
+      "UNKNOWN": 3
+    },
+    "note": "Finding counts are review candidates, not confirmed defects; base archive is not the final current-side Diff publication.",
+    "summary_bytes": 1265969279,
+    "summary_manifest": {
+      "schema": 11,
+      "key": "4bce11e0f9eec2841fbe37977c342742eb53d57bb1a9d8cdb73f4c7121872db5",
+      "complete_tus": true,
+      "completeness": {
+        "state": "COMPLETE",
+        "complete_tus": true,
+        "gaps": [],
+        "total_units": 61,
+        "parsed_units": 61
+      },
+      "sha256": "c485be6b8a3552eb42cd5b94f539539b1f154fb0a14d8ac56d463077fc434655"
+    }
+  },
+  "limitations": [
+    "Full repository test suite was not run.",
+    "Process-tree RSS is not system commit usage or a 32-GiB quota test.",
+    "Existing INAV/Prusa whole-product release gates are separate.",
+    "All three reports retain semantic coverage limits (VALID_PARTIAL / INCOMPLETE), despite 61/61 parsed TUs and successful independent verification; 277 impact assignments remain UNCERTAIN."
+  ],
+  "source_evidence_root": "workspace/data-roots/d456-real/acceptance-stable",
+  "review_materials_test_side_effect": {
+    "test": "tests/test_studio_api.py::StudioAPITests::test_global_review_documents_need_no_profile_and_reject_external_sources",
+    "isolation_fixed": true,
+    "empty_override_retained": "output/playwright/review_context.test-override.md",
+    "historical_candidate": "output/playwright/review_context.recovered-20261117.md",
+    "candidate_source": "workspace/data-roots/opencode-compat-20261117/work/tasks/419d9ff4c1cd42bd87da8a66b22114e1/review_context.md",
+    "candidate_sha256": "5d190b6eb8cda0d8ed20dcc0ef941c44d5e77a8fcd0e3eab112e1819d3a4ff4c",
+    "candidate_bytes": 26,
+    "exact_pre_test_version_confirmed": false,
+    "current_shared_context": "Unmodified default template; no global override file."
+  },
+  "interrupted_real_measurements": [
+    {
+      "engine_digest": "795dacfcccd705b7fda5819e8d50f529893ccecec0537808a3daa248702fd2a7",
+      "project": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\firmware",
+      "config": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\semantics-verified.json",
+      "config_sha256": "5eb1427f1a7767fc0d8fba996ac280d2783dc472efb6134c5b672109ac88f811",
+      "runs": [
+        {
+          "name": "cold",
+          "seconds": 9478.125,
+          "exit_code": 15,
+          "peak_tree_rss_bytes": 37786984448,
+          "memory_sampling_errors": 0
+        }
+      ],
+      "complete": false,
+      "hardware_executed": false,
+      "review_executed": false,
+      "measurement_conditions": "Fresh ECRA caches; OS filesystem cache not cleared; same host may run acceptance tests.",
+      "interruption": {
+        "interrupted_at": "2026-11-19T06:47:35.232808+00:00",
+        "reason": "Real 61-TU acceptance exposed eager Cartesian dependency-edge expansion in classify_impacts; memory grows rapidly. Stop before exhausting host memory; preserve artifacts and repair losslessly before a fresh final-engine measurement.",
+        "pid": 54304,
+        "rss_bytes": 37786980352,
+        "available_bytes": 7863115776,
+        "engine_digest": "795dacfcccd705b7fda5819e8d50f529893ccecec0537808a3daa248702fd2a7",
+        "complete": false
+      }
+    },
+    {
+      "engine_digest": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+      "project": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\firmware",
+      "config": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\semantics-scaled.json",
+      "config_sha256": "8f633a7418214629e162f39c3b37f92e6ee5ca1ef950e42517bf81362f80df0a",
+      "runs": [
+        {
+          "name": "cold",
+          "seconds": 10214.219,
+          "exit_code": 2,
+          "peak_tree_rss_bytes": 9811128320,
+          "memory_sampling_errors": 0,
+          "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-scaled\\scans\\31e9494741f8450196c3042a4c3f11f2",
+          "scan_sha256": "dc92baa82fff1dec782624c2207c25bfb00937b9877c3c32fd69fc539f0da802",
+          "signature": {
+            "summary": "157300aa12731149c91147d82a9bfe127b5d986b4b02e3b8bbd8c2ddad90d791",
+            "comparison": "70f54fe4e347a764e555ef1f9b382f86c83a29cfb60d52c6dc89f38552d8b5ce"
+          },
+          "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+          "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+          "translation_units": 61,
+          "parse_statuses": {
+            "PARSED": 61
+          },
+          "variables": 328,
+          "functions": 3935,
+          "impact_counts": {
+            "DEFINITE": 1,
+            "UNCERTAIN": 277,
+            "EXCLUDED": 0
+          },
+          "verification": {
+            "state": "PASSED",
+            "variables": 328,
+            "reextracted_units": 61,
+            "classification_mismatches": 0,
+            "semantic_mismatches": 0,
+            "mismatch_scope": "COMPLETE_SUMMARY",
+            "gaps": [],
+            "scope": "完整规范化事实一致"
+          },
+          "publication": {
+            "state": "VALID_PARTIAL",
+            "verification_state": "PASSED",
+            "regional_gap_count": 0
+          },
+          "tu_cache": {
+            "hits": 0,
+            "extracted": 61,
+            "corrupt": 0,
+            "total": 61
+          },
+          "summary_cache": {
+            "hit": false,
+            "corrupt": false
+          },
+          "database_bytes": 4129488896
+        },
+        {
+          "name": "hot",
+          "seconds": 366.594,
+          "exit_code": 15,
+          "peak_tree_rss_bytes": 601137152,
+          "memory_sampling_errors": 0
+        }
+      ],
+      "complete": false,
+      "hardware_executed": false,
+      "review_executed": false,
+      "measurement_conditions": "Fresh ECRA caches; OS filesystem cache not cleared; same host may run acceptance tests.",
+      "source_evidence_root": "workspace/data-roots/d456-real/acceptance-scaled",
+      "interruption": {
+        "interrupted_at": "2026-11-19T10:26:03.243321+00:00",
+        "round": "hot",
+        "pid": 18920,
+        "reason": "Repeated CMake refresh changed the frozen baseline target compile database and invalidated the baseline cache; stop redundant baseline reanalysis to investigate before claiming hot-cache acceptance.",
+        "expected_ccdb_sha256": "e07e37c7c7da9ca90ed61a2cc30f7241972563facce47fb8a99839d7cda0aef0",
+        "actual_ccdb_sha256": "d8354dfb7299fdbd5a30e4c59e2e60f5fb35c186059134ecc46e9ac7508c44a0",
+        "cold_passed": true,
+        "three_round_complete": false
+      },
+      "environment": {
+        "observed_at": "2026-11-19T08:02:43.221235+00:00",
+        "cpu": "Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz",
+        "physical_cores": 6,
+        "logical_processors": 12,
+        "os": "Microsoft Windows 10 Pro",
+        "os_version": "10.0.19044",
+        "visible_memory_bytes": 68645584896,
+        "python": "3.10.11",
+        "extraction_workers": 4,
+        "cache_conditions": "Fresh ECRA data root; OS filesystem cache not cleared; other acceptance checks shared this host during the early cold round.",
+        "profiling": "Two read-only nonblocking process stack snapshots during cold native archival, one per side; their overhead remains in measured wall time.",
+        "current_archive_stack": "workspace/data-roots/d456-real/acceptance-scaled/cold-current-archive-stack.txt"
+      },
+      "compile_refresh_diagnosis": {
+        "path": "workspace/data-roots/d456-real/acceptance-scaled/compile-refresh-diagnosis.json",
+        "changed_c_units": 61,
+        "change": "Every C command lost one repeated group: -mcpu=cortex-m3 -Wall -fdata-sections -ffunction-sections. Rejecting baseline-cache reuse was correct; original project/toolchain unchanged."
+      }
+    }
+  ],
+  "scale_repair": {
+    "normalization_equivalence": {
+      "kind": "Normalization equivalence on retained real authority",
+      "engine_digest": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+      "source": "workspace\\data-roots\\d456-real\\data-verified\\projects\\firmware_6ed7062ea5f3dbd53f46\\results\\git_diff\\de033dd08edc\\artifacts\\base-9e2f330c896a3039d4d4\\scan.db",
+      "seconds": 958.75,
+      "bytes": 1265969279,
+      "expected_sha256": "c485be6b8a3552eb42cd5b94f539539b1f154fb0a14d8ac56d463077fc434655",
+      "actual_sha256": "c485be6b8a3552eb42cd5b94f539539b1f154fb0a14d8ac56d463077fc434655",
+      "passed": true
+    },
+    "diagnostic_replay": {
+      "kind": "diagnostic-replay-not-new-CLI-publication",
+      "recorded_at": "2026-11-19T07:20:20.116024+00:00",
+      "engine_digest": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+      "seconds": 173.781,
+      "peak_rss_bytes": 619069440,
+      "impact_counts": {
+        "DEFINITE": 1,
+        "UNCERTAIN": 277,
+        "EXCLUDED": 0
+      },
+      "identified_objects": 278,
+      "containers": 50,
+      "selected_objects": 328,
+      "probe": {
+        "impact_class": "DEFINITE",
+        "event": "ADDED",
+        "classification": "SAFE_PROVEN"
+      },
+      "comparison_sha256": "ce3ae3ccc70e6c20e2f876cc06af78e8a7818182d2d9fb0e8f357c81a90ad334"
+    },
+    "storage_shape_equivalence": {
+      "recorded_at": "2026-11-19T07:41:23.782217+00:00",
+      "passed": true,
+      "comparison": "Entire comparison output, with the implicit pin.project_subdir default made explicit",
+      "normalized_comparison_sha256": "ce3ae3ccc70e6c20e2f876cc06af78e8a7818182d2d9fb0e8f357c81a90ad334",
+      "original_storage_read_seconds": 2048.719,
+      "shape_cache_seconds": 173.781,
+      "original_storage_read_peak_rss_bytes": 636502016,
+      "shape_cache_peak_rss_bytes": 619069440,
+      "final_engine_digest": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+      "old_replay_provenance": "Loaded compact propagation before the storage-shape edit. Its helper sampled engine_digest at completion, so that digest does not identify the originally loaded implementation; this is diagnostic equivalence evidence, not a frozen-engine scan.",
+      "new_cli_publication": false
+    }
+  },
+  "frontend_final": {
+    "node_tests_passed": 34,
+    "typescript": "PASSED",
+    "vite": "PASSED",
+    "assets": {
+      "ecra/studio/web/assets/index-CBxIb7ez.js": "849ae1e9982c705cfac1a9a4912aa9be8986b0da80bb6b5f47ece379925aef44",
+      "ecra/studio/web/assets/index-OmSgNemv.css": "1819e042137d177756e4d78555edb3bf4a8bc453add9fc17219c3ffc6dd104cd"
+    },
+    "scope_hint": "Unbuilt/inactive files do not represent runtime accesses or safety proofs."
+  },
+  "measurement_environment": {
+    "observed_at": "2026-11-19T08:02:43.221235+00:00",
+    "cpu": "Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz",
+    "physical_cores": 6,
+    "logical_processors": 12,
+    "os": "Microsoft Windows 10 Pro",
+    "os_version": "10.0.19044",
+    "visible_memory_bytes": 68645584896,
+    "python": "3.10.11",
+    "extraction_workers": 4,
+    "cache_conditions": "Fresh ECRA analysis and summary caches after each fixed-version CMake build reached two consecutive equal command/input hashes; OS filesystem cache not cleared.",
+    "profiling": "No profiler attached to this preconfigured measurement.",
+    "measurement_controller_started_at": "2026-11-19T10:31:56.479449+00:00"
+  },
+  "empty_baseline_query_verification": {
+    "observed_at": "2026-11-19T10:14:39.296212+00:00",
+    "seconds": 0.141,
+    "current_list_total": 328,
+    "baseline_list_total": 0,
+    "deleted_list_total": 0,
+    "summary_and_probe_unchanged": true,
+    "static_engine_unchanged": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+    "query_sha256": "c89de27b63a836e45c4cbd6cc0dcaf0350416799b0c1003b4f80b1c214aed0de",
+    "note": "Fresh Python process, bounded Studio API calls only; excludes interpreter startup. Empty baseline selection does not require baseline authority. Real scans/static engine unchanged.",
+    "reproduction_report": "output/playwright/diff-empty-baseline-repro.xml",
+    "reproduction_status": "Expected pre-fix regression failure in two subcases",
+    "regression_tests": 10,
+    "regression_subcases": 3,
+    "regression_seconds": 173.39,
+    "measurement_relationship": "Studio query consumer fix after cold CLI publication; no static engine or analysis-rule changes. Independent scan measurements remain on the frozen static engine."
+  },
+  "preconfiguration_predecessor_observations": {
+    "source_evidence_root": "workspace/data-roots/d456-real/acceptance-scaled",
+    "note": "Cold scan passed on first-configuration commands. Hot run correctly invalidated changed build inputs; this is not completed three-round acceptance.",
+    "final_baseline_observation": {
+      "observed_at": "2026-11-19T08:14:43.890927+00:00",
+      "engine_digest": "4518542c8dc77a1055fc78a383dfd9bba71f5a3aa55b75ea541f9d6352dbe8f2",
+      "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+      "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-scaled\\projects\\firmware_6ed7062ea5f3dbd53f46\\results\\git_diff\\504a825a8450\\artifacts\\base-2fbbdc3f49bff5a3c996",
+      "database_bytes": 4056047616,
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "variables_total": 327,
+        "translation_units_total": 61,
+        "translation_units_parsed": 61,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "build_complete": true,
+        "missing_object_count": 0
+      },
+      "finding_states": {
+        "SUSPECT": 106,
+        "UNKNOWN": 3
+      },
+      "validity": {
+        "analysis_valid": true,
+        "state": "STATIC_SCAN_SAVED",
+        "snapshot_status": "VERIFIED",
+        "fingerprint": "3f0327f494566d4d6f816e3fb96564846e28119ce1ef83670774998829c954c3"
+      },
+      "note": "Valid complete-TU baseline; semantic coverage remains incomplete. Not the current-side Diff publication.",
+      "summary_bytes": 1265969279,
+      "summary_manifest": {
+        "schema": 11,
+        "key": "0459ae3c53a560b550f394d88bfa24d410436e4cfe8fd898fe893ae21ab5ec99",
+        "complete_tus": true,
+        "completeness": {
+          "state": "COMPLETE",
+          "complete_tus": true,
+          "gaps": [],
+          "total_units": 61,
+          "parsed_units": 61
+        },
+        "sha256": "c485be6b8a3552eb42cd5b94f539539b1f154fb0a14d8ac56d463077fc434655"
+      },
+      "summary_hash_independently_checked": true,
+      "normalized_summary_matches_preoptimization": true
+    },
+    "final_current_observation": {
+      "observed_at": "2026-11-19T10:13:12.488731+00:00",
+      "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-scaled\\scans\\31e9494741f8450196c3042a4c3f11f2",
+      "validity": {
+        "analysis_valid": true,
+        "state": "STATIC_SCAN_SAVED",
+        "snapshot_status": "VERIFIED",
+        "fingerprint": "ac915aa48e1960d20ed014e84ed50bdd00e3184faea406001b21da92420a001a"
+      },
+      "database_bytes": 4129488896,
+      "analysis_status": "INCOMPLETE",
+      "coverage": {
+        "variables_total": 328,
+        "translation_units_total": 61,
+        "translation_units_parsed": 61,
+        "translation_units_partial": 0,
+        "translation_units_failed": 0,
+        "build_complete": true,
+        "missing_object_count": 0
+      },
+      "diff_summary": {
+        "node": 6065344,
+        "publication": {
+          "state": "VALID_PARTIAL",
+          "verification_state": "PASSED",
+          "regional_gap_count": 0
+        },
+        "full_verification": {
+          "state": "PASSED",
+          "variables": 328,
+          "reextracted_units": 61,
+          "classification_mismatches": 0,
+          "semantic_mismatches": 0,
+          "mismatch_scope": "COMPLETE_SUMMARY",
+          "scope": "完整规范化事实一致"
+        },
+        "comparison_object_count": 328,
+        "impact_schema": 1,
+        "impact_accounting_status": "AVAILABLE",
+        "impact_counts": {
+          "DEFINITE": 1,
+          "UNCERTAIN": 277,
+          "EXCLUDED": 0
+        },
+        "identified_object_count": 278,
+        "container_count": 50,
+        "identified_objects_accounted": true,
+        "real_object_inventory_complete": true,
+        "regional_gap_count": 0,
+        "comparison_schema": 1,
+        "risk_comparison_status": "AVAILABLE",
+        "change_counts": {
+          "basis": "SELECTED_DIFF_OBJECTS",
+          "transitions": {
+            "NOT_COMPARABLE": 59,
+            "SAFETY_RETAINED": 163,
+            "SUSPECT_PERSISTS": 106
+          },
+          "objects": {
+            "ADDED": 1,
+            "EXISTENCE_UNCERTAIN": 9,
+            "MATCHED": 318
+          },
+          "counts_as_new_risk": 0,
+          "counts_as_risk_resolution": 0,
+          "current_suspect": 106,
+          "prior_risk_unclosed": 106
+        },
+        "fallback_level": "L1",
+        "impact_coverage": "CONSERVATIVE",
+        "selection_basis": "THREE_WAY_DEPENDENCY_ACCOUNTING",
+        "note": "差异清单包含明确影响和待核实对象；可排除对象及其证明保留在后台。三类数量仅覆盖已识别存储对象，容器不重复计数，区域性缺口单独记录。影响分类不改变静态风险和原人工规则。",
+        "pin": {
+          "base_ref": "stage6-base",
+          "current_ref": "codex/diff-stage6-head",
+          "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+          "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+          "include_uncommitted": false
+        },
+        "file_count": 1,
+        "deleted_variable_count": 0,
+        "baseline_only_variable_count": 0,
+        "fallback_reasons": [
+          "存在未解析依赖，无法证明局部影响边界"
+        ],
+        "selected_symbol_ids_count": 328,
+        "conservative_symbol_ids_count": 327,
+        "definite_symbol_ids_count": 1,
+        "excluded_symbol_ids_count": 0
+      },
+      "probe": {
+        "total": 1,
+        "items": [
+          {
+            "symbol_id": "c:@phase6_scan_probe",
+            "ordinal": 276,
+            "node": 201089,
+            "name": "phase6_scan_probe",
+            "static_classification": "SAFE_PROVEN",
+            "resource_kind": "",
+            "definition_file": "Core/Src/main.c",
+            "definition_line": 1,
+            "analysis_coverage": "COMPLETE",
+            "raw_static_classification": "SAFE_PROVEN",
+            "static_classification_derived": 0,
+            "coverage_source": "compile_database",
+            "parse_status": "PARSED",
+            "audit_status": "STATIC_SAFE_PROVEN",
+            "finding_count": 0,
+            "ai_answer_count": 0,
+            "current_result": "SAFE",
+            "result_source": "STATIC",
+            "ai_safe": 0,
+            "human_record_decision": "PENDING",
+            "handling_status": "TODO",
+            "confirmation_state": "NOT_REQUIRED",
+            "requires_human_review": 0,
+            "needs_human_confirmation": 0,
+            "evidence_side": "current",
+            "diff_change": {
+              "symbol_id": "c:@phase6_scan_probe",
+              "name": "phase6_scan_probe",
+              "evidence_side": "current",
+              "impact_class": "DEFINITE",
+              "impact_label": "明确影响",
+              "container": false,
+              "object_event": "ADDED",
+              "base_classification": null,
+              "head_classification": "SAFE_PROVEN",
+              "risk_case": null,
+              "risk_code": "NOT_COMPARABLE",
+              "risk_label": "无法判断变化结果",
+              "node": 6066287,
+              "ordinal": 276,
+              "impact_node": 201117
+            }
+          }
+        ],
+        "offset": 0,
+        "sort": "priority",
+        "order": "asc",
+        "next_offset": null
+      },
+      "note": "Valid cold-round publication read through bounded Studio/native APIs. The three-round full-summary checks are still running."
+    },
+    "final_current_reference_proof": {
+      "observed_at": "2026-11-19T09:44:31.373726+00:00",
+      "path": "workspace/data-roots/d456-real/data-scaled/scans/31e9494741f8450196c3042a4c3f11f2/diagnostics/full-verification-summary-proof.json",
+      "proof": {
+        "format": "ECRA_FULL_REFERENCE_SUMMARY_PROOF_V1",
+        "state": "PASSED",
+        "sha256": "ac01aff300fe056629d0c1815581ff217e3d61699d167a863f3666cf30ec5ca5",
+        "bytes": 1265979875,
+        "scope": "Complete independent summary compared before removing this unreferenced private intermediate"
+      },
+      "note": "Cold-round complete independent reference equality passed before archival; not three-round completion."
+    }
+  },
+  "documentation_alignment": {
+    "files": [
+      "README.md",
+      "docs/one-command-tutorial.md",
+      "docs/workspace-migration.md",
+      "docs/git-diff-concurrency-validation.md",
+      "docs/studio-v81-user-tutorial.md",
+      "docs/studio-v84-configuration-guide.md",
+      "docs/studio-v91-results-guide.md",
+      "docs/ECRA_optimize_ccc_Codex.md"
+    ],
+    "contract_links_valid": true,
+    "rules": [
+      "branch/tag inputs only",
+      "fixed inputs unaffected by original workspace editing",
+      "reject include_uncommitted true for Diff",
+      "definite and uncertain objects displayed; excluded objects retained for audit",
+      "static risk changes independent of original human-review rules"
+    ],
+    "historical_records_preserved": true
+  },
+  "final_baseline_observation": {
+    "recorded_at": "2026-11-19T11:30:21.640711+00:00",
+    "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\projects\\firmware_6ed7062ea5f3dbd53f46\\results\\git_diff\\1a0f61f80b06\\artifacts\\base-7a161c1a65abe58b0d99",
+    "validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "dadf2d1791aecdd4c7f6fda87181094f43602067b063c4182fc7e4da625841b8"
+    },
+    "database_bytes": 4055019520,
+    "analysis_status": "INCOMPLETE",
+    "coverage": {
+      "variables_total": 327,
+      "translation_units_total": 61,
+      "translation_units_parsed": 61,
+      "translation_units_partial": 0,
+      "translation_units_failed": 0,
+      "build_complete": true,
+      "missing_object_count": 0
+    },
+    "finding_count": 109,
+    "finding_classifications": {
+      "SUSPECT": 106,
+      "UNKNOWN": 3
+    },
+    "note": "Bounded status metadata observation; not a completed cold/hot/recovery round."
+  },
+  "final_current_observation": {
+    "recorded_at": "2026-11-19T13:25:46.100815+00:00",
+    "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\scans\\b6b7ef67778f4e7fb99a43d62449afb1",
+    "validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "573d08c7745def2b3e7f5dbe4f5a94f1401bb222e5d77eaaa59f3355ec5c6dec"
+    },
+    "database_bytes": 4129841152,
+    "analysis_status": "INCOMPLETE",
+    "coverage": {
+      "variables_total": 328,
+      "translation_units_total": 61,
+      "translation_units_parsed": 61,
+      "translation_units_partial": 0,
+      "translation_units_failed": 0,
+      "build_complete": true,
+      "missing_object_count": 0
+    },
+    "finding_count": 109,
+    "query_seconds": 0.092,
+    "diff_summary": {
+      "node": 6065108,
+      "publication": {
+        "state": "VALID_PARTIAL",
+        "verification_state": "PASSED",
+        "regional_gap_count": 0
+      },
+      "full_verification": {
+        "state": "PASSED",
+        "variables": 328,
+        "reextracted_units": 61,
+        "classification_mismatches": 0,
+        "semantic_mismatches": 0,
+        "mismatch_scope": "COMPLETE_SUMMARY",
+        "scope": "完整规范化事实一致"
+      },
+      "comparison_object_count": 328,
+      "impact_schema": 1,
+      "impact_accounting_status": "AVAILABLE",
+      "impact_counts": {
+        "DEFINITE": 1,
+        "UNCERTAIN": 277,
+        "EXCLUDED": 0
+      },
+      "identified_object_count": 278,
+      "container_count": 50,
+      "identified_objects_accounted": true,
+      "real_object_inventory_complete": true,
+      "regional_gap_count": 0,
+      "comparison_schema": 1,
+      "risk_comparison_status": "AVAILABLE",
+      "change_counts": {
+        "basis": "SELECTED_DIFF_OBJECTS",
+        "transitions": {
+          "NOT_COMPARABLE": 59,
+          "SAFETY_RETAINED": 163,
+          "SUSPECT_PERSISTS": 106
+        },
+        "objects": {
+          "ADDED": 1,
+          "EXISTENCE_UNCERTAIN": 9,
+          "MATCHED": 318
+        },
+        "counts_as_new_risk": 0,
+        "counts_as_risk_resolution": 0,
+        "current_suspect": 106,
+        "prior_risk_unclosed": 106
+      },
+      "fallback_level": "L1",
+      "impact_coverage": "CONSERVATIVE",
+      "selection_basis": "THREE_WAY_DEPENDENCY_ACCOUNTING",
+      "note": "差异清单包含明确影响和待核实对象；可排除对象及其证明保留在后台。三类数量仅覆盖已识别存储对象，容器不重复计数，区域性缺口单独记录。影响分类不改变静态风险和原人工规则。",
+      "pin": {
+        "base_ref": "stage6-base",
+        "current_ref": "codex/diff-stage6-head",
+        "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+        "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+        "include_uncommitted": false
+      },
+      "file_count": 1,
+      "deleted_variable_count": 0,
+      "baseline_only_variable_count": 0,
+      "fallback_reasons": [
+        "存在未解析依赖，无法证明局部影响边界"
+      ],
+      "selected_symbol_ids_count": 328,
+      "conservative_symbol_ids_count": 327,
+      "definite_symbol_ids_count": 1,
+      "excluded_symbol_ids_count": 0
+    },
+    "probe": {
+      "total": 1,
+      "items": [
+        {
+          "symbol_id": "c:@phase6_scan_probe",
+          "ordinal": 276,
+          "node": 201089,
+          "name": "phase6_scan_probe",
+          "static_classification": "SAFE_PROVEN",
+          "resource_kind": "",
+          "definition_file": "Core/Src/main.c",
+          "definition_line": 1,
+          "analysis_coverage": "COMPLETE",
+          "raw_static_classification": "SAFE_PROVEN",
+          "static_classification_derived": 0,
+          "coverage_source": "compile_database",
+          "parse_status": "PARSED",
+          "audit_status": "STATIC_SAFE_PROVEN",
+          "finding_count": 0,
+          "ai_answer_count": 0,
+          "current_result": "SAFE",
+          "result_source": "STATIC",
+          "ai_safe": 0,
+          "human_record_decision": "PENDING",
+          "handling_status": "TODO",
+          "confirmation_state": "NOT_REQUIRED",
+          "requires_human_review": 0,
+          "needs_human_confirmation": 0,
+          "evidence_side": "current",
+          "diff_change": {
+            "symbol_id": "c:@phase6_scan_probe",
+            "name": "phase6_scan_probe",
+            "evidence_side": "current",
+            "impact_class": "DEFINITE",
+            "impact_label": "明确影响",
+            "container": false,
+            "object_event": "ADDED",
+            "base_classification": null,
+            "head_classification": "SAFE_PROVEN",
+            "risk_case": null,
+            "risk_code": "NOT_COMPARABLE",
+            "risk_label": "无法判断变化结果",
+            "node": 6066051,
+            "ordinal": 276,
+            "impact_node": 201117
+          }
+        }
+      ],
+      "offset": 0,
+      "sort": "priority",
+      "order": "asc",
+      "next_offset": null
+    },
+    "note": "Bounded published-report observation; cold CLI and independent archive reconstruction are not yet certified complete."
+  },
+  "cold_build_stability": {
+    "recorded_at": "2026-11-19T12:09:56.421852+00:00",
+    "sides": {
+      "base": {
+        "expected": "bd7d86a76e0eafeeb6d686f96d3d3f07cd9a5400e388bfbe9996cbec3683214a",
+        "actual": "bd7d86a76e0eafeeb6d686f96d3d3f07cd9a5400e388bfbe9996cbec3683214a",
+        "unchanged": true
+      },
+      "current": {
+        "expected": "1da345a58a44a8e65e4107e853ada0b02f523aaae89c939e51f9f922da4988ea",
+        "actual": "1da345a58a44a8e65e4107e853ada0b02f523aaae89c939e51f9f922da4988ea",
+        "unchanged": true
+      }
+    }
+  },
+  "artifact_integrity": {
+    "checked_at": "2026-11-19T16:53:32.550329+00:00",
+    "engine_unchanged": true,
+    "measurement_script_unchanged": true,
+    "query_consumer_unchanged": true,
+    "passing_test_reports_verified": 18,
+    "frontend_asset_hashes_verified": 2,
+    "default_review_template_unchanged": true,
+    "historical_candidate_hash_verified": true,
+    "note": "Read-only artifact integrity check; tests were not rerun. The recovery round completed afterward; see real_measurement and measurement_process_exit_code."
+  },
+  "completed_local_date": "2026-11-20",
+  "measurement_process_exit_code": 0,
+  "round_input_validities": {
+    "cold": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "573d08c7745def2b3e7f5dbe4f5a94f1401bb222e5d77eaaa59f3355ec5c6dec"
+    },
+    "hot": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "5717f7b0ff53fd701dc73cb6fa6f6e7f34e1b58455f4ca8507b514e25ad9b2e1"
+    },
+    "summary-cache-recovery": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "7334766c976f1d580ce1a081fd8075fd4db01362d920998efa62ebb39a263380"
+    }
+  },
+  "final_recovery_observation": {
+    "recorded_at": "2026-11-19T17:44:24.742778+00:00",
+    "output": "H:\\global_static_concurrency_design\\workspace\\data-roots\\d456-real\\data-stable\\scans\\06be032f32b446d5bf4ce5bb6f7864bc",
+    "validity": {
+      "analysis_valid": true,
+      "state": "STATIC_SCAN_SAVED",
+      "snapshot_status": "VERIFIED",
+      "fingerprint": "7334766c976f1d580ce1a081fd8075fd4db01362d920998efa62ebb39a263380"
+    },
+    "analysis_status": "INCOMPLETE",
+    "coverage": {
+      "variables_total": 328,
+      "translation_units_total": 61,
+      "translation_units_parsed": 61,
+      "translation_units_partial": 0,
+      "translation_units_failed": 0,
+      "build_complete": true,
+      "missing_object_count": 0
+    },
+    "finding_count": 109,
+    "query_seconds": 0.113,
+    "diff_summary": {
+      "node": 6065111,
+      "publication": {
+        "state": "VALID_PARTIAL",
+        "verification_state": "PASSED",
+        "regional_gap_count": 0
+      },
+      "full_verification": {
+        "state": "PASSED",
+        "variables": 328,
+        "reextracted_units": 61,
+        "classification_mismatches": 0,
+        "semantic_mismatches": 0,
+        "mismatch_scope": "COMPLETE_SUMMARY",
+        "scope": "完整规范化事实一致"
+      },
+      "comparison_object_count": 328,
+      "impact_schema": 1,
+      "impact_accounting_status": "AVAILABLE",
+      "impact_counts": {
+        "DEFINITE": 1,
+        "UNCERTAIN": 277,
+        "EXCLUDED": 0
+      },
+      "identified_object_count": 278,
+      "container_count": 50,
+      "identified_objects_accounted": true,
+      "real_object_inventory_complete": true,
+      "regional_gap_count": 0,
+      "comparison_schema": 1,
+      "risk_comparison_status": "AVAILABLE",
+      "change_counts": {
+        "basis": "SELECTED_DIFF_OBJECTS",
+        "transitions": {
+          "NOT_COMPARABLE": 59,
+          "SAFETY_RETAINED": 163,
+          "SUSPECT_PERSISTS": 106
+        },
+        "objects": {
+          "ADDED": 1,
+          "EXISTENCE_UNCERTAIN": 9,
+          "MATCHED": 318
+        },
+        "counts_as_new_risk": 0,
+        "counts_as_risk_resolution": 0,
+        "current_suspect": 106,
+        "prior_risk_unclosed": 106
+      },
+      "fallback_level": "L1",
+      "impact_coverage": "CONSERVATIVE",
+      "selection_basis": "THREE_WAY_DEPENDENCY_ACCOUNTING",
+      "note": "差异清单包含明确影响和待核实对象；可排除对象及其证明保留在后台。三类数量仅覆盖已识别存储对象，容器不重复计数，区域性缺口单独记录。影响分类不改变静态风险和原人工规则。",
+      "pin": {
+        "base_ref": "stage6-base",
+        "current_ref": "codex/diff-stage6-head",
+        "head_sha": "2c9c6128cd85c7e85a083a4ea095476fe9ef8da6",
+        "base_sha": "ca90b75c88b627f5b8031d79faac584fd275fbe1",
+        "include_uncommitted": false
+      },
+      "file_count": 1,
+      "deleted_variable_count": 0,
+      "baseline_only_variable_count": 0,
+      "fallback_reasons": [
+        "存在未解析依赖，无法证明局部影响边界"
+      ],
+      "selected_symbol_ids_count": 328,
+      "conservative_symbol_ids_count": 327,
+      "definite_symbol_ids_count": 1,
+      "excluded_symbol_ids_count": 0
+    },
+    "probe": {
+      "total": 1,
+      "items": [
+        {
+          "symbol_id": "c:@phase6_scan_probe",
+          "ordinal": 276,
+          "node": 201089,
+          "name": "phase6_scan_probe",
+          "static_classification": "SAFE_PROVEN",
+          "resource_kind": "",
+          "definition_file": "Core/Src/main.c",
+          "definition_line": 1,
+          "analysis_coverage": "COMPLETE",
+          "raw_static_classification": "SAFE_PROVEN",
+          "static_classification_derived": 0,
+          "coverage_source": "compile_database",
+          "parse_status": "PARSED",
+          "audit_status": "STATIC_SAFE_PROVEN",
+          "finding_count": 0,
+          "ai_answer_count": 0,
+          "current_result": "SAFE",
+          "result_source": "STATIC",
+          "ai_safe": 0,
+          "human_record_decision": "PENDING",
+          "handling_status": "TODO",
+          "confirmation_state": "NOT_REQUIRED",
+          "requires_human_review": 0,
+          "needs_human_confirmation": 0,
+          "evidence_side": "current",
+          "diff_change": {
+            "symbol_id": "c:@phase6_scan_probe",
+            "name": "phase6_scan_probe",
+            "evidence_side": "current",
+            "impact_class": "DEFINITE",
+            "impact_label": "明确影响",
+            "container": false,
+            "object_event": "ADDED",
+            "base_classification": null,
+            "head_classification": "SAFE_PROVEN",
+            "risk_case": null,
+            "risk_code": "NOT_COMPARABLE",
+            "risk_label": "无法判断变化结果",
+            "node": 6066054,
+            "ordinal": 276,
+            "impact_node": 201117
+          }
+        }
+      ],
+      "offset": 0,
+      "sort": "priority",
+      "order": "asc",
+      "next_offset": null
+    }
+  },
+  "completion_checks": {
+    "three_round_signatures_equal": true,
+    "independent_verification_passed_all_rounds": true,
+    "hot_and_recovery_tu_hits": 61,
+    "summary_corruption_detected_and_rebuilt": true,
+    "published_input_snapshots_verified_all_rounds": true,
+    "recovery_ui_probe_and_original_review_eligibility_verified": true,
+    "original_workspace_and_refs_unchanged": true,
+    "measurement_process_exit_code": 0
+  },
+  "final_file_checks": {
+    "checked_at": "2026-11-19T17:45:18.188985+00:00",
+    "git_diff_check": "PASSED",
+    "untracked_text_files_checked": 20,
+    "trailing_whitespace_errors": 0,
+    "acceptance_local_link_paths_checked": 37,
+    "broken_acceptance_local_links": 0,
+    "completion_records_consistent": true,
+    "note": "Local links accept the app-supported :line suffix; source links in the baseline gap table retain their historical baseline meaning."
+  }
+}

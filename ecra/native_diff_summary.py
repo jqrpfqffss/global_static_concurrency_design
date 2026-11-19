@@ -149,11 +149,12 @@ class _Inputs:
         facts = dict(
             functions=self.rows('facts', 'functions', required=True, fields=(
                 'function_id', 'translation_unit', 'semantic_digest', 'consumed_macros_digest',
-                'non_call_digest', 'standalone_calls',
+                'non_call_digest', 'standalone_calls', 'diff_dependencies',
                 'return_type_kind', 'name', 'file', 'line')),
             calls=self.rows('facts', 'calls', required=True, fields=(
                 'caller_function_id', 'callee_function_id', 'callee_name', 'result_used')),
             variables=self.rows('facts', 'variables', required=True, lazy=True))
+        facts['diff_dependency_storage'] = self.rows('facts', 'diff_dependency_storage')
         # These shared relations are traversed repeatedly by summarize.
         # Keep the complete relations, rather than re-decoding them per variable.
         for key in ('translation_units', 'context_bindings', 'contexts', 'context_call_graph', 'nvic_priorities'):
@@ -162,7 +163,8 @@ class _Inputs:
                 self.memo.clear()
                 facts[key] = self.value(node)
         for key in ('irq_priority_events', 'nvic_resolved_events', 'protection_events', 'registrations',
-                    'hardware_contexts', 'preemption_relations', 'address_escapes', 'pointer_targets', 'unknowns'):
+                    'hardware_contexts', 'preemption_relations', 'address_escapes', 'pointer_targets', 'unknowns',
+                    'failed_tu_preprocessing'):
             facts[key] = self.rows('facts', key)
         for key, kind, wrapper in (('pointer_target_atoms', 'list', _Atoms),
                                    ('pointer_target_sets', 'object', _Fields)):
@@ -193,7 +195,7 @@ def summarize_native(path, renames=None):
     with closing(connect_readonly(path)) as connection:
         reader = _Inputs(connection)
         facts, report = reader.inputs()
-        units = facts.get('translation_units', [])
-        if not units or any(u.get('parse_status') != 'PARSED' for u in units):
-            raise ValueError('基准版本存在解析失败/部分解析，不能将缺失事实当作无变化')
-        return summarize(facts, report, renames)
+        summary = summarize(facts, report, renames)
+        from .diff_verification import completeness
+        completeness(summary['comparison_scope'])
+        return summary

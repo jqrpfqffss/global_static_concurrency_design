@@ -8,6 +8,27 @@ from ecra.studio.tasks import read_task_json
 
 
 class TaskMetadataReadTests(unittest.TestCase):
+    def test_diff_publication_and_verification_remain_separate_from_task_completion(self):
+        from ecra.common import write_json
+        from ecra.studio.tasks import TaskManager
+        with tempfile.TemporaryDirectory() as folder:
+            data=Path(folder);manager=TaskManager(data);task=manager.work/'diff1';task.mkdir()
+            record=task/'task.json'
+            write_json(record,dict(id='diff1',scan_id='result1',mode='scan',state='COMPLETE',started='now'))
+            scan=data/'scans/result1';scan.mkdir(parents=True)
+            for state,verification in [('COMPLETE','PASSED'),('VALID_PARTIAL','INCOMPLETE'),('VALID_PARTIAL','PASSED'),('COMPLETE','NOT_RUN')]:
+                publication=dict(state=state,verification_state=verification)
+                write_json(scan/'manifest.json',dict(source_reverification=True,publication=publication))
+                row=manager.record(record)
+                self.assertTrue(row['published']);self.assertEqual(row['scan_id'],'result1')
+                self.assertEqual(row['publication'],publication)
+            write_json(scan/'manifest.json',dict(source_reverification=False,publication=publication))
+            self.assertFalse(manager.record(record)['published'])
+            write_json(scan/'manifest.json',[])
+            row=manager.record(record);self.assertFalse(row['published'])
+            self.assertEqual(row['publication']['state'],'FAILED')
+            self.assertIn('保留',row['error'])
+
     def test_review_uses_its_own_real_counters_instead_of_old_scan_or_preflight_progress(self):
         from ecra.common import write_json
         from ecra.studio.tasks import TaskManager

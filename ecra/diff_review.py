@@ -12,6 +12,9 @@ DELETED_REVIEW_PREFIX = '@deleted:'
 DELETED_IDS = """SELECT CAST(n.value AS TEXT) AS symbol_id FROM main.edges d
  JOIN main.edges f ON f.parent=d.child AND f.key='symbol_id'
  JOIN main.nodes n ON n.id=f.child AND n.kind='str' WHERE d.parent=?"""
+BASELINE_IDS = DELETED_IDS + """ AND NOT EXISTS(SELECT 1 FROM main.edges c
+ JOIN main.nodes v ON v.id=c.child WHERE c.parent=d.child AND c.key='impact_class'
+ AND CAST(v.value AS TEXT)='EXCLUDED')"""
 
 def _stamp(path):
     stat = path.stat()
@@ -41,11 +44,24 @@ class DiffReviewEvidence:
     def deleted_node(self):
         return self.current.resolve('report', ['git_diff', 'deleted_variables'])
 
-    def baseline(self):
+    def reviewable_node(self):
         try:
-            deleted = self.current.node(self.deleted_node(), limit=1)
-            if deleted['kind'] != 'list' or not deleted['total']:
-                return None
+            return self.current.resolve('report', ['git_diff', 'baseline_only_variables'])
+        except KeyError:
+            return self.deleted_node()
+
+    def require_reviewable_baseline(self, symbol):
+        with closing(connect_readonly(self.current.path)) as conn:
+            if not conn.execute('SELECT 1 FROM ('+BASELINE_IDS+') WHERE symbol_id=? LIMIT 1',
+                                (self.reviewable_node(), symbol)).fetchone():
+                raise KeyError(symbol)
+
+    def baseline(self, *, require_deleted=True):
+        try:
+            if require_deleted:
+                deleted = self.current.node(self.deleted_node(), limit=1)
+                if deleted['kind'] != 'list' or not deleted['total']:
+                    return None
             pin = ['git_diff', 'pin']
             expected = self.current.node(self.current.resolve('report', [*pin, 'base_facts_sha256'])).get('value')
             base_sha = self.current.node(self.current.resolve('report', [*pin, 'base_sha'])).get('value')
@@ -71,8 +87,8 @@ class DiffReviewEvidence:
             return EvidenceProvider(path)
         return None
 
-    def require_baseline(self):
-        provider = self.baseline()
+    def require_baseline(self, *, require_deleted=True):
+        provider = self.baseline(require_deleted=require_deleted)
         if provider is None:
             raise ValueError('此归档缺少可复核的基准数据库，请用当前版本重新运行差异扫描')
         return provider
@@ -88,5 +104,5 @@ class DiffReviewEvidence:
         if not symbol.startswith(DELETED_REVIEW_PREFIX):
             return self.current.fingerprint(symbol)
         raw = symbol.removeprefix(DELETED_REVIEW_PREFIX)
-        self.require_deleted(raw)
-        return self.require_baseline().fingerprint(raw)
+        self.require_reviewable_baseline(raw)
+        return self.require_baseline(require_deleted=False).fingerprint(raw)

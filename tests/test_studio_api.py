@@ -105,13 +105,16 @@ class StudioAPITests(unittest.TestCase):
         (root/'review_context.md').write_text('<!-- template -->','utf-8')
         (root/'concurrency_cases.md').write_text('## CASE-0001｜原案例\n### 1. 风险机制\n原说明\n','utf-8')
         base='/api/review-materials'
-        with patch('ecra.config.CONFIG_HOME',root):
+        def control(*parts):
+            return Path(self.tmp.name)/'control'/Path(*parts)
+        with patch('ecra.config.CONFIG_HOME',root), patch('ecra.workspace.control_path',side_effect=control), patch('ecra.studio.review_materials.control_path',side_effect=control):
             self.assertEqual(self.client.get(base,headers={'x-ecra-session':'bad'}).status_code,401)
             state=self.client.get(base);self.assertEqual(state.status_code,200,state.text)
             revision=state.json()['documents']['review_context.md']['revision']
             spec=dict(name='review_context.md',action='context',revision=revision,text='')
             response=self.client.post(base,json=spec);self.assertEqual(response.status_code,200,response.text)
-            self.assertEqual((root/'review_context.md').read_bytes(),b'')
+            self.assertEqual(control('config','review_context.md').read_bytes(),b'')
+            self.assertEqual((root/'review_context.md').read_bytes(),b'<!-- template -->')
             self.assertEqual(response.json()['documents']['review_context.md']['content'],'')
             self.assertEqual(self.client.post(base,json=spec).status_code,409)
             spec['revision']=response.json()['documents']['review_context.md']['revision']
@@ -414,5 +417,5 @@ class StudioAPITests(unittest.TestCase):
         raw = json.dumps(dict(version=1,project=dict(root=str(fw)),analysis=dict(output=dict(location='project'))))
         response = self.client.post('/api/profiles/check',json={'yaml':raw})
         self.assertEqual(response.status_code,400,response.text)
-        self.assertIn('独立',response.json()['error'])
+        self.assertIn('output.location: tool',response.json()['error'])
         self.assertEqual(list(fw.iterdir()),[])

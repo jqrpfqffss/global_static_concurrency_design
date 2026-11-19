@@ -36,6 +36,14 @@ def audit_cases(facts, report, baseline, cases):
                 if new or not old or not any(v['name'] == name for v in delta['deleted_variables']):
                     errors.append(name + ': deleted storage was not accounted for')
                 continue
+            if case.get('baseline_only_event'):
+                observed = [v for v in delta.get('baseline_only_variables', []) if v['name'] == name]
+                if (new or not old or len(observed) != len(old) or any(
+                        v['impact']['object_change']['event'] != case['baseline_only_event'] for v in observed)):
+                    errors.append(name + ': baseline-only object event was not accounted for')
+                if any(v['name'] == name for v in delta['deleted_variables']):
+                    errors.append(name + ': ambiguous declaration replacement cannot prove deletion')
+                continue
             if case.get('active_instances') is not None:
                 count = sum(bool(v.get('contexts')) for v in new)
                 expected = case['active_instances']

@@ -76,14 +76,165 @@ def _owned(repository, tree, sha):
     return admin
 
 
-def prepare(source, tree, sha, workspace, *, allow_legacy_project=False):
-    """Return a verified private common-dir; retain interrupted/legacy data."""
-    # Git environment overrides could redirect reads/writes to the firmware.
+def _environment():
     overrides = ('GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE',
                  'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES',
                  'GIT_CONFIG', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_PARAMETERS', 'GIT_NAMESPACE')
     if any(name in os.environ for name in overrides):
         raise ValueError('Git 环境覆盖影响独立目录身份；请先移除 GIT_DIR/INDEX/OBJECT/CONFIG 等覆盖')
+
+
+def _hashes(values):
+    return {key: _hash(value) if value is not None else None for key, value in values.items()}
+
+
+def _frozen_home(workspace, ident):
+    # Git must open a worktree's admin path before it can read core.longpaths.
+    # Avoid repeating long tree names in the shared repository's parent path.
+    return no_links(Path(workspace.project_workspace)/'git-fixed'/ident[:20])
+
+
+def _external_config(source):
+    """External Git configuration is a checked tool input, like an SDK.
+
+    Repository-local config/refs are copied. Global/system includes remain
+    external and must have the same effective meaning in both private trees.
+    Never execute global hooks or allow a global worktree override at checkout.
+    """
+    fields = _git(source, 'config', '--show-origin', '--show-scope', '--null', '--list').split(b'\0')
+    if fields[-1] or (len(fields)-1) % 3:
+        raise ValueError('无法完整记录 Git 外部构建配置')
+    files, records = {}, []
+    for index in range(0, len(fields)-1, 3):
+        scope, origin, value = fields[index:index+3]
+        if scope not in (b'system', b'global'):
+            continue
+        key = value.split(b'\n', 1)[0].lower()
+        if key in {b'core.worktree', b'core.hookspath'} or key.startswith(b'extensions.'):
+            raise ValueError('全局 Git 工作树/钩子/扩展配置尚未证明可隔离；请使用独立完整配置')
+        if not origin.startswith(b'file:'):
+            raise ValueError('Git 外部构建配置来源不可校验')
+        path = (Path(source)/origin[5:].decode('utf-8')).resolve()
+        files[str(path)] = _hash(path.read_bytes())
+        records.append(_hash(b'\0'.join((scope, origin, value))))
+    return dict(files=files, records=records)
+
+
+def check_external(source, frozen):
+    if _external_config(source) != frozen['external_config']:
+        raise ValueError('Git 外部构建配置已变化，或条件配置在隔离工作树中含义不同；禁止混用输入')
+
+
+def check_frozen(frozen, workspace):
+    """Check the owned copy, never re-resolve a name in the original repo."""
+    _environment()
+    home = _frozen_home(workspace, frozen['id'])
+    repository = no_links(home/'r.git')
+    identity = dict(version=2, project_id=workspace.project_id, source=canonical(workspace.repository_root),
+                    id=frozen['id'], repository=str(repository))
+    if (any(frozen.get(key) != value for key, value in identity.items())
+            or no_links(home/'state.json.pending').exists()
+            or json.loads(no_links(home/'state.json').read_text('utf-8')) != dict(frozen, status='READY')):
+        raise ValueError('固定 Git 输入身份已改变或建立未完成；保留现场，请重新扫描')
+    if _hashes(_capture(repository)) != frozen['private']:
+        raise ValueError('固定 Git 引用或配置已改变/损坏；禁止使用')
+    check_external(repository, frozen)
+    return repository
+
+
+def freeze(source, workspace):
+    """Capture one self-contained Git view shared by both comparison sides.
+
+    The content-addressed view is never fetched/refreshed. Later scans with
+    changed refs/config use a new view; existing scans keep their old tags,
+    symbolic refs, attributes and object store. No writes reach source Git.
+    """
+    from .common import digest
+    _environment()
+    source = Path(source).resolve()
+    work = no_links(workspace.project_workspace)
+    if (canonical(source) != canonical(workspace.repository_root)
+            or source.is_relative_to(work) or work.is_relative_to(source)):
+        raise ValueError('固定 Git 来源与独立数据边界不一致')
+    before = _capture(source)
+    source_state = _hashes(before)
+    external = _external_config(source)
+    ident = digest(dict(version=2, source=canonical(source), inputs=source_state, external=external))
+    home = _frozen_home(workspace, ident)
+    repository, marker = no_links(home/'r.git'), no_links(home/'state.json')
+    if home.exists():
+        if not marker.is_file():
+            raise ValueError('固定 Git 创建中断或未知目录；保留现场，请选择新的独立数据根')
+        saved = json.loads(marker.read_text('utf-8'))
+        if saved.get('status') != 'READY' or saved.get('source_state') != source_state:
+            raise ValueError('固定 Git 创建未完成或身份损坏；保留现场，请选择新的独立数据根')
+        frozen = {key: value for key, value in saved.items() if key != 'status'}
+        check_frozen(frozen, workspace)
+        return frozen
+    home.mkdir(parents=True)
+    identity = dict(version=2, project_id=workspace.project_id, source=canonical(source),
+                    id=ident, repository=str(repository))
+    _state(marker, dict(identity, status='CREATING'))
+    _git(source, 'clone', '--mirror', '--no-hardlinks', '--', str(source), str(repository))
+    _write(repository/'config', before['config'], replace=True)
+    _git(repository, 'config', '--local', 'core.bare', 'true')
+    # Builds may call Git themselves, without the engine's -c longpaths flag.
+    _git(repository, 'config', '--local', 'core.longpaths', 'true')
+    _write(repository/'HEAD', before['head'], replace=True)
+    (repository/'info').mkdir(exist_ok=True)
+    for name in ('attributes', 'exclude'):
+        path = no_links(repository/'info'/name)
+        if before[name] is not None:
+            _write(path, before[name], replace=path.exists())
+        elif path.exists():
+            path.unlink()
+    for line in before['refs'].decode('utf-8', 'strict').splitlines():
+        fields = line.split()
+        if len(fields) == 3:
+            _git(repository, 'symbolic-ref', fields[0], fields[2])
+    private = _capture(repository)
+    if (private['refs'] != before['refs'] or _capture(source) != before
+            or _external_config(source) != external or _external_config(repository) != external):
+        raise ValueError('Git 固定输入尚未建立：复制期间引用或配置改变；保留现场，请重新扫描')
+    frozen = dict(identity, source_state=source_state, private=_hashes(private), external_config=external)
+    _state(marker, dict(frozen, status='READY'), replace=True)
+    return frozen
+
+
+def prepare_frozen(tree, sha, workspace, frozen):
+    """Attach a version tree to a fixed repository without refreshing refs."""
+    repository = check_frozen(frozen, workspace)
+    tree = no_links(tree)
+    if tree.parent != no_links(workspace.worktree_root) or not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', sha):
+        raise ValueError('固定 Git 工作树目标身份不一致')
+    home = workspace.git_admin_home(tree)
+    marker = no_links(home/'state.json')
+    identity = dict(version=2, project_id=workspace.project_id, tree=canonical(tree), sha=sha,
+                    repository=canonical(repository), frozen_id=frozen['id'])
+    if home.exists():
+        if (not marker.is_file() or marker.with_name('state.json.pending').exists()
+                or json.loads(marker.read_text('utf-8')) != dict(identity, status='READY')):
+            raise ValueError('固定工作树建立未完成或所有权改变；保留现场，禁止接管')
+    else:
+        if tree.exists():
+            raise ValueError('固定工作树目标包含未知数据；保留现场，禁止接管')
+        home.mkdir(parents=True)
+        _state(marker, dict(identity, status='CREATING'))
+        tree.parent.mkdir(parents=True, exist_ok=True)
+        _git(repository, 'worktree', 'add', '--detach', str(tree), sha)
+        _state(marker, dict(identity, status='READY'), replace=True)
+    _owned(repository, tree, sha)
+    from .git_diff import _relative_worktree_gitdir
+    _relative_worktree_gitdir(repository, tree, sha)
+    check_frozen(frozen, workspace)
+    check_external(tree, frozen)
+    return dict(repository=str(repository), sha=sha)
+
+
+def prepare(source, tree, sha, workspace, *, allow_legacy_project=False):
+    """Return a verified private common-dir; retain interrupted/legacy data."""
+    # Git environment overrides could redirect reads/writes to the firmware.
+    _environment()
     source, tree = Path(source).resolve(), no_links(tree)
     work = no_links(workspace.project_workspace)
     trees = no_links(workspace.worktree_root)

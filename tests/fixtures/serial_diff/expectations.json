@@ -4,7 +4,7 @@
     {"id":"D02", "name":"store 改为非原子 RMW", "variables":["probe_rmw"], "head":"SUSPECT", "access_kind":"RMW"},
     {"id":"D03", "name":"删除完整 PRIMASK 保护", "variables":["probe_lock_removed"], "base":"SAFE_PROVEN", "head":"SUSPECT"},
     {"id":"D04", "name":"移除 IRQ 写入消除竞争", "variables":["probe_race_removed"], "base":"SUSPECT", "head":"SAFE_PROVEN"},
-    {"id":"D05", "name":"删除存储对象", "variables":["probe_deleted"], "deleted":true},
+    {"id":"D05", "name":"同作用域声明替换，对象匹配待核实", "variables":["probe_deleted"], "baseline_only_event":"MATCH_UNCERTAIN"},
     {"id":"H01", "name":"跨 TU 七层调用和指针的指针", "variables":["probe_indirect"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true, "min_chain":9},
     {"id":"H02", "name":"返回函数内 static 地址并经双重指针修改", "variables":["Probe_LocalSlot::hidden_epoch"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true},
     {"id":"H03", "name":"只读描述符中的 callback 与 void* payload", "variables":["probe_callback"], "base":"SAFE_PROVEN", "head":"SUSPECT", "alias":true, "min_chain":7},

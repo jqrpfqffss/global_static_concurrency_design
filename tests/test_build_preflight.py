@@ -132,13 +132,16 @@ class BuildPreflightTests(unittest.TestCase):
         args=self.worker_args()
         (self.work/'storage-policy.json').write_text('{}','utf-8')
         events=[]
+        frozen_git = dict(schema=3, input_id='preflight-fixed-input')
         def preflight(*_,**__):
             events.append('precheck')
-            return dict(passed=True)
+            return dict(passed=True, git=frozen_git, project_root=str(self.root))
         def native(*_,**kwargs):
             self.assertEqual(kwargs['scan_id'],args.scan_id)
             self.assertEqual(kwargs['profile_id'],args.profile_id)
             self.assertTrue(kwargs['_budget_owned'])
+            self.assertIs(kwargs['_git_pin'], frozen_git)
+            self.assertEqual(_[0], self.root)
             events.append('scan')
             return 2
         with patch.dict(os.environ), patch('ecra.studio.preflight.run_preflight',side_effect=preflight), \

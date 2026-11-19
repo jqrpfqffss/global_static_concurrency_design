@@ -20,7 +20,8 @@ def recover_review_tree(workspace, pinned, progress=print):
             or pinned.get('include_uncommitted')):
         return
     work = no_links(workspace.project_workspace)
-    tree = no_links(Path(workspace.worktree_root)/('current-' + sha[:16]))
+    from ..git_diff import version_directory
+    tree = version_directory(workspace, pinned, 'current')
     project = Path(workspace.project_root)
     repo = Path(workspace.repository_root)
     source = tree/project.relative_to(repo)
@@ -46,9 +47,15 @@ def recover_review_tree(workspace, pinned, progress=print):
     marker = no_links(home/'state.json')
     if not marker.is_file() or marker.with_name('state.json.pending').exists():
         return
-    private = no_links(home/'repository.git')
-    identity = dict(version=1, project_id=workspace.project_id, source=canonical(repo),
-                    tree=canonical(tree), sha=sha, repository=canonical(private), status='READY')
+    if pinned.get('schema') == 3:
+        from ..independent_git import check_frozen
+        private = check_frozen(pinned['frozen_git'], workspace)
+        identity = dict(version=2, project_id=workspace.project_id, tree=canonical(tree), sha=sha,
+                        repository=canonical(private), frozen_id=pinned['frozen_git']['id'], status='READY')
+    else:
+        private = no_links(home/'repository.git')
+        identity = dict(version=1, project_id=workspace.project_id, source=canonical(repo),
+                        tree=canonical(tree), sha=sha, repository=canonical(private), status='READY')
     state = read_json(marker)
     if not isinstance(state, dict) or any(state.get(key) != value for key, value in identity.items()):
         return

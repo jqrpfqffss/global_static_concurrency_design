@@ -16,6 +16,7 @@ class DiffSummaryStoreTests(unittest.TestCase):
     def setUp(self):
         fixture = native_fixture.NativeDiffReaderTests(); fixture.setUp(); self.addCleanup(fixture.doCleanups)
         self.base = summarize(fixture.facts, fixture.report)
+        self.base['comparison_scope']['build_complete'] = True
         self.folder = fixture.home/'compare'; self.folder.mkdir()
         self.path = self.folder/'base.json'; write_json(self.path, self.base, indent=None)
         self.pin = dict(files=[], project_subdir='.', head_sha='head', base_sha='base')

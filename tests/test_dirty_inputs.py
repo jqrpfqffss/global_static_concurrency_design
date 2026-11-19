@@ -72,7 +72,7 @@ class DirtyInputPlanningTests(unittest.TestCase):
         case=self.case
         from ecra.common import write_json
         raw=read_json(case.config)
-        raw['analysis']['git_diff']=dict(enabled=True,base_ref='HEAD',current_ref='HEAD',include_uncommitted=True)
+        raw['analysis']['git_diff']=dict(enabled=False,base_ref='HEAD',current_ref='HEAD',include_uncommitted=True)
         write_json(case.config,raw)
         before={str(p):sha256(p) for p in case.root.rglob('*') if p.is_file()}
         descriptor=capture_inputs(case.root,case.config,case.data/'work/preflight-capture')

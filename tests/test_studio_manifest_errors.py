@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -196,7 +197,11 @@ class StudioManifestErrorTests(unittest.TestCase):
         from tests.test_legacy_import import LegacyImportTests
         for degraded in (False,True):
             with self.subTest(degraded=degraded):
-                case=LegacyImportTests(methodName='runTest');case.setUp();self.addCleanup(case.doCleanups)
+                case=LegacyImportTests(methodName='runTest')
+                # create_app initializes process scratch outside data-roots;
+                # nested fixtures still need their own admissible data root.
+                with patch('tempfile.tempdir',str(self.root)):case.setUp()
+                self.addCleanup(case.doCleanups)
                 if degraded:(case.old/'facts.json').unlink()
                 originals=case.original_hashes()
                 # The real synchronous converter has fully returned before
@@ -243,14 +248,20 @@ class StudioManifestErrorTests(unittest.TestCase):
 
     def test_actual_native_publisher_retains_unverified_db_and_validates_local_manifest_separately(self):
         from tests import test_canonical_scan as fixtures
-        case=fixtures.CanonicalScanTests(methodName='runTest');case.setUp();self.addCleanup(case.doCleanups)
+        case=fixtures.CanonicalScanTests(methodName='runTest')
+        with patch('tempfile.tempdir',str(self.root)):case.setUp()
+        self.addCleanup(case.doCleanups)
         out,_=case.run_scan()
         self.assert_actual_publisher_opens(case.data,out)
 
     def test_actual_derived_publisher_retains_unverified_db_and_validates_local_manifest_separately(self):
         from tests import test_multicore_publication as fixtures
-        cls=fixtures.MulticorePublicationTests;cls.setUpClass();self.addCleanup(cls.doClassCleanups)
-        case=cls(methodName='runTest');case.setUp();self.addCleanup(case.doCleanups)
+        cls=fixtures.MulticorePublicationTests
+        with patch('tempfile.tempdir',str(self.root)):cls.setUpClass()
+        self.addCleanup(cls.doClassCleanups)
+        case=cls(methodName='runTest')
+        with patch('tempfile.tempdir',str(self.root)):case.setUp()
+        self.addCleanup(case.doCleanups)
         out,_=case.run_combine(name='derived-state-positive')
         self.assert_actual_publisher_opens(case.data,out)
 

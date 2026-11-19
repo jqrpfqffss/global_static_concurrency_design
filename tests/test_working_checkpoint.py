@@ -15,7 +15,7 @@ class WorkingCheckpointTests(unittest.TestCase):
         self.old=self.data/'work/tasks'/('a'*32);self.new=self.data/'work/tasks'/('b'*32)
         self.old.mkdir(parents=True);self.new.mkdir()
         cfg=dict(version=1,project=dict(root=str(self.root)),analysis=dict(compile_database='auto',
-            cmake=dict(generator='Ninja'),git_diff=dict(enabled=True,include_uncommitted=True,base_ref='HEAD')),
+            cmake=dict(generator='Ninja'),git_diff=dict(enabled=False,include_uncommitted=True,base_ref='HEAD')),
             review=dict(enabled=False))
         write_json(self.old/'semantics.yaml',cfg);(self.new/'semantics.yaml').write_bytes((self.old/'semantics.yaml').read_bytes())
         self.task=dict(id='a'*32,state='INTERRUPTED',mode='scan',project_root=str(self.root),profile_revision=sha256(self.old/'semantics.yaml'))

@@ -135,6 +135,16 @@ class TaskManager:
         if not value.get('metadata_error') and (value['mode'] in REVIEW_MODES or value['mode'] == 'scan'):
             out = no_links(self.data/'scans'/value['scan_id'])
             value['published'] = (out/'manifest.json').is_file()
+            if value['published']:
+                try:
+                    manifest = read_json(out/'manifest.json')
+                    if not isinstance(manifest, dict):
+                        raise ValueError('发布记录不是对象')
+                    value['published'] = manifest.get('source_reverification') is not False
+                    value['publication'] = manifest.get('publication')
+                except (OSError, ValueError, TypeError) as exc:
+                    value.update(published=False, publication=dict(state='FAILED'),
+                                 error='发布记录无法校验：'+str(exc)+'；原任务和旧有效结果保留。')
             value['review_resumable'] = value['published'] and (out/'scan_state.json').is_file() and (
                 value['mode'] in REVIEW_MODES or (path.parent/'review-materials.json').is_file())
         return value

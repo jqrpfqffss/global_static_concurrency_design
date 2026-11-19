@@ -13,8 +13,8 @@ import uuid
 
 from .json_rows import RowReader
 
-MAPS = {'variables', 'functions', 'graphs', 'macros', 'semantics'}
-LISTS = {'edges', 'return_edges', 'dependencies', 'unknowns', 'build'}
+MAPS = {'variables', 'functions', 'graphs', 'macros', 'semantics', 'dependency_storage'}
+LISTS = {'edges', 'return_edges', 'dependencies', 'unknowns', 'impact_unknowns', 'build'}
 DDL = '''CREATE TABLE containers(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,length INTEGER NOT NULL);
 CREATE TABLE entries(parent INTEGER NOT NULL,ordinal INTEGER NOT NULL,key TEXT,payload TEXT,child INTEGER,
 PRIMARY KEY(parent,ordinal),UNIQUE(parent,key));'''
@@ -197,17 +197,18 @@ def verify_spooled(reference_path, head_factory, directory, diagnostic_path, uni
         with SummaryStore(paths[1]) as head_store, SummaryStore(paths[0]) as reference_store:
             summary = head_factory(); head = head_store.from_value(summary); del summary
             reference = reference_store.from_json(reference_path)
-            if reference != head:
+            from .diff_verification import verify_summaries
+            try:
+                result = verify_summaries(head, reference, units)
+            except ValueError:
                 diagnostic_path = no_links(diagnostic_path); diagnostic_path.parent.mkdir(parents=True, exist_ok=True)
                 with diagnostic_path.open('w', encoding='utf-8') as stream:
                     stream.write('{"expected":'); reference_store.write(stream)
                     stream.write(',"actual":'); head_store.write(stream); stream.write('}')
-                raise ValueError('增量与独立全量的语义事实不一致，已阻止发布')
-            count = len(reference['variables'])
+                raise
         for path in paths: no_links(path).unlink()
         work.rmdir()
-        return dict(state='PASSED', variables=count, reextracted_units=units,
-                    classification_mismatches=0, semantic_mismatches=0)
+        return result
     except BaseException as exc:
         write_json(work/'failure.json', dict(error=type(exc).__name__+': '+str(exc)))
         raise

@@ -3,11 +3,14 @@ from contextlib import closing
 from pathlib import Path
 
 from ..scan_store import EvidenceProvider, connect_readonly
-from ..diff_review import DELETED_IDS, DELETED_REVIEW_PREFIX, DiffReviewEvidence
+from ..diff_review import BASELINE_IDS, DELETED_REVIEW_PREFIX, DiffReviewEvidence
 
 DIFF_CHANGE_LISTS = {
     'files': (['pin', 'files'], {'status', 'old_path', 'new_path', 'comment_only'}),
     'deleted': (['deleted_variables'], {'symbol_id', 'name'}),
+    'baseline_only': (['baseline_only_variables'], {'symbol_id', 'name', 'impact_class', 'impact_label'}),
+    'accounting': (['object_accounting'], {'object_id', 'symbol_id', 'name', 'evidence_side', 'impact_class', 'impact_label', 'container'}),
+    'regional_gaps': (['regional_gaps'], {'side', 'kind', 'source_file', 'tu_id', 'parse_status', 'unidentified_objects_possible', 'note'}),
 }
 
 HUMAN_HEADS = """WITH current_heads AS (
@@ -25,7 +28,7 @@ HUMAN_HEADS = """WITH current_heads AS (
 
 BASELINE_HEADS = f"""WITH nodes AS NOT MATERIALIZED (SELECT * FROM baseline.nodes),
  edges AS NOT MATERIALIZED (SELECT * FROM baseline.edges), records AS NOT MATERIALIZED (SELECT * FROM baseline.records),
- symbols AS (SELECT * FROM baseline.symbols WHERE symbol_id IN ({DELETED_IDS})),
+ symbols AS (SELECT * FROM baseline.symbols WHERE symbol_id IN ({BASELINE_IDS})),
  heads AS (
  SELECT substr(e.symbol_id,{len(DELETED_REVIEW_PREFIX)+1}) AS symbol_id,
  CASE WHEN count(*)>1 THEN 'CONFLICT' ELSE min(json_extract(e.payload,'$.decision')) END AS decision,
@@ -40,7 +43,9 @@ class QueryService:
         self.path = Path(scan_path)
         self.diff_review = DiffReviewEvidence(self.path)
         self.is_baseline = baseline
-        self.evidence = self.diff_review.require_baseline() if baseline else self.diff_review.current
+        # A surviving object's base proof is readable. Human submissions remain
+        # limited to selected baseline-only objects and use the original rules.
+        self.evidence = self.diff_review.require_baseline(require_deleted=False) if baseline else self.diff_review.current
 
     def _attach_human(self, conn):
         from ..review_inheritance import inherited_state
@@ -111,23 +116,36 @@ class QueryService:
             total = conn.execute('SELECT count(*) FROM ('+source+')', values).fetchone()[0]
             rows = [dict(row) for row in conn.execute('SELECT s.* FROM ('+source+') s ORDER BY '+ordering+',s.evidence_side LIMIT ? OFFSET ?',
                 [*values,limit,offset])]
+        try:
+            subjects = list({row['symbol_id'] for row in rows})
+            page = self.diff_objects(symbols=subjects, limit=200)
+            objects = list(page['items'])
+            while page['next_offset'] is not None:
+                page = self.diff_objects(symbols=subjects, limit=200, offset=page['next_offset'])
+                objects.extend(page['items'])
+            details = {(row['symbol_id'], row['evidence_side']): row for row in objects}
+            for row in rows:
+                row['diff_change'] = details.get((row['symbol_id'], row['evidence_side']))
+        except KeyError:
+            pass  # Ordinary and legacy scans have no comparison row contract.
         return dict(total=total,items=rows,offset=offset,sort=sort,order=order,
             next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
     def _result_rows(self, conn, terms, args, diff):
         from .current_results import projection
-        if diff not in {'', 'selected', 'direct', 'conservative', 'changes', 'deleted'}:
+        if diff not in {'', 'selected', 'direct', 'conservative', 'changes', 'deleted', 'baseline', 'excluded'}:
             raise ValueError('Git 差异筛选范围无效')
         def rows(cte, side, filters):
             where = ' WHERE '+' AND '.join(filters) if filters else ''
             return f"SELECT * FROM ({cte} SELECT s.*, '{side}' AS evidence_side FROM current_results s{where})"
 
         sources, values = [], []
-        if diff != 'deleted':
+        if diff not in {'deleted', 'baseline'}:
             filters, current_args = list(terms), list(args)
             if diff:
                 try:
-                    key = 'conservative_symbol_ids' if diff=='conservative' else 'selected_symbol_ids'
+                    key = ('conservative_symbol_ids' if diff=='conservative' else
+                           'excluded_symbol_ids' if diff=='excluded' else 'selected_symbol_ids')
                     root = self.evidence.resolve('report',['git_diff',key])
                     filters.append("s.symbol_id IN (SELECT CAST(n.value AS TEXT) FROM edges e JOIN nodes n ON n.id=e.child WHERE e.parent=?)")
                     current_args.append(root)
@@ -139,12 +157,27 @@ class QueryService:
                     raise ValueError('此扫描没有 Git 差异选择证据') from exc
             sources.append(rows(projection(HUMAN_HEADS), 'current', filters))
             values.extend(current_args)
-        if diff in {'changes', 'deleted'}:
-            baseline = self.diff_review.require_baseline() if diff=='deleted' else self.diff_review.baseline()
+        if diff in {'changes', 'deleted', 'baseline'}:
+            try:
+                baseline_node = (self.diff_review.deleted_node() if diff=='deleted'
+                                 else self.diff_review.reviewable_node())
+            except KeyError:
+                baseline_node = None  # Legacy archives can have no baseline-only inventory.
+            has_baseline_rows = False
+            if baseline_node is not None:
+                if conn.execute('SELECT kind FROM nodes WHERE id=?', (baseline_node,)).fetchone()[0] != 'list':
+                    raise ValueError('Git 基准侧对象清单格式无效')
+                has_baseline_rows = bool(conn.execute('SELECT EXISTS(SELECT 1 FROM ('+BASELINE_IDS+'))',
+                                                     (baseline_node,)).fetchone()[0])
+            # Verifying a multi-GB baseline is necessary only when consuming
+            # its selected objects. A current-only list must stay cheap.
+            baseline = self.diff_review.baseline(require_deleted=diff=='deleted') if has_baseline_rows else None
             if baseline is not None:
                 conn.execute('ATTACH DATABASE ? AS baseline', (baseline.path.as_uri()+'?mode=ro',))
                 sources.append(rows(projection(BASELINE_HEADS, include_ai=False), 'baseline', terms))
-                values.extend([self.diff_review.deleted_node(), *args])
+                values.extend([baseline_node, *args])
+        if not sources:
+            sources.append(rows(projection(HUMAN_HEADS), 'current', ['0']))
         return ' UNION ALL '.join(sources), values
 
 
@@ -153,6 +186,42 @@ class QueryService:
         except KeyError:return None
         fields={row['key']:row for row in self.evidence.node(node,limit=200)['items']}
         result=dict(node=node)
+        for key in ('publication', 'full_verification'):
+            if fields.get(key, {}).get('kind') == 'object':
+                result[key] = {row['key']: row.get('value') for row in
+                    self.evidence.node(fields[key]['id'], limit=20)['items'] if row['kind'] not in {'object', 'list'}}
+        if 'full_verification' not in result:
+            result['full_verification'] = dict(state='NOT_RECORDED')
+        if fields.get('comparison_objects', {}).get('kind') == 'list':
+            result['comparison_object_count'] = fields['comparison_objects']['total']
+        from ..diff_impact import IMPACT_SCHEMA
+        result['impact_schema'] = fields.get('impact_schema', {}).get('value')
+        result['impact_accounting_status'] = ('AVAILABLE' if result['impact_schema'] == IMPACT_SCHEMA else 'LEGACY_EVIDENCE')
+        if fields.get('impact_counts', {}).get('kind') == 'object':
+            result['impact_counts'] = {item['key']: item.get('value') for item in
+                self.evidence.node(fields['impact_counts']['id'], limit=10)['items']}
+        for key in ('identified_object_count', 'container_count', 'identified_objects_accounted', 'real_object_inventory_complete'):
+            if key in fields:
+                result[key] = fields[key].get('value')
+        if 'regional_gaps' in fields:
+            result['regional_gap_count'] = fields['regional_gaps']['total']
+        from ..diff_risk import COMPARISON_SCHEMA
+        result['comparison_schema'] = fields.get('comparison_schema', {}).get('value')
+        result['risk_comparison_status'] = ('AVAILABLE' if result['comparison_schema'] == COMPARISON_SCHEMA
+                                             else 'LEGACY_EVIDENCE')
+        if result['risk_comparison_status'] == 'LEGACY_EVIDENCE':
+            result['risk_comparison_note'] = '此归档缺少对象存在性和风险证明字段；旧变化标签不能作为新增或修复证明，请重新扫描。'
+        elif fields.get('change_counts', {}).get('kind') == 'object':
+            # Fixed-depth, small enum/counter records; never restore a report
+            # or its potentially large impact collections for this endpoint.
+            counts = {}
+            for row in self.evidence.node(fields['change_counts']['id'], limit=32)['items']:
+                if row['kind'] == 'object':
+                    counts[row['key']] = {item['key']: item.get('value') for item in
+                        self.evidence.node(row['id'], limit=64)['items']}
+                else:
+                    counts[row['key']] = row.get('value')
+            result['change_counts'] = counts
         for key in ('fallback_level','impact_coverage','selection_basis','note'):
             if key in fields and 'value' in fields[key]:result[key]=fields[key]['value']
         if 'pin' in fields:
@@ -165,16 +234,20 @@ class QueryService:
             result['deleted_variable_count'] = fields['deleted_variables']['total']
             if result['deleted_variable_count']:
                 result['deleted_evidence_available'] = self.diff_review.baseline() is not None
+        if fields.get('baseline_only_variables', {}).get('kind') == 'list':
+            result['baseline_only_variable_count'] = fields['baseline_only_variables']['total']
         if fields.get('fallback_reasons', {}).get('kind') == 'list':
             result['fallback_reasons'] = [row['value'] for row in self.evidence.node(fields['fallback_reasons']['id'], limit=20)['items']
                                           if row.get('value')]
-        for key in ('selected_symbol_ids','conservative_symbol_ids'):
+        for key in ('selected_symbol_ids','conservative_symbol_ids','definite_symbol_ids','excluded_symbol_ids'):
             result[key+'_count']=fields[key]['total'] if key in fields else 0
         return result
 
-    def diff_changes(self, kind, *, offset=0, limit=25):
+    def diff_changes(self, kind, *, offset=0, limit=25, impact='', risk='', event=''):
+        if kind == 'objects':
+            return self.diff_objects(offset=offset, limit=limit, impact=impact, risk=risk, event=event)
         if kind not in DIFF_CHANGE_LISTS:
-            raise ValueError('Git 差异明细仅支持变更文件和已删除变量')
+            raise ValueError('Git 差异明细仅支持变更文件、删除/基准对象、完整影响归账和区域性缺口')
         path, keys = DIFF_CHANGE_LISTS[kind]
         node = self.evidence.resolve('report', ['git_diff', *path])
         page = self.evidence.node(node, offset=offset, limit=limit)
@@ -184,6 +257,35 @@ class QueryService:
             values = {row['key']: row.get('display_json', row.get('value')) for row in fields if row['key'] in keys}
             items.append(dict(values, node=item['id'], ordinal=item['ordinal']))
         return dict(items=items, total=page['total'], offset=offset, next_offset=page['next_offset'])
+
+    def diff_objects(self, *, offset=0, limit=25, impact='', risk='', event='', symbols=None):
+        """Page compact selected rows; full proofs stay in their owning evidence nodes."""
+        self.evidence._bounds(offset, limit)
+        node = self.evidence.resolve('report', ['git_diff', 'comparison_objects'])
+        fields = ('symbol_id', 'name', 'evidence_side', 'impact_class', 'impact_label', 'object_event',
+                  'base_classification', 'head_classification', 'risk_case', 'risk_code', 'risk_label', 'container')
+        terms, args = ['r.parent=?'], [node]
+        for key, value in [('impact_class', impact), ('risk_case' if risk.startswith('R0') else 'risk_code', risk), ('object_event', event)]:
+            if value:
+                terms.append('EXISTS(SELECT 1 FROM edges e JOIN nodes v ON v.id=e.child WHERE e.parent=r.child AND e.key=? AND CAST(v.value AS TEXT)=?)')
+                args.extend([key, value])
+        if symbols is not None:
+            if not symbols:
+                return dict(items=[],total=0,offset=offset,next_offset=None)
+            terms.append("EXISTS(SELECT 1 FROM edges e JOIN nodes v ON v.id=e.child WHERE e.parent=r.child AND e.key='symbol_id' AND CAST(v.value AS TEXT) IN ("+','.join('?' for _ in symbols)+'))')
+            args.extend(symbols)
+        sql = ' FROM edges r WHERE '+' AND '.join(terms)
+        with closing(connect_readonly(self.evidence.path)) as conn:
+            total = conn.execute('SELECT count(*)'+sql, args).fetchone()[0]
+            rows = conn.execute('SELECT r.child,r.ordinal'+sql+' ORDER BY r.ordinal LIMIT ? OFFSET ?', [*args, limit, offset]).fetchall()
+        items = []
+        for record, ordinal in rows:
+            values = {row['key']: row.get('value') for row in self.evidence.node(record, limit=25)['items'] if row['key'] in fields}
+            path_node = self.evidence.resolve('report', ['git_diff', 'comparison_objects', ordinal, 'impact_path'])
+            path = [row['value'] for row in self.evidence.node(path_node, limit=8)['items']]
+            values.update(node=record, ordinal=ordinal, impact_node=self.evidence.resolve('report', ['git_diff', *path]))
+            items.append(values)
+        return dict(items=items,total=total,offset=offset,next_offset=offset+len(items) if offset+len(items)<total else None)
 
     def current_summary(self, *, diff=''):
         from .current_results import summary

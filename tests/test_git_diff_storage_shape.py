@@ -78,8 +78,11 @@ class StorageShapeDiffTests(unittest.TestCase):
         self.assertEqual(result['impacts'][sid]['risk_change'], '无法判断变化结果')
         self.assertIn('MATCH_UNCERTAIN', result['impacts'][sid]['reasons'])
         self.assertEqual(head['variables'][sid]['dimensions']['classification'], 'SUSPECT')
-        removed = next(v for v in result['deleted_variables'] if v['name'] == 'shared.value')
-        self.assertEqual(removed['impact']['risk_change'], '无法判断变化结果')
+        removed = next(v for v in result['baseline_only_variables'] if v['name'] == 'shared.value')
+        self.assertEqual(result['deleted_variables'], [])
+        self.assertEqual(removed['impact']['object_change']['event'], 'STORAGE_SHAPE_CHANGED')
+        self.assertEqual(removed['impact']['risk_transition']['code'], 'PRIOR_RISK_UNCLOSED')
+        self.assertFalse(removed['impact']['risk_transition']['counts_as_risk_resolution'])
         self.assertNotIn(removed['symbol_id'], result['selected_symbol_ids'])
 
     def test_scalar_array_transitions_are_not_risk_comparisons(self):

@@ -690,6 +690,11 @@ class Solver:
         return None
 
     def add_access(self, locations, record, mode, **extra):
+        # Preserve how strong a resolved storage edge is. A finite may-target
+        # set or an unresolved alternative cannot establish definite Diff
+        # impact on every candidate, even though all accesses stay in facts.
+        target_count = len(locations)
+        has_unknown = any(location.startswith('unknown:') for location in locations)
         for loc in sorted(locations):
             sid = self.symbol(loc)
             if sid is None:
@@ -698,7 +703,8 @@ class Solver:
                        file=record['file'], line=record['line'], column=record.get('column', 0),
                        offset=record.get('offset', 0), source_text=record.get('source_text', ''),
                        access_kind=mode, access_path='' if loc.endswith('/$overlap') else loc[len('obj:' + sid):],
-                       parse_confidence='conservative', via_alias='interprocedural points-to', **extra)
+                       parse_confidence='conservative', via_alias='interprocedural points-to',
+                       alias_target_count=target_count, alias_has_unknown_target=has_unknown, **extra)
             row['access_id'] = 'A-' + digest(row)[:20]
             self.facts['accesses'].append(row)
 

@@ -441,7 +441,8 @@ def persist(out, facts, report, reviews, *, _existing_only=False):
             raw = read_analysis_bytes(path)
             if hashlib.sha256(raw).hexdigest() != expected:
                 raise ValueError('归档输入已改变: '+file)
-            if settings.get('config_file') and path.resolve() == Path(settings['config_file']).resolve():
+            config_input = (report.get('git_diff') or {}).get('pin', {}).get('config_path') or settings.get('config_file')
+            if config_input and path.resolve() == Path(config_input).resolve():
                 from .scan_identity import capture
                 provenance['display_identity'] = capture(raw, file, report.get('coverage', {}))
                 import os
@@ -519,10 +520,15 @@ def archive_audit(out):
 
 def run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
                   review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_budget_owned=False,_storage_policy=None,
-                  _compiler_view=None):
+                  _compiler_view=None, _git_pin=None):
     from .config import load_config
     from .frozen_scan import execution_workspace
     from .storage_activity import DataActivity
+    if _git_pin is not None:
+        from .git_diff import fixed_config_path
+        if scan_mode == 'full':
+            raise ValueError('固定 Diff 输入不能用于全量扫描')
+        config_path = fixed_config_path(_git_pin)
     cfg,_=load_config(root,config_path)
     if scan_mode is not None:
         cfg['analysis']['git_diff']['enabled']=scan_mode=='diff'
@@ -539,7 +545,7 @@ def run_canonical(root, config_path=None, no_review=False, doctor_only=False, re
                 progress=lambda text:print(text,flush=True),scan_mode=scan_mode)
         return _run_canonical(root,config_path,no_review,doctor_only,review_safe_sample,review_shared_sample,
                               scan_mode,scan_id=scan_id,profile_id=profile_id,_expected_root=workspace.workspace_root,_storage_policy=_storage_policy,
-                              _compiler_view=_compiler_view)
+                              _compiler_view=_compiler_view, _git_pin=_git_pin)
 
 
 @contextmanager
@@ -656,6 +662,10 @@ def _publish_checkpoint(out, root, cfg, workspace, profile_id, *, compiler_view,
                     state='STATIC_VALIDATED', run_state=run_state,
         scan_sha256=scan_sha256, source_reverification=True,
                     completed_at=datetime.now(timezone.utc).isoformat())
+    try:
+        manifest['publication'] = provider.load('report', ['git_diff', 'publication'])
+    except KeyError:
+        pass
     write_receipt(out/'manifest.json', manifest)
     pointer = dict(project_id=workspace.project_id, scan_id=binding['scan_id'])
     write_receipt(latest, pointer)
@@ -664,7 +674,7 @@ def _publish_checkpoint(out, root, cfg, workspace, profile_id, *, compiler_view,
 
 def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,
                   review_shared_sample=0, scan_mode=None, *, scan_id=None, profile_id='default',_expected_root=None,_storage_policy=None,
-                  _compiler_view=None):
+                  _compiler_view=None, _git_pin=None):
     """Run the unchanged pipeline in a unique external, persistent scan area.
 
     No latest pointer is changed until all original post-publication input
@@ -708,7 +718,7 @@ def _run_canonical(root, config_path=None, no_review=False, doctor_only=False, r
         internal = {} if _compiler_view is None else dict(_compiler_view=_compiler_view)
         code = run(root, config_path, no_review, doctor_only, review_safe_sample, review_shared_sample,
                    scan_mode=scan_mode, _workspace=workspace, _cache_enabled=True,_lock_owned=True,
-                   _publish_static=publish_static, **internal)
+                   _publish_static=publish_static, _git_pin=_git_pin, **internal)
         validity = json.loads((out/'result_validity.json').read_text(encoding='utf-8'))
         if (out/'manifest.json').is_file():
             manifest = read_json(out/'manifest.json')

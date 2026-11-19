@@ -55,8 +55,8 @@ def execute(args):
                 progress=lambda text:print(text,flush=True))
         from .preflight import run_preflight
         fixed={} if compiler_view is None else dict(_compiler_view=compiler_view)
-        run_preflight(args.config, args.data_root, args.result.parent/'preflight',
-                      progress=lambda text: print(text, flush=True),**fixed)
+        preflight = run_preflight(args.config, args.data_root, args.result.parent/'preflight',
+                                  progress=lambda text: print(text, flush=True),**fixed)
         check_stop()
         if args.mode == 'precheck': return 0
     else:
@@ -79,10 +79,11 @@ def execute(args):
     from ..scan_persistence import run_canonical
     import json
     fixed_storage=json.loads((args.result.parent/'storage-policy.json').read_text('utf-8'))
-    root=configured_project_root(args.config)
+    root = Path(preflight['project_root']) if preflight.get('git') else configured_project_root(args.config)
     check_stop()
     return run_canonical(root, args.config, scan_id=args.scan_id, profile_id=args.profile_id,
-                         _budget_owned=True,_storage_policy=fixed_storage,_compiler_view=compiler_view)
+                         _budget_owned=True,_storage_policy=fixed_storage,_compiler_view=compiler_view,
+                         _git_pin=preflight.get('git'))
 
 
 def main():

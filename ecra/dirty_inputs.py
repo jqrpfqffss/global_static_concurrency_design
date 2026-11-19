@@ -42,10 +42,13 @@ def _search_directories(unit,*,resolve=no_links):
 
 def capture_inputs(root,config,folder,progress=lambda text:None,*,scan_mode=None):
     from .frozen_scan import execution_workspace
-    consumed={};cfg,config=load_config(root,config,consumed_inputs=consumed);supported(cfg['analysis'])
+    consumed={};cfg,config=load_config(root,config,consumed_inputs=consumed)
     if scan_mode is not None:
         if scan_mode not in {'full','diff'}:raise ValueError('scan_mode必须是full或diff')
         cfg['analysis']['git_diff']['enabled']=scan_mode=='diff'
+    from .git_diff import validate_mode
+    validate_mode(cfg['analysis']['git_diff'])
+    supported(cfg['analysis'])
     from .portable import require_git
     require_git('纳入未提交输入')
     # The existing private integration deliberately bypasses only the dirty

@@ -27,19 +27,19 @@ Ninja 和 MinGW Makefiles 工程可用 `analysis.cmake.target` 选择构建目�
 
 CLI `run` 默认使用独立数据根和 SQLite；旧版产物须显式选择 `--legacy-output`，仅供兼容验证和黄金基线。旧数据的共享编码、SQLite 单元还原和完整性规则见[设计说明](docs/concurrency-tool-design.md#完整大型证据的无损存储)。`read_saved_json` 兼容旧逻辑路径和新库，GUI/AI 的分页导航共用 EvidenceProvider。本轮保护证据、输入稳定性修复及大型和目标环境的实际验收范围见交付验收记录。
 
-新增可选 [Git 分支差异扫描](docs/git-diff-concurrency-validation.md)：在同一 `config/semantics.yaml` 配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。新结果由Studio同一工作台查询；显式兼容模式才生成旧 `results/index.html`。默认差异清单只选有版本变化或明确依赖关系的变量，完整后台并发证据和静态归账保留；未知影响单列，不自动填满差异清单。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧版事实无法可靠建立会明确失败。
+可选 [Git 分支/tag 差异扫描](docs/git-diff-requirements-and-acceptance-20261118.md)：在工程配置或 `config/semantics.yaml` 中配置 `analysis.git_diff`，比较 `project.root` 固件仓库，使用 `py -3.10 run_ecra.py --scan-mode diff`。Studio 展示明确影响与待核实对象，可排除对象及完整证据留在后台归账；清空搜索仍保持差异范围。静态风险变化、覆盖状态、AI 意见和人工记录分别表达，人工确认沿用原规则。默认 `enabled: false`；`--scan-mode full` 临时恢复全量。旧归档缺少新比较证据时明确标记不可比。
 
 默认结果目录、Git HEAD 隔离语义、CMake 外置构建、旧输出兼容及迁移恢复见[工作区与迁移说明](docs/workspace-migration.md)。所有命令自动定位同一 ProjectID；无需手填报告路径。
 
 真实串口工程的已提交差异分支、21 项常规/隐蔽并发/安全对照矩阵及复现命令见 [serial 差异压力验收](docs/serial-diff-stress-validation.md)。当前本地配置默认比较该测试分支与其测试基准，外部自动复核已关闭。
 
-修正影响分析扩散后，该工程的默认差异清单由 95 行降为 33 行（含 5 个容器汇总），原有 UART/CLI 变量不再混入；21 项测试仍全部通过。范围规则与全量对照见 [差异清单收敛验收](docs/git-diff-focused-validation.md)。
+早期收敛算法及当时的清单数量见 [差异清单收敛验收](docs/git-diff-focused-validation.md)。当前三类影响、九格风险变化及独立对照的规则和实际验收状态统一见 [Git Diff 需求与验收清单](docs/git-diff-requirements-and-acceptance-20261118.md)。
 
-日常差异配置只需 `enabled`、`base_ref`、`current_ref`：直接比较任意两个分支、标签或提交。`current_ref: HEAD` 扫描当前检出版本；指定其它分支时自动在隔离工作树分析，报告仍保存到原输出目录。旧 `target_ref` / `compare_mode` 配置需按[参数取舍与迁移说明](docs/git-diff-concurrency-validation.md#参数取舍与迁移)修改；缓存与保守影响扩大自动处理。
+日常差异配置只需 `enabled`、`base_ref`、`current_ref`：直接比较两个本地分支、远端跟踪分支或 tag，可混合选择。`HEAD` 表示当前检出的分支；提交 SHA 由启动时解析并固定，不作为用户填写的比较引用。两侧源码、配置和构建身份在私有目录固定，原工作区可以继续编辑，已启动扫描和历史结果保持原身份。旧 `target_ref` / `compare_mode` 配置按[参数取舍与迁移说明](docs/git-diff-concurrency-validation.md#参数取舍与迁移)修改。
 
 变量详情对照基准与当前版本的访问类型、布局、执行上下文、保护屏蔽观测、调用子图及覆盖变化，并链接代码差异。未变化的完整证据默认收起，继续参与并发分析。标量与结构体/数组容器转换时保留匹配不确定性，不能把根对象的容器汇总类别当作“风险新增”或“风险消除”的依据。
 
-显式启用 `analysis.git_diff.include_uncommitted: true` 的受控 CMake 工作字节模式，全量和差异扫描都要固定、重新核对完整 SDK。这个阶段可能较长，请以任务阶段和日志为准；正常停止会保留已校验 TU 缓存，恢复前仍须重新核对输入。
+Diff 只分析所选分支/tag 的固定提交；暂存、未暂存和未跟踪修改均不纳入。旧 Diff 配置中的 `include_uncommitted: true` 会明确拒绝，应改为 false；检查工作区字节使用原有非 Diff 全量流程。非 Diff 受控 CMake 工作字节模式继续固定并重新核对完整 SDK，恢复前仍须复验输入，进度以任务阶段和日志为准。
 
 缓存还会核对预定义宏的语义影响。`__DATE__`、`__TIME__`、`__TIMESTAMP__` 可作为未在同一 TU 引用的不可变构建元数据，也可作为独立运行期调用的完整字符串实参。字符串内容记录为未知，调用和共享访问照常提取。宏值参与判断、索引、布局或编译期求值，调用返回值被使用，或无法确认宏展开用途时，提取会停止。此时可由工程提供纳入快照的确定生成输入后重扫；真实预处理构建输入导入仍待实现。
 

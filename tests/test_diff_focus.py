@@ -44,16 +44,21 @@ class DiffFocusTests(unittest.TestCase):
             ''' + before
         facts, report = self.delta({'a.c': before}, {'a.c': source})
         self.assertEqual(self.selected(facts, report), set())
-        self.assertEqual([row['name'] for row in report['git_diff']['deleted_variables']], ['deleted'])
+        self.assertEqual([row['name'] for row in report['git_diff']['baseline_only_variables']], ['deleted'])
+        # This lightweight fixture omits the TU inventory needed to prove
+        # deletion. The missing observation must retain its baseline evidence.
+        self.assertEqual(report['git_diff']['deleted_variables'], [])
 
-    def test_unrelated_unknown_does_not_turn_all_variables_into_differences(self):
+    def test_opaque_boundary_is_separate_uncertainty_in_difference_display(self):
         source = '''int changed,unrelated;void Opaque(void);
             void Update(void){changed=1;}void Other(void){Opaque();unrelated++;}
             int main(void){Update();Other();return 0;}'''
         facts, report = self.delta({'a.c': source}, {'a.c': source.replace('changed=1', 'changed=2')})
         self.assertTrue(facts['unknowns'])
-        self.assertEqual(self.selected(facts, report), {'changed'})
+        self.assertEqual(self.selected(facts, report), {'changed', 'unrelated'})
         self.assertIn('c:@unrelated', report['git_diff']['conservative_symbol_ids'])
+        self.assertEqual(report['git_diff']['impacts']['c:@unrelated']['impact_class'], 'UNCERTAIN')
+        self.assertEqual(report['git_diff']['definite_symbol_ids'], ['c:@changed'])
 
     def test_ignored_scalar_return_does_not_change_the_callers_other_variables(self):
         source = '''int input,unrelated;int Get(void){return input;}

@@ -213,7 +213,7 @@ def _create_app(data_root, *, token, authority, startup):
             raise ValueError('未验证原件归档没有可信变量证据，不能保存当前人工结论；请查看原文件或导入完整结果')
         _, reviews = stores(scan_id.removesuffix('~base'))
         if query.is_baseline:
-            query.diff_review.require_deleted(symbol)
+            query.diff_review.require_reviewable_baseline(symbol)
             symbol_key = DELETED_REVIEW_PREFIX+symbol
         else:
             symbol_key = symbol
@@ -373,9 +373,9 @@ def _create_app(data_root, *, token, authority, startup):
                     can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
     @app.get('/api/scans/{scan_id}/diff-changes')
-    def diff_changes(scan_id: str, kind: str, offset: int=0, limit: int=25):
+    def diff_changes(scan_id: str, kind: str, offset: int=0, limit: int=25, impact: str='', risk: str='', event: str=''):
         from .query import QueryService
-        return QueryService(scan_path(scan_id)).diff_changes(kind, offset=offset, limit=limit)
+        return QueryService(scan_path(scan_id)).diff_changes(kind, offset=offset, limit=limit, impact=impact, risk=risk, event=event)
 
     @app.get('/api/scans/{scan_id}/ai')
     def ai_records(scan_id: str, offset: int=0, limit: int=50, outcome: str='', search: str='',
@@ -456,7 +456,7 @@ def _create_app(data_root, *, token, authority, startup):
         for item in page['items']:
             symbol = item['symbol_id']
             if item['evidence_side']=='baseline':
-                baseline = baseline or query.diff_review.require_baseline()
+                baseline = baseline or query.diff_review.require_baseline(require_deleted=False)
                 item['human'] = reviews.current(DELETED_REVIEW_PREFIX+symbol, baseline.fingerprint(symbol))
             else:
                 item['human'] = reviews.current(symbol, provider.fingerprint(symbol))
@@ -476,7 +476,8 @@ def _create_app(data_root, *, token, authority, startup):
         from .query import QueryService
         if not symbol_id:raise ValueError('对象身份不能为空')
         baseline = scan_id.endswith('~base')
-        page=QueryService(scan_path(scan_id.removesuffix('~base'))).symbols(symbol_id=symbol_id,limit=1,diff='deleted' if baseline else '')
+        query=QueryService(scan_path(scan_id.removesuffix('~base')))
+        page=query.symbols(symbol_id=symbol_id,limit=1,diff='baseline' if baseline else 'selected' if query.diff_summary() else '')
         if not page['items']:raise ValueError('当前归档未记录该规范身份；不能据此解释为无影响')
         _, reviews, symbol_key, fingerprint = review_subject(scan_id, symbol_id)
         item=page['items'][0]

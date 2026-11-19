@@ -13,11 +13,11 @@ git_diff:
   current_ref: HEAD
 ```
 
-两个引用都属于 `project.root` 固件仓库，支持分支、远端跟踪分支、标签和提交 SHA。比较方向为 `base_ref → current_ref`，直接比较两个版本，不自动取共同祖先。例如 `base_ref: release/v1`、`current_ref: feature/control`，无需检出这两个分支：工具在隔离工作树构建并分析，结果仍写入原固件输出目录。
+两个引用都属于 `project.root` 固件仓库，支持本地分支、远端跟踪分支和 tag，可混合选择。提交 SHA 用于记录启动时固定的身份。比较方向为 `base_ref → current_ref`，直接比较两个版本，不自动取共同祖先。例如 `base_ref: release/v1`、`current_ref: feature/control`：工具在私有工作树构建并分析，结果写入独立数据根。
 
-`current_ref: HEAD` 使用当前检出版本，默认要求工作区干净；先把构建目录和 `.ecra/` 加入固件 `.gitignore`。只有需要连同本地暂存、未暂存、未跟踪修改一起检查时，才额外填写 `include_uncommitted: true`，此时 `current_ref` 必须为 `HEAD`。指定其它引用只比较提交内容，不受原工作区未提交修改影响。工具不会自动 fetch，远端跟踪分支需要用户事先更新。
+`current_ref: HEAD` 表示当前检出的分支，工作区修改可以保留并继续编辑。两侧启动时固定提交、配置及构建输入，原分支/tag 后续推进只影响新扫描。暂存、未暂存和未跟踪字节均不进入 Diff；旧 `include_uncommitted: true` 配置会拒绝，需要工作区字节扫描时使用原非 Diff 全量流程。工具不自动 fetch，远端跟踪分支需要事先更新。当前规则与验收状态见 [2026-11-18 需求清单](git-diff-requirements-and-acceptance-20261118.md)。
 
-日常只需上面的三个字段；缓存自动校验并复用，未知影响自动扩大。参数取舍和高级选项见[配置分析](git-diff-concurrency-validation.md#参数取舍与迁移)。命令行只覆盖本次模式，不改 YAML：
+日常只需上面的三个字段；缓存经校验后复用，明确影响和待核实对象分别展示，可排除对象留后台。参数取舍和高级选项见[配置分析](git-diff-concurrency-validation.md#参数取舍与迁移)。命令行只覆盖本次模式，不改 YAML：
 
 ```powershell
 py -3.10 run_ecra.py
@@ -25,13 +25,13 @@ py -3.10 run_ecra.py --scan-mode full
 py -3.10 run_ecra.py --scan-mode diff
 ```
 
-仍打开 `.ecra/index.html`。差异变量有影响原因、基准/当前变化路径；未修改路径默认收起，继续参与并发分析和复核。范围之外不代表安全。旧版需能在隔离目录独立构建；失败会明确停止。`review` 与 `review-failed` 使用已保存范围，源码/引用变化后须重扫。Portable 差异模式需要打包完整 MinGit。详情和验证命令见 [技术验收记录](git-diff-concurrency-validation.md)。
+当前原生结果从 Studio 打开；`.ecra/index.html` 属于旧版兼容工作流。差异变量保留影响原因、两侧证据和真实对象去向，未修改的相关访问继续参与分析与复核。`review` 与 `review-failed` 使用已保存范围；私有输入或归档损坏会阻断使用，原工作区编辑和引用推进不会改写既有批次。两侧均需有可信的独立构建依据。Portable 差异模式需要完整 Git 支持；下方较早的 HTML 操作和测量记录仍按其原版本理解。
 
 只做静态实测时同时设置 `review.enabled: false`、`review.prepare_packets: false`，并加 `--no-review`。`scripts/benchmark_project_scan.py --project <工程> --config <配置> --scan-mode diff --evidence <新的证据目录>` 可记录真实 CLI 的耗时、内存和完整语义摘要；增加 `--reference <另一轮>/summary.json` 可核对同一源码的全量与差异结果。方法与实际边界见 [真实工程优化记录](real-project-optimization-validation.md)。
 
 若上述测量中的 CLI 已结束、但产物审计中断，可用相同参数和相同证据目录增加 `--audit-saved`。工具先验证原命令、引擎、配置、对照摘要、输入闭包和既定基准审计选项；只有仍属于同一未完成扫描才补跑审计，不重新提取 AST，不改写原始 CLI 耗时、峰值及退出码。存在扫描锁、源码变化或已经完成时会拒绝；旧格式测量缺少必要身份字段时需重新执行，不能补填指纹来认可旧证据。
 
-差异详情的“新旧变化摘要”可以核对 WRITE→RMW、临界区移除、执行入口及布局变化；摘要条目数相同也不表示证据内容相同，应结合本轮代码差异和收起的完整证据核对。标量与容器转换、缺失匹配或任一版本 UNKNOWN 时会说明风险变化无法判断，不能将容器根对象的分类变化理解为成员竞争已经消除。升级至摘要 Schema 4 后，原有完整快照与引擎校验仍保留，工具会重新建立失效缓存。
+差异详情可核对 WRITE→RMW、临界区移除、执行入口及布局变化。当前按安全、疑似、未知九格矩阵及独立免复核规则判定风险变化：未知转疑似不计本次新引入，未知转安全不计已知风险修复；疑似转安全需要逐冲突关闭证明。标量/容器转换和匹配不确定保留两侧证据。摘要升级会重建失效缓存，旧归档缺少证明时明确不可比；条目数量相同不代表证据相同。
 
 INAV 专用 `scripts/validate_inav_git_diff.py --start-at-diff` 可省去重复的独立 full-base 轮；首次差异仍建立两版完整事实，并额外审计其内建完整基准，后续保留三种修改对应的独立当前版本全量对照。此方式是八个外层轮次加内建基准，不是九次独立外层扫描，也不能同时指定 `--baseline-reference`。
 

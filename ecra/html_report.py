@@ -434,10 +434,13 @@ def final_conclusion(report, reviews):
     if not confirmed:
         unresolved += [f['finding_id'] for f in report['findings'] if not f.get('symbol_id')
                        and category(mapping[f['finding_id']]) == 'confirmed']
+    diff = report.get('git_diff', {})
+    impact_incomplete = (diff.get('impact_coverage') != 'COMPLETE' if diff.get('impact_schema')
+                         else bool(diff.get('fallback_reasons')))
     if confirmed:
         verdict, label = 'HAS_ISSUES', '有问题：OpenCode 已确认存在并发缺陷'
     elif (unresolved or report.get('analysis_status') != 'MODELED_SCOPE_COMPLETE'
-          or report.get('git_diff', {}).get('fallback_reasons')):
+          or impact_incomplete):
         verdict, label = 'INCONCLUSIVE', '尚不能确定：不能据此宣称没有问题'
     else:
         verdict, label = 'NO_ISSUES_IN_SCOPE', '本次已覆盖的构建与候选范围内未确认并发问题'
@@ -1144,9 +1147,13 @@ def _write_html(out, facts, report, reviews):
         impact = v.get('impact') if report.get('git_diff') else None
         if impact:
             detail_body += '<h3>本次影响依据</h3><p>' + esc('；'.join(impact['reason_labels'])) + '</p>'
-            detail_body += '<p>风险变化：' + esc(impact['risk_change']) + '；影响覆盖：' + esc({'COMPLETE': '完整', 'CONSERVATIVE': '保守扩大'}.get(impact['impact_coverage'], '未完成')) + '</p>'
+            risk_label = impact['risk_change'] if impact.get('risk_transition') else '旧归档缺少风险变化证明，无法比较'
+            detail_body += '<p>风险变化：' + esc(risk_label) + '；影响覆盖：' + esc({'COMPLETE': '完整', 'CONSERVATIVE': '保守扩大'}.get(impact['impact_coverage'], '未完成')) + '</p>'
             if impact.get('risk_comparison_note'):
                 detail_body += '<p>' + esc(impact['risk_comparison_note']) + '</p>'
+            if impact.get('risk_transition'):
+                detail_body += raw(dict(object_change=impact.get('object_change'),
+                                        risk_transition=impact['risk_transition']), '对象与静态风险变化证据')
             detail_body += diff_evidence_table(impact)
             if impact.get('diff_patch_path'):
                 from pathlib import Path
@@ -1384,10 +1391,11 @@ def _write_html(out, facts, report, reviews):
     coverage += raw(facts.get('translation_units', []), '全部编译单元、真实参数与解析诊断')
     coverage += raw(facts.get('unknowns', []), '全部原始分析盲区（不因合并复核项而删除）')
     coverage += raw(report.get('limitations', []), '分析限制') + raw(report.get('baseline', {}), '与上轮的变化')
-    if report.get('git_diff', {}).get('fallback_reasons'):
+    if report.get('git_diff', {}).get('fallback_reasons') or report.get('git_diff', {}).get('impact_schema'):
         diff = report['git_diff']
-        coverage += '<h3>差异关联尚未排除的潜在影响</h3><p>另有 ' + str(len(diff.get('conservative_symbol_ids', []))) + ' 个变量未发现版本变化或明确依赖，但因覆盖缺口暂不能排除潜在影响。它们未计入默认清单；未列出不构成额外的安全证明。</p>'
-        coverage += raw(dict(reasons=diff['fallback_reasons'], symbol_ids=diff.get('conservative_symbol_ids', [])), '查看关联不确定性的范围与依据')
+        coverage += '<h3>差异关联尚未排除的潜在影响</h3><p>待核实变量 ' + str(len(diff.get('conservative_symbol_ids', []))) + ' 个；新扫描将其与明确影响对象一同纳入差异清单。区域性未识别缺口另行保留，不计作已识别变量。</p>'
+        coverage += raw(dict(reasons=diff.get('fallback_reasons', []), symbol_ids=diff.get('conservative_symbol_ids', []),
+            impact_counts=diff.get('impact_counts'), regional_gaps=diff.get('regional_gaps', [])), '查看三类归账与区域性缺口')
     coverage += '<h2>任务、中断与硬件上下文</h2>' + table(['上下文', '入口、优先级、注册与发现依据'],
         [row([esc(context(c['id'])), raw(c)]) for c in facts['contexts']])
     counts = Counter(category(r) for r in records.values())
@@ -1400,12 +1408,18 @@ def _write_html(out, facts, report, reviews):
         storage_count = risk_summary(facts, report, records)['total_variables']
         summary += metrics([('变更文件', len(pinned['files'])), ('变更函数', len(diff['modified_function_ids'])), ('受影响分析对象', storage_count), ('疑似并发风险', classes['SUSPECT']), ('无法判断', classes['UNKNOWN']), ('静态已判安全', classes['SAFE_PROVEN']), ('共享访问，无需复核', classes['SHARED_NO_REVIEW'])])
         summary += '<p>当前差异清单共 ' + str(len(diff['selected_symbol_ids'])) + ' 行（含结构体/数组容器汇总）；上述静态分类按实际分析对象统计，容器不重复计入风险分母。</p>'
-        summary += '<p>影响分析状态：' + ('仍有未排除的潜在影响（' + esc('；'.join(diff['fallback_reasons'])) + '）' if diff['fallback_reasons'] else '完整') + '。未列出变量不代表安全。覆盖栏目使用完整构建范围。</p>'
-        summary += '<p>默认清单仅展示有版本变化或明确依赖关系的变量；未排除的潜在影响另有 ' + str(len(diff.get('conservative_symbol_ids', []))) + ' 个，详见覆盖说明。后台始终保留完整并发分析。</p>'
-        if not diff['selected_symbol_ids']:
+        summary += '<p>影响分析状态：' + ('仍有待核实对象或覆盖缺口' if diff.get('impact_coverage') != 'COMPLETE' else '已识别对象的影响判定完整') + '。覆盖栏目使用完整构建范围。</p>'
+        summary += '<p>差异清单展示明确影响与待核实对象；可排除对象及证明保留在后台。容器仅汇总，区域性缺口单列；人工确认沿用原规则。</p>'
+        publication = diff.get('publication', {}).get('state')
+        verification = diff.get('full_verification', {}).get('state')
+        summary += '<p>' + esc({'COMPLETE':'完整覆盖结果已发布','VALID_PARTIAL':'有效局部结果已发布'}.get(publication,'发布完整性未记录')) + '；' + esc(
+            {'PASSED':'独立全量对照通过（当前侧）','INCOMPLETE':'独立全量对照未完成（局部缺口）','NOT_RUN':'独立全量对照未执行'}.get(verification,'独立对照状态未记录')) + '。</p>'
+        if not diff['selected_symbol_ids'] and not diff.get('baseline_only_variables') and not diff['deleted_variables']:
             summary += '<p>本次比较未识别到需要核对的差异变量。</p>'
         if diff['deleted_variables']:
             summary += '<details><summary>已删除存储对象（不计入当前风险统计）</summary>' + raw(diff['deleted_variables'], '删除证据') + '</details>'
+        if diff.get('baseline_only_variables'):
+            summary += '<details><summary>仅基准侧观察到的对象（去向与风险变化分别核对）</summary>' + raw(diff['baseline_only_variables'], '基准侧对象证据') + '</details>'
         content = summary + '</section>' + content
     content += '<nav class="tabs" aria-label="排查栏目">' + ''.join(f'<a href="#{key}">{label} {number}</a>' for key, label, number in [
         ('risks', '变量风险结论', len(risks)), ('inventory', '差异涉及变量' if report.get('git_diff') else '全部目标变量', len(inventory_rows)), ('gaps', '覆盖 / 依赖证据', len(gaps)), ('coverage', '过滤与覆盖校验', '')]) + '</nav><!--controls-->'

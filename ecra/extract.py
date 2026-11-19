@@ -878,6 +878,8 @@ class Extractor:
         self.control_flow.append(build_cfg(self, fn))
         from .nvic_extract import program
         self.nvic_programs.append(program(self, fn))
+        from .diff_dependencies import extract_dependencies
+        self.functions[fid]['diff_dependencies'] = extract_dependencies(self, fn)
 
     def record_standalone_calls(self, fn, fid, sites):
         # Keep the surrounding tokens as a proof that the other statements,

@@ -113,7 +113,8 @@ class SemanticDiffTests(unittest.TestCase):
         diff, facts, _ = self.delta({'a.c': src}, {'a.c': src.replace('(30,1,0)', '(30,0,0)')})
         # No IRQ number/priority relation to this standalone ISR was proved.
         # Keep its possible impact visible as uncertainty, not a code delta.
-        self.assertNotIn('g', self.names(diff, facts))
+        self.assertIn('g', self.names(diff, facts))
+        self.assertEqual(diff['impacts']['c:@g']['impact_class'], 'UNCERTAIN')
         self.assertIn('c:@g', diff['conservative_symbol_ids'])
 
     def test_T13_shared_data_fixed_point(self):
@@ -144,7 +145,9 @@ class SemanticDiffTests(unittest.TestCase):
     def test_T18_rename_is_explicitly_uncertain(self):
         diff, facts, _ = self.delta({'a.c': 'int g;void Task(void){g++;}'}, {'a.c': 'int h;void Task(void){h++;}'})
         self.assertIn('h', self.names(diff, facts))
-        self.assertTrue(diff['deleted_variables'])
+        self.assertFalse(diff['deleted_variables'])
+        self.assertTrue(diff['baseline_only_variables'])
+        self.assertEqual(diff['baseline_only_variables'][0]['impact']['object_change']['event'], 'MATCH_UNCERTAIN')
         self.assertIn('MATCH_UNCERTAIN', next(iter(diff['impacts'].values()))['reasons'])
 
     def test_T19_file_move_static_matching(self):
@@ -157,10 +160,11 @@ class SemanticDiffTests(unittest.TestCase):
         diff = compare(summarize(bf, br, {'old.c': 'new.c'}), summarize(hf, hr), dict(files=[],head_sha='h',base_sha='b'))
         self.assertFalse(diff['deleted_variables'])
 
-    def test_T20_T21_build_change_preserves_uncertainty_without_filling_diff(self):
+    def test_T20_T21_build_change_preserves_uncertainty_in_diff(self):
         src = {'a.c': 'int g;void Task(void){g++;}'}
         diff, facts, _ = self.delta(src, src, [dict(new_path='CMakeLists.txt')])
-        self.assertNotIn('g', self.names(diff, facts))
+        self.assertIn('g', self.names(diff, facts))
+        self.assertEqual(diff['impacts']['c:@g']['impact_class'], 'UNCERTAIN')
         self.assertIn('c:@g', diff['conservative_symbol_ids'])
         self.assertEqual(diff['fallback_level'], 'L1')
 
@@ -398,10 +402,8 @@ class GitIntegrationTests(unittest.TestCase):
         # Committed comparisons bind refs and isolated source, not dirty bytes.
         assert_pin(self.root, cfg, before)
         cfg['analysis']['git_diff']['include_uncommitted'] = True
-        before = pin(self.root, cfg)
-        (self.root/'a.c').write_text('int changed_again;')
-        with self.assertRaises(ValueError):
-            assert_pin(self.root, cfg, before)
+        with self.assertRaisesRegex(ValueError, 'Diff 只支持'):
+            pin(self.root, cfg)
 
     def test_settings_strict_types(self):
         for bad in (dict(enabled=1), dict(base_ref='-x'), dict(current_ref=''),
@@ -453,13 +455,22 @@ class GitIntegrationTests(unittest.TestCase):
         cfg['analysis']['git_diff']['current_ref'] = 'feature'
         write_json(self.root/'.ecra/semantics.yaml', cfg)
         before = self.command('status', '--porcelain=v1')
-        report = self.scan()
+        from ecra.scan_persistence import run_canonical
+        from ecra.scan_store import EvidenceProvider
+        from ecra.workflow import output_path
+        from ecra.config import load_config
+        log = io.StringIO()
+        with contextlib.redirect_stdout(log):
+            code = run_canonical(self.root, no_review=True)
+        self.assertIn(code, (0, 1, 2), log.getvalue())
+        out = output_path(self.root, load_config(self.root)[0])
+        report = EvidenceProvider(out/'scan.db').load('report')
         self.assertIn('c:@g', report['git_diff']['selected_symbol_ids'])
         self.assertEqual(report['git_diff']['pin']['head_sha'], feature_sha)
         self.assertEqual(self.command('symbolic-ref', '--short', 'HEAD'), 'unrelated')
         self.assertEqual(self.command('status', '--porcelain=v1'), before)
         self.assertEqual((self.root/'a.c').read_text(), 'int workspace_only;')
-        self.assertNotIn('workspace_only', (self.root/'.ecra/facts.json').read_text(encoding='utf-8'))
+        self.assertNotIn('workspace_only', json.dumps(EvidenceProvider(out/'scan.db').load('facts')))
         patch_text = Path(report['git_diff']['pin']['diff_patch_path']).read_text(encoding='utf-8')
         self.assertIn('g=2', patch_text)
         self.assertNotIn('workspace_only', patch_text)
@@ -468,9 +479,9 @@ class GitIntegrationTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(saved_run(self.root, render_only=True), (1, 2))
         self.assertTrue(status(self.root)['resumable'])
-        # Moving an explicitly selected branch invalidates the old evidence.
+        # Moving the original branch does not alter its fixed historical view.
         self.command('update-ref', 'refs/heads/feature', 'base')
-        self.assertFalse(status(self.root)['resumable'])
+        self.assertTrue(status(self.root)['resumable'])
 
     @unittest.skipUnless(all(shutil.which(tool) for tool in ('cmake', 'ninja', 'arm-none-eabi-gcc')),
                          'Requires CMake, Ninja and ARM GCC')
@@ -536,9 +547,12 @@ class GitIntegrationTests(unittest.TestCase):
         cfg.setdefault('project', {})['root'] = str(sub)
         config = self.root/'.ecra/semantics.yaml'
         write_json(config, cfg)
+        from ecra.scan_persistence import run_canonical
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertIn(run(sub, str(config), no_review=True, scan_mode='diff'), (1, 2))
-        report = read_json(sub/'.ecra/reports/global_static_concurrency.json')
+            self.assertIn(run_canonical(sub, str(config), no_review=True, scan_mode='diff'), (1, 2))
+        from ecra.workflow import output_path
+        from ecra.config import load_config
+        report = read_json(output_path(sub, load_config(sub, config)[0])/'reports/global_static_concurrency.json')
         self.assertIn('c:@g', report['git_diff']['selected_symbol_ids'])
         self.assertEqual(report['git_diff']['pin']['project_subdir'], sub.name)
         from ecra.workflow import status, saved_run
@@ -567,11 +581,8 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('add', 'a.c')
         (self.root/'b.c').write_text('int unstaged;')
         (self.root/'新 文件.h').write_text('#define FLAG 1')
-        snapshot = pin(self.root, cfg)
-        self.assertTrue(any(f['status'] == '?' and f['new_path'] == '新 文件.h' for f in snapshot['files']))
-        (self.root/'新 文件.h').write_text('#define FLAG 2')
-        with self.assertRaises(ValueError):
-            assert_pin(self.root, cfg, snapshot)
+        with self.assertRaisesRegex(ValueError, 'Diff 只支持'):
+            pin(self.root, cfg)
 
     def test_project_subdirectory_binds_real_repo_paths(self):
         self.repository()
@@ -582,12 +593,10 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('commit', '-m', 'subdir')
         from ecra.config import load_config
         cfg, _ = load_config(self.root)
-        cfg['analysis']['git_diff']['include_uncommitted'] = True
         before = pin(sub, cfg)
         (sub/'input.h').write_text('#define FLAG 2')
-        self.assertNotEqual(before['workspace_digest'], pin(sub, cfg)['workspace_digest'])
-        with self.assertRaises(ValueError):
-            assert_pin(sub, cfg, before)
+        self.assertEqual(before, pin(sub, cfg))
+        assert_pin(sub, cfg, before)
 
     def test_header_comments_preserve_macro_whitespace_semantics(self):
         from ecra.git_diff import comment_insensitive

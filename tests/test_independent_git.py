@@ -33,7 +33,7 @@ class IndependentGitTests(unittest.TestCase):
         self.tree=Path(self.ws.worktree_root)/('current-'+self.head[:16])
 
     def git(self,root,*args):
-        return subprocess.check_output(['git','-C',str(root),'-c','commit.gpgSign=false',*map(str,args)],
+        return subprocess.check_output(['git','-C',str(root),'-c','core.longpaths=true','-c','commit.gpgSign=false',*map(str,args)],
             stderr=subprocess.DEVNULL).decode('utf-8').strip()
 
     def files(self,root):
@@ -122,6 +122,37 @@ class IndependentGitTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'include'):
             snapshots.prepare(self.repo,self.tree,self.head,self.ws)
         self.assertEqual(self.files(self.repo),before);self.assertFalse(self.tree.exists())
+
+    def test_fixed_metadata_never_refreshes_when_original_refs_and_checkout_change(self):
+        before = self.files(self.repo)
+        frozen = snapshots.freeze(self.repo, self.ws)
+        snapshots.prepare_frozen(self.tree, self.head, self.ws, frozen)
+        self.assertEqual(self.files(self.repo), before)
+        original = self.git(self.tree, 'describe', '--tags', '--always')
+        self.git(self.repo, 'tag', 'v2')
+        self.git(self.repo, 'tag', '-f', 'v1', self.head)
+        self.git(self.repo, 'checkout', '-b', 'other', self.base)
+        before = self.files(self.repo)
+        snapshots.prepare_frozen(self.tree, self.head, self.ws, frozen)
+        self.assertEqual(self.git(self.tree, 'describe', '--tags', '--always'), original)
+        self.assertEqual(self.files(self.repo), before)
+        newer = snapshots.freeze(self.repo, self.ws)
+        self.assertNotEqual(newer['id'], frozen['id'])
+        snapshots.check_frozen(frozen, self.ws)
+        repository = Path(frozen['repository'])
+        self.git(repository, 'tag', 'tampered')
+        with self.assertRaisesRegex(ValueError, '改变|损坏'):
+            snapshots.check_frozen(frozen, self.ws)
+
+    def test_global_git_configuration_remains_a_verified_external_build_input(self):
+        config = self.home/'global.gitconfig'
+        config.write_text('[core]\n\tabbrev = 10\n', 'utf-8')
+        with patch.dict(os.environ, dict(GIT_CONFIG_GLOBAL=str(config))):
+            frozen = snapshots.freeze(self.repo, self.ws)
+            snapshots.prepare_frozen(self.tree, self.head, self.ws, frozen)
+            config.write_text('[core]\n\tabbrev = 12\n', 'utf-8')
+            with self.assertRaisesRegex(ValueError, '外部构建配置'):
+                snapshots.check_frozen(frozen, self.ws)
 
 
 if __name__=='__main__':unittest.main()

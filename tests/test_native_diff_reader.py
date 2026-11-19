@@ -116,11 +116,22 @@ class NativeDiffReaderTests(unittest.TestCase):
         for callback in (lambda: summarize(self.facts, self.report), lambda: summarize_native(path)):
             with self.assertRaises(KeyError): callback()
 
+    def test_comparison_scope_keeps_all_failed_variant_exclusion_evidence(self):
+        self.facts['failed_tu_preprocessing'] = [dict(source_file='failed.c', tu_id='failed-1',
+            status='COMPLETE', identifiers=['other'], command_sha256='command', output_sha256='output')]
+        result = self.equivalent()
+        self.assertEqual(result['comparison_scope']['failed_preprocessing'], self.facts['failed_tu_preprocessing'])
+        self.assertIn('risk_evidence', result['variables']['state'])
+
     def test_partial_empty_and_malformed_authorities_do_not_complete(self):
-        for units in ([], [dict(source_file='main.c', parse_status='PARTIAL')]):
+        for units in ([], [dict(source_file='main.c', parse_status='INVALID')]):
             with self.subTest(units=units):
                 self.facts['translation_units'] = units
-                with self.assertRaisesRegex(ValueError, '部分解析'): summarize_native(self.publish())
+                with self.assertRaises(ValueError): summarize_native(self.publish())
+        self.facts['translation_units'] = [dict(source_file='main.c', parse_status='PARTIAL')]
+        from ecra.diff_verification import completeness
+        result = self.equivalent()
+        self.assertEqual(completeness(result['comparison_scope'])['state'], 'VALID_PARTIAL')
         self.facts['translation_units'] = [dict(source_file='main.c', parse_status='PARSED')]
         self.facts['functions'] = [None]
         with self.assertRaisesRegex(ValueError, '非对象'): summarize_native(self.publish())
