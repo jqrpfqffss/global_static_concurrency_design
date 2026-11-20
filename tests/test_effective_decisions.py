@@ -12,14 +12,15 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from ecra.common import read_json
-from ecra.cli import run
+from ecra.scan_persistence import run_canonical
 from ecra.decisions import effective_decision, variable_decisions
 from ecra.html_report import (REVIEW_PAGE, anchor, reviewed_variable_summary,
                               review_records, risk_summary)
 from ecra.report import generate
 from ecra.review import review_all
 from ecra.review_integrity import review_integrity, normalize_review_record
-from ecra.workflow import clean_report, analysis_config
+from ecra.scan_store import EvidenceProvider
+from ecra.workflow import clean_report, analysis_config, load_config, output_path
 from tests import test_ecra as fixtures
 from tests.test_review_contract import answer_for
 
@@ -107,9 +108,11 @@ class ExportTests(unittest.TestCase):
         cfg = self.project({'app.c': 'int counter; extern int external_value;\n'
             'void ISR(void){counter++;}\nvoid Task(void){counter++;(void)external_value;}\n'})
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(run(self.root, no_review=True), 2)
-        facts = read_json(self.root / '.ecra/facts.json')
-        report = clean_report(read_json(self.root / '.ecra/reports/global_static_concurrency.json'))
+            self.assertEqual(run_canonical(self.root, no_review=True), 2)
+        scan = output_path(self.root, load_config(self.root)[0])
+        provider = EvidenceProvider(scan / 'scan.db')
+        facts = provider.load('facts')
+        report = clean_report(provider.load('report'))
         self.assertEqual(Counter(v.get('static_classification') for v in facts['variables']),
                          {'SUSPECT': 1, 'UNKNOWN': 1})
         return cfg, facts, report

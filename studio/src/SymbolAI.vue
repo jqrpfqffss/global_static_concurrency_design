@@ -2,11 +2,25 @@
 import { ref,watch,onBeforeUnmount } from 'vue'
 import { api,label } from './api'
 import ReviewAnswer from './ReviewAnswer.vue'
-const props=defineProps<{scan:string,symbol:string,revision:string}>(),emit=defineEmits<{source:[location:any]}>()
+const props=defineProps<{scan:string,symbol:string,revision:string,pollCycle:number}>(),emit=defineEmits<{source:[location:any]}>()
 const page=ref<any>(null),offset=ref(0),loading=ref(false),error=ref('')
 let request=0
-async function load(){const mine=++request;loading.value=true;error.value='';try{const value=await api(`/scans/${props.scan}/symbol-ai?`+new URLSearchParams({symbol_id:props.symbol,offset:String(offset.value),limit:'20'}));if(mine===request)page.value=value}catch(e:any){if(mine===request)error.value=e.message}finally{if(mine===request)loading.value=false}}
-watch(()=>[props.scan,props.symbol,props.revision],()=>{offset.value=0;load()},{immediate:true})
+async function load(){
+  const mine=++request
+  loading.value=true
+  try{
+    const value=await api(`/scans/${props.scan}/symbol-ai?`+new URLSearchParams({symbol_id:props.symbol,offset:String(offset.value),limit:'20'}))
+    if(mine!==request)return
+    if(value.result_revision!==props.revision){error.value='复核结论待同步。';return}
+    page.value=value;error.value=''
+  }catch(e:any){if(mine===request)error.value='复核结论更新失败，待同步。'+e.message}
+  finally{if(mine===request)loading.value=false}
+}
+watch(()=>[props.scan,props.symbol,props.revision],(now,previous)=>{
+  if(!previous||now[0]!==previous[0]||now[1]!==previous[1]){page.value=null;offset.value=0}
+  void load()
+},{immediate:true})
+watch(()=>props.pollCycle,()=>{if(error.value&&!loading.value)void load()})
 onBeforeUnmount(()=>request++)
 const states:Record<string,string>={PENDING:'尚未复核',RUNNING:'正在复核',TECH_FAILED:'技术失败，不能判定安全',STALE:'旧结论失效'}
 </script>

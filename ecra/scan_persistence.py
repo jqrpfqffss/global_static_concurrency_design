@@ -46,6 +46,14 @@ def exists(path):
     return Path(path).is_file() or artifact(path) is not None
 
 
+def result_revision(conn, *, attached=False):
+    """Identity of the published AI snapshot and both append-only human collections."""
+    schema = 'human.' if attached else ''
+    row = conn.execute(f'SELECT coalesce((SELECT max(sequence) FROM {schema}ai_snapshots),0),'
+                       f'(SELECT count(*) FROM {schema}events),(SELECT count(*) FROM {schema}prior_decisions)').fetchone()
+    return ':'.join(map(str, row))
+
+
 def snapshot_head(conn):
     row = conn.execute('SELECT sequence,hash,payload FROM ai_snapshots ORDER BY sequence DESC LIMIT 1').fetchone()
     if not row:
@@ -338,7 +346,9 @@ def ai_page(out, offset=0, limit=50, *, outcome='', search='', revision=None, fi
     if revision is not None and revision == current_revision:
         return dict(unchanged=True, revision=current_revision)
     if meta.get('ai_events_version')!=2:
-        rows=runtime(out).get('reviews',[])
+        snapshot=runtime(out)
+        rows=snapshot.get('reviews',[])
+        current_revision=snapshot.get('revision',0)
         states={}
         labels={}
         if rows and (Path(out)/'scan.db').is_file():

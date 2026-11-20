@@ -58,7 +58,7 @@ function select(item:any){open.value=false;emit('select',item)}
     <p>{{publicationLabel(diff.publication?.state)}} · {{verificationLabel(diff.full_verification?.state)}}</p>
     <p v-if="!diff.real_object_inventory_complete" class="banner warning">存在未识别区域，三类计数仅覆盖已识别对象；没有待办不代表整体安全。</p>
     <p v-if="diff.risk_comparison_note" class="banner warning">{{diff.risk_comparison_note}}</p>
-    <p v-if="diff.change_counts">当前疑似 {{diff.change_counts.current_suspect || 0}} · 原风险未关闭 {{diff.change_counts.prior_risk_unclosed || 0}} · 确定新增疑似 {{diff.change_counts.counts_as_new_risk || 0}} · 有关闭证明 {{diff.change_counts.counts_as_risk_resolution || 0}}</p>
+    <p v-if="diff.change_counts">静态差异（复核前） · 当前侧静态疑似 {{diff.change_counts.current_suspect || 0}} · 原风险未关闭 {{diff.change_counts.prior_risk_unclosed || 0}} · 确定新增疑似 {{diff.change_counts.counts_as_new_risk || 0}} · 有关闭证明 {{diff.change_counts.counts_as_risk_resolution || 0}}</p>
     <div class="section-tabs" aria-label="差异明细"><button v-for="[id,title] in tabs" :key="id" :aria-pressed="kind===id" @click="choose(id!)">{{title}}</button></div>
     <p v-if="kind==='files'" class="muted">结论对应两端实际构建中的活动代码。未入构建文件与失活宏分支只作为范围或声明记录，不作为运行访问或安全证明；文件范围可在“覆盖与诊断 → 构建与范围”中核对。</p>
     <div v-if="kind==='objects'" class="diff-filters">

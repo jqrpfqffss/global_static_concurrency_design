@@ -113,8 +113,8 @@ class ReviewStore:
             'AND NOT EXISTS(SELECT 1 FROM predecessors p WHERE p.parent_id=e.event_id) ORDER BY e.event_id',
             (symbol_id, fingerprint))]
 
-    def current(self, symbol_id, fingerprint):
-        with self.connection() as conn:
+    def current(self, symbol_id, fingerprint, *, _connection=None):
+        with (self.connection() if _connection is None else nullcontext(_connection)) as conn:
             return self._current(conn, symbol_id, fingerprint)
 
     def _current(self, conn, symbol_id, fingerprint):
@@ -134,8 +134,8 @@ class ReviewStore:
                     handling_status=heads[0]['handling_status'] if len(heads)==1 else 'TODO',has_prior=prior,
                     inherited=False, inherited_sources=[])
 
-    def prior(self, symbol_id, fingerprint):
-        with self.connection() as conn:
+    def prior(self, symbol_id, fingerprint, *, _connection=None):
+        with (self.connection() if _connection is None else nullcontext(_connection)) as conn:
             return [json.loads(row[0]) for row in conn.execute(
                 'SELECT payload FROM prior_decisions WHERE symbol_id=? AND fingerprint=? ORDER BY source_scan', (symbol_id,fingerprint))]
 
@@ -286,8 +286,8 @@ class ReviewStore:
                 imported += self._insert(conn, event)
         return imported
 
-    def history(self, symbol_id=None):
-        with self.connection() as conn:
+    def history(self, symbol_id=None, *, _connection=None):
+        with (self.connection() if _connection is None else nullcontext(_connection)) as conn:
             query = 'SELECT payload FROM events'
             args = ()
             if symbol_id is not None:

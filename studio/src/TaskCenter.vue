@@ -38,17 +38,23 @@ const reviewTask=computed(()=>['review','review-resume','review-failed'].include
   (detail.value?.mode==='scan'&&detail.value?.review_resumable))
 const control=computed(()=>detail.value?.resource_control)
 const controlFailed=computed(()=>['FAILED','INVALID'].includes(control.value?.status))
-const counterName=computed(()=>({WORKING_INPUT_INVENTORY:'编译输入盘点',COMPILE_INPUT_PRECHECK:'编译输入检查',AI_REVIEW:'复核任务处理数'} as Record<string,string>)[detail.value?.progress_kind]||'TU 已处理（含解析失败，成功范围见覆盖诊断）')
+const counterName=computed(()=>detail.value?.mode==='scan'&&detail.value.progress_kind==='AI_REVIEW'?'扫描阶段已处理 TU':({WORKING_INPUT_INVENTORY:'编译输入盘点',COMPILE_INPUT_PRECHECK:'编译输入检查',AI_REVIEW:'本轮选中复核对象处理数'} as Record<string,string>)[detail.value?.progress_kind]||'TU 已处理（含解析失败，成功范围见覆盖诊断）')
 let timer:ReturnType<typeof setInterval>|undefined, polling=false, mounted=false
 async function poll(){
   if(polling)return
   polling=true
   try{
-    const previous=new Map(tasks.value.map(task=>[task.id,task.state]));tasks.value=(await api('/tasks')).items
+    let catalogError=''
+    try{
+      const previous=new Map(tasks.value.map(task=>[task.id,task.state]))
+      const list=await api('/tasks')
+      if(!mounted)return
+      tasks.value=list.items
+      for(const task of tasks.value)if(previous.has(task.id)&&['RUNNING','STOP_REQUESTED'].includes(previous.get(task.id))&&!running(task))emit('resultsChanged',task.scan_id)
+      if(!selected.value)selected.value=tasks.value.find(t=>t.mode==='scan'&&running(t))?.id||
+        tasks.value.find(t=>t.id===props.lastTask)?.id||tasks.value[0]?.id||''
+    }catch(e:any){catalogError=e.message}
     if(!mounted)return
-    for(const task of tasks.value)if(previous.has(task.id)&&['RUNNING','STOP_REQUESTED'].includes(previous.get(task.id))&&!running(task))emit('resultsChanged',task.scan_id)
-    if(!selected.value)selected.value=tasks.value.find(t=>t.mode==='scan'&&running(t))?.id||
-      tasks.value.find(t=>t.id===props.lastTask)?.id||tasks.value[0]?.id||''
     const id=selected.value,offset=logOffset.value
     if(id){
       const value=await api(`/tasks/${id}?offset=${offset}`)
@@ -56,8 +62,8 @@ async function poll(){
       if(value.metadata_error)throw Error(value.error)
       detail.value=value
     }
-    pollError.value=''
-  }catch(e:any){pollError.value=e.message}finally{polling=false}
+    pollError.value=catalogError
+  }catch(e:any){if(mounted)pollError.value=e.message}finally{polling=false}
 }
 async function action(fn:()=>Promise<any>){if(busy.value)return;busy.value=true;error.value='';notice.value='';try{await fn();await poll()}catch(e:any){error.value=e.message}finally{busy.value=false}}
 async function start(){
@@ -77,10 +83,12 @@ async function diagnostics(){await action(async()=>{
   notice.value='诊断包已保存：'+bundle.path
 })}
 async function retry(){await action(async()=>{const task=await api(`/tasks/${selected.value}/retry`,'POST',{});selected.value=task.id;logOffset.value=0;notice.value=task.mode==='review-failed'?'已提交技术失败项重试。':task.mode==='review-resume'?'已提交续跑，输入与收据校验后继续剩余项。':task.mode==='multicore'?'已提交固定输入的重新校验与派生重试。':'重新验证真实构建与完整输入闭包；只复用内容身份完全匹配的 TU 缓存。'})}
+function visible(){if(!document.hidden)void poll()}
 function showTask(id:string){selected.value=id;logOffset.value=0;void poll()}
 watch(selected,(id)=>{detail.value=null;pollError.value='';if(id)emit('focus',id)},{flush:'sync'})
 watch(()=>props.focusTask,(id)=>{if(id&&id!==selected.value)showTask(id)})
 onMounted(async()=>{
+  document.addEventListener('visibilitychange',visible)
   mounted=true
   selected.value=props.focusTask||''
   timer=setInterval(poll,1000)
@@ -91,7 +99,7 @@ onMounted(async()=>{
     profile.value=profiles.value.find(p=>p.id===detail.value?.profile_id)?.id||profiles.value[0]?.id||''
   }catch(e:any){error.value=e.message}
 })
-onUnmounted(()=>{mounted=false;if(timer)clearInterval(timer)})
+onUnmounted(()=>{document.removeEventListener('visibilitychange',visible);mounted=false;if(timer)clearInterval(timer)})
 </script>
 <template>
   <div class="task-center">
@@ -106,7 +114,7 @@ onUnmounted(()=>{mounted=false;if(timer)clearInterval(timer)})
     <template v-if="detail"><h3>{{taskName(detail)}}</h3><p class="identity">{{detail.id}} · {{detail.profile_id}}</p><p>{{detail.project_root}}</p>
       <p v-if="preflightNotice(detail)" role="status">{{preflightNotice(detail)}}</p>
       <ol class="task-stages"><li v-for="stage in detail.stages" :key="stage.started+stage.stage"><strong>{{stage.stage}}</strong> · {{stage.status==='RUNNING'?'进行中，剩余量未知':stage.status==='COMPLETE'?'阶段结束':stage.status}}<span v-if="stage.seconds"> · {{stage.seconds.toFixed(1)}} s</span></li></ol>
-      <p v-if="detail.publication">{{verificationLabel(detail.publication.verification_state)}} · 批次 {{detail.scan_id}}</p><p v-if="detail.state==='FAILED'" class="banner warning">本次失败；当前已打开的旧有效批次不会被本次结果替换，请核对页头批次。</p><p v-if="detail.mode==='multicore'">本任务使用已归档输入，记录实际校验和派生阶段。</p><p v-else-if="detail.review_progress" role="status">OpenCode 复核进度 {{detail.review_progress.total?(100*detail.review_progress.done/detail.review_progress.total).toFixed(1):'0.0'}}% · 总复核对象 {{detail.review_progress.total}} · 已完成 {{detail.review_progress.done}} · 技术失败 {{detail.review_progress.tech_failed}} · 待复核 {{detail.review_progress.pending}}</p><p v-else-if="detail.memory?.total_units">{{counterName}} {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>
+      <p v-if="detail.publication">{{verificationLabel(detail.publication.verification_state)}} · 批次 {{detail.scan_id}}</p><p v-if="detail.state==='FAILED'" class="banner warning">本次失败；当前已打开的旧有效批次不会被本次结果替换，请核对页头批次。</p><p v-if="detail.mode==='multicore'">本任务使用已归档输入，记录实际校验和派生阶段。</p><p v-else-if="detail.review_progress" role="status">OpenCode 复核进度 {{detail.review_progress.total?(100*detail.review_progress.done/detail.review_progress.total).toFixed(1):'0.0'}}% · 总复核对象 {{detail.review_progress.total}} · 已完成 {{detail.review_progress.done}} · 技术失败 {{detail.review_progress.tech_failed}} · 待复核 {{detail.review_progress.pending}}</p><p v-if="detail.memory?.total_units">{{counterName}} {{detail.memory.completed_units}} / {{detail.memory.total_units}}（实际记录）</p>
       <p v-else-if="detail.progress?.total_units">{{counterName}} {{detail.progress.completed_units}} / {{detail.progress.total_units}}（实时计数）</p>
       <p v-if="detail.tu_cache">内容校验后的 TU 缓存：命中 {{detail.tu_cache.hits}}，重新提取 {{detail.tu_cache.extracted}}，损坏 {{detail.tu_cache.corrupt}}</p>
       <div v-if="control" :class="['banner',controlFailed?'error':control.status==='RETRYING'?'warning':'']" :role="controlFailed?'alert':'status'"><strong>{{control.stage || 'Clang 翻译单元提取'}}</strong><p>{{control.message}}</p><p>故障发生时已处理 {{control.completed_units}} / {{control.total_units}} 个 TU。</p></div>

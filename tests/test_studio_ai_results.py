@@ -72,6 +72,20 @@ class StudioAIResultsTests(unittest.TestCase):
         self.assertEqual(ai_page(self.out)['groups']['confirmed'],0)
         self.assertEqual(ai_page(self.out)['groups']['likely'],1)
 
+    def test_conditional_ai_read_identifies_ledger_only_and_legacy_page_uses_actual_read_version(self):
+        current=ai_page(self.out)
+        self.assertTrue(ai_page(self.out,revision=current['revision'],search='变量2')['unchanged'])
+        self.assertEqual(ai_page(self.out,search='变量2')['total'],1)
+        original=runtime
+        def legacy_then_new(out, *, with_reviews=True):
+            if not with_reviews:
+                return dict(revision=current['revision']-1, report={})
+            return original(out)
+        with patch('ecra.scan_persistence.runtime',side_effect=legacy_then_new):
+            page=ai_page(self.out)
+        self.assertEqual(page['revision'],current['revision'])
+        self.assertEqual(page['groups'],current['groups'])
+
     def test_current_paging_never_reconstructs_complete_facts_or_review_ledger(self):
         original=runtime
         def bounded(out,*,with_reviews=True):

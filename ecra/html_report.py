@@ -593,7 +593,7 @@ def page(title, content, report, options, script="", reading=False):
         pass
     root = report.get('workspace', {}).get('project_root') or report.get('coverage', {}).get('project_root', '')
     project = root.replace('\\', '/').rstrip('/').rsplit('/', 1)[-1] or '当前工程'
-    meta = f"{project} · 扫描时间：{generated}（重新生成页面不会刷新扫描时间）"
+    meta = f"{project} · 扫描时间：{generated} · HTML 生成时快照：{datetime.now().astimezone().isoformat(timespec='seconds')}"
     if report.get('workspace'):
         meta += ' · 扫描结果目录：' + report['workspace']['results_root']
     controls = '<div class="toolbar"><label for="q">搜索</label><input id="q" type="search" placeholder="变量、函数、文件或证据"><label for="filter">筛选</label><select id="filter">' + "".join(f'<option value="{esc(k)}">{esc(v)}</option>' for k, v in options) + '</select><label for="file-filter">文件</label><select id="file-filter"><option value="all">全部文件</option></select><label for="page-size">每页</label><select id="page-size"><option value="25">25 条</option><option value="100">100 条</option><option value="1000000000">全部</option></select><button id="reset" type="button">清除筛选</button><span id="visible" aria-live="polite"></span></div>'

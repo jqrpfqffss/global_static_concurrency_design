@@ -91,9 +91,8 @@ current_results AS (
 
 
 def revision(conn):
-    row=conn.execute("SELECT coalesce((SELECT max(sequence) FROM human.ai_snapshots),0),"
-                     "(SELECT count(*) FROM human.events),(SELECT count(*) FROM human.prior_decisions)").fetchone()
-    return ':'.join(map(str,row))
+    from ..scan_persistence import result_revision
+    return result_revision(conn, attached=True)
 
 
 def summary(conn, source, args, *, include_static=False):

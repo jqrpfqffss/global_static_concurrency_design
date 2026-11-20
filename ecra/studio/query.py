@@ -4,6 +4,7 @@ from pathlib import Path
 
 from ..scan_store import EvidenceProvider, connect_readonly
 from ..diff_review import BASELINE_IDS, DELETED_REVIEW_PREFIX, DiffReviewEvidence
+from .current_results import revision
 
 DIFF_CHANGE_LISTS = {
     'files': (['pin', 'files'], {'status', 'old_path', 'new_path', 'comment_only'}),
@@ -60,7 +61,7 @@ class QueryService:
         conn.create_function('ecra_inherited_decision',1,lambda sid:state(sid)['decision'])
         conn.create_function('ecra_inherited_handling',1,lambda sid:state(sid)['handling_status'])
 
-    def symbols(self, *, search='', classification='', human_decision='', handling_status='',
+    def symbols(self, *, reviews=None, search='', classification='', human_decision='', handling_status='',
                 file='',function='',context='',coverage='',ai_state='',current_result='',review_scope='all',diff='',symbol_id='',sort='priority',order='asc',offset=0, limit=50):
         self.evidence._bounds(offset, limit)
         sorts={
@@ -116,6 +117,17 @@ class QueryService:
             total = conn.execute('SELECT count(*) FROM ('+source+')', values).fetchone()[0]
             rows = [dict(row) for row in conn.execute('SELECT s.* FROM ('+source+') s ORDER BY '+ordering+',s.evidence_side LIMIT ? OFFSET ?',
                 [*values,limit,offset])]
+            applied_revision = revision(conn)
+            if reviews is not None:
+                baseline = None
+                for row in rows:
+                    sid = row['symbol_id']
+                    if row['evidence_side'] == 'baseline':
+                        baseline = baseline or self.diff_review.require_baseline(require_deleted=False)
+                        key, fingerprint = DELETED_REVIEW_PREFIX+sid, baseline.fingerprint(sid)
+                    else:
+                        key, fingerprint = sid, self.evidence.fingerprint(sid)
+                    row['human'] = reviews.current(key, fingerprint, _connection=conn)
         try:
             subjects = list({row['symbol_id'] for row in rows})
             page = self.diff_objects(symbols=subjects, limit=200)
@@ -128,7 +140,7 @@ class QueryService:
                 row['diff_change'] = details.get((row['symbol_id'], row['evidence_side']))
         except KeyError:
             pass  # Ordinary and legacy scans have no comparison row contract.
-        return dict(total=total,items=rows,offset=offset,sort=sort,order=order,
+        return dict(total=total,items=rows,offset=offset,sort=sort,order=order,result_revision=applied_revision,
             next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
     def _result_rows(self, conn, terms, args, diff):
@@ -287,17 +299,20 @@ class QueryService:
             items.append(values)
         return dict(items=items,total=total,offset=offset,next_offset=offset+len(items) if offset+len(items)<total else None)
 
-    def current_summary(self, *, diff=''):
+    def current_summary(self, *, diff='', include_diff=False):
         from .current_results import summary
         with closing(connect_readonly(self.path/'scan.db')) as conn:
             self._attach_human(conn)
             source, args = self._result_rows(conn, [], [], diff)
-            return summary(conn, source, args, include_static=bool(diff))
+            result = summary(conn, source, args, include_static=bool(diff))
+            if include_diff:
+                source, args = self._result_rows(conn, [], [], 'changes')
+                result['diff_results'] = summary(conn, source, args, include_static=True)
+            return result
 
     def human_counts(self):return self.current_summary()['human_counts']
 
     def result_revision(self):
-        from .current_results import revision
         with closing(connect_readonly(self.path/'scan.db')) as conn:
             self._attach_human(conn)
             return dict(result_revision=revision(conn))
@@ -320,7 +335,8 @@ class QueryService:
                 except ValueError as exc:
                     row = dict(finding_id=fid,state='TECH_FAILED',error=f'复核收据损坏：{exc}')
                 rows.append(row)
-            return dict(items=rows,total=total,offset=offset,next_offset=offset+len(rows) if offset+len(rows)<total else None)
+            return dict(items=rows,total=total,offset=offset,result_revision=revision(conn),
+                        next_offset=offset+len(rows) if offset+len(rows)<total else None)
 
     def symbol_functions(self, symbol_id, *, offset=0, limit=50):
         self.evidence._bounds(offset,limit)

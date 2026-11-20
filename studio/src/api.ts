@@ -4,7 +4,7 @@ if (fragment.get('session')) {
   history.replaceState(null, '', location.pathname + location.search)
 }
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) { super(message) }
+  constructor(message: string, readonly status: number, readonly code?: string) { super(message) }
 }
 export async function api(path: string, method = 'GET', data?: unknown): Promise<any> {
   const response = await fetch('/api' + path, {
@@ -12,7 +12,7 @@ export async function api(path: string, method = 'GET', data?: unknown): Promise
     body: data === undefined ? undefined : JSON.stringify(data)
   })
   const result = await response.json()
-  if (!response.ok) throw new ApiError(result.error || `请求失败 (${response.status})`, response.status)
+  if (!response.ok) throw new ApiError(result.error || `请求失败 (${response.status})`, response.status, result.code)
   return result
 }
 type UploadOptions = {

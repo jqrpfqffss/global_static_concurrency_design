@@ -65,10 +65,36 @@ def _config_engine_hash(hashed):
 _OPENCODE_RUNTIME_UPGRADE = {'config.py': {'c6078d9845b98cffc04aaad28645a5b8a09ec417c2df1e9c4b037753eb8c4311': '5d23965cdb19132dc10b04a08d2425b13ccc272e4ecb1977e6b1a1dfd569b3ba', '22d80b1c791cb093dd389ae94c5b8170e5c827a2431f99c47a1b609f83648070': '6352e018cec582589236685c52402ad514842e35e9134179048e3938c8505d65'}, 'cli.py': {'47d8615ad5fad1bd7a5b9c12b7048b90f4e0e10226e5f9ce6e35f7fbedc78508': '7beb189aab8dd9a5631b1ed850153bd070c26bb240458716c61eedf46b62c0e7', '23ef00da6290812ff063631d269deefe3bf04e00a5d83402765584931db5a48b': '6609c549543f4922fe18e2b5ad172a6a4b4ae0fb64a2c562a854ac9420231e46'}}
 
 
+# Preserve static checkpoints across the read-only Studio projection/export upgrade.
+_PROJECTION_READ_UPGRADE = {
+    'human_reviews.py': {
+        '5c110afcd14bbf22059500bb2420a1c33291ea893f370db8ff4349e0b99af7cc':
+            'b9af10f16cd6c81ce75eb13737f35c940bd8375501666d10696e5919ff244a32',
+        'fecb702b51ec7fa689903f9fe428ec85bf666528cf6a16a31825570258b4c4d3':
+            '9ae56fb91ffdab143f3221da2682ee13a5939eed23f5046d6073c300d02246c5',
+    },
+    'report_package.py': {
+        '4c3df80613b125597393fd09daedb006594b7da278063e22330174b5fdf7e5c1':
+            'e69eecb160cc0031910cacb78cf1ad4dbc1200f1ec9e86dd74eb0f48c3e32e85',
+        'eb1185284054cd6b60f39224e4f0d030854acc61e85acf08fb2d1488dad8eed2':
+            '0a59eef24535da54c95668d7f533ba9cf6f313fc723727830b41b58e15f082c5',
+    },
+    'scan_persistence.py': {
+        'ac7f924a0d1609a46daefe88774be5479933e4d415526a1d422502d635d943a7':
+            '57b3c534c0f4ae5b787be08c4a7af6517446926f444f4990d3809ee2aecda1dd',
+        '3d7be8ff7547f206a0f177766a91dc4837717d42dbbec1c6deb48c4b4704d3ec':
+            '7cbad4ac21adb088660cc00712817ef2c276793eb9818308c862bce4cdf27f18',
+    },
+}
+
+
 def _engine_files():
     package = Path(__file__).parent
     files = {path.name: file_digest(path) for path in sorted(package.glob('*.py'))
              if path.name not in REVIEW_REPORT_MODULES}
+    for name, upgrades in _PROJECTION_READ_UPGRADE.items():
+        if name in files:
+            files[name] = upgrades.get(files[name], files[name])
     for name, upgrades in _OPENCODE_RUNTIME_UPGRADE.items():
         if name in files:
             files[name] = upgrades.get(files[name], files[name])

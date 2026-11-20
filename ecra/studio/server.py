@@ -39,6 +39,10 @@ class JSONResponse(BaseJSONResponse):
         return json.dumps(content,ensure_ascii=True,allow_nan=False,separators=(',',':')).encode('utf-8')
 
 
+class ScanMissing(ValueError):
+    pass
+
+
 def _uploaded_manifest_shape(path):
     # The core importer still checks all paths, budgets, hashes and bindings.
     # Guard the JSON container here so malformed input never becomes an
@@ -177,6 +181,12 @@ def _create_app(data_root, *, token, authority, startup):
                 message=(action+'遇到数据库占用，未能正常完成。已保存记录保留；请保留当前窗口中的未提交草稿，'
                          '等待其它写入完成，核对人工历史及当前状态后重试。不要删除数据库或确认记录。技术信息：'+str(exc))
                 return JSONResponse(dict(error=message,code='DATABASE_BUSY',detail=str(exc)),status_code=409)
+            if isinstance(exc, ScanMissing):
+                return JSONResponse(dict(error=str(exc),code='SCAN_MISSING'), status_code=404)
+            if request.url.path.endswith(('/summary', '/result-revision')) and (
+                    isinstance(exc, (ValueError, KeyError)) or
+                    isinstance(exc, sqlite3.DatabaseError) and not isinstance(exc, sqlite3.OperationalError)):
+                return JSONResponse(dict(error=str(exc),code='INVALID_SCAN'), status_code=400)
             return JSONResponse(dict(error=str(exc)), status_code=409 if isinstance(exc, ReviewConflict) else 400)
         import traceback
         folder = no_links(data/'work/errors'); folder.mkdir(parents=True, exist_ok=True)
@@ -192,13 +202,15 @@ def _create_app(data_root, *, token, authority, startup):
             raise ValueError('扫描身份无效')
         path = no_links(data/'scans'/scan_id)
         if not (path/'scan.db').is_file():
-            raise ValueError('扫描不存在；请选择已校验归档')
+            raise ScanMissing('扫描不存在；请选择已校验归档')
         return path
 
     def stores(scan_id):
         path = scan_path(scan_id)
         provider = EvidenceProvider(path/'scan.db')
         binding = provider.metadata()
+        if binding['scan_id'] != scan_id:
+            raise ValueError('扫描目录与静态库身份不一致；请核对原归档')
         return provider, ReviewStore(path/'reviews.db', binding, device=device)
 
     def evidence_query(scan_id):
@@ -345,8 +357,9 @@ def _create_app(data_root, *, token, authority, startup):
         counts = provider.counts()
         from .query import QueryService
         query=QueryService(scan_path(scan_id))
-        current=query.current_summary()
         diff=query.diff_summary()
+        current=query.current_summary(include_diff=diff is not None)
+        current.setdefault('diff_results', None)
         total = sum(counts.values())
         binding = provider.metadata()
         mode = 'OFFLINE_ARCHIVE'
@@ -369,7 +382,7 @@ def _create_app(data_root, *, token, authority, startup):
                     identity=scan_identity(provider),
                     counting_basis='完整清单以canonical身份计数；容器/未进入构建/非存储单列，不计入已证明安全。',
                     mode=mode,legacy_warning=legacy_warning,evidence_notice=evidence_notice,legacy_degraded=degraded,can_confirm=not degraded,
-                    diff=diff,diff_results=query.current_summary(diff='changes') if diff is not None else None,
+                    diff=diff,
                     can_review=not degraded and (scan_path(scan_id)/'scan_state.json').is_file(), roots=provider.roots())
 
     @app.get('/api/scans/{scan_id}/diff-changes')
@@ -446,21 +459,11 @@ def _create_app(data_root, *, token, authority, startup):
                 handling_status: str='',file: str='',function: str='',context: str='',coverage: str='',ai_state: str='',
                 current_result: str='',review_scope: str='all',diff: str='',symbol_id: str='',sort: str='priority',order: str='asc',offset: int=0, limit: int=50):
         from .query import QueryService
-        from ..diff_review import DELETED_REVIEW_PREFIX
-        provider, reviews = stores(scan_id)
+        _, reviews = stores(scan_id)
         query = QueryService(scan_path(scan_id))
-        page = query.symbols(search=search, classification=classification,
+        return query.symbols(reviews=reviews, search=search, classification=classification,
             human_decision=human_decision,handling_status=handling_status,file=file,function=function,context=context,
             coverage=coverage,ai_state=ai_state,current_result=current_result,review_scope=review_scope,diff=diff,symbol_id=symbol_id,sort=sort,order=order,offset=offset,limit=limit)
-        baseline = None
-        for item in page['items']:
-            symbol = item['symbol_id']
-            if item['evidence_side']=='baseline':
-                baseline = baseline or query.diff_review.require_baseline(require_deleted=False)
-                item['human'] = reviews.current(DELETED_REVIEW_PREFIX+symbol, baseline.fingerprint(symbol))
-            else:
-                item['human'] = reviews.current(symbol, provider.fingerprint(symbol))
-        return page
 
     @app.get('/api/scans/{scan_id}/result-revision')
     def result_revision(scan_id: str):
@@ -477,12 +480,10 @@ def _create_app(data_root, *, token, authority, startup):
         if not symbol_id:raise ValueError('对象身份不能为空')
         baseline = scan_id.endswith('~base')
         query=QueryService(scan_path(scan_id.removesuffix('~base')))
-        page=query.symbols(symbol_id=symbol_id,limit=1,diff='baseline' if baseline else 'selected' if query.diff_summary() else '')
+        _, reviews = stores(scan_id.removesuffix('~base'))
+        page=query.symbols(reviews=reviews,symbol_id=symbol_id,limit=1,diff='baseline' if baseline else 'selected' if query.diff_summary() else '')
         if not page['items']:raise ValueError('当前归档未记录该规范身份；不能据此解释为无影响')
-        _, reviews, symbol_key, fingerprint = review_subject(scan_id, symbol_id)
-        item=page['items'][0]
-        item['human']=reviews.current(symbol_key,fingerprint)
-        return item
+        return dict(page['items'][0], result_revision=page['result_revision'])
 
     def coverage_service(scan_id):
         from .coverage import CoverageService
@@ -604,8 +605,12 @@ def _create_app(data_root, *, token, authority, startup):
     @app.get('/api/scans/{scan_id}/human')
     def human(scan_id: str, symbol_id: str):
         _, reviews, symbol, fingerprint = review_subject(scan_id, symbol_id)
-        return dict(fingerprint=fingerprint, **reviews.current(symbol, fingerprint), history=reviews.history(symbol),
-                    prior_reviews=reviews.prior(symbol,fingerprint))
+        from ..scan_persistence import result_revision
+        with reviews.connection() as conn:
+            return dict(fingerprint=fingerprint, result_revision=result_revision(conn),
+                        **reviews.current(symbol, fingerprint, _connection=conn),
+                        history=reviews.history(symbol, _connection=conn),
+                        prior_reviews=reviews.prior(symbol, fingerprint, _connection=conn))
 
     @app.post('/api/scans/{scan_id}/human')
     def save_human(scan_id: str, payload: dict):

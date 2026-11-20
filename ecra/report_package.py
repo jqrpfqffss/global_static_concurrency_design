@@ -1,5 +1,6 @@
 """Versioned ZIP64 result packages; validate in isolation before publication."""
-from contextlib import closing, ExitStack
+from contextlib import closing, ExitStack, nullcontext
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -71,7 +72,7 @@ def validate_schema(path, sql, version=0, *, check_integrity=True):
             raise ValueError('结果包数据库完整性/外键检查失败')
 
 
-def _review_events(path, binding):
+def _review_events(path, binding, *, _connection=None):
     from .human_reviews import SCHEMA as REVIEW_SCHEMA, HUMAN_SCHEMA, LEGACY_AI_SCHEMA, PRE_INHERIT_SCHEMA
     for known in (REVIEW_SCHEMA,PRE_INHERIT_SCHEMA,HUMAN_SCHEMA+LEGACY_AI_SCHEMA,HUMAN_SCHEMA):
         try:
@@ -80,7 +81,7 @@ def _review_events(path, binding):
         except ValueError:
             if known==HUMAN_SCHEMA:
                 raise
-    with closing(sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro', uri=True)) as conn:
+    with (closing(sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro', uri=True)) if _connection is None else nullcontext(_connection)) as conn:
         conn.execute('PRAGMA trusted_schema=OFF')
         saved = conn.execute('SELECT scan_id,project_id,facts_hash,report_hash FROM binding').fetchall()
         if saved != [tuple(binding[key] for key in ('scan_id', 'project_id', 'facts_hash', 'report_hash'))]:
@@ -328,6 +329,10 @@ def export_report(scan_directory, destination, *, compression='compact', progres
         copy_prior_decisions(stage/'reviews.db',stage/'check.db',provider)
         check.merge(events, fingerprint_for=DiffReviewEvidence(source, provider, progress=progress).fingerprint)
         copy_ai_receipts(stage/'reviews.db', stage/'check.db')
+        from .scan_persistence import result_revision
+        with closing(sqlite3.connect(stage/'check.db')) as conn:
+            exported_revision = result_revision(conn)
+        exported_at = datetime.now(timezone.utc).isoformat()
         files = {'scan.db': static, 'reviews.db': stage/'reviews.db'}
         evidence = source/'evidence'
         notify(dict(stage='EVIDENCE', message='校验归档源码与全部证据对象', completed=None, total=None, unit=None))
@@ -345,7 +350,7 @@ def export_report(scan_directory, destination, *, compression='compact', progres
         manifest = dict(format='ECRA_REPORT', version=1, schema_version=schema_version,
             scan_id=binding['scan_id'], project_id=binding['project_id'], facts_hash=binding['facts_hash'],
             report_hash=binding['report_hash'], capabilities=['archived_evidence', 'human_decisions'],
-            source_reverification=False, files={})
+            source_reverification=False, generated_at=exported_at, result_revision=exported_revision, files={})
         if local:
             if local.get('audit_index'):
                 manifest['audit_index'] = local['audit_index']
@@ -563,11 +568,13 @@ def export_delta(scan_directory, destination, *, progress=None):
     source, destination = no_links(scan_directory), managed_path(destination, label='人工确认增量保存路径')
     provider = EvidenceProvider(source/'scan.db')
     binding = provider.validate(progress=progress)
-    events = _review_events(source/'reviews.db', binding)
-    payload = dict(format='ECRA_REVIEW_DELTA', version=1,
-                   binding={key: binding[key] for key in ('scan_id', 'project_id', 'facts_hash', 'report_hash')}, events=events)
     with closing(sqlite3.connect((source/'reviews.db').resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+        conn.execute('BEGIN')
+        events = _review_events(source/'reviews.db', binding, _connection=conn)
         prior=[list(r) for r in conn.execute('SELECT * FROM prior_decisions ORDER BY symbol_id,source_scan')]
+        payload = dict(format='ECRA_REVIEW_DELTA', version=1, generated_at=datetime.now(timezone.utc).isoformat(),
+                       human_revision=f'{len(events)}:{len(prior)}',
+                       binding={key: binding[key] for key in ('scan_id', 'project_id', 'facts_hash', 'report_hash')}, events=events)
         if prior:
             payload['prior_decisions']=prior
     # Validate the same lineage that the receiving computer will require.

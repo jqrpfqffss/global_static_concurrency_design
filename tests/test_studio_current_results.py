@@ -172,4 +172,97 @@ class CurrentResultsTests(unittest.TestCase):
                 self.assertEqual(query.current_summary()['result_counts'],{groups[expected]:1})
 
 
+class PublishedCheckpointTests(unittest.TestCase):
+    def setUp(self):
+        from tests.projection_fixture import create_checkpoint
+        tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out=Path(tmp.name)/'data/scans/checkpoint'
+        self.sample=create_checkpoint(self.out, diff=True)
+        self.query=QueryService(self.out)
+
+    def test_native_receipts_counts_queue_and_export(self):
+        from ecra.scan_persistence import ai_page, commit_review_result, review_writer
+        from ecra.report_package import export_report, import_report, export_delta
+        from tests.projection_fixture import publish
+        from datetime import datetime
+        import zipfile
+
+        def verify(done, failed, pending, results, queue):
+            counts=self.query.current_summary()
+            page=ai_page(self.out)
+            self.assertEqual(page['all_total'], 7)
+            self.assertEqual(page['progress'], dict(total=7, done=done, tech_failed=failed, pending=pending))
+            self.assertEqual(counts['result_counts'], results)
+            self.assertEqual(counts['pending_count'], len(queue))
+            self.assertEqual({r['symbol_id'] for r in self.query.symbols(review_scope='pending')['items']}, set(queue))
+            self.assertEqual(self.query.symbols(limit=1)['total'], 6)
+            for result, count in results.items():
+                rows=self.query.symbols(current_result=result,limit=1)
+                self.assertEqual((rows['total'],rows['result_revision']), (count,counts['result_revision']))
+            return page
+
+        publish(self.out, 'a1', 'REVIEWED_SAFE')
+        self.assertEqual(self.query.symbols(symbol_id='A')['items'][0]['current_result'], 'LIKELY')
+        for fid, status in [('a2','REVIEWED_SAFE'), ('b1',None), ('c1','CONFIRMED'),
+                            ('d1','NEED_MORE_CONTEXT'), (self.sample,'REVIEWED_SAFE')]:
+            publish(self.out, fid, status)
+        counts=dict(SAFE=2, LIKELY=1, UNKNOWN=1, CONFIRMED=1, SHARED_NO_REVIEW=1)
+        self.assertEqual(verify(5,1,1,counts,'BCD')['groups'], dict(safe=3,likely=0,confirmed=1,unresolved=3))
+        archived=self.out.parent.parent/'before.ecra-report'
+        export_report(self.out, archived)
+        ordinal, row=publish(self.out,'b1','FALSE_POSITIVE')
+        del counts['LIKELY']
+        counts['SAFE']=3
+        verify(6,0,1,counts,'CD')
+        revision=self.query.result_revision()
+        with review_writer(self.out) as writer:
+            commit_review_result(writer, ordinal, row)
+        self.assertEqual(self.query.result_revision(), revision)
+        verify(6,0,1,counts,'CD')
+        publish(self.out,'gap1','NEED_MORE_CONTEXT')
+        verify(7,0,0,counts,'CD')
+        provider=EvidenceProvider(self.out/'scan.db')
+        reviews=ReviewStore(self.out/'reviews.db',provider.metadata())
+        reviews.append('D',provider.fingerprint('D'),reviewer='fixture',decision='CONFIRMED_SAFE',comment='受控测试')
+        verify(7,0,0,counts,'C')
+        self.assertEqual(provider.counts(),dict(SUSPECT=2,UNKNOWN=2,SAFE_PROVEN=1,SHARED_NO_REVIEW=1))
+        self.assertEqual(self.query.symbol_ai('D')['items'][0]['status'],'NEED_MORE_CONTEXT')
+        for package,expected in [(archived,5),(self.out.parent.parent/'after.ecra-report',7)]:
+            if not package.exists():
+                export_report(self.out,package)
+            target=package.parent.parent/package.stem
+            import_report(package,target)
+            reopened=target/'scans'/self.out.name
+            with zipfile.ZipFile(package) as z:
+                manifest=json.loads(z.read('manifest.json'))
+            self.assertIsNotNone(datetime.fromisoformat(manifest['generated_at']).tzinfo)
+            self.assertEqual(QueryService(reopened).result_revision()['result_revision'], manifest['result_revision'])
+            self.assertEqual(ai_page(reopened)['progress']['done'], expected)
+        delta=archived.with_suffix('.ecra-review-delta')
+        export_delta(self.out,delta)
+        self.assertEqual(json.loads(delta.read_text('utf8'))['human_revision'], '1:0')
+
+    def test_summary_pins_both_scopes_across_concurrent_commit(self):
+        from ecra.studio import current_results
+        from tests.projection_fixture import publish
+        original=current_results.summary
+        def after_full(conn,source,args,*,include_static):
+            result=original(conn,source,args,include_static=include_static)
+            if not include_static:
+                publish(self.out,'b1','REVIEWED_SAFE')
+            return result
+        from fastapi.testclient import TestClient
+        from ecra.studio.server import create_app
+        app=create_app(self.out.parent.parent,token='test',authority='testserver')
+        with TestClient(app,headers={'x-ecra-session':'test'}) as client, patch.object(current_results,'summary',side_effect=after_full):
+            response=client.get('/api/scans/checkpoint/summary')
+            self.assertEqual(response.status_code,200,response.text)
+            result=response.json()
+        self.assertEqual(result['result_revision'],result['diff_results']['result_revision'])
+        self.assertEqual(result['diff_results']['pending_count'],2)
+        self.assertNotEqual(result['result_revision'],self.query.result_revision()['result_revision'])
+        self.assertEqual(self.query.current_summary(diff='changes')['pending_count'],1)
+
+
 if __name__=='__main__':unittest.main()

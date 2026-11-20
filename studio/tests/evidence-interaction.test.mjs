@@ -119,7 +119,7 @@ for (const [answers, chosenTab] of [[0, 'relations'], [1, 'source']]) {
       drafts: { get: () => undefined }, headsKey: () => '[]', api: () => pending,
       rememberList: async () => {}, rememberSelectionPosition: () => {}
     }
-    for (const name of ['selected', 'human', 'comment', 'handling', 'draftWarning', 'staticFields', 'accesses', 'findings', 'sourceRef', 'sourceLocation']) values[name] = { value: null }
+    for (const name of ['selected', 'human', 'comment', 'handling', 'draftWarning', 'detailError', 'detailRevision', 'staticFields', 'accesses', 'findings', 'sourceRef', 'sourceLocation']) values[name] = { value: null }
     values.detailTab = { value: 'history' }
     const state = componentFunctions('App.vue', ['rowKey', 'loadSelection'], values)
     const loading = state.loadSelection({ symbol_id: 'a.c::state', node: 123, definition_file: 'a.c', definition_line: 3, ai_answer_count: answers })
@@ -141,7 +141,7 @@ test('re-reading the same canonical object keeps the chosen tab and source locat
     api: async () => ({ items: [], heads: [], fingerprint: 'f', handling_status: 'TODO' }),
     rememberList: async () => {}, rememberSelectionPosition: () => {}
   }
-  for (const name of ['human', 'comment', 'handling', 'draftWarning', 'staticFields', 'accesses', 'findings', 'sourceRef']) values[name] = { value: null }
+  for (const name of ['human', 'comment', 'handling', 'draftWarning', 'detailError', 'detailRevision', 'staticFields', 'accesses', 'findings', 'sourceRef']) values[name] = { value: null }
   values.selected = { value: item }
   values.sourceLocation = { value: { file: 'caller.c', line: 78 } }
   values.detailTab = { value: 'source' }
@@ -160,7 +160,7 @@ function navigationState(all, position) {
     scan: { value: 'scan-a' }, offset: { value: Math.floor(position / 50) * 50 }, total: { value: all.length },
     items: { value: [] }, selected: { value: all[position] }, selectionAnchor: { value: null },
     search: { value: '' }, classification: { value: '' }, humanFilter: { value: '' }, extra: { value: { diff: '' } },
-    listScope: () => 'pending', run: async task => task()
+    listAligned: {value: true}, listScope: () => 'pending', run: async task => task()
   }
   values.items.value = all.slice(values.offset.value, values.offset.value + 50)
   values.selectedIndex = { get value() { return values.items.value.findIndex(item => row(item) === row(values.selected.value)) } }
@@ -204,7 +204,7 @@ for (const remaining of [100, 0]) {
     state.rememberSelectionPosition(state.selected.value)
     const offsets = []
     const values = {
-      requireScanReady() {}, summary: { value: { diff: false } }, listRequest: 0, loading: { value: false },
+      requireScanReady() {}, summary: { value: { diff: false, result_revision: '2:0:0' } }, listRequest: 0, listError: {value:''}, listRevision: {value:''}, appliedListKey: {value:''}, loading: { value: false },
       scan: state.scan, selected: state.selected, offset: state.offset, items: state.items, total: state.total,
       extra: state.extra, search: state.search, classification: state.classification, humanFilter: state.humanFilter,
       apiScan: { value: '/scans/scan-a' }, listScope: () => 'pending', URLSearchParams,
@@ -212,10 +212,10 @@ for (const remaining of [100, 0]) {
       api: async url => {
         const offset = Number(new URL(`http://test${url}`).searchParams.get('offset'))
         offsets.push(offset)
-        return { total: remaining, items: all.slice(0, remaining).slice(offset, offset + 50) }
+        return { total: remaining, offset, result_revision: '2:0:0', items: all.slice(0, remaining).slice(offset, offset + 50) }
       }
     }
-    const reader = componentFunctions('App.vue', ['loadList'], values)
+    const reader = componentFunctions('App.vue', ['listKey', 'listIdentity', 'loadList'], values)
     await reader.loadList()
     assert.deepEqual(offsets, [100, remaining ? 50 : 0])
     assert.equal(state.offset.value, remaining ? 50 : 0)
