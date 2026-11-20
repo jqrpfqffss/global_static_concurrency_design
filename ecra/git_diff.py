@@ -61,6 +61,9 @@ def git(root, *args, _stdout=subprocess.PIPE, _returncodes=(0,), _reject_stderr=
         raise ValueError(f'Git 无法运行，差异扫描未完成：{exe}，{exc}') from exc
     if proc.returncode not in _returncodes or (_reject_stderr and proc.stderr):
         detail = proc.stderr.decode('utf-8', 'replace').strip()
+        if args[:1] == ('fsck',) and proc.stdout:
+            # Missing-object IDs and broken links are written to stdout.
+            detail = (detail + '\n' + proc.stdout.decode('utf-8', 'replace')).strip()
         if args == ('rev-parse', '--show-toplevel'):
             raise ValueError(f'Git 无法识别固件工作树 {root}，请核对工程仓库。{exe} 退出码 {proc.returncode}：{detail}')
         raise ValueError(f'Git 比较失败，差异扫描未完成：{exe} 退出码 {proc.returncode}：{detail}')

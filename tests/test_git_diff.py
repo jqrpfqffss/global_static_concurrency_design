@@ -108,6 +108,36 @@ class SemanticDiffTests(unittest.TestCase):
         diff, facts, _ = self.delta({'a.c': src}, {'a.c': src.replace('__disable_irq();g++;__enable_irq();', 'g++;')})
         self.assertIn('g', self.names(diff, facts))
 
+    def test_irq_reaches_unchanged_static_in_full_facts(self):
+        files = {'a.c': '''void __disable_irq(void); void __enable_irq(void);
+static int shared; int guarded;
+static void writer(void){ shared++; }
+void TIM4_IRQHandler(void){ guarded++; }
+int main(void){ writer(); __disable_irq(); guarded++; __enable_irq(); return 0; }
+''', 'unrelated.c': 'static int other; void update_other(void){other++;}'}
+        contexts = [dict(id='main', kind='MAIN', functions=['main']),
+                    dict(id='irq', kind='ISR', functions=['TIM4_IRQHandler'], vector='slot:46')]
+        base, report = self.extract(self.project(files, contexts=contexts))
+        old = summarize(base, report)
+        files['a.c'] = files['a.c'].replace('void){ guarded++;', 'void){ writer(); guarded++;')
+        current, report = self.extract(self.project(files, contexts=contexts))
+        new = summarize(current, report)
+        pin = dict(files=[], head_sha='current', base_sha='base', base_source_root=str(self.root))
+        diff = compare(old, new, pin)
+        for facts, writers, classification, from_irq in (
+                (base, {'main'}, 'SAFE_PROVEN', False), (current, {'main', 'irq'}, 'SUSPECT', True)):
+            variables = {v['name']: v for v in facts['variables']}
+            self.assertEqual(set(variables['shared']['writers']), writers)
+            self.assertEqual(variables['shared']['static_classification'], classification)
+            self.assertEqual(variables['guarded']['protection_status'], 'EFFECTIVE')
+            self.assertEqual(variables['guarded']['static_classification'], 'SAFE_PROVEN')
+            self.assertEqual(any(c['caller_function_id'].endswith('@TIM4_IRQHandler')
+                                 and c.get('callee_name') == 'writer' for c in facts['calls']), from_irq)
+        self.assertEqual(diff['selected_symbol_ids'], [variables['shared']['symbol_id']])
+        self.assertIn('EXECUTION_CONTEXT_CHANGED', diff['impacts'][variables['shared']['symbol_id']]['reasons'])
+        self.assertEqual(diff['impacts'][variables['other']['symbol_id']]['impact_class'], 'EXCLUDED')
+        self.assertEqual(compare(new, new, pin)['selected_symbol_ids'], [])
+
     def test_T10_T26_nvic_priority(self):
         src = 'void HAL_NVIC_SetPriority(int,int,int);int g;void Task(void){HAL_NVIC_SetPriority(30,1,0);}void ISR(void){g++;}'
         diff, facts, _ = self.delta({'a.c': src}, {'a.c': src.replace('(30,1,0)', '(30,0,0)')})
