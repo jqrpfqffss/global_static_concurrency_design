@@ -352,6 +352,35 @@ void Other(){set<__TIME__[7]-'0'>();}
 
 
 class ClockDiffPublication(unittest.TestCase):
+    def test_published_clock_only_database_diff_matches_native_baseline(self):
+        fixture = test_canonical_scan.CanonicalScanTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        git, _ = fixture.pinned_diff_project()
+        (fixture.root/'main.c').write_text(
+            'int shared;void out(const char *p){shared++;}void ISR(){shared++;}int main(){out(__TIME__);return shared;}')
+        database = fixture.root/'compile_commands.json'
+        units = json.loads(database.read_text(encoding='utf8'))
+        units[0]['arguments'].insert(1, '-D__TIME__="01:02:03"')
+        database.write_text(json.dumps(units),encoding='utf8')
+        git('add','main.c','compile_commands.json')
+        git('commit','-m','first build clock')
+        git('branch','clock-base')
+        units[0]['arguments'][1] = '-D__TIME__="03:04:05"'
+        database.write_text(json.dumps(units),encoding='utf8')
+        git('add','compile_commands.json')
+        git('commit','-m','second build clock')
+        cfg = json.loads(fixture.config.read_text(encoding='utf8'))
+        cfg['analysis']['git_diff'].update(base_ref='clock-base',verify_against_full=True)
+        fixture.config.write_text(json.dumps(cfg),encoding='utf8')
+        out, _ = fixture.run_scan()
+        provider = EvidenceProvider(out/'scan.db')
+        diff = provider.load('report')['git_diff']
+        self.assertTrue(diff['pin']['files'][0]['clock_flags_only'])
+        self.assertEqual(diff['selected_symbol_ids'], [])
+        variable, = provider.load('facts')['variables']
+        self.assertEqual(variable['static_classification'], 'SUSPECT')
+
     def test_published_diff_matches_independent_full_scan(self):
         fixture = test_canonical_scan.CanonicalScanTests()
         fixture.setUp()

@@ -521,8 +521,14 @@ def summarize(facts, report, renames=None):
     # CFG references hash [translation_unit, function_id]. Relocating a
     # generated TU changes that derived reference, not its mask/protection
     # evidence. Rebuild only references whose proven build path was mapped.
+    clock_rows = list(facts.get('dynamic_predefined_inputs', ()))
+    clock_callees = {row['callee_function_id'] for row in clock_rows if row.get('callee_function_id')}
+    clock_bodies = {}
     for function in facts['functions']:
         source, fid = function.get('translation_unit'), function['function_id']
+        if fid in clock_callees:
+            clock_bodies[fid] = {k: function[k] for k in ('parameter_count','unused_parameters','unused_variadic_tail')
+                                 if k in function}
         canonical = [canonical_id(source, renames), canonical_id(fid, renames)]
         if source and canonical != [source, fid]:
             renames['CFG-' + digest([source, fid])[:20]] = 'CFG-' + digest(canonical)[:20]
@@ -654,9 +660,7 @@ def summarize(facts, report, renames=None):
          'hardware_contexts', 'preemption_relations', 'address_escapes')}
     global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
     from .macro_semantics import normalize_clock_flags, unused_clock_argument
-    bodies = {f['function_id']: f for f in facts['functions']}
-    active_clock = {r['translation_unit'] for r in facts.get('dynamic_predefined_inputs', ())
-                    if not unused_clock_argument(r, bodies)}
+    active_clock = {r['translation_unit'] for r in clock_rows if not unused_clock_argument(r, clock_bodies)}
     def semantic_arguments(unit):
         args = build_arguments(unit, report.get('coverage', {}).get('project_root'))
         if ('dynamic_predefined_inputs' in facts and unit.get('parse_status') == 'PARSED'

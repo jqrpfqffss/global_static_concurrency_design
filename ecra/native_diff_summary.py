@@ -150,10 +150,13 @@ class _Inputs:
             functions=self.rows('facts', 'functions', required=True, fields=(
                 'function_id', 'translation_unit', 'semantic_digest', 'consumed_macros_digest',
                 'non_call_digest', 'standalone_calls', 'diff_dependencies',
+                'unused_parameters', 'unused_variadic_tail', 'parameter_count',
                 'return_type_kind', 'name', 'file', 'line')),
             calls=self.rows('facts', 'calls', required=True, fields=(
                 'caller_function_id', 'callee_function_id', 'callee_name', 'result_used')),
             variables=self.rows('facts', 'variables', required=True, lazy=True))
+        if self.child(self.roots['facts'], 'dynamic_predefined_inputs') is not None:
+            facts['dynamic_predefined_inputs'] = self.rows('facts', 'dynamic_predefined_inputs')
         facts['diff_dependency_storage'] = self.rows('facts', 'diff_dependency_storage')
         # These shared relations are traversed repeatedly by summarize.
         # Keep the complete relations, rather than re-decoding them per variable.
