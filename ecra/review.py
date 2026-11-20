@@ -149,6 +149,9 @@ def parse_answer(raw, finding_id, root, require_quotes=False, packet=None, expec
             and isinstance(value.get('status'), str) and value['status'] in STATUSES
             and value['status'] != expected_status):
         raise ReviewExecutionError('FORMAT_FIX 改变了原始合法 status；拒绝将格式修正作为风险重新判定')
+    if (packet and isinstance(value, dict) and value.get('status') in {'REVIEWED_SAFE','FALSE_POSITIVE'}
+            and 'DYNAMIC_PREDEFINED_INPUT' in packet.get('finding', {}).get('screening_blockers', ())):
+        raise ValueError('构建时间输入仍有相关覆盖缺口，请使用 NEED_MORE_CONTEXT 或保留有证据的风险')
     validate_stale_writeback_safety(value, packet, root)
     return validate_minimal_answer(value, finding_id, root, require_quotes=require_quotes)
 

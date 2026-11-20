@@ -740,6 +740,7 @@ def risk_overview(facts, report, records, assessments):
                     for key in ['confirmed', 'likely', 'unresolved', 'safe', 'screened_safe', 'screened_shared'])
     cov = report['coverage']
     gap_count = sum(not f.get('symbol_id') for f in report['findings'])
+    gap_count += sum(g['kind'] == 'DYNAMIC_PREDEFINED_INPUT' for g in facts.get('unknowns', ()))
     inventory_by_kind = (dict(Counter(v['kind'] for v in facts['variables'])) if report.get('git_diff')
                          else cov.get('inventory_by_kind', {}))
     mode = '模型复核未启用；当前分类依据静态证据。' if records and all(local_pending(r) for r in records.values()) else '分类结合静态证据与有效复核；失败或过期回答不算当前结论。'
@@ -1347,6 +1348,12 @@ def _write_html(out, facts, report, reviews):
         (risks if sid else gaps).append(row(cells, ident, 'candidate' if sid else 'gap',
             f['risk_level'], f['definition'].get('file'), 'dependency' if dependency else 'target', assessment))
 
+    for issue in facts.get('unknowns', ()):
+        if issue['kind'] == 'DYNAMIC_PREDEFINED_INPUT':
+            gaps.append(row([esc(f"{issue['macro']} · {issue['file']}:{issue['line']}:{issue['column']}"),
+                             esc(issue['reason']), esc('相关证据已保存，真实构建输入待核实')],
+                            group='gap', file=issue['file'], scope='target', decision='unresolved'))
+
     cov = report['coverage']
     coverage = scope_summary(cov)
     inventory_by_kind = (dict(Counter(v['kind'] for v in facts['variables'])) if report.get('git_diff')
@@ -1387,6 +1394,12 @@ def _write_html(out, facts, report, reviews):
         coverage += '<h3>本次 CMake 配置与编译</h3>' + table(['步骤', '结果', '参数与日志'], [row([
             {'configure': '配置工程', 'build': '编译固件'}.get(s['stage'], s['stage']),
             '成功' if s['exit_code'] == 0 else '失败', raw(s, '构建参数及日志位置')]) for s in steps])
+    if facts.get('dynamic_predefined_inputs'):
+        coverage += '<h3>动态预定义宏与构建输入</h3>' + table(
+            ['宏', '位置', '对象或函数', '用途与覆盖'], [row([esc(r['macro']),
+                esc(f"{r['file']}:{r['line']}:{r['column']}"),
+                esc(r.get('variable') or r.get('function') or r['translation_unit']),
+                esc(r['form'] + ' · ' + r['reason'])]) for r in facts['dynamic_predefined_inputs']])
     coverage += raw(cov, '编译覆盖、遗漏源文件 / 头文件、排除文件与数量')
     coverage += raw(facts.get('translation_units', []), '全部编译单元、真实参数与解析诊断')
     coverage += raw(facts.get('unknowns', []), '全部原始分析盲区（不因合并复核项而删除）')

@@ -53,7 +53,12 @@ def scope_evidence(facts, report, cid):
                   **({'extraction_digest': u['extraction_digest']} if u.get('extraction_digest') else {}))
              for u in facts.get('translation_units', [])]
     closure = coverage.get('build_closure', {})
+    clock_regions = [dict(file=path(u['file']), line=u['line'], macro=u['macro'],
+                          translation_unit=path(u['translation_unit']), reason=u['reason'])
+                     for u in facts.get('unknowns', ()) if u['kind'] == 'DYNAMIC_PREDEFINED_INPUT'
+                     and u['scope'] == 'BUILD']
     return dict(schema=COMPARISON_SCHEMA, units=units,
+        **({'clock_regions': clock_regions} if clock_regions else {}),
         inventory_known=bool(units) and all(u['source_file'] and u['parse_status'] for u in units),
         build_complete=closure.get('complete'), missing_objects=closure.get('missing_objects', []),
         excluded_from_build=sorted(path(p) for p in coverage.get('excluded_from_build', [])),
@@ -113,6 +118,8 @@ def coverage_assessment(variable, scope):
     identity = (variable or {}).get('object_evidence', {})
     related = list(evidence.get('related_gaps', []))
     excluded, unaccounted = [], []
+    if not any(g.get('kind') == 'DYNAMIC_PREDEFINED_INPUT' for g in related):
+        unaccounted.extend(scope.get('clock_regions', ()))
     definition_units = set(identity.get('translation_units') or []) | {identity.get('definition_file')}
     failed = defaultdict(list)
     for unit in scope.get('units', []):

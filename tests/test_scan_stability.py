@@ -24,6 +24,7 @@ from ecra.input_snapshot import InputSnapshot, file_record
 class ScanStabilityTests(unittest.TestCase):
     setUp = test_ecra.ProjectTest.setUp
     project = test_ecra.ProjectTest.project
+    out = test_ecra.ProjectTest.out
 
     def test_gcc_numeric_lto_jobs_preserve_ast_and_original_command(self):
         from ecra.compilation import normalize_clang_arguments
@@ -127,11 +128,11 @@ class ScanStabilityTests(unittest.TestCase):
                     else:
                         (self.root/'used.h').unlink()
                 self.assertEqual(self.injected(action), 3)
-                data = read_json(self.root/'.ecra/diagnostics/source_changes.json')
+                data = read_json(self.out/'diagnostics/source_changes.json')
                 change = next(row for row in data['changes'] if row['file'] == 'used.h')
                 self.assertEqual(change['before']['sha256'], before)
-                self.assertFalse((self.root/'.ecra/scan_state.json').exists())
-                self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+                self.assertFalse((self.out/'scan_state.json').exists())
+                self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
 
     def test_new_shadow_header_is_detected_by_clang_resolution(self):
         self.fixture()
@@ -148,10 +149,10 @@ class ScanStabilityTests(unittest.TestCase):
                             for row in data['changes']))
 
     def test_negative_has_include_probe_cannot_silently_change_active_branch(self):
-        self.project({'a.c': '#if __has_include("feature.flag")\nint changed;\n#else\nint original;\n#endif\n'
+        self.project({'a.c': 'const char *stamp=__DATE__;\n#if __has_include("feature.flag")\nint changed;\n#else\nint original;\n#endif\n'
                       'int main(void){return 0;}'})
         self.assertEqual(self.injected(lambda: (self.root/'feature.flag').write_text('present')), 3)
-        data = read_json(self.root/'.ecra/diagnostics/source_changes.json')
+        data = read_json(self.out/'diagnostics/source_changes.json')
         self.assertTrue(any(row['reason'] == 'PREPROCESSOR_STATE_CHANGED' for row in data['changes']))
 
     def test_saved_snapshot_detects_new_shadow_header_before_resume(self):
@@ -318,7 +319,7 @@ class ScanStabilityTests(unittest.TestCase):
 
     def test_response_changes_between_units_and_restores_before_snapshot_still_fail(self):
         from ecra.input_snapshot import read_consumed_text
-        self.project({'a.c': 'int shared;void ISR(void){shared++;}',
+        self.project({'a.c': 'const char *stamp=__TIME__;int shared;void ISR(void){shared++;}',
                       'b.c': 'extern int shared;void Task(void){shared++;}'})
         response = self.root/'flags.rsp'
         response.write_text('-DFEATURE=1', encoding='utf-8')
@@ -337,7 +338,7 @@ class ScanStabilityTests(unittest.TestCase):
         with patch('ecra.input_snapshot.read_consumed_text', side_effect=consumed), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
         self.assertEqual(reads, 2)
-        change = next(row for row in read_json(self.root/'.ecra/diagnostics/source_changes.json')['changes']
+        change = next(row for row in read_json(self.out/'diagnostics/source_changes.json')['changes']
                       if row['file'] == 'flags.rsp')
         self.assertEqual(change['before']['sha256'], change['after']['sha256'])
         self.assertTrue(change['before']['unstable'])

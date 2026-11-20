@@ -170,7 +170,7 @@ class CoverageService:
                 item=dict(ordinal=ordinal,node=node,associated_objects=count,
                     association_complete=quality['zero_filter_available'])
                 item.update(self._brief(conn,node,{'source_file','source','directory','tu_id','audit_role','parse_status',
-                    'diagnostics','original_arguments','arguments','system_include_dirs','missing_defines','includes'}));items.append(item)
+                    'diagnostics','dynamic_predefined_inputs','original_arguments','arguments','system_include_dirs','missing_defines','includes'}));items.append(item)
         return dict(items=items,total=total,offset=offset,**quality,
             next_offset=offset+len(items) if offset+len(items)<total else None)
 

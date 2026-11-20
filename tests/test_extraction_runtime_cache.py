@@ -70,6 +70,19 @@ class ExtractionRuntimeCacheTests(unittest.TestCase):
             self.assertTrue(self.cache().restore(self.unit,self.root/'restored.json',self.root/'metadata.json'))
             self.assertEqual((self.root/'restored.json').read_bytes(),payload.read_bytes())
 
+    def test_pre_clock_model_cache_cannot_supply_a_safe_result(self):
+        from ecra.workflow import engine_digest
+        with patch('ecra.tu_cache.engine_digest', return_value='pre-clock-model'):
+            old = self.cache()
+            payload = self.root/'before.json'
+            payload.write_text('{"variables":[],"dynamic_predefined_inputs":[]}')
+            old.store(self.unit, payload, dict(parse_status='PARSED', input_snapshot={'sealed':True}))
+        current = self.cache()
+        self.assertEqual(current.engine, engine_digest())
+        self.assertNotEqual(current.key(self.unit), old.key(self.unit))
+        self.assertFalse(current.restore(self.unit, self.root/'after.json', self.root/'after.meta.json'))
+        self.assertTrue((old.folder/(old.key(self.unit)+'.facts')).is_file())
+
     def test_explicit_random_seed_cannot_reuse_a_different_runs_inventory(self):
         with patch.dict(os.environ,PYTHONHASHSEED='random'):
             first=self.cache();payload=self.root/'random.json';payload.write_bytes(b'{"accesses":["original-order"]}')

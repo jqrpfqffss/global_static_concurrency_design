@@ -10,7 +10,7 @@ from .common import digest
 
 TABLES = ("variables", "functions", "accesses", "calls", "unknowns", "protection_events", "registrations", "snapshots",
           "pointer_constraints", "semantic_calls", "indirect_accesses", "irq_priority_events", "control_flow", "pointer_storage",
-          "constant_regions", "nvic_programs", "nvic_globals", "nvic_irq_definitions")
+          "constant_regions", "nvic_programs", "nvic_globals", "nvic_irq_definitions", "dynamic_predefined_inputs")
 CONFLICT_PAIR_INLINE_LIMIT = 4096
 
 
@@ -55,7 +55,16 @@ def merge(parts):
                     issue = dict(kind="TYPE_VARIANT", symbol_id=sid, types=[previous_type, v["type"]])
                     unique_rows['unknowns'][digest(issue)] = issue
         for f in part.get("functions", []):
-            functions[f["function_id"]] = f
+            fid = f["function_id"]
+            if fid in functions:
+                # Duplicate inline/weak definitions can see different macros.
+                # An argument is inert only if every observed body ignores it.
+                previous = functions[fid]
+                f = dict(f, unused_parameters=sorted(set(previous.get('unused_parameters', ()))
+                                                     & set(f.get('unused_parameters', ()))),
+                         unused_variadic_tail=bool(previous.get('unused_variadic_tail')
+                                                   and f.get('unused_variadic_tail')))
+            functions[fid] = f
         for t in ([part['_table']] if part.get('_table') in TABLES[2:] else
                   () if part.get('_table') else TABLES[2:]):
             for row in part.get(t, []):
@@ -69,6 +78,8 @@ def merge(parts):
     facts["functions"] = sorted(functions.values(), key=lambda x: x["function_id"])
     for t in TABLES[2:]:
         facts[t] = list(unique_rows.pop(t).values())
+    from .macro_semantics import bind_clock_signatures
+    bind_clock_signatures(facts)
     regions = defaultdict(list)
     for row in facts['constant_regions']:
         regions[(row['function_id'], row['file'])].append(row)
@@ -1086,6 +1097,8 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
     # no field is confused with a similarly named identifier in unparsed code.
     from .storage import canonicalize_arrays, expand_member_arrays, propagate_overlapping_members
     start_stage('结构体字段、数组与重叠存储分析')
+    from .macro_semantics import bind_clock_gaps
+    bind_clock_gaps(facts)
     canonicalize_arrays(facts)
     expand_member_arrays(facts)
     canonicalize_member_resources(facts)
@@ -1117,6 +1130,11 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
     from .nvic import recover as recover_nvic
     start_stage('NVIC 优先级与抢占关系分析')
     recover_nvic(facts, cfg)
+    if any(g['kind'] == 'DYNAMIC_PREDEFINED_INPUT' and g['scope'] in {'BUILD','INTERRUPT_CONFIGURATION'}
+           for g in facts['unknowns']):
+        for priority in facts.get('nvic_priorities', ()):
+            priority.update(effective_validity='UNRESOLVED', preemption_validity='UNRESOLVED',
+                            enable_validity='UNRESOLVED', reason='动态构建输入可能改变中断配置或其可达性')
     relations = preemption_relations(facts, contexts, cfg)
     start_stage('可达性与不完整证据关联')
     facts['assembly_references'] = facts.get('resolved_assembly_references', []) + [
@@ -1481,6 +1499,8 @@ def analyze(facts, cfg, coverage, root=None, source_reader=None):
                          contexts=sorted({c for m in members for c in m.get('contexts', [])}),
                          classification_reason='结构体父节点只汇总成员；并发结论见各具体成员。')
     validate_member_fact_consistency(facts)
+    coverage['clock_region_count'] = sum(u['kind'] == 'DYNAMIC_PREDEFINED_INPUT' and u['scope'] == 'BUILD'
+                                         for u in facts['unknowns'])
     coverage['project_diagnostics'] = [u for u in facts['unknowns'] if not u.get('symbol_id')]
     for v in facts['variables']:
         if v.get('coverage_source') in {'supplemental', 'inactive_branch'}:

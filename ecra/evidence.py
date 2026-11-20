@@ -47,6 +47,7 @@ SYMBOL_CODES = {
     'TYPE_VARIANT': 'UNKNOWN_RELEVANT_ALIAS',
     'UNRESOLVED_POINTEE': 'UNKNOWN_RELEVANT_ALIAS',
     'INDIRECT_CALL': 'UNKNOWN_RELEVANT_INDIRECT_CALL',
+    'DYNAMIC_PREDEFINED_INPUT': 'UNKNOWN_DYNAMIC_BUILD_INPUT',
     'PARTIAL_PARSE_REGION': 'UNKNOWN_RELEVANT_PARTIAL_TU',
     'NONLOCAL_JUMP_CONTEXT': 'UNKNOWN_EXECUTION_CONTEXT',
 }
@@ -102,8 +103,17 @@ class EvidenceIndex:
         self.failed_files = {u.get('file') for u in facts['unknowns'] if u['kind'] == 'PARSE_FAILED'}
         self.failed_files.update(u['source_file'] for u in facts.get('translation_units', [])
                                  if u.get('parse_status') == 'FAILED')
+        self.clock_global, self.clock_interrupt, self.clock_storage = [], [], defaultdict(list)
         escaped_entry_sites = defaultdict(list)
         for issue in facts['unknowns']:
+            if issue['kind'] == 'DYNAMIC_PREDEFINED_INPUT':
+                detail = {k: v for k, v in issue.items() if k != 'symbol_ids'}
+                if issue['scope'] == 'BUILD':
+                    self.clock_global.append(detail)
+                if issue['scope'] == 'INTERRUPT_CONFIGURATION':
+                    self.clock_interrupt.append(detail)
+                for symbol in issue.get('symbol_ids', ()):
+                    self.clock_storage[symbol].append(detail)
             if issue.get('symbol_id'):
                 self.by_symbol[issue['symbol_id']].append(issue)
             if issue.get('target_function_id') and issue['kind'] in ENTRY_GAPS:
@@ -262,6 +272,14 @@ class EvidenceIndex:
             unique_gaps[key] = row
             result.critical_gaps.append(row)
 
+        clock_rows = self.clock_global + self.clock_storage.get(sid, [])
+        for root in {variable.get('root_symbol_id'), variable.get('array_root_symbol_id')} - {None, sid}:
+            clock_rows += self.clock_storage.get(root, [])
+        if self.clock_interrupt and any(contexts[c]['physical_kind'] == 'IRQ'
+                for a in runtime for c in a.get('contexts', ())):
+            clock_rows += self.clock_interrupt
+        for issue in clock_rows:
+            gap(issue, 'UNKNOWN_DYNAMIC_BUILD_INPUT', issue['reason'])
         for issue in self.by_symbol[sid]:
             if issue.get('function_id') in self.unreachable:
                 continue

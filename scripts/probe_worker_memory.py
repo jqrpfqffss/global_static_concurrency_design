@@ -41,15 +41,16 @@ def cli(args):
     from ecra import cli as commands
     root=args.evidence/'fixture'
     root.mkdir()
-    (root/'app.c').write_text('int shared;void IRQ(void){shared++;}int main(void){shared++;return 0;}\n',encoding='utf-8')
+    (root/'app.c').write_text('const char *stamp=__DATE__;int shared;void IRQ(void){shared++;}int main(void){shared++;return 0;}\n',encoding='utf-8')
     dump(root/'compile_commands.json',[dict(directory=str(root),file='app.c',
         arguments=['arm-none-eabi-gcc','-mcpu=cortex-m4','-mthumb','-c','app.c'])])
-    config=root/'semantics.yaml'
-    dump(config,dict(version=1,analysis=dict(output=dict(location='project'),compile_database='compile_commands.json'),
+    (root/'.ecra').mkdir()
+    config=root/'.ecra/semantics.yaml'
+    dump(config,dict(version=1,analysis=dict(output=dict(location='tool'),compile_database='compile_commands.json'),
         contexts=[dict(id='main',kind='MAIN',functions=['main']),dict(id='irq',kind='ISR',functions=['IRQ'])],
         review=dict(enabled=False,prepare_packets=False)))
     with (args.evidence/'baseline.log').open('w',encoding='utf-8') as log,contextlib.redirect_stdout(log):
-        prior=commands.run(root,config,no_review=True)
+        prior=commands.run(root,config,no_review=True,_cache_enabled=False)
     assert prior==2,prior
     execute=commands.execute
     def actual_worker(argv,**kw):
@@ -61,8 +62,12 @@ def cli(args):
         return execute(argv,**kw)
     with patch.object(commands,'execute',actual_worker), \
             (args.evidence/'injected.log').open('w',encoding='utf-8') as log,contextlib.redirect_stdout(log):
-        code=commands.run(root,config,no_review=True)
-    out=root/'.ecra'
+        code=commands.run(root,config,no_review=True,_cache_enabled=False)
+    from ecra.config import load_config
+    from ecra.workflow import output_path
+    from ecra.workspace import lock_path
+    cfg=load_config(root,config)[0]
+    out=output_path(root,cfg)
     worker_dir=next((out/'diagnostics/workers').glob('TU-*'))
     info=json.loads((worker_dir/'exception.json').read_text(encoding='utf-8'))
     response=json.loads(next((out/'workers').glob('TU-*.response.json.metadata.json')).read_text(encoding='utf-8'))
@@ -74,7 +79,7 @@ def cli(args):
         failed_cli_exit=code,worker_pid=info['pid'],parent_pid=os.getpid(),worker_origin=info['origin'],
         worker_exception=response.get('worker_exception'),worker_parse_status=response['parse_status'],
         analysis_valid=validity['analysis_valid'],checkpoint_removed=not (out/'scan_state.json').exists(),
-        lock_removed=not (out/'scan.lock').exists(),interpreter=sys.version,
+        lock_removed=not lock_path(root,cfg['analysis']).exists(),interpreter=sys.version,
         worker_peak_memory=info.get('peak_memory'),worker_memory=info.get('memory'))
     result['passed']=(code==3 and info['origin']=='WORKER' and info['pid']!=os.getpid() and
         info['exception_type']=='MemoryError' and response.get('worker_exception',{}).get('type')=='MemoryError' and

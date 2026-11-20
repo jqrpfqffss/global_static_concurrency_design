@@ -21,6 +21,7 @@ def completeness(scope):
     if any(u.get('parse_status') not in {'PARSED', 'PARTIAL', 'FAILED'} for u in units):
         raise ValueError('未知提取状态，不能作为可定位局部缺口')
     gaps = [dict(kind='EXTRACTION_GAP', **dict(u)) for u in units if u['parse_status'] != 'PARSED']
+    gaps.extend(dict(kind='DYNAMIC_PREDEFINED_INPUT', **r) for r in scope.get('clock_regions', ()))
     if scope.get('missing_objects'):
         gaps.append(dict(kind='MISSING_LINKED_OBJECT', objects=scope['missing_objects']))
     if scope.get('build_complete') is not True:
@@ -41,7 +42,7 @@ def summary_cache_matches(manifest, coverage):
     closure = coverage.get('build_closure', {})
     build_complete = coverage.get('build_complete', closure.get('complete'))
     missing = coverage.get('missing_object_count', len(closure.get('missing_objects', [])))
-    expected = 'COMPLETE' if complete_tus and build_complete is True and missing == 0 else 'VALID_PARTIAL'
+    expected = 'COMPLETE' if complete_tus and build_complete is True and missing == 0 and not coverage.get('clock_region_count') else 'VALID_PARTIAL'
     recorded = manifest['completeness']
     return (manifest.get('complete_tus') is complete_tus and recorded.get('complete_tus') is complete_tus
             and type(recorded.get('total_units')) is int and type(recorded.get('parsed_units')) is int

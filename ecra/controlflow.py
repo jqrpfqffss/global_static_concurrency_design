@@ -25,6 +25,9 @@ def build_cfg(extractor, function):
         if number is not None:
             return dict(constant=number)
         cs = children(cursor)
+        from .extract import clock_unknown
+        if clock_unknown(cursor):
+            return dict(unknown=True)
         if cursor.kind.name in WRAPPERS and cs:
             return value(cs[-1])
         if cursor.kind.name == 'DECL_REF_EXPR' and cursor.referenced:

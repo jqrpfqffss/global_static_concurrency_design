@@ -364,7 +364,13 @@ def _generate(out, facts, report, reviews, files):
     for a in facts["accesses"]:
         if not a["contexts"]:
             unknown.append(f"- 执行上下文尚未确定 {a['symbol_id']} {location(a)}")
+    reported_clock_sites = set()
     for u in facts["unknowns"]:
+        if u['kind'] == 'DYNAMIC_PREDEFINED_INPUT':
+            key = (u['file'], u['offset'], u['reason'])
+            if key in reported_clock_sites:
+                continue
+            reported_clock_sites.add(key)
         detail = u.get('reason') or u.get('hint') or RULES.get(u['kind'], ('该分析缺口尚待核实', ''))[0]
         if is_english_prose(detail):
             detail = '该分析缺口尚待核实；请按位置核对 facts.json 中保留的原始诊断。'

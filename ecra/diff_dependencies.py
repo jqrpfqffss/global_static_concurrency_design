@@ -14,7 +14,7 @@ SCHEMA = 1
 
 
 def extract_dependencies(extractor, function):
-    from .extract import children, constant_value, operator, FUNCTIONS, WRAPPERS
+    from .extract import children, clock_unknown, constant_value, operator, FUNCTIONS, WRAPPERS
     fid = extractor.fid(function)
     effects, issues, environment = [], set(), {}
     values, value_ids = [], {}
@@ -70,7 +70,8 @@ def extract_dependencies(extractor, function):
             # Clang pretty printing is expanded; source token ranges of a
             # macro can contain unrelated declarations or the macro name only.
             from .macro_semantics import expanded_declaration
-            spelling = expanded_declaration(cursor)
+            symbolic = getattr(cursor.translation_unit, 'clock_text', {}).get(cursor.hash)
+            spelling = symbolic or expanded_declaration(cursor)
             if not spelling:
                 issues.add('UNRESOLVED_LITERAL')
             return value([kind, spelling, dict(type=cursor.type.get_canonical().spelling)])
@@ -79,6 +80,9 @@ def extract_dependencies(extractor, function):
             if ref.kind.name in FUNCTIONS:
                 return value(['function', extractor.fid(ref)])
             if ref.kind.name == 'ENUM_CONSTANT_DECL':
+                if clock_unknown(cursor):
+                    issues.add('DYNAMIC_PREDEFINED_INPUT')
+                    return value(['unknown_enum', ref.spelling])
                 return value(['constant', ref.enum_value])
             key = extractor.key(ref)
             if key in extractor.symbols:

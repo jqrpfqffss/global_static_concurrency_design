@@ -33,6 +33,9 @@ def program(ex, fn):
         if kind == 'DECL_REF_EXPR' and c.referenced:
             ref = c.referenced
             if ref.kind.name == 'ENUM_CONSTANT_DECL':
+                from .extract import clock_unknown
+                if clock_unknown(c):
+                    return dict(op='unknown')
                 return dict(op='const', value=ref.enum_value, name=ref.spelling)
             return dict(op='ref', key=ex.key(ref))
         if kind == 'MEMBER_REF_EXPR' and cs:
@@ -99,13 +102,16 @@ def program(ex, fn):
 
 def declarations(ex, cursor):
     """Zero initialization is valid only for actual definitions, never externs."""
-    from .extract import children, constant_value, FUNCTIONS
+    from .extract import children, clock_unknown, constant_value, FUNCTIONS
     result, irqs = [], []
     def visit(c):
         if c.kind.name in FUNCTIONS:
             return
         if c.kind.name == 'ENUM_CONSTANT_DECL' and c.spelling.endswith('_IRQn'):
-            irqs.append(dict(name=c.spelling, value=c.enum_value, **ex.loc(c)))
+            row = dict(name=c.spelling, value=c.enum_value, **ex.loc(c))
+            if clock_unknown(c):
+                row.update(value=None, observed_value=c.enum_value)
+            irqs.append(row)
         if c.kind.name == 'VAR_DECL' and (c.is_definition() or c.storage_class.name != 'EXTERN'):
             cs = children(c)
             initial = cs[-1] if cs and cs[-1].kind.name not in {'TYPE_REF', 'TEMPLATE_REF'} else None

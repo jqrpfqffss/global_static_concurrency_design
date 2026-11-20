@@ -128,6 +128,8 @@ def regional_gaps(base, head):
     rows = []
     for side, summary in (('base', base), ('head', head)):
         scope = summary.get('comparison_scope', {})
+        rows.extend(dict(side=side, kind='DYNAMIC_PREDEFINED_INPUT', unidentified_objects_possible=True,
+                         **region) for region in scope.get('clock_regions', ()))
         for unit in scope.get('units', []):
             if unit.get('parse_status') != 'PARSED':
                 rows.append(dict(side=side, kind='EXTRACTION_REGION', **unit,

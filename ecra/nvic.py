@@ -57,7 +57,7 @@ class Interpreter:
         self.facts, self.cfg = facts, cfg
         self.functions = {f['function_id']: f for f in facts['functions']}
         self.programs = {p['function_id']: p for p in facts['nvic_programs']}
-        self.enums = {e['name']: e['value'] for e in facts.get('nvic_irq_definitions', [])}
+        self.enums = {e['name']: e['value'] for e in facts.get('nvic_irq_definitions', []) if e['value'] is not None}
         self.by_value = defaultdict(list)
         for name, value in self.enums.items():
             self.by_value[value].append(name)

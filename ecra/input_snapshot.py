@@ -21,7 +21,7 @@ SOURCE_READS = ContextVar('ecra_verified_parent_source_reads',default=None)
 
 def runtime_environment():
     """Bind compiler lookup/injection as well as the replayed file closure."""
-    names = ('PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH',
+    names = ('SOURCE_DATE_EPOCH', 'PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH',
              'GCC_EXEC_PREFIX', 'COMPILER_PATH', 'CC', 'CXX', 'ASM', 'CFLAGS', 'CXXFLAGS',
              'LDFLAGS', 'INCLUDE', 'LIB', 'CMAKE_GENERATOR', 'CMAKE_MAKE_PROGRAM',
              'CMAKE_TOOLCHAIN_FILE', 'LIBCLANG_PATH', 'ECRA_PORTABLE_ROOT', 'ECRA_PATH_ALIAS_ROOT')

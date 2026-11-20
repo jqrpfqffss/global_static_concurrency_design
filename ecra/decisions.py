@@ -32,6 +32,8 @@ def review_category(record):
 
 def effective_decision(finding, record, *, variable=None):
     reviewed = review_category(record)
+    if reviewed == 'safe' and 'DYNAMIC_PREDEFINED_INPUT' in finding.get('screening_blockers', ()):
+        reviewed = 'unresolved'
     if reviewed != 'unresolved':
         return reviewed
     static = finding.get('static_classification') or (variable or {}).get('static_classification')

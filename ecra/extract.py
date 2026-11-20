@@ -69,8 +69,17 @@ def tokens(c, limit=None):
     return [token.spelling for token in (stream if limit is None else islice(stream, limit))]
 
 
+def clock_unknown(cursor):
+    if getattr(cursor.translation_unit, 'clock_trace_incomplete', False):
+        return True
+    unknown = getattr(cursor.translation_unit, 'clock_unknown_nodes', None)
+    return bool(unknown and cursor.hash in unknown)
+
+
 def constant_value(cursor):
     """Ask Clang to evaluate macros/enum arithmetic, never Python eval."""
+    if clock_unknown(cursor):
+        return None
     lib = ci.conf.lib
     evaluate = lib.clang_Cursor_Evaluate
     evaluate.argtypes, evaluate.restype = [ci.Cursor], ctypes.c_void_p
@@ -184,12 +193,15 @@ class Extractor:
         self.dependencies_only = request.get('dependencies_only', False)
         self.compiler_view = request.get('compiler_view')
 
+    def relative(self, filename):
+        if filename not in self.relative_paths:
+            self.relative_paths[filename] = relative(filename, self.root)
+        return self.relative_paths[filename]
+
     def loc(self, c):
         loc = c.location
         filename = loc.file.name if loc.file else None
-        if filename is not None and filename not in self.relative_paths:
-            self.relative_paths[filename] = relative(filename, self.root)
-        return dict(file=self.relative_paths[filename] if filename is not None else self.tu_name,
+        return dict(file=self.relative(filename) if filename is not None else self.tu_name,
                     line=loc.line, column=loc.column, offset=loc.offset)
 
     def source(self, c):
@@ -628,6 +640,20 @@ class Extractor:
         standalone_calls = {}
         function_file = str(fn.extent.start.file)
         all_nodes = list(walk(fn))
+        # This body-local proof also serves clock inputs from other TUs.
+        # An unreferenced fixed parameter cannot influence this body. A
+        # variadic tail needs the additional proof that no ABI/asm reader ran.
+        params = list(fn.get_arguments())
+        used = {n.referenced.hash for n in all_nodes if n.kind.name == 'DECL_REF_EXPR' and n.referenced}
+        opaque = any('ASM' in n.kind.name or (n.kind.name == 'CALL_EXPR' and n.spelling in
+                     {'__builtin_apply_args', '__builtin_frame_address', '__builtin_next_arg'}) for n in all_nodes)
+        unused = [i for i, param in enumerate(params) if param.hash not in used]
+        if unused and not opaque:
+            self.functions[fid]['unused_parameters'] = unused
+        self.functions[fid]['unused_variadic_tail'] = bool(self.functions[fid]['is_variadic']
+            and not opaque and not any(n.kind.name in {'CALL_EXPR','VA_ARG_EXPR','UNEXPOSED_EXPR'}
+                and (n.kind.name != 'UNEXPOSED_EXPR' or 'va_list' in n.type.spelling)
+                for n in all_nodes))
         # A deliberately small value-flow model: unchanged scalar parameters
         # may be forwarded to another call or stored. Never infer this from
         # the callee's name, nor from a write unrelated to its argument.
@@ -743,7 +769,8 @@ class Extractor:
                 callee = self.fid(ref) if direct else None
                 name = ref.spelling if direct else c.spelling
                 result_used = True
-                for parent, index in reversed(ancestors):
+                for level in reversed(range(len(ancestors))):
+                    parent, index = ancestors[level]
                     if parent.kind.name in WRAPPERS:
                         if parent.type.kind.name == 'VOID':
                             result_used = False
@@ -753,6 +780,10 @@ class Extractor:
                         continue
                     result_used = not (parent.kind.name == 'COMPOUND_STMT'
                         or (parent.kind.name == 'BINARY_OPERATOR' and operator(parent) == ',' and index == 0))
+                    if (parent.kind.name == 'COMPOUND_STMT' and level > 0
+                            and ancestors[level - 1][0].kind.name == 'StmtExpr'
+                            and index == len(children(parent)) - 1):
+                        result_used = True
                     break
                 self.calls.append(dict(caller_function_id=fid, callee_function_id=callee,
                                        result_used=result_used,
@@ -917,6 +948,9 @@ class Extractor:
                 raise ValueError('冻结编译视图必须核对实际Clang输入，且不能混合unsaved源码覆盖')
             from .working_compiler_view import arguments as compiler_view_arguments
             clang_args.extend(compiler_view_arguments(self.compiler_view,self.root,self.cfg,self.unit))
+        from .macro_semantics import clock_context, clock_expansions, model_clock_inputs
+        clock_args, clock = clock_context(clang_args, self.cfg['analysis'].get('extra_args', ()))
+        clang_args = clock_args + clang_args
         tu = index.parse(self.unit["source"], args=clang_args,
                          unsaved_files=unsaved,
                          options=(ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD |
@@ -975,11 +1009,16 @@ class Extractor:
             match = re.search(r'\bsection\s*\(\s*([A-Za-z_]\w*)\s*\)', ' '.join(spelling))
             if match and match.group(1) in parameters:
                 self.section_macros[macro.spelling] = parameters.index(match.group(1))
-        from .macro_semantics import update_signature, dynamic_input_abstraction
+        from .macro_semantics import update_signature
         update_signature(semantic_macros, tu.cursor.get_children(), macro_dependencies, self.root, self.tu_name)
-        dynamic_inputs = dynamic_input_abstraction(tu, macro_dependencies, self.root, macro_catalog)
+        dynamic_inputs = clock_expansions(self, index, clang_args, unsaved, macro_catalog, clock)
         start_stage('Clang 声明提取', self.tu_name)
         self.declare(tu.cursor)
+        model_clock_inputs(self, dynamic_inputs)
+        for row in dynamic_inputs:
+            if row['scope'] == 'BUILD':
+                semantic_macros.update(digest([row['kind'], row['clock']['source'],
+                                               row['analysis_tokens']]).encode('ascii'))
         self.recover_function_aliases()
         # A macro may change only a global/static initializer, with no change
         # to any function's source tokens. Bind declarations as consumers too.

@@ -770,6 +770,9 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
         fingerprint = digest([__version__, engine_digest(), analysis_config(cfg), analysis_inputs,
                               snapshot_inputs.preprocessor, [u["arguments"] for u in units],
                               snapshot_inputs.consumed_selections(), diff_pin])
+        if facts.get('dynamic_predefined_inputs'):
+            fingerprint = digest([fingerprint, facts['dynamic_predefined_inputs'],
+                                  [gap for gap in facts['unknowns'] if gap['kind'] == 'DYNAMIC_PREDEFINED_INPUT']])
         report.update(fingerprint=fingerprint, generated_at=started, tool_version=__version__)
         try:
             from .portable import tool_path

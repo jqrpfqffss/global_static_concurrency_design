@@ -64,6 +64,9 @@ def status_report(out):
                     coverage={key:_field(conn,coverage,key) for key in
                         ('variables_total','translation_units_total','translation_units_parsed',
                          'translation_units_partial','translation_units_failed')})
+        clock_regions = _field(conn, coverage, 'clock_region_count', MISSING)
+        if clock_regions is not MISSING:
+            result['coverage']['clock_region_count'] = clock_regions
         try:closure=_child(conn,coverage,'build_closure')
         except KeyError:pass
         else:
