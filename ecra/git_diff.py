@@ -206,6 +206,41 @@ def changes(root, base, current=None):
     return result
 
 
+def clock_only_database(before, after):
+    """Check the actual pinned blobs, including directories and non-argument fields."""
+    import json
+    from .compilation import split_command
+    from .macro_semantics import normalize_clock_flags
+
+    def normalized(blob):
+        clocks = []
+        def arguments(args):
+            normalized_args = normalize_clock_flags(args)
+            clocks.extend(arg for arg, norm in zip(args, normalized_args) if arg != norm)
+            return normalized_args
+        data = json.loads(blob)
+        if not isinstance(data, list):
+            return None
+        for row in data:
+            if not isinstance(row, dict):
+                return None
+            if isinstance(row.get('arguments'), list) and row['arguments']:
+                if not all(isinstance(arg, str) for arg in row['arguments']):
+                    return None
+                row['arguments'] = arguments(row['arguments'])
+            elif isinstance(row.get('command'), str) and row['command']:
+                row['command'] = arguments(split_command(row['command']))
+            else:
+                return None
+        return data, clocks
+
+    try:
+        first, second = normalized(before), normalized(after)
+        return bool(first and second and first[0] == second[0] and first[1] != second[1])
+    except (ValueError, UnicodeError):
+        return False
+
+
 def pin(root, cfg):
     options = dict(cfg['analysis']['git_diff'], enabled=True)
     validate_mode(options)
@@ -228,6 +263,10 @@ def pin(root, cfg):
             after = git(fixed_repo, 'show', head + ':' + change['new_path'])
             old, new = comment_insensitive(before), comment_insensitive(after)
             change['comment_only'] = old is not None and old == new
+        elif change['status'] == 'M' and Path(change['new_path']).name == 'compile_commands.json':
+            change['clock_flags_only'] = clock_only_database(
+                git(fixed_repo, 'show', base + ':' + change['old_path']),
+                git(fixed_repo, 'show', head + ':' + change['new_path']))
     effective = copy.deepcopy(cfg)
     effective['analysis'].pop('_workspace', None)
     effective.setdefault('project', {})['root'] = str(Path(root).resolve())
@@ -614,6 +653,16 @@ def summarize(facts, report, renames=None):
         ('contexts', 'irq_priority_events', 'nvic_resolved_events', 'protection_events', 'registrations',
          'hardware_contexts', 'preemption_relations', 'address_escapes')}
     global_semantics['pointer_targets'] = pointer_hashes(facts, renames)
+    from .macro_semantics import normalize_clock_flags, unused_clock_argument
+    bodies = {f['function_id']: f for f in facts['functions']}
+    active_clock = {r['translation_unit'] for r in facts.get('dynamic_predefined_inputs', ())
+                    if not unused_clock_argument(r, bodies)}
+    def semantic_arguments(unit):
+        args = build_arguments(unit, report.get('coverage', {}).get('project_root'))
+        if ('dynamic_predefined_inputs' in facts and unit.get('parse_status') == 'PARSED'
+                and unit['source_file'] not in active_clock):
+            return normalize_clock_flags(args)
+        return args
     return dict(schema=SUMMARY_SCHEMA, variables=variables, graphs=graphs, functions=functions, edges=edges,
         dependency_storage=dependency_storage,
         comparison_scope=scope_evidence(facts, report, cid),
@@ -625,7 +674,7 @@ def summarize(facts, report, renames=None):
         semantics=global_semantics, unknowns=row_hashes(facts.get('unknowns', []), renames),
         impact_unknowns=[normalize({key: gap.get(key) for key in ('kind', 'function_id', 'symbol_id', 'file')}, renames)
                         for gap in facts.get('unknowns', [])],
-        build=sorted(digest([cid(u.get('source_file')), build_arguments(u, report.get('coverage', {}).get('project_root'))])
+        build=sorted(digest([cid(u.get('source_file')), semantic_arguments(u)])
                      for u in facts.get('translation_units', [])),
         analysis_status=report['analysis_status'])
 
@@ -708,11 +757,13 @@ def compare(base, head, pinned):
     dependencies = set(base.get('dependencies', [])) | set(head.get('dependencies', []))
     prefix = pinned.get('project_subdir', '.')
     from .compilation import source_language
+    effective_files = [f for f in pinned['files'] if not f.get('comment_only') and not
+                       (f.get('clock_flags_only') and base.get('build') == head.get('build'))]
     build_changed = base.get('build') != head.get('build') or base.get('macros') != head.get('macros') or any(
         Path(f['new_path']).suffix.lower() in ('.h', '.hh', '.hpp', '.hxx', '.inc', '.cmake', '.ld', '.lds', '.s', '.a', '.o', '.obj', '.mk', '.sct', '.icf')
         or Path(f['new_path']).name in ('CMakeLists.txt', 'CMakePresets.json', 'CMakeUserPresets.json', 'compile_commands.json', 'Makefile')
         or (source_language(f['new_path']) not in {'c', 'c++'}
-            and Path(os.path.relpath(f['new_path'], prefix)).as_posix() in dependencies) for f in pinned['files'] if not f.get('comment_only'))
+            and Path(os.path.relpath(f['new_path'], prefix)).as_posix() in dependencies) for f in effective_files)
     if build_changed:
         fallback.append('头文件或构建输入变化，重新评估完整构建范围')
     from .diff_impact import classify_impacts, LABELS
@@ -722,7 +773,7 @@ def compare(base, head, pinned):
     build_uncertain = base.get('build') != head.get('build') or any(
         Path(f['new_path']).suffix.lower() in ('.cmake', '.ld', '.lds', '.s', '.a', '.o', '.obj', '.mk', '.sct', '.icf')
         or Path(f['new_path']).name in ('CMakeLists.txt', 'CMakePresets.json', 'CMakeUserPresets.json', 'compile_commands.json', 'Makefile')
-        for f in pinned['files'] if not f.get('comment_only'))
+        for f in effective_files)
     accounting = classify_impacts(base, head, reasons, modified,
                                   build_changed=build_uncertain)
     if build_changed:

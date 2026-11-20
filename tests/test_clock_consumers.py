@@ -221,6 +221,34 @@ HAL_NVIC_SetPriority(1,__TIME__[7]-'0',0); }"""}
         self.assertEqual(data[0][1], data[1][1])
         self.assertFalse(any(u['kind']=='DYNAMIC_PREDEFINED_INPUT' for u in data[0][0]['unknowns']))
 
+    def test_pinned_time_flags_only_select_real_consumers(self):
+        from ecra.git_diff import clock_only_database, compare
+        pinned = dict(base_sha='a'*40, head_sha='b'*40, project_subdir='.', files=[dict(
+            old_path='compile_commands.json',new_path='compile_commands.json',status='M',clock_flags_only=True)])
+        for flags in [(['-Xclang','-source-date-epoch','-Xclang','946684800'],
+                       ['-Xclang','-source-date-epoch','-Xclang','1700000001']),
+                      (['-D__TIME__="00:00:00"'], ['-D__TIME__="12:34:51"'])]:
+            def database(args):
+                return json.dumps([dict(file='a.c',directory='project',arguments=['clang',*args,'-c','a.c'])])
+            self.assertTrue(clock_only_database(database(flags[0]), database(flags[1])))
+            import subprocess
+            def command(args):
+                return json.dumps([dict(file='a.c',command=subprocess.list2cmdline(['clang',*args,'-c','a.c']))])
+            self.assertTrue(clock_only_database(command(flags[0]), command(flags[1])))
+            self.assertFalse(clock_only_database(database([]), database([])+' '))
+            self.assertFalse(clock_only_database(database(flags[0]), database([*flags[1],'-DFEATURE=1'])))
+            for use in ('out(__TIME__);g++;', "if(__TIME__[7]=='0')g++;"):
+                summaries = []
+                for args in flags:
+                    _, facts, report = self.scan({'a.c':'void out(const char *); int g; void Task(){'+use+'}',
+                        'b.c':'int count;void out(const char*s){count++;}void ISR(){count++;}'}, *args)
+                    summaries.append(summarize(facts, report))
+                selected = compare(*summaries, pinned)['selected_symbol_ids']
+                if use.startswith('out'):
+                    self.assertEqual(selected, [])
+                else:
+                    self.assertIn('c:@g', selected)
+
     def test_delayed_function_macro_stringification_and_command_line_override(self):
         source = """#define ID(x) x
 #define JOIN(a,b) a##b

@@ -555,6 +555,22 @@ def unused_clock_argument(row, functions):
             body.get('unused_variadic_tail') and index >= body['parameter_count'])
 
 
+def normalize_clock_flags(arguments):
+    """Comparison only. Preserve presence, order and every non-clock token."""
+    result = list(arguments)
+    for i, arg in enumerate(arguments):
+        if i >= 3 and arguments[i-3:i] == ['-Xclang', '-source-date-epoch', '-Xclang'] and arg.isdecimal():
+            result[i] = ('clock-epoch',)
+        separate = i > 0 and arguments[i-1] == '-D'
+        flag = '' if separate else '-D'
+        if not arg.startswith(flag):
+            continue
+        name, sep, value = arg[len(flag):].partition('=')
+        if name in DYNAMIC_BUILTINS and sep and re.fullmatch(r'"[^"\\]*"', value):
+            result[i] = ('clock-text', flag + name)
+    return result
+
+
 def bind_clock_signatures(facts):
     """Bind observed values to the owning consumers, after cross-TU linkage."""
     if not facts['dynamic_predefined_inputs']:
@@ -563,15 +579,19 @@ def bind_clock_signatures(facts):
     targets = {v['symbol_id']: v for v in facts['variables']}
     targets.update(functions)
     for row in facts['dynamic_predefined_inputs']:
-        if row['scope'] == 'TYPE_ONLY' or unused_clock_argument(row, functions):
+        if unused_clock_argument(row, functions):
+            continue
+        if row['scope'] == 'TYPE_ONLY' and not row.get('definitions'):
             continue
         # Even when an input is bound a changed value may select a different
         # path, specialization or layout. Preserve the origin in this digest.
         for key in ('symbol_id', 'function_id'):
             target = targets.get(row.get(key))
             if target is not None:
+                value = (row['literal_types'] if row['scope'] == 'TYPE_ONLY' else
+                         [row['clock']['source'], row['analysis_tokens'], row.get('definitions')])
                 target['consumed_macros_digest'] = digest([target.get('consumed_macros_digest'),
-                    row['kind'], row['scope'], row['clock']['source'], row['analysis_tokens'], row.get('definitions')])
+                                                          row['kind'], row['scope'], value])
 
 
 def bind_clock_gaps(facts):
@@ -746,7 +766,16 @@ def function_signatures(functions, cursors, catalog, definitions, root, tu_name,
                             continue
                         seen.add(current)
                         pending.extend(child for child in dependencies[current] if child in catalog)
-                    closures[name] = digest([(key, catalog.get(key, [])) for key in sorted(seen)])
+                    entries = []
+                    for key in sorted(seen):
+                        rows = catalog.get(key, [])
+                        if key in DYNAMIC_BUILTINS:
+                            # Real string bytes/types are bound above at actual
+                            # expansion sites, after cross-TU argument proofs.
+                            rows = [[False, key, '<clock-text>'] if not row[0] and len(row) == 3
+                                    and re.fullmatch(r'"[^"\\]*"', row[2]) else row for row in rows]
+                        entries.append((key, rows))
+                    closures[name] = digest(entries)
                 signature.update(closures[name].encode('ascii'))
             update_signature(signature, uses[function['function_id']], definitions, root, tu_name, sensitive)
             if counter_positions[function['function_id']]:
