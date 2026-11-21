@@ -151,7 +151,7 @@ class NativeDiffSummaryCacheTests(unittest.TestCase):
         (self.root/'main.c').write_text('int build_marker[BUILD_WIDTH];int shared;void Task(void){shared=3;}void ISR(void){shared++;}\n','utf-8')
         self.git('commit','-am','CMake current')
         cfg=read_json(self.config)
-        cfg['analysis'].update(compile_database='auto',cmake=dict(build_dir='build/ecra',generator='Ninja',
+        cfg['analysis'].update(compile_database='auto',cmake=dict(build_dir='build/ecra',generator='Ninja',target='firmware',
             build_type='Debug',build=True,clean_before_configure=False,args=['-DCMAKE_SYSTEM_NAME=Generic','-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
                                              '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         self.git('branch','cmake-baseline',self.base)

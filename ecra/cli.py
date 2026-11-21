@@ -448,6 +448,8 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             progress('范围外编译依赖只用于恢复调用链和目标变量的访问，不生成第三方变量候选。')
         frozen_prepare = {} if frozen_files is None else dict(file_view=frozen_files)
         units, compilation = prepare(root, cfg, progress=progress, build_firmware=not doctor_only, **frozen_prepare)
+        if diff_pin and compilation.get('cmake_target_selection'):
+            diff_pin['current_build_target'] = compilation['cmake_target_selection']['effective_target']
         if frozen_files is not None:
             frozen_files.assert_valid()
         doctor.update(compilation, compile_database_found=True, translation_units_total=len(units), ready_for_scan=True)

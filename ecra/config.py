@@ -242,7 +242,7 @@ def cmake_build_args_allow_auto_target(args):
     while index < len(args):
         arg = args[index]
         index += 1
-        if arg in {'--verbose', '-v'}:
+        if arg in {'--verbose', '-v', '--clean-first'} or re.fullmatch(r'-j[0-9]+', arg):
             continue
         if arg not in {'--parallel', '-j'}:
             return False
@@ -389,6 +389,8 @@ def load_config(root=None, path=None, *, consumed_inputs=None):
                 raise ValueError('analysis.cmake.target 的未提交 CMake 扫描要求受保护的 Windows/Ninja 外置构建')
             if any(arg in {'--target', '-t', '--'} or arg.startswith('--target=') for arg in c.get('build_args', [])):
                 raise ValueError('指定 cmake.target 后不可在 build_args 中覆盖构建目标或原生工具参数')
+            if any(arg == '--config' or arg.startswith('--config=') for arg in c.get('build_args', [])):
+                raise ValueError('指定 cmake.target 后请用 cmake.build_type 设置构建配置')
         if 'build' in c and type(c['build']) is not bool:
             raise ValueError('analysis.cmake.build 必须是 true/false')
         if 'clean_before_configure' in c and type(c['clean_before_configure']) is not bool:

@@ -348,7 +348,7 @@ def assert_pin(root, cfg, expected):
             raise ValueError('固定输入或基准证据已变化/损坏：' + expected[path_key] + '；请重新扫描')
     if expected.get('base_source_root'):
         base_root = Path(expected['base_source_root'])
-        check_isolated_tree(base_root, expected['base_sha'], expected.get('base_build_path'))
+        check_isolated_tree(base_root, expected['base_sha'], expected.get('base_build_path'), expected.get('base_build_target'))
     if expected.get('current_source_root'):
         check_current_tree(expected)
     if expected.get('base_scan_path'):
@@ -1065,12 +1065,14 @@ def version_directory(workspace, pinned, side):
     return no_links(Path(workspace.worktree_root)/(side + '-' + identity))
 
 
-def check_isolated_tree(source, sha, build=None):
+def check_isolated_tree(source, sha, build=None, target=None):
     source = Path(source)
+    label = f'（构建目标 {target}）' if target else ''
     if text(source, 'rev-parse', 'HEAD') != sha:
         raise ValueError('隔离工作树提交身份已变化；请重新扫描')
-    if _content_changes(source,'HEAD'):
-        raise ValueError(f'隔离源码已变化，拒绝使用污染的事实: {source}')
+    changes = _content_changes(source,'HEAD')
+    if changes:
+        raise ValueError(f'隔离源码已变化{label}：{source} / {sorted(changes)}')
     repo = Path(text(source, 'rev-parse', '--show-toplevel'))
     from .compilation import _owns_build_directory
     owned = Path(build).resolve() if build and _owns_build_directory(Path(build), source) else None
@@ -1083,13 +1085,14 @@ def check_isolated_tree(source, sha, build=None):
             continue
         file = (repo/path.decode('utf-8')).resolve()
         if owned is None or not file.is_relative_to(owned):
-            raise ValueError(f'隔离源码目录出现构建写入或未知文件: {file}；'
+            raise ValueError(f'隔离源码目录出现构建写入或未知文件{label}: {file}；'
                              '请将生成文件放入 CMAKE_BINARY_DIR；源码内构建可显式设置 analysis.cmake.location: project，'
                              '但不得改写已提交文件或构建目录外源码。')
 
 
 def check_current_tree(pinned):
-    check_isolated_tree(pinned['current_source_root'], pinned['head_sha'], pinned.get('current_build_path'))
+    check_isolated_tree(pinned['current_source_root'], pinned['head_sha'], pinned.get('current_build_path'),
+                        pinned.get('current_build_target'))
 
 
 def prepare_current(root, out, cfg, pinned, progress):
@@ -1219,6 +1222,7 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
     base_state = None
     if cfg['analysis']['git_diff']['cache_enabled']:
         from .config import load_config
+        refreshed = None
         if 'cmake' in baseline['analysis'] and (base_out/'scan_state.json').is_file():
             # Configure/build may consume arbitrary environment variables or
             # generator inputs. Refresh real outputs before verifying the
@@ -1227,13 +1231,19 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
             from .build_target_checkpoint import baseline_selection
             progress('刷新基准 CMake 构建输入后验证完整事实缓存。')
             with baseline_selection(_frozen_current):
-                prepare(base_root, baseline, progress)
+                _, compilation = prepare(base_root, baseline, progress)
+                refreshed = compilation.get('cmake_target_selection')
         try:
             validated, _ = load_config(base_root, config)
             base_workspace.bind(validated['analysis'])
             _, base_report, base_state = checked_scan(base_root, base_out, validated, config,
                                                       with_facts=False, _report_projection=True)
-            if native_baseline and not is_canonical(base_out):
+            cached = base_report.get('coverage', {}).get('cmake_target_selection', {})
+            if refreshed and any(refreshed.get(key) != cached.get(key)
+                                 for key in ('effective_target', 'build_type', 'source')):
+                progress('基准构建目标或配置已经改变，重新建立基准事实。')
+                base_report = None
+            elif native_baseline and not is_canonical(base_out):
                 base_report = None
             else:
                 progress('基准完整事实缓存通过源码、预处理闭包和引擎校验。')
@@ -1269,7 +1279,9 @@ def prepare_base(root, out, cfg, pinned, progress, cache_stats=None, *, _frozen_
                                                       with_facts=False, _report_projection=True)
         else:
             base_report = read_saved_json(base_out/'reports/global_static_concurrency.json')
-    check_isolated_tree(base_root, pinned['base_sha'], pinned.get('base_build_path'))
+    selection = base_report.get('coverage', {}).get('cmake_target_selection', {})
+    pinned['base_build_target'] = selection.get('effective_target')
+    check_isolated_tree(base_root, pinned['base_sha'], pinned.get('base_build_path'), pinned['base_build_target'])
     prefix = pinned['project_subdir'].rstrip('/')
     def local(path):
         return Path(os.path.relpath(path, prefix)).as_posix() if prefix and prefix != '.' and path else path

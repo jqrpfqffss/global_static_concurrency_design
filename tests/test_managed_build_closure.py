@@ -76,7 +76,8 @@ class ManagedBuildClosureNativeTests(unittest.TestCase):
             'add_executable(firmware main.c)\nset_target_properties(firmware PROPERTIES SUFFIX ".elf")\n'
             'target_compile_options(firmware PRIVATE -mcpu=cortex-m7 -mthumb -ffreestanding)\n'
             'target_link_options(firmware PRIVATE -mcpu=cortex-m7 -mthumb -nostdlib -Wl,-e,Task "-Wl,-Map,${CMAKE_BINARY_DIR}/firmware.map")\n','utf-8')
-        case.git('add','.');case.git('commit','-m','actual linked CMake baseline');base=case.git('rev-parse','HEAD')
+        case.git('add','.');case.git('commit','-m','actual linked CMake baseline')
+        base='linked-baseline';case.git('branch',base)
         (root/'main.c').write_text('int shared;void Task(void){shared=2;}void ISR(void){shared++;}\n','utf-8')
         case.git('commit','-am','actual current write');before=case.source_files()
         cfg=read_json(case.config);cfg['analysis'].update(compile_database='auto',

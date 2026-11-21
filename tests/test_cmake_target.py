@@ -65,13 +65,14 @@ class CMakeTargetTests(unittest.TestCase):
         database, _ = configure_cmake(self.root, self.settings, lambda _: None, True)
         self.assertEqual(len(json.loads(database.read_text(encoding='utf-8'))), 3)
 
-    def test_unselected_mode_keeps_original_multi_target_database(self):
+    def test_firmware_build_without_executable_fails_before_build(self):
         self.fixture()
         del self.settings['cmake']['target']
-        database, steps = configure_cmake(self.root, self.settings, lambda _: None, True)
-        self.assertEqual(database.name, 'compile_commands.json')
+        with self.assertRaisesRegex(ValueError, '没有合格的可执行固件目标'):
+            configure_cmake(self.root, self.settings, lambda _: None, True)
+        database, steps = configure_cmake(self.root, self.settings, lambda _: None, False)
         self.assertEqual(len(json.loads(database.read_text(encoding='utf-8'))), 4)
-        self.assertEqual([s['stage'] for s in steps], ['configure', 'build'])
+        self.assertEqual([s['stage'] for s in steps], ['configure'])
 
     def test_forced_response_files_remain_usable_after_ninja_removes_them(self):
         self.fixture()
@@ -108,7 +109,7 @@ class CMakeTargetTests(unittest.TestCase):
         self.fixture()
         configure_cmake(self.root, self.settings, lambda _: None, True)
         self.settings['cmake']['target'] = 'missing-target'
-        with self.assertRaisesRegex(ValueError, '闭包读取失败'):
+        with self.assertRaisesRegex(ValueError, '未找到 CMake 目标：missing-target'):
             configure_cmake(self.root, self.settings, lambda _: None, False)
 
     def test_unsupported_ninja_and_empty_or_malformed_closure_fail(self):
@@ -130,7 +131,7 @@ class CMakeTargetTests(unittest.TestCase):
         for target, generator, args in [(False, 'Ninja', []), ('', 'Ninja', []),
                 ('--help', 'Ninja', []), ('bad\nname', 'Ninja', []),
                 ('firmware', 'Unix Makefiles', []), ('firmware', 'Ninja', ['--target', 'other']),
-                ('firmware', 'Ninja', ['--', 'other'])]:
+                ('firmware', 'Ninja', ['--', 'other']), ('firmware', 'Ninja', ['--config', 'Release'])]:
             self.settings['cmake'].update(target=target, generator=generator, build_args=args)
             path.write_text(json.dumps(cfg), encoding='utf-8')
             with self.subTest(target=target, generator=generator, args=args), self.assertRaisesRegex(ValueError, 'cmake'):

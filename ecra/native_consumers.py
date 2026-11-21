@@ -67,6 +67,13 @@ def status_report(out):
         clock_regions = _field(conn, coverage, 'clock_region_count', MISSING)
         if clock_regions is not MISSING:
             result['coverage']['clock_region_count'] = clock_regions
+        try:
+            selection = _child(conn, coverage, 'cmake_target_selection')
+        except KeyError:
+            pass
+        else:
+            result['coverage']['cmake_target_selection'] = {
+                key: _field(conn, selection, key, None) for key in ('effective_target', 'build_type', 'source')}
         try:closure=_child(conn,coverage,'build_closure')
         except KeyError:pass
         else:

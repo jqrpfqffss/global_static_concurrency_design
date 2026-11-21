@@ -126,7 +126,8 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         diagnostics.stage('预检查：真实构建与编译命令')
         engine = engine_digest()
         prepared={} if frozen is None else dict(file_view=frozen)
-        units, compilation = prepare(root, cfg, progress=progress, build_firmware=True,**prepared)
+        units, compilation = prepare(root, cfg, progress=progress, build_firmware=True,
+                                     build_diagnostics=result, **prepared)
         target_selection = compilation.get('cmake_target_selection')
         if target_selection:
             result['target_selection'] = target_selection
@@ -174,6 +175,7 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
             raise ValueError('引擎或配置在检查中变化，请重新检查')
         if fixed:
             from ..git_diff import assert_pin
+            fixed['current_build_target'] = result['target']
             assert_pin(root, cfg, fixed)
         with closing(sqlite3.connect(folder/'plan.db')) as db, db:
             db.execute('CREATE TABLE units (ordinal INTEGER PRIMARY KEY, body TEXT NOT NULL)')
@@ -183,7 +185,8 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
             project_root=str(original_root), analysis_root=str(root), data_root=str(data),
             build_root=str(Path(compilation['compile_database']).parent) if cmake else None,
             compile_database=compilation['compile_database'],
-            variant=cmake.get('build_type'), cmake_steps=compilation.get('cmake_steps', []),
+            variant=(target_selection or {}).get('build_type', cmake.get('build_type', 'Debug') if cmake else None),
+            cmake_steps=compilation.get('cmake_steps', []),
             git=fixed, engine_digest=engine, translation_units=len(units),
             input_files=len(snapshot.before), snapshot_status=snapshot.status,
             plan_sha256=sha256(folder/'plan.db'),
@@ -192,6 +195,9 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
             frozen.assert_valid();result['frozen_working_inputs']=dict(_compiler_view)
         return result
     except BaseException as exc:
+        selection = result.get('target_selection')
+        if selection and not selection.get('reason'):
+            selection['reason'] = str(exc)
         result.update(state='INTERRUPTED' if isinstance(exc, KeyboardInterrupt) else 'PRECHECK_FAILED',
                       error=f'{type(exc).__name__}: {exc}',
                       repair='请按具体字段/工具路径修正配置，重新保存并检查；上一有效结果和人工记录保留。')

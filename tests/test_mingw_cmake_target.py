@@ -13,7 +13,6 @@ from unittest.mock import patch
 from ecra.common import read_json, write_json
 from ecra.compilation import cmake_build_directory, prepare
 from ecra.config import load_config
-from ecra.workspace import results_path
 
 
 def create_project(root):
@@ -88,7 +87,7 @@ class MinGWTargetTests(unittest.TestCase):
         cfg, _ = load_config(self.root, self.profile)
         return prepare(self.root, cfg)
 
-    def test_real_minimum_build_and_default_all_failure(self):
+    def test_explicit_and_automatic_build_skip_packaging(self):
         units, compilation = self.prepare()
         self.assertEqual(len(units), 3)
         build = Path(compilation['compile_database']).parent
@@ -115,13 +114,14 @@ class MinGWTargetTests(unittest.TestCase):
             self.assertEqual(artifact['sha256'], compilation['consumed_inputs'][artifact['actual']]['sha256'])
 
         del self.cfg['analysis']['cmake']['target']
-        with self.assertRaisesRegex(ValueError, r'(?s)CMake build 失败.*app_M2'):
-            self.prepare()
-        build = cmake_build_directory(self.root, self.cfg['analysis'])
-        self.assertTrue((build/'package-entered').is_file())
+        auto_units, auto_info = self.prepare()
+        self.assertEqual(auto_info['cmake_target_selection']['effective_target'], 'app_elf')
+        from ecra.git_diff import build_arguments
+        self.assertEqual([build_arguments(u, self.root) for u in auto_units],
+                         [build_arguments(u, self.root) for u in units])
+        build = Path(auto_info['compile_database']).parent
+        self.assertFalse((build/'package-entered').exists())
         self.assertTrue((build/'app_elf.axf').is_file())
-        raw = (results_path(self.root, self.cfg['analysis'])/'cmake-build.stderr.bin').read_bytes()
-        self.assertIn(b'app_M2.dir', raw)
 
     def test_required_compile_and_link_fail_at_build_stage(self):
         main = self.root/'app/main.c'
@@ -221,10 +221,18 @@ class MinGWTargetTests(unittest.TestCase):
         (self.root/'entry.S').write_text('.syntax unified\n.thumb\n.global entry_hook\nentry_hook: bx lr\n', 'utf-8')
         units, info = self.prepare()
         self.assertEqual(info['assembly_sources'], ['entry.S'])
+        self.assertEqual(info['cmake_steps'][-2]['compile_entries'], len(units) + 1)
         duplicate = [unit for unit in units if unit['source_file'].endswith('dispatch.c')]
         self.assertEqual(len({unit['tu_id'] for unit in duplicate}), 2)
         self.assertEqual({arg for unit in duplicate for arg in unit['arguments'] if arg.startswith('-DVARIANT=')},
                          {'-DVARIANT=1', '-DVARIANT=2'})
+        del self.cfg['analysis']['cmake']['target']
+        automatic, selected = self.prepare()
+        from ecra.git_diff import build_arguments
+        self.assertEqual([build_arguments(unit, self.root) for unit in automatic],
+                         [build_arguments(unit, self.root) for unit in units])
+        self.assertEqual(selected['assembly_sources'], info['assembly_sources'])
+        self.assertEqual(selected['cmake_steps'][-2]['outputs'], info['cmake_steps'][-2]['outputs'])
 
 
 @unittest.skipUnless(all(shutil.which(tool) for tool in ('cmake', 'ninja', 'arm-none-eabi-gcc')),
@@ -348,17 +356,17 @@ add_custom_target(package ALL
                          explicit_report['coverage']['static_classification'])
         self.assertIn('HAL_DMA_Callback', json.dumps(auto_facts['calls']))
 
-    def test_unique_executable_with_extra_variant_keeps_all_analysis(self):
+    def test_unique_executable_with_extra_variant_scans_the_firmware_closure(self):
         self.cmake.write_text(self.cmake.read_text('utf-8').split('add_custom_target(package ALL', 1)[0], 'utf-8')
         self.extras('add_library(other STATIC "object sources/dispatch.c")\n'
                     'target_compile_definitions(other PRIVATE VARIANT=2)\n')
         units, info = self.prepare()
-        self.assertIn('分析范围', self.selection(info, 'default', None)['reason'])
-        self.assertEqual(len(units), 4)
+        self.selection(info)
+        self.assertEqual(len(units), 3)
         self.assertEqual({arg for u in units if u['source_file'].endswith('dispatch.c')
                           for arg in u['arguments'] if arg.startswith('-DVARIANT=')},
-                         {'-DVARIANT=1', '-DVARIANT=2'})
-        self.assertNotIn('--target', info['cmake_steps'][-1]['command'])
+                         {'-DVARIANT=1'})
+        self.assertIn('--target', info['cmake_steps'][-1]['command'])
 
     def test_linked_source_and_object_constraints_still_apply_after_selection(self):
         build = cmake_build_directory(self.root, self.cfg['analysis'])
@@ -372,21 +380,21 @@ add_custom_target(package ALL
         self.assertEqual(info['build_closure']['linked_objects'], self.cfg['analysis']['build_closure']['linked_objects'])
         self.assertTrue((build/'object sources/CMakeFiles/support.dir/dispatch.c.obj').is_file())
 
-    def test_boot_app_and_independent_custom_targets_keep_default_build(self):
+    def test_multiple_qualified_targets_fail_and_independent_custom_target_is_skipped(self):
         self.cmake.write_text(self.cmake.read_text('utf-8').split('add_custom_target(package ALL', 1)[0], 'utf-8')
         self.extras('add_custom_target(independent ALL COMMAND ${CMAKE_COMMAND} -E touch independent-ran)\n')
         units, info = self.prepare()
         build = Path(info['compile_database']).parent
-        self.assertTrue((build/'independent-ran').is_file())
-        self.assertIn('自定义目标', self.selection(info, 'default', None)['reason'])
+        self.assertFalse((build/'independent-ran').exists())
+        self.selection(info)
+        self.cfg['analysis'].pop('build_closure')
         self.extras('add_executable(boot app/boot.c)\n'
                     'target_link_options(boot PRIVATE -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard'
                     ' -nostdlib -Wl,-e,main)\n')
         (self.root/'app/boot.c').write_text('int boot_counter;int main(void) { return ++boot_counter; }\n', 'utf-8')
-        units, info = self.prepare()
-        self.assertIn('多个可执行目标', self.selection(info, 'default', None)['reason'])
-        self.assertEqual(len(units), 4)
-        self.assertIn('app/boot.c', {unit['source_file'] for unit in units})
+        with self.assertRaisesRegex(ValueError, r'多个合格固件目标.*boot.*firmware_2.22.1'):
+            self.prepare()
+        self.assertFalse((build/'independent-ran').exists())
 
     @unittest.skipUnless(shutil.which('git'), 'requires Git worktrees')
     def test_git_diff_resolves_two_versions_to_separate_targets_and_artifacts(self):
@@ -399,7 +407,8 @@ add_custom_target(package ALL
         git('init', '-q')
         git('add', '.')
         git('commit', '-qm', 'first firmware version')
-        base = git('rev-parse', 'HEAD')
+        base = 'fixture-base'
+        git('branch', base)
         self.version.write_text('2.23.0', 'utf-8')
         (self.root/'gen.c.in').write_text('#include "generated.h"\nint generated(void) { return 8; }\n', 'utf-8')
         git('commit', '-qam', 'next firmware version')

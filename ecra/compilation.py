@@ -114,10 +114,11 @@ def cmake_input_records(root, build):
         raise ValueError('所选目标的 CMake 构建输入无法校验，禁止发布分析结果') from exc
 
 
-def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
+def configure_cmake(root, analysis, progress, build_firmware, *, project=None, diagnostics=None):
     """Managed CMake mode refreshes the database on every run, even if present."""
     settings = analysis['cmake']
     configured_target = effective_target = settings.get('target')
+    variant = settings.get('build_type', 'Debug')
     build = cmake_build_directory(root, analysis)
     disk = filesystem_path(build)
     if disk.exists() and not disk.is_dir():
@@ -182,8 +183,14 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
     reason = None if configured_target else eligibility(
         analysis, project or {}, build_firmware, protected or protected_baseline.get())
     try_auto = not configured_target and reason is None
-    explicit_make = configured_target and generator == 'MinGW Makefiles'
-    check_previous_selection(root, build, try_auto)
+    resolve_target = bool(configured_target or try_auto)
+    selection = dict(source='explicit' if configured_target else 'automatic' if try_auto else
+                     'build_args' if build_args else 'default', configured_target=configured_target,
+                     effective_target=None, build_type=variant, reason=reason, candidates=[])
+    if diagnostics is not None:
+        diagnostics.update(target=None, target_selection=selection, variant=variant, cmake_steps=records)
+    if not protected:
+        check_previous_selection(root, build, resolve_target)
 
     if empty:
         try:
@@ -247,11 +254,16 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
         from .scan_stop import check_stop
         nonlocal path_warning
         check_stop()
+        step = dict(stage=name, command=argv, exit_code=None)
+        if name == 'build' and effective_target:
+            step['target'] = effective_target
+        records.append(step)
         try:
             proc = execute(argv, cwd=source_path, env=tool_environment(), timeout=settings.get('timeout_seconds', 600),
                            text=False, encoding=None, errors=None)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
-            log, _, _ = save_logs(out, name, getattr(exc, 'output', None), getattr(exc, 'stderr', None))
+            log, raw_logs, _ = save_logs(out, name, getattr(exc, 'output', None), getattr(exc, 'stderr', None))
+            step.update(log=str(log), raw_logs=raw_logs)
             message = f'CMake {name} '+('已中断' if isinstance(exc, KeyboardInterrupt) else '超时')+f'，停止扫描。日志: {log}'
             if isinstance(exc, KeyboardInterrupt):
                 raise KeyboardInterrupt(message) from exc
@@ -260,7 +272,7 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
             raise ValueError(f'CMake {name} 无法启动：{argv[0]}；工作目录：{source_path}。'
                              f'请检查工具和路径：{exc}') from exc
         log, raw_logs, message = save_logs(out, name, proc.stdout, proc.stderr)
-        records.append(dict(stage=name, command=argv, exit_code=proc.returncode, log=str(log), raw_logs=raw_logs))
+        step.update(exit_code=proc.returncode, log=str(log), raw_logs=raw_logs)
         if name == 'configure':
             path_warning = (os.name == 'nt' and 'CMAKE_OBJECT_PATH_MAX' in message
                             and 'cannot be safely placed under this directory' in message)
@@ -272,7 +284,7 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
             raise ValueError(f'CMake {name} 失败 (退出码 {proc.returncode})，停止扫描。日志: {log}'
                              + hint + '\n' + message[-6000:])
         check_stop()
-    from .cmake_file_api import AutoTargetUnavailable, FileAPI, latest_index, request
+    from .cmake_file_api import FileAPI, TargetGraph, latest_index, request
     from .input_snapshot import read_consumed_text, record_consumed_file, verify_consumed_files
     from .scan_stop import check_stop
 
@@ -282,29 +294,32 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
 
     if try_auto:
         request(build, 'cmakeFiles-v1', 'codemodel-v2', 'toolchains-v1')
-    elif explicit_make:
+    elif configured_target:
         request(build, 'cmakeFiles-v1', 'codemodel-v2')
-    elif configured_target or protected:
+    elif protected:
         request(build, 'cmakeFiles-v1')
-    previous_index = index_stamp() if try_auto or explicit_make else None
-    previous_db = disk_database.stat() if (try_auto or explicit_make) and disk_database.is_file() else None
+    previous_index = index_stamp() if resolve_target else None
+    previous_db = disk_database.stat() if resolve_target and disk_database.is_file() else None
     progress('CMake 配置并刷新编译数据库…')
     invoke(command, 'configure')
     configure_step = records[-1]
-    if configured_target and not explicit_make:
-        records[-1]['consumed_inputs'] = cmake_input_records(root, build)
     cache, _ = check_cache(build, root, generator, make, allow_external)
     cached_build = cache.get('CMAKE_CACHEFILE_DIR')
     if cached_build and resolved_path(cached_build) != build:
         raise ValueError(f'CMakeCache 构建目录身份不一致：{cached_build}，要求实际目录 {build}；请检查旧构建路径。')
-    if not disk_database.is_file():
-        raise ValueError(f'CMake 未生成 {database}；请使用 Ninja 或 Makefiles 生成器')
-    if previous_db is not None and previous_db.st_mtime_ns == disk_database.stat().st_mtime_ns:
-        raise ValueError(f'CMake configure 未刷新 {database}；禁止使用旧编译数据库')
-    if try_auto or explicit_make:
+    consumed = {}
+    if resolve_target:
         current_index = index_stamp()
         if current_index is None or current_index == previous_index:
             raise ValueError('CMake configure 未刷新本轮 File API 索引；禁止使用旧目标证据')
+        api = FileAPI(root, build, consumed, generator)
+        graph = TargetGraph(api, variant)
+        if configured_target:
+            target = graph.named(configured_target)
+    if not disk_database.is_file():
+        raise ValueError(f'CMake 未生成 {database}，无法校验编译证据。本次未执行构建。')
+    if previous_db is not None and previous_db.st_mtime_ns == disk_database.stat().st_mtime_ns:
+        raise ValueError(f'CMake configure 未刷新 {database}；禁止使用旧编译数据库')
 
     def audit_database(entries=None):
         if bundle_root():
@@ -316,7 +331,7 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
                 for executable in raw[:count]:
                     audit_executable(executable, entry.get('directory', root), allow_external=allow_external)
 
-    def read_ninja(target, *, auto=False):
+    def read_ninja(target):
         ninja = make or cache.get('CMAKE_MAKE_PROGRAM')
         if not ninja:
             raise ValueError('指定 cmake.target 时无法确定实际 Ninja 程序')
@@ -325,8 +340,6 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
         proc = execute(argv, cwd=source_path, env=tool_environment(), timeout=settings.get('timeout_seconds', 600))
         check_stop()
         if proc.returncode:
-            if auto and "unknown tool 'compdb-targets'" in proc.stderr:
-                raise AutoTargetUnavailable('当前 Ninja 不支持 compdb-targets')
             raise ValueError('目标编译闭包读取失败；需要支持 compdb-targets 的 Ninja 和有效目标：'
                              + target + '\n' + proc.stderr[-4000:])
         try:
@@ -349,129 +362,100 @@ def configure_cmake(root, analysis, progress, build_firmware, *, project=None):
         except (ValueError, TypeError) as exc:
             raise ValueError('目标编译闭包无效，禁止回退混用全目标数据库：' + target) from exc
 
-    def read_make(target, inputs, *, auto=False):
+    rows, outputs, sources = [], set(), set()
+    if resolve_target:
+        from .cmake_auto_target import ninja_graph_evidence, select_firmware
         from .make_target import target_entries
-        return target_entries(root, build, database, generator, target, inputs, auto=auto)
+        from .portable import resolved_executable
 
-    def target_step(target, rows, argv=None):
-        step = dict(stage='target-closure', exit_code=0, target=target, translation_units=len(rows))
+        api.inputs()
+        full = json.loads(read_consumed_text(no_links(database), consumed))
+        if not isinstance(full, list) or not full:
+            raise ValueError('编译数据库必须是非空数组')
+        if owned:
+            record_consumed_file(no_links(build/OWNER_MARKER), consumed)
+        if read_cache(build, consumed_inputs=consumed) != cache:
+            raise ValueError('CMakeCache 在目标选择时改变')
+        if generator == 'Ninja':
+            ninja_graph_evidence(api)
+        if not cache.get('CMAKE_MAKE_PROGRAM'):
+            raise ValueError('CMakeCache 缺少当前生成器的构建工具')
+        record_consumed_file(resolved_executable(cache['CMAKE_MAKE_PROGRAM'], build), consumed)
+
+        def closure(target):
+            if generator != 'Ninja':
+                entries, files = target_entries(root, build, database, generator, target['name'], consumed,
+                                                graph=graph, rows=full)
+                return entries, files, None, None
+            entries, rules, command = read_ninja(target['name'])
+            files = {api.build_path(Path(row['directory'])/row['output']) for row in entries}
+            artifacts = set(api.artifacts(target))
+            native_outputs = {api.build_path(Path(row['directory'])/row['output']) for row in rules}
+            if artifacts - native_outputs:
+                raise ValueError(f'Ninja 入口与逻辑目标 {target["name"]} 的产物不一致：{min(artifacts - native_outputs)}')
+            files.update(artifacts)
+            return entries, files, rules, command
+
+        if configured_target:
+            rows, outputs, ninja_raw, argv = closure(target)
+            reason = '精确匹配当前配置的 CMake 逻辑目标'
+        else:
+            effective_target, rows, outputs, ninja_raw, argv, artifact, reason = select_firmware(
+                graph, analysis, generator, full, closure, selection['candidates'], execute)
+            selection['artifact'] = str(artifact)
+            for candidate in selection['candidates']:
+                if not candidate['eligible']:
+                    progress(f'CMake 跳过候选 {candidate["target"]}：{candidate["reason"]}')
+        sources = {resolved_path(Path(row['directory'])/row['file']) for row in rows}
+        for source in sources:
+            if not source.is_relative_to(build):
+                record_consumed_file(source, consumed)
+        step = dict(stage='target-closure', exit_code=0, target=effective_target,
+                    compile_entries=len(rows), outputs=len(outputs))
         if argv is None:
-            step['source'] = 'cmake-file-api+makefiles'
+            step['source'] = 'cmake-file-api+compile_commands'
         else:
             step['command'] = argv
         records.append(step)
-        return step
 
-    consumed = {}
-    outputs, rows, sources = set(), [], set()
-    api = None
-    if try_auto:
-        from .cmake_auto_target import (firmware_candidate, linker_evidence, ninja_graph_evidence,
-                                       scope_identity, verify_compilers, verify_ninja_default)
-        from .portable import resolved_executable
-        api = FileAPI(root, build, consumed, generator)
-        api.inputs()
-        safe_db = no_links(database)
-        full = json.loads(read_consumed_text(safe_db, consumed))
-        if not isinstance(full, list) or not full:
-            raise ValueError('编译数据库必须是非空数组')
-        record_consumed_file(no_links(build/OWNER_MARKER), consumed)
-        # Bind the cache and the literal compiler records whose values we use.
-        if read_cache(build, consumed_inputs=consumed) != cache:
-            raise ValueError('CMakeCache 在目标选择时改变')
-        try:
-            candidate, artifact, downstream = firmware_candidate(api, cache.get('CMAKE_BUILD_TYPE'))
-            name = candidate['name']
-            linker_evidence(api, candidate, artifact, analysis)
-            native_build_tool = cache.get('CMAKE_MAKE_PROGRAM')
-            if not native_build_tool:
-                raise ValueError('CMakeCache 缺少实际构建工具')
-            record_consumed_file(resolved_executable(native_build_tool, build), consumed)
-            argv = None
-            if generator == 'MinGW Makefiles':
-                rows, outputs = read_make(name, consumed, auto=True)
-            else:
-                ninja_graph_evidence(api)
-                rows, ninja_raw, argv = read_ninja(name, auto=True)
-            expected = scope_identity(full, api, analysis, generator=generator, targeted=False)
-            selected = scope_identity(rows, api, analysis, generator=generator, targeted=True)
-            if not expected or expected != selected:
-                raise AutoTargetUnavailable('候选的编译命令与原有效分析范围不一致')
-            all_selected = scope_identity(rows, api, analysis, generator=generator, targeted=True, effective=False)
-            audit_database(rows)
-            verify_compilers(api, candidate, all_selected, execute)
-            if generator == 'Ninja':
-                _, ninja_all, _ = read_ninja('all', auto=True)
-                verify_ninja_default(api, ninja_raw, ninja_all, artifact, downstream)
-                outputs = {entry[2] for entry in all_selected} | {artifact}
-            for source, *_ in all_selected:
-                if not source.is_relative_to(build):
-                    record_consumed_file(source, consumed)
-                sources.add(source)
-            effective_target = name
-            target_step(name, rows, argv)
-            reason = '唯一的裸机固件目标；实际构建闭包与原有效编译命令一致'
-        except AutoTargetUnavailable as exc:
-            reason = str(exc)
-        except (OSError, KeyError, TypeError, IndexError, AttributeError) as exc:
-            raise ValueError(f'CMake 自动目标证据无法校验: {exc}') from exc
-    elif explicit_make:
-        api = FileAPI(root, build, consumed, generator)
-        api.inputs()
-        progress('从 CMake File API 和 Makefiles 读取目标编译闭包：' + configured_target)
-        rows, outputs = read_make(configured_target, consumed)
-        target_step(configured_target, rows)
-        sources = {resolved_path(Path(row['directory'])/row['file']) for row in rows}
-    elif configured_target:
-        progress('从 Ninja 完整依赖图读取目标编译闭包：' + configured_target)
-        rows, ninja_raw, argv = read_ninja(configured_target)
-        target_step(configured_target, rows, argv)
-
-    source = ('explicit' if configured_target else 'automatic' if effective_target else
-              'build_args' if build_args else 'default')
-    selection = dict(source=source, effective_target=effective_target,
-                     reason=reason or '使用配置中显式指定的目标')
-    if source == 'automatic':
-        selection['artifact'] = str(artifact)
+    selection.update(effective_target=effective_target, reason=reason)
     configure_step['target_selection'] = selection
-    progress(f'CMake 目标选择 [{source}]：{effective_target or "沿用原构建计划"}；{selection["reason"]}')
+    if diagnostics is not None:
+        diagnostics['target'] = effective_target
+    progress(f'CMake 目标选择 [{selection["source"]}]：{effective_target or "沿用原构建计划"}；{reason}')
     if consumed:
         verify_consumed_files(consumed)
-    if try_auto:
-        save_selection(root, build, selection, consumed, api.index)
-    audit_database(rows if configured_target else None)
+        if not protected:
+            save_selection(root, build, selection, consumed, api.index)
+    audit_database(rows if resolve_target else None)
     if settings.get('build', True) and build_firmware:
-        label = ('目标 ' + effective_target if effective_target else
-                 '按 build_args 构建（分析仍使用完整数据库）' if build_args else '默认 ALL')
-        progress('CMake 构建固件：' + label)
-        invoke([cmake, '--build', build_command_path, '--config', settings.get('build_type', 'Debug'),
-                *(['--target', effective_target] if effective_target else []),
-                *build_args], 'build')
+        command = [cmake, '--build', build_command_path, '--config', variant]
+        if resolve_target:
+            if not effective_target:
+                raise ValueError('固件构建缺少已解析的 CMake 目标')
+            command.extend(['--target', effective_target])
+        command.extend(build_args)
+        progress('CMake 实际构建命令：' + subprocess.list2cmdline(command))
+        invoke(command, 'build')
         if effective_target:
-            records[-1]['target'] = effective_target
-        if consumed:
             verify_consumed_files(consumed)
             if latest_index(build) != api.index:
                 raise ValueError('构建期间 CMake File API 索引改变；请重新扫描')
-        if effective_target and generator == 'Ninja' and read_ninja(effective_target)[1] != ninja_raw:
-            raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
-        if effective_target:
+            if generator == 'Ninja' and read_ninja(effective_target)[1] != ninja_raw:
+                raise ValueError('构建期间目标编译闭包改变；禁止复用配置前的数据库，请重新扫描')
             for path in sorted(outputs | sources):
                 if not filesystem_path(path).is_file():
                     raise ValueError(f'CMake 目标 {effective_target} 构建后缺少实际编译输入或对象: {path}')
-        if source == 'automatic':
-            record_consumed_file(artifact, consumed)
+            for path in api.artifacts(graph.named(effective_target)):
+                record_consumed_file(path, consumed)
+
     if consumed:
-        # The index pointer is checked live; its referenced objects are stable
-        # content files and enter the snapshot, even across identical configure.
         consumed.pop(str(api.index))
         configure_step['consumed_inputs'] = consumed
-    if configured_target:
+    if effective_target:
         database = build/'ecra-target-compile_commands.json'
         write_json(filesystem_path(no_links(database)), rows)
-        next(step for step in records if step['stage'] == 'target-closure')['database'] = str(database)
-    # Automatic builds deliberately retain the original database and ordering.
-    # The proof compared the effective scope under the existing filters.
+        step['database'] = str(database)
     return database, records
 
 
@@ -769,7 +753,7 @@ def linked_input_selected(source, directory, entry, args, filters, make_build=No
             and (object_filter is None or (obj and str(resolved_path(Path(object_dir)/obj)).casefold() in object_filter)))
 
 
-def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
+def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None, build_diagnostics=None):
     if file_view is not None and 'cmake' in cfg['analysis']:
         prepared=file_view.prepared_compilation()
         if prepared is None:raise ValueError('未提交CMake缺少已封存准备结果，禁止实时重构建')
@@ -786,7 +770,8 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     requested = None
     cmake_steps = []
     if 'cmake' in a:
-        database, cmake_steps = configure_cmake(root, a, progress, build_firmware, project=cfg.get('project'))
+        database, cmake_steps = configure_cmake(root, a, progress, build_firmware, project=cfg.get('project'),
+                                                diagnostics=build_diagnostics)
         candidates = [database]
     elif configured != "auto":
         requested = (root / configured).resolve()
@@ -827,7 +812,7 @@ def prepare(root, cfg, progress=None, build_firmware=True, *, file_view=None):
     include_cache = {}
     compiler_audit = []
     target_selection = next((step['target_selection'] for step in cmake_steps if 'target_selection' in step), None)
-    make_target = (target_selection and target_selection['source'] == 'explicit'
+    make_target = (target_selection and target_selection['effective_target']
                    and a.get('cmake', {}).get('generator') == 'MinGW Makefiles')
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict) or not entry.get("file"):

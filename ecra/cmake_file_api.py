@@ -1,5 +1,7 @@
 """Read CMake's replies for the actual source and build trees."""
 import json
+from collections import Counter
+from pathlib import Path
 
 from .input_snapshot import read_consumed_text
 from .path_io import filesystem_path, resolved_path
@@ -109,3 +111,70 @@ class FileAPI:
 
     def artifacts(self, target):
         return [self.build_path(row['path']) for row in target.get('artifacts', [])]
+
+
+class TargetGraph:
+    """One configure generation and configuration, keyed by codemodel IDs."""
+
+    def __init__(self, api, variant):
+        self.api = api
+        self.config = api.configuration(variant)
+        rows = self.config['targets']
+        self.refs = {row['id']: row for row in rows}
+        if len(self.refs) != len(rows):
+            raise ValueError('CMake codemodel 目标身份重复')
+        self.descriptions = {}
+
+    def description(self, key):
+        if key not in self.refs:
+            raise ValueError(f'CMake codemodel 依赖缺少目标记录：{key}')
+        if key not in self.descriptions:
+            try:
+                self.descriptions[key] = self.api.target(self.refs[key])
+            except (KeyError, TypeError, IndexError, OSError, ValueError) as exc:
+                raise ValueError(f'CMake File API 目标 {key} 无法解析：{exc}') from exc
+        return self.descriptions[key]
+
+    def named(self, name):
+        matches = [key for key, ref in self.refs.items() if ref['name'] == name]
+        if len(matches) == 1:
+            return self.description(matches[0])
+        if matches:
+            raise ValueError(f'CMake 逻辑目标名不唯一：{name}')
+        owners = []
+        for key in self.refs:
+            desc = self.description(key)
+            if (name == desc.get('nameOnDisk') or any(
+                    name in {item['path'], Path(item['path']).name} for item in desc.get('artifacts', []))):
+                owners.append(desc['name'])
+        message = f'未找到 CMake 目标：{name}。'
+        if len(owners) == 1:
+            message += f'当前配置中，该文件是目标 {owners[0]} 的构建产物。请将 target 设置为 {owners[0]}，或清空 target 使用自动识别。'
+        elif owners:
+            message += '当前配置中有多个同名产物，所属目标：' + '、'.join(sorted(owners)) + '。'
+        raise ValueError(message + '本次未执行构建。')
+
+    def closure(self, target):
+        visited, pending = {}, [target['id']]
+        while pending:
+            key = pending.pop()
+            if key not in visited:
+                desc = visited[key] = self.description(key)
+                pending.extend(dep['id'] for dep in desc.get('dependencies', []))
+        return visited
+
+    def object_directory(self, target):
+        return self.api.build_path(Path(target['paths']['build'])/'CMakeFiles'/(target['name']+'.dir'))
+
+    def compiled_sources(self, target):
+        sources = target.get('sources', [])
+        listed = Counter()
+        for group_index, group in enumerate(target.get('compileGroups', [])):
+            for i in group['sourceIndexes']:
+                if (type(i) is not int or not 0 <= i < len(sources)
+                        or sources[i].get('compileGroupIndex') != group_index):
+                    raise ValueError(f'CMake 编译组与源码索引不一致：{target["name"]}')
+                listed[i] += 1
+        if listed != Counter(i for i, row in enumerate(sources) if 'compileGroupIndex' in row):
+            raise ValueError(f'CMake 编译组缺少源码记录：{target["name"]}')
+        return Counter(resolved_path(self.api.root/sources[i]['path']) for i in listed)

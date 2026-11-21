@@ -67,6 +67,8 @@ def check_previous_selection(root, build, eligible):
     prior = state[1].get(_side.get()) if state is not None else None
     if prior is None:
         return
+    if not prior.get('selection', {}).get('effective_target'):
+        raise ValueError('旧检查点没有已验证的 CMake 逻辑目标；请发起新扫描')
     if not eligible or prior['source'] != str(root) or prior['build'] != str(build):
         raise ValueError('恢复时 CMake 目标的工程/构建目录身份已改变；请发起新扫描')
     # Before an owned clean would discard the actual graph, reject missing,
