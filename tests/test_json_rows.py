@@ -50,6 +50,28 @@ class JsonRowTests(unittest.TestCase):
             with self.subTest(text=text), self.assertRaises((ValueError, json.JSONDecodeError)):
                 list(RowReader(io.StringIO(text), chunk_size=1).rows())
 
+    def test_merge_releases_each_owned_response_after_its_last_complete_read(self):
+        with tempfile.TemporaryDirectory() as folder:
+            parts = FactParts()
+            first, second, cached = [Path(folder)/name for name in ('first','second','cache')]
+            for path in (first, second, cached):
+                path.write_text(json.dumps(dict(variables=[dict(name=path.name)])), encoding='utf-8')
+            for path in (first, first, second, cached):
+                parts.append_metadata(path, dict(weak_functions=[]))
+            parts.work_files.update((first, second))
+            stream = parts.iter_linked_parts(set())
+            self.assertEqual(next(stream)['variables'][0]['name'], 'first')
+            self.assertEqual(next(stream)['variables'][0]['name'], 'first')
+            self.assertTrue(first.exists())
+            self.assertEqual(next(stream)['variables'][0]['name'], 'second')
+            self.assertFalse(first.exists())
+            self.assertTrue(second.exists())
+            self.assertEqual(next(stream)['variables'][0]['name'], 'cache')
+            self.assertFalse(second.exists())
+            self.assertEqual(list(stream), [])
+            parts.clear()
+            self.assertTrue(cached.exists())
+
     def test_legacy_metadata_stream_keeps_weak_linkage_and_all_tables(self):
         weak = dict(functions=[dict(function_id='f', is_weak=True), dict(function_id='g', is_weak=False)],
                     accesses=[dict(function_id='f', access_id='weak'), dict(function_id='g', access_id='keep')],

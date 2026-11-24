@@ -257,10 +257,11 @@ class RealClassificationRepairTests(TestCase):
         '''}, contexts=[dict(id='main', kind='MAIN', functions=['main'])])
         facts, _ = self.extract(cfg)
         cfg['project']['root'] = str(self.root)
-        cfg['analysis']['cmake'] = dict(build_dir='build/manual', location='project')
+        cfg['analysis']['cmake'] = dict(build_dir='build/manual', location='workspace')
         (self.root / 'startup.s').write_text('Reset_Handler:\n bl __libc_init_array\n bl main\n',
                                               encoding='utf-8')
-        build = self.root / 'build/manual'
+        from ecra.compilation import cmake_build_directory
+        build = cmake_build_directory(self.root, cfg['analysis'])
         build.mkdir(parents=True)
         (build / 'firmware.map').write_text('''.preinit_array 0x08000000 0x0
 .init_array 0x08000000 0x4

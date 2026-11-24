@@ -23,7 +23,7 @@ class BenchmarkAuditTests(unittest.TestCase):
                      review=dict(enabled=False, prepare_packets=False))
         config = self.root/'.ecra/semantics.yaml'
         cfg = json.loads(config.read_text(encoding='utf-8'))
-        cfg['analysis']['git_diff'] = dict(enabled=True, base_ref='HEAD', include_uncommitted=True)
+        cfg['analysis']['git_diff'] = dict(enabled=True, base_ref='audit-base', current_ref='HEAD', include_uncommitted=False)
         config.write_text(json.dumps(cfg), encoding='utf-8')
         (self.root/'.gitignore').write_text('.ecra/\n', encoding='utf-8')
         def git(*args):
@@ -31,13 +31,17 @@ class BenchmarkAuditTests(unittest.TestCase):
         git('init', '-q')
         git('add', 'a.c', '.gitignore', 'compile_commands.json')
         git('-c', 'user.name=验收测试', '-c', 'user.email=ecra-test@example.invalid', 'commit', '-qm', '基准')
+        git('tag', 'audit-base')
         (self.root/'a.c').write_text('int g;void Task(void){g=2;}void ISR(void){g++;}', encoding='utf-8')
+        git('-c', 'user.name=验收测试', '-c', 'user.email=ecra-test@example.invalid', 'commit', '-qam', '当前输入')
         evidence = self.root.parent/(self.root.name+'-audit')
         evidence.mkdir()
         self.addCleanup(lambda: __import__('shutil').rmtree(evidence))
         evidence = evidence/'first'
         first = self.invoke(evidence, '--audit-baseline')
-        self.assertEqual(first.returncode, 0, first.stdout+first.stderr)
+        console = evidence/'console.log'
+        self.assertEqual(first.returncode, 0, first.stdout+first.stderr+
+                         (console.read_text('utf-8')[-2500:] if console.is_file() else ''))
         receipt = evidence/'execution.json'
         original = json.loads(receipt.read_text(encoding='utf-8'))
         self.assertTrue(original['complete'])
@@ -58,6 +62,13 @@ class BenchmarkAuditTests(unittest.TestCase):
         interrupted()
         self.assertNotEqual(self.invoke(evidence, '--audit-saved').returncode, 0)  # 不能取消既定的基准审计。
         (self.root/'a.c').write_text('int g;void Task(void){g=3;}void ISR(void){g++;}', encoding='utf-8')
+        git('-c', 'user.name=验收测试', '-c', 'user.email=ecra-test@example.invalid', 'commit', '-qam', '更新当前输入')
+        # A moving live branch leaves the scan's frozen evidence valid. Mutate
+        # the actual pinned input in this disposable fixture to test rejection.
+        scan = Path(original['output'])
+        pin = json.loads((scan/'scan_state.json').read_bytes())['git_diff_pin']
+        with Path(pin['base_summary_path']).open('ab') as stream:
+            stream.write(b' ')
         invalid = self.invoke(evidence, '--audit-baseline', '--audit-saved')
         self.assertNotEqual(invalid.returncode, 0)
         self.assertFalse(json.loads(receipt.read_text(encoding='utf-8'))['complete'])

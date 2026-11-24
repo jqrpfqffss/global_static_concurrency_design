@@ -76,13 +76,23 @@ class DirtyInputPlanningTests(unittest.TestCase):
         write_json(case.config,raw)
         before={str(p):sha256(p) for p in case.root.rglob('*') if p.is_file()}
         descriptor=capture_inputs(case.root,case.config,case.data/'work/preflight-capture')
-        result=run_preflight(case.config,case.data,case.data/'work/real-preflight',progress=lambda text:None,
-            _compiler_view=descriptor)
+        from ecra.cli import execute
+        consumed = []
+        def observe(argv, **kwargs):
+            if 'ecra.extract' in argv:
+                view = read_json(argv[-2]).get('compiler_view')
+                if view is not None:
+                    consumed.append(view)
+            return execute(argv, **kwargs)
+        with patch('ecra.cli.execute', side_effect=observe):
+            result=run_preflight(case.config,case.data,case.data/'work/real-preflight',progress=lambda text:None,
+                _compiler_view=descriptor)
         self.assertTrue(result['passed'])
         self.assertEqual(result['frozen_working_inputs'],descriptor)
         self.assertEqual(result['translation_units'],2)
-        for path in (case.data/'work/real-preflight/workers').glob('*.dependencies.request.json'):
-            self.assertEqual(read_json(path)['compiler_view'],descriptor)
+        self.assertTrue(consumed)
+        self.assertTrue(all(view == descriptor for view in consumed))
+        self.assertFalse(list((case.data/'work/real-preflight/workers').glob('*.dependencies.request.json')))
         self.assertEqual({str(p):sha256(p) for p in case.root.rglob('*') if p.is_file()},before)
 
     def test_real_frozen_checkpoint_replays_both_views_and_rejects_later_source_change(self):

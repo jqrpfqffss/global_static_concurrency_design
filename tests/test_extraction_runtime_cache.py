@@ -46,6 +46,41 @@ class ExtractionRuntimeCacheTests(unittest.TestCase):
             self.assertEqual(filesystem_path(output).read_bytes(), payload.read_bytes())
             self.assertEqual(read_json(filesystem_path(receipt)), metadata)
 
+    def test_copy_fallback_must_match_source_before_publishing_or_returning_hit(self):
+        cache = self.cache()
+        source = self.root/'worker.json'
+        source.write_bytes(b'original verified facts')
+        meta = dict(parse_status='PARSED', input_snapshot={'sealed': True})
+        output = self.root/'restored.json'
+        receipt = self.root/'restored.meta.json'
+
+        def corrupt(source, destination):
+            Path(destination).write_bytes(b'incomplete copy')
+
+        with patch('ecra.tu_cache.os.link', side_effect=OSError('different volume')):
+            with patch('ecra.tu_cache.shutil.copyfile', side_effect=corrupt):
+                with self.assertRaisesRegex(ValueError, '摘要'):
+                    cache.store(self.unit, source, meta)
+            self.assertEqual(list(cache.folder.iterdir()), [])
+            self.assertEqual(source.read_bytes(), b'original verified facts')
+            authority = cache.store(self.unit, source, meta)
+            with patch('ecra.tu_cache.shutil.copyfile', side_effect=corrupt):
+                self.assertFalse(cache.restore(self.unit, output, receipt))
+            self.assertFalse(output.exists())
+            self.assertEqual(authority.read_bytes(), source.read_bytes())
+
+    def test_restore_does_not_expose_a_writable_cache_link_when_metadata_fails(self):
+        cache = self.cache()
+        source = self.root/'worker.json'
+        source.write_bytes(b'sealed')
+        meta = dict(parse_status='PARSED', input_snapshot={'sealed': True})
+        authority = cache.store(self.unit, source, meta)
+        output = self.root/'slot.json'
+        with patch('ecra.tu_cache.write_json', side_effect=OSError('full')):
+            self.assertFalse(cache.restore(self.unit, output, self.root/'slot.meta.json'))
+        output.write_bytes(b'retry extractor')
+        self.assertEqual(authority.read_bytes(), b'sealed')
+
     def test_default_worker_seed_matches_explicit_zero_and_does_not_mutate_parent_environment(self):
         with patch.dict(os.environ):
             os.environ.pop('PYTHONHASHSEED',None);os.environ.pop('SOURCE_DATE_EPOCH',None)

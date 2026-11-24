@@ -100,10 +100,14 @@ def test_managed_arm_build_and_clean(tmp_path_factory, monkeypatch, aliases, gen
     expected = {root / "main.c", root / subdirectory / HAL_SOURCE}
     rows = read_json(database)
     assert {(Path(row["directory"]) / row["file"]).resolve() for row in rows} == expected
-    objects = {(alias / row["output"]) if generator == "MinGW Makefiles"
-               else (Path(row["directory"]) / row["output"]) for row in rows}
+    # CMake may shorten an object-component name at its Windows path limit.
+    by_source = {(Path(row["directory"]) / row["file"]).resolve():
+                 (alias if generator == "MinGW Makefiles" else Path(row["directory"])) / row["output"]
+                 for row in rows}
+    objects = set(by_source.values())
     assert all(path.is_file() for path in objects)
-    assert (alias / object_path.relative_to(build)).is_file()
+    header = by_source[root / subdirectory / HAL_SOURCE].read_bytes()[:20]
+    assert header[:4] == b"\x7fELF" and int.from_bytes(header[18:20], "little") == 40
     assert (alias / "firmware.elf").read_bytes().startswith(b"\x7fELF")
     before = {path: path.stat().st_mtime_ns for path in objects}
 
@@ -116,7 +120,8 @@ def test_managed_arm_build_and_clean(tmp_path_factory, monkeypatch, aliases, gen
         arg for arg in command if not arg.startswith("-DCMAKE_TOOLCHAIN_FILE=")]
     assert {path: path.stat().st_mtime_ns for path in objects} == before
 
-    sentinel = alias / object_path.relative_to(build).with_suffix(".obj.d")
+    sentinel = filesystem_path(alias / object_path.relative_to(build).with_suffix(".obj.d"))
+    sentinel.parent.mkdir(parents=True, exist_ok=True)
     sentinel.write_text("stale dependency", encoding="utf-8")
     analysis["cmake"]["clean_before_configure"] = True
     clean_db, clean = configure()

@@ -12,7 +12,7 @@ from ecra.compilation import normalize, prepare
 from ecra.config import load_config
 from ecra.extract import Extractor
 from ecra.review import parse_answer, review_all
-from tests.review_fixtures import structured_fields
+from tests.review_fixtures import completed_jsonl, mock_runtime, structured_fields
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -558,8 +558,10 @@ answer['summary']='已确认并发风险：'+packet['finding']['variable_name']+
 answer['review_type']='VARIABLE' if packet['finding'].get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='协议测试说明'
 answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
-print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
-'''.replace('__V2__',repr(structured_fields())), encoding="utf-8")
+sys.path.insert(0, __TEST_HELPERS__)
+from review_fixtures import completed_jsonl
+print(completed_jsonl(answer))
+'''.replace('__TEST_HELPERS__',repr(str(ROOT/'tests'))).replace('__V2__',repr(structured_fields())), encoding="utf-8")
         cfg["review"] = dict(enabled=True, command=[sys.executable, str(fake)], retries=0)
         first = review_all(self.root, out, cfg, facts, report, "source1", lambda _: None)
         self.assertTrue(all(r["state"] == "DONE" for r in first), first)
@@ -575,7 +577,10 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         third = review_all(self.root, out, cfg, facts, report, "source2", lambda _: None)
         self.assertFalse(any(r.get("cached") for r in third))
         fake.write_text('print("not JSON events")', encoding="utf-8")
-        failed = review_all(self.root, out, cfg, facts, report, "source3", lambda _: None)
+        from ecra.review import ReviewExecutionError
+        with self.assertRaises(ReviewExecutionError):
+            review_all(self.root, out, cfg, facts, report, "source3", lambda _: None)
+        failed = json.loads((out/'review/queue.json').read_text('utf-8'))
         self.assertTrue(all(r["state"] == "TECH_FAILED" for r in failed))
 
     def test_opencode_timeout_continues_to_next_batch(self):
@@ -617,7 +622,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             answer['summary'] = '已确认并发风险：' + packet['finding']['variable_name'] + ' 的模拟访问存在冲突，仅用于协议测试。'
             answer['investigation'] = [dict(id=r['id'], assessment='仅用于协议测试',
                                             evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
-            return CompletedProcess(argv, 0, json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), '')
+            return CompletedProcess(argv, 0, completed_jsonl(answer), '')
 
         with patch('ecra.review.execute', side_effect=respond):
             self.assertEqual(run(self.root), 1)
@@ -644,8 +649,10 @@ answer['summary']='已确认并发风险：'+finding['variable_name']+' 的模�
 answer['review_type']='VARIABLE' if finding.get('symbol_id') else 'EVIDENCE_GAP'
 answer['evidence'][0]['claim']='协议测试说明'
 answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
-print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
-'''.replace('__V2__',repr(structured_fields())), encoding='utf-8')
+sys.path.insert(0, __TEST_HELPERS__)
+from review_fixtures import completed_jsonl
+print(completed_jsonl(answer))
+'''.replace('__TEST_HELPERS__',repr(str(ROOT/'tests'))).replace('__V2__',repr(structured_fields())), encoding='utf-8')
         cfg, path = load_config(self.root)
         cfg['review'] = dict(enabled=True, command=[sys.executable, str(fake)], retries=0)
         path.write_text(json.dumps(cfg), encoding='utf-8')
@@ -678,7 +685,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
                       **{k:'尚需补充调度证据' for k in ('reason','interleaving','protection','impact','fix','verification')})
         answer.update(structured_fields('NEED_MORE_CONTEXT'))
         answer['summary'] = '证据不足，暂无法判断：g 的模拟调度条件尚缺证据，需要进一步核实。'
-        result = CompletedProcess([], 0, json.dumps(dict(type='text', part=dict(text=json.dumps(answer)))), '')
+        result = CompletedProcess([], 0, completed_jsonl(answer), '')
         with patch('ecra.review.execute', return_value=result) as execute:
             review_all(self.root, self.out, cfg, facts, report, 'same-input', lambda _:None)
             second = review_all(self.root, self.out, cfg, facts, report, 'same-input', lambda _:None)
@@ -720,8 +727,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
         folder = self.out/"review"
         folder.mkdir()
         (folder / (report["findings"][0]["finding_id"] + ".result.json")).write_text("{broken", encoding="utf-8")
-        cfg["review"] = dict(enabled=True, command=["ecra-nonexistent-cli-test"])
-        results = review_all(self.root, self.out, cfg, facts, report, "x", lambda _: None)
+        from subprocess import CompletedProcess
+        from unittest.mock import patch
+        cfg["review"] = dict(enabled=True, retries=0)
+        with mock_runtime(['fixture']), patch('ecra.review.execute', return_value=CompletedProcess([], 1, '', 'item failed')) as invoke:
+            results = review_all(self.root, self.out, cfg, facts, report, "x", lambda _: None)
+        self.assertTrue(invoke.called)
         self.assertTrue(all(r["state"] == "TECH_FAILED" for r in results))
 
     def test_review_reuses_facts_and_reruns_completed_candidates(self):
@@ -755,7 +766,7 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             answer['summary'] = '已确认并发风险：' + packet['finding']['variable_name'] + ' 的模拟访问存在冲突，仅用于协议测试。'
             answer['evidence'][0]['claim']='协议测试说明'
             answer['investigation']=[dict(id=r['id'],assessment='仅用于协议测试',evidence_refs=[1]) for r in packet.get('investigation_requirements', [])]
-            return CompletedProcess(argv,0,json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))), '')
+            return CompletedProcess(argv,0,completed_jsonl(answer), '')
         with patch('ecra.cli.execute',side_effect=dependency_only), patch('ecra.review.execute',side_effect=respond):
             self.assertEqual(saved_run(self.root),130)
             self.assertEqual(len(calls),1)
@@ -801,7 +812,12 @@ print(json.dumps(dict(type='text',part=dict(text=json.dumps(answer)))))
             answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='模拟协议回答。',
                           summary='已验证当前条件下安全：' + packet['finding']['variable_name'] + ' 的模拟访问条件已排除冲突，仅用于协议测试。',
                           evidence=[dict(file='a.c', line=1, claim='模拟测试源码')])
-            return CompletedProcess(argv, 0, json.dumps(answer), '')
+            answer.update(structured_fields('REVIEWED_SAFE'))
+            answer.update(interleaving='已核实测试时序。', protection='已核实测试保护。', impact='测试状态不变。',
+                          fix='保持现有保护。', verification='已重复检查测试访问。')
+            answer['investigation'] = [dict(id=r['id'], assessment='已核实测试证据', evidence_refs=[1])
+                                       for r in packet.get('investigation_requirements', [])]
+            return CompletedProcess(argv, 0, completed_jsonl(answer), '')
 
         with patch('ecra.review.execute', side_effect=respond):
             self.assertEqual(main(['review', '--project', str(self.root)]), 2)

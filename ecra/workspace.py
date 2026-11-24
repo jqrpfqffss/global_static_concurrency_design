@@ -446,7 +446,11 @@ def migrate_legacy(ws, progress=print):
         # Adopt only this resolver's exact previous tool identity, never a
         # directory guessed from a project display name. Raw bytes are copied
         # for revalidation; this does not bless old engine/input proofs.
-        with using_data_root(managed_root()):
+        default_root = managed_root()
+        prior_marker = default_root/'projects'/Path(ws.project_workspace).name/'project.json'
+        if not no_links(prior_marker).is_file():
+            return
+        with using_data_root(default_root):
             previous = WorkspaceResolver.resolve(ws.project_root, {})
         old_work = Path(previous.project_workspace)
         legacy = Path(previous.results_root)

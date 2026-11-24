@@ -59,12 +59,15 @@ class ReportPackageTests(unittest.TestCase):
         folder=self.scan/'review';folder.mkdir()
         source=folder/'latest.prompt.txt';source.write_text('original immutable receipt',encoding='utf-8')
         before=sha256(source)
+        marker=self.scan/'run.json'
+        marker.write_text('{"state":"RUNNING"}', encoding='utf-8')
+        original=sha256(marker)
+        first=archive_audit(self.scan)
+        self.assertFalse((self.scan/'evidence'/before).exists())
+        self.assertNotIn('review/latest.prompt.txt', json.loads((self.scan/'evidence'/first['audit_index']).read_bytes())['files'])
+        marker.write_text('{"state":"DONE"}', encoding='utf-8')
         archive_audit(self.scan)
-        source.write_text('new review overwrote the convenience name',encoding='utf-8')
-        self.assertEqual(sha256(self.scan/'evidence'/before),before)
-        self.assertEqual((self.scan/'evidence'/before).read_text(encoding='utf-8'),'original immutable receipt')
-        archive_audit(self.scan)
-        self.assertEqual(sha256(self.scan/'evidence'/before),before)
+        self.assertEqual(sha256(self.scan/'evidence'/original),original)
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='ecra 包 中文 ')

@@ -17,6 +17,30 @@ from ..common import execute, read_json, write_json
 from ..workspace import formal_workspace, managed_path, no_links, studio_data_root, using_data_root, validate_analysis_inputs
 
 
+def _closure_copy(path):
+    from ..report_package import sha256
+    info = path.stat()
+    return dict(identity=[info.st_dev, info.st_ino], size=info.st_size,
+                mtime_ns=info.st_mtime_ns, sha256=sha256(path))
+
+
+def release_preflight_work(folder):
+    """A verified plan and its final receipt supersede this preflight's closure."""
+    from ..report_package import sha256
+    from ..scan_diagnostics import diagnostic_log
+    try:
+        path = no_links(folder/'input_closure.json')
+        if not path.is_file():
+            return
+        result = read_json(no_links(folder/'preflight.json'))
+        if (result.get('state') == 'PRECHECK_READY' and result.get('passed') is True
+                and result.get('closure_copy') and _closure_copy(path) == result['closure_copy']
+                and sha256(no_links(folder/'plan.db')) == result.get('plan_sha256')):
+            path.unlink()
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        diagnostic_log(f'预检查工作文件保留待重试 {folder}：{exc}')
+
+
 def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
     from ..config import configured_project_root, load_config
     from ..compilation import prepare, cmake_toolchain_input
@@ -193,12 +217,16 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
             note='真实构建与全部TU编译输入检查通过；尚未进行并发风险分类。正式扫描会重新检查输入与覆盖。')
         if frozen is not None:
             frozen.assert_valid();result['frozen_working_inputs']=dict(_compiler_view)
+        try:
+            result['closure_copy'] = _closure_copy(no_links(folder/'input_closure.json'))
+        except (OSError, ValueError) as exc:
+            progress(f'未能核验预检查工作副本，保留文件：{exc}')
         return result
     except BaseException as exc:
         selection = result.get('target_selection')
         if selection and not selection.get('reason'):
             selection['reason'] = str(exc)
-        result.update(state='INTERRUPTED' if isinstance(exc, KeyboardInterrupt) else 'PRECHECK_FAILED',
+        result.update(passed=False, state='INTERRUPTED' if isinstance(exc, KeyboardInterrupt) else 'PRECHECK_FAILED',
                       error=f'{type(exc).__name__}: {exc}',
                       repair='请按具体字段/工具路径修正配置，重新保存并检查；上一有效结果和人工记录保留。')
         diagnostics.failure(exc)
@@ -207,7 +235,10 @@ def run_preflight(config, data, folder, progress=print, *, _compiler_view=None):
         if frozen is not None:frozen.close()
         diagnostics.close()
         result['finished'] = datetime.now(timezone.utc).isoformat()
-        write_json(receipt, result)
+        from ..review_archive import write_receipt
+        write_receipt(receipt, result)
+        if result['passed']:
+            release_preflight_work(folder)
 
 
 def plan_page(folder, offset=0, limit=20):

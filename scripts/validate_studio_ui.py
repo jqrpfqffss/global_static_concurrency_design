@@ -51,7 +51,7 @@ def main():
         scope='Real Chromium preview archive/profile/decision workflows on one host; not full U01–U24',
         native_windows_dpi='NOT_VERIFIED', independent_engineer_uat='NOT_VERIFIED',
         native_scan_pipeline='NOT_EXERCISED', physical_second_computer='NOT_VERIFIED')
-    session_file = work/'session.json'
+    session_file = work/'data/work/session.json'
     environment = dict(os.environ, PYTHONIOENCODING='utf-8')
     log = (work/'server.log').open('w',encoding='utf-8')
     flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0

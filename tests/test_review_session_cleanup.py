@@ -794,6 +794,32 @@ class NativeCleanupTests(unittest.TestCase):
     def resume(self):
         return saved_run(self.case.root, self.case.config, resume=True, _out=self.out)
 
+    def test_idle_transport_recovery_rechecks_only_failed_owned_sessions(self):
+        from ecra.review_opencode_sessions import API, Unavailable
+        original = API.delete_owned
+        attempts = []
+
+        def intermittent(api, sid, **kwargs):
+            attempts.append(sid)
+            if len(attempts) == 2:
+                raise Unavailable('one transient loopback timeout')
+            return original(api, sid, **kwargs)
+
+        def model(argv, **kwargs):
+            if kwargs['stdout_path'].name.endswith('.ANALYZE.jsonl'):
+                return self.fake.model(argv, **kwargs, answer='{}')
+            return self.model(argv, **kwargs)
+
+        with patch.object(API, 'delete_owned', intermittent), patch('ecra.review.execute', side_effect=model):
+            self.assertIn(self.resume(), (0, 1, 2))
+        self.assertEqual(len(attempts), 3)
+        self.assertNotEqual(attempts[0], attempts[1])
+        self.assertEqual(attempts[1], attempts[2])
+        self.assertEqual({r['cleanup_state'] for r in records(self.out)}, {'DELETED'})
+        counts = read_json(self.out/'review/opencode-capabilities.json')['cleanup_counts']
+        self.assertEqual((counts['deleted'], counts['failed']), (2, 0))
+        self.assertEqual(runtime(self.out)['reviews'][0]['state'], 'DONE')
+
     def test_commit_failure_then_reconciled_orphan_recovers_without_rerunning_model(self):
         with patch('ecra.scan_persistence.commit_review_result', side_effect=OSError('lost before commit')):
             with self.assertRaisesRegex(OSError, 'lost before commit'):

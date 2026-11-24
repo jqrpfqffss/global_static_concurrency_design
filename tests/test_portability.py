@@ -4,6 +4,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -165,7 +166,8 @@ class ProjectPortabilityTests(unittest.TestCase):
         self.assertEqual(missing(['-DAPP_RTOS=1','-UAPP_RTOS','-DAPP_RTOS=0'], ['APP_RTOS=0']), [])
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix='ecra portability ')
+        from ecra.workspace import managed_root
+        self.tmp = tempfile.TemporaryDirectory(prefix='pt-', dir=managed_root())
         self.addCleanup(self.tmp.cleanup)
         self.base = Path(self.tmp.name).resolve()
         original = Path.cwd()
@@ -193,6 +195,7 @@ class ProjectPortabilityTests(unittest.TestCase):
     def board(self, name, cpu='cortex-m3'):
         root = self.base/name
         (root/'User/DriversCustom').mkdir(parents=True)
+        subprocess.run(['git', 'init', '--quiet', str(root)], check=True)
         (root/'Debug').mkdir()
         source = root/'User/DriversCustom/app.c'
         source.write_text('static int read_only; static int count; int main(void){count++;return read_only;} void TIM2_IRQHandler(void){count++;}',encoding='utf-8')
@@ -295,8 +298,15 @@ add_library(firmware OBJECT User/DriversCustom/app.c)
 target_compile_options(firmware PRIVATE -mcpu=cortex-m4 -mthumb)
 ''',encoding='utf-8')
         self.assertEqual(self.invoke('init','--project',str(root)),0,self.stderr.getvalue())
-        cfg,_=load_config()
+        # The fixture deliberately builds an OBJECT target without a firmware link.
+        import yaml
+        from ecra.common import write_json
+        cfg, config_path = load_config()
         self.assertEqual(cfg['analysis']['cmake']['toolchain_file'],'cmake/gcc-arm-none-eabi.cmake')
+        saved = yaml.safe_load(config_path.read_text(encoding='utf-8'))
+        saved['analysis']['cmake']['target'] = 'firmware'
+        write_json(config_path, saved)
+        cfg, _ = load_config()
         self.assertEqual(self.invoke(),2,self.stdout.getvalue()+self.stderr.getvalue())
         from ecra.workflow import output_path
         from ecra.compilation import cmake_build_directory

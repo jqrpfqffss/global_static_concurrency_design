@@ -62,9 +62,6 @@ def dependency_inputs(root, unit, cfg, worker_dir, env, tool_root, compiler_view
         # Explicitly cross the thread/process boundary. ContextVar state does
         # not propagate to ThreadPoolExecutor workers.
         reference, signature = dependency_inputs(root, unit, cfg, worker_dir, env, tool_root)
-        from .common import replace_file
-        replace_file(request, request.with_name(unit['tu_id'] + '.dependencies.original.request.json'))
-        replace_file(response, response.with_name(unit['tu_id'] + '.dependencies.original.response.json'))
         record['compiler_view'] = compiler_view
     write_json(request, record)
     response.unlink(missing_ok=True)
@@ -78,6 +75,8 @@ def dependency_inputs(root, unit, cfg, worker_dir, env, tool_root, compiler_view
     if compiler_view is not None and (result['input_snapshot'] != reference
                                       or result.get('preprocessor_signature') != signature):
         raise ValueError('原始与冻结编译输入/预处理状态不同；不能发布混用输入：' + unit['source_file'])
+    from .fact_parts import discard_worker_files
+    discard_worker_files(request, response)
     return result['input_snapshot'], result.get('preprocessor_signature')
 
 
@@ -133,11 +132,11 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
                       write_metadata=True, diagnostics_dir=str(out / 'diagnostics/workers'))
         if compiler_view is not None:
             record['compiler_view'] = compiler_view
-        write_json(request, record)
         response.unlink(missing_ok=True)
         metadata.unlink(missing_ok=True)
         if cache is not None and cache.restore(unit, response, metadata):
             return unit, response, metadata
+        write_json(request, record)
         try:
             proc = execute([sys.executable, '-B', '-m', 'ecra.extract', str(request), str(response)],
                            cwd=tool_root, env=env, timeout=float(cfg['analysis'].get('parse_timeout_seconds', 180)),
@@ -152,6 +151,8 @@ def extraction_responses(root, units, cfg, worker_dir, env, tool_root, out, cach
             # A dead/crashed worker is an infrastructure failure. It must not
             # become an apparently successful incomplete static report.
             raise RuntimeError(f"Worker {unit['tu_id']} {unit['source_file']} 退出 {proc.returncode}: {proc.stderr[-4000:]}")
+        from .fact_parts import discard_worker_files
+        discard_worker_files(request)
         return unit, response, metadata
     count = cfg['analysis'].get('extraction_workers', 1)
     # The supervisor may change scheduling only. It does not change cfg or any
@@ -468,7 +469,7 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
             try:
                 command=resolve_command(cfg['review'].get('command',['opencode']))
                 doctor.update(opencode_command_found=True, opencode_executable=command[0])
-            except ValueError as exc:
+            except (OSError, ValueError) as exc:
                 doctor.update(opencode_command_found=False, opencode_error=str(exc))
                 progress('源码仍会正常盘点；OpenCode 尚不可用：'+str(exc))
         write_json(out / "doctor.json", doctor)
@@ -599,15 +600,16 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                 for variable in part.get("variables", []):
                     variable["parse_status"] = part["parse_status"]
                 all_includes.update(part.get("includes", []))
+                merge_input = response
                 if isinstance(part.get('input_snapshot'), dict):
                     if _compiler_view is not None:
                         from .working_compiler_view import verify_consumed
                         verify_consumed(_compiler_view, root, cfg, part['input_snapshot'])
                     snapshot_inputs.observe(unit, part['input_snapshot'], signature=part.get('preprocessor_signature'))
                     if tu_cache is not None:
-                        tu_cache.store(unit, response, part)
-                        if storage is not None and part.get('parse_status')=='PARSED':
-                            storage.compress(tu_cache.folder/(tu_cache.key(unit)+'.facts'),'cache')
+                        committed = tu_cache.store(unit, response, part)
+                        if committed is not None:
+                            merge_input = committed
                 else:
                     if part['parse_status'] != 'FAILED':
                         raise ValueError('提取事实缺少实际输入快照，不能作为有效局部结果')
@@ -615,11 +617,21 @@ def run(root, config_path=None, no_review=False, doctor_only=False, review_safe_
                     # the parse gap; final discovery still verifies its inputs.
                     unit['input_verification'] = 'NO_EXTRACTION_BUFFER_PARSE_FAILED'
                 if metadata_only:
-                    parts.append_metadata(response, part)
+                    parts.append_metadata(merge_input, part)
                 else:
-                    parts.append(response, part)
-                if storage is not None:
-                    storage.compress(response,'worker')
+                    parts.append(merge_input, part)
+                from .fact_parts import discard_worker_files
+                discard_worker_files(metadata_file)
+                if merge_input != response:
+                    released = discard_worker_files(response)
+                    # NTFS only compresses a single owned name. The committed
+                    # cache now serves every later merge and recovery read.
+                    if released and storage is not None:
+                        storage.compress(merge_input, 'cache')
+                else:
+                    parts.work_files.add(response)
+                    if storage is not None:
+                        storage.compress(response,'worker')
                 diagnostics.completed_units = i+1
                 diagnostics.fact_counts = parts.counts
                 del part

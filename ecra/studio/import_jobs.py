@@ -36,7 +36,7 @@ class _Upload:
     def __init__(self, item, path, leases):
         self.item, self.path, self.leases = item, path, leases
         self.started = time.monotonic()
-        self.last_write = 0
+        self.last_write = self.started  # begin_upload just committed zero bytes.
         self.handed_off = False
 
 
@@ -117,7 +117,7 @@ class ImportJobs:
                     leases.enter_context(DataActivity(self.data, exclusive=True, purpose='import-job'))
                 except DataBusy as exc:
                     raise ValueError('已有导入任务正在运行，请到数据与共享等待完成或取消后重试') from exc
-                if total is not None and shutil.disk_usage(self.uploads).free < total + 512*1024**2:
+                if shutil.disk_usage(self.uploads).free < (total or 0) + 512*1024**2:
                     raise ValueError('上传结果包所需磁盘空间不足，请释放数据目录空间后重试')
                 item = dict(id=ident, filename=filename, scan_id=None, kind='full',
                             started=datetime.now(timezone.utc).isoformat(), state='UPLOADING',
@@ -159,9 +159,12 @@ class ImportJobs:
         upload.last_write = now
 
     def finish_upload(self, upload, completed):
-        self.upload_progress(upload, completed, force=True)
-        if upload.item['total'] is not None and upload.item['total'] != completed:
-            raise ValueError('上传长度与结果包声明不一致，请重新导入完整文件')
+        # The flushed upload is published to the worker in one transaction.
+        # A separate terminal UPLOADING row creates a redundant SQLite journal.
+        if completed > MAX_UPLOAD_BYTES:
+            raise ValueError('上传包超过128GiB预算')
+        if shutil.disk_usage(self.uploads).free < 512*1024**2:
+            raise ValueError('数据目录剩余空间不足，请释放空间后重新导入')
         with self.lock:
             if self.stopping.is_set():
                 raise OperationCancelled('服务退出，导入已停止；已有扫描与人工记录保留。')
@@ -170,8 +173,11 @@ class ImportJobs:
                 state = conn.execute('SELECT state FROM jobs WHERE id=?', (upload.item['id'],)).fetchone()
                 if state and state[0] == 'CANCELLING':
                     raise OperationCancelled('已取消导入；已有扫描与人工记录保留。')
+                if upload.item['total'] is not None and upload.item['total'] != completed:
+                    raise ValueError('上传长度与结果包声明不一致，请重新导入完整文件')
                 upload.item.update(state='RUNNING', stage='PREPARING', message='上传完成，准备校验完整归档',
-                                   completed=None, total=None, unit=None, upload_bytes=completed)
+                                   completed=None, total=None, unit=None, upload_bytes=completed,
+                                   elapsed_seconds=round(time.monotonic()-upload.started, 1))
                 self.save(conn, upload.item)
             thread = threading.Thread(target=self.run, args=(upload,), daemon=True)
             self.threads.add(thread)

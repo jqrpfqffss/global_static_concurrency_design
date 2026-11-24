@@ -1,6 +1,8 @@
 """Content-bound raw TU cache; preprocessing is always rediscovered first."""
+import os
 import shutil
-from .common import digest, read_json, write_json, replace_file
+import uuid
+from .common import digest, read_json, write_json
 from .path_io import filesystem_path
 from .workflow import engine_digest, file_digest
 
@@ -56,8 +58,25 @@ class TUCache:
             meta = manifest['metadata']
             if meta.get('parse_status') != 'PARSED' or not isinstance(meta.get('input_snapshot'), dict):
                 raise ValueError('缓存事实不完整')
-            shutil.copyfile(raw, filesystem_path(response))
+            response = filesystem_path(response)
+            if response == raw:
+                raise ValueError('缓存原件不能作为可写工作槽')
+            response.unlink(missing_ok=True)
+            # Publish metadata before exposing a link to the read-only cache.
+            # A miss lets the extractor write into the same working slot.
             write_json(filesystem_path(metadata), meta)
+            try:
+                os.link(raw, response)
+            except FileExistsError:
+                raise
+            except OSError:
+                try:
+                    shutil.copyfile(raw, response)
+                    if file_digest(response) != manifest['sha256']:
+                        raise ValueError('恢复的 TU 事实摘要不一致')
+                except (OSError, ValueError):
+                    response.unlink(missing_ok=True)
+                    raise
         except FileNotFoundError:
             self.misses += 1
             return False
@@ -75,11 +94,29 @@ class TUCache:
         self.snapshot.assert_valid()
         key = self.key(unit)
         raw = self.folder/(key + '.facts')
-        temp = raw.with_suffix('.pending')
-        shutil.copyfile(filesystem_path(response), temp)
-        replace_file(temp, raw)
-        write_json(self.folder/(key + '.json'), dict(schema=1, sha256=file_digest(raw),
-                                                   metadata=meta, metadata_sha256=digest(meta)))
+        if raw.exists() and raw.samefile(response):
+            return raw  # A verified restore. The worker link is now disposable.
+        from .review_archive import durable_replace, write_receipt
+        temp = raw.with_name(key+'.'+uuid.uuid4().hex+'.pending')
+        try:
+            response = filesystem_path(response)
+            expected = None
+            try:
+                os.link(response, temp)
+            except OSError:
+                expected = file_digest(response)
+                shutil.copyfile(response, temp)
+            with temp.open('r+b') as stream:
+                os.fsync(stream.fileno())
+            hashed = file_digest(temp)
+            if expected is not None and hashed != expected:
+                raise ValueError('TU 工作响应与缓存副本摘要不一致')
+            durable_replace(temp, raw)
+            write_receipt(self.folder/(key+'.json'),
+                          dict(schema=1, sha256=hashed, metadata=meta, metadata_sha256=digest(meta)), compact=True)
+        finally:
+            temp.unlink(missing_ok=True)
+        return raw
 
     def stats(self):
         return dict(hits=self.hits, extracted=self.misses, corrupt=self.corrupt,

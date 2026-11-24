@@ -462,11 +462,8 @@ def persist(out, facts, report, reviews, *, _existing_only=False):
                     source_date_epoch=os.environ.get('SOURCE_DATE_EPOCH'))
             import gzip
             compressed = gzip.compress(raw, mtime=0)
-            object_hash = hashlib.sha256(compressed).hexdigest()
-            objects = out/'evidence'; objects.mkdir(exist_ok=True)
-            target = objects/object_hash
-            if not target.exists():
-                target.write_bytes(compressed)
+            from .review_archive import archive_object
+            object_hash = archive_object(out, compressed)['sha256']
             entry = dict(file=file, sha256=expected, raw_object=object_hash, codec='gzip', size=len(raw))
             if b'\x00' not in raw:
                 entry.update(encoding='utf-8-replace', text=raw.decode('utf-8', errors='replace'))
@@ -487,45 +484,60 @@ def persist(out, facts, report, reviews, *, _existing_only=False):
 
 
 def archive_audit(out):
-    """Content-address every required receipt, preserving relative provenance."""
+    """Seal the publication inputs and proofs. Review originals belong to ai_events."""
     from .review_archive import archive_object
+    from .workspace import no_links
     out = Path(out)
-    objects = out/'evidence'; objects.mkdir(exist_ok=True)
+    objects = no_links(out/'evidence')
+    objects.mkdir(exist_ok=True)
+    from .fact_parts import retry_worker_cleanup
+    retry_worker_cleanup(out)
     records = {}
-    for folder in ('review', 'diagnostics', 'git_diff'):
-        base = out/folder
-        if not base.exists():
-            continue
-        for source in sorted(base.rglob('*')):
-            if not source.is_file():
-                continue
-            records[source.relative_to(out).as_posix()] = archive_object(out, source)
     for name in ('scan_state.json', 'input_manifest.json', 'input_closure.json', 'run.json',
-                 'doctor.json', 'run.log', 'result_validity.json', MARKER):
-        source = out/name
+                 'doctor.json', 'result_validity.json', MARKER, 'review/initialization-error.json',
+                 'review/configuration-error.json', 'diagnostics/completion.json',
+                 'diagnostics/full-verification-summary-proof.json'):
+        source = no_links(out/name)
         if source.is_file():
             records[name] = archive_object(out, source)
+    if 'scan_state.json' in records:
+        pin = read_json(out/'scan_state.json').get('git_diff_pin') or {}
+        for key in ('base_facts', 'base_summary', 'diff_patch'):
+            if not pin.get(key+'_path'):
+                continue
+            source = no_links(pin[key+'_path'])
+            relative = source.relative_to(out).as_posix()
+            expected = pin[key+'_sha256']
+            # These exact files are sealed by assert_pin and never rewritten by ECRA.
+            # Keep one set of bytes on volumes supporting hard links.
+            import re
+            from .report_package import sha256
+            if not re.fullmatch('[0-9a-f]{64}', expected) or sha256(source) != expected:
+                raise ValueError('Git Diff 固定证据摘要不一致：'+relative)
+            if not (objects/expected).exists():
+                try:
+                    os.link(source, objects/expected)
+                except OSError:
+                    pass
+            records[relative] = archive_object(out, source, expected)
+    marker = read_json(out/MARKER) if (out/MARKER).is_file() else {}
+    if marker.get('derivation') == 'LINKED_MULTICORE_COMBINATION':
+        components = EvidenceProvider(out/'scan.db').load('provenance', ['components'])
+        for ordinal, component in enumerate(components):
+            for field, name in [('config', 'config.yaml'), ('elf', 'firmware.elf')]:
+                relative = f'diagnostics/multicore-inputs/{ordinal}/{name}'
+                records[relative] = archive_object(out, no_links(out/relative), component[field]['sha256'])
     index = json.dumps(dict(version=1, files=records), ensure_ascii=False, sort_keys=True).encode()
-    sha = hashlib.sha256(index).hexdigest()
-    target=objects/sha
-    if target.exists():
-        if target.read_bytes()!=index:
-            raise ValueError('审计索引对象损坏，拒绝覆盖')
-    else:
-        from .review_archive import durable_replace
-        from tempfile import NamedTemporaryFile
-        with NamedTemporaryFile(dir=out, suffix='.pending', delete=False) as stream:
-            pending = Path(stream.name)
-            try:
-                stream.write(index)
-                stream.flush()
-                os.fsync(stream.fileno())
-                stream.close()
-                durable_replace(pending, target)
-            finally:
-                stream.close()
-                pending.unlink(missing_ok=True)
-    return dict(audit_index=sha, audit_files=len(records))
+    sha = archive_object(out, index)['sha256']
+    audit = dict(audit_index=sha, audit_files=len(records))
+    if (out/'manifest.json').is_file():
+        previous = read_json(out/'manifest.json')
+        indices = set(previous.get('audit_indices', []))
+        if previous.get('audit_index'):
+            indices.add(previous['audit_index'])
+        indices.discard(sha)
+        audit['audit_indices'] = sorted(indices)
+    return audit
 
 
 def run_canonical(root, config_path=None, no_review=False, doctor_only=False, review_safe_sample=0,

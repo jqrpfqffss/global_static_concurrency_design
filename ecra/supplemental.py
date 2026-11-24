@@ -65,6 +65,9 @@ def _run_extractor(root, unit, cfg, worker_dir, env, tool_root, timeout, coverag
         part = dict(parse_status='FAILED', diagnostics=[dict(severity=4, message=str(exc))], variables=[], includes=[])
     if part.get('worker_exception'):
         raise RuntimeError(f"Supplemental Worker {unit['source_file']}: {part['worker_exception']}")
+    if part.get('parse_status') != 'FAILED':
+        from .fact_parts import discard_worker_files
+        discard_worker_files(req, resp)
     return part
 
 

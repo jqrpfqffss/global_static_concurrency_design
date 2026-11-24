@@ -1407,6 +1407,9 @@ def full_reference_summary(root, out, cfg, units, coverage, worker_dir, env, too
                 raise ValueError('独立对照缺少输入证据')
             from .diff_verification import extraction_digest
             parts.append_metadata(response, meta)
+            parts.work_files.add(response)
+            from .fact_parts import discard_worker_files
+            discard_worker_files(metadata)
             verification_units.append(dict(unit, dynamic_predefined_inputs=meta.get('dynamic_predefined_inputs', []),
                                            semantic_macros_digest=meta.get('semantic_macros_digest'),
                                            extraction_digest=extraction_digest(response),

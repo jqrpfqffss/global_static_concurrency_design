@@ -1208,6 +1208,14 @@ def main():
     finally:
         if diagnostics:
             diagnostics.close()
+            if not diagnostics.failed and not diagnostics.trace_owned:
+                from .fact_parts import discard_worker_files
+                discard_worker_files(*(diagnostics.folder/name for name in
+                                       ('scan_progress.json', 'scan_stages.json', 'memory_profile.json')))
+                try:
+                    diagnostics.folder.rmdir()
+                except OSError:
+                    pass  # Earlier failures or explicitly requested profiles belong to the scan.
 
 
 if __name__ == "__main__":

@@ -41,6 +41,10 @@ class ArchiveCompressionTests(unittest.TestCase):
             target=self.base/('import-'+codec);import_report(package,target)
             restored=target/'scans'/'codec';self.assertEqual(EvidenceProvider(restored/'scan.db').metadata(),self.binding)
             self.assertEqual(ReviewStore(restored/'reviews.db',self.binding).history(),[self.event])
+        for payload in payloads:
+            manifest = json.loads(payload.pop('manifest.json'))
+            self.assertTrue(manifest.pop('generated_at'))
+            payload['manifest.json'] = manifest
         self.assertEqual(payloads[0],payloads[1])
         self.assertEqual({name:sha256(self.scan/name) for name in before},before)
 

@@ -115,6 +115,18 @@ _REVIEW_PUBLICATION_UPGRADE = {
 }
 
 
+# Exact storage-only release, for existing mixed, LF and CRLF Portable installations.
+# A future change to any static module receives its own engine and TU cache identity.
+_STORAGE_ENGINE_PREDECESSORS = {
+    '11a14df3c4f73ff5f785c0c87441b223af6aaa4515dec3e241ec76751a63316c':
+        '17fce9b07cd0f6844a6e69b7ba12fbea46e0e186314240958ff146f917c55086',
+    '859fc52e965777739b9339e075f19c01a7e21bf4a7429613204893e9ae030fb8':
+        'ab16b8e233bf7645b725f7cab21668a310006decdf2eea46a818002cb6eaa126',
+    'c0b27898351fbd188bdcf31b3911398ff39613cfad91991fd696e8feddbb4778':
+        'e730bce988e5d041b1f1c6cf287b15f64f5532470776b9953551ecd515da1c65',
+}
+
+
 def engine_digest():
     files = _engine_files()
     # Each pair proves this review-only upgrade from 585df98. Future edits to
@@ -123,11 +135,17 @@ def engine_digest():
     for name, (after, before) in _REVIEW_PUBLICATION_UPGRADE.items():
         if name in files and hashlib.sha256((package/name).read_bytes().replace(b'\r\n', b'\n')).hexdigest() == after:
             files[name] = before
-    return digest(files)
+    hashed = digest(files)
+    return _STORAGE_ENGINE_PREDECESSORS.get(hashed, hashed)
 
 
 def matches_static_engine(expected, current=None):
-    if expected == (current if current is not None else engine_digest()):
+    actual = current if current is not None else engine_digest()
+    if expected == actual:
+        return True
+    # Same release verified with different working-tree line endings on Portable.
+    known = _STORAGE_ENGINE_PREDECESSORS.values()
+    if actual in known and expected in known:
         return True
     # 3a12408 -> maintenance diagnostics: only review defaults/validation in
     # config.py changed. Admit that exact predecessor, not arbitrary engines.
@@ -721,7 +739,7 @@ def status(root, config_path=None):
             # before reporting a review as finished, without changing files.
             receipt_errors = []
             verified_queue = copy.deepcopy(queue)
-            from .review_archive import verify_committed_review
+            from .review_archive import committed_receipt, verify_committed_review
             from .review_integrity import review_targets
             from .review_sources import ArchivedSources, source_scope
             from .scan_store import EvidenceProvider
@@ -732,7 +750,7 @@ def status(root, config_path=None):
                     continue
                 try:
                     fid = row['finding_id']
-                    receipt = read_json(out/'review'/(fid+'.result.json'))
+                    receipt = committed_receipt(out/'review', row)
                     with source_scope(archived):
                         verify_committed_review(root, out/'review', row, expected[fid], state['fingerprint'], receipt)
                 except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
@@ -884,6 +902,9 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
     source_reader=None;source_scope=None;source_token=None;source_entered=False
     from .scan_persistence import is_canonical
     runtime_only=is_canonical(out)
+    if runtime_only:
+        from .fact_parts import retry_worker_cleanup
+        retry_worker_cleanup(out)
     relocated = _archived_checkpoint(Path(workspace.workspace_root), out, workspace) if runtime_only else None
     from .scan_diagnostics import ACTIVE
     review_diagnostics=ACTIVE.get()
@@ -1010,12 +1031,13 @@ def _saved_run(root, config_path=None, render_only=False, failed_only=False, *, 
         write_json(out/'resume.json', dict(command=mode, state=report['run_status'],
                                          finished=datetime.now(timezone.utc).isoformat(), exit_code=code,
                                          review_integrity=integrity))
-        from .scan_persistence import is_canonical, archive_audit
+        from .scan_persistence import is_canonical
         if is_canonical(out):
             manifest_path = out/'manifest.json'
             if manifest_path.is_file():
                 manifest = read_json(manifest_path)
-                manifest.update(archive_audit(out), run_state=report['run_status'])
+                # Static proofs were sealed at publication. AI history is committed per item.
+                manifest['run_state'] = report['run_status']
                 write_json(manifest_path, manifest)
             print(f"{report['run_status']}：{out/'scan.db'}；请在 ECRA Studio 查看。", flush=True)
         else:

@@ -77,12 +77,18 @@ def main():
             previous_descriptor_sha256=sha256(descriptor),previous_output=str(old_out),worker_proven_exited=pid,
             scope='Same-root formal cache revalidated by original preprocessing/content/engine/environment gates; restart global analysis, not arbitrary solver continuation; not cold extraction timing')
     elif data.exists():raise FileExistsError('Use a fresh data root; never mix another scan into the measurement')
-    if data==engine or data.is_relative_to(engine):raise ValueError('Measurement data cannot enter the engine installation')
+    # Current Portable releases reserve workspace/data-roots for isolated data.
+    # The source tree and the data-roots directory itself remain off limits.
+    from ecra.workspace import no_links
+    writable = no_links(engine/'workspace'/'data-roots')
+    def installation_file(path):
+        return path.is_relative_to(engine) and (not path.is_relative_to(writable) or path == writable)
+    if installation_file(data):raise ValueError('Measurement data cannot enter the engine installation')
     from ecra.config import configured_project_root
     source=configured_project_root(config)
     if data==source or data.is_relative_to(source) or source.is_relative_to(data):
         raise ValueError('Measurement data cannot overlap the firmware input')
-    if work==source or work.is_relative_to(source) or work.is_relative_to(engine):
+    if work==source or work.is_relative_to(source) or installation_file(work):
         raise ValueError('Observer evidence cannot enter firmware or the engine installation')
     work.mkdir(parents=True,exist_ok=False)
     observer_source=Path(__file__).read_bytes();(work/'observer.py').write_bytes(observer_source)

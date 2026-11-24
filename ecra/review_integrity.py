@@ -140,7 +140,8 @@ def assert_review_archive(report, records, folder, *, require_terminal=True):
                 errors.append(f'{fid}: queue 与本轮结果的 {key} 不一致')
         if require_terminal or row.get('state') in {'DONE', 'TECH_FAILED'}:
             try:
-                receipt = read_json(folder / (fid + '.result.json'))
+                from .review_archive import committed_receipt
+                receipt = committed_receipt(folder, row)
             except (OSError, ValueError) as exc:
                 errors.append(f'{fid}: 结果收据缺失或损坏：{exc}')
                 continue

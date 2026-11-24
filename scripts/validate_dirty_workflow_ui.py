@@ -83,7 +83,7 @@ def main():
         with (work/'ordinary.log').open('w',encoding='utf-8') as log,redirect_stdout(log):
             code=run_canonical(root,ordinary_config,no_review=True,scan_id='ordinary')
         assert code in {0,1,2};prior=sha256(data/'scans/ordinary/scan.db')
-        session=work/'session.json';stream=(work/'server.log').open('wb')
+        session=data/'work/session.json';stream=(work/'server.log').open('wb')
         server=subprocess.Popen([sys.executable,'-B','-X','utf8','-m','ecra.studio','--data-root',str(data),'--no-browser','--session-file',str(session)],
             cwd=TOOL,stdout=stream,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         deadline=time.monotonic()+60
@@ -169,7 +169,10 @@ def main():
         assert plan['compiler_view']==descriptor
         assert read_json(data/'work/tasks'/running['id']/'preflight/preflight.json')['frozen_working_inputs']==descriptor
         requests=list((out/'workers/full-verification').glob('*.request.json'))
-        assert len(requests)==(0 if args.allow_partial else 4) and all(read_json(p)['compiler_view']==descriptor for p in requests)
+        assert not requests
+        if not args.allow_partial:
+            proof=read_json(out/'diagnostics/full-verification-summary-proof.json')
+            assert proof['state']==diff['full_verification']['state'] and proof['bytes']>0
         ref=provider.archived_source(header.name);assert ref['sha256']==sha256(header) and ref['sha256']!=result['staged_header_sha256']
         assert provider.archived_source(untracked.name)['sha256']==sha256(untracked)
         baseline=read_json(Path(diff['pin']['base_summary_path']));calculated=compare(baseline,summarize(facts,report),diff['pin'])

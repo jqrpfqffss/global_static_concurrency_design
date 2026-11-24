@@ -13,16 +13,17 @@ from scripts.large_stm32_scan import validate
 class LargeScanAcceptanceTests(unittest.TestCase):
     setUp = test_ecra.ProjectTest.setUp
     project = test_ecra.ProjectTest.project
+    out = test_ecra.ProjectTest.out
 
     def test_failed_exit_invalid_result_or_missing_evidence_cannot_pass_acceptance(self):
         self.project({'a.c': 'int shared;void ISR(void){shared++;}',
                       'b.c': 'extern int shared;void Task(void){shared++;}'})
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 2)
-        out = self.root/'.ecra'
+        out = self.out
         evidence = self.root/'acceptance'
         evidence.mkdir()
-        args = SimpleNamespace(project=self.root, config=out/'semantics.yaml', evidence=evidence, min_units=2)
+        args = SimpleNamespace(project=self.root, config=self.root/'.ecra/semantics.yaml', evidence=evidence, min_units=2)
         write_json(evidence/'execution.json', dict(exit_code=2))
         self.assertTrue(validate(args)['acceptance_passed'])
         write_json(evidence/'execution.json', dict(exit_code=3))

@@ -30,7 +30,9 @@ class InitArmHeadersTests(unittest.TestCase):
             arguments = [compiler,'-mcpu=cortex-m0','-mthumb','-c',str(source),'-o',str(output)]
             built = subprocess.run(arguments,cwd=base,capture_output=True,text=True,encoding='utf-8')
             self.assertEqual(built.returncode,0,built.stdout+built.stderr)
-            database = base/'compile_commands.json'
+            native_build = base/'native'
+            native_build.mkdir()
+            database = native_build/'compile_commands.json'
             database.write_text(json.dumps([dict(directory=str(base),file=str(source),arguments=arguments)]))
             config = base/"config with ' quote/semantics.yaml"
             captured = io.StringIO()

@@ -116,6 +116,9 @@ class TaskManager:
             try:
                 for path in self.work.glob('*/task.json'):
                     value = self.record(path)
+                    if value.get('mode') == 'precheck':
+                        from .preflight import release_preflight_work
+                        release_preflight_work(path.parent/'preflight')
                     if value['state'] in {'RUNNING', 'STOP_REQUESTED'}:
                         value.update(state='INTERRUPTED', finished=now(), error='上次监督器退出；已提交的结果与诊断保留，可校验输入后继续。')
                         write_json(path, value)

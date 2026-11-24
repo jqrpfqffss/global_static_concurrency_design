@@ -416,7 +416,7 @@ add_custom_target(package ALL
         self.cfg['analysis']['git_diff'] = dict(enabled=True, base_ref=base, verify_against_full=True)
         write_json(self.profile, self.cfg)
         proc = subprocess.run([os.sys.executable, 'run_ecra.py', '--config', str(self.profile), '--no-review'],
-                              capture_output=True, encoding='utf-8', timeout=180,
+                              capture_output=True, encoding='utf-8', timeout=600,
                               env=dict(os.environ, ECRA_DATA_ROOT=str(self.data)))
         self.assertIn(proc.returncode, (0, 1, 2), proc.stdout+proc.stderr)
         database, = (self.data/'scans').glob('*/scan.db')

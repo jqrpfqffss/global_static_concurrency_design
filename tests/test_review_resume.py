@@ -17,6 +17,7 @@ from unittest.mock import patch
 from ecra.common import read_json, write_json
 from ecra.scan_persistence import run_canonical, runtime, snapshot_head
 from ecra.workflow import saved_run
+from ecra.review_archive import archived_file
 from tests import test_canonical_scan as fixtures
 from tests.test_review_contract import answer_for
 
@@ -101,7 +102,11 @@ class ReviewResumeTests(unittest.TestCase):
         self.assertEqual(response.json()['progress'], dict(total=10, done=done, tech_failed=0, pending=10-done))
 
     def assert_receipt(self, client, fid):
-        receipt = read_json(self.out/'review'/(fid+'.result.json'))
+        self.assertFalse((self.out/'review'/(fid+'.result.json')).exists())
+        receipt = read_json(archived_file(self.out, fid+'.result.json', fid))
+        for name in receipt['archived_files']:
+            if name != 'project-evidence.json':
+                self.assertFalse((self.out/'review'/name).is_file())
         with contextlib.closing(sqlite3.connect(self.out/'reviews.db')) as conn:
             meta = snapshot_head(conn)
             sequence, hashed, raw = conn.execute('SELECT sequence,hash,payload FROM ai_events WHERE finding_id=? ORDER BY sequence DESC', (fid,)).fetchone()
@@ -132,7 +137,7 @@ class ReviewResumeTests(unittest.TestCase):
         self.assertTrue((self.out/'scan_state.json').is_file())
         self.assertEqual(len(self.calls), 3)
         completed = set(self.calls)
-        old = {fid: (self.out/'review'/(fid+'.result.json')).read_bytes() for fid in completed}
+        old = {fid: archived_file(self.out, fid+'.result.json', fid).read_bytes() for fid in completed}
         with self.model():
             self.assertIn(saved_run(self.case.root, self.case.config, resume=True), (0, 1, 2))
         self.assertEqual(len(self.calls[3:]), 7)
@@ -140,7 +145,7 @@ class ReviewResumeTests(unittest.TestCase):
         self.assertEqual(len(set(self.calls)), 10)
         self.assertEqual({r['state'] for r in runtime(self.out)['reviews']}, {'DONE'})
         for fid, receipt in old.items():
-            self.assertEqual((self.out/'review'/(fid+'.result.json')).read_bytes(), receipt)
+            self.assertEqual(archived_file(self.out, fid+'.result.json', fid).read_bytes(), receipt)
 
     def test_parallel_workers_commit_without_waiting_for_first_item(self):
         from ecra.native_consumers import runtime_inputs
@@ -229,6 +234,12 @@ class ReviewResumeTests(unittest.TestCase):
         self.calls.clear()
         with self.model():
             self.assertIn(saved_run(self.case.root, self.case.config, resume=True), (0, 1, 2))
+        self.assertEqual(self.calls, [])
+        # Only damage to the committed authority invalidates the verdict.
+        archived_file(self.out, fid+'.result.json', fid).unlink()
+        self.calls.clear()
+        with self.model():
+            self.assertIn(saved_run(self.case.root, self.case.config, resume=True), (0, 1, 2))
         self.assertEqual(self.calls, [fid])
         self.assertTrue(list((self.out/'diagnostics'/'review-recovery').glob(fid+'*')))
         self.calls.clear()
@@ -270,7 +281,7 @@ class ReviewResumeTests(unittest.TestCase):
         initial = runtime(self.out)['reviews']
         driver = Path(__file__).resolve()
         journal = self.case.base/'children.jsonl'
-        for stage in ('before-answer', 'before-validation', 'before-commit', 'after-commit', 'parallel'):
+        for stage in ('before-answer', 'before-validation', 'before-intent-rename', 'before-commit', 'after-commit', 'parallel'):
             with self.subTest(stage=stage):
                 append_runtime(self.out, {}, initial)
                 raw = read_json(self.case.config)
@@ -285,8 +296,11 @@ class ReviewResumeTests(unittest.TestCase):
                 self.calls.clear()
                 with self.model():
                     self.assertIn(saved_run(self.case.root, self.case.config, resume=True), (0, 1, 2))
-                self.assertEqual(len(self.calls), 9 if stage in {'before-commit', 'after-commit', 'parallel'} else 10)
+                self.assertEqual(len(self.calls), 9 if stage in {'before-intent-rename', 'before-commit', 'after-commit', 'parallel'} else 10)
                 self.assertEqual(len(set(self.calls)), len(self.calls))
+                self.assertFalse(list((self.out/'review').glob('*.execution.json')), stage)
+                self.assertFalse(list((self.out/'review').glob('*.attempt*.jsonl')), stage)
+                self.assertFalse(list((self.out/'.ecra-receipt-writes').glob('*.part')), stage)
 
     @unittest.skipUnless(os.name == 'nt', 'Windows process tree ownership')
     def test_safe_stop_ends_only_its_owned_opencode_tree_and_preserves_transcript(self):
@@ -405,7 +419,14 @@ def crash_driver(stage, config, journal):
         if stage in {'after-commit', 'parallel'}:
             os._exit(42)
 
-    with (mock_runtime(['synthetic-review-transport']),
+    from ecra.review_archive import durable_replace
+
+    def publish(source, target):
+        if stage == 'before-intent-rename' and source.parent.name == '.ecra-receipt-writes':
+            os._exit(42)
+        durable_replace(source, target)
+
+    with (mock_runtime(['synthetic-review-transport']), patch('ecra.review_archive.durable_replace', side_effect=publish),
           patch('ecra.review.execute', side_effect=invoke), patch('ecra.review.parse_answer', side_effect=validate),
           patch('ecra.scan_persistence.commit_review_result', side_effect=commit)):
         saved_run(root, config)

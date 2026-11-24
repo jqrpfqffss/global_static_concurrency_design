@@ -28,6 +28,8 @@ JOURNAL = 'ownership.sqlite3'
 
 
 def compatible_review_implementation(hashed):
+    if hashed == '360e129617293356a193ba4874d13faf63cc2b091a685892edad6dd26d7060ab':
+        return '51256eac8239371fdd17bfc302d1e180b8a248ac9521bf93764bdd1ba0a9a8aa'
     # Exact direct-run/diagnostic change: prompts and archive validation are unchanged.
     if hashed == '381daeb159bdf41ffe3407331b1637854bd50240ac78e70d0c766321c189454c':
         hashed = 'cca8ecb58791f29718767005ab024b40a0511618f8ab71f396f407494c551a70'
@@ -380,7 +382,7 @@ class SessionCleanup:
             if stream == 'stdout' and session_from_jsonl(raw.decode('utf-8-sig'))[0] != call['session_id']:
                 raise Unverifiable('已归档的会话事件和归属记录不一致')
 
-    def retire(self, run, row):
+    def retire(self, run, row, *, retry_reason=None):
         counts = Counter()
         try:
             request, fid = row['review_request'], row['finding_id']
@@ -391,6 +393,9 @@ class SessionCleanup:
                     conn.execute("UPDATE calls SET review_state='TECH_FAILED', cleanup_state='RETAINED' "
                                  'WHERE review_request=? AND finding_id=?', (request, fid))
                     return
+            if retry_reason:
+                calls = [call for call in calls if call['cleanup_state'] == 'DELETE_FAILED'
+                         and call['reason'] == retry_reason]
             if not calls:
                 return
             self.archived(row)
@@ -422,8 +427,11 @@ class SessionCleanup:
                     run.state(call, 'DELETED')
                     counts['deleted'] += 1
             if counts:
+                totals = dict(counts)
+                if retry_reason:
+                    totals['failed'] = -(counts['deleted'] + counts['skipped'])
                 self.note(f'{fid}：OpenCode 会话清理成功 {counts["deleted"]}，'
-                          f'失败保留 {counts["failed"]}，无法确认归属已跳过 {counts["skipped"]}', **counts)
+                          f'失败保留 {counts["failed"]}，无法确认归属已跳过 {counts["skipped"]}', **totals)
         except Exception:
             self.note(f'{row["finding_id"]}：无法验证会话清理记录或已提交归档，保留会话', skipped=1)
 
@@ -443,12 +451,17 @@ class SessionCleanup:
             self.note('OpenCode 会话补偿清理未能调度，已保留会话', skipped=1)
 
     def _recover(self, rows, command):
+        with ExitStack() as lifetime:
+            self._recover_runs(rows, command, lifetime)
+
+    def _recover_runs(self, rows, command, lifetime):
         try:
             from .review import resolve_command
             runtime = Runtime(resolve_command(command), timeout=self.timeout, stop=self.stop)
             from .opencode_storage import ReviewStorage
-            storage = ReviewStorage(self.out, environment=self.environment, settings=self.settings)
-            runtime.context = dict(scope=storage.scope, data=storage.data, environment=storage.environment)
+            storage = ReviewStorage(self.out, environment=self.environment, settings=self.settings, lifetime=lifetime)
+            runtime.context = dict(scope=storage.work, data=storage.data, environment=storage.environment, startup=storage.startup,
+                                   scratch=storage.call_root)
             binding = self.binding()
             legacy_environment = self.environment_binding(legacy=True)
             for path in no_links(self.base).iterdir():
@@ -477,8 +490,43 @@ class SessionCleanup:
         except Exception:
             self.note('OpenCode 会话补偿清理不可用，已保留会话', skipped=1)
 
+    def _retry_idle_transport(self, run):
+        reason = run.transport_problem
+        if not self.native or not reason or self.stop.is_set():
+            return
+        # An initially unreachable service stays deferred. A service that worked
+        # before concurrent model activity interrupted it gets one idle restart.
+        with run.connect() as conn:
+            if not conn.execute("SELECT 1 FROM calls WHERE cleanup_state='DELETED' LIMIT 1").fetchone():
+                return
+            pending = conn.execute("SELECT DISTINCT finding_id,review_request FROM calls "
+                                   "WHERE cleanup_state='DELETE_FAILED' AND reason=?", (reason,)).fetchall()
+        if not pending:
+            return
+        run.stop_api()
+        run.api = None
+        run.transport_problem = None
+        from .scan_persistence import _read_event, review_head, snapshot_head
+        with self.events() as conn:
+            conn.execute('BEGIN')
+            watermark = snapshot_head(conn)['watermark']
+            for fid, request in pending:
+                if self.stop.is_set():
+                    break
+                head = review_head(conn, fid, watermark)
+                if head and head[2] == 'DONE':
+                    raw, = conn.execute('SELECT payload FROM ai_events WHERE sequence=?', (head[0],)).fetchone()
+                    row = _read_event(fid, head[2], head[1], raw)
+                    if row.get('review_request') == request:
+                        self.retire(run, row, retry_reason=reason)
+
     def _finish_run(self, run):
         try:
+            if run is self.run:
+                try:
+                    self._retry_idle_transport(run)
+                except Exception as exc:
+                    self.note(f'空闲后会话补偿未完成，可在继续复核时重试：{exc}')
             # The first resource is the lease. The service runs in a separate
             # stack so it can be stopped before reclaiming the store's pages.
             run.stop_api()

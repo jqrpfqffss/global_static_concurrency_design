@@ -382,7 +382,7 @@ class WorkspaceTests(unittest.TestCase):
 
     @unittest.skipUnless(all(shutil.which(t) for t in ('cmake', 'ninja', 'arm-none-eabi-gcc')), 'requires ARM GCC/CMake/Ninja')
     def test_T12_T17_T21_T22_T26_T28_T29_cmake_external_builds_and_resume(self):
-        self.cfg['analysis'].update(compile_database='auto', cmake=dict(build_dir='build/ecra',
+        self.cfg['analysis'].update(compile_database='auto', cmake=dict(target='firmware', build_dir='build/ecra',
             generator='Ninja', build=True, args=['-DCMAKE_SYSTEM_NAME=Generic',
             '-DCMAKE_C_COMPILER=arm-none-eabi-gcc', '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         (self.root/'a.c').write_text('#include "generated.h"\nint g;void Task(void){g=VALUE;}void ISR(void){g++;}')
@@ -418,7 +418,7 @@ class WorkspaceTests(unittest.TestCase):
 
     @unittest.skipUnless(all(shutil.which(t) for t in ('cmake', 'ninja', 'arm-none-eabi-gcc')), 'requires ARM GCC/CMake/Ninja')
     def test_build_directory_relocation_is_not_a_semantic_change(self):
-        self.cfg['analysis'].update(compile_database='auto', cmake=dict(generator='Ninja', build=True,
+        self.cfg['analysis'].update(compile_database='auto', cmake=dict(target='firmware', generator='Ninja', build=True,
             args=['-DCMAKE_SYSTEM_NAME=Generic', '-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
                   '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         (self.root/'a.c').write_text('#include "generated.h"\nint g;void Task(void){g=VALUE;}void ISR(void){g++;}')
@@ -430,7 +430,7 @@ class WorkspaceTests(unittest.TestCase):
 
     @unittest.skipUnless(all(shutil.which(t) for t in ('cmake', 'ninja', 'arm-none-eabi-gcc')), 'requires ARM GCC/CMake/Ninja')
     def test_source_writing_cmake_is_explicitly_rejected_in_committed_mode(self):
-        self.cfg['analysis'].update(compile_database='auto', cmake=dict(generator='Ninja', build=True,
+        self.cfg['analysis'].update(compile_database='auto', cmake=dict(target='firmware', generator='Ninja', build=True,
             args=['-DCMAKE_SYSTEM_NAME=Generic', '-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
                   '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         with (self.root/'CMakeLists.txt').open('a') as stream:
@@ -448,7 +448,7 @@ class WorkspaceTests(unittest.TestCase):
     @unittest.skipUnless(all(shutil.which(t) for t in ('cmake', 'ninja', 'arm-none-eabi-gcc')), 'requires ARM GCC/CMake/Ninja')
     def test_generated_source_keeps_scope_and_has_no_build_path_only_diff(self):
         self.cfg['analysis'].update(compile_database='auto', include_dirs=['.'],
-            cmake=dict(generator='Ninja', build=True, args=['-DCMAKE_SYSTEM_NAME=Generic',
+            cmake=dict(target='firmware', generator='Ninja', build=True, args=['-DCMAKE_SYSTEM_NAME=Generic',
             '-DCMAKE_C_COMPILER=arm-none-eabi-gcc', '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         (self.root/'generated.c.in').write_text('int generated_global;void Gen(void){generated_global++;}\n')
         (self.root/'a.c').write_text('void Gen(void);void Task(void){Gen();}void ISR(void){Gen();}\n')
@@ -476,7 +476,7 @@ class WorkspaceTests(unittest.TestCase):
     @unittest.skipUnless(all(shutil.which(t) for t in ('cmake', 'ninja', 'arm-none-eabi-gcc')), 'requires ARM GCC/CMake/Ninja')
     def test_cached_baseline_refreshes_arbitrary_cmake_environment_inputs(self):
         self.cfg['analysis'].update(compile_database='auto',
-            cmake=dict(generator='Ninja', build=True, args=['-DCMAKE_SYSTEM_NAME=Generic',
+            cmake=dict(target='firmware', generator='Ninja', build=True, args=['-DCMAKE_SYSTEM_NAME=Generic',
             '-DCMAKE_C_COMPILER=arm-none-eabi-gcc', '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         (self.root/'a.c').write_text('#include "env.h"\nint g;void Task(void){g=ENV_VALUE;}void ISR(void){g++;}\n')
         with (self.root/'CMakeLists.txt').open('a') as stream:

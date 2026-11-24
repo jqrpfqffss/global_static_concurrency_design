@@ -5,17 +5,26 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 from ecra.common import read_json, write_json
-from ecra.data_transfer import registry
 from ecra.studio.root_transfers import RootTransfers
 from ecra.studio.server import create_app
 from ecra.studio.tasks import TaskManager
 
 
 class TaskRecoveryFailureTests(unittest.TestCase):
+    def setUp(self):
+        # Reopening Studio must share this test's supervisor jobs only.
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.controls = Path(temporary.name)
+        paths = patch('ecra.studio.root_transfers.control_path', side_effect=self.controls.joinpath)
+        paths.start()
+        self.addCleanup(paths.stop)
+
     def test_corrupt_and_wrong_shape_records_do_not_block_startup_or_valid_history(self):
         for raw in (b'{truncated', b'null', b'[]', b'{}', b'{"id":"bad","state":[],"started":"now"}',
                     b'{"id":"bad","state":"FAILED","started":"now"}',
@@ -48,7 +57,7 @@ class TaskRecoveryFailureTests(unittest.TestCase):
                 summary=client.get('/api/scans/'+scan+'/summary').json()
             raw=b'{incomplete task'
             task=data/'work/tasks/broken/task.json';task.parent.mkdir(parents=True);task.write_bytes(raw)
-            folder=registry(data);folder.mkdir(parents=True,exist_ok=True)
+            folder=self.controls/'transfer-jobs';folder.mkdir(parents=True,exist_ok=True)
             transfer=folder/'job-broken.json';transfer.write_bytes(raw)
             reopened=create_app(data,token='test',authority='testserver')
             with TestClient(reopened,headers=headers) as client:
@@ -72,7 +81,7 @@ class TaskRecoveryFailureTests(unittest.TestCase):
 
     def test_transfer_valid_running_sibling_is_recovered_without_rewriting_broken_record(self):
         with tempfile.TemporaryDirectory() as temporary:
-            data=Path(temporary)/'data';folder=registry(data);folder.mkdir(parents=True)
+            data=Path(temporary)/'data';folder=self.controls/'transfer-jobs';folder.mkdir(parents=True)
             bad=folder/'job-bad.json';bad.write_bytes(b'[]')
             good=folder/'job-good.json';write_json(good,dict(id='good',state='COPYING',started='now',source=str(data),target=str(data.parent/'copy')))
             transfers=RootTransfers(data)
@@ -83,7 +92,7 @@ class TaskRecoveryFailureTests(unittest.TestCase):
 
     def test_publishing_supervisor_crash_is_interrupted_with_original_recovery_journal(self):
         with tempfile.TemporaryDirectory() as temporary:
-            data=Path(temporary)/'data';folder=registry(data);folder.mkdir(parents=True)
+            data=Path(temporary)/'data';folder=self.controls/'transfer-jobs';folder.mkdir(parents=True)
             journal=folder/'publication-journal.json';raw=b'{"state":"PUBLISHING","preserve":"original"}';journal.write_bytes(raw)
             good=folder/'job-good.json'
             write_json(good,dict(id='good',state='PUBLISHING',started='now',source=str(data),

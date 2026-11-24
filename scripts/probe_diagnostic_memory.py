@@ -51,15 +51,21 @@ def cli_probe(args):
     # Windows TEMP can use an 8.3 alias; the CLI API expects a resolved root.
     root = (args.evidence/'fixture').resolve()
     root.mkdir()
+    subprocess.run(['git', 'init', '--quiet', str(root)], check=True)
     (root/'app.c').write_text('int shared; void IRQ(void){shared++;} int main(void){shared++;return 0;}', encoding='utf-8')
     dump(root/'compile_commands.json', [dict(directory=str(root), file='app.c',
          arguments=['arm-none-eabi-gcc', '-mcpu=cortex-m4', '-mthumb', '-c', 'app.c'])])
     cfg = root/'semantics.yaml'
-    dump(cfg, dict(version=1, analysis=dict(output=dict(location='project'),compile_database='compile_commands.json'),
+    dump(cfg, dict(version=1, analysis=dict(output=dict(location='custom', custom_dir=str(args.evidence/'data')),
+                                            compile_database='compile_commands.json'),
          contexts=[dict(id='main',kind='MAIN',functions=['main']),dict(id='irq',kind='ISR',functions=['IRQ'])],
          review=dict(enabled=False,prepare_packets=False)))
     assert cli.run(root, str(cfg), no_review=True) in (0, 1, 2)
-    out = root/'.ecra'
+    from ecra.config import load_config
+    from ecra.workflow import output_path
+    from ecra.workspace import lock_path
+    config, _ = load_config(root, cfg)
+    out = output_path(root, config)
     assert json.loads((out/'result_validity.json').read_text(encoding='utf-8'))['analysis_valid'] is True
     original = cli.merge
     def merge(*a, **kw):
@@ -72,7 +78,7 @@ def cli_probe(args):
     assert code == 3, code
     assert json.loads((out/'result_validity.json').read_text(encoding='utf-8'))['analysis_valid'] is False
     assert not (out/'scan_state.json').exists()
-    assert not (out/'scan.lock').exists()
+    assert not lock_path(root, config['analysis']).exists()
     assert '不能使用旧结论' in (out/'index.html').read_text(encoding='utf-8')
     assert json.loads((out/'run.json').read_text(encoding='utf-8'))['state'] == 'FAILED'
     assert 'MemoryError' in (out/'diagnostics/exception.log').read_text(encoding='utf-8')

@@ -126,11 +126,12 @@ class PinnedMulticoreInputTests(unittest.TestCase):
         for variant, config in self.inputs:
             command.extend(['--input', variant+'='+str(config), '--scan', variant+'='+self.selected[variant],
                             '--profile-id', variant+'='+self.profiles[variant]])
-        result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', timeout=60)
+        checkout = Path(__file__).resolve().parents[1]
+        result = subprocess.run(command, cwd=checkout, capture_output=True, text=True, encoding='utf-8', timeout=60)
         self.assertEqual(result.returncode, 0, result.stderr)
         saved = json.loads(result.stdout)
         self.assertTrue((Path(saved['scan_path'])/'manifest.json').is_file())
-        duplicate = subprocess.run([*command, '--scan', 'CM7=selected-CM4'],
+        duplicate = subprocess.run([*command, '--scan', 'CM7=selected-CM4'], cwd=checkout,
             capture_output=True, text=True, encoding='utf-8', timeout=60)
         self.assertEqual(duplicate.returncode, 2)
         self.assertIn('不能为空或重复', duplicate.stderr)

@@ -51,7 +51,7 @@ class NativeSequentialVerificationTests(unittest.TestCase):
         self.assertEqual(events, ['independent','current'])
         result = read_json(out/'reports/global_static_concurrency.json')['git_diff']['full_verification']
         self.assertEqual(result['state'], 'PASSED'); self.assertEqual(result['reextracted_units'], 2)
-        self.assertEqual(len(list((out/'workers/full-verification').glob('*.request.json'))), 2)
+        self.assertFalse(list((out/'workers/full-verification').iterdir()))
         self.assertEqual(read_json(out/'diagnostics/full-verification-summary-proof.json')['sha256'],self.reference_sha)
         self.assertEqual(list((self.case.data/'work/diff-comparison').glob('full-reference-*/summary.json')),[])
         self.assertFalse((out/'git_diff/full-verification.summary.json').exists())

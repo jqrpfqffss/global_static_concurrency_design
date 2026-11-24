@@ -9,13 +9,15 @@ from unittest.mock import patch
 
 from tests import test_ecra
 from ecra.cli import run
+from ecra.workflow import read_saved_json
 from ecra.review import review_all, verify_receipt
-from tests.review_fixtures import structured_fields
+from tests.review_fixtures import completed_jsonl, structured_fields
 
 
 class ScreeningTests(unittest.TestCase):
     setUp = test_ecra.ProjectTest.setUp
     project = test_ecra.ProjectTest.project
+    out = test_ecra.ProjectTest.out
     extract = test_ecra.ProjectTest.extract
 
     def test_unused_recursive_component_and_dead_writer_are_safe(self):
@@ -98,8 +100,8 @@ class ScreeningTests(unittest.TestCase):
         (self.root/'.ecra/semantics.yaml').write_text(json.dumps(cfg), encoding='utf-8')
         with patch('builtins.print'):
             self.assertEqual(run(self.root,no_review=True),2)
-        out = self.root/'.ecra'
-        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
+        out = self.out
+        facts = read_saved_json(out/'facts.json')
         report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         reviewed = {f['symbol_id'] for f in report['findings'] if f.get('symbol_id')}
         self.assertEqual(reviewed, {v['symbol_id'] for v in facts['variables'] if v['name'] == 'missing'})
@@ -147,8 +149,8 @@ class ScreeningTests(unittest.TestCase):
         with patch('builtins.print'):
             code = run(self.root, no_review=True)
         self.assertIn(code, (0, 2))
-        out = self.root/'.ecra'
-        facts = json.loads((out/'facts.json').read_text(encoding='utf-8'))
+        out = self.out
+        facts = read_saved_json(out/'facts.json')
         report = json.loads((out/'reports/global_static_concurrency.json').read_text(encoding='utf-8'))
         variables = facts['variables']
         self.assertEqual(len(variables), 1001)
@@ -201,7 +203,8 @@ class ReviewScaleTests(unittest.TestCase):
 
     def test_250_variable_workers_cache_and_immutable_packet_binding(self):
         (self.root/'app.c').write_text('int x;\n', encoding='utf-8')
-        findings = [dict(finding_id=f'F{i}', symbol_id=f'x{i}', accesses=[dict(access_id=f'A{i}',
+        findings = [dict(finding_id=f'F{i}', symbol_id=f'x{i}', variable_name=f'x{i}',
+                         static_classification='SUSPECT', accesses=[dict(access_id=f'A{i}',
                     function_id='f', file='app.c', line=1, access_kind='WRITE')]) for i in range(250)]
         facts = dict(variables=[], contexts=[], functions=[], calls=[])
         report = dict(findings=findings, coverage={}, limitations=[])
@@ -211,10 +214,11 @@ class ReviewScaleTests(unittest.TestCase):
             packet = json.loads(Path(argv[argv.index('--file')+1]).read_text(encoding='utf-8'))
             fid = packet['finding_id']
             seen.append(fid)
-            answer = dict(finding_id=fid, status='REVIEWED_SAFE', reason='模拟的源码证明，仅用于协议测试。',
-                          summary='已验证当前条件下安全：测试变量的模拟访问条件已排除冲突，仅用于协议测试。',
-                          evidence=[dict(file='app.c', line=1, claim='模拟测试源码')])
-            return CompletedProcess(argv, 0, json.dumps(answer), '')
+            from tests.test_review_contract import answer_for
+            answer = answer_for('REVIEWED_SAFE', fid=fid, variable=packet['finding']['variable_name'])
+            answer.update(structured_fields('REVIEWED_SAFE'))
+            answer['evidence'] = [dict(file='app.c', line=1, claim='模拟测试源码')]
+            return CompletedProcess(argv, 0, completed_jsonl(answer), '')
         with mock_runtime(['synthetic-only']), patch('ecra.review.execute', side_effect=execute):
             first = review_all(self.root, self.root/'.ecra', cfg, facts, report, 'scan', lambda _: None)
             cfg['review']['workers'] = 3  # Scheduling changes do not invalidate semantic receipts.

@@ -159,7 +159,7 @@ class ScanStoreTests(unittest.TestCase):
         from ecra.report_package import sha256
         provider=self.publish(dict(variables=[dict(symbol_id='s',name='s')],
             unknowns=[dict(symbol_id='s',kind='CAPACITY_FIXTURE',diagnostic='x'*(8*1024**2))]))
-        before=sha256(self.path);source_bytes=self.path.stat().st_size;sizes=[]
+        before=sha256(self.path);sizes=[]
         temporary=tempfile.TemporaryDirectory
         @contextmanager
         def measured_temporary(*args,**kwargs):
@@ -170,12 +170,15 @@ class ScanStoreTests(unittest.TestCase):
         if owned_trace:tracemalloc.start(1)
         try:
             start=tracemalloc.get_traced_memory()[0]
-            with patch('tempfile.TemporaryDirectory',measured_temporary):provider.validate(deep=True)
+            with patch('tempfile.TemporaryDirectory', measured_temporary), patch(
+                    'sqlite3.connect', wraps=sqlite3.connect) as opened:
+                provider.validate(deep=True)
             peak=tracemalloc.get_traced_memory()[1]-start
         finally:
             if owned_trace:tracemalloc.stop()
-        self.assertTrue(sizes)
-        self.assertLess(max(sizes),source_bytes//4,'temporary validation must contain query projections, not complete source evidence')
+        self.assertEqual(sizes, [], 'streaming validation should leave no on-disk projection')
+        writable = [str(args[0]) for args, _ in opened.call_args_list if 'mode=ro' not in str(args[0])]
+        self.assertEqual(writable, [':memory:'])
         if owned_trace:self.assertLess(peak,7*1024**2,'unused diagnostic must not be decoded while projecting record identities')
         self.assertEqual(sha256(self.path),before)
 

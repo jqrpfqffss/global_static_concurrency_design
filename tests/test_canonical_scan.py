@@ -46,6 +46,18 @@ class CanonicalScanTests(unittest.TestCase):
     def test_native_sqlite_only_scan_resume_and_full_package_retain_evidence(self):
         before = {p.name:sha256(p) for p in self.root.iterdir()}
         out,cfg = self.run_scan()
+        self.assertFalse(any(p.is_file() for p in (out/'workers').rglob('*')))
+        compaction = (out/'diagnostics/storage-compaction.jsonl').read_text('utf-8').splitlines()
+        cache_files = [row for row in map(json.loads, compaction) if row['kind'] == 'cache']
+        self.assertEqual(len(cache_files), 1)
+        cache = self.data / cache_files[0]['file']
+        self.assertTrue(cache.is_file())
+        if os.name == 'nt':
+            from ecra.windows_storage import WindowsFiles
+            if WindowsFiles().compression_supported(cache):
+                self.assertEqual(cache_files[0]['status'], 'COMPRESSED')
+                self.assertEqual(cache_files[0]['before']['links'], 1)
+                self.assertEqual(cache_files[0]['after_sha256'], sha256(cache))
         from ecra.scan_identity import query
         identity=query(EvidenceProvider(out/'scan.db'))
         self.assertEqual(identity['project_name'],'真实固件 · M7裸核')
@@ -71,6 +83,65 @@ class CanonicalScanTests(unittest.TestCase):
         self.assertEqual(EvidenceProvider(imported/'scan.db').load('facts'),facts)
         self.assertTrue(read_json(imported/'manifest.json')['audit_index'])
         self.assertEqual({p.name:sha256(p) for p in self.root.iterdir()},before)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows open handles deny unlink and exclusive compaction')
+    def test_held_worker_link_preserves_cache_and_finishes_publication(self):
+        from ecra.fact_parts import retry_worker_cleanup
+        from ecra.tu_cache import TUCache
+        store = TUCache.store
+        held = []
+        def hold(cache, unit, response, meta):
+            authority = store(cache, unit, response, meta)
+            if authority is not None:
+                held.append((response, authority, response.open('rb')))
+            return authority
+        try:
+            with patch.object(TUCache, 'store', hold):
+                out, _ = self.run_scan()
+            self.assertEqual(len(held), 1)
+            response, authority, reader = held[0]
+            self.assertTrue(response.samefile(authority))
+            self.assertEqual(sha256(response), sha256(authority))
+            self.assertTrue((out/'manifest.json').is_file())
+            self.assertTrue(list((out/'diagnostics/worker-cleanup').glob('*.json')))
+        finally:
+            for _, _, reader in held:
+                reader.close()
+        retry_worker_cleanup(out)
+        self.assertFalse(response.exists())
+        self.assertTrue(authority.is_file())
+        self.assertFalse(list((out/'diagnostics/worker-cleanup').glob('*.json')))
+        EvidenceProvider(out/'scan.db').validate(deep=True)
+
+    def test_existing_truncated_source_object_stops_publication(self):
+        import hashlib
+        from ecra.review_archive import archive_object
+
+        out, cfg = self.run_scan()
+        previous = sha256(out/'scan.db')
+        damaged = []
+
+        def interrupted_source(folder, source, expected=None):
+            if isinstance(source, bytes) and source.startswith(b'\x1f\x8b') and not damaged:
+                path = folder/'evidence'/hashlib.sha256(source).hexdigest()
+                path.parent.mkdir(exist_ok=True)
+                path.write_bytes(source[:5])
+                damaged.append(path)
+            return archive_object(folder, source, expected)
+
+        with patch('ecra.review_archive.archive_object', side_effect=interrupted_source):
+            with contextlib.redirect_stdout(io.StringIO()):
+                try:
+                    code = run_canonical(self.root, self.config, no_review=True)
+                except ValueError as exc:
+                    self.assertIn('对象损坏', str(exc))
+                else:
+                    self.assertEqual(code, 3)
+        self.assertEqual(len(damaged), 1)
+        self.assertEqual(damaged[0].stat().st_size, 5)
+        self.assertFalse((damaged[0].parent.parent/'manifest.json').exists())
+        self.assertEqual(output_path(self.root, cfg), out)
+        self.assertEqual(sha256(out/'scan.db'), previous)
 
     def test_failed_new_scan_preserves_previous_pointer_and_bytes(self):
         out,_ = self.run_scan(); original=sha256(out/'scan.db')
@@ -129,6 +200,10 @@ class CanonicalScanTests(unittest.TestCase):
         rows=runtime(out)['reviews']
         self.assertTrue(rows)
         self.assertTrue(all(row['state']=='PENDING' for row in rows))
+        for row in rows:
+            for name, entry in row['manual_exports'].items():
+                self.assertEqual(sha256(out/'review'/name), entry['sha256'])
+                self.assertFalse((out/'evidence'/entry['sha256']).exists())
         page=ai_page(out,limit=1)
         self.assertEqual(page['total'],len(rows))
         nav=read_json(out/'review/facts-navigation.json')
@@ -143,7 +218,11 @@ class CanonicalScanTests(unittest.TestCase):
         package=self.base/'with-ai.ecra-report'
         export_report(out,package)
         imported=import_report(package,self.base/'other')
-        self.assertEqual(runtime(self.base/'other/scans'/imported['scan_id'])['reviews'],rows)
+        restored=self.base/'other/scans'/imported['scan_id']
+        self.assertEqual(runtime(restored)['reviews'],rows)
+        for row in rows:
+            for record in {**row['manual_context'], **row['manual_exports']}.values():
+                self.assertEqual(sha256(restored/'evidence'/record['sha256']), record['sha256'])
 
     def pinned_diff_project(self):
         import subprocess

@@ -17,7 +17,7 @@ class ScanIdentityTests(unittest.TestCase):
         self.base = Path(self.temp.name)
 
     def provider(self, *, provenance=None, report=None):
-        folder=self.base/'scans/frozen-scan';folder.mkdir(parents=True)
+        folder=self.base/'source/scans/frozen-scan';folder.mkdir(parents=True)
         publish_scan(folder/'scan.db',dict(variables=[]),report or dict(findings=[]),
                      scan_id='frozen-scan',project_id='project',profile_id='m7',provenance=provenance or {})
         result=EvidenceProvider(folder/'scan.db');ReviewStore(folder/'reviews.db',result.metadata())

@@ -371,6 +371,8 @@ review:
 
 默认扫描使用 `scans/<扫描ID>/scan.db` 保存静态事实、`reviews.db` 保存独立 AI/人工账本，`manifest.json` 标识已发布扫描。用工作台查看和导出标准 `.ecra-report` 结果包；从 `status --json` 和运行日志定位当前输出。不要把旧 `dist/` 或历史 HTML 当作最近扫描。以下表格和 SQL 只描述显式 `--legacy-output` 的兼容产物与旧结构，不是默认 SQLite 数据库的查询合同。
 
+默认 SQLite 扫描按 TU 回收提取器文件，OpenCode 按变量提交并释放工作副本。原始答复、Packet 和提示词可在 Studio 的复核详情查看。历史目录的空间整理与实测数据见[中间文件生命周期](docs/storage-lifecycle.md)。
+
 | 输出 | 用途 |
 |---|---|
 | `results/index.html` | HTML 1：全量变量、读写/调用链、独立风险变量表及覆盖盲区 |

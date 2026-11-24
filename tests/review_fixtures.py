@@ -25,6 +25,16 @@ def mock_runtime(command):
          patch('ecra.review.initialize_runtime', return_value=SyntheticRuntime()):
         yield resolved
 
+def completed_jsonl(answer):
+    import json
+    import uuid
+    session = 'ses_' + uuid.uuid4().hex[:26]
+    def event(kind, part):
+        return json.dumps(dict(type=kind, timestamp=1, sessionID=session, part=dict(sessionID=session, **part)))
+    return '\n'.join((event('text', dict(type='text', text=json.dumps(answer))),
+                      event('step_finish', dict(type='step-finish', reason='stop'))))
+
+
 def structured_fields(status='CONFIRMED', review_type='VARIABLE'):
     unknown = status in {'NEED_MORE_CONTEXT', 'LIKELY'}
     safe = status in {'REVIEWED_SAFE', 'FALSE_POSITIVE'}

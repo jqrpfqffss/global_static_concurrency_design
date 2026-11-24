@@ -5,13 +5,14 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 import uuid
 
 from .common import read_json, replace_file, write_json
 from .review_opencode_sessions import Unverifiable, store_identity
 from .runtime_storage import temporary_environment
-from .storage_activity import DataActivity
+from .storage_activity import DataActivity, DataBusy
 from .workspace import _local_path, control_path, managed_path, no_links
 
 
@@ -104,17 +105,86 @@ def isolated_environment(scope, scratch, database, *, shared=False, environment=
     return env
 
 
+def release_runtime(scope, *, retire=False, abandoned=False):
+    """Only the dedicated vendor scratch tree can be retired. Sessions live beside it."""
+    scope = managed_path(scope)
+    if scope.parent.name != 'opencode' or not re.fullmatch('[0-9a-f]{32}', scope.name):
+        raise ValueError('OpenCode 私有工作目录身份不符')
+    work = managed_path(scope/'runtime')
+    marker = managed_path(scope/'runtime-retired.json')
+    owner = managed_path(scope/'runtime-owner.json')
+    if retire and owner.is_file():
+        # Closing the lease requires no new payload allocation on a full volume.
+        try:
+            replace_file(owner, marker)
+        except OSError:
+            marker = owner
+    elif abandoned and not marker.exists():
+        marker = owner
+    if marker.is_file():
+        record = read_json(marker)
+        if record.get('scope') != scope.name or record.get('version') not in {1, 2}:
+            raise ValueError('OpenCode 工作目录归属无效')
+        targets = [(work, record.get('identity'))]
+        if record['version'] == 2:
+            targets.append((control_path('oc', scope.name[:16]), record.get('calls_identity')))
+        for target, identity in targets:
+            if target.exists():
+                info = target.stat()
+                if identity != [info.st_dev, info.st_ino] or not info.st_ino:
+                    raise ValueError('OpenCode 工作目录已被替换，保留现场')
+        for target, _ in targets:
+            if target.exists():
+                # rmtree unlinks child links without traversing them (including Windows junctions).
+                shutil.rmtree(target)
+        marker.unlink(missing_ok=True)
+
+
+def retry_retired_runtime(out, progress):
+    for scope in (out/'opencode').glob('*'):
+        try:
+            if not re.fullmatch('[0-9a-f]{32}', scope.name):
+                continue
+            # Windows launches both model and maintenance processes suspended
+            # into KILL_ON_JOB_CLOSE jobs before letting them access scratch.
+            abandoned = os.name == 'nt' and (scope/'runtime-owner.json').is_file()
+            if not abandoned and not (scope/'runtime-retired.json').is_file():
+                continue
+            with DataActivity(managed_path(scope), exclusive=True):
+                release_runtime(scope, abandoned=abandoned)
+        except DataBusy:
+            continue
+        except (OSError, ValueError) as exc:
+            progress(f'OpenCode 已结束的私有缓存保留待清理：{exc}')
+
+
 class ReviewStorage:
-    def __init__(self, out, *, project=None, environment=None, settings=None):
+    def __init__(self, out, *, project=None, environment=None, settings=None, lifetime=None):
         self.environment = dict(os.environ if environment is None else environment)
         self.settings = (settings or {}).get('runtime', {})
         override = self.environment.get('OPENCODE_DB')
         self.scope = managed_path(Path(out)/'opencode'/uuid.uuid4().hex)
         self.shared = bool(override)
         self.database = database_path(override, shared=True) if self.shared else self.scope/'sessions.db'
+        from threading import Lock
+        self._startup_lock = Lock()
         self.identity = None
         self.runtime = None
         self.scope.mkdir(parents=True)
+        self.work = managed_path(self.scope/'runtime')
+        self.work.mkdir()
+        self.call_root = control_path('opencode-calls')
+        if lifetime is not None:
+            # Short CreateProcess cwd even for deeply nested portable scan paths.
+            self.call_root = control_path('oc', self.scope.name[:16])
+            self.call_root.mkdir(parents=True, exist_ok=False)
+            from .review_archive import write_receipt
+            lifetime.enter_context(DataActivity(self.scope, exclusive=True))
+            info = self.work.stat()
+            calls = self.call_root.stat()
+            write_receipt(self.scope/'runtime-owner.json', dict(version=2, scope=self.scope.name,
+                          identity=[info.st_dev, info.st_ino], calls_identity=[calls.st_dev, calls.st_ino]))
+            lifetime.callback(self.close)
         home = Path(self.environment.get('USERPROFILE') or self.environment.get('HOME') or Path.home())
         config = _xdg_input(self.environment, 'XDG_CONFIG_HOME', home/'.config')/'opencode'
         auth = _xdg_input(self.environment, 'XDG_DATA_HOME', home/'.local/share')/'opencode/auth.json'
@@ -145,7 +215,7 @@ class ReviewStorage:
             if not value.is_absolute() or not value.is_dir():
                 raise ValueError(f'OPENCODE_CONFIG_DIR 必须指向现有配置目录的绝对路径: {value}')
             paths.extend(value/name for name in _CONFIG_FILES)
-        config = managed_path(self.scope/'config/opencode')
+        config = managed_path(self.work/'config/opencode')
         config.mkdir(parents=True)
         # Keep OpenCode's config layering without loading external MCP servers,
         # plugins or commands. The files used by OpenCode are private copies.
@@ -179,12 +249,37 @@ class ReviewStorage:
 
     def prepare(self, runtime):
         """Local preparation only. The first OpenCode process is the real run."""
-        runtime.context = dict(scope=self.scope, data=self.data, environment=self.environment)
+        runtime.context = dict(scope=self.work, data=self.data, environment=self.environment, startup=self.startup, scratch=self.call_root)
         self.runtime = runtime
         self.identity_error = None
         self.bind_identity()
         runtime.capabilities.update(initialization='LOCAL_READY', storage='UNVERIFIABLE' if self.identity_error
                                     else 'IDENTITY_BOUND' if self.identity else 'IDENTITY_PENDING')
+
+    @contextmanager
+    def startup(self, stop):
+        # OpenCode opens/migrates its SQLite store at process startup. Allow one
+        # opening at a time; streamed session identity releases the next worker.
+        while not self._startup_lock.acquire(timeout=.1):
+            stop.check()
+        held = True
+        def ready():
+            nonlocal held
+            if held:
+                held = False
+                self._startup_lock.release()
+        try:
+            stop.check()
+            yield ready
+        finally:
+            ready()
+
+    def close(self):
+        try:
+            release_runtime(self.scope, retire=True)
+        except (OSError, ValueError) as exc:
+            from .scan_diagnostics import diagnostic_log
+            diagnostic_log(f'OpenCode 私有运行缓存待清理 {self.scope}：{exc}')
 
     def bind_identity(self):
         """Optional cleanup ownership; absence must never block a model call."""
@@ -231,12 +326,20 @@ class ReviewStorage:
 
     @contextmanager
     def call(self):
-        scratch = control_path('opencode-calls')
-        scratch.mkdir(parents=True, exist_ok=True)
-        with TemporaryDirectory(prefix='c-', dir=scratch, ignore_cleanup_errors=True) as name:
-            cwd = Path(name)
-            yield cwd, isolated_environment(self.scope, cwd, self.database, shared=self.shared,
+        self.call_root.mkdir(parents=True, exist_ok=True)
+        scratch = TemporaryDirectory(prefix='c-', dir=self.call_root, ignore_cleanup_errors=True)
+        cwd = Path(scratch.name)
+        try:
+            yield cwd, isolated_environment(self.work, cwd, self.database, shared=self.shared,
                                             environment=self.environment, data=self.data)
+        finally:
+            from .scan_diagnostics import diagnostic_log
+            try:
+                scratch.cleanup()
+            except OSError as exc:
+                diagnostic_log(f'调用工作目录保留待清理 {cwd}：{exc}')
+            if cwd.exists():
+                diagnostic_log(f'调用进程工作目录仍被占用，将按批次归属补偿清理：{cwd}')
 
 
 def _merge(destination, source):

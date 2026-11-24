@@ -18,6 +18,7 @@ from ecra.common import read_json, write_json
 from ecra.compilation import prepare
 from ecra.extract import Extractor
 from ecra.fact_parts import FactParts
+from ecra.workspace import lock_path
 from ecra.input_snapshot import InputSnapshot, file_record
 
 
@@ -111,7 +112,7 @@ class ScanStabilityTests(unittest.TestCase):
             (self.root/'new_unbuilt.c').write_text('int outside_build;')
             (self.root/'report.json').write_text('{"changed":true}')
         self.assertEqual(self.injected(action), 2)
-        data = read_json(self.root/'.ecra/diagnostics/source_changes.json')
+        data = read_json(self.out/'diagnostics/source_changes.json')
         self.assertEqual(data['status'], 'VERIFIED')
         self.assertEqual(data['changes'], [])
         self.assertIn('used.h', data['inputs_before'])
@@ -144,7 +145,7 @@ class ScanStabilityTests(unittest.TestCase):
         entries[0]['arguments'][1:1] = ['-Ifirst', '-Isecond']
         write_json(database, entries)
         self.assertEqual(self.injected(lambda: (first/'used.h').write_text('extern int shared;\n')), 3)
-        data = read_json(self.root/'.ecra/diagnostics/source_changes.json')
+        data = read_json(self.out/'diagnostics/source_changes.json')
         self.assertTrue(any(row['reason'] == 'DEPENDENCY_SET_CHANGED' and row['file'] == 'first/used.h'
                             for row in data['changes']))
 
@@ -189,14 +190,14 @@ class ScanStabilityTests(unittest.TestCase):
         (self.root/'new-unused.h').write_text('/* not resolved by this target */\n')
         (self.root/'report-output.json').write_text('{"new":true}')
         self.assertTrue(status(self.root)['resumable'])
-        self.assertEqual(read_json(self.root/'.ecra/diagnostics/resume_source_changes.json')['status'], 'VERIFIED')
+        self.assertEqual(read_json(self.out/'diagnostics/resume_source_changes.json')['status'], 'VERIFIED')
 
     def test_saved_input_closure_is_bound_to_checkpoint_even_without_diagnostics(self):
         from ecra.workflow import status
         self.fixture()
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(run(self.root, no_review=True), (0, 1, 2))
-        out = self.root/'.ecra'
+        out = self.out
         self.assertTrue(read_json(out/'scan_state.json')['input_closure_sha256'])
         (out/'diagnostics/source_changes.json').unlink()
         closure = read_json(out/'input_closure.json')
@@ -216,7 +217,7 @@ class ScanStabilityTests(unittest.TestCase):
         with patch('ecra.workflow.generate', side_effect=emitted), contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(ValueError):
                 saved_run(self.root, render_only=True)
-        out = self.root/'.ecra'
+        out = self.out
         self.assertFalse(read_json(out/'result_validity.json')['analysis_valid'])
         self.assertFalse((out/'scan_state.json').exists())
         self.assertIn('不能使用旧结论', (out/'index.html').read_text(encoding='utf-8'))
@@ -237,7 +238,7 @@ class ScanStabilityTests(unittest.TestCase):
         with patch('ecra.workflow.generate', side_effect=emitted), contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(ValueError):
                 saved_run(self.root, render_only=True)
-        self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+        self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
 
     def test_saved_report_touch_and_unrelated_creation_during_render_are_accepted(self):
         from ecra.workflow import saved_run, status
@@ -259,8 +260,8 @@ class ScanStabilityTests(unittest.TestCase):
         self.fixture()
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(run(self.root, no_review=True), (0, 1, 2))
-        out = self.root/'.ecra'
-        config = out/'semantics.yaml'
+        out = self.out
+        config = self.root/'.ecra/semantics.yaml'
         # Recreate the old broad manifest contract rather than relabeling a
         # precise manifest as legacy and silently dropping unrelated headers.
         write_json(out/'input_manifest.json', file_hashes(self.root, out, [config, self.root/'compile_commands.json']))
@@ -286,7 +287,7 @@ class ScanStabilityTests(unittest.TestCase):
                         stream.write('\n' if name.endswith('.json') else '\n/*changed*/\n')
                 self.assertEqual(self.injected(action), 3)
                 self.assertTrue(any(row['file'] == name for row in
-                    read_json(self.root/'.ecra/diagnostics/source_changes.json')['changes']))
+                    read_json(self.out/'diagnostics/source_changes.json')['changes']))
 
     def test_configuration_changed_after_consumption_before_snapshot_is_rejected(self):
         for name in ('compile_commands.json', 'flags.rsp', '.ecra/semantics.yaml'):
@@ -313,9 +314,9 @@ class ScanStabilityTests(unittest.TestCase):
                     return result
                 with patch('ecra.cli.prepare', side_effect=prepared), contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(run(self.root, no_review=True), 3)
-                changes = read_json(self.root/'.ecra/diagnostics/source_changes.json')['changes']
+                changes = read_json(self.out/'diagnostics/source_changes.json')['changes']
                 self.assertTrue(any(row['file'] == name for row in changes))
-                self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+                self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
 
     def test_response_changes_between_units_and_restores_before_snapshot_still_fail(self):
         from ecra.input_snapshot import read_consumed_text
@@ -360,7 +361,7 @@ class ScanStabilityTests(unittest.TestCase):
             self.assertEqual(run(self.root, no_review=True), 2)
             with patch('ecra.cli.merge', side_effect=MemoryError('controlled-main-memory-fault')):
                 self.assertEqual(run(self.root, no_review=True), 3)
-        out = self.root/'.ecra'
+        out = self.out
         info = read_json(out/'diagnostics/exception.json')
         self.assertEqual(info['exception_type'], 'MemoryError')
         self.assertEqual(info['origin'], 'MAIN')
@@ -383,7 +384,7 @@ class ScanStabilityTests(unittest.TestCase):
             raise MemoryError('controlled-post-merge-fault')
         with patch('ecra.cli.analyze', side_effect=fail), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        info = read_json(self.root/'.ecra/diagnostics/exception.json')
+        info = read_json(self.out/'diagnostics/exception.json')
         self.assertEqual(info['fact_counts_scope'], 'merged_facts')
         self.assertEqual(info['fact_counts'], counts)
         self.assertEqual(info['fact_counts']['variables'], 1)
@@ -402,7 +403,7 @@ class ScanStabilityTests(unittest.TestCase):
             return original(argv, **kwargs)
         with patch('ecra.cli.execute', side_effect=execute), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        out = self.root/'.ecra'
+        out = self.out
         info = read_json(out/'diagnostics/workers/TU-00000/exception.json')
         self.assertEqual(info['origin'], 'WORKER')
         self.assertNotEqual(info['pid'], os.getpid())
@@ -414,8 +415,8 @@ class ScanStabilityTests(unittest.TestCase):
         self.fixture()
         with patch('ecra.cli.merge', side_effect=KeyboardInterrupt()), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root,no_review=True),130)
-        out = self.root/'.ecra'
-        self.assertFalse((out/'scan.lock').exists())
+        out = self.out
+        self.assertFalse(lock_path(self.root, {}).exists())
         self.assertFalse((out/'scan_state.json').exists())
         self.assertEqual(read_json(out/'run.json')['state'],'INTERRUPTED')
         self.assertFalse(read_json(out/'reports/global_static_concurrency.json')['analysis_valid'])
@@ -445,9 +446,9 @@ class ScanStabilityTests(unittest.TestCase):
             handles.append(opened)
         try:
             self.assertEqual(self.injected(lock_during_scan), 3)
-            self.assertFalse((self.root/'.ecra/scan.lock').exists())
-            self.assertFalse((self.root/'.ecra/scan_state.json').exists())
-            self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+            self.assertFalse(lock_path(self.root, {}).exists())
+            self.assertFalse((self.out/'scan_state.json').exists())
+            self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
         finally:
             for opened in handles:
                 kernel.CloseHandle(opened)
@@ -464,7 +465,7 @@ class ScanStabilityTests(unittest.TestCase):
                            check=True, capture_output=True)
         self.assertEqual(self.injected(lambda: generate('unused-generated.h')), 2)
         self.assertEqual(self.injected(lambda: generate('used.h')), 3)
-        changes = read_json(self.root/'.ecra/diagnostics/source_changes.json')['changes']
+        changes = read_json(self.out/'diagnostics/source_changes.json')['changes']
         self.assertTrue(any(row['file'] == 'used.h' and row['before']['sha256'] != row['after']['sha256']
                             for row in changes))
 
@@ -484,14 +485,14 @@ class ScanStabilityTests(unittest.TestCase):
         self.fixture()
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root,no_review=True),2)
-        out = self.root/'.ecra'
+        out = self.out
         previous = (out/'reports/global_static_concurrency.json').read_bytes()
         with patch('ecra.cli.shutil.copytree',side_effect=PermissionError('controlled-backup-denial')), \
                 contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root,no_review=True),3)
         self.assertEqual((out/'reports/global_static_concurrency.json').read_bytes(),previous)
         self.assertFalse(read_json(out/'result_validity.json')['analysis_valid'])
-        self.assertFalse((out/'scan.lock').exists())
+        self.assertFalse(lock_path(self.root, {}).exists())
 
     def test_replayable_merge_preserves_all_facts_and_weak_resolution(self):
         cfg = self.project({'a.c':'int g;__attribute__((weak)) void Handler(void){g++;}void Task(void){Handler();}',
@@ -519,15 +520,15 @@ class ScanStabilityTests(unittest.TestCase):
         cfg_file = self.root/'.ecra/semantics.yaml'
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root,no_review=True),2)
-        first = read_json(self.root/'.ecra/facts.json')
+        first = read_json(self.out/'facts.json')
         cfg = read_json(cfg_file)
         cfg['analysis']['extraction_workers'] = 2
         cfg['review'].update(enabled=True, command=[sys.executable])
         write_json(cfg_file, cfg)
         with contextlib.redirect_stdout(io.StringIO()), patch('ecra.cli.review_all',
-              side_effect=lambda *a, **kw: read_json(self.root/'.ecra/review/queue.json')):
+              side_effect=lambda *a, **kw: read_json(self.out/'review/queue.json')):
             self.assertEqual(run(self.root),2)
-        second = read_json(self.root/'.ecra/facts.json')
+        second = read_json(self.out/'facts.json')
         for table in ('variables','functions','accesses','calls','contexts','protection_events','pointer_constraints'):
             self.assertEqual(first[table],second[table], table)
 
@@ -543,7 +544,7 @@ class ScanStabilityTests(unittest.TestCase):
             (self.root/'used.h').write_text('extern int shared; /* changed during report */\n')
         with patch('ecra.cli.generate', side_effect=emitted), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        out = self.root/'.ecra'
+        out = self.out
         self.assertFalse(read_json(out/'result_validity.json')['analysis_valid'])
         self.assertFalse((out/'scan_state.json').exists())
         self.assertTrue(any(row['file'] == 'used.h' for row in
@@ -562,7 +563,7 @@ class ScanStabilityTests(unittest.TestCase):
             (self.root/'feature.flag').write_text('present')
         with patch('ecra.cli.generate', side_effect=emitted), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        changes = read_json(self.root/'.ecra/diagnostics/source_changes.json')['changes']
+        changes = read_json(self.out/'diagnostics/source_changes.json')['changes']
         self.assertTrue(any(row['reason'] == 'PREPROCESSOR_STATE_CHANGED' for row in changes))
 
     def test_touch_and_unrelated_output_during_report_remain_valid(self):
@@ -578,7 +579,7 @@ class ScanStabilityTests(unittest.TestCase):
             (self.root/'unrelated-output.json').write_text('{"changed":true}')
         with patch('ecra.cli.generate', side_effect=emitted), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 2)
-        snapshot = read_json(self.root/'.ecra/diagnostics/source_changes.json')
+        snapshot = read_json(self.out/'diagnostics/source_changes.json')
         self.assertEqual(snapshot['status'], 'VERIFIED')
         self.assertEqual(snapshot['changes'], [])
 
@@ -599,8 +600,8 @@ class ScanStabilityTests(unittest.TestCase):
                 side_effect=lambda: 'changed-after-publication' if changed else engine_digest()), \
                 contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
-        self.assertFalse((self.root/'.ecra/scan_state.json').exists())
+        self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
+        self.assertFalse((self.out/'scan_state.json').exists())
 
 
 if __name__ == '__main__':

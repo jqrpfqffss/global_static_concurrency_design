@@ -10,12 +10,13 @@ class ReportArchiveTests(unittest.TestCase):
     from tests.test_ecra import ProjectTest as _fixture
     setUp=_fixture.setUp
     project=_fixture.project
+    out=_fixture.out
 
     def test_following_scan_retains_the_previous_classification_quality_page(self):
         self.project({'app.c':'int shared;void ISR(void){shared++;}void Task(void){shared++;}'})
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(cli.run(self.root,no_review=True),2)
-        output=self.root/'.ecra'
+        output=self.out
         quality=output/'classification_quality.html'
         original=quality.read_bytes()
         self.assertIn(b'classification_quality.html',(output/'index.html').read_bytes())

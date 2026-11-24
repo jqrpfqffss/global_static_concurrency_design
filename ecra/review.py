@@ -236,35 +236,29 @@ def _verify_receipt(root, folder, receipt, *, summary_config=None):
     execution = receipt.get('execution') or {}
     # All calls, including the original analysis before FORMAT_FIX, remain bound.
     records = (receipt.get('attempts') or [execution])[receipt.get('attempt_start', 0):]
-    for record in records:
+    from .review_archive import review_original
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def resolve_original(name, hashed):
+        return review_original(folder, receipt.get('archived_files', {}), name, hashed)
+
+    for record in [*records, execution]:
         for stream in ('stdout', 'stderr', 'prompt', 'packet'):
-            name, expected = record.get(stream + '_file'), record.get(stream + '_sha256')
-            if not name or not expected:
-                continue
-            path = folder / name
-            if path.parent.resolve() != folder.resolve() or not path.is_file() or _sha(path) != expected:
-                raise ValueError(f'OpenCode {stream} 日志/证据包校验失败: {name}')
-    log = folder / (execution.get('stdout_file') or '')
-    if log.parent.resolve() != folder.resolve() or not log.is_file():
-        raise ValueError('缺少原始 OpenCode 执行日志，不能认定完成复核')
-    if _sha(log) != execution.get('stdout_sha256'):
-        raise ValueError('OpenCode 原始执行日志校验失败')
-    for stream in ('stderr', 'prompt', 'packet'):
-        name, expected = execution.get(stream + '_file'), execution.get(stream + '_sha256')
-        if name:
-            path = folder / name
-            if path.parent.resolve() != folder.resolve() or not path.is_file() or _sha(path) != expected:
-                raise ValueError(f'OpenCode {stream} 日志/证据包校验失败')
+            name, expected = record.get(stream+'_file'), record.get(stream+'_sha256')
+            if name and expected:
+                resolve_original(name, expected)
+    log = resolve_original(execution.get('stdout_file'), execution.get('stdout_sha256'))
     from .review_packet import validation_packet
-    packet = validation_packet(folder/execution['packet_file'],identifiers=bool(receipt.get('language_correction'))) if execution.get('packet_file') else None
+    packet = (validation_packet(resolve_original(execution['packet_file'], execution['packet_sha256']),
+                                identifiers=bool(receipt.get('language_correction')))
+              if execution.get('packet_file') else None)
     summary_check = receipt.get('summary_validation') or {}
     config = summary_config if summary_config is not None else summary_check.get('settings')
     variable_name = summary_check.get('variable_name', '')
     summary_correction = receipt.get('summary_correction')
     if summary_correction:
-        source = folder / summary_correction['source_stdout_file']
-        if source.parent.resolve() != folder.resolve() or _sha(source) != summary_correction['source_stdout_sha256']:
-            raise ValueError('摘要修正的原始复核日志校验失败')
+        source = resolve_original(summary_correction['source_stdout_file'], summary_correction['source_stdout_sha256'])
         before_summary = parse_answer(source.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet)
         if digest(before_summary) != summary_correction['source_answer_digest']:
             raise ValueError('摘要修正的原始答案校验失败')
@@ -276,9 +270,7 @@ def _verify_receipt(root, folder, receipt, *, summary_config=None):
         before_summary = answer
     correction = receipt.get('language_correction')
     if correction:
-        source = folder / correction['source_stdout_file']
-        if source.parent.resolve() != folder.resolve() or _sha(source) != correction['source_stdout_sha256']:
-            raise ValueError('语言修正的原始复核日志校验失败')
+        source = resolve_original(correction['source_stdout_file'], correction['source_stdout_sha256'])
         original = parse_answer(source.read_text(encoding='utf-8'), receipt['finding_id'], root, packet=packet)
         if digest(original) != correction['source_answer_digest']:
             raise ValueError('语言修正的原始答案校验失败')
@@ -318,11 +310,9 @@ def validate_result_receipt(root, folder, receipt, finding_id, fingerprint, clas
                 name, hashed = record.get(key+'_file'), record.get(key+'_sha256')
                 if name and hashed and files.get(name, {}).get('sha256') != hashed:
                     raise ValueError('复核执行收据缺少对应的内容寻址原件')
-        from .report_package import OBJECT
-        for entry in files.values():
-            hashed = entry['sha256']
-            if not OBJECT.fullmatch('evidence/'+hashed) or _sha(folder.parent/'evidence'/hashed) != hashed:
-                raise ValueError('复核内容寻址归档缺失或损坏')
+        from .review_archive import review_original
+        for name, entry in files.items():
+            review_original(folder, files, name, entry['sha256'])
 
 
 def recursive_edge_endpoints(edge):
@@ -565,20 +555,27 @@ def review_all(root, out, cfg, facts, report, fingerprint, progress=print, on_re
         from .review_session_cleanup import SessionCleanup
         cleanup = SessionCleanup(root, out, fingerprint, progress,
                                  timeout=settings.get('maintenance_timeout_seconds', 60), settings=settings)
-    try:
-        return _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
-                           review_context_path, mode, case_library_path, resume_scope, cleanup)
-    except KeyboardInterrupt:
-        if cleanup:
-            cleanup.stop.cancelled.set()
-        raise
-    finally:
-        if cleanup:
-            cleanup.close()
+    from contextlib import ExitStack
+    from .opencode_storage import retry_retired_runtime
+    with ExitStack() as shared_inputs:
+        if out.parent.name == 'scans':
+            from .storage_activity import DataActivity
+            shared_inputs.enter_context(DataActivity(out.parent.parent))
+        retry_retired_runtime(out, progress)
+        try:
+            return _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
+                               review_context_path, mode, case_library_path, resume_scope, cleanup, shared_inputs)
+        except KeyboardInterrupt:
+            if cleanup:
+                cleanup.stop.cancelled.set()
+            raise
+        finally:
+            if cleanup:
+                cleanup.close()  # Maintenance also consumes the private vendor configuration.
 
 
 def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
-                review_context_path, mode, case_library_path, resume_scope, cleanup):
+                review_context_path, mode, case_library_path, resume_scope, cleanup, shared_inputs):
     if mode not in {'run', 'review', 'review-resume', 'review-failed'}:
         raise ValueError('非法复核模式: ' + mode)
     settings = cfg['review']
@@ -601,10 +598,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         unknown = set(batch) - {f['finding_id'] for f in targets}
         if unknown:
             raise ValueError('复核批次包含当前静态检查点之外的 ID：' + ', '.join(sorted(unknown)))
-        write_json(folder/'batch-selection.json', dict(finding_ids=batch, total_project_candidates=len(targets),
-                                                       selected=len(batch), created_at=_now()))
     native = (out/'scan.db').is_file()
-    from .review_archive import archive_receipt, archive_review_files, keep_damaged_receipt, reconcile_reviews, write_receipt
+    from .review_archive import archive_receipt, review_inventory, keep_damaged_receipt, reconcile_reviews, write_receipt
     from .scan_persistence import commit_review_result, review_head, review_writer, snapshot_head
     assert_review_integrity(report, [dict(finding_id=f['finding_id'], state='PENDING') for f in targets])
     from .workflow import read_queue
@@ -660,6 +655,9 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         return save_queue()
     from .scan_persistence import append_runtime
     if not selected:
+        if native:
+            from .review_archive import release_saved_shared
+            release_saved_shared(out, ledger.values(), progress)
         return list(ledger.values())
     from .scan_diagnostics import ACTIVE
     review_diagnostics=ACTIVE.get()
@@ -676,7 +674,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             from .opencode_storage import ReviewStorage
             from .scan_persistence import is_canonical
             storage = ReviewStorage(out, project=None if is_canonical(out) else root,
-                                    environment=cleanup.environment if cleanup else None, settings=settings)
+                                    environment=cleanup.environment if cleanup else None, settings=settings, lifetime=shared_inputs)
             runtime = initialize_runtime(command, storage, settings, stop)
             command = runtime.command
             write_json(folder/'opencode-capabilities.json', runtime.report())
@@ -703,6 +701,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             progress(message)
             raise ReviewInitializationError(message) from exc
     if native:
+        from .review_archive import seal_manual_context
+        seal_manual_context(out, previous.values())
         append_runtime(out, dict(run_status='REVIEW_RUNNING'), list(ledger.values()))
     else:
         save_queue()
@@ -723,11 +723,9 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         native_database=out/'scan.db'
         facts_path = folder/'facts-navigation.json'
         report_path = folder/'report-navigation.json'
+        from .review_archive import navigation_record
         for name, path in [('facts', facts_path), ('report', report_path)]:
-            write_json(path, dict(format='ECRA_EVIDENCE_NAVIGATION', version=1, root=name,
-                database=str(out/'scan.db'), command=[__import__('sys').executable, '-m', 'ecra.evidence_reader',
-                    '--database', str(out/'scan.db'), '--root', name],
-                instructions='按 JSON path 或 node 读取；返回 total/hash/next_offset。必须继续分页直到 next_offset=null；字符串使用 --text。所有证据完整保留。'))
+            write_json(path, navigation_record(out, name))
         navigation = '\n完整静态 facts/report 位于导航文件指向的 SQLite。使用已配置的 ecra_evidence MCP evidence 工具，按 root/path 或 node 逐层读取。它与 GUI 使用同一 EvidenceProvider；继续 offset 直到 next_offset=null，不可把第一页当作全部证据。无需 shell 或网络权限。\n'
         navigation += ('源码只使用ecra_evidence MCP source工具读取归档文本，file使用Packet中的工程相对路径；'
             '按UTF8字节offset继续，直到next_offset=null。校验sha256/hash一致；缺归档应报告missing_context，'
@@ -763,6 +761,35 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         case_library_path = Path(review_context_path or SEMANTICS_FILE).with_name('concurrency_cases.md')
     library_prompt, library_paths = case_library_section(case_library_path, folder, progress) if selected else ('', [])
 
+    # These inputs serve all concurrent calls. Preserve the exact shared model
+    # evidence once, and release the batch's copies after the last worker exits.
+    shared_files = {}
+    if native and enabled:
+        for path in [shared_path, *library_paths]:
+            if path.is_relative_to(folder):
+                shared_files[path] = _sha(path)
+    manual_context = {}
+    if native and not enabled:
+        for path in [shared_path, facts_path, report_path, *library_paths]:
+            if path.is_relative_to(folder):
+                manual_context[path.relative_to(folder).as_posix()] = dict(sha256=_sha(path), size=path.stat().st_size)
+    shared_refs = {}
+
+    def release_shared():
+        from .fact_parts import discard_worker_files
+        for path, expected in shared_files.items():
+            try:
+                if _sha(path) == expected and _sha(out/'evidence'/expected) == expected:
+                    discard_worker_files(path)
+            except OSError as exc:
+                progress(f'共享复核材料保留待清理 {path}：{exc}')
+        from .review_archive import release_navigation
+        for name in ('facts', 'report'):
+            try:
+                release_navigation(out, name)
+            except (OSError, ValueError) as exc:
+                progress(f'导航文件保留待清理 {name}：{exc}')
+
     def process(index, finding):
         from .review_sources import source_scope
         stop.check()
@@ -795,6 +822,23 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         packet_path = folder / (stem + '.input.json')
         prompt_path = folder / (stem + '.prompt.txt')
 
+        owner = None
+        if native and enabled:
+            from .review_archive import _writer_birth
+            owner = dict(pid=os.getpid(), creation_filetime=_writer_birth(os.getpid()),
+                         sequence=issued[fid], request=ledger[fid]['review_request'],
+                         packet=packet_path.name, prompt=prompt_path.name)
+
+        def save_execution(*, closed=False):
+            journal = dict(result, work_owner=dict(owner, closed=closed)) if owner else result
+            if closed:
+                write_receipt(attempt_receipt, journal)
+            else:
+                write_json(attempt_receipt, journal)
+
+        if owner:
+            write_receipt(attempt_receipt, dict(finding_id=fid, scan_fingerprint=fingerprint, work_owner=owner))
+
         def fail(exc, stage):
             set_review_state(result, 'TECH_FAILED')
             result.pop('answer', None)
@@ -815,7 +859,6 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                              or variable.get('qualified_name') or variable.get('name') or '')
             result['summary_validation'] = dict(settings=summary_config, variable_name=variable_name,
                 scope='确定性质量检查及明确结论矛盾检查，不是完整语义证明', state='PENDING')
-            write_json(packet_path, packet, indent=1)
             prompt = REVIEW_PROMPT + review_context_section(review_context_path) + library_prompt + CONTRACT_PROMPT + navigation
             prompt += ('\n大型事实可能采用无损共享存储：JSON 根含 _ecra_shared_json=1 时，'
                 'reference_key 指定引用字段，pool 按子节点在前排列，value 是完整逻辑对象；'
@@ -833,16 +876,10 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             prompt += '\nfinding_id 必须原样返回：' + fid
             if 'Timeout' in str(old.get('last_error', old.get('error', ''))):
                 prompt += '\n上次复核超时；本次严格按 Packet 导航检查全部访问及直接关联源码，避免无关全仓扫描。'
-            prompt_path.write_text(prompt, encoding='utf-8')
-            # Stable names are latest-input conveniences, never receipt links.
-            write_json(folder / (fid + '.input.json'), packet, indent=1)
-            (folder / (fid + '.prompt.txt')).write_text(prompt, encoding='utf-8')
             key_settings = dict({k: v for k, v in settings.items() if k in {'command', 'model'}}, summary=summary_config)
             result.update(cache_key=digest([fingerprint, packet, prompt, key_settings, implementation]),
                 semantic_cache_key=digest([fingerprint, packet, semantic_prompt,
-                    {k: v for k, v in key_settings.items() if k != 'summary'}, implementation]),
-                packet_file=packet_path.name, packet_sha256=_sha(packet_path),
-                prompt_file=prompt_path.name, prompt_sha256=_sha(prompt_path))
+                    {k: v for k, v in key_settings.items() if k != 'summary'}, implementation]))
             cached_analysis = None
             if mode == 'run' and enabled and old.get('state') == 'DONE' and old.get('cache_key') == result['cache_key']:
                 try:
@@ -853,6 +890,19 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                     result['cache_error'] = str(exc)
                 else:
                     return dict(old, cached=True)
+            replacing_manual = not enabled and native and bool(old.get('manual_exports'))
+            if not enabled and not replacing_manual:
+                # Prepared packets are explicitly requested outputs for manual use.
+                packet_path = folder/(fid+'.input.json')
+                prompt_path = folder/(fid+'.prompt.txt')
+            write_json(packet_path, packet, indent=1)
+            prompt_path.write_text(prompt, encoding='utf-8')
+            if replacing_manual:
+                from .review_archive import publish_manual_export
+                packet_path = publish_manual_export(out, old, packet_path, fid+'.input.json')
+                prompt_path = publish_manual_export(out, old, prompt_path, fid+'.prompt.txt')
+            result.update(packet_file=packet_path.name, packet_sha256=_sha(packet_path),
+                          prompt_file=prompt_path.name, prompt_sha256=_sha(prompt_path))
             if (mode == 'run' and enabled and old.get('state') == 'DONE'
                     and old.get('semantic_cache_key') == result['semantic_cache_key']):
                 try:
@@ -861,6 +911,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                     result['cache_error'] = str(exc)
                 else:
                     result['analysis_cached'] = True
+                    if native and old.get('archived_files'):
+                        result['archived_files'] = old['archived_files']
                     result['execution'] = dict(old['execution'])
                     for key in ('language_correction', 'language_fix_count', 'summary_correction'):
                         if key in old:
@@ -888,9 +940,8 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                 result['attempts'].append(record)
                 result['attempt_count'] += 1
                 result['last_attempt_time'] = record['started']
-                (folder / record['prompt_file']).write_text(text, encoding='utf-8')
-                for stream in ('stdout', 'stderr'):
-                    (folder / record[stream + '_file']).write_text('', encoding='utf-8')
+                if text == prompt:
+                    record['prompt_file'] = prompt_path.name
                 argv = command + ['run', '--agent', 'ecra-review', '--format', 'json']
                 if stage == 'ANALYZE':
                     argv += ['--file', str(packet_path)]
@@ -909,7 +960,11 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                 if stdin_text is not None:
                     record['message'] = message
                 result['execution'] = record
-                write_json(attempt_receipt, result)
+                save_execution()  # Issue this attempt's exact names before creating its files.
+                if text != prompt:
+                    (folder / record['prompt_file']).write_text(text, encoding='utf-8')
+                for stream in ('stdout', 'stderr'):
+                    (folder / record[stream + '_file']).write_text('', encoding='utf-8')
                 invocation = None
                 try:
                     # Canonical reviews read archived sources through MCP. Give
@@ -943,6 +998,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                                       config_sources=storage.config_sources, auth_source=storage.auth_source,
                                       operation_stage='run', cli_launch_attempts=0, model_calls=None)
                         options['diagnostic'] = record
+                        options['startup'] = storage.startup
                         proc = execute(argv, cwd=cwd, timeout=float(settings.get('timeout_seconds', 300)),
                             stop=stop, stdout_path=folder/record['stdout_file'], stderr_path=folder/record['stderr_file'],
                             env=env, **options)
@@ -988,7 +1044,7 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                         record[stream + '_sha256'] = _sha(folder / record[stream + '_file'])
                     if invocation:
                         cleanup.finish(invocation, folder/record['stdout_file'], record['stdout_sha256'])
-                    write_json(attempt_receipt, result)
+                    save_execution()
 
             def repair_summary(answer):
                 check = result['summary_validation']
@@ -1005,7 +1061,9 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                     previous_correction = result['summary_correction']
                     origin = dict(stdout_file=previous_correction['source_stdout_file'],
                                   stdout_sha256=previous_correction['source_stdout_sha256'])
-                    source_answer = parse_answer((folder / origin['stdout_file']).read_text(encoding='utf-8'),
+                    from .review_archive import review_original
+                    source = review_original(folder, old.get('archived_files', {}), origin['stdout_file'], origin['stdout_sha256'])
+                    source_answer = parse_answer(source.read_text(encoding='utf-8'),
                                                  fid, root, packet=packet)
                 result['execution']['state'] = 'DONE'
                 check.update(state='FAILED', initial_error=error)
@@ -1068,9 +1126,9 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                             source_stdout_sha256=origin['stdout_sha256'], source_answer_digest=digest(source_answer),
                             mode='SUMMARY_ONLY', response_format=response_format)
                         check.update(state='PASSED', chars=len(corrected['summary']))
-                        write_json(attempt_receipt, result)
+                        save_execution()
                         return corrected
-                    write_json(attempt_receipt, result)
+                    save_execution()
                 raise SummaryValidationError('摘要质量校验失败，修复次数已耗尽：' + error)
 
             progress(f'OpenCode 复核 {index + 1}/{len(selected)}: {fid}')
@@ -1153,10 +1211,10 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                     raw_answer, raw = invoke(format_fix_prompt(raw_answer, str(exc), fid), 'FORMAT_FIX')
             result['execution'].update(packet_file=packet_path.name, packet_sha256=_sha(packet_path))
         except KeyboardInterrupt:
-            if result.get('execution'):
+            if owner or result.get('execution'):
                 # The execution journal and live raw streams remain available
                 # independently of the per-variable result ledger.
-                write_receipt(attempt_receipt, result)
+                save_execution(closed=True)
             raise
         except Exception as exc:
             stage = (result.get('execution') or {}).get('stage', 'prepare' if not command_error else 'launch')
@@ -1200,14 +1258,17 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
     completed_rows = [ledger[f['finding_id']] for f in targets if f['finding_id'] not in selected_ids]
 
     issued = {}
+    interrupted = {}
 
     def shared_failure(row):
         return row.get('state') == 'TECH_FAILED' and (
             common_failure(row.get('error', '')) or
             row.get('error_type') in {'AuthenticationRequired', 'ProtocolError', 'DatabaseIncompatible', 'ReviewConfigurationError'})
 
+    shared_inputs_registered = False
+
     def completed(row, writer, *, notify=True):
-        nonlocal command_error
+        nonlocal command_error, shared_inputs_registered
         fid = row['finding_id']
         if native:
             latest = snapshot_head(writer)
@@ -1216,12 +1277,38 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
                 raise ValueError('复核期间当前事件已变化，拒绝写入收据：'+fid)
             row['review_base_sequence'] = issued[fid]
             row['review_request'] = ledger[fid]['review_request']
-            row['archived_files'] = archive_review_files(out, row)
-            cache = folder/(fid+'.result.json')
-            if cache.is_file() and 'review_base_sequence' not in previous[fid]:
-                keep_damaged_receipt(out, cache)
-            archive_receipt(out, cache, row)
+            if not enabled and row['state'] == 'PENDING':
+                # Explicit editable exports have no model transcript. SQLite binds the
+                # current outputs; transport streams the two files directly into a ZIP.
+                row['manual_exports'] = review_inventory(out, row)
+                row['manual_context'] = manual_context
+                for name in row['manual_exports']:
+                    with (folder/name).open('r+b') as stream:
+                        os.fsync(stream.fileno())
+            else:
+                if fid in interrupted:
+                    row['interrupted_files'] = interrupted[fid]
+                row['archived_files'] = review_inventory(out, row)
+                manual = previous[fid].get('manual_exports', {})
+                if manual:
+                    from .review_archive import manual_original
+                    row['archived_files'].update({name: entry for name, entry in manual.items()
+                                                  if manual_original(out, previous[fid], name) is not None})
+                if shared_files:
+                    if not shared_refs:
+                        for path, hashed in shared_files.items():
+                            shared_refs[path.name] = dict(sha256=hashed, size=path.stat().st_size)
+                    row['archived_files'].update(shared_refs)
+                cache = folder/(fid+'.result.json')
+                if cache.is_file() and 'review_base_sequence' not in previous[fid]:
+                    keep_damaged_receipt(out, cache)
+                archive_receipt(out, cache, row)
+                if row['state'] in {'DONE', 'TECH_FAILED'}:
+                    validate_result_receipt(root, folder, row, fid, fingerprint, row['static_classification'])
             commit_review_result(writer, ordinals[fid], row)
+            if shared_refs and not shared_inputs_registered:
+                shared_inputs.callback(release_shared)
+                shared_inputs_registered = True
         elif not row.get('cached'):
             if cleanup and cleanup.run:
                 row['review_request'] = ledger[fid]['review_request']
@@ -1245,8 +1332,12 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
         completed_rows.append(row)
         if not native:
             save_queue()
+        from .review_archive import release_committed
+        damaged = release_committed(out, row, progress, aliases=bool(previous[fid].get('manual_exports')))
         if cleanup:
             cleanup.after_archive(row)
+        if damaged:
+            raise damaged
         if review_diagnostics:review_diagnostics.completed_units+=1
         if notify and on_result:
             on_result(completed_rows)
@@ -1259,6 +1350,9 @@ def _review_all(root, out, cfg, facts, report, fingerprint, progress, on_result,
             for finding in selected:
                 fid = finding['finding_id']
                 issued[fid] = review_head(writer, fid, watermark)[0]
+            if enabled:
+                from .review_archive import interrupted_files
+                interrupted = interrupted_files(out, writer, issued, fingerprint, progress)
         if workers == 1:
             for index, finding in enumerate(selected):
                 stop.check()

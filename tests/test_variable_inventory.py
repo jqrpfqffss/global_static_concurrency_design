@@ -365,7 +365,7 @@ class TestHTMLInventoryDefaults(InventoryFixture):
         """})
         facts, report = self.extract(cfg)
         out = self.out
-        out.mkdir(exist_ok=True)
+        out.mkdir(parents=True, exist_ok=True)
         write_html(out, facts, report, [])
         html_text = (out / "index.html").read_text(encoding="utf-8")
         self.assertIn("g_msgSP", html_text)
@@ -387,7 +387,7 @@ class TestHTMLInventoryDefaults(InventoryFixture):
             "b.c": '#include "h.h"\nvoid Task(void){g_msgSP=2;state++;}'})
         facts, report = self.extract(cfg)
         out = self.out
-        out.mkdir(exist_ok=True)
+        out.mkdir(parents=True, exist_ok=True)
         write_html(out, facts, report, [])
         html_text = (out / "index.html").read_text(encoding="utf-8")
         self.assertIn("g_msgSP", html_text)

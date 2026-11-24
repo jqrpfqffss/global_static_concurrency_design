@@ -15,18 +15,13 @@ from ecra.workflow import engine_digest, REVIEW_REPORT_MODULES
 
 class EngineDigestCoverageTests(unittest.TestCase):
     def test_review_publication_upgrade_accepts_only_matching_static_bytes(self):
-        # Exact checkout before the review-ledger upgrade (mixed original
-        # Windows line endings). Test fallback with a same-EOL baseline too.
+        # These are the shipped identities immediately preceding storage cleanup.
         from ecra.common import digest
         files = workflow._engine_files()
-        files.update({
-            'cli.py': '2c66dd1233ad53670e1e16f485a7a518e7adc511c0b3ea51e24d265feb052721',
-            'scan_persistence.py': 'a4677b8ecad386c7e1154ecc26569441d3c48dd82399b0765f88eb0f54e55446',
-            'report_package.py': '028e7b9bf2d94c4a412b33a14781d3b13963677730655b020071d4925d04bd84',
-            'garbage_collection.py': '5eaebb730d024e60fa60310092dfcd23e775c817f3f5e28655fb4192900db265',
-        })
-        before = digest(files)
-        self.assertTrue(workflow.matches_static_engine(before))
+        for before in ('17fce9b07cd0f6844a6e69b7ba12fbea46e0e186314240958ff146f917c55086',
+                       'ab16b8e233bf7645b725f7cab21668a310006decdf2eea46a818002cb6eaa126',
+                       'e730bce988e5d041b1f1c6cf287b15f64f5532470776b9953551ecd515da1c65'):
+            self.assertTrue(workflow.matches_static_engine(before))
         files['analysis.py'] = 'different-static-engine'
         self.assertFalse(workflow.matches_static_engine(digest(files)))
 

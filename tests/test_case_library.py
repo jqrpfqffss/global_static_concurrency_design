@@ -276,7 +276,8 @@ class CaseLibraryTests(unittest.TestCase):
         argv, kwargs = self.calls[-1]
         self.assertNotIn('CASE-0001', kwargs.get('input') or argv[-1])
         self.assertEqual(json.loads(kwargs['env']['OPENCODE_PERMISSION']), {'*': 'deny'})
-        with patch('ecra.review.resolve_command', side_effect=ValueError('synthetic launch failure')):
+        with mock_runtime(['synthetic-opencode']), patch(
+                'ecra.review.execute', return_value=CompletedProcess([], 1, '', 'synthetic item failure')):
             row = review_all(self.root, self.out, self.cfg, self.facts, self.report, 'scan',
                              mode='review', case_library_path=self.library, progress=lambda _: None)[0]
         self.assertEqual(row['state'], 'TECH_FAILED')

@@ -113,9 +113,12 @@ def main():
     baseline_audit = None
     if args.audit_baseline:
         pinned = delta['pin']
-        from ecra.workspace import context
-        base_out = Path(context(project, cfg['analysis']).git_diff_root)/'artifacts'/('base-' + pinned['base_sha'])
-        if not base_out.resolve().is_relative_to((out/'git_diff').resolve()):
+        from ecra.workspace import context, no_links
+        artifacts = no_links(Path(context(project, cfg['analysis']).git_diff_root)/'artifacts')
+        # Newer publications pin the exact verified baseline directory, which
+        # may depend on the compile inputs as well as on the Git revision.
+        base_out = no_links(pinned.get('base_scan_path', artifacts/('base-' + pinned['base_sha'])))
+        if base_out.parent != artifacts:
             raise RuntimeError('基准审计路径不属于本轮隔离工作树')
         if (file_digest(base_out/'facts.json') != pinned['base_facts_sha256']
                 or file_digest(pinned['base_facts_path']) != pinned['base_facts_sha256']

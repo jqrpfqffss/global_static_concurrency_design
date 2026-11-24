@@ -7,6 +7,9 @@ import unittest
 from unittest.mock import patch
 
 from ecra import cli
+from ecra.path_io import ordinary_path
+from ecra.config import load_config
+from ecra.workflow import output_path
 from ecra.common import read_json, write_json
 from ecra.input_snapshot import InputSnapshot, SOURCE_READS, select_analysis_files, read_analysis_text
 
@@ -33,7 +36,7 @@ class ParentSourceReadTests(unittest.TestCase):
 
         def reading(method):
             def read(path,*args,**kwargs):
-                if path.resolve()==assembly and not changed:
+                if ordinary_path(path).resolve()==assembly and not changed:
                     changed.append(True)
                     assembly.write_bytes(consumed)
                     try:
@@ -53,7 +56,7 @@ class ParentSourceReadTests(unittest.TestCase):
         self.assertTrue(changed)
         self.assertEqual(assembly.read_bytes(),original)
         self.assertEqual(code,3,'A different parent-consumed assembly version was accepted')
-        out = self.root/'.ecra'
+        out = output_path(self.root, load_config(self.root)[0])
         detail = next(row for row in read_json(out/'diagnostics/source_changes.json')['changes']
                       if row['file']=='startup.S' and row.get('phase')=='PARENT_READ')
         self.assertEqual(detail['before']['sha256'],hashlib.sha256(original).hexdigest())
@@ -102,7 +105,7 @@ class ParentSourceReadTests(unittest.TestCase):
         read_bytes = Path.read_bytes
         changed = []
         def consumed(file):
-            if file.resolve()==path and not changed:
+            if ordinary_path(file).resolve()==path and not changed:
                 changed.append(True)
                 path.write_bytes(b'0x00000020 anchor = 0x20\n')
                 try:
@@ -158,7 +161,8 @@ class ParentSourceReadTests(unittest.TestCase):
                     return result
                 with patch.object(cli,'prepare',side_effect=prepared),contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(cli.run(self.root,no_review=True),3)
-                changes = read_json(self.root/'.ecra/diagnostics/source_changes.json')['changes']
+                out = output_path(self.root, load_config(self.root)[0])
+                changes = read_json(out/'diagnostics/source_changes.json')['changes']
                 self.assertTrue(any(row['file']==changed.relative_to(self.root).as_posix()
                                     and row['reason']=='CONFIGURATION_CHANGED_AFTER_READ' for row in changes))
 
@@ -177,10 +181,11 @@ class ParentSourceReadTests(unittest.TestCase):
         with patch.object(cli,'analyze',side_effect=analyzed),contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(cli.run(self.root,no_review=True),2)
         self.assertIsNone(SOURCE_READS.get())
-        capsule = read_json(self.root/'.ecra/input_closure.json')
+        out = Path(status(self.root)['output'])
+        capsule = read_json(out/'input_closure.json')
         self.assertEqual(capsule['parent_selections'][0]['files'],['build/ecra/one.map'])
         self.assertTrue(status(self.root)['resumable'])
         (folder/'two.map').write_text('additional candidate',encoding='utf-8')
         self.assertFalse(status(self.root)['resumable'])
-        changes = read_json(self.root/'.ecra/diagnostics/resume_source_changes.json')['changes']
+        changes = read_json(out/'diagnostics/resume_source_changes.json')['changes']
         self.assertTrue(any(row['reason']=='PARENT_INPUT_SET_CHANGED' for row in changes))

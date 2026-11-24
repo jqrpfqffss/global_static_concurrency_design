@@ -256,6 +256,7 @@ int main(void){ writer(); __disable_irq(); guarded++; __enable_irq(); return 0; 
 
 
 class GitIntegrationTests(unittest.TestCase):
+    out = test_ecra.ProjectTest.out
     setUp = test_ecra.ProjectTest.setUp
     project = test_ecra.ProjectTest.project
 
@@ -277,11 +278,12 @@ class GitIntegrationTests(unittest.TestCase):
         return cfg
 
     def scan(self):
-        with contextlib.redirect_stdout(io.StringIO()):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
             code = run(self.root, no_review=True)
         if code == 3:
-            self.fail((self.root/'.ecra/run.log').read_text(encoding='utf-8'))
-        return read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+            self.fail(output.getvalue())
+        return read_json(self.out/'reports/global_static_concurrency.json')
 
     def test_shared_main_focus_filters_html_queue_and_saved_render(self):
         self.repository()
@@ -307,29 +309,29 @@ class GitIntegrationTests(unittest.TestCase):
         from ecra.workflow import saved_run
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(saved_run(self.root, render_only=True), (1, 2))
-        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')
+        html = (self.out/'index.html').read_text(encoding='utf-8')
         import re
         inventory = re.search(r'<table[^>]*id="inventory-table"[^>]*>(.*?)</table>', html, re.S).group(1)
         self.assertIn('changed', inventory)
         self.assertEqual(set(re.findall(r'class="item-name"[^>]*>([^<]+)</a>', html)), {'changed'})
         self.assertIn('本次差异涉及的全局 / static 变量', html)
-        queue = read_json(self.root/'.ecra/review/queue.json')
+        queue = read_json(self.out/'review/queue.json')
         self.assertEqual(len(queue), 1)
 
     def test_T28_T33_T36_empty_diff_saved_scope_and_html(self):
         self.repository()
         report = self.scan()
         self.assertEqual(report['git_diff']['selected_symbol_ids'], [])
-        self.assertTrue((self.root/'.ecra/index.html').is_file())
-        self.assertFalse((self.root/'.ecra/diff_index.html').exists())
-        html = (self.root/'.ecra/index.html').read_text(encoding='utf-8')
+        self.assertTrue((self.out/'index.html').is_file())
+        self.assertFalse((self.out/'diff_index.html').exists())
+        html = (self.out/'index.html').read_text(encoding='utf-8')
         self.assertIn('本次比较未识别到需要核对的差异变量', html)
         from ecra.workflow import checked_scan
         from ecra.config import load_config
         cfg, path = load_config(self.root)
-        _, restored, _ = checked_scan(self.root, self.root/'.ecra', cfg, path, with_facts=False)
+        _, restored, _ = checked_scan(self.root, self.out, cfg, path, with_facts=False)
         self.assertEqual(restored['git_diff']['selected_symbol_ids'], [])
-        self.assertTrue(review_integrity(restored, read_json(self.root/'.ecra/review/queue.json'))['complete'])
+        self.assertTrue(review_integrity(restored, read_json(self.out/'review/queue.json'))['complete'])
 
     def test_T29_bad_ref_and_missing_git(self):
         self.repository()
@@ -352,7 +354,7 @@ class GitIntegrationTests(unittest.TestCase):
         write_json(self.root/'.ecra/semantics.yaml', cfg)
         report = self.scan()
         from ecra.workflow import read_saved_json
-        facts = read_saved_json(self.root/'.ecra/facts.json')
+        facts = read_saved_json(self.out/'facts.json')
         variable = next(v for v in facts['variables'] if v['name'] == 'optional_declaration')
         self.assertEqual(variable['definition_file'], 'unbuilt/extra.c')
         self.assertEqual(variable['static_classification'], 'OUT_OF_BUILD')
@@ -368,7 +370,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.assertIn('c:@g', first['git_diff']['selected_symbol_ids'])
         second = self.scan()
         self.assertEqual(second['git_diff']['tu_cache']['hits'], 2)
-        for path in (self.root/'.ecra/cache/tu-v1').glob('*.facts'):
+        for path in (self.out/'cache/tu-v1').glob('*.facts'):
             path.write_text('corrupt')
         repaired = self.scan()
         self.assertEqual(repaired['git_diff']['tu_cache']['corrupt'], 2)
@@ -385,7 +387,9 @@ class GitIntegrationTests(unittest.TestCase):
             second = self.scan()
         self.assertEqual(first['git_diff']['selected_symbol_ids'], second['git_diff']['selected_symbol_ids'])
         self.assertEqual(build.call_count, 1, 'Only HEAD needs normalization after complete baseline validation')
-        summaries = list((self.root/'.ecra/git_diff/summary-cache').glob('*.summary.json'))
+        from ecra.workspace import WorkspaceResolver
+        cache = Path(WorkspaceResolver.resolve(self.root, {}).git_diff_root)/'summary-cache'
+        summaries = list(cache.glob('*.summary.json'))
         self.assertEqual(len(summaries), 1)
         summaries[0].write_text('corrupt')
         with patch('ecra.git_diff.summarize', wraps=summarize) as build:
@@ -405,24 +409,24 @@ class GitIntegrationTests(unittest.TestCase):
         def tamper(facts, cfg, *args, **kwargs):
             report = analyze(facts, cfg, *args, **kwargs)
             if cfg['analysis']['git_diff']['enabled']:
-                path = next((self.root/'.ecra/git_diff/summary-cache').glob('*.summary.json'))
+                path = next((self.out/'git_diff/summary-cache').glob('*.summary.json'))
                 summary = read_json(path)
                 summary['variables']['c:@g']['dimensions']['declaration'] = 'tampered'
                 write_json(path, summary)
             return report
         with patch('ecra.cli.analyze', side_effect=tamper), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+        self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
 
     def test_summary_cache_does_not_bypass_baseline_input_validation(self):
         self.repository()
         self.scan()
-        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+        report = read_json(self.out/'reports/global_static_concurrency.json')
         base = __import__('pathlib').Path(report['git_diff']['pin']['base_source_root'])
         (base/'a.c').write_text('int corrupted;')
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 3)
-        self.assertFalse(read_json(self.root/'.ecra/result_validity.json')['analysis_valid'])
+        self.assertFalse(read_json(self.out/'result_validity.json')['analysis_valid'])
 
     def test_T31_git_snapshot_changes_block_resume(self):
         self.repository()
@@ -529,7 +533,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('commit', '-m', 'CMake current')
         self.command('branch', 'cmake-current')
         self.command('checkout', 'base')
-        cfg['analysis'].update(compile_database='auto', cmake=dict(build_dir='build/ecra',
+        cfg['analysis'].update(compile_database='auto', cmake=dict(build_dir='build/ecra', target='firmware',
             generator='Ninja', build_type='Debug', clean_before_configure=True, build=True,
             args=['-DCMAKE_SYSTEM_NAME=Generic', '-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
                   '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
@@ -548,7 +552,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.assertTrue((cmake_build_directory(source, loaded['analysis'])/'libfirmware.a').is_file())
         self.assertFalse((self.root/'build').exists())
         self.assertFalse((source/'.ecra').exists())
-        self.assertTrue((self.root/'.ecra/cmake-build.log').is_file())
+        self.assertTrue((self.out/'cmake-build.log').is_file())
         self.assertEqual(report['git_diff']['full_verification']['state'], 'PASSED')
         self.assertIn('c:@g', report['git_diff']['selected_symbol_ids'])
         from ecra.workflow import status, saved_run
@@ -651,9 +655,9 @@ class GitIntegrationTests(unittest.TestCase):
         from ecra.workflow import saved_run
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(saved_run(self.root, failed_only=True), (0, 1, 2))
-        saved = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+        saved = read_json(self.out/'reports/global_static_concurrency.json')
         self.assertEqual(report['git_diff']['selected_symbol_ids'], saved['git_diff']['selected_symbol_ids'])
-        self.assertEqual(read_json(self.root/'.ecra/review/queue.json'), [])
+        self.assertEqual(read_json(self.out/'review/queue.json'), [])
 
     def test_saved_status_and_render_do_not_requeue_unselected_risk(self):
         self.repository()
@@ -678,9 +682,9 @@ class GitIntegrationTests(unittest.TestCase):
         self.assertEqual(status(self.root)['findings'], 1)
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIn(saved_run(self.root, render_only=True), (1, 2))
-        report = read_json(self.root/'.ecra/reports/global_static_concurrency.json')
+        report = read_json(self.out/'reports/global_static_concurrency.json')
         self.assertEqual(report['review_summary']['total'], 1)
-        self.assertEqual(len(read_json(self.root/'.ecra/review/queue.json')), 1)
+        self.assertEqual(len(read_json(self.out/'review/queue.json')), 1)
 
     def test_diff_review_grants_read_access_to_patch_and_base_facts(self):
         self.repository()
@@ -688,7 +692,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.command('add', 'a.c')
         self.command('commit', '-m', 'change')
         report = self.scan()
-        facts = read_json(self.root/'.ecra/facts.json')
+        facts = read_json(self.out/'facts.json')
         from ecra.config import load_config
         from ecra.review import review_all
         cfg, _ = load_config(self.root)
@@ -708,7 +712,7 @@ class GitIntegrationTests(unittest.TestCase):
             # Deliberate protocol-only failure; no model is executed.
             return subprocess.CompletedProcess(argv, 1, '', '仅校验读取权限')
         with contextlib.redirect_stdout(io.StringIO()), mock_runtime(['fake-review']), patch('ecra.review.execute', side_effect=check_permissions):
-            review_all(self.root, self.root/'.ecra', cfg, facts, report, report['fingerprint'])
+            review_all(self.root, self.out, cfg, facts, report, report['fingerprint'])
         self.assertTrue(seen)
 
 

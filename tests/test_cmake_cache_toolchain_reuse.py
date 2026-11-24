@@ -77,7 +77,7 @@ class CMakeCachedToolchainTests(unittest.TestCase):
             toolchain=source/'arm.cmake'
             toolchain.write_text('set(CMAKE_SYSTEM_NAME Generic)\nset(CMAKE_SYSTEM_PROCESSOR arm)\nset(CMAKE_C_COMPILER arm-none-eabi-gcc)\nset(CMAKE_ASM_COMPILER arm-none-eabi-gcc)\nset(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)\n','utf-8')
             settings=dict(output=dict(location='custom',custom_dir=str(home/'data')),
-                cmake=dict(location='workspace',build_dir='build/ecra',generator='Ninja',toolchain_file='arm.cmake',build=True))
+                cmake=dict(location='workspace',build_dir='build/ecra',generator='Ninja',toolchain_file='arm.cmake',target='firmware',build=True))
             WorkspaceResolver.resolve(source,settings).initialize().bind(settings)
             with patch.dict(os.environ,ECRA_PATH_ALIAS_ROOT=str(aliases)),patch.dict(_BUILD_ALIASES,{},clear=True):
                 try:
@@ -110,7 +110,7 @@ class CMakeCachedToolchainTests(unittest.TestCase):
                     _,steps,_=configure(True)
                     configured=next(row for row in steps if row['stage']=='configure')
                     self.assertTrue(any(arg.startswith('-DCMAKE_TOOLCHAIN_FILE=') for arg in configured['command']))
-                    self.assertEqual([row['stage'] for row in steps],['clean','configure','build'])
+                    self.assertEqual([row['stage'] for row in steps],['clean','configure','target-closure','build'])
                 finally:
                     if aliases.exists():
                         for alias in aliases.iterdir():

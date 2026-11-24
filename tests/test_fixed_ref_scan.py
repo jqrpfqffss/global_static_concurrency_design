@@ -210,7 +210,7 @@ target_compile_definitions(firmware PRIVATE VERSION_TEXT="${VERSION}")
         self.git('branch', 'build-current')
         self.git('tag', 'build-frozen')
         raw = read_json(self.config)
-        raw['analysis'].update(compile_database='auto', cmake=dict(generator='Ninja', build=True,
+        raw['analysis'].update(compile_database='auto', cmake=dict(generator='Ninja', target='firmware', build=True,
             args=['-DCMAKE_SYSTEM_NAME=Generic', '-DCMAKE_C_COMPILER=arm-none-eabi-gcc',
                   '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY']))
         raw['analysis']['git_diff'].update(base_ref='build-base', current_ref='build-current')

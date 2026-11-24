@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -15,10 +16,22 @@ from ecra.config import load_config
 
 class OnboardingTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix='ecra onboarding ')
+        from ecra.workspace import managed_root
+        self.tmp = tempfile.TemporaryDirectory(prefix='ob-', dir=managed_root())
         self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name).resolve()
-        semantics = self.root/'tool-config/semantics.yaml'
+        self.tool = Path(self.tmp.name).resolve()
+        area = self.tool/'workspace/data-roots/test'
+        self.root = area/'firmware'
+        self.root.mkdir(parents=True)
+        subprocess.run(['git', 'init', '--quiet', str(self.root)], check=True)
+        for target in ('ecra.workspace.TOOL_ROOT', 'ecra.config.TOOL_ROOT', 'ecra.cli.TOOL_ROOT'):
+            scoped = patch(target, self.tool)
+            scoped.start()
+            self.addCleanup(scoped.stop)
+        environment = patch.dict(os.environ, ECRA_DATA_ROOT=str(area/'data'))
+        environment.start()
+        self.addCleanup(environment.stop)
+        semantics = self.tool/'workspace/.ecra/config/semantics.yaml'
         for target in ('ecra.config.SEMANTICS_FILE', 'ecra.cli.SEMANTICS_FILE'):
             mocked = patch(target, semantics)
             mocked.start()
@@ -52,12 +65,9 @@ class OnboardingTest(unittest.TestCase):
         self.assertFalse((self.root/'invalid.yaml').exists())
 
     def test_default_init_creates_the_one_tool_side_semantics_file(self):
-        tool = self.root / 'concurrency-tool'
-        semantics = tool/'config/semantics.yaml'
-        with patch('ecra.config.TOOL_ROOT', tool), patch('ecra.config.SEMANTICS_FILE', semantics), \
-             patch('ecra.cli.TOOL_ROOT', tool), patch('ecra.cli.SEMANTICS_FILE', semantics):
-            self.assertEqual(self.invoke('init'), 0)
-            cfg, path = load_config(self.root, semantics)
+        semantics = self.tool/'workspace/.ecra/config/semantics.yaml'
+        self.assertEqual(self.invoke('init'), 0)
+        cfg, path = load_config(self.root, semantics)
         self.assertEqual(path, semantics)
         self.assertEqual(cfg['version'], 1)
         self.assertEqual(cfg['project']['root'], str(self.root))
@@ -98,7 +108,7 @@ class OnboardingTest(unittest.TestCase):
 
     def test_successful_cmake_without_database_explains_generator(self):
         with patch('ecra.compilation.execute', return_value=subprocess.CompletedProcess([], 0, '', '')):
-            with self.assertRaisesRegex(ValueError, 'Ninja'):
+            with self.assertRaisesRegex(ValueError, 'compile_commands.json.*本次未执行构建'):
                 prepare(self.root, self.config())
 
 

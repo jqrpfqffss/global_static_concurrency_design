@@ -1,7 +1,7 @@
 """Reference-based cleanup with an inspected proposal and recoverable quarantine.
 
-Only verified CAS objects and owned TU caches qualify. Firmware, scans,
-reviews, build trees, exports and necessary audit files are never candidates.
+Candidates are unreferenced content objects, disposable TU caches and exact
+review working copies bound to verified, published events.
 """
 from contextlib import closing
 import hashlib
@@ -62,7 +62,7 @@ def _tokens(conn,table,column,refs,proof):
         proof.update(b'\0')
 
 
-def _references(data):
+def _references(data, *, duplicates=None, relocated=None):
     refs=set();proof=hashlib.sha256()
     # Stopped/failed scans still own their TU recovery cache. Rebuilding a
     # disposable cache is allowed only after no resumable task references it.
@@ -92,7 +92,7 @@ def _references(data):
     if scans.exists():
         for folder in sorted(scans.iterdir()):
             no_links(folder)
-            database=folder/'scan.db'
+            database=no_links(folder/'scan.db')
             if not database.is_file():
                 continue
             provider=EvidenceProvider(database)
@@ -100,9 +100,19 @@ def _references(data):
             if metadata['scan_id']!=folder.name:
                 raise ValueError('扫描目录与库身份不一致，停止整理')
             database_hash=sha256(database)
-            manifest=folder/'manifest.json'
+            manifest=no_links(folder/'manifest.json')
             value=json.loads(manifest.read_text(encoding='utf-8')) if manifest.is_file() else {}
             expected=value.get('scan_sha256') or value.get('files',{}).get('scan.db',{}).get('sha256')
+            bound = (value.get('format') in {'ECRA_LOCAL_SCAN','ECRA_REPORT','ECRA_LEGACY_IMPORT'}
+                     and value.get('scan_id') == metadata['scan_id'] and bool(expected)
+                     and all(value[key] == metadata.get(key) for key in ('project_id','facts_hash','report_hash')
+                             if key in value))
+            intents = no_links(folder/'.ecra-receipt-writes')
+            if intents.is_dir() and any(intents.iterdir()):
+                bound = False  # A complete pre-rename result may still be replayed.
+                proof.update(b'unresolved-receipt-write')
+            if not bound:
+                refs.add('HOLD_OBJECTS:'+folder.name)
             if expected:
                 if database_hash!=expected:raise ValueError('扫描库摘要改变/损坏，停止整理')
             else:
@@ -111,6 +121,7 @@ def _references(data):
             proof.update(folder.name.encode()+bytes.fromhex(database_hash))
             with closing(connect_readonly(database)) as conn:
                 _tokens(conn,'nodes','value',refs,proof)
+            indices=set()
             if manifest.is_file():
                 raw=manifest.read_bytes();proof.update(raw)
                 refs.update(value.decode().lower() for value in TOKENS.findall(raw))
@@ -124,25 +135,98 @@ def _references(data):
                     path=no_links(folder/'evidence'/ident)
                     if sha256(path)!=ident:
                         raise ValueError('审计索引缺失/损坏，停止整理')
-                    with path.open('rb') as stream:
-                        previous=b''
-                        for part in iter(lambda:stream.read(1024*1024),b''):
-                            refs.update(v.decode().lower() for v in TOKENS.findall(previous+part));previous=part[-63:]
-            reviews=folder/'reviews.db'
+                    _index_references(folder, json.loads(path.read_bytes()), refs)
+            reviews=no_links(folder/'reviews.db')
             if reviews.is_file():
                 with closing(sqlite3.connect(reviews.resolve().as_uri()+'?mode=ro',uri=True)) as conn:
                     conn.execute('PRAGMA query_only=ON');conn.execute('PRAGMA trusted_schema=OFF');conn.execute('BEGIN')
+                    from .scan_persistence import validate_review_binding
+                    validate_review_binding(folder, provider)
+                    if conn.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
+                        raise ValueError('复核库完整性校验失败，保留工作副本')
                     for table,column in [('events','payload'),('ai_events','payload'),('ai_snapshots','payload'),('prior_decisions','payload'),('positions','value')]:
                         if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(table,)).fetchone():
                             _tokens(conn,table,column,refs,proof)
                     if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ai_events'").fetchone():
                         for (hashed,) in conn.execute("SELECT hash FROM ai_events WHERE json_type(payload,'$.archived_files')='object'"):
                             refs.add(hashed)  # The event's digest is also the immutable .result.json object name.
+                        if bound and duplicates is not None:
+                            _review_duplicates(folder, conn, duplicates, relocated)
+                        # An orphan result can precede the SQLite commit. Its immutable
+                        # receipt and all of its original objects are recovery roots.
+                        for receipt in (folder/'review').glob('*.result.json'):
+                            raw = no_links(receipt).read_bytes()
+                            refs.add(hashlib.sha256(raw).hexdigest())
+                            refs.update(value.decode().lower() for value in TOKENS.findall(raw))
+                            proof.update(raw)
             for path in (folder/'diagnostics'/'review-recovery').glob('*.json'):
                 raw = no_links(path).read_bytes()
                 proof.update(raw)
                 refs.update(value.decode().lower() for value in TOKENS.findall(raw))
+            # Older checkpoint writers replaced manifest.audit_index without
+            # recording its predecessor. An authentic historical index is still
+            # evidence and must never be dropped as an unreferenced blob.
+            for obj in (folder/'evidence').glob('*'):
+                if obj.name not in indices and HASH.fullmatch(obj.name):
+                    index = _historical_index(no_links(obj))
+                    if index is not None:
+                        if sha256(obj) != obj.name:
+                            raise ValueError('历史审计索引摘要损坏，保留现场')
+                        refs.add(obj.name)
+                        proof.update(obj.name.encode())
+                        _index_references(folder, index, refs)
     return refs,proof.hexdigest()
+
+
+def _historical_index(path):
+    # Both encodings were produced by the v1 audit writer and legacy importer.
+    with path.open('rb') as stream:
+        prefix = stream.read(128).lstrip()
+        if not re.match(rb'\{\s*"(files|version)"\s*:', prefix):
+            return None
+        stream.seek(0)
+        try:
+            index = json.load(stream)
+        except (ValueError, UnicodeError):
+            return None
+    return index if isinstance(index,dict) and index.get('version')==1 and isinstance(index.get('files'),dict) else None
+
+
+def _index_references(folder, index, refs):
+    for name, entry in index['files'].items():
+        hashed=entry['sha256']
+        if not HASH.fullmatch(hashed):
+            raise ValueError('历史审计对象引用无效')
+        refs.add(hashed)
+        if name.startswith('diagnostics/review-recovery/') or (name.startswith('review/') and name.endswith('.result.json')):
+            nested = no_links(folder/'evidence'/hashed)
+            if sha256(nested) != hashed:
+                raise ValueError('历史收据引用损坏')
+            with nested.open('rb') as stream:
+                previous = b''
+                for block in iter(lambda: stream.read(1048576), b''):
+                    refs.update(token.decode().lower() for token in TOKENS.findall(previous+block))
+                    previous = block[-63:]
+
+
+def _review_duplicates(folder, conn, duplicates, relocated):
+    from .review_archive import duplicate_files, validate_event_archives
+    from .scan_persistence import snapshot_head
+    snapshot = snapshot_head(conn)
+    if snapshot.get('ai_events_version') != 2:
+        return
+    validate_event_archives(folder, folder/'reviews.db')
+    for fid, raw in conn.execute(
+            "SELECT a.finding_id,a.payload FROM ai_events a WHERE a.sequence<=? "
+            "AND a.state IN ('DONE','TECH_FAILED') AND json_type(a.payload,'$.archived_files')='object' "
+            "AND (SELECT state FROM ai_events WHERE finding_id=a.finding_id AND sequence<=? "
+            "ORDER BY sequence DESC LIMIT 1) IN ('DONE','TECH_FAILED')",
+            (snapshot['watermark'], snapshot['watermark'])):
+        row = json.loads(raw)
+        if row.get('finding_id') != fid or 'review_base_sequence' not in row:
+            continue
+        for path, hashed in duplicate_files(folder, row, aliases=True, relocated=relocated):
+            duplicates[path] = hashed
 
 
 def _checkpoint_cache(data,path,refs):
@@ -157,6 +241,8 @@ def _role(data,path,category):
     relative=path.relative_to(data);parts=relative.parts
     if category=='UNREFERENCED_OBJECT':
         valid=len(parts)==4 and parts[0]=='scans' and IDENTITY.fullmatch(parts[1]) and parts[2]=='evidence' and HASH.fullmatch(parts[3])
+    elif category=='REVIEW_DUPLICATE':
+        valid=len(parts)==4 and parts[0]=='scans' and IDENTITY.fullmatch(parts[1]) and parts[2]=='review'
     elif category=='TU_CACHE':
         valid=False
         if (len(parts)>=5 and parts[0]=='projects' and parts[-2]=='tu-v1'
@@ -188,7 +274,8 @@ def preview(data_root):
     database=folder/'preview.db'
     with DataActivity(data),closing(sqlite3.connect(database)) as conn,conn:
         conn.execute('PRAGMA synchronous=FULL');conn.executescript(SCHEMA)
-        refs,token=_references(data)
+        duplicates={}
+        refs,token=_references(data,duplicates=duplicates)
         _meta(conn,'id',ident);_meta(conn,'root',str(data));_meta(conn,'references',token);_meta(conn,'state','PREVIEW')
         def candidate(path,category):
             path=no_links(path)
@@ -203,12 +290,18 @@ def preview(data_root):
                 raise ValueError('未引用对象已损坏；先修复后整理: '+relative)
             conn.execute('INSERT INTO candidates(relative,category,size,sha256,state) VALUES (?,?,?,?,?)',
                          (relative,category,path.stat().st_size,hashed,'SOURCE'))
+        for path,hashed in duplicates.items():
+            if path.stat().st_nlink==1:
+                conn.execute('INSERT INTO candidates(relative,category,size,sha256,state) VALUES (?,?,?,?,?)',
+                    (_role(data,path,'REVIEW_DUPLICATE'),'REVIEW_DUPLICATE',path.stat().st_size,hashed,'SOURCE'))
         scans=no_links(data/'scans')
         if scans.exists():
             for evidence in scans.glob('*/evidence'):
                 no_links(evidence)
                 # A partial failed publication is retained for diagnosis.
-                if not (evidence.parent/'manifest.json').is_file():
+                if not all(no_links(evidence.parent/name).is_file() for name in ('manifest.json','scan.db','reviews.db')):
+                    continue
+                if 'HOLD_OBJECTS:'+evidence.parent.name in refs:
                     continue
                 for path in evidence.iterdir():
                     if HASH.fullmatch(path.name):candidate(path,'UNREFERENCED_OBJECT')
@@ -253,19 +346,24 @@ def status(data_root,ident,*,offset=0,limit=50):
             'SELECT category,state,count(*),coalesce(sum(size),0) FROM candidates GROUP BY category,state')]
         return dict(id=ident,state=_meta(conn,'state'),files=total,logical_bytes=size,groups=groups,items=items,offset=offset,
                     next_offset=offset+len(items) if offset+len(items)<total else None,
-                    reason='仅未引用对象和无恢复任务引用的可重建TU缓存；未放弃的失败/中断检查点保留。逻辑字节不是保证释放的物理空间。')
+                    reason='已提交复核的可验证工作副本、未引用对象和无恢复任务引用的可重建TU缓存；未放弃的失败/中断检查点保留。逻辑字节不是保证释放的物理空间。')
 
 
 def quarantine(data_root,ident):
     data,folder,conn=_open(data_root,ident)
     with closing(conn),DataActivity(data,exclusive=True):
         if _meta(conn,'state')!='PREVIEW':raise ValueError('该预览已执行；请查看恢复/释放状态')
-        refs,token=_references(data)
+        duplicates={}
+        refs,token=_references(data,duplicates=duplicates)
         if token!=_meta(conn,'references'):raise ValueError('预览后结果或人工记录已变化，请重新预览')
         for relative,category,size,hashed in conn.execute('SELECT relative,category,size,sha256 FROM candidates'):
             source=_owned(data,relative);_role(data,source,category)
             if category=='TU_CACHE' and _checkpoint_cache(data,source,refs):raise ValueError('出现恢复检查点引用，保留TU缓存')
-            if source.stem.lower() in refs or hashed in refs or source.stat().st_nlink>1 or source.stat().st_size!=size or sha256(source)!=hashed:
+            if category=='REVIEW_DUPLICATE':
+                protected=duplicates.get(source)!=hashed
+            else:
+                protected=source.stem.lower() in refs or hashed in refs
+            if protected or source.stat().st_nlink>1 or source.stat().st_size!=size or sha256(source)!=hashed:
                 raise ValueError('预览目标已变化或出现引用，未执行整理')
         trash=no_links(folder/'trash');trash.mkdir(exist_ok=True)
         _meta(conn,'state','MOVING');conn.commit()
@@ -308,7 +406,14 @@ def purge(data_root,ident):
     data,folder,conn=_open(data_root,ident)
     with closing(conn),DataActivity(data,exclusive=True):
         if _meta(conn,'state') not in {'QUARANTINED','PURGING'}:raise ValueError('请先预览并隔离可回收数据')
-        refs,_=_references(data)
+        relocated={_owned(data,relative):no_links(folder/'trash'/str(ordinal))
+                   for ordinal,relative in conn.execute("SELECT ordinal,relative FROM candidates WHERE category='REVIEW_DUPLICATE'")}
+        duplicates={}
+        for (ordinal,) in conn.execute("SELECT ordinal FROM candidates WHERE category='UNREFERENCED_OBJECT' AND state='QUARANTINE'"):
+            target=no_links(folder/'trash'/str(ordinal))
+            if target.is_file() and _historical_index(target) is not None:
+                raise ValueError('旧隔离批次包含历史审计索引，请先恢复整个批次后重新预览')
+        refs,_=_references(data,duplicates=duplicates,relocated=relocated)
         _meta(conn,'state','PURGING');conn.commit()
         for ordinal,relative,category,hashed,state in conn.execute('SELECT ordinal,relative,category,sha256,state FROM candidates ORDER BY ordinal'):
             if state in {'PURGED','RESTORED','PROTECTED'}:continue
@@ -316,7 +421,13 @@ def purge(data_root,ident):
             target=_owned(data,(folder/'trash'/str(ordinal)).relative_to(data))
             if target.is_file():
                 if sha256(target)!=hashed:raise ValueError('隔离文件损坏；停止释放')
-                if hashed in refs or source.stem.lower() in refs or (category=='TU_CACHE' and _checkpoint_cache(data,source,refs)):
+                missing_authority = category=='UNREFERENCED_OBJECT' and not all(
+                    no_links(source.parent.parent/name).is_file() for name in ('scan.db','reviews.db','manifest.json'))
+                uncertified = category=='UNREFERENCED_OBJECT' and 'HOLD_OBJECTS:'+source.parent.parent.name in refs
+                protected = missing_authority or uncertified or (duplicates.get(source)!=hashed if category=='REVIEW_DUPLICATE'
+                             else hashed in refs or source.stem.lower() in refs or
+                             (category=='TU_CACHE' and _checkpoint_cache(data,source,refs)))
+                if protected:
                     if not source.exists():source.parent.mkdir(parents=True,exist_ok=True);target.rename(source)
                     elif sha256(source)!=hashed:raise ValueError('出现新引用且原路径被占用，保留暂存')
                     conn.execute("UPDATE candidates SET state='PROTECTED' WHERE ordinal=?",(ordinal,));conn.commit();continue

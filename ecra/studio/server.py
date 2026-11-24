@@ -413,25 +413,13 @@ def _create_app(data_root, *, token, authority, startup):
                 or not name.endswith(('.json','.jsonl','.txt')) or offset<0 or not 1<=limit<=16384):
             raise ValueError('复核收据名称/游标无效')
         file=no_links(out/'review'/name)
-        if finding_id and (not file.is_file() or name == finding_id+'.result.json'):
+        if finding_id:
             from ..review_archive import archived_file
             file = archived_file(out, name, finding_id) or file
         if not file.is_file():
-            manifest=json.loads((out/'manifest.json').read_text(encoding='utf-8'))
-            indices=set(manifest.get('audit_indices',[]))
-            if manifest.get('audit_index'):
-                indices.add(manifest['audit_index'])
-            if not indices:
-                raise ValueError('此归档未包含对应审计收据')
+            from ..review_archive import audit_originals
             from ..report_package import OBJECT
-            matches=set()
-            for index_hash in indices:
-                if not OBJECT.fullmatch('evidence/'+index_hash):
-                    raise ValueError('审计索引引用无效')
-                index=json.loads((out/'evidence'/index_hash).read_text(encoding='utf-8'))
-                record=index['files'].get('review/'+name)
-                if record:
-                    matches.add(record.get('sha256'))
+            matches = {entry['sha256'] for entry in audit_originals(out, name)}
             if not matches:
                 raise ValueError('归档中缺少此收据')
             if len(matches)!=1:
@@ -673,6 +661,8 @@ def _create_app(data_root, *, token, authority, startup):
             received = 0
             with upload.path.open('xb') as stream:
                 async for block in request.stream():
+                    if not block:
+                        continue
                     received += len(block)
                     import_jobs.upload_progress(upload, received)
                     stream.write(block)

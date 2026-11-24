@@ -7,14 +7,18 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from ecra.portable import _BUILD_ALIASES,build_path,tool_environment,tool_path
+from ecra.portable import _BUILD_ALIASES,build_path,default_alias_root,tool_environment,tool_path
 
 
 @unittest.skipUnless(os.name=='nt','Actual Windows junctions required')
 class CompactAliasOrderTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='ecra-alias-order-')
-        self.home=Path(self.temp.name).resolve();self.aliases=self.home/'aliases'
+        self.home=Path(self.temp.name).resolve()
+        area=default_alias_root()
+        area.mkdir(parents=True,exist_ok=True)
+        self.alias_temp=tempfile.TemporaryDirectory(dir=area)
+        self.aliases=Path(self.alias_temp.name)
         self.parent=self.home/'actual/builds';self.child=self.parent/'firmware';self.child.mkdir(parents=True)
         self.environment=patch.dict(os.environ,ECRA_PATH_ALIAS_ROOT=str(self.aliases))
         self.environment.start();self.registry=patch.dict(_BUILD_ALIASES,{},clear=True);self.registry.start()
@@ -28,7 +32,7 @@ class CompactAliasOrderTests(unittest.TestCase):
                 self.assertEqual(alias.parent.resolve(),self.aliases.resolve())
                 self.assertTrue(alias.lstat().st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
                 alias.rmdir()
-        self.registry.stop();self.environment.stop();self.temp.cleanup()
+        self.registry.stop();self.environment.stop();self.alias_temp.cleanup();self.temp.cleanup()
 
     def test_existing_compact_directory_alias_is_independent_of_ancestor_registration_order(self):
         parent_alias=Path(build_path(self.parent,prefer_junction=True))

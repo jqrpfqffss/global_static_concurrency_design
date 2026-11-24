@@ -170,6 +170,12 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
     def test_real_opencode_single_variable_storage_without_cleanup(self):
         self.exercise(cleanup=False, workers=1, count=1)
 
+    def test_real_opencode_four_workers_retire_completed_files(self):
+        self.exercise(cleanup=True, workers=4, count=5)
+
+    def test_real_opencode_eight_workers_retire_completed_files(self):
+        self.exercise(cleanup=True, workers=8, count=9)
+
     def test_real_shared_database_without_cleanup(self):
         self.exercise(cleanup=False, workers=3, count=3, shared=True)
 
@@ -320,13 +326,22 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
         self.assertEqual(Counter(model_calls), Counter(row['finding_id'] for row in rows))
         archived_ids = []
         for row in rows:
+            for name in (row['finding_id']+'.result.json', row['packet_file'], row['prompt_file'],
+                         row['execution']['stdout_file'], row['execution']['stderr_file']):
+                self.assertFalse((out/'review'/name).exists(), name)
             validate_result_receipt(case.root, out/'review', row, row['finding_id'],
                                     row['scan_fingerprint'], row['static_classification'])
             evidence = out/'evidence'/row['execution']['stdout_sha256']
             sid = session_from_jsonl(evidence.read_text('utf-8'))[0]
             self.assertIsNotNone(sid)
             archived_ids.append(sid)
-        self.assertEqual(Counter(deleted), Counter(archived_ids) if cleanup else Counter(), log.getvalue())
+        pending_reasons = []
+        for journal in (out/'opencode-session-cleanup').glob('*/ownership.sqlite3'):
+            with closing(sqlite3.connect(journal)) as conn:
+                pending_reasons.extend(conn.execute("SELECT finding_id,cleanup_state,reason FROM calls "
+                                                    "WHERE cleanup_state != 'DELETED'").fetchall())
+        self.assertEqual(Counter(deleted), Counter(archived_ids) if cleanup else Counter(),
+                         log.getvalue() + repr(pending_reasons))
         self.assertNotIn(manual_id, deleted)
         self.assertNotIn(other_id, deleted)
         databases = list((out/'opencode').glob('*/sessions.db'))
@@ -334,7 +349,7 @@ class RealOpenCodeCleanupTest(unittest.TestCase):
             self.assertFalse(sizes)
             self.assertFalse(databases)
             self.assertFalse(list((out/'opencode-session-cleanup').glob('*/sessions.db')))
-            self.assertIn(f'OpenCode 使用会话数据库 {manual_db}', log.getvalue())
+            self.assertIn(f'会话数据库 {manual_db}', log.getvalue())
             expected_files = {manual_db.name+suffix for suffix in ('', '-wal', '-shm', '-journal')}
             self.assertLessEqual({path.name for path in manual_db.parent.iterdir()}, expected_files)
             with opencode.maintenance(manual_db, workdir=case.base, shared=True) as maintenance, maintenance.server() as api:

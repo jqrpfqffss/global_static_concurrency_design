@@ -185,7 +185,10 @@ def validate_objects(directory, manifest, *, max_raw_bytes=128*1024**3, progress
     for index_hash in set([*indices,*([manifest['audit_index']] if manifest.get('audit_index') else [])]):
         if not isinstance(index_hash,str) or not OBJECT.fullmatch('evidence/'+index_hash):
             raise ValueError('审计索引身份无效')
-        index = json.loads((directory/'evidence'/index_hash).read_text(encoding='utf-8'))
+        index_path = no_links(directory/'evidence'/index_hash)
+        if sha256(index_path, progress=progress) != index_hash:
+            raise ValueError('审计索引摘要损坏')
+        index = json.loads(index_path.read_text(encoding='utf-8'))
         if index.get('version') != 1 or not isinstance(index.get('files'),dict):
             raise ValueError('审计索引版本未知')
         for name, record in index['files'].items():
@@ -361,6 +364,8 @@ def export_report(scan_directory, destination, *, compression='compact', progres
         validate_objects(source, manifest, progress=progress, database=static)
         from .review_archive import validate_event_archives
         validate_event_archives(source, stage/'reviews.db', progress=progress, package_files=files)
+        from .review_archive import package_manual_exports
+        package_manual_exports(source, stage/'reviews.db', stage, files, manifest)
         archive = stage/'result.pending'
         def encode(compact):
             total=sum(path.stat().st_size for path in files.values()); completed=0
@@ -381,7 +386,7 @@ def export_report(scan_directory, destination, *, compression='compact', progres
                     hashed = digest.hexdigest()
                     if name == 'scan.db' and expected_static and hashed != expected_static:
                         raise ValueError('扫描数据库与封存时的完整摘要不一致，拒绝发布结果包；原数据保留')
-                    if OBJECT.fullmatch(name) and hashed != path.name:
+                    if OBJECT.fullmatch(name) and hashed != name.partition('/')[2]:
                         raise ValueError('归档证据对象损坏，拒绝发布结果包')
                     if size != expected_size:
                         raise ValueError('导出期间文件大小发生变化，拒绝发布结果包')

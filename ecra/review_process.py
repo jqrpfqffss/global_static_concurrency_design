@@ -64,7 +64,7 @@ def owned_process(argv, *, cwd, env, stdout, stderr, stdin=None, stop=None):
             proc.wait(timeout=3)
 
 
-def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_path, on_exit=None, diagnostic=None):
+def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_path, on_exit=None, diagnostic=None, startup=None):
     stop.check()
     from .opencode_protocol import redactor, AuthenticationRequired, interactive_prompt, ProtocolError
     from .opencode_command import display_command
@@ -79,6 +79,8 @@ def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_pa
     interrupted, proc = None, None
     try:
         with ExitStack() as stack:
+            initialized = stack.enter_context(startup(stop)) if startup else None
+            started = time.monotonic()
             stdout = stack.enter_context(stdout_path.open('wb'))
             stderr = stack.enter_context(stderr_path.open('wb'))
             stdin = None
@@ -97,6 +99,16 @@ def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_pa
                         for path in (stdout_path, stderr_path):
                             with path.open('rb') as output:
                                 prefix = output.read(65536).decode('utf-8', errors='replace')
+                            if initialized and path == stdout_path:
+                                for line in prefix.splitlines():
+                                    try:
+                                        event = json.loads(line)
+                                    except ValueError:
+                                        continue
+                                    if isinstance(event, dict) and event.get('sessionID'):
+                                        initialized()
+                                        initialized = None
+                                        break
                             if interactive_prompt(prefix):
                                 raise AuthenticationRequired('OpenCode run 要求交互域认证；本批次停止继续派发，请使用发行版正式登录入口')
                         remaining = deadline - time.monotonic()
@@ -110,6 +122,8 @@ def execute(argv, *, cwd, env, timeout, input=None, stop, stdout_path, stderr_pa
                     interrupted = exc
                 finally:
                     record.update(returncode_before_reap=proc.poll(), ecra_requested_reap=proc.poll() is None)
+            if initialized and proc.returncode == 0:
+                initialized()
             if on_exit is not None:
                 on_exit()
     except BaseException as exc:

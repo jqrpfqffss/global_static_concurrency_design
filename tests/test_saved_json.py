@@ -115,6 +115,7 @@ class SavedJsonTests(unittest.TestCase):
 class SavedStatusTests(unittest.TestCase):
     setUp = test_ecra.ProjectTest.setUp
     project = test_ecra.ProjectTest.project
+    out = test_ecra.ProjectTest.out
 
     def test_disabled_review_without_packets_publishes_once_and_keeps_the_actual_queue(self):
         from ecra.common import read_json, write_json
@@ -131,7 +132,7 @@ class SavedStatusTests(unittest.TestCase):
         self.assertEqual(rendered.call_count, 1)
         self.assertEqual(saved.call_count, 1)
         self.assertFalse(saved.call_args.kwargs['initialize_queue'])
-        queue = read_json(self.root/'.ecra/review/queue.json')
+        queue = read_json(self.out/'review/queue.json')
         self.assertTrue(queue)
         self.assertTrue(all('已关闭' in row['error'] for row in queue))
         self.assertTrue(status(self.root)['resumable'])
@@ -146,13 +147,13 @@ class SavedStatusTests(unittest.TestCase):
         write_json(config, cfg)
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 2)
-        first = read_json(self.root/'.ecra/facts.json')
+        first = read_json(self.out/'facts.json')
         cfg['review']['prepare_packets'] = True
         write_json(config, cfg)
         with patch('ecra.cli.generate', wraps=generate) as rendered, contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(run(self.root, no_review=True), 2)
         self.assertEqual(rendered.call_count, 2)
-        second = read_json(self.root/'.ecra/facts.json')
+        second = read_json(self.out/'facts.json')
         self.assertEqual(first, second)
         self.assertTrue(status(self.root)['resumable'])
 
@@ -170,7 +171,7 @@ class SavedStatusTests(unittest.TestCase):
             result = status(self.root)
         self.assertTrue(result['resumable'])
         self.assertIn('global_static_concurrency.json', loaded)
-        facts = self.root/'.ecra/facts.json'
+        facts = self.out/'facts.json'
         facts.write_text('{}')
         result = status(self.root)
         self.assertFalse(result['resumable'])

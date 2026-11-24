@@ -1,6 +1,6 @@
 """Local launch context and optional, ownership-checked session maintenance."""
 import base64
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, nullcontext
 import http.client
 import json
 import os
@@ -153,7 +153,7 @@ class Runtime:
         # CreateProcess rejects overly long current directories even when
         # Python/Bun can open the corresponding files. Recovery adds another
         # journal/probe level, so keep process cwd separate from diagnostics.
-        scratch = control_path('opencode-maintenance')
+        scratch = self.context.get('scratch') or control_path('opencode-maintenance')
         scratch.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(prefix='m-', dir=scratch, ignore_cleanup_errors=True) as name:
             cwd = Path(name)
@@ -269,9 +269,13 @@ class Maintenance:
         self.runtime.check_exe()
         return [*self.runtime.command, *args]
 
+    def _startup(self):
+        gate = self.runtime.context.get('startup')
+        return gate(self.runtime.stop) if gate else nullcontext()
+
     def cli(self, *args):
         stage = ' '.join(args)
-        with self._operation(args, stage) as (proc, stdout, stderr, record, started):
+        with self._startup(), self._operation(args, stage) as (proc, stdout, stderr, record, started):
             while proc.poll() is None:
                 self._observe(stdout, stderr, record, started)
                 try:
@@ -341,8 +345,11 @@ class Maintenance:
         self.verify()
         # The startup line names the port selected by the owned launcher.
         args = ('serve', '--hostname', '127.0.0.1', '--port', '0')
-        with self._operation(args, 'serve readiness') as operation:
-            yield from self._open_api(*operation)
+        with self._startup() as ready, self._operation(args, 'serve readiness') as operation:
+            for api in self._open_api(*operation):
+                if ready:
+                    ready()
+                yield api
 
     def _open_api(self, proc, log_path, stderr, record, started):
         listen = re.compile(rb'^opencode server listening on http://127\.0\.0\.1:([1-9][0-9]{0,4})\r?$', re.M)

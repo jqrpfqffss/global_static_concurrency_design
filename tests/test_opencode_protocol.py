@@ -205,7 +205,7 @@ def test_review_only_change_preserves_old_receipt_identity():
     names = ['review.py', 'review_contract.py', 'review_language.py', 'review_sources.py',
              'native_review_packet.py', 'review_hash.py', 'review_packet.py', 'evidence_mcp.py', 'review_summary.py']
     texts = [(Path(review.__file__).parent/name).read_text('utf-8') for name in names]
-    previous = 'cca8ecb58791f29718767005ab024b40a0511618f8ab71f396f407494c551a70'
+    previous = '51256eac8239371fdd17bfc302d1e180b8a248ac9521bf93764bdd1ba0a9a8aa'  # pre-lifecycle Portable
     assert compatible_review_implementation(digest(texts)) == compatible_review_implementation(previous)
     texts[1] += '\n# a different answer contract'
     assert compatible_review_implementation(digest(texts)) != compatible_review_implementation(previous)

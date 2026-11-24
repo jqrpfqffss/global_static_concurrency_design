@@ -97,8 +97,9 @@ class StudioComparisonTests(unittest.TestCase):
             client.headers['x-ecra-session']='test-token'
             result=client.get('/api/history/compare',params=dict(base='a',current='b',limit=1))
             self.assertEqual(result.status_code,200,result.text);self.assertEqual(result.json()['total'],1)
-            for bad in ['../a','a/../../outside','missing']:
+            for bad in ['../a','a/../../outside']:
                 self.assertEqual(client.get('/api/history/compare',params=dict(base=bad,current='b')).status_code,400)
+            self.assertEqual(client.get('/api/history/compare',params=dict(base='missing',current='b')).status_code,404)
         self.assertEqual({p:sha256(p) for p in before},before)
 
     def test_twenty_thousand_object_page_is_bounded_without_full_graph_loading(self):
